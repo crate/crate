@@ -58,20 +58,19 @@ import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.index.AtomicReader;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.queries.BooleanFilter;
-import org.apache.lucene.queries.TermsFilter;
+import org.apache.lucene.queries.TermsQuery;
 import org.apache.lucene.sandbox.queries.regex.JavaUtilRegexCapabilities;
 import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
+import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
 import org.apache.lucene.spatial.query.SpatialArgs;
 import org.apache.lucene.spatial.query.SpatialOperation;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.RegExp;
-import org.apache.xbean.finder.filter.Filters;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
@@ -83,23 +82,19 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.lucene.docset.MatchDocIdSet;
-import org.elasticsearch.common.lucene.search.MatchNoDocsFilter;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.common.lucene.search.RegexpFilter;
-import org.elasticsearch.common.lucene.search.XConstantScoreQuery;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
-import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.mapper.geo.GeoPointFieldMapper;
 import org.elasticsearch.index.mapper.geo.GeoShapeFieldMapper;
 import org.elasticsearch.index.query.RegexpFlag;
-import org.elasticsearch.index.search.geo.GeoDistanceRangeFilter;
-import org.elasticsearch.index.search.geo.GeoPolygonFilter;
-import org.elasticsearch.index.search.geo.InMemoryGeoBoundingBoxFilter;
+import org.elasticsearch.index.search.geo.GeoDistanceRangeQuery;
+import org.elasticsearch.index.search.geo.GeoPolygonQuery;
+import org.elasticsearch.index.search.geo.InMemoryGeoBoundingBoxQuery;
 
 import java.io.IOException;
 import java.util.*;
@@ -139,7 +134,15 @@ public class LuceneQueryBuilder {
         return ctx;
     }
 
-    private static Filter termsFilter(String columnName, Literal arrayLiteral) {
+    private static Query termsQuery(String columnName, Literal arrayLiteral) {
+        List<Term> terms = getTerms(columnName, arrayLiteral);
+        if (terms.isEmpty()) {
+            return new MatchNoDocsQuery();
+        }
+        return new TermsQuery(terms);
+    }
+
+    private static List<Term> getTerms(String columnName, Literal arrayLiteral) {
         Object values = arrayLiteral.value();
         Collection valueCollection;
         if (values instanceof Collection) {
@@ -147,11 +150,7 @@ public class LuceneQueryBuilder {
         } else {
             valueCollection = Arrays.asList((Object[]) values);
         }
-        List<Term> terms = asTerms(columnName, valueCollection, TermBuilder.forType(arrayLiteral.valueType()));
-        if (terms.isEmpty()) {
-            return new MatchNoDocsFilter();
-        }
-        return new TermsFilter(terms);
+        return asTerms(columnName, valueCollection, TermBuilder.forType(arrayLiteral.valueType()));
     }
 
     private static List<Term> asTerms(String columnName, Collection values, TermBuilder termBuilder) {
@@ -320,7 +319,7 @@ public class LuceneQueryBuilder {
             @Override
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 String columnName = reference.ident().columnIdent().fqn();
-                return new FilteredQuery(Queries.newMatchAllQuery(), termsFilter(columnName, arrayLiteral));
+                return termsQuery(columnName, arrayLiteral);
             }
         }
 
@@ -333,7 +332,7 @@ public class LuceneQueryBuilder {
                 Object value = literal.value();
 
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(arrayReference.valueType());
-                BooleanQuery query = new BooleanQuery();
+                BooleanQuery.Builder query = new BooleanQuery.Builder();
                 query.setMinimumNumberShouldMatch(1);
                 query.add(
                         builder.rangeQuery(columnName, value, null, false, false),
@@ -343,23 +342,20 @@ public class LuceneQueryBuilder {
                         builder.rangeQuery(columnName, null, value, false, false),
                         BooleanClause.Occur.SHOULD
                 );
-                return query;
+                return query.build();
             }
 
             @Override
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
                 String columnName = reference.info().ident().columnIdent().fqn();
-                QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
-                BooleanFilter filter = new BooleanFilter();
+                QueryBuilderHelper helper = QueryBuilderHelper.forType(reference.valueType());
 
-                BooleanFilter notFilter = new BooleanFilter();
+                BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
                 for (Object value : toIterable(arrayLiteral.value())) {
-                    notFilter.add(builder.eqFilter(columnName, value), BooleanClause.Occur.MUST);
+                    andBuilder.add(helper.eq(columnName, value), BooleanClause.Occur.MUST);
                 }
-                filter.add(notFilter, BooleanClause.Occur.MUST_NOT);
-
-                return new FilteredQuery(Queries.newMatchAllQuery(), filter);
+                return Queries.not(andBuilder.build());
             }
         }
 
@@ -381,37 +377,35 @@ public class LuceneQueryBuilder {
             @Override
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
-                BooleanQuery query = new BooleanQuery();
-                BooleanQuery notQuery = new BooleanQuery();
-
                 String columnName = reference.ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
+
+                BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
                 for (Object value : toIterable(arrayLiteral.value())) {
-                    notQuery.add(builder.like(columnName, value, context.indexCache.filter()), BooleanClause.Occur.MUST);
+                    andLikeQueries.add(builder.like(columnName, value, context.indexCache.query()), BooleanClause.Occur.MUST);
                 }
-                query.add(notQuery, BooleanClause.Occur.MUST_NOT);
-                return query;
+                return Queries.not(andLikeQueries.build());
             }
         }
 
         static class AnyLikeQuery extends AbstractAnyQuery {
 
-            private final LikeQuery likeQuery = new LikeQuery();
+            private static final LikeQuery LIKE_QUERY = new LikeQuery();
 
             @Override
             protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
-                return likeQuery.toQuery(arrayReference, literal.value(), context);
+                return LIKE_QUERY.toQuery(arrayReference, literal.value(), context);
             }
 
             @Override
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 // col like ANY (['a', 'b']) --> or(like(col, 'a'), like(col, 'b'))
-                BooleanQuery booleanQuery = new BooleanQuery();
+                BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                 booleanQuery.setMinimumNumberShouldMatch(1);
                 for (Object value : toIterable(arrayLiteral.value())) {
-                    booleanQuery.add(likeQuery.toQuery(reference, value, context), BooleanClause.Occur.SHOULD);
+                    booleanQuery.add(LIKE_QUERY.toQuery(reference, value, context), BooleanClause.Occur.SHOULD);
                 }
-                return booleanQuery;
+                return booleanQuery.build();
             }
         }
 
@@ -427,9 +421,10 @@ public class LuceneQueryBuilder {
             }
 
             public Query toQuery(Reference reference, Object value, Context context) {
+
                 String columnName = reference.info().ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
-                return builder.like(columnName, value, context.indexCache.filter());
+                return builder.like(columnName, value, context.indexCache.query());
             }
         }
 
@@ -443,13 +438,7 @@ public class LuceneQueryBuilder {
                 }
                 String field = tuple.v1().info().ident().columnIdent().fqn();
                 Literal literal = tuple.v2();
-                CollectionType dataType = ((CollectionType) literal.valueType());
-
-                Set values = (Set) literal.value();
-                DataType innerType = dataType.innerType();
-                BytesRef[] terms = getBytesRefs(values, TermBuilder.forType(innerType));
-                TermsFilter termsFilter = new TermsFilter(field, terms);
-                return new FilteredQuery(Queries.newMatchAllQuery(), termsFilter);
+                return termsQuery(field, literal);
             }
         }
 
@@ -459,12 +448,7 @@ public class LuceneQueryBuilder {
             public Query apply(Function input, Context context) {
                 assert input != null;
                 assert input.arguments().size() == 1;
-                BooleanQuery query = new BooleanQuery();
-
-                query.add(process(input.arguments().get(0), context), BooleanClause.Occur.MUST_NOT);
-                query.add(Queries.newMatchAllQuery(), BooleanClause.Occur.MUST);
-
-                return query;
+                return Queries.not(process(input.arguments().get(0), context));
             }
         }
 
@@ -482,10 +466,7 @@ public class LuceneQueryBuilder {
 
                 String columnName = reference.info().ident().columnIdent().fqn();
                 QueryBuilderHelper builderHelper = QueryBuilderHelper.forType(reference.valueType());
-                BooleanFilter boolFilter = new BooleanFilter();
-                boolFilter.add(builderHelper.rangeFilter(columnName, null, null, true, true),
-                        BooleanClause.Occur.MUST_NOT);
-                return new FilteredQuery(Queries.newMatchAllQuery(), boolFilter);
+                return Queries.not(builderHelper.rangeQuery(columnName, null, null, true, true));
             }
         }
 
@@ -501,51 +482,22 @@ public class LuceneQueryBuilder {
                 Literal literal = tuple.v2();
                 String columnName = reference.info().ident().columnIdent().fqn();
                 if (DataTypes.isCollectionType(reference.valueType()) && DataTypes.isCollectionType(literal.valueType())) {
-
-                    // create boolean filter with term filters to pre-filter the result before applying the functionQuery.
-                    BooleanFilter boolTermsFilter = new BooleanFilter();
-                    DataType type = literal.valueType();
-                    while (DataTypes.isCollectionType(type)) {
-                        type = ((CollectionType) type).innerType();
+                    List<Term> terms = getTerms(columnName, literal);
+                    if (terms.isEmpty()) {
+                        return genericFunctionFilter(input, context);
                     }
-                    QueryBuilderHelper builder = QueryBuilderHelper.forType(type);
-                    Object value = literal.value();
-                    buildTermsQuery(boolTermsFilter, value, columnName, builder);
-
-                    if (boolTermsFilter.clauses().isEmpty()) {
-                        // all values are null...
-                        return genericFunctionQuery(input, context);
-                    }
+                    Query termsQuery = new TermsQuery(terms);
 
                     // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
                     // termsFilter is applied first
                     // afterwards the more expensive genericFunctionFilter
-                    BooleanFilter filterClauses = new BooleanFilter();
-                    filterClauses.add(boolTermsFilter, BooleanClause.Occur.MUST);
-                    filterClauses.add(
-                            genericFunctionFilter(input, context),
-                            BooleanClause.Occur.MUST);
-                    return new FilteredQuery(Queries.newMatchAllQuery(), filterClauses);
+                    BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
+                    filterClauses.add(termsQuery, BooleanClause.Occur.MUST);
+                    filterClauses.add(genericFunctionFilter(input, context), BooleanClause.Occur.MUST);
+                    return filterClauses.build();
                 }
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
                 return builder.eq(columnName, tuple.v2().value());
-            }
-
-            private void buildTermsQuery(BooleanFilter booleanFilter,
-                                            Object value,
-                                            String columnName,
-                                            QueryBuilderHelper builder) {
-                if (value == null) {
-                    return;
-                }
-                if (value.getClass().isArray()) {
-                    Object[] array = (Object[]) value;
-                    for (Object o : array) {
-                        buildTermsQuery(booleanFilter, o, columnName, builder);
-                    }
-                } else {
-                    booleanFilter.add(builder.eqFilter(columnName, value), BooleanClause.Occur.MUST);
-                }
             }
         }
 
@@ -553,11 +505,11 @@ public class LuceneQueryBuilder {
             @Override
             public Query apply(Function input, Context context) {
                 assert input != null;
-                BooleanQuery query = new BooleanQuery();
+                BooleanQuery.Builder query = new BooleanQuery.Builder();
                 for (Symbol symbol : input.arguments()) {
                     query.add(process(symbol, context), BooleanClause.Occur.MUST);
                 }
-                return query;
+                return query.build();
             }
         }
 
@@ -565,12 +517,12 @@ public class LuceneQueryBuilder {
             @Override
             public Query apply(Function input, Context context) {
                 assert input != null;
-                BooleanQuery query = new BooleanQuery();
+                BooleanQuery.Builder query = new BooleanQuery.Builder();
                 query.setMinimumNumberShouldMatch(1);
                 for (Symbol symbol : input.arguments()) {
                     query.add(process(symbol, context), BooleanClause.Occur.SHOULD);
                 }
-                return query;
+                return query.build();
             }
         }
 
@@ -597,12 +549,12 @@ public class LuceneQueryBuilder {
             @Override
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 // col < ANY ([1,2,3]) --> or(col<1, col<2, col<3)
-                BooleanQuery booleanQuery = new BooleanQuery();
+                BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                 booleanQuery.setMinimumNumberShouldMatch(1);
                 for (Object value : toIterable(arrayLiteral.value())) {
                     booleanQuery.add(inverseRangeQuery.toQuery(reference, reference.valueType(), value), BooleanClause.Occur.SHOULD);
                 }
-                return booleanQuery;
+                return booleanQuery.build();
             }
         }
 
@@ -693,16 +645,35 @@ public class LuceneQueryBuilder {
 
                 Map fields = (Map) ((Literal) arguments.get(0)).value();
                 String fieldName = ((String) Iterables.getOnlyElement(fields.keySet()));
-                FieldMapper fieldMapper = context.mapperService.smartNameFieldMapper(fieldName);
-                GeoShapeFieldMapper geoShapeFieldMapper = (GeoShapeFieldMapper) fieldMapper;
+                MappedFieldType fieldType = context.mapperService.smartNameFieldType(fieldName);
+                GeoShapeFieldMapper.GeoShapeFieldType geoShapeFieldType = (GeoShapeFieldMapper.GeoShapeFieldType) fieldType;
                 String matchType = ((BytesRef) ((Input) arguments.get(2)).value()).utf8ToString();
                 @SuppressWarnings("unchecked")
                 Shape shape = GeoJSONUtils.map2Shape(((Map<String, Object>) ((Input) queryTerm).value()));
 
                 ShapeRelation relation = ShapeRelation.getRelationByName(matchType);
                 assert relation != null : "invalid matchType: " + matchType;
+
+                PrefixTreeStrategy prefixTreeStrategy = geoShapeFieldType.defaultStrategy();
+                if (relation == ShapeRelation.DISJOINT) {
+                    /**
+                     * See {@link org.elasticsearch.index.query.GeoShapeQueryParser}:
+                     */
+                    // this strategy doesn't support disjoint anymore: but it did before, including creating lucene fieldcache (!)
+                    // in this case, execute disjoint as exists && !intersects
+
+                    BooleanQuery.Builder bool = new BooleanQuery.Builder();
+
+                    Query exists = new TermRangeQuery(fieldName, null, null, true, true);
+
+                    Filter intersects = prefixTreeStrategy.makeFilter(getArgs(shape, ShapeRelation.INTERSECTS));
+                    bool.add(exists, BooleanClause.Occur.MUST);
+                    bool.add(intersects, BooleanClause.Occur.MUST_NOT);
+                    return new ConstantScoreQuery(bool.build());
+                }
+
                 SpatialArgs spatialArgs = getArgs(shape, relation);
-                return geoShapeFieldMapper.defaultStrategy().makeQuery(spatialArgs);
+                return prefixTreeStrategy.makeQuery(spatialArgs);
             }
 
             private SpatialArgs getArgs(Shape shape, ShapeRelation relation) {
@@ -747,11 +718,8 @@ public class LuceneQueryBuilder {
         static class RegexpMatchQuery extends CmpQuery {
 
             private Query toLuceneRegexpQuery(String fieldName, BytesRef value, Context context) {
-                return new XConstantScoreQuery(
-                        context.indexCache.filter().cache(
-                                new RegexpFilter(new Term(fieldName, value), RegExp.ALL)
-                        )
-                );
+                return new ConstantScoreQuery(
+                        new RegexpQuery(new Term(fieldName, value), RegExp.ALL));
             }
 
             @Override
@@ -831,9 +799,7 @@ public class LuceneQueryBuilder {
                 if (query == null) return null;
                 Boolean negate = !(Boolean) outerPair.input().value();
                 if (negate) {
-                    BooleanQuery booleanQuery = new BooleanQuery();
-                    booleanQuery.add(query, BooleanClause.Occur.MUST_NOT);
-                    return booleanQuery;
+                    return Queries.not(query);
                 } else {
                     return query;
                 }
@@ -846,20 +812,19 @@ public class LuceneQueryBuilder {
                 }
                 if (innerPair.reference().valueType().equals(DataTypes.GEO_SHAPE)) {
                     // we have within('POINT(0 0)', shape_column)
-                    return genericFunctionQuery(inner, context);
+                    return genericFunctionFilter(inner, context);
                 }
-                GeoPointFieldMapper mapper = getGeoPointFieldMapper(
-                        innerPair.reference().info().ident().columnIdent().fqn(),
-                        context.mapperService
-                );
+                GeoPointFieldMapper.GeoPointFieldType geoPointFieldType = getGeoPointFieldType(
+                        innerPair.reference().ident().columnIdent().fqn(),
+                        context.mapperService);
+
                 Map<String, Object> geoJSON = (Map<String, Object>) innerPair.input().value();
                 Shape shape = GeoJSONUtils.map2Shape(geoJSON);
                 Geometry geometry = JtsSpatialContext.GEO.getGeometryFrom(shape);
-                IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(mapper);
-                Filter filter;
+                IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(geoPointFieldType);
                 if (geometry.isRectangle()) {
                     Rectangle boundingBox = shape.getBoundingBox();
-                    filter = new InMemoryGeoBoundingBoxFilter(
+                    return new InMemoryGeoBoundingBoxQuery(
                             new GeoPoint(boundingBox.getMaxY(), boundingBox.getMinX()),
                             new GeoPoint(boundingBox.getMinY(), boundingBox.getMaxX()),
                             fieldData
@@ -871,9 +836,8 @@ public class LuceneQueryBuilder {
                         Coordinate coordinate = coordinates[i];
                         points[i] = new GeoPoint(coordinate.y, coordinate.x);
                     }
-                    filter = new GeoPolygonFilter(fieldData, points);
+                    return new GeoPolygonQuery(fieldData, points);
                 }
-                return new FilteredQuery(Queries.newMatchAllQuery(), context.indexCache.filter().cache(filter));
             }
 
             @Override
@@ -912,9 +876,8 @@ public class LuceneQueryBuilder {
                 Double distance = DataTypes.DOUBLE.value(functionLiteralPair.input().value());
 
                 String fieldName = distanceRefLiteral.reference().info().ident().columnIdent().fqn();
-                FieldMapper mapper = getGeoPointFieldMapper(fieldName, context.mapperService);
-                GeoPointFieldMapper geoMapper = ((GeoPointFieldMapper) mapper);
-                IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(mapper);
+                GeoPointFieldMapper.GeoPointFieldType geoPointFieldType = getGeoPointFieldType(fieldName, context.mapperService);
+                IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(geoPointFieldType);
 
                 Input geoPointInput = distanceRefLiteral.input();
                 Double[] pointValue = (Double[]) geoPointInput.value();
@@ -954,31 +917,29 @@ public class LuceneQueryBuilder {
                         return null;
                 }
                 GeoPoint geoPoint = new GeoPoint(lat, lon);
-                Filter filter = new GeoDistanceRangeFilter(
+
+                return new GeoDistanceRangeQuery(
                         geoPoint,
                         from,
                         to,
                         includeLower,
                         includeUpper,
                         GEO_DISTANCE,
-                        geoMapper,
+                        geoPointFieldType,
                         fieldData,
-                        OPTIMIZE_BOX
-                );
-                return new FilteredQuery(Queries.newMatchAllQuery(), context.indexCache.filter().cache(filter));
+                        OPTIMIZE_BOX);
             }
         }
 
-        private static GeoPointFieldMapper getGeoPointFieldMapper(String fieldName, MapperService mapperService) {
-            MapperService.SmartNameFieldMappers smartMappers = mapperService.smartName(fieldName);
-            if (smartMappers == null || !smartMappers.hasMapper()) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "column \"%s\" doesn't exist", fieldName));
+        private static GeoPointFieldMapper.GeoPointFieldType getGeoPointFieldType(String fieldName, MapperService mapperService) {
+            MappedFieldType fieldType =  mapperService.smartNameFieldType(fieldName);
+            if (fieldType == null) {
+                throw new IllegalArgumentException(String.format("column \"%s\" doesn't exist", fieldName));
             }
-            FieldMapper mapper = smartMappers.mapper();
-            if (!(mapper instanceof GeoPointFieldMapper)) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "column \"%s\" isn't of type geo_point", fieldName));
+            if (!(fieldType instanceof GeoPointFieldMapper.GeoPointFieldType)) {
+                throw new IllegalArgumentException(String.format("column \"%s\" isn't of type geo_point", fieldName));
             }
-            return (GeoPointFieldMapper) mapper;
+            return (GeoPointFieldMapper.GeoPointFieldType) fieldType;
         }
 
         private static final EqQuery eqQuery = new EqQuery();
@@ -1030,7 +991,7 @@ public class LuceneQueryBuilder {
 
             FunctionToQuery toQuery = functions.get(function.info().ident().name());
             if (toQuery == null) {
-                return genericFunctionQuery(function, context);
+                return genericFunctionFilter(function, context);
             }
 
             Query query;
@@ -1039,12 +1000,12 @@ public class LuceneQueryBuilder {
             } catch (IOException e) {
                 throw ExceptionsHelper.convertToRuntime(e);
             } catch (UnsupportedOperationException e) {
-                return genericFunctionQuery(function, context);
+                return genericFunctionFilter(function, context);
             }
             if (query == null) {
                 query = queryFromInnerFunction(function, context);
                 if (query == null) {
-                    return genericFunctionQuery(function, context);
+                    return genericFunctionFilter(function, context);
                 }
             }
             return query;
@@ -1139,58 +1100,84 @@ public class LuceneQueryBuilder {
             for (LuceneCollectorExpression expression : expressions) {
                 expression.startCollect(collectorContext);
             }
-            return new FunctionFilter(expressions, collectorContext, condition);
-        }
-
-        private static Query genericFunctionQuery(Function function, Context context) {
-            return new FilteredQuery(Queries.newMatchAllQuery(), genericFunctionFilter(function, context));
+            return new FunctionFilter(function, expressions, collectorContext, condition);
         }
 
         public static class FunctionFilter extends Filter {
+
+            private final Function function;
             private final List<LuceneCollectorExpression> expressions;
             private final CollectorContext collectorContext;
             private final Input<Boolean> condition;
 
-            public FunctionFilter(List<LuceneCollectorExpression> expressions, CollectorContext collectorContext, Input<Boolean> condition) {
+            public FunctionFilter(Function function,
+                                  List<LuceneCollectorExpression> expressions,
+                                  CollectorContext collectorContext,
+                                  Input<Boolean> condition) {
+                this.function = function;
                 this.expressions = expressions;
                 this.collectorContext = collectorContext;
                 this.condition = condition;
             }
 
             @Override
-            public DocIdSet getDocIdSet(AtomicReaderContext context, Bits acceptDocs) throws IOException {
+            public DocIdSet getDocIdSet(final LeafReaderContext context, Bits acceptDocs) throws IOException {
                 for (LuceneCollectorExpression expression : expressions) {
                     expression.setNextReader(context.reader().getContext());
                 }
+                DocIdSet docIdSet = new DocIdSet() {
+
+                    @Override
+                    public long ramBytesUsed() {
+                        return 0; // FIXME
+                    }
+
+                    @Override
+                    public DocIdSetIterator iterator() throws IOException {
+                        return DocIdSetIterator.all(context.reader().maxDoc());
+                    }
+                };
                 return BitsFilteredDocIdSet.wrap(
                         new FunctionDocSet(
                                 context.reader(),
                                 collectorContext.visitor(),
                                 condition,
                                 expressions,
-                                context.reader().maxDoc(),
-                                acceptDocs
+                                docIdSet
                         ),
                         acceptDocs
                 );
             }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                if (!super.equals(o)) return false;
+                FunctionFilter that = (FunctionFilter) o;
+                return Objects.equals(function, that.function);
+            }
+
+            @Override
+            public String toString(String field) {
+                return field;
+            }
         }
 
-        static class FunctionDocSet extends MatchDocIdSet {
+        static class FunctionDocSet extends FilteredDocIdSet {
 
-            private final AtomicReader reader;
+            private final LeafReader reader;
             private final CollectorFieldsVisitor fieldsVisitor;
             private final Input<Boolean> condition;
             private final List<LuceneCollectorExpression> expressions;
             private final boolean fieldsVisitorEnabled;
 
-            protected FunctionDocSet(AtomicReader reader,
+            protected FunctionDocSet(LeafReader reader,
                                      @Nullable CollectorFieldsVisitor fieldsVisitor,
                                      Input<Boolean> condition,
                                      List<LuceneCollectorExpression> expressions,
-                                     int maxDoc,
-                                     @Nullable Bits acceptDocs) {
-                super(maxDoc, acceptDocs);
+                                     DocIdSet docIdSet) {
+                super(docIdSet);
                 this.reader = reader;
                 this.fieldsVisitor = fieldsVisitor;
                 //noinspection SimplifiableConditionalExpression
@@ -1200,7 +1187,7 @@ public class LuceneQueryBuilder {
             }
 
             @Override
-            protected boolean matchDoc(int doc) {
+            protected boolean match(int doc) {
                 if (fieldsVisitorEnabled) {
                     fieldsVisitor.reset();
                     try {
@@ -1322,27 +1309,5 @@ public class LuceneQueryBuilder {
         public Input input() {
             return input;
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static BytesRef[] getBytesRefs(Object[] values, TermBuilder termBuilder) {
-        BytesRef[] terms = new BytesRef[values.length];
-        int i = 0;
-        for (Object value : values) {
-            terms[i] = termBuilder.term(value);
-            i++;
-        }
-        return terms;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static BytesRef[] getBytesRefs(Collection values, TermBuilder termBuilder) {
-        BytesRef[] terms = new BytesRef[values.size()];
-        int i = 0;
-        for (Object value : values) {
-            terms[i] = termBuilder.term(value);
-            i++;
-        }
-        return terms;
     }
 }

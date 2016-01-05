@@ -12,6 +12,20 @@ plugins {
 }
 
 
+def download (File downloadDir, String url, String name){
+    downloadDir.mkdirs()
+    def dest = new File(downloadDir, name)
+    ant.get(
+            src: url,
+            verbose: true,
+            usetimestamp: true,
+            skipexisting: true,
+            dest: dest
+    )
+    return dest;
+}
+
+
 allprojects {
     apply plugin: 'idea'
     apply plugin: 'findbugs'

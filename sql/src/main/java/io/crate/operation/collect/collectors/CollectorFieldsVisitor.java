@@ -36,6 +36,8 @@ public class CollectorFieldsVisitor extends FieldsVisitor {
     private boolean required = false;
 
     public CollectorFieldsVisitor(int size) {
+        //TODO: FIX ME! check if loadSource should be false or true
+        super(false);
         requiredFields = new HashSet<>(size);
     }
 

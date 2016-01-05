@@ -26,9 +26,9 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.operation.count.CountOperation;
+import io.crate.test.CauseMatcher;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
-import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -67,7 +67,7 @@ public class CountContextTest extends CrateUnitTest {
         countContext.start();
         future.setException(new UnknownUpstreamFailure());
         assertTrue(countContext.future().closed());
-        expectedException.expectCause(TestingHelpers.cause(UnknownUpstreamFailure.class));
+        expectedException.expectCause(CauseMatcher.cause(UnknownUpstreamFailure.class));
         countContext.future().get(500, TimeUnit.MILLISECONDS);
     }
 

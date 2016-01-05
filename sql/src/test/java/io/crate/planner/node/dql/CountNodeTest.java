@@ -26,7 +26,7 @@ import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -53,7 +53,7 @@ public class CountNodeTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput(10);
         countNode.writeTo(out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
 
         CountPhase streamedNode = CountPhase.FACTORY.create();
         streamedNode.readFrom(in);

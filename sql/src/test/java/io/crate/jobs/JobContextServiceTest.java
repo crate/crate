@@ -30,7 +30,7 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -55,7 +55,7 @@ import static org.mockito.Mockito.when;
 public class JobContextServiceTest extends CrateUnitTest {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     private final ThreadPool testThreadPool = new ThreadPool(getClass().getSimpleName());
     private JobContextService jobContextService;
@@ -67,7 +67,7 @@ public class JobContextServiceTest extends CrateUnitTest {
     @Before
     public void prepare() throws Exception {
         jobContextService  = new JobContextService(
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 testThreadPool,
                 mock(StatsTables.class),
                 new LocalReaper(testThreadPool),
@@ -132,7 +132,7 @@ public class JobContextServiceTest extends CrateUnitTest {
             }
         });
         JobContextService jobContextService = new JobContextService(
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 threadPool,
                 mock(StatsTables.class),
                 new LocalReaper(threadPool),
@@ -289,7 +289,7 @@ public class JobContextServiceTest extends CrateUnitTest {
     @Test
     public void testKeepAliveExpiration() throws Exception {
         JobContextService jobContextService1 = new JobContextService(
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 testThreadPool,
                 mock(StatsTables.class),
                 new LocalReaper(testThreadPool),

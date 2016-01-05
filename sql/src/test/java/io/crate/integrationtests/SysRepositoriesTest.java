@@ -26,7 +26,6 @@ import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryResponse;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryResponse;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
@@ -52,7 +51,7 @@ public class SysRepositoriesTest extends SQLTransportIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder()
+        return Settings.settingsBuilder()
                 .put(super.nodeSettings(nodeOrdinal))
                 .put("path.repo", TEMP_FOLDER.getRoot().getAbsolutePath())
                 .build();
@@ -75,7 +74,7 @@ public class SysRepositoriesTest extends SQLTransportIntegrationTest {
     private void createRepository(String name) {
         PutRepositoryResponse putRepositoryResponse = client().admin().cluster().preparePutRepository(name)
                 .setType("fs")
-                .setSettings(ImmutableSettings.settingsBuilder()
+                .setSettings(Settings.settingsBuilder()
                                 .put("location", new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath())
                                 .put("chunk_size", "5k")
                                 .put("compress", false)

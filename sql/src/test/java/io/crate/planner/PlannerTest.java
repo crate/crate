@@ -47,19 +47,30 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.commons.math3.ml.clustering.Cluster;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.*;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.DummyTransportAddress;
+import org.elasticsearch.common.transport.LocalTransportAddress;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
@@ -73,6 +84,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.*;
+import static org.elasticsearch.test.ESAllocationTestCase.createAllocationService;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.anyBoolean;
@@ -161,11 +173,15 @@ public class PlannerTest extends CrateUnitTest {
                 .thenReturn(generatedPartitionedTableInfo);
     }
 
+    private static DiscoveryNode newNode(String nodeId) {
+        return new DiscoveryNode(nodeId, DummyTransportAddress.INSTANCE, Version.CURRENT);
+    }
 
     class TestModule extends MetaDataModule {
 
         @Override
         protected void configure() {
+            bind(IndexNameExpressionResolver.class).toInstance(new IndexNameExpressionResolver(Settings.EMPTY));
             bind(RepositoryService.class).toInstance(mock(RepositoryService.class));
             bind(TableStatsService.class).toInstance(mock(TableStatsService.class));
             bind(ThreadPool.class).toInstance(threadPool);
@@ -282,36 +298,25 @@ public class PlannerTest extends CrateUnitTest {
         }
 
         private SchemaInfo mockSysSchemaInfo() {
-            DiscoveryNodes.Builder nodeBuilder = DiscoveryNodes.builder();
-            nodeBuilder.put(new DiscoveryNode("nodeOne", null, Version.CURRENT));
-            nodeBuilder.put(new DiscoveryNode("nodeTwo", null, Version.CURRENT));
-
-            List<ShardRouting> routings = ImmutableList.<ShardRouting>builder()
-                    .add(new ImmutableShardRouting("parted", 1, "nodeOne", true, ShardRoutingState.STARTED, 0L))
-                    .add(new ImmutableShardRouting("parted", 2, "nodeTwo", true, ShardRoutingState.STARTED, 0L))
+            MetaData metaData = MetaData.builder()
+                    .put(IndexMetaData.builder("parted").settings(settings(Version.CURRENT)).numberOfShards(2).numberOfReplicas(0))
                     .build();
-            ArrayList<ShardIterator> set = new ArrayList<>();
-            for (ShardRouting shardRouting : routings) {
-                set.add(shardRouting.shardsIt());
-            }
+            RoutingTable routingTable = RoutingTable.builder()
+                    .addAsNew(metaData.index("parted")).build();
+            ClusterState state = ClusterState
+                    .builder(org.elasticsearch.cluster.ClusterName.DEFAULT)
+                    .metaData(metaData)
+                    .routingTable(routingTable)
+                    .build();
 
-            ClusterService clusterService = mock(ClusterService.class);
-            ClusterState clusterState = mock(ClusterState.class);
-            when(clusterService.localNode()).thenReturn(new DiscoveryNode("foo", null, Version.CURRENT));
-            when(clusterService.state()).thenReturn(clusterState);
-            when(clusterState.nodes()).thenReturn(nodeBuilder.build());
-            MetaData metaData = mock(MetaData.class);
-            String[] concreteIndices = new String[]{"parted"};
-            when(metaData.concreteAllIndices()).thenReturn(concreteIndices);
-            when(clusterState.metaData()).thenReturn(metaData);
-            when(clusterState.getMetaData()).thenReturn(metaData);
+            state = ClusterState.builder(state).nodes(
+                    DiscoveryNodes.builder().put(newNode("nodeOne")).put(newNode("nodeTwo")).localNodeId("nodeOne")).build();
 
+            AllocationService allocationService = createAllocationService();
+            routingTable = allocationService.reroute(state).routingTable();
+            state = ClusterState.builder(state).routingTable(routingTable).build();
 
-            RoutingTable routingTable = mock(RoutingTable.class);
-            when(clusterState.routingTable()).thenReturn(routingTable);
-            when(clusterState.getRoutingTable()).thenReturn(routingTable);
-            when(routingTable.allAssignedShardsGrouped(eq(concreteIndices), anyBoolean(), anyBoolean()))
-                    .thenReturn(new GroupShardsIterator(set));
+            ClusterService clusterService = new NoopClusterService(state);
             return new SysSchemaInfo(clusterService);
         }
     }

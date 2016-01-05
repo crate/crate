@@ -43,7 +43,7 @@ public class OdbcIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     private SQLRequestBuilder quotedRequest(String stmt) {
-        SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client());
+        SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client(), SQLAction.INSTANCE);
         requestBuilder.stmt(stmt);
         // Set Odbc flag
         requestBuilder.addFlagsToRequestHeader(SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT);

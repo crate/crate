@@ -60,13 +60,15 @@ public class SQLService extends AbstractLifecycleComponent<SQLService> {
 
     }
 
-    @Override
+    // TODO: FIX ME! still needed?
+    //@Override
     protected void doEnable() throws ElasticsearchException {
         transportSQLAction.enable();
         transportSQLBulkAction.enable();
     }
 
-    @Override
+    // TODO: FIX ME! still needed?
+    //@Override
     protected void doDisable() throws ElasticsearchException {
         transportSQLAction.disable();
         transportSQLBulkAction.disable();

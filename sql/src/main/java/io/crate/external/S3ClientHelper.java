@@ -29,7 +29,7 @@ import com.amazonaws.retry.PredefinedRetryPolicies;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntObjectHashMap;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -66,7 +66,7 @@ public class S3ClientHelper {
 
     private final static String INVALID_URI_MSG = "Invalid URI. Please make sure that given URI is encoded properly.";
 
-    private final IntObjectMap<AmazonS3> clientMap = new IntObjectOpenHashMap<>(1);
+    private final IntObjectMap<AmazonS3> clientMap = new IntObjectHashMap<>(1);
 
     protected AmazonS3 initClient(@Nullable String accessKey, @Nullable String secretKey) throws IOException {
         if (accessKey == null || secretKey == null) {

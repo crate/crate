@@ -37,13 +37,14 @@ import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
+import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nullable;
@@ -64,11 +65,13 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
             TransportService transportService,
             StatsTables statsTables,
             ActionFilters actionFilters,
+            IndexNameExpressionResolver indexNameExpressionResolver,
             TransportKillJobsNodeAction transportKillJobsNodeAction) {
         super(clusterService, settings, SQLAction.NAME, threadPool,
                 analyzer, planner, executor, statsTables, actionFilters,
-                transportKillJobsNodeAction);
-        transportService.registerHandler(SQLAction.NAME, new TransportHandler());
+                indexNameExpressionResolver, transportKillJobsNodeAction);
+
+        transportService.registerRequestHandler(SQLAction.NAME, SQLRequest.class, ThreadPool.Names.SAME, new TransportHandler());
     }
 
     @Override
@@ -124,24 +127,11 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
         );
     }
 
-    private class TransportHandler extends BaseTransportRequestHandler<SQLRequest> {
-
-        @Override
-        public SQLRequest newInstance() {
-            return new SQLRequest();
-        }
-
+    private class TransportHandler implements TransportRequestHandler<SQLRequest> {
         @Override
         public void messageReceived(SQLRequest request, final TransportChannel channel) throws Exception {
-            // no need for a threaded listener
-            request.listenerThreaded(false);
             ActionListener<SQLResponse> listener = ResponseForwarder.forwardTo(channel);
             execute(request, listener);
-        }
-
-        @Override
-        public String executor() {
-            return ThreadPool.Names.SAME;
         }
     }
 }

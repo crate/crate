@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.HashMap;
@@ -31,12 +30,12 @@ import java.util.Map;
 public class TableParameter {
 
 
-    private ImmutableSettings.Builder settingsBuilder;
+    private Settings.Builder settingsBuilder;
     private Settings settings;
     private final Map<String, Object> mappings = new HashMap<>();
 
     public TableParameter() {
-        settingsBuilder = ImmutableSettings.builder();
+        settingsBuilder = Settings.builder();
     }
 
     public TableParameter(Settings settings, List<String> settingsFilter) {
@@ -49,7 +48,7 @@ public class TableParameter {
         }
     }
 
-    public ImmutableSettings.Builder settingsBuilder() {
+    public Settings.Builder settingsBuilder() {
         return settingsBuilder;
     }
 

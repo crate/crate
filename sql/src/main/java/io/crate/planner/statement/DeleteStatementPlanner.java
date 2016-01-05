@@ -51,7 +51,7 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.DeleteProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.routing.operation.plain.Preference;
+import org.elasticsearch.cluster.routing.Preference;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;

@@ -22,7 +22,7 @@
 package io.crate.planner.distribution;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -37,7 +37,7 @@ public class DistributionInfoTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput(10);
         distributionInfo.writeTo(out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         DistributionInfo streamed = DistributionInfo.fromStream(in);
 
         assertThat(streamed, equalTo(distributionInfo));
@@ -50,7 +50,7 @@ public class DistributionInfoTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput(10);
         distributionInfo.writeTo(out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         DistributionInfo streamed = DistributionInfo.fromStream(in);
 
         assertThat(streamed, equalTo(distributionInfo));

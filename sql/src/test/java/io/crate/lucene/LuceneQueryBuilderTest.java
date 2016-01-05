@@ -41,39 +41,40 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.queries.BooleanFilter;
 import org.apache.lucene.queries.TermsFilter;
+import org.apache.lucene.queries.TermsQuery;
 import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
-import org.apache.lucene.spatial.DisjointSpatialFilter;
 import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeFilter;
 import org.apache.lucene.spatial.prefix.WithinPrefixTreeFilter;
-import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
-import org.elasticsearch.common.lucene.search.RegexpFilter;
-import org.elasticsearch.common.lucene.search.XConstantScoreQuery;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.compress.CompressedXContent;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.cache.IndexCache;
-import org.elasticsearch.index.cache.filter.FilterCache;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
-import org.elasticsearch.index.mapper.*;
-import org.elasticsearch.index.mapper.geo.GeoPointFieldMapper;
-import org.elasticsearch.index.mapper.geo.GeoShapeFieldMapper;
+import org.elasticsearch.index.mapper.DocumentMapper;
+import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Answers;
-import org.mockito.Matchers;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.*;
+import static org.elasticsearch.index.mapper.core.MapperTestUtils.newMapperService;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
 
 public class LuceneQueryBuilderTest extends CrateUnitTest {
 
@@ -82,6 +83,9 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     private IndexCache indexCache;
     private SqlExpressions expressions;
     private EvaluatingNormalizer normalizer;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Before
     public void prepare() throws Exception {
@@ -103,35 +107,26 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         builder = new LuceneQueryBuilder(expressions.getInstance(Functions.class));
 
         searchContext = mock(SearchContext.class, Answers.RETURNS_MOCKS.get());
-        MapperService mapperService = mock(MapperService.class);
-
-        Mapper.BuilderContext context = new Mapper.BuilderContext(ImmutableSettings.EMPTY, new ContentPath(1));
-        GeoShapeFieldMapper shape = MapperBuilders.geoShapeField("shape").build(context);
-        when(mapperService.smartNameFieldMapper(eq("shape"))).thenReturn(shape);
-        when(searchContext.mapperService()).thenReturn(mapperService);
         indexCache = mock(IndexCache.class, Answers.RETURNS_MOCKS.get());
-        FilterCache filterCache = mock(FilterCache.class);
-        when(indexCache.filter()).thenReturn(filterCache);
-        when(filterCache.cache(Matchers.any(Filter.class))).thenAnswer(new Answer<Filter>() {
-            @Override
-            public Filter answer(InvocationOnMock invocation) throws Throwable {
-                return (Filter) invocation.getArguments()[0];
-            }
-        });
 
-        // mock geo point mapper stuff
-        MapperService.SmartNameFieldMappers smartNameFieldMappers = mock(MapperService.SmartNameFieldMappers.class);
-        when(mapperService.smartName("point")).thenReturn(smartNameFieldMappers);
-        when(smartNameFieldMappers.hasMapper()).thenReturn(true);
+        MapperService mapperService = newMapperService(temporaryFolder.newFolder().toPath(),
+                Settings.builder().put("index.version.created", Version.CURRENT).build());
 
-        GeoPointFieldMapper mapper = MapperBuilders.geoPointField("point").build(context);
-        when(smartNameFieldMappers.mapper()).thenReturn(mapper);
+        XContentBuilder xContentBuilder = XContentFactory.jsonBuilder().startObject().startObject("default")
+                .startObject("properties")
+                .startObject("point").field("type", "geo_point").endObject()
+                .startObject("shape").field("type", "geo_shape").endObject()
+                .endObject()
+                .endObject().endObject();
+        mapperService.merge("default", new CompressedXContent(xContentBuilder.bytes()), true, true);
+
+        when(searchContext.mapperService()).thenReturn(mapperService);
 
         IndexFieldDataService indexFieldDataService = mock(IndexFieldDataService.class);
         when(searchContext.fieldData()).thenReturn(indexFieldDataService);
         IndexFieldData geoFieldData = mock(IndexGeoPointFieldData.class);
-        when(geoFieldData.getFieldNames()).thenReturn(new FieldMapper.Names("point"));
-        when(indexFieldDataService.getForField(mapper)).thenReturn(geoFieldData);
+        when(geoFieldData.getFieldNames()).thenReturn(new MappedFieldType.Names("point"));
+        when(indexFieldDataService.getForField(mapperService.smartNameFieldType("point"))).thenReturn(geoFieldData);
     }
 
     private WhereClause asWhereClause(String expression) {
@@ -149,7 +144,8 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testNoMatchWhereClause() throws Exception {
         Query query = convert(WhereClause.NO_MATCH);
-        assertThat(query, instanceOf(MatchNoDocsQuery.class));
+        assertThat(query, instanceOf(BooleanQuery.class));
+        assertThat(((BooleanQuery) query).clauses().size(), is(0));
     }
 
     @Test
@@ -158,18 +154,19 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
             Reference foo = createReference("foo", type);
             Query query = convert(whereClause(EqOperator.NAME, foo, Literal.newLiteral(type, null)));
 
-            // must always become a MatchNoDocsQuery
+            // must always become a MatchNoDocsQuery (empty BooleanQuery)
             // string: term query with null would cause NPE
             // int/numeric: rangeQuery from null to null would match all
             // bool:  term would match false too because of the condition in the eq query builder
-            assertThat(query, instanceOf(MatchNoDocsQuery.class));
+            assertThat(query, instanceOf(BooleanQuery.class));
+            assertThat(((BooleanQuery) query).clauses().size(), is(0));
         }
     }
 
     @Test
     public void testWhereRefEqRef() throws Exception {
         Query query = convert("name = name");
-        assertThat(query, instanceOf(FilteredQuery.class));
+        assertThat(query, instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
     }
 
     @Test
@@ -182,15 +179,10 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testEqOnTwoArraysBecomesGenericFunctionQuery() throws Exception {
         Query query = convert("y_array = [10, 20, 30]");
-        assertThat(query, instanceOf(FilteredQuery.class));
-        FilteredQuery filteredQuery = (FilteredQuery) query;
-
-        assertThat(filteredQuery.getFilter(), instanceOf(BooleanFilter.class));
-        assertThat(filteredQuery.getQuery(), instanceOf(XConstantScoreQuery.class));
-
-        BooleanFilter filter = (BooleanFilter) filteredQuery.getFilter();
-        assertThat(filter.clauses().get(0).getFilter(), instanceOf(BooleanFilter.class)); // booleanFilter with terms filter
-        assertThat(filter.clauses().get(1).getFilter(), instanceOf(Filter.class)); // generic function filter
+        assertThat(query, instanceOf(BooleanQuery.class));
+        BooleanQuery booleanQuery = (BooleanQuery) query;
+        assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(TermsQuery.class));
+        assertThat(booleanQuery.clauses().get(1).getQuery(), instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
     }
 
     @Test
@@ -200,7 +192,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                 DataTypes.BOOLEAN,
                 createReference("x", longArray),
                 Literal.newLiteral(longArray, new Object[] { null, null, null }))));
-        assertThat(query, instanceOf(FilteredQuery.class));
+        assertThat(query, instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
     }
 
     @Test
@@ -212,7 +204,10 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                 DataTypes.BOOLEAN,
                 createReference("x", longArray),
                 Literal.newLiteral(longArray, values))));
-        assertThat(query, instanceOf(FilteredQuery.class));
+        assertThat(query, instanceOf(BooleanQuery.class));
+        BooleanQuery booleanQuery = (BooleanQuery) query;
+        assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(TermsQuery.class));
+        assertThat(booleanQuery.clauses().get(1).getQuery(), instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
     }
 
     @Test
@@ -223,17 +218,15 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     @Test
-    public void testWhereRefInSetLiteralIsConvertedToBooleanQuery() throws Exception {
+    public void testWhereRefInSetLiteralIsConvertedToTermsQuery() throws Exception {
         Query query = convert("x in (1, 3)");
-        assertThat(query, instanceOf(FilteredQuery.class));
-        assertThat(((FilteredQuery)query).getFilter(), instanceOf(TermsFilter.class));
+        assertThat(query, instanceOf(TermsQuery.class));
     }
 
     @Test
-    public void testWhereStringRefInSetLiteralIsConvertedToBooleanQuery() throws Exception {
+    public void testWhereStringRefInSetLiteralIsConvertedToTermsQuery() throws Exception {
         Query query = convert("name in ('foo', 'bar')");
-        assertThat(query, instanceOf(FilteredQuery.class));
-        assertThat(((FilteredQuery)query).getFilter(), instanceOf(TermsFilter.class));
+        assertThat(query, instanceOf(TermsQuery.class));
     }
 
     /**
@@ -243,8 +236,9 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testRegexQueryFast() throws Exception {
         Query query = convert("name ~ '[a-z]'");
-        assertThat(query, instanceOf(XConstantScoreQuery.class));
-        assertThat(((XConstantScoreQuery)query).getFilter(), instanceOf(RegexpFilter.class));
+        assertThat(query, instanceOf(ConstantScoreQuery.class));
+        // TODO: FIX ME!
+        //assertThat(((ConstantScoreQuery)query).getFilter(), instanceOf(RegexpFilter.class));
     }
 
     /**
@@ -267,8 +261,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testAnyEqArrayLiteral() throws Exception {
         Query query = convert("d = any([-1.5, 0.0, 1.5])");
-        assertThat(query, instanceOf(FilteredQuery.class));
-        assertThat(((FilteredQuery)query).getFilter(), instanceOf(TermsFilter.class));
+        assertThat(query, instanceOf(TermsQuery.class));
     }
 
     @Test
@@ -312,36 +305,45 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     @Test
-    public void testAnyOnArrayLiteral() throws Exception {
+    public void testNeqAnyOnArrayLiteral() throws Exception {
         Query neqQuery = convert("name != any (['a', 'b', 'c'])");
-        assertThat(neqQuery, instanceOf(FilteredQuery.class));
-        assertThat(((FilteredQuery)neqQuery).getFilter(), instanceOf(BooleanFilter.class));
-        BooleanFilter filter = (BooleanFilter)((FilteredQuery) neqQuery).getFilter();
-        assertThat(filter.toString(), is("BooleanFilter(-BooleanFilter(+name:a +name:b +name:c))"));
+        assertThat(neqQuery, instanceOf(BooleanQuery.class));
 
+        BooleanClause booleanClause = ((BooleanQuery) neqQuery).clauses().get(1);
+        assertThat(booleanClause.getOccur(), is(BooleanClause.Occur.MUST_NOT));
+        assertThat(booleanClause.getQuery().toString(), is("+name:a +name:b +name:c"));
+    }
+
+    @Test
+    public void testLikeAnyOnArrayLiteral() throws Exception {
         Query likeQuery = convert("name like any (['a', 'b', 'c'])");
         assertThat(likeQuery, instanceOf(BooleanQuery.class));
-        BooleanQuery likeBQuery = (BooleanQuery)likeQuery;
+        BooleanQuery likeBQuery = (BooleanQuery) likeQuery;
         assertThat(likeBQuery.clauses().size(), is(3));
         for (int i = 0; i < 2; i++) {
-            // like --> XConstantScoreQuery with regexp-filter
+            // like --> ConstantScoreQuery with regexp-filter
             Query filteredQuery = likeBQuery.clauses().get(i).getQuery();
             assertThat(filteredQuery, instanceOf(WildcardQuery.class));
         }
+    }
 
+    @Test
+    public void testNotLikeAnyOnArrayLiteral() throws Exception {
         Query notLikeQuery = convert("name not like any (['a', 'b', 'c'])");
         assertThat(notLikeQuery, instanceOf(BooleanQuery.class));
-        BooleanQuery notLikeBQuery = (BooleanQuery)notLikeQuery;
-        assertThat(notLikeBQuery.clauses(), hasSize(1));
-        BooleanClause clause = notLikeBQuery.clauses().get(0);
+        BooleanQuery notLikeBQuery = (BooleanQuery) notLikeQuery;
+        assertThat(notLikeBQuery.clauses(), hasSize(2));
+        BooleanClause clause = notLikeBQuery.clauses().get(1);
         assertThat(clause.getOccur(), is(BooleanClause.Occur.MUST_NOT));
-        assertThat(((BooleanQuery)clause.getQuery()).clauses(), hasSize(3));
-        for (BooleanClause innerClause : ((BooleanQuery)clause.getQuery()).clauses()) {
+        assertThat(((BooleanQuery) clause.getQuery()).clauses(), hasSize(3));
+        for (BooleanClause innerClause : ((BooleanQuery) clause.getQuery()).clauses()) {
             assertThat(innerClause.getOccur(), is(BooleanClause.Occur.MUST));
             assertThat(innerClause.getQuery(), instanceOf(WildcardQuery.class));
         }
+    }
 
-
+    @Test
+    public void testLessThanAnyOnArrayLiteral() throws Exception {
         Query ltQuery2 = convert("name < any (['a', 'b', 'c'])");
         assertThat(ltQuery2, instanceOf(BooleanQuery.class));
         BooleanQuery ltBQuery = (BooleanQuery)ltQuery2;
@@ -369,34 +371,40 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     public void testGeoShapeMatchWithDefaultMatchType() throws Exception {
         Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')");
         assertThat(query, instanceOf(ConstantScoreQuery.class));
-        assertThat(((ConstantScoreQuery) query).getFilter(), instanceOf(IntersectsPrefixTreeFilter.class));
+        assertThat(((ConstantScoreQuery) query).getQuery(), instanceOf(IntersectsPrefixTreeFilter.class));
     }
 
     @Test
     public void testGeoShapeMatchDisJoint() throws Exception {
         Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using disjoint");
         assertThat(query, instanceOf(ConstantScoreQuery.class));
-        assertThat(((ConstantScoreQuery) query).getFilter(), instanceOf(DisjointSpatialFilter.class));
+        Query booleanQuery = ((ConstantScoreQuery) query).getQuery();
+        assertThat(booleanQuery, instanceOf(BooleanQuery.class));
+
+        BooleanClause existsClause = ((BooleanQuery) booleanQuery).clauses().get(0);
+        BooleanClause intersectsClause = ((BooleanQuery) booleanQuery).clauses().get(1);
+
+        assertThat(existsClause.getQuery(), instanceOf(TermRangeQuery.class));
+        assertThat(intersectsClause.getQuery(), instanceOf(IntersectsPrefixTreeFilter.class));
     }
 
     @Test
     public void testGeoShapeMatchWithin() throws Exception {
         Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using within");
         assertThat(query, instanceOf(ConstantScoreQuery.class));
-        assertThat(((ConstantScoreQuery) query).getFilter(), instanceOf(WithinPrefixTreeFilter.class));
+        assertThat(((ConstantScoreQuery) query).getQuery(), instanceOf(WithinPrefixTreeFilter.class));
     }
 
     @Test
     public void testWithinFunction() throws Exception {
         Query eqWithinQuery = convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0]]})");
-        assertThat(eqWithinQuery.toString(), is("filtered(ConstantScore(*:*))->GeoPolygonFilter(point, [[0.0, 0.0], [1.0, 1.0]])"));
+        assertThat(eqWithinQuery.toString(), is("GeoPolygonFilter(point, [[0.0, 0.0], [1.0, 1.0]])"));
     }
 
     @Test
     public void testWithinFunctionWithShapeReference() throws Exception {
         // shape references cannot use the inverted index, so use generic function here
         Query eqWithinQuery = convert("within(point, shape)");
-        assertThat(eqWithinQuery, instanceOf(FilteredQuery.class));
-        assertThat(((FilteredQuery)eqWithinQuery).getFilter(), instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
+        assertThat(eqWithinQuery, instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
     }
 }

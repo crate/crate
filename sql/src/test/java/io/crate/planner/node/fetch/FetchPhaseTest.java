@@ -33,7 +33,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -72,7 +72,7 @@ public class FetchPhaseTest {
         BytesStreamOutput out = new BytesStreamOutput();
         ExecutionPhases.toStream(out, orig);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         FetchPhase streamed = (FetchPhase) ExecutionPhases.fromStream(in);
 
         assertThat(orig.executionPhaseId(), is(streamed.executionPhaseId()));

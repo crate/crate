@@ -37,12 +37,9 @@ import io.crate.planner.projection.Projection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.discovery.DiscoveryService;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -52,8 +49,7 @@ import java.io.FileWriter;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static io.crate.testing.TestingHelpers.createReference;
-import static io.crate.testing.TestingHelpers.isRow;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -64,19 +60,16 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    private ThreadPool threadPool;
+
+    @Before
+    public void initThreadPool() throws Exception {
+        threadPool = newMockedThreadPool();
+    }
 
     @Test
     public void testFileUriCollect() throws Exception {
-        ClusterService clusterService = mock(ClusterService.class);
-        DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
-        when(discoveryNode.id()).thenReturn("dummyNodeId");
-        DiscoveryNodes discoveryNodes = mock(DiscoveryNodes.class);
-        when(discoveryNodes.localNodeId()).thenReturn("dummyNodeId");
-        ClusterState clusterState = mock(ClusterState.class);
-        when(clusterState.nodes()).thenReturn(discoveryNodes);
-        when(clusterService.state()).thenReturn(clusterState);
-        DiscoveryService discoveryService = mock(DiscoveryService.class);
-        when(discoveryService.localNode()).thenReturn(discoveryNode);
+        NoopClusterService clusterService = new NoopClusterService();
         Functions functions = new Functions(
                 ImmutableMap.<FunctionIdent, FunctionImplementation>of(),
                 ImmutableMap.<String, DynamicFunctionResolver>of());
@@ -96,7 +89,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
                 referenceResolver,
                 mock(NodeSysExpression.class),
                 collectSourceResolver,
-                mock(ThreadPool.class)
+                threadPool
         );
 
         File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");
@@ -107,7 +100,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
 
         Routing routing = new Routing(
                 TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-                .put("dummyNodeId", new TreeMap<String, List<Integer>>())
+                .put("noop_id", new TreeMap<String, List<Integer>>())
                 .map()
         );
         FileUriCollectPhase collectNode = new FileUriCollectPhase(

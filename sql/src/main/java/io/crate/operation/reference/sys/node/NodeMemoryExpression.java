@@ -36,11 +36,11 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
     public static final String PROBE_TIMESTAMP = "probe_timestamp";
 
     public NodeMemoryExpression(final OsStats stats) {
-        addChildImplementations(stats.mem());
+        addChildImplementations(stats.getMem());
         childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
             @Override
             public Long value() {
-                return stats.timestamp();
+                return stats.getTimestamp();
             }
         });
     }
@@ -50,7 +50,7 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
             @Override
             public Long value() {
                 if (mem != null) {
-                    return mem.actualFree().bytes();
+                    return mem.getFree().bytes();
                 }
                 return -1L;
             }
@@ -59,7 +59,7 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
             @Override
             public Long value() {
                 if (mem != null) {
-                    return mem.actualUsed().bytes();
+                    return mem.getUsed().bytes();
                 }
                 return -1L;
             }
@@ -68,7 +68,7 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
             @Override
             public Short value() {
                 if (mem != null) {
-                    return mem.freePercent();
+                    return mem.getFreePercent();
                 }
                 return -1;
             }
@@ -77,7 +77,7 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
             @Override
             public Short value() {
                 if (mem != null) {
-                    return mem.usedPercent();
+                    return mem.getUsedPercent();
                 }
                 return -1;
             }

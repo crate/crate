@@ -38,6 +38,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 

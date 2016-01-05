@@ -31,7 +31,7 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequ
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -50,7 +50,7 @@ public class ESClusterUpdateSettingsTask extends JobTask {
         this.transport = transport;
 
         final SettableFuture<TaskResult> result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<TaskResult>>asList(result);
+        results = Collections.<ListenableFuture<TaskResult>>singletonList(result);
 
         request = new ClusterUpdateSettingsRequest();
         request.persistentSettings(node.persistentSettings());
