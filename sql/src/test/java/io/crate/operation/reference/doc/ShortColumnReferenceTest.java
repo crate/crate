@@ -32,7 +32,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.elasticsearch.index.fielddata.FieldDataType;
-import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -43,14 +43,14 @@ public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
         for (short i = -10; i<10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Short.toString(i), Field.Store.NO));
-            doc.add(new IntField(fieldName().name(), i, Field.Store.NO));
+            doc.add(new IntField(fieldName().indexName(), i, Field.Store.NO));
             writer.addDocument(doc);
         }
     }
 
     @Override
-    protected FieldMapper.Names fieldName() {
-        return new FieldMapper.Names("s");
+    protected MappedFieldType.Names fieldName() {
+        return new MappedFieldType.Names("s");
     }
 
     @Override
@@ -60,7 +60,7 @@ public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        ShortColumnReference shortColumn = new ShortColumnReference(fieldName().name());
+        ShortColumnReference shortColumn = new ShortColumnReference(fieldName().indexName());
         shortColumn.startCollect(ctx);
         shortColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

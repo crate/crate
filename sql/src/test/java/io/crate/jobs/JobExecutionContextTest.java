@@ -49,7 +49,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.elasticsearch.test.ElasticsearchTestCase.assertBusy;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.*;
 

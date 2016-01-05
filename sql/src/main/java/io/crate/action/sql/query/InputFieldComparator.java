@@ -25,8 +25,10 @@ import com.google.common.base.MoreObjects;
 import io.crate.operation.Input;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.types.DataType;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;
+import org.apache.lucene.search.LeafFieldComparator;
+import org.apache.lucene.search.Scorer;
 
 import java.io.IOException;
 import java.util.List;
@@ -34,7 +36,7 @@ import java.util.List;
 /**
  * Comparator for sorting on generic Inputs (Scalar Functions mostly)
  */
-class InputFieldComparator extends FieldComparator {
+class InputFieldComparator extends FieldComparator implements LeafFieldComparator {
 
     private final Object[] values;
     private final Input input;
@@ -54,6 +56,14 @@ class InputFieldComparator extends FieldComparator {
         this.valueType = valueType;
         this.values = new Object[numHits];
         this.input = input;
+    }
+
+    @Override
+    public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
+        for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
+            collectorExpression.setNextReader(context);
+        }
+        return this;
     }
 
     @Override
@@ -104,11 +114,7 @@ class InputFieldComparator extends FieldComparator {
     }
 
     @Override
-    public FieldComparator setNextReader(AtomicReaderContext context) throws IOException {
-        for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
-            collectorExpression.setNextReader(context);
-        }
-        return this;
+    public void setScorer(Scorer scorer) {
     }
 
     @Override

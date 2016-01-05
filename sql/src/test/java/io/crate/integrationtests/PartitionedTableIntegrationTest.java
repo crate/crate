@@ -41,6 +41,7 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
@@ -59,6 +60,7 @@ import java.util.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
+@ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -108,6 +110,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat((String) response.rows()[1][0], is("04732e1g60qj0dpl6csjicpo"));
     }
 
+
+    /**
+     * Test requires patch in ES 2.1 (https://github.com/crate/elasticsearch/commit/66564f88d21ad3d3be908dbe50974c448f7929d7)
+     * or ES 2.x (https://github.com/elastic/elasticsearch/pull/16767).
+     * Otherwise the rowCount returned from the copy from statement is ambiguous.
+     */
     @Test
     public void testCopyFromIntoPartitionedTable() throws Exception {
         execute("create table quotes (" +
@@ -128,7 +136,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
             assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                     .getState().metaData().indices().get(partitionName));
             assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                    .getState().metaData().indices().get(partitionName).aliases().get("quotes"));
+                    .getState().metaData().indices().get(partitionName).getAliases().get("quotes"));
         }
 
         execute("select * from quotes");
@@ -203,7 +211,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 is(templateName + "*"));
         assertThat(templatesResponse.getIndexTemplates().get(0).name(),
                 is(templateName));
-        assertTrue(templatesResponse.getIndexTemplates().get(0).aliases().containsKey("parted"));
+        assertTrue(templatesResponse.getIndexTemplates().get(0).getAliases().get("parted") != null);
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
                 new Object[]{1, "Ford", 13959981214861L});
@@ -211,14 +219,14 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureYellow();
         refresh();
 
-        assertTrue(clusterService().state().metaData().aliases().containsKey("parted"));
+        assertTrue(clusterService().state().metaData().hasAlias("parted"));
 
         String partitionName = new PartitionName("parted",
                 Collections.singletonList(new BytesRef(String.valueOf(13959981214861L)))
         ).asIndexName();
         MetaData metaData = client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData();
-        assertNotNull(metaData.indices().get(partitionName).aliases().get("parted"));
+        assertNotNull(metaData.indices().get(partitionName).getAliases().get("parted"));
         assertThat(
                 client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                         .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
@@ -238,7 +246,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ).asIndexName();
         assertTrue(internalCluster().clusterService().state().metaData().hasIndex(partitionName));
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+                .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
         assertThat(
                 client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                         .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
@@ -248,7 +256,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         partitionName = new PartitionName("parted", Collections.singletonList(new BytesRef(String.valueOf(0L)))).asIndexName();
         assertTrue(internalCluster().clusterService().state().metaData().hasIndex(partitionName));
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+                .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
         assertThat(
                 client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                         .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
@@ -260,7 +268,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         partitionName = new PartitionName("parted", nullList).asIndexName();
         assertTrue(internalCluster().clusterService().state().metaData().hasIndex(partitionName));
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+                .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
         assertThat(
                 client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                         .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
@@ -317,7 +325,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 Arrays.asList(new BytesRef("Ford"), new BytesRef(String.valueOf(13959981214861L)))
         ).asIndexName();
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+                .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
         assertThat(
                 client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                         .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
@@ -394,7 +402,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         String partitionName = new PartitionName("parted",
                 Arrays.asList(new BytesRef("Trillian"), null)).asIndexName();
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+                .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
 
         execute("select id, name, date from parted");
         assertThat(response.rowCount(), is(1L));
@@ -418,7 +426,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         String partitionName = new PartitionName("parted",
                 Arrays.asList(new BytesRef("Trillian"), new BytesRef(dateValue.toString()))).asIndexName();
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+                .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
     }
 
     @Test
@@ -1222,7 +1230,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureYellow();
         refresh();
 
-        assertTrue(clusterService().state().metaData().aliases().containsKey("quotes"));
+        assertTrue(clusterService().state().metaData().hasAlias("quotes"));
 
         List<String> partitions = ImmutableList.of(
                 new PartitionName("quotes", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName(),
@@ -1593,7 +1601,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         String mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
                 .createParser(mappingSource)
-                .mapAndClose()
+                .map()
                 .get(Constants.DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
         assertNotNull(((Map) mapping.get("properties")).get("ft_name"));
@@ -1620,8 +1628,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         String mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
                 .createParser(mappingSource)
-                .mapAndClose()
-                .get(Constants.DEFAULT_MAPPING_TYPE);
+                .map().get(Constants.DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
         // template order must not be touched
         assertThat(metaData.order(), is(100));
@@ -1710,7 +1717,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(response.rowCount(), is(1L));
         refresh();
 
-        assertTrue(clusterService().state().metaData().aliases().containsKey("quotes"));
+        assertTrue(clusterService().state().metaData().hasAlias("quotes"));
 
         execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'quotes'");
         assertEquals("0-all", response.rows()[0][0]);
@@ -1922,7 +1929,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         });
         execute("refresh table t");
         execute("delete from t");
-        // used to throw IndexMissingException if the new cluster state after the delete wasn't propagated to all nodes
+        // used to throw IndexNotFoundException if the new cluster state after the delete wasn't propagated to all nodes
         // (on about 2 runs in 100 iterations)
         execute("alter table t set (number_of_replicas = 0)");
     }

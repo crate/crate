@@ -228,10 +228,10 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
         Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
         assertThat(mapToSortedString(mapping), is("_all={enabled=false}, " +
                 "_meta={primary_keys=[id]}, " +
-                "properties={details={doc_values=false, dynamic=true, index=not_analyzed, properties={" +
-                "foo={doc_values=false, dynamic=true, index=not_analyzed, properties={" +
+                "properties={details={dynamic=true, properties={" +
+                "foo={dynamic=true, properties={" +
                 "name={doc_values=true, index=not_analyzed, store=false, type=string}, " +
-                "score={doc_values=true, index=not_analyzed, store=false, type=float}}, store=false, type=object}}, store=false, type=object}, " +
+                "score={doc_values=true, index=not_analyzed, store=false, type=float}}, type=object}}, type=object}, " +
                 "id={doc_values=true, index=not_analyzed, store=false, type=long}}"));
     }
 
@@ -286,12 +286,12 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
         assertThat(price.dataType(), is("string"));
 
         Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
-        assertThat(mapToSortedString(mapping), is("_all={enabled=false}, _meta={}, properties={details={doc_values=false, " +
-                "dynamic=true, index=not_analyzed, properties={stuff={doc_values=false, dynamic=true, index=not_analyzed, " +
-                "properties={foo={doc_values=false, dynamic=true, index=not_analyzed, " +
+        assertThat(mapToSortedString(mapping), is("_all={enabled=false}, _meta={}, properties={details={" +
+                "dynamic=true, properties={stuff={dynamic=true, " +
+                "properties={foo={dynamic=true, " +
                 "properties={price={doc_values=true, index=not_analyzed, store=false, type=string}, " +
-                "score={doc_values=true, index=not_analyzed, store=false, type=float}}, store=false, type=object}}, " +
-                "store=false, type=object}}, store=false, type=object}}"));
+                "score={doc_values=true, index=not_analyzed, store=false, type=float}}, type=object}}, " +
+                "type=object}}, type=object}}"));
     }
 
     @Test

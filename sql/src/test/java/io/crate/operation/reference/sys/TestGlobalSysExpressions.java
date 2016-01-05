@@ -28,6 +28,8 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.monitor.DummyExtendedNodeInfo;
+import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.operation.Input;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
@@ -44,7 +46,6 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
@@ -98,13 +99,14 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
 
         @Override
         protected void configure() {
-            bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
+            bind(Settings.class).toInstance(Settings.EMPTY);
             bind(ThreadPool.class).toInstance(threadPool);
 
             OsService osService = mock(OsService.class);
             OsStats osStats = mock(OsStats.class);
             when(osService.stats()).thenReturn(osStats);
-            when(osStats.loadAverage()).thenReturn(new double[]{1, 5, 15});
+            // TODO: FIX ME!
+            //when(osStats.getLoadAverage()).thenReturn(new double[]{1, 5, 15});
             bind(OsService.class).toInstance(osService);
 
             NodeService nodeService = mock(NodeService.class);
@@ -115,13 +117,14 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
             MetaData metaData = mock(MetaData.class);
             when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
             when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
-            when(metaData.settings()).thenReturn(ImmutableSettings.EMPTY);
+            when(metaData.settings()).thenReturn(Settings.EMPTY);
             when(state.metaData()).thenReturn(metaData);
             when(clusterService.state()).thenReturn(state);
             bind(ClusterService.class).toInstance(clusterService);
             bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
 
-            NodeLoadExpression loadExpr = new NodeLoadExpression(osStats);
+            ExtendedNodeInfo extendedNodeInfo = new DummyExtendedNodeInfo();
+            NodeLoadExpression loadExpr = new NodeLoadExpression(extendedNodeInfo.osStats());
 
             MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
@@ -174,13 +177,13 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
         Map gracefulStop = (Map) cluster.get(CrateSettings.GRACEFUL_STOP.name());
         assertThat(
                 gracefulStop.get(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.name()),
-                is((Object)CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.defaultValue()));
+                is((Object) CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.defaultValue()));
         assertThat(
                 gracefulStop.get(CrateSettings.GRACEFUL_STOP_REALLOCATE.name()),
-                is((Object)CrateSettings.GRACEFUL_STOP_REALLOCATE.defaultValue()));
+                is((Object) CrateSettings.GRACEFUL_STOP_REALLOCATE.defaultValue()));
         assertThat(
                 gracefulStop.get(CrateSettings.GRACEFUL_STOP_TIMEOUT.name()),
-                is((Object)CrateSettings.GRACEFUL_STOP_TIMEOUT.defaultValue().toString())
+                is((Object) CrateSettings.GRACEFUL_STOP_TIMEOUT.defaultValue().toString())
         );
         assertThat(
                 gracefulStop.get(CrateSettings.GRACEFUL_STOP_FORCE.name()),
@@ -188,14 +191,14 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
         );
         assertThat(
                 gracefulStop.get(CrateSettings.GRACEFUL_STOP_TIMEOUT.name()),
-                is((Object)CrateSettings.GRACEFUL_STOP_TIMEOUT.defaultValue().toString())
+                is((Object) CrateSettings.GRACEFUL_STOP_TIMEOUT.defaultValue().toString())
         );
         Map routing = (Map) cluster.get(CrateSettings.ROUTING.name());
         Map routingAllocation = (Map) routing.get(CrateSettings.ROUTING_ALLOCATION.name());
         assertThat(
                 routingAllocation.get(CrateSettings.ROUTING_ALLOCATION_ENABLE.name()),
                 is((Object) CrateSettings.ROUTING_ALLOCATION_ENABLE.defaultValue())
-                );
+        );
 
         Map gateway = (Map) settings.get(CrateSettings.GATEWAY.name());
         assertThat(gateway.get(CrateSettings.GATEWAY_RECOVER_AFTER_TIME.name()),

@@ -17,7 +17,7 @@ in it along with the according default value.
 The location of the config file can be specified upon startup like
 this::
 
-    sh$ ./bin/crate -Des.config=/path/to/config.yml
+    sh$ ./bin/crate -Des.path.home=/path/to/config/directory
 
 Any option can be configured either by the config file or as system
 property. If using system properties the required prefix 'es.' will be
@@ -142,17 +142,14 @@ Translog
   How often to check if a flush is needed, randomized between the interval
   value and 2x the interval value.
 
-Gateway
--------
-
-**gateway.local.sync**
+**translog.sync_interval**
   | *Default:*    ``5s``
   | *Runtime:*   ``no``
 
-  Setting ``gateway.local.sync`` controls the period after which the translog
-  is ``fsynced`` to disk (defaults to 5 s). When setting this interval, please keep
-  in mind that changes logged during this interval and not synced to disk may get
-  lost in case of a failure.
+  Setting ``index.translog.sync_interval`` controls the period after which the
+  translog is ``fsynced`` to disk (defaults to 5 s). When setting this
+  interval, please keep in mind that changes logged during this interval and
+  not synced to disk may get lost in case of a failure.
 
 Allocation
 ----------

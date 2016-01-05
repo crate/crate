@@ -17,6 +17,8 @@ dependencies {
     testCompile project(':testing')
 }
 
+sourceSets.test.output.resourcesDir = null
+
 test {
     testLogging.exceptionFormat = 'full'
     jacoco.excludes = [ "*Test*" ]

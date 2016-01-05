@@ -84,7 +84,7 @@ public class ByteSizeSetting extends Setting<ByteSizeValue, String> {
         return isRuntime;
     }
 
-    public Long extractBytes(Settings settings) {
+    public long extractBytes(Settings settings) {
         return extractByteSizeValue(settings).bytes();
     }
 

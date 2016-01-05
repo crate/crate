@@ -24,12 +24,12 @@ package io.crate.integrationtests;
 
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1, numClientNodes = 2)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 2)
 public class ClientNodeIntegrationTest extends SQLTransportIntegrationTest {
 
     public ClientNodeIntegrationTest() {

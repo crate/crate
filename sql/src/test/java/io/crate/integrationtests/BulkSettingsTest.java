@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import org.elasticsearch.cluster.metadata.MetaDataService;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
 
-@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE, numDataNodes = 1)
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 1)
 public class BulkSettingsTest extends SQLTransportIntegrationTest {
 
     @Rule

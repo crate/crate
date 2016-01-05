@@ -36,7 +36,8 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
@@ -80,7 +81,7 @@ public class DistributingDownstreamTest extends CrateUnitTest {
                 mock(JobContextService.class),
                 mock(ThreadPool.class),
                 mock(TransportService.class),
-                ImmutableSettings.EMPTY) {
+                Settings.EMPTY) {
 
 
             @Override
@@ -150,7 +151,7 @@ public class DistributingDownstreamTest extends CrateUnitTest {
                 mock(JobContextService.class),
                 mock(ThreadPool.class),
                 mock(TransportService.class),
-                ImmutableSettings.EMPTY) {
+                Settings.EMPTY) {
 
 
             @Override

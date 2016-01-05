@@ -22,18 +22,18 @@
 package io.crate.blob;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.replication.ShardReplicationOperationRequestBuilder;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.support.replication.ReplicationRequestBuilder;
+import org.elasticsearch.client.ElasticsearchClient;
 
-public class DeleteBlobRequestBuilder extends ShardReplicationOperationRequestBuilder<DeleteBlobRequest, DeleteBlobResponse,
+public class DeleteBlobRequestBuilder extends ReplicationRequestBuilder<DeleteBlobRequest, DeleteBlobResponse,
         DeleteBlobRequestBuilder> {
 
-    protected DeleteBlobRequestBuilder(Client client) {
-        super(client, new DeleteBlobRequest());
+    protected DeleteBlobRequestBuilder(ElasticsearchClient client, DeleteBlobAction action) {
+        super(client, action, new DeleteBlobRequest());
     }
 
     @Override
-    protected void doExecute(ActionListener<DeleteBlobResponse> listener) {
+    public void execute(ActionListener<DeleteBlobResponse> listener) {
         client.execute(DeleteBlobAction.INSTANCE, request, listener);
     }
 }

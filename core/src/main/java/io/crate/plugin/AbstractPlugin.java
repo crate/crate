@@ -25,10 +25,9 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Plugin;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.CloseableIndexComponent;
 
+import java.io.Closeable;
 import java.util.Collection;
 
 /**
@@ -40,7 +39,17 @@ public abstract class AbstractPlugin implements Plugin {
      * Defaults to return an empty list.
      */
     @Override
+    public Collection<Module> nodeModules() {
+        return ImmutableList.of();
+    }
+
+    @Override
     public Collection<Class<? extends Module>> modules() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public Collection<Class<? extends Module>> modules(Settings settings) {
         return ImmutableList.of();
     }
 
@@ -48,13 +57,10 @@ public abstract class AbstractPlugin implements Plugin {
      * Defaults to return an empty list.
      */
     @Override
-    public Collection<Module> modules(Settings settings) {
+    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
         return ImmutableList.of();
     }
 
-    /**
-     * Defaults to return an empty list.
-     */
     @Override
     public Collection<Class<? extends LifecycleComponent>> services() {
         return ImmutableList.of();
@@ -80,7 +86,7 @@ public abstract class AbstractPlugin implements Plugin {
      * Defaults to return an empty list.
      */
     @Override
-    public Collection<Class<? extends CloseableIndexComponent>> indexServices() {
+    public Collection<Class<? extends Closeable>> indexServices() {
         return ImmutableList.of();
     }
 
@@ -104,7 +110,7 @@ public abstract class AbstractPlugin implements Plugin {
      * Defaults to return an empty list.
      */
     @Override
-    public Collection<Class<? extends CloseableIndexComponent>> shardServices() {
+    public Collection<Class<? extends Closeable>> shardServices() {
         return ImmutableList.of();
     }
 
@@ -115,7 +121,7 @@ public abstract class AbstractPlugin implements Plugin {
 
     @Override
     public Settings additionalSettings() {
-        return ImmutableSettings.Builder.EMPTY_SETTINGS;
+        return Settings.Builder.EMPTY_SETTINGS;
     }
 
 

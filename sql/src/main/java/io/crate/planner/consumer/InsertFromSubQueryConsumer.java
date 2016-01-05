@@ -39,7 +39,8 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.Projection;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import io.crate.planner.projection.builder.InputCreatingVisitor;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
 
@@ -72,7 +73,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
                     statement.partitionedBySymbols(),
                     statement.tableInfo().clusteredBy(),
                     statement.clusteredByIdx(),
-                    ImmutableSettings.EMPTY,
+                    Settings.EMPTY,
                     statement.tableInfo().isPartitioned()
             );
 

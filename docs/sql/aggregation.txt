@@ -219,7 +219,7 @@ as a double value. Its single argument is the column name of a numeric column or
 ::
 
     cr> select sum(name), kind from locations group by kind order by sum(name) desc;
-    SQLActionException[unknown function: sum(string)]
+    SQLActionException[UnsupportedFeatureException: unknown function: sum(string)]
 
 avg / mean
 ==========

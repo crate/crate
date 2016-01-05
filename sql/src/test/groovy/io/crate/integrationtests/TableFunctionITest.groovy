@@ -24,6 +24,7 @@ package io.crate.integrationtests
 
 import org.junit.Test
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$
 import static io.crate.testing.TestingHelpers.printedTable
 
 class TableFunctionITest extends SQLTransportIntegrationTest {

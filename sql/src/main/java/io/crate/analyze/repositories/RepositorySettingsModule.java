@@ -24,6 +24,7 @@ package io.crate.analyze.repositories;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.SettingsApplier;
 import io.crate.analyze.SettingsAppliers;
 import io.crate.metadata.settings.BoolSetting;
@@ -44,6 +45,7 @@ public class RepositorySettingsModule extends AbstractModule {
     private static final String FS = "fs";
     private static final String URL = "url";
     private static final String HDFS = "hdfs";
+    private static final String S3 = "s3";
 
     static final TypeSettings FS_SETTINGS = new TypeSettings(
             ImmutableMap.<String, SettingsApplier>of("location", new SettingsAppliers.StringSettingsApplier(new StringSetting("location", true))),
@@ -90,6 +92,23 @@ public class RepositorySettingsModule extends AbstractModule {
         }
     };
 
+     static final TypeSettings S3_SETTINGS = new TypeSettings(Collections.<String, SettingsApplier>emptyMap(),
+            ImmutableMap.<String, SettingsApplier>builder()
+                    .put("access_key", new SettingsAppliers.StringSettingsApplier(new StringSetting("access_key", null, true)))
+                    .put("base_path", new SettingsAppliers.StringSettingsApplier(new StringSetting("base_path", null, true)))
+                    .put("bucket", new SettingsAppliers.StringSettingsApplier(new StringSetting("bucket", null, true)))
+                    .put("buffer_size", new SettingsAppliers.IntSettingsApplier(new IntSetting("buffer_size", null, true)))
+                    .put("canned_acl", new SettingsAppliers.StringSettingsApplier(new StringSetting("canned_acl", null, true)))
+                    .put("chunk_size", new SettingsAppliers.IntSettingsApplier(new IntSetting("chunk_size", null, true)))
+                    .put("compress", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("compress", true, true)))
+                    .put("concurrent_streams", new SettingsAppliers.IntSettingsApplier(new IntSetting("concurrent_streams", null, true)))
+                    .put("endpoint", new SettingsAppliers.StringSettingsApplier(new StringSetting("endpoint", null, true)))
+                    .put("max_retries", new SettingsAppliers.IntSettingsApplier(new IntSetting("max_retries", null, true)))
+                    .put("protocol", new SettingsAppliers.StringSettingsApplier(new StringSetting("protocol", null, true)))
+                    .put("region", new SettingsAppliers.StringSettingsApplier(new StringSetting("region", null, true)))
+                    .put("secret_key", new SettingsAppliers.StringSettingsApplier(new StringSetting("secret_key", null, true)))
+                    .put("server_side_encryption", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("server_side_encryption", false, true))).build());
+
     private MapBinder<String, TypeSettings> typeSettingsBinder;
 
     @Override
@@ -98,5 +117,6 @@ public class RepositorySettingsModule extends AbstractModule {
         typeSettingsBinder.addBinding(FS).toInstance(FS_SETTINGS);
         typeSettingsBinder.addBinding(URL).toInstance(URL_SETTINGS);
         typeSettingsBinder.addBinding(HDFS).toInstance(HDFS_SETTINGS);
+        typeSettingsBinder.addBinding(S3).toInstance(S3_SETTINGS);
     }
 }

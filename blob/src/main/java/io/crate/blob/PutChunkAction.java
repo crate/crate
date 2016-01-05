@@ -21,10 +21,10 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.action.ClientAction;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.Action;
+import org.elasticsearch.client.ElasticsearchClient;
 
-public class PutChunkAction extends ClientAction<PutChunkRequest, PutChunkResponse, PutChunkRequestBuilder> {
+public class PutChunkAction extends Action<PutChunkRequest, PutChunkResponse, PutChunkRequestBuilder> {
 
     public static final PutChunkAction INSTANCE = new PutChunkAction();
     public static final String NAME = "put_chunk";
@@ -34,8 +34,8 @@ public class PutChunkAction extends ClientAction<PutChunkRequest, PutChunkRespon
     }
 
     @Override
-    public PutChunkRequestBuilder newRequestBuilder(Client client) {
-        return new PutChunkRequestBuilder(client);
+    public PutChunkRequestBuilder newRequestBuilder(ElasticsearchClient client) {
+        return new PutChunkRequestBuilder(client, this);
     }
 
     @Override

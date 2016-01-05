@@ -22,8 +22,8 @@
 package io.crate.operation.projectors;
 
 import com.carrotsearch.hppc.IntContainer;
+import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
@@ -177,8 +177,8 @@ public class FetchProjector extends AbstractProjector {
         }
         boolean anyRequestSent = false;
         for (Map.Entry<String, IntSet> entry : nodeReaders.entrySet()) {
-            IntObjectOpenHashMap<IntContainer> toFetch = new IntObjectOpenHashMap<>(entry.getValue().size());
-            IntObjectOpenHashMap<Streamer[]> streamers = new IntObjectOpenHashMap<>(entry.getValue().size());
+            IntObjectHashMap<IntContainer> toFetch = new IntObjectHashMap<>(entry.getValue().size());
+            IntObjectHashMap<Streamer[]> streamers = new IntObjectHashMap<>(entry.getValue().size());
             boolean requestRequired = false;
             for (IntCursor intCursor : entry.getValue()) {
                 ReaderBucket readerBucket = fetches.readerBucket(intCursor.value);
@@ -357,7 +357,7 @@ public class FetchProjector extends AbstractProjector {
     }
 
     private class Fetches {
-        private final IntObjectOpenHashMap<ReaderBucket> readerBuckets = new IntObjectOpenHashMap<>();
+        private final IntObjectHashMap<ReaderBucket> readerBuckets = new IntObjectHashMap<>();
         private final TreeMap<Integer, IndexInfo> indexInfos;
 
         private Fetches() {
@@ -397,7 +397,7 @@ public class FetchProjector extends AbstractProjector {
     public static class ReaderBucket {
 
         private final IndexInfo indexInfo;
-        private final IntObjectOpenHashMap<Object[]> docs = new IntObjectOpenHashMap<>();
+        private final IntObjectHashMap<Object[]> docs = new IntObjectHashMap<>();
 
         public ReaderBucket(IndexInfo indexInfo) {
             this.indexInfo = indexInfo;
@@ -414,13 +414,9 @@ public class FetchProjector extends AbstractProjector {
         public void fetched(Bucket bucket) {
             assert bucket.size() == docs.size();
             Iterator<Row> rowIterator = bucket.iterator();
-            final Object[] values = docs.values;
-            final boolean[] states = docs.allocated;
-            for (int i = 0; i < states.length; i++) {
-                if (states[i]) {
-                    assert values[i] == null;
-                    values[i] = rowIterator.next().materialize();
-                }
+
+            for (IntCursor intCursor : docs.keys()) {
+                docs.indexReplace(intCursor.index, rowIterator.next().materialize());
             }
             assert !rowIterator.hasNext();
         }

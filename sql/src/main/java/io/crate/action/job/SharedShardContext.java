@@ -21,17 +21,16 @@
 
 package io.crate.action.job;
 
-import io.crate.operation.collect.EngineSearcher;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -55,15 +54,14 @@ public class SharedShardContext {
         this.readerId = readerId;
     }
 
-    public Engine.Searcher searcher() throws IndexMissingException {
+    public Engine.Searcher searcher() throws IndexNotFoundException {
         if (searcher != null) {
             searcher.inc();
             return searcher;
         }
         synchronized (mutex) {
             if (searcher == null) {
-                searcher = new RefCountSearcher(
-                        EngineSearcher.getSearcherWithRetry(indexShard(), "foo", null));
+                searcher = new RefCountSearcher(indexShard().acquireSearcher("shared-shard-context"));
             }
         }
         searcher.inc();
@@ -77,7 +75,7 @@ public class SharedShardContext {
         return indexShard;
     }
 
-    public synchronized IndexService indexService() throws IndexMissingException {
+    public synchronized IndexService indexService() throws IndexNotFoundException {
         if (indexService == null) {
             indexService = indicesService.indexServiceSafe(shardId.getIndex());
         }

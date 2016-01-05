@@ -32,7 +32,9 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,14 +52,14 @@ import static org.mockito.Mockito.mock;
 public class JobContextServiceTest extends CrateUnitTest {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     private JobContextService jobContextService;
 
 
     @Before
     public void prepare() throws Exception {
-        jobContextService  = new JobContextService(ImmutableSettings.EMPTY, mock(StatsTables.class));
+        jobContextService  = new JobContextService(Settings.EMPTY, mock(StatsTables.class));
     }
 
     @After

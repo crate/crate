@@ -31,8 +31,9 @@ import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.gateway.local.LocalGatewayAllocator;
+import org.elasticsearch.gateway.PrimaryShardAllocator;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.translog.TranslogConfig;
 import org.elasticsearch.index.translog.TranslogService;
 import org.elasticsearch.indices.IndicesWarmer;
 
@@ -53,10 +54,10 @@ public class TableParameterInfo {
     public static final String FLUSH_THRESHOLD_PERIOD = TranslogService.INDEX_TRANSLOG_FLUSH_THRESHOLD_PERIOD;
     public static final String FLUSH_DISABLE = TranslogService.INDEX_TRANSLOG_DISABLE_FLUSH;
     public static final String TRANSLOG_INTERVAL = TranslogService.INDEX_TRANSLOG_FLUSH_INTERVAL;
-    public static final String GATEWAY_LOCAL_SYNC = "index.gateway.local.sync";
+    public static final String TRANSLOG_SYNC_INTERVAL = TranslogConfig.INDEX_TRANSLOG_SYNC_INTERVAL;
     public static final String ROUTING_ALLOCATION_ENABLE = EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE;
     public static final String TOTAL_SHARDS_PER_NODE = ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE;
-    public static final String RECOVERY_INITIAL_SHARDS = LocalGatewayAllocator.INDEX_RECOVERY_INITIAL_SHARDS;
+    public static final String RECOVERY_INITIAL_SHARDS = PrimaryShardAllocator.INDEX_RECOVERY_INITIAL_SHARDS;
     public static final String WARMER_ENABLED = IndicesWarmer.INDEX_WARMER_ENABLED;
     public static final String UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING;
 
@@ -77,7 +78,7 @@ public class TableParameterInfo {
                     .add(FLUSH_DISABLE)
                     .add(TRANSLOG_INTERVAL)
                     .add(ROUTING_ALLOCATION_ENABLE)
-                    .add(GATEWAY_LOCAL_SYNC)
+                    .add(TRANSLOG_SYNC_INTERVAL)
                     .add(TOTAL_SHARDS_PER_NODE)
                     .add(RECOVERY_INITIAL_SHARDS)
                     .add(WARMER_ENABLED)
@@ -117,7 +118,7 @@ public class TableParameterInfo {
     }
 
     public static ImmutableMap<String,Object> tableParametersFromIndexMetaData(IndexMetaData metaData) {
-        Settings settings = metaData.settings();
+        Settings settings = metaData.getSettings();
         return ImmutableMap.<String,Object>builder()
                 .put(TableParameterInfo.READ_ONLY, CrateTableSettings.READ_ONLY.extract(settings))
                 .put(TableParameterInfo.BLOCKS_READ, CrateTableSettings.BLOCKS_READ.extract(settings))
@@ -132,7 +133,7 @@ public class TableParameterInfo {
                 .put(TableParameterInfo.TOTAL_SHARDS_PER_NODE, CrateTableSettings.TOTAL_SHARDS_PER_NODE.extract(settings))
                 .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, CrateTableSettings.RECOVERY_INITIAL_SHARDS.extract(settings))
                 .put(TableParameterInfo.WARMER_ENABLED, CrateTableSettings.WARMER_ENABLED.extract(settings))
-                .put(TableParameterInfo.GATEWAY_LOCAL_SYNC, CrateTableSettings.GATEWAY_LOCAL_SYNC.extractMillis(settings))
+                .put(TableParameterInfo.TRANSLOG_SYNC_INTERVAL, CrateTableSettings.TRANSLOG_SYNC_INTERVAL.extractMillis(settings))
                 .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.extractMillis(settings))
                 .put(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, CrateTableSettings.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT.extractMillis(settings))
                 .build();

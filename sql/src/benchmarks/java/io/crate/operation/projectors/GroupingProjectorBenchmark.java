@@ -56,7 +56,7 @@ import java.util.Locale;
 public class GroupingProjectorBenchmark {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     @Rule
     public BenchmarkRule benchmarkRule = new BenchmarkRule();

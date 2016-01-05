@@ -36,8 +36,10 @@ import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemp
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -58,8 +60,9 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
     private final static ESLogger LOGGER = Loggers.getLogger(ReferenceInfos.class);
 
     private final ClusterService clusterService;
-    private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final ExecutorService executorService;
+    private final Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction;
     private final Functions functions;
 
     private final Map<String, SchemaInfo> schemas = new ConcurrentHashMap<>();
@@ -68,10 +71,12 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
     @Inject
     public ReferenceInfos(Map<String, SchemaInfo> builtInSchemas,
                           ClusterService clusterService,
+                          IndexNameExpressionResolver indexNameExpressionResolver,
                           ThreadPool threadPool,
-                          TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                          Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
                           Functions functions) {
         this.clusterService = clusterService;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.functions = functions;
         this.executorService = (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST);
@@ -194,7 +199,8 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
      * @return an instance of SchemaInfo for the given name
      */
     private SchemaInfo getCustomSchemaInfo(String name) {
-        return new DocSchemaInfo(name, executorService, clusterService, transportPutIndexTemplateAction, functions);
+        return new DocSchemaInfo(name, executorService, clusterService, indexNameExpressionResolver,
+                transportPutIndexTemplateAction, functions);
     }
 
     /**

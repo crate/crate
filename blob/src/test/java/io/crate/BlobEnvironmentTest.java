@@ -24,20 +24,19 @@ package io.crate;
 import io.crate.blob.BlobEnvironment;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.common.io.FileSystemUtils;
-import org.elasticsearch.common.os.OsUtils;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
-import org.junit.*;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 
@@ -45,8 +44,6 @@ import static org.hamcrest.Matchers.is;
 
 public class BlobEnvironmentTest extends CrateUnitTest {
 
-    private static Path dataPath;
-    private static File testFile;
     private BlobEnvironment blobEnvironment;
     private NodeEnvironment nodeEnvironment;
 
@@ -55,22 +52,14 @@ public class BlobEnvironmentTest extends CrateUnitTest {
 
     @Before
     public void setup() throws Exception {
-        dataPath = Files.createTempDirectory(null);
-        Settings settings = ImmutableSettings.builder()
+        Path home = folder.newFolder("home").toPath();
+        Path dataPath = folder.newFolder("data").toPath();
+        Settings settings = Settings.builder()
+                .put("path.home", home.toAbsolutePath())
                 .put("path.data", dataPath.toAbsolutePath()).build();
         Environment environment = new Environment(settings);
         nodeEnvironment = new NodeEnvironment(settings, environment);
         blobEnvironment = new BlobEnvironment(nodeEnvironment, new ClusterName("test"));
-    }
-
-    @After
-    public void cleanup() throws Exception {
-        if (testFile != null) {
-            testFile.delete();
-        }
-        if (dataPath != null) {
-            FileSystemUtils.deleteRecursively(dataPath.toAbsolutePath().toFile());
-        }
     }
 
     @Test
@@ -84,8 +73,8 @@ public class BlobEnvironmentTest extends CrateUnitTest {
     @Test
     public void testShardLocationWithoutCustomPath() throws Exception {
         File shardLocation = blobEnvironment.shardLocation(new ShardId(".blob_test", 0));
-        File nodeShardLocation = nodeEnvironment.shardLocations(new ShardId(".blob_test", 0))[0];
-        assertThat(shardLocation.getAbsolutePath().substring(nodeShardLocation.getAbsolutePath().length()),
+        Path nodeShardPaths = nodeEnvironment.availableShardPaths(new ShardId(".blob_test", 0))[0];
+        assertThat(shardLocation.getAbsolutePath().substring(nodeShardPaths.toAbsolutePath().toString().length()),
                 is(File.separator + BlobEnvironment.BLOBS_SUB_PATH));
     }
 
@@ -99,7 +88,7 @@ public class BlobEnvironmentTest extends CrateUnitTest {
 
     @Test
     public void testValidateIsFile() throws Exception {
-        testFile = File.createTempFile("test_blob_file", ".txt");
+        File testFile = folder.newFile("test_blob_file.txt");
 
         expectedException.expect(SettingsException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH, "blobs path '%s' is a file, must be a directory",
@@ -109,7 +98,7 @@ public class BlobEnvironmentTest extends CrateUnitTest {
 
     @Test
     public void testValidateNotCreatable() throws Exception {
-        Assume.assumeFalse(OsUtils.WINDOWS);
+        Assume.assumeFalse(org.apache.lucene.util.Constants.WINDOWS);
 
         File tmpDir = folder.newFolder();
         assertThat(tmpDir.setReadable(false), is(true));
@@ -122,5 +111,4 @@ public class BlobEnvironmentTest extends CrateUnitTest {
                 file.getAbsolutePath()));
         blobEnvironment.validateBlobsPath(file);
     }
-
 }

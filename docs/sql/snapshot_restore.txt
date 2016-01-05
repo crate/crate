@@ -41,7 +41,7 @@ Creating a repository with the same name will result in an error::
 
     cr> CREATE REPOSITORY where_my_snapshots_go TYPE fs
     ... WITH (location='another_repo_path', compress=false);
-    SQLActionException[Repository 'where_my_snapshots_go' already exists]
+    SQLActionException[RepositoryAlreadyExistsException: Repository 'where_my_snapshots_go' already exists]
 
 Creating a Snapshot
 ~~~~~~~~~~~~~~~~~~~
@@ -139,7 +139,7 @@ of listing all tables restores the whole snapshot.
 It's not possible to restore tables that exist in the current cluster::
 
     cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes;
-    SQLActionException[The table 'doc.quotes' already exists.]
+    SQLActionException[TableAlreadyExistsException: The table 'doc.quotes' already exists.]
 
 Single partitions can be either imported into an existing partitioned
 table the partition belongs to.
@@ -224,13 +224,14 @@ Requirements for using repositories of type 'hdfs'
 Crate supports repositories of type
 :ref:`ref-create-repository-types-hdfs` type by default, but required
 `Hadoop`_ java client libraries are not included in any Crate
-distribution and need to be added to Crate's hdfs plugin lib folder.
-By default this is ``$CRATE_HOME/plugins/hdfs/lib``
+distribution and need to be added to Crate's hdfs plugin hadoop libs
+folder.  By default this is
+``$CRATE_HOME/plugins/elasticsearch-repository-hdfs/hadoop-libs``
 
 Because some libraries `Hadoop`_ depends on are also required (and so
-deployed) by Crate, only the `Hadoop`_
-libraries listed below for the concrete `Hadoop`_ version must be
-copied, other libraries will be ignored.
+deployed) by Crate, only the `Hadoop`_ libraries listed below for the
+concrete `Hadoop`_ version must be copied, other libraries will be
+ignored.
 
 .. note::
 
