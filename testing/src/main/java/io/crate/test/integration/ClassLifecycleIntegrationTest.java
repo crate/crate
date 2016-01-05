@@ -25,7 +25,6 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.internal.InternalNode;
 import org.elasticsearch.test.InternalTestCluster;
@@ -57,7 +56,7 @@ public abstract class ClassLifecycleIntegrationTest extends AbstractRandomizedTe
     public static final SettingsSource SETTINGS_SOURCE = new SettingsSource() {
         @Override
         public Settings node(int nodeOrdinal) {
-            return ImmutableSettings.builder()
+            return Settings.builder()
                     .put(InternalNode.HTTP_ENABLED, false)
                     .put("bootstrap.sigar", true)
                     .put("plugin.types", "io.crate.plugin.CrateCorePlugin").build();
@@ -65,7 +64,7 @@ public abstract class ClassLifecycleIntegrationTest extends AbstractRandomizedTe
 
         @Override
         public Settings transportClient() {
-            return ImmutableSettings.EMPTY;
+            return Settings.EMPTY;
         }
     };
 

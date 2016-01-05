@@ -44,7 +44,6 @@ import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
@@ -67,7 +66,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class BulkShardProcessor {
 
     public static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
-    public static final AutoCreateIndex AUTO_CREATE_INDEX = new AutoCreateIndex(ImmutableSettings.builder()
+    public static final AutoCreateIndex AUTO_CREATE_INDEX = new AutoCreateIndex(Settings.builder()
             .put("action.auto_create_index", true).build());
 
     private final boolean autoCreateIndices;

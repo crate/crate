@@ -23,7 +23,7 @@ package io.crate.breaker;
 
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -40,10 +40,10 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
 
     @Test
     public void testQueryCircuitBreakerRegistration() throws Exception {
-        NodeSettingsService settingsService = new NodeSettingsService(ImmutableSettings.EMPTY);
-        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(ImmutableSettings.EMPTY, settingsService);
+        NodeSettingsService settingsService = new NodeSettingsService(Settings.EMPTY);
+        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, settingsService);
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
-                ImmutableSettings.EMPTY, settingsService, esBreakerService);
+                Settings.EMPTY, settingsService, esBreakerService);
 
         CircuitBreaker breaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
         assertThat(breaker, notNullValue());
@@ -54,18 +54,18 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
     @Test
     public void testQueryCircuitBreakerDynamicSettings() throws Exception {
         final NodeSettingsService.Listener[] listeners = new NodeSettingsService.Listener[1];
-        NodeSettingsService settingsService = new NodeSettingsService(ImmutableSettings.EMPTY) {
+        NodeSettingsService settingsService = new NodeSettingsService(Settings.EMPTY) {
             @Override
             public void addListener(Listener listener) {
                 listeners[0] = listener;
             }
 
         };
-        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(ImmutableSettings.EMPTY, settingsService);
+        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, settingsService);
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
-                ImmutableSettings.EMPTY, settingsService, esBreakerService);
+                Settings.EMPTY, settingsService, esBreakerService);
 
-        Settings newSettings = ImmutableSettings.settingsBuilder()
+        Settings newSettings = Settings.settingsBuilder()
                 .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING, 2.0)
                 .build();
 
@@ -85,10 +85,10 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
 
     @Test
     public void testStats() throws Exception {
-        NodeSettingsService settingsService = new NodeSettingsService(ImmutableSettings.EMPTY);
-        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(ImmutableSettings.EMPTY, settingsService);
+        NodeSettingsService settingsService = new NodeSettingsService(Settings.EMPTY);
+        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, settingsService);
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
-                ImmutableSettings.EMPTY, settingsService, esBreakerService);
+                Settings.EMPTY, settingsService, esBreakerService);
 
         CircuitBreakerStats[] stats = breakerService.stats().getAllStats();
         assertThat(stats.length, is(4));

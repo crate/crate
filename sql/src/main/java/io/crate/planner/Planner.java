@@ -55,7 +55,6 @@ import io.crate.planner.statement.CopyStatementPlanner;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -433,7 +432,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             if (analysis.isPersistent()) {
                 node = new ESClusterUpdateSettingsNode(analysis.settings());
             } else {
-                node = new ESClusterUpdateSettingsNode(ImmutableSettings.EMPTY, analysis.settings());
+                node = new ESClusterUpdateSettingsNode(Settings.EMPTY, analysis.settings());
             }
         }
         return node != null ? new IterablePlan(context.jobId(), node) : new NoopPlan(context.jobId());

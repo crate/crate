@@ -49,7 +49,7 @@ import org.apache.lucene.spatial.prefix.WithinPrefixTreeFilter;
 import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
 import org.elasticsearch.common.lucene.search.RegexpFilter;
 import org.elasticsearch.common.lucene.search.XConstantScoreQuery;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.filter.FilterCache;
 import org.elasticsearch.index.fielddata.IndexFieldData;
@@ -105,7 +105,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         searchContext = mock(SearchContext.class, Answers.RETURNS_MOCKS.get());
         MapperService mapperService = mock(MapperService.class);
 
-        Mapper.BuilderContext context = new Mapper.BuilderContext(ImmutableSettings.EMPTY, new ContentPath(1));
+        Mapper.BuilderContext context = new Mapper.BuilderContext(Settings.EMPTY, new ContentPath(1));
         GeoShapeFieldMapper shape = MapperBuilders.geoShapeField("shape").build(context);
         when(mapperService.smartNameFieldMapper(eq("shape"))).thenReturn(shape);
         when(searchContext.mapperService()).thenReturn(mapperService);

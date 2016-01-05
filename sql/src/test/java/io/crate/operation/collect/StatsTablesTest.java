@@ -29,7 +29,6 @@ import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.hamcrest.Matchers;
@@ -44,8 +43,8 @@ public class StatsTablesTest extends CrateUnitTest {
 
     @Test
     public void testSettingsChanges() {
-        NodeSettingsService nodeSettingsService = new NodeSettingsService(ImmutableSettings.EMPTY);
-        StatsTables stats = new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService);
+        NodeSettingsService nodeSettingsService = new NodeSettingsService(Settings.EMPTY);
+        StatsTables stats = new StatsTables(Settings.EMPTY, nodeSettingsService);
 
         assertThat(stats.isEnabled(), is(false));
         assertThat(stats.lastJobsLogSize, is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
@@ -54,7 +53,7 @@ public class StatsTablesTest extends CrateUnitTest {
         // even though logSizes are > 0 it must be a NoopQueue because the stats are disabled
         assertThat(stats.jobsLog.get(), Matchers.instanceOf(NoopQueue.class));
 
-        stats.listener.onRefreshSettings(ImmutableSettings.builder()
+        stats.listener.onRefreshSettings(Settings.builder()
                 .put(CrateSettings.STATS_ENABLED.settingName(), true)
                 .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 200).build());
 
@@ -65,7 +64,7 @@ public class StatsTablesTest extends CrateUnitTest {
         assertThat(stats.jobsLog.get(), Matchers.instanceOf(BlockingEvictingQueue.class));
 
 
-        stats.listener.onRefreshSettings(ImmutableSettings.builder()
+        stats.listener.onRefreshSettings(Settings.builder()
                 .put(CrateSettings.STATS_ENABLED.settingName(), false).build());
 
         // logs got wiped:
@@ -75,14 +74,14 @@ public class StatsTablesTest extends CrateUnitTest {
 
     @Test
     public void testLogsArentWipedOnSizeChange() {
-        NodeSettingsService nodeSettingsService = new NodeSettingsService(ImmutableSettings.EMPTY);
-        Settings settings = ImmutableSettings.builder()
+        NodeSettingsService nodeSettingsService = new NodeSettingsService(Settings.EMPTY);
+        Settings settings = Settings.builder()
                 .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
         StatsTables stats = new StatsTables(settings, nodeSettingsService);
 
         stats.jobsLog.get().add(new JobContextLog(new JobContext(UUID.randomUUID(), "select 1", 1L), null));
 
-        stats.listener.onRefreshSettings(ImmutableSettings.builder()
+        stats.listener.onRefreshSettings(Settings.builder()
                 .put(CrateSettings.STATS_ENABLED.settingName(), true)
                 .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 200).build());
 
@@ -94,7 +93,7 @@ public class StatsTablesTest extends CrateUnitTest {
         stats.operationsLog.get().add(new OperationContextLog(
                 new OperationContext(1, UUID.randomUUID(), "foo", 3L), null));
 
-        stats.listener.onRefreshSettings(ImmutableSettings.builder()
+        stats.listener.onRefreshSettings(Settings.builder()
                 .put(CrateSettings.STATS_ENABLED.settingName(), true)
                 .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 1).build());
 

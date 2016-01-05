@@ -59,7 +59,7 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.compress.CompressedString;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 
@@ -162,7 +162,7 @@ public class AlterTableOperation {
                 IndexTemplateMetaData template = response.getIndexTemplates().get(0);
                 Map<String, Object> mapping = mergeMapping(template, tableParameter.mappings());
 
-                ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
+                Settings.Builder settingsBuilder = Settings.builder();
                 settingsBuilder.put(template.settings());
                 settingsBuilder.put(tableParameter.settings());
 

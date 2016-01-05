@@ -54,7 +54,7 @@ import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
@@ -111,7 +111,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         visitor = new ProjectionToProjectorVisitor(
                 mock(ClusterService.class),
                 threadPool,
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 mock(BulkRetryCoordinatorPool.class),
                 symbolvisitor,

@@ -41,7 +41,7 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.Index;
@@ -103,7 +103,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         bindGeneratedColumnTable(functions);
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 mock(ThreadPool.class),
                 mock(ClusterService.class),
                 mock(TransportService.class),

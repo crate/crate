@@ -66,7 +66,6 @@ import org.elasticsearch.cluster.settings.ClusterDynamicSettingsModule;
 import org.elasticsearch.cluster.settings.Validator;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.rest.RestModule;
@@ -87,7 +86,7 @@ public class SQLPlugin extends AbstractPlugin {
 
     @Override
     public Settings additionalSettings() {
-        ImmutableSettings.Builder settingsBuilder = ImmutableSettings.settingsBuilder();
+        Settings.Builder settingsBuilder = Settings.settingsBuilder();
 
         // Set default analyzer
         settingsBuilder.put("index.analysis.analyzer.default.type", "keyword");
@@ -181,7 +180,7 @@ public class SQLPlugin extends AbstractPlugin {
         for (Setting setting : settings) {
             /**
              * validation is done in
-             * {@link io.crate.analyze.SettingsAppliers.AbstractSettingsApplier#apply(org.elasticsearch.common.settings.ImmutableSettings.Builder, Object[], io.crate.sql.tree.Expression)}
+             * {@link io.crate.analyze.SettingsAppliers.AbstractSettingsApplier#apply(org.elasticsearch.common.settings.Settings.Builder, Object[], io.crate.sql.tree.Expression)}
              * here we use Validator.EMPTY, since ES ignores invalid settings silently
              */
             clusterDynamicSettingsModule.addDynamicSetting(setting.settingName(), Validator.EMPTY);

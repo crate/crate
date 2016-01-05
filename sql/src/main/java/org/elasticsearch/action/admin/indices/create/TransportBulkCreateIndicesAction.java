@@ -54,7 +54,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.regex.Regex;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -81,7 +80,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 /**
  * creates one or more indices within one cluster-state-update-task
@@ -529,7 +528,7 @@ public class TransportBulkCreateIndicesAction
     }
 
     private Settings createIndexSettings(ClusterState currentState, List<IndexTemplateMetaData> templates) {
-        ImmutableSettings.Builder indexSettingsBuilder = settingsBuilder();
+        Settings.Builder indexSettingsBuilder = settingsBuilder();
         // apply templates, here, in reverse order, since first ones are better matching
         for (int i = templates.size() - 1; i >= 0; i--) {
             indexSettingsBuilder.put(templates.get(i).settings());

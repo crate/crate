@@ -58,7 +58,7 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.collection.IsIterableContainingInOrder;
 import org.junit.After;
@@ -140,7 +140,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
                 mock(ClusterService.class),
                 threadPool,
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 mock(BulkRetryCoordinatorPool.class),
                 referenceResolver,
@@ -186,7 +186,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
                 mock(ClusterService.class),
                 threadPool,
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 mock(BulkRetryCoordinatorPool.class),
                 referenceResolver,

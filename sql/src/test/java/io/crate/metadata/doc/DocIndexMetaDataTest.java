@@ -28,7 +28,6 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -72,13 +71,13 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
             when(clusterService.state()).thenReturn(state);
             bind(ClusterService.class).toInstance(clusterService);
             bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
-            bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
+            bind(Settings.class).toInstance(Settings.EMPTY);
         }
     }
 
 
     private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder) throws IOException {
-        return getIndexMetaData(indexName, builder, ImmutableSettings.Builder.EMPTY_SETTINGS, null);
+        return getIndexMetaData(indexName, builder, Settings.Builder.EMPTY_SETTINGS, null);
     }
 
     private IndexMetaData getIndexMetaData(String indexName,
@@ -89,7 +88,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         Map<String, Object> mappingSource = XContentHelper.convertToMap(data, true).v2();
         mappingSource = sortProperties(mappingSource);
 
-        ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder()
+        Settings.Builder settingsBuilder = Settings.builder()
                 .put("index.number_of_shards", 1)
                 .put("index.number_of_replicas", 0)
                 .put(settings);
@@ -860,7 +859,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
         when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
         when(state.metaData()).thenReturn(metaData);
-        when(metaData.settings()).thenReturn(ImmutableSettings.EMPTY);
+        when(metaData.settings()).thenReturn(Settings.EMPTY);
         when(clusterService.state()).thenReturn(state);
         TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
@@ -878,7 +877,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         Analysis analysis = new Analysis(new ParameterContext(new Object[0], new Object[0][], null));
         CreateTableAnalyzedStatement analyzedStatement = analyzer.analyze(statement, analysis);
 
-        ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder()
+        Settings.Builder settingsBuilder = Settings.builder()
                 .put("index.number_of_shards", 1)
                 .put("index.number_of_replicas", 0)
                 .put(analyzedStatement.tableParameter().settings());
@@ -1177,7 +1176,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                         .field("index", "not_analyzed")
                     .endObject()
                 .endObject();
-        Settings templateSettings =  ImmutableSettings.builder()
+        Settings templateSettings =  Settings.builder()
                 .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 2)
                 .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 6)
                 .build();
@@ -1185,7 +1184,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         PartitionName partitionName = new PartitionName("test1", Arrays.asList(new BytesRef("0")));
-        Settings partitionSettings =  ImmutableSettings.builder()
+        Settings partitionSettings =  Settings.builder()
                 .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 10)
                 .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 50)
                 .build();
@@ -1247,7 +1246,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                     .startObject("week").field("type", "long").endObject()
                 .endObject();
 
-        IndexMetaData metaData = getIndexMetaData("test1", builder, ImmutableSettings.EMPTY, null);
+        IndexMetaData metaData = getIndexMetaData("test1", builder, Settings.EMPTY, null);
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         assertThat(md.columns().size(), is(2));

@@ -28,7 +28,6 @@ import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.action.sql.TransportSQLAction;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
@@ -53,7 +52,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.builder().put(super.nodeSettings(nodeOrdinal))
+        return Settings.builder().put(super.nodeSettings(nodeOrdinal))
                 .put("path.repo", TEMPORARY_FOLDER.getRoot().getAbsolutePath())
                 .build();
     }
