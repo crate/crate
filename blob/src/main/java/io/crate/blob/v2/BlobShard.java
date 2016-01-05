@@ -28,7 +28,6 @@ import io.crate.blob.stats.BlobStats;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.settings.IndexSettings;
 import org.elasticsearch.index.shard.AbstractIndexShardComponent;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -42,7 +41,7 @@ public class BlobShard extends AbstractIndexShardComponent {
     private final IndexShard indexShard;
 
     @Inject
-    protected BlobShard(ShardId shardId, @IndexSettings Settings indexSettings,
+    protected BlobShard(ShardId shardId, Settings indexSettings,
                         BlobEnvironment blobEnvironment,
                         IndexShard indexShard) {
         super(shardId, indexSettings);

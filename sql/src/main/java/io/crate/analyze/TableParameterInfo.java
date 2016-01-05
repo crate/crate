@@ -31,7 +31,7 @@ import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.gateway.local.LocalGatewayAllocator;
+import org.elasticsearch.gateway.PrimaryShardAllocator;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.TranslogService;
 import org.elasticsearch.indices.IndicesWarmer;
@@ -56,7 +56,7 @@ public class TableParameterInfo {
     public static final String GATEWAY_LOCAL_SYNC = "index.gateway.local.sync";
     public static final String ROUTING_ALLOCATION_ENABLE = EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE;
     public static final String TOTAL_SHARDS_PER_NODE = ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE;
-    public static final String RECOVERY_INITIAL_SHARDS = LocalGatewayAllocator.INDEX_RECOVERY_INITIAL_SHARDS;
+    public static final String RECOVERY_INITIAL_SHARDS = PrimaryShardAllocator.INDEX_RECOVERY_INITIAL_SHARDS;
     public static final String WARMER_ENABLED = IndicesWarmer.INDEX_WARMER_ENABLED;
     public static final String UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING;
 
@@ -117,7 +117,7 @@ public class TableParameterInfo {
     }
 
     public static ImmutableMap<String,Object> tableParametersFromIndexMetaData(IndexMetaData metaData) {
-        Settings settings = metaData.settings();
+        Settings settings = metaData.getSettings();
         return ImmutableMap.<String,Object>builder()
                 .put(TableParameterInfo.READ_ONLY, CrateTableSettings.READ_ONLY.extract(settings))
                 .put(TableParameterInfo.BLOCKS_READ, CrateTableSettings.BLOCKS_READ.extract(settings))

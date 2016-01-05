@@ -25,7 +25,6 @@ package io.crate.client;
 import io.crate.plugin.CrateCorePlugin;
 import org.elasticsearch.client.transport.TransportClientNodesService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
@@ -53,7 +52,7 @@ public class CrateClientCreationTest extends ElasticsearchIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder()
+        return Settings.settingsBuilder()
                 .put(super.nodeSettings(nodeOrdinal))
                 .put("node.mode", "network")
                 .put("plugin.types", CrateCorePlugin.class.getName())
@@ -87,7 +86,7 @@ public class CrateClientCreationTest extends ElasticsearchIntegrationTest {
 
     @Test
     public void testWithNode() throws Exception {
-        CrateClient localClient = new CrateClient(ImmutableSettings.EMPTY, false, serverAddress);
+        CrateClient localClient = new CrateClient(Settings.EMPTY, false, serverAddress);
         try {
             assertThat(extractDiscoveryNodes(localClient), hasSize(1));
         } finally {
@@ -107,7 +106,7 @@ public class CrateClientCreationTest extends ElasticsearchIntegrationTest {
 
     @Test
     public void testCreateWithServer() throws Exception {
-        CrateClient localClient = new CrateClient(ImmutableSettings.EMPTY, false, serverAddress);
+        CrateClient localClient = new CrateClient(Settings.EMPTY, false, serverAddress);
         try {
             assertThat(extractDiscoveryNodes(localClient), hasSize(1));
         } finally {
@@ -135,7 +134,7 @@ public class CrateClientCreationTest extends ElasticsearchIntegrationTest {
 
     @Test
     public void testWithSettings() throws Exception {
-        CrateClient localClient = new CrateClient(ImmutableSettings.builder()
+        CrateClient localClient = new CrateClient(Settings.builder()
                 .put("fancy.setting", "check") // will not be overridden
                 .put("node.name", "fancy-node-name") // will be overridden
                 .build(), false);
@@ -151,8 +150,8 @@ public class CrateClientCreationTest extends ElasticsearchIntegrationTest {
 
     @Test
     public void testLoadFromConfig() throws Exception {
-        CrateClient configClient = new CrateClient(ImmutableSettings.EMPTY, true);
-        CrateClient noConfigClient = new CrateClient(ImmutableSettings.EMPTY, false);
+        CrateClient configClient = new CrateClient(Settings.EMPTY, true);
+        CrateClient noConfigClient = new CrateClient(Settings.EMPTY, false);
         try {
             Settings configSettings = configClient.settings();
             Settings noConfigSettings = noConfigClient.settings();

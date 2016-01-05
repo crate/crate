@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.metadata.settings.CrateSettings;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.After;
@@ -37,7 +36,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder().put(super.nodeSettings(nodeOrdinal));
+        Settings.Builder builder = Settings.builder().put(super.nodeSettings(nodeOrdinal));
         builder.put(CrateSettings.BULK_REQUEST_TIMEOUT.settingName(), "42s");
         builder.put("gateway.type", "local");
         return builder.build();
@@ -99,7 +98,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDynamicTransientSettings() throws Exception {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder()
+        Settings.Builder builder = Settings.builder()
                 .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 1)
                 .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 2)
                 .put(CrateSettings.STATS_ENABLED.settingName(), false);
@@ -129,7 +128,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDynamicPersistentSettings() throws Exception {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder()
+        Settings.Builder builder = Settings.builder()
                 .put(CrateSettings.BULK_REQUEST_TIMEOUT.settingName(), "1s")
                 .put(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.settingName(), "2s");
         client().admin().cluster().prepareUpdateSettings().setPersistentSettings(builder.build()).execute().actionGet();

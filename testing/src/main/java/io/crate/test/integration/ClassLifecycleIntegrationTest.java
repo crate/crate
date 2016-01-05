@@ -22,14 +22,13 @@
 package io.crate.test.integration;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.internal.InternalNode;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.InternalTestCluster;
-import org.elasticsearch.test.SettingsSource;
+import org.elasticsearch.test.NodeConfigurationSource;
 import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -37,7 +36,6 @@ import org.junit.BeforeClass;
 import java.io.IOException;
 import java.util.Random;
 
-import static org.elasticsearch.test.ElasticsearchTestCase.assertBusy;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
 
 /**
@@ -49,23 +47,23 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTi
  *
  */
 @ThreadLeakScope(value = ThreadLeakScope.Scope.NONE)
-public abstract class ClassLifecycleIntegrationTest extends AbstractRandomizedTest {
+public abstract class ClassLifecycleIntegrationTest extends ESTestCase {
 
     public static InternalTestCluster GLOBAL_CLUSTER;
     private static Random random;
 
-    public static final SettingsSource SETTINGS_SOURCE = new SettingsSource() {
+    public static final NodeConfigurationSource SETTINGS_SOURCE = new NodeConfigurationSource() {
         @Override
-        public Settings node(int nodeOrdinal) {
-            return ImmutableSettings.builder()
-                    .put(InternalNode.HTTP_ENABLED, false)
+        public Settings nodeSettings(int i) {
+            return Settings.builder()
+                    .put(Node.HTTP_ENABLED, false)
                     .put("bootstrap.sigar", true)
                     .put("plugin.types", "io.crate.plugin.CrateCorePlugin").build();
         }
 
         @Override
-        public Settings transportClient() {
-            return ImmutableSettings.EMPTY;
+        public Settings transportClientSettings() {
+            return Settings.EMPTY;
         }
     };
 
@@ -77,15 +75,17 @@ public abstract class ClassLifecycleIntegrationTest extends AbstractRandomizedTe
         }
         if (GLOBAL_CLUSTER == null) {
             GLOBAL_CLUSTER = new InternalTestCluster(
+                    "local",
                     CLUSTER_SEED,
+                    createTempDir(),
                     2,
                     2,
-                    InternalTestCluster.clusterName("shared", Integer.toString(CHILD_JVM_ID), CLUSTER_SEED),
+                    InternalTestCluster.clusterName("shared", randomLong()),
                     SETTINGS_SOURCE,
                     0,
                     false,
-                    CHILD_JVM_ID,
-                    "shared"
+                    "shared",
+                    true
             );
         }
         GLOBAL_CLUSTER.beforeTest(random, 0.0D);

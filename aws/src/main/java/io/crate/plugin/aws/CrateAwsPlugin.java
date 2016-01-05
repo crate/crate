@@ -23,22 +23,24 @@
 package io.crate.plugin.aws;
 
 import com.google.common.collect.Lists;
-import io.crate.plugin.AbstractPlugin;
+import io.crate.Plugin;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugin.cloud.aws.CloudAwsPlugin;
+// import org.elasticsearch.plugin.cloud.aws.CloudAwsPlugin;
 import org.elasticsearch.repositories.RepositoriesModule;
 
 import java.util.Collection;
 import java.util.List;
 
-public class CrateAwsPlugin extends AbstractPlugin {
+public class CrateAwsPlugin extends Plugin {
 
-    private final CloudAwsPlugin esAwsPlugin;
+    // TODO: FIX ME!
+    // private final CloudAwsPlugin esAwsPlugin;
 
     public CrateAwsPlugin(Settings settings) {
-        this.esAwsPlugin = new CloudAwsPlugin(settings);
+        // TODO: FIX ME!
+        // this.esAwsPlugin = new CloudAwsPlugin(settings);
     }
 
     @Override
@@ -51,7 +53,8 @@ public class CrateAwsPlugin extends AbstractPlugin {
         return "crate on aws";
     }
 
-    @Override
+    // TODO: FIX ME!
+    /* @Override
     public Collection<Module> modules(Settings settings) {
         List<Module> modules = Lists.newArrayList(super.modules(settings));
         modules.add(new S3RepositoryAnalysisModule(settings));
@@ -60,11 +63,11 @@ public class CrateAwsPlugin extends AbstractPlugin {
     }
 
     @Override
-    public Collection<Class<? extends LifecycleComponent>> services() {
+    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
         return esAwsPlugin.services();
     }
 
     public void onModule(RepositoriesModule repositoriesModule) {
         esAwsPlugin.onModule(repositoriesModule);
-    }
+    }*/
 }

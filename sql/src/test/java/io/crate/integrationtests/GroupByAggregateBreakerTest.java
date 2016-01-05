@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Rule;
@@ -41,7 +40,7 @@ public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         RamAccountingContext.FLUSH_BUFFER_SIZE = 24;
-        return ImmutableSettings.builder()
+        return Settings.builder()
                 .put(super.nodeSettings(nodeOrdinal))
                 .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING, 512)
                 .build();

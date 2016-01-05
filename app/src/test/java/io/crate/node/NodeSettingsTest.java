@@ -27,7 +27,6 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.varia.NullAppender;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
@@ -64,7 +63,7 @@ public class NodeSettingsTest {
             loggingConfigured = true;
         }
         tmp.create();
-        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
+        Settings.Builder builder = Settings.settingsBuilder()
             .put("node.name", "node-test")
             .put("node.data", true)
             .put("index.store.type", "memory")

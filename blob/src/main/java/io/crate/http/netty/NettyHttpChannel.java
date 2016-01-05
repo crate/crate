@@ -1,33 +1,29 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
- * obtain a copy of the License at
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
  * under the License.
- *
- * However, if you have executed another commercial license agreement
- * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
 package io.crate.http.netty;
 
-import com.google.common.base.Strings;
-import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
 import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.netty.NettyUtils;
 import org.elasticsearch.common.netty.ReleaseChannelFutureListener;
 import org.elasticsearch.http.HttpChannel;
 import org.elasticsearch.http.netty.pipelining.OrderedDownstreamChannelEvent;
@@ -36,10 +32,7 @@ import org.elasticsearch.rest.RestResponse;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.rest.support.RestUtils;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.channel.*;
 import org.jboss.netty.handler.codec.http.*;
 
 import java.util.List;
@@ -54,13 +47,6 @@ import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.*;
  *
  */
 public class NettyHttpChannel extends HttpChannel {
-
-    private static final ChannelBuffer END_JSONP;
-
-    static {
-        BytesRef U_END_JSONP = new BytesRef(");");
-        END_JSONP = ChannelBuffers.wrappedBuffer(U_END_JSONP.bytes, U_END_JSONP.offset, U_END_JSONP.length);
-    }
 
     private final NettyHttpServerTransport transport;
     private final Channel channel;
@@ -93,7 +79,7 @@ public class NettyHttpChannel extends HttpChannel {
         boolean http10 = nettyRequest.getProtocolVersion().equals(HttpVersion.HTTP_1_0);
         boolean close =
                 HttpHeaders.Values.CLOSE.equalsIgnoreCase(nettyRequest.headers().get(HttpHeaders.Names.CONNECTION)) ||
-                        (http10 && !HttpHeaders.Values.KEEP_ALIVE.equalsIgnoreCase(nettyRequest.headers().get(HttpHeaders.Names.CONNECTION)));
+                (http10 && !HttpHeaders.Values.KEEP_ALIVE.equalsIgnoreCase(nettyRequest.headers().get(HttpHeaders.Names.CONNECTION)));
 
         // Build the response object.
         HttpResponseStatus status = getStatus(response.status());
@@ -111,7 +97,10 @@ public class NettyHttpChannel extends HttpChannel {
                 String originHeader = request.header(ORIGIN);
                 if (!Strings.isNullOrEmpty(originHeader)) {
                     if (corsPattern == null) {
-                        resp.headers().add(ACCESS_CONTROL_ALLOW_ORIGIN, transport.settings().get(SETTING_CORS_ALLOW_ORIGIN, "*"));
+                        String allowedOrigins = transport.settings().get(SETTING_CORS_ALLOW_ORIGIN, null);
+                        if (!Strings.isNullOrEmpty(allowedOrigins)) {
+                            resp.headers().add(ACCESS_CONTROL_ALLOW_ORIGIN, allowedOrigins);
+                        }
                     } else {
                         resp.headers().add(ACCESS_CONTROL_ALLOW_ORIGIN, corsPattern.matcher(originHeader).matches() ? originHeader : "null");
                     }
@@ -149,20 +138,6 @@ public class NettyHttpChannel extends HttpChannel {
         boolean addedReleaseListener = false;
         try {
             buffer = content.toChannelBuffer();
-            // handle JSONP
-            String callback = request.param("callback");
-            if (callback != null) {
-                final BytesRef callbackBytes = new BytesRef(callback);
-                callbackBytes.bytes[callbackBytes.length] = '(';
-                callbackBytes.length++;
-                buffer = ChannelBuffers.wrappedBuffer(NettyUtils.DEFAULT_GATHERING,
-                        ChannelBuffers.wrappedBuffer(callbackBytes.bytes, callbackBytes.offset, callbackBytes.length),
-                        buffer,
-                        ChannelBuffers.wrappedBuffer(END_JSONP)
-                );
-                // Add content-type header of "application/javascript"
-                resp.headers().add(HttpHeaders.Names.CONTENT_TYPE, "application/javascript");
-            }
             resp.setContent(buffer);
 
             // If our response doesn't specify a content-type header, set one

@@ -24,7 +24,7 @@ package io.crate.planner;
 
 
 import com.carrotsearch.hppc.ObjectLongMap;
-import com.carrotsearch.hppc.ObjectLongOpenHashMap;
+import com.carrotsearch.hppc.ObjectLongHashMap;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.action.sql.TransportSQLAction;
@@ -91,7 +91,7 @@ public class TableStatsService extends AbstractComponent implements Runnable {
     }
 
     private static ObjectLongMap<TableIdent> statsFromResponse(SQLResponse sqlResponse) {
-        ObjectLongMap<TableIdent> newStats = new ObjectLongOpenHashMap<>((int) sqlResponse.rowCount());
+        ObjectLongMap<TableIdent> newStats = new ObjectLongHashMap<>((int) sqlResponse.rowCount());
         for (Object[] row : sqlResponse.rows()) {
             newStats.put(new TableIdent((String) row[1], (String) row[2]), (long) row[0]);
         }

@@ -41,7 +41,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
@@ -83,7 +82,7 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
         SnapshotId snapshotId = new SnapshotId(repositoryName.get().toString(), snapshotName);
 
         // validate and extract settings
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
         // apply defaults
         for (Map.Entry<String, SettingsApplier> entry : SETTINGS.entrySet()) {
             builder.put(entry.getValue().getDefault());

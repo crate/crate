@@ -28,7 +28,7 @@ import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRespon
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.junit.After;
 import org.junit.Before;
@@ -114,7 +114,7 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
     public void testRoutingOfIndicesIsNotOverridden() throws Exception {
         cluster().client().admin().indices()
                 .prepareCreate("index_0")
-                .setSettings(ImmutableSettings.builder().put("number_of_shards", 1).put("number_of_replicas", 0))
+                .setSettings(Settings.builder().put("number_of_shards", 1).put("number_of_replicas", 0))
                 .execute().actionGet();
         ensureYellow("index_0");
 

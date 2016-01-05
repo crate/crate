@@ -41,7 +41,8 @@ public class ExpressionToMemoryValueVisitor extends AstVisitor<ByteSizeValue, Ob
     @Override
     protected ByteSizeValue visitStringLiteral(StringLiteral node, Object[] context) {
         try {
-            return MemorySizeValue.parseBytesSizeValueOrHeapRatio(node.getValue());
+            // TODO: FIX ME! parseBytesSizeValueOr... requires settings to be passed in
+            return null; //MemorySizeValue.parseBytesSizeValueOrHeapRatio(node.getValue());
         } catch (ElasticsearchParseException e) {
             throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid byte size value '%s'", node.getValue()));
@@ -61,7 +62,8 @@ public class ExpressionToMemoryValueVisitor extends AstVisitor<ByteSizeValue, Ob
             value = new ByteSizeValue(((Number) param).longValue());
         } else if (param instanceof String) {
             try {
-                value = MemorySizeValue.parseBytesSizeValueOrHeapRatio((String) param);
+                // TODO: FIX ME! parseBytesSizeValueOr... requires settings to be passed in
+                value = null; //MemorySizeValue.parseBytesSizeValueOrHeapRatio((String) param);
             } catch (ElasticsearchParseException e) {
                 throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, "Invalid byte size value '%s'", param));

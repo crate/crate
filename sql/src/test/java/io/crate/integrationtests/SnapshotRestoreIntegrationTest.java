@@ -28,8 +28,6 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.metadata.SnapshotId;
-import org.elasticsearch.cluster.metadata.SnapshotMetaData;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.snapshots.SnapshotInfo;
@@ -41,6 +39,7 @@ import java.util.Locale;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -55,7 +54,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.builder().put(super.nodeSettings(nodeOrdinal))
+        return Settings.builder().put(super.nodeSettings(nodeOrdinal))
                 .put("path.repo", TEMPORARY_FOLDER.getRoot().getAbsolutePath())
                 .build();
     }

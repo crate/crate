@@ -41,7 +41,8 @@ public class ExpressionToTimeValueVisitor extends AstVisitor<TimeValue, Object[]
     @Override
     protected TimeValue visitStringLiteral(StringLiteral node, Object[] context) {
         try {
-            return TimeValue.parseTimeValue(node.getValue(), DEFAULT_VALUE);
+            //TODO: FIX ME! parseTimeValue requires setting
+            return TimeValue.parseTimeValue(node.getValue(), DEFAULT_VALUE, "");
         } catch (ElasticsearchParseException e) {
             throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid time value '%s'", node.getValue()));
@@ -66,7 +67,8 @@ public class ExpressionToTimeValueVisitor extends AstVisitor<TimeValue, Object[]
             timeValue = new TimeValue(((Number) param).longValue());
         } else if (param instanceof String) {
             try {
-                timeValue = TimeValue.parseTimeValue((String) param, DEFAULT_VALUE);
+                //TODO: FIX ME! parseTimeValue requires setting
+                timeValue = TimeValue.parseTimeValue((String) param, DEFAULT_VALUE, "");
             } catch (ElasticsearchParseException e) {
                 throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, "Invalid time value '%s'", param));

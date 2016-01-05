@@ -25,6 +25,7 @@ import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.monitor.os.OsStats;
 
+// TODO: FIX ME! sigar removal!
 public class NodeOsCpuExpression extends SysNodeObjectReference {
 
     abstract class CpuExpression extends SysNodeExpression<Object> {
@@ -38,10 +39,10 @@ public class NodeOsCpuExpression extends SysNodeObjectReference {
 
     @Inject
     public NodeOsCpuExpression(OsStats stats) {
-        addChildImplementations(stats.cpu());
+        //addChildImplementations(stats.cpu());
     }
 
-    private void addChildImplementations(final OsStats.Cpu cpu) {
+    /* private void addChildImplementations(final OsStats.Cpu cpu) {
         childImplementations.put(SYS, new CpuExpression() {
             @Override
             public Short value() {
@@ -92,5 +93,5 @@ public class NodeOsCpuExpression extends SysNodeObjectReference {
                 }
             }
         });
-    }
+    } */
 }

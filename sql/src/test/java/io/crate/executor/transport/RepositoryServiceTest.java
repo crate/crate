@@ -41,7 +41,7 @@ import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.inject.spi.Message;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.test.cluster.NoopClusterService;
@@ -93,7 +93,7 @@ public class RepositoryServiceTest extends CrateUnitTest {
         expectedException.expect(RepositoryException.class);
 
         // add repo to cluster service so that it exists..
-        RepositoriesMetaData repos = new RepositoriesMetaData(new RepositoryMetaData("repo1", "fs", ImmutableSettings.EMPTY));
+        RepositoriesMetaData repos = new RepositoriesMetaData(new RepositoryMetaData("repo1", "fs", Settings.EMPTY));
         ClusterState state = ClusterState.builder(new ClusterName("dummy")).metaData(
                 MetaData.builder().putCustom(RepositoriesMetaData.TYPE, repos)).build();
         ClusterService clusterService = new NoopClusterService(state);
@@ -102,7 +102,7 @@ public class RepositoryServiceTest extends CrateUnitTest {
 
         final ActionFilters actionFilters = mock(ActionFilters.class, Answers.RETURNS_MOCKS.get());
         TransportDeleteRepositoryAction deleteRepositoryAction = new TransportDeleteRepositoryAction(
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 mock(TransportService.class),
                 clusterService,
                 mock(RepositoriesService.class),
@@ -116,7 +116,7 @@ public class RepositoryServiceTest extends CrateUnitTest {
         when(transportActionProvider.transportDeleteRepositoryAction()).thenReturn(deleteRepositoryAction);
 
         TransportPutRepositoryAction putRepo = new TransportPutRepositoryAction(
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 mock(TransportService.class),
                 clusterService,
                 mock(RepositoriesService.class),
@@ -132,7 +132,7 @@ public class RepositoryServiceTest extends CrateUnitTest {
         RepositoryService repositoryService = new RepositoryService(clusterService, transportActionProvider);
         try {
             repositoryService.execute(
-                    new CreateRepositoryAnalyzedStatement("repo1", "fs", ImmutableSettings.EMPTY)).get(10, TimeUnit.SECONDS);
+                    new CreateRepositoryAnalyzedStatement("repo1", "fs", Settings.EMPTY)).get(10, TimeUnit.SECONDS);
         } catch (ExecutionException e) {
             verify(transportActionProvider, times(1)).transportDeleteRepositoryAction();
             throw e.getCause();

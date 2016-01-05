@@ -44,7 +44,6 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
@@ -98,7 +97,7 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
 
         @Override
         protected void configure() {
-            bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
+            bind(Settings.class).toInstance(Settings.EMPTY);
             bind(ThreadPool.class).toInstance(threadPool);
 
             OsService osService = mock(OsService.class);
