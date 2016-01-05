@@ -55,7 +55,7 @@ import static org.mockito.Mockito.*;
 public class PageDownstreamContextTest extends CrateUnitTest {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     @Test
     public void testCantSetSameBucketTwiceWithoutReceivingFullPage() throws Exception {

@@ -22,7 +22,7 @@
 
 package io.crate.operation.collect.collectors;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntObjectHashMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.*;
@@ -54,7 +54,7 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
 
     private static final int KEEP_ALIVE_AFTER_ROWS = 1_000_000;
     private final List<OrderedDocCollector> orderedDocCollectors;
-    private final IntObjectOpenHashMap<OrderedDocCollector> orderedCollectorsMap;
+    private final IntObjectHashMap<OrderedDocCollector> orderedCollectorsMap;
     private final RowReceiver rowReceiver;
     private final PagingIterator<Row> pagingIterator;
     private final TopRowUpstream topRowUpstream;
@@ -117,7 +117,7 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
                 }
             };
 
-            this.orderedCollectorsMap = new IntObjectOpenHashMap<>(orderedDocCollectors.size());
+            this.orderedCollectorsMap = new IntObjectHashMap<>(orderedDocCollectors.size());
             for (OrderedDocCollector orderedDocCollector : orderedDocCollectors) {
                 this.orderedCollectorsMap.put(orderedDocCollector.shardId(), orderedDocCollector);
             }

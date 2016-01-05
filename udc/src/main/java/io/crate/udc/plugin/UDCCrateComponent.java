@@ -29,6 +29,7 @@ public class UDCCrateComponent implements CrateComponent  {
 
     @Override
     public Plugin createPlugin(Settings settings) {
-        return new UDCPlugin(settings);
+        // TODO: FIX ME!
+        return null; //new UDCPlugin(settings);
     }
 }

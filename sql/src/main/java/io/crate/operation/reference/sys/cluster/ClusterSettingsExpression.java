@@ -29,7 +29,6 @@ import io.crate.types.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.settings.NodeSettingsService;
 
@@ -99,7 +98,7 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
         @Override
         public void onRefreshSettings(Settings settings) {
             applySettings(CrateSettings.CRATE_SETTINGS,
-                    ImmutableSettings.builder()
+                    Settings.builder()
                             .put(initialSettings)
                             .put(settings).build()
             );

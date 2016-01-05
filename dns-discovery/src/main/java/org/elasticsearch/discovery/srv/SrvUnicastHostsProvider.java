@@ -131,7 +131,8 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
             String address = hostname + ":" + port;
 
             try {
-                TransportAddress[] addresses = transportService.addressesFromString(address);
+                // TODO: FIX ME!
+                TransportAddress[] addresses = null; // transportService.addressesFromString(address);
                 logger.trace("adding {}, transport_address {}", address, addresses[0]);
                 discoNodes.add(new DiscoveryNode("#srv-" + address, addresses[0], version.minimumCompatibilityVersion()));
             } catch (Exception e) {

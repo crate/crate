@@ -28,7 +28,7 @@ import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.OrderByCollectorExpression;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.search.FieldDoc;
@@ -78,9 +78,9 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
         for (OrderByCollectorExpression orderByCollectorExpression : orderByCollectorExpressions) {
             orderByCollectorExpression.setNextFieldDoc(fieldDoc);
         }
-        List<AtomicReaderContext> leaves = indexReader.leaves();
+        List<LeafReaderContext> leaves = indexReader.leaves();
         int readerIndex = ReaderUtil.subIndex(fieldDoc.doc, leaves);
-        AtomicReaderContext subReaderContext = leaves.get(readerIndex);
+        LeafReaderContext subReaderContext = leaves.get(readerIndex);
         int subDoc = fieldDoc.doc - subReaderContext.docBase;
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.setNextReader(subReaderContext);

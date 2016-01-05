@@ -31,7 +31,7 @@ public class NodeProcessCpuExpression extends SysNodeObjectReference {
     public static final String SYSTEM = "system";
 
     public NodeProcessCpuExpression(ProcessStats stats) {
-        addChildImplementations(stats.cpu());
+        addChildImplementations(stats.getCpu());
     }
 
     private void addChildImplementations(final ProcessStats.Cpu cpu) {
@@ -45,7 +45,8 @@ public class NodeProcessCpuExpression extends SysNodeObjectReference {
                 }
             }
         });
-        childImplementations.put(USER, new SysNodeExpression<Long>() {
+        // TODO: FIX ME! user and sys info not available
+        /*childImplementations.put(USER, new SysNodeExpression<Long>() {
             @Override
             public Long value() {
                 if (cpu != null) {
@@ -64,6 +65,6 @@ public class NodeProcessCpuExpression extends SysNodeObjectReference {
                     return -1L;
                 }
             }
-        });
+        });*/
     }
 }

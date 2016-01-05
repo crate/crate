@@ -34,7 +34,7 @@ import io.crate.sql.parser.ParsingException;
 import io.crate.testing.MockedClusterServiceModule;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -59,7 +59,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
             FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
             when(fulltextAnalyzerResolver.hasCustomAnalyzer("german")).thenReturn(false);
             when(fulltextAnalyzerResolver.hasCustomAnalyzer("ft_search")).thenReturn(true);
-            ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
+            Settings.Builder settingsBuilder = Settings.builder();
             settingsBuilder.put("search", "foobar");
             when(fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("ft_search")).thenReturn(settingsBuilder.build());
             bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);

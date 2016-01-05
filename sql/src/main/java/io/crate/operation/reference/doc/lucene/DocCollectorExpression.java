@@ -25,7 +25,7 @@ import com.google.common.base.Joiner;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.search.lookup.SourceLookup;
 
@@ -81,12 +81,14 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
         @Override
         public void setNextDocId(int doc) {
-            sourceLookup.setNextDocId(doc);
+            // TODO: FIX ME! setNextDocId not available
+            // sourceLookup.setNextDocId(doc);
         }
 
         @Override
-        public void setNextReader(AtomicReaderContext context) {
-            sourceLookup.setNextReader(context);
+        public void setNextReader(LeafReaderContext context) {
+            // TODO: FIX ME! setNextReader not available
+            // sourceLookup.setNextReader(context);
         }
 
         @Override

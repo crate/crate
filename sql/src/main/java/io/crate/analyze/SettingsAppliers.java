@@ -31,7 +31,6 @@ import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -55,7 +54,7 @@ public class SettingsAppliers {
             return defaultSettings;
         }
 
-        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+        public void applyValue(Settings.Builder settingsBuilder, Object value) {
             try {
                 settingsBuilder.put(name, validate(value));
             } catch (InvalidSettingValueContentException e) {
@@ -86,12 +85,12 @@ public class SettingsAppliers {
 
         public NumberSettingsApplier(Setting setting) {
             super(setting.settingName(),
-                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+                    Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
             this.setting = setting;
         }
 
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
             try {
                 applyValue(settingsBuilder, ExpressionToNumberVisitor.convert(expression, parameters));
             } catch (IllegalArgumentException e) {
@@ -105,11 +104,11 @@ public class SettingsAppliers {
 
         public MemoryValueSettingsApplier(Setting setting) {
             super(setting.settingName(),
-                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+                    Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
         }
 
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
             try {
                 applyValue(settingsBuilder, ExpressionToMemoryValueVisitor.convert(expression, parameters));
             } catch (IllegalArgumentException e) {
@@ -123,12 +122,12 @@ public class SettingsAppliers {
 
         public ObjectSettingsApplier(NestedSetting settings) {
             super(settings.settingName(),
-                    ImmutableSettings.builder().put(settings.settingName(), settings.defaultValue()).build());
+                    Settings.builder().put(settings.settingName(), settings.defaultValue()).build());
         }
 
         static final Joiner dotJoiner = Joiner.on('.');
 
-        protected void flattenSettings(ImmutableSettings.Builder settingsBuilder,
+        protected void flattenSettings(Settings.Builder settingsBuilder,
                                                       String key, Object value){
             if(value instanceof Map){
                 for(Map.Entry<String, Object> setting : ((Map<String, Object>) value).entrySet()){
@@ -142,7 +141,7 @@ public class SettingsAppliers {
         }
 
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
             Object value = null;
             try {
                 value = ExpressionToObjectVisitor.convert(expression, parameters);
@@ -157,7 +156,7 @@ public class SettingsAppliers {
         }
 
         @Override
-        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+        public void applyValue(Settings.Builder settingsBuilder, Object value) {
             throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Only object values are allowed at '%s'", name));
         }
@@ -167,11 +166,11 @@ public class SettingsAppliers {
 
         public BooleanSettingsApplier(BoolSetting setting) {
             super(setting.settingName(),
-                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+                    Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
         }
 
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
             try {
                 applyValue(settingsBuilder, ExpressionToObjectVisitor.convert(expression, parameters));
             } catch (IllegalArgumentException e) {
@@ -242,7 +241,7 @@ public class SettingsAppliers {
 
         public ByteSizeSettingsApplier(ByteSizeSetting setting) {
             super(setting.settingName(),
-                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+                    Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
             this.setting = setting;
         }
 
@@ -254,7 +253,7 @@ public class SettingsAppliers {
         }
 
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
             ByteSizeValue byteSizeValue;
             try {
                 byteSizeValue = ExpressionToByteSizeValueVisitor.convert(expression, parameters);
@@ -270,19 +269,19 @@ public class SettingsAppliers {
             applyValue(settingsBuilder, byteSizeValue.bytes());
         }
 
-        public void applyValue(ImmutableSettings.Builder settingsBuilder, long value) {
+        public void applyValue(Settings.Builder settingsBuilder, long value) {
             settingsBuilder.put(this.name, validate(value));
         }
 
         @Override
-        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+        public void applyValue(Settings.Builder settingsBuilder, Object value) {
             ByteSizeValue byteSizeValue;
             if (value instanceof Number) {
                 byteSizeValue = new ByteSizeValue(((Number) value).longValue());
             } else if (value instanceof String) {
                 try {
                     byteSizeValue = ByteSizeValue.parseBytesSizeValue((String) value,
-                            ExpressionToByteSizeValueVisitor.DEFAULT_VALUE);
+                            ExpressionToByteSizeValueVisitor.DEFAULT_VALUE.toString());
                 } catch (ElasticsearchParseException e) {
                     throw invalidException(e);
                 }
@@ -299,7 +298,7 @@ public class SettingsAppliers {
 
         public StringSettingsApplier(StringSetting setting) {
             super(setting.settingName(),
-                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+                    Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
             this.setting = setting;
         }
 
@@ -314,7 +313,7 @@ public class SettingsAppliers {
         }
 
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
             if (expression instanceof ObjectLiteral) {
                 throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, "Object values are not allowed at '%s'", name));
@@ -329,7 +328,7 @@ public class SettingsAppliers {
 
         public TimeSettingsApplier(TimeSetting setting) {
             super(setting.settingName(),
-                    ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
+                    Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
             this.setting = setting;
         }
 
@@ -341,7 +340,7 @@ public class SettingsAppliers {
         }
 
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
             TimeValue time;
             try {
                 time = ExpressionToTimeValueVisitor.convert(expression, parameters);
@@ -351,16 +350,17 @@ public class SettingsAppliers {
             applyValue(settingsBuilder, time.millis());
         }
 
-        public void applyValue(ImmutableSettings.Builder settingsBuilder, long value) {
+        public void applyValue(Settings.Builder settingsBuilder, long value) {
             settingsBuilder.put(name, validate(value));
         }
 
         @Override
-        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+        public void applyValue(Settings.Builder settingsBuilder, Object value) {
             TimeValue timeValue;
             if (value instanceof String) {
                 try {
-                    timeValue = TimeValue.parseTimeValue((String) value, ExpressionToTimeValueVisitor.DEFAULT_VALUE);
+                    // TODO: FIX ME! settings name required
+                    timeValue = TimeValue.parseTimeValue((String) value, ExpressionToTimeValueVisitor.DEFAULT_VALUE, "");
                 } catch (ElasticsearchParseException e) {
                     throw invalidException(e);
                 }

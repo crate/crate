@@ -29,7 +29,7 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -67,7 +67,7 @@ public class ArrayMapperTest extends CrateSingleNodeTest {
         // we serialize and deserialize the mapping to make sure serialization works just fine
         client().admin().indices().prepareCreate(indexName)
                 .addMapping(type, mapping)
-                .setSettings(ImmutableSettings.builder().put("number_of_replicas", 0).build()).execute().actionGet();
+                .setSettings(Settings.builder().put("number_of_replicas", 0).build()).execute().actionGet();
         client().admin().cluster().prepareHealth(indexName)
                 .setWaitForGreenStatus()
                 .setWaitForRelocatingShards(0)
