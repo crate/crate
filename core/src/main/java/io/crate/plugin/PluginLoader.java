@@ -37,7 +37,7 @@ import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 
@@ -306,7 +306,7 @@ public class PluginLoader {
 
 
     public Settings additionalSettings() {
-        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder();
+        Settings.Builder builder = Settings.settingsBuilder();
         for (Plugin plugin : plugins) {
             builder.put(plugin.additionalSettings());
         }

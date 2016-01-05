@@ -31,7 +31,7 @@ import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.rest.RestModule;
@@ -79,7 +79,7 @@ public class CrateCorePlugin extends AbstractPlugin {
 
     @Override
     public Settings additionalSettings() {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
         builder.put(crateComponentLoader.additionalSettings());
         builder.put(pluginLoader.additionalSettings());
         return builder.build();

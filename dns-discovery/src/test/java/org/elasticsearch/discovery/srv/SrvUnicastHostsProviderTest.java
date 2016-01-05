@@ -23,7 +23,6 @@ package org.elasticsearch.discovery.srv;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -67,7 +66,7 @@ public class SrvUnicastHostsProviderTest {
 
     @Test
     public void testInvalidResolver() throws Exception {
-        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
+        Settings.Builder builder = Settings.settingsBuilder()
                 .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER, "foobar.txt")
                 .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY, "_crate._srv.foo.txt");
         SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(),
@@ -78,7 +77,7 @@ public class SrvUnicastHostsProviderTest {
 
     @Test
     public void testValidResolver() throws Exception {
-        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
+        Settings.Builder builder = Settings.settingsBuilder()
                 .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER, "8.8.4.4");
         SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(),
                 transportService, Version.CURRENT);
@@ -87,7 +86,7 @@ public class SrvUnicastHostsProviderTest {
 
     @Test
     public void testValidResolverWithPort() throws Exception {
-        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
+        Settings.Builder builder = Settings.settingsBuilder()
                 .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER, "127.0.0.1:5353");
         SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(),
                 transportService, Version.CURRENT);
@@ -96,7 +95,7 @@ public class SrvUnicastHostsProviderTest {
 
     @Test
     public void testValidResolverWithInvalidPort() throws Exception {
-        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
+        Settings.Builder builder = Settings.settingsBuilder()
                 .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER, "127.0.0.1:42a");
         SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(),
                 transportService, Version.CURRENT);
@@ -105,7 +104,7 @@ public class SrvUnicastHostsProviderTest {
     @Test
     public void testBuildDynamicNodesNoQuery() throws Exception {
         // no query -> empty list of discovery nodes
-        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(ImmutableSettings.EMPTY,
+        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(Settings.EMPTY,
                 transportService, Version.CURRENT);
         List<DiscoveryNode> discoNodes = unicastHostsProvider.buildDynamicNodes();
         assertTrue(discoNodes.isEmpty());
@@ -114,7 +113,7 @@ public class SrvUnicastHostsProviderTest {
     @Test
     public void testBuildDynamicNoRecords() throws Exception {
         // no records -> empty list of discovery nodes
-        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
+        Settings.Builder builder = Settings.settingsBuilder()
                 .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY, "_crate._srv.crate.internal");
         SrvUnicastHostsProvider unicastHostsProvider = new DummySrvUnicastHostsProvider(builder.build(),
                 transportService, Version.CURRENT) {
@@ -130,7 +129,7 @@ public class SrvUnicastHostsProviderTest {
     @Test
     public void testBuildDynamicNodes() throws Exception {
         // records
-        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
+        Settings.Builder builder = Settings.settingsBuilder()
                 .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY, "_crate._srv.crate.internal");
         SrvUnicastHostsProvider unicastHostsProvider = new DummySrvUnicastHostsProvider(builder.build(),
                 transportService, Version.CURRENT) {
@@ -149,7 +148,7 @@ public class SrvUnicastHostsProviderTest {
 
     @Test
     public void testParseRecords() throws Exception {
-        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(ImmutableSettings.EMPTY,
+        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(Settings.EMPTY,
                 transportService, Version.CURRENT);
 
         Name srvName = Name.fromConstantString("_crate._srv.crate.internal.");

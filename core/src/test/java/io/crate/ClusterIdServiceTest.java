@@ -26,7 +26,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Test;
 
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 @ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.TEST, numDataNodes = 0)
 public class ClusterIdServiceTest extends ElasticsearchIntegrationTest  {

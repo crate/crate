@@ -30,7 +30,6 @@ import io.crate.blob.v2.BlobShardModule;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.AbstractPlugin;
 
@@ -54,7 +53,7 @@ public class BlobPlugin extends AbstractPlugin {
 
     @Override
     public Settings additionalSettings() {
-        ImmutableSettings.Builder settingsBuilder = ImmutableSettings.settingsBuilder();
+        Settings.Builder settingsBuilder = Settings.settingsBuilder();
         settingsBuilder.put("http.type",
                 "io.crate.http.netty.NettyHttpServerTransport");
         return settingsBuilder.build();

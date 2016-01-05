@@ -25,7 +25,6 @@ import io.crate.Constants;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
@@ -41,7 +40,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
     private String extendedAnalyzerName = null;
     private Settings extendedCustomAnalyzer = null;
     private Settings genericAnalyzerSettings = null;
-    private ImmutableSettings.Builder genericAnalyzerSettingsBuilder = ImmutableSettings.builder();
+    private Settings.Builder genericAnalyzerSettingsBuilder = Settings.builder();
     private Tuple<String, Settings> tokenizerDefinition = null;
     private Map<String,Settings> charFilters = new HashMap<>();
     private Map<String, Settings> tokenFilters = new HashMap<>();
@@ -106,7 +105,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
         return genericAnalyzerSettings;
     }
 
-    public ImmutableSettings.Builder genericAnalyzerSettingsBuilder() {
+    public Settings.Builder genericAnalyzerSettingsBuilder() {
         return genericAnalyzerSettingsBuilder;
     }
 
@@ -146,7 +145,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
      * @return Settings describing a custom or extended builtin-analyzer
      */
     private Settings analyzerSettings() {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
 
         if (extendsCustomAnalyzer()) {
             // use analyzer-settings from extended analyzer only
@@ -163,7 +162,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
                     if (extendedTokenizerSettings != null) {
                         tokenizerDefinition = new Tuple<>(extendedTokenizerName, extendedTokenizerSettings);
                     } else {
-                        tokenizerDefinition = new Tuple<>(extendedTokenizerName, ImmutableSettings.EMPTY);
+                        tokenizerDefinition = new Tuple<>(extendedTokenizerName, Settings.EMPTY);
                     }
                 }
             }
@@ -176,7 +175,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
                     if (extendedTokenFilterSettings != null) {
                         tokenFilters.put(extendedTokenFilterNames[i], extendedTokenFilterSettings);
                     } else {
-                        tokenFilters.put(extendedTokenFilterNames[i], ImmutableSettings.EMPTY);
+                        tokenFilters.put(extendedTokenFilterNames[i], Settings.EMPTY);
                     }
                 }
             }
@@ -189,7 +188,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
                     if (extendedCustomCharFilterSettings != null) {
                         charFilters.put(extendedCustomCharFilterNames[i], extendedCustomCharFilterSettings);
                     } else {
-                        charFilters.put(extendedCustomCharFilterNames[i], ImmutableSettings.EMPTY);
+                        charFilters.put(extendedCustomCharFilterNames[i], Settings.EMPTY);
                     }
                 }
             }
@@ -250,7 +249,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
      */
     public Settings buildSettings() throws IOException {
 
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
 
         String encodedAnalyzerSettings = FulltextAnalyzerResolver.encodeSettings(analyzerSettings()).toUtf8();
         builder.put(

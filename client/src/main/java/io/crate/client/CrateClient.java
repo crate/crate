@@ -37,7 +37,6 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -55,7 +54,7 @@ import java.net.URISyntaxException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 public class CrateClient {
 
@@ -89,7 +88,7 @@ public class CrateClient {
 
         // override classloader
         CrateClientClassLoader clientClassLoader = new CrateClientClassLoader(tuple.v1().getClassLoader());
-        this.settings = ImmutableSettings.builder().put(tuple.v1()).classLoader(clientClassLoader).build();
+        this.settings = Settings.builder().put(tuple.v1()).classLoader(clientClassLoader).build();
         Version version = Version.CURRENT;
 
         CompressorFactory.configure(this.settings);
@@ -120,11 +119,11 @@ public class CrateClient {
     }
 
     public CrateClient() {
-        this(ImmutableSettings.Builder.EMPTY_SETTINGS, true);
+        this(Settings.Builder.EMPTY_SETTINGS, true);
     }
 
     public CrateClient(String... servers) {
-        this(ImmutableSettings.EMPTY, true, servers);
+        this(Settings.EMPTY, true, servers);
     }
 
     @Nullable

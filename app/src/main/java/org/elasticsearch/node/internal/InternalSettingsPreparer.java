@@ -29,7 +29,6 @@ import org.elasticsearch.common.Names;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.cli.Terminal;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.FailedToResolveConfigException;
@@ -38,7 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.elasticsearch.common.Strings.cleanPath;
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 /**
  *
@@ -78,7 +77,7 @@ public class InternalSettingsPreparer {
         String[] ignorePrefixes = new String[]{"es.default.", "elasticsearch.default."};
         boolean useSystemProperties = !pSettings.getAsBoolean(IGNORE_SYSTEM_PROPERTIES_SETTING, false);
         // just create enough settings to build the environment
-        ImmutableSettings.Builder settingsBuilder = settingsBuilder().put(pSettings);
+        Settings.Builder settingsBuilder = settingsBuilder().put(pSettings);
         if (useSystemProperties) {
             settingsBuilder.putProperties("elasticsearch.default.", System.getProperties())
                     .putProperties("es.default.", System.getProperties())
@@ -179,7 +178,7 @@ public class InternalSettingsPreparer {
 
     static Settings replacePromptPlaceholders(Settings settings, Terminal terminal) {
         UnmodifiableIterator<Map.Entry<String, String>> iter = settings.getAsMap().entrySet().iterator();
-        ImmutableSettings.Builder builder = ImmutableSettings.builder().classLoader(settings.getClassLoaderIfSet());
+        Settings.Builder builder = Settings.builder().classLoader(settings.getClassLoaderIfSet());
 
         while (iter.hasNext()) {
             Map.Entry<String, String> entry = iter.next();

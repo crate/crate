@@ -22,7 +22,7 @@
 package io.crate.plugin;
 
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.hamcrest.Matchers;
@@ -33,7 +33,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 
 import static org.elasticsearch.client.Requests.clusterHealthRequest;
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
@@ -68,7 +68,7 @@ public class PluginLoaderTest extends ElasticsearchIntegrationTest {
 
     private static String startNodeWithPlugins(String pluginDir) throws URISyntaxException {
         URL resource = PluginLoaderTest.class.getResource(pluginDir);
-        ImmutableSettings.Builder settings = settingsBuilder();
+        Settings.Builder settings = settingsBuilder();
         if (resource != null) {
             settings.put("path.plugins", new File(resource.toURI()).getAbsolutePath());
         }

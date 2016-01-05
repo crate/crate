@@ -47,7 +47,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.io.FileSystemUtils;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -136,7 +135,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
 
     public ListenableFuture<Void> createBlobTable(String tableName,
                                                   Settings indexSettings) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
         builder.put(indexSettings);
         builder.put(SETTING_INDEX_BLOBS_ENABLED, true);
 
