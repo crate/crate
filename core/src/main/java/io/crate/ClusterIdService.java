@@ -30,7 +30,7 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 import static org.elasticsearch.cluster.ClusterState.builder;
 
@@ -127,7 +127,7 @@ public class ClusterIdService implements ClusterStateListener {
 
             @Override
             public ClusterState execute(final ClusterState currentState) {
-                ImmutableSettings.Builder transientSettings = ImmutableSettings.settingsBuilder();
+                Settings.Builder transientSettings = Settings.settingsBuilder();
                 transientSettings.put(currentState.metaData().transientSettings());
                 transientSettings.put(clusterIdSettingsKey, clusterId.value().toString());
 

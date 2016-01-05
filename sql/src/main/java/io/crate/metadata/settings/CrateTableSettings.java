@@ -130,10 +130,10 @@ public class CrateTableSettings {
 
     public static final BoolSetting WARMER_ENABLED = new BoolSetting(TableParameterInfo.WARMER_ENABLED, true, true);
 
-    public static final TimeSetting GATEWAY_LOCAL_SYNC = new TimeSetting() {
+    public static final TimeSetting TRANSLOG_SYNC_INTERVAL = new TimeSetting() {
         @Override
         public String name() {
-            return TableParameterInfo.GATEWAY_LOCAL_SYNC;
+            return TableParameterInfo.TRANSLOG_SYNC_INTERVAL;
         }
 
         @Override

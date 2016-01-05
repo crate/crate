@@ -22,7 +22,7 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.monitor.process.ProcessStats;
+import io.crate.monitor.ExtendedProcessCpuStats;
 
 public class NodeProcessCpuExpression extends SysNodeObjectReference {
 
@@ -30,16 +30,16 @@ public class NodeProcessCpuExpression extends SysNodeObjectReference {
     public static final String USER = "user";
     public static final String SYSTEM = "system";
 
-    public NodeProcessCpuExpression(ProcessStats stats) {
-        addChildImplementations(stats.cpu());
+    public NodeProcessCpuExpression(ExtendedProcessCpuStats cpuStats) {
+        addChildImplementations(cpuStats);
     }
 
-    private void addChildImplementations(final ProcessStats.Cpu cpu) {
+    private void addChildImplementations(final ExtendedProcessCpuStats cpuStats) {
         childImplementations.put(PERCENT, new SysNodeExpression<Short>() {
             @Override
             public Short value() {
-                if (cpu != null) {
-                    return cpu.getPercent();
+                if (cpuStats != null) {
+                    return cpuStats.percent();
                 } else {
                     return -1;
                 }
@@ -48,8 +48,8 @@ public class NodeProcessCpuExpression extends SysNodeObjectReference {
         childImplementations.put(USER, new SysNodeExpression<Long>() {
             @Override
             public Long value() {
-                if (cpu != null) {
-                    return cpu.getUser().millis();
+                if (cpuStats != null) {
+                    return cpuStats.user().millis();
                 } else {
                     return -1L;
                 }
@@ -58,8 +58,8 @@ public class NodeProcessCpuExpression extends SysNodeObjectReference {
         childImplementations.put(SYSTEM, new SysNodeExpression<Long>() {
             @Override
             public Long value() {
-                if (cpu != null) {
-                    return cpu.getSys().millis();
+                if (cpuStats != null) {
+                    return cpuStats.sys().millis();
                 } else {
                     return -1L;
                 }

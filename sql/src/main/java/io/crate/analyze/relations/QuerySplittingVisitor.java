@@ -28,9 +28,11 @@ import com.google.common.collect.Multimap;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
-import org.elasticsearch.common.collect.IdentityHashSet;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
 
 public class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor.Context> {
 
@@ -42,7 +44,7 @@ public class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplitting
 
     public static class Context {
         private AnalyzedRelation seenRelation;
-        private final IdentityHashSet<AnalyzedRelation> seenRelations = new IdentityHashSet<>();
+        private final Set<AnalyzedRelation> seenRelations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
         private final Multimap<AnalyzedRelation, Symbol> queries = HashMultimap.create();
         private boolean multiRelation = false;
         private Symbol query;

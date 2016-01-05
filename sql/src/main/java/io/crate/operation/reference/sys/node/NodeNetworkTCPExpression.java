@@ -22,13 +22,13 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.monitor.network.NetworkStats;
+import io.crate.monitor.ExtendedNetworkStats;
 
 class NodeNetworkTCPExpression extends SysNodeObjectReference {
 
     private static final Long VALUE_UNAVAILABLE = -1L;
 
-    public NodeNetworkTCPExpression(NetworkStats stats) {
+    public NodeNetworkTCPExpression(ExtendedNetworkStats stats) {
         childImplementations.put(TCPConnectionsExpression.NAME, new TCPConnectionsExpression(stats));
         childImplementations.put(TCPPacketsExpression.NAME, new TCPPacketsExpression(stats));
     }
@@ -43,11 +43,11 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
         private static final String DROPPED = "dropped";
         private static final String EMBRYONIC_DROPPED = "embryonic_dropped";
 
-        protected TCPConnectionsExpression(NetworkStats stats) {
+        protected TCPConnectionsExpression(ExtendedNetworkStats stats) {
             addChildImplementations(stats.tcp());
         }
 
-        private void addChildImplementations(final NetworkStats.Tcp tcp) {
+        private void addChildImplementations(final ExtendedNetworkStats.Tcp tcp) {
             childImplementations.put(INITIATED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
@@ -109,11 +109,11 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
         private static final String ERRORS_RECEIVED = "errors_received";
         private static final String RST_SENT = "rst_sent";
 
-        protected TCPPacketsExpression(NetworkStats stats) {
+        protected TCPPacketsExpression(ExtendedNetworkStats stats) {
             addChildImplementations(stats.tcp());
         }
 
-        private void addChildImplementations(final NetworkStats.Tcp tcp) {
+        private void addChildImplementations(final ExtendedNetworkStats.Tcp tcp) {
             childImplementations.put(SENT, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {

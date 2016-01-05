@@ -21,12 +21,14 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope (randomDynamicTemplates = false)
+@ESIntegTestCase.ClusterScope (randomDynamicTemplates = false, transportClientRatio = 0)
 public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

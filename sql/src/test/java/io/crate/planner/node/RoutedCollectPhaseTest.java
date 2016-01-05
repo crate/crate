@@ -33,7 +33,7 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -65,7 +65,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         cn.writeTo(out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         RoutedCollectPhase cn2 = RoutedCollectPhase.FACTORY.create();
         cn2.readFrom(in);
         assertThat(cn, equalTo(cn2));

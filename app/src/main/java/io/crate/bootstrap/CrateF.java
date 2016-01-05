@@ -21,17 +21,37 @@
 
 package io.crate.bootstrap;
 
+import org.apache.commons.lang3.ArrayUtils;
+import org.elasticsearch.bootstrap.BootstrapProxy;
+import org.elasticsearch.bootstrap.StartupErrorProxy;
+
 /**
  * A main entry point when starting from the command line.
  */
 public class CrateF {
 
-    public static void close(String[] args) {
-        Crate.close(args);
+    /**
+     * Required method that's called by Apache Commons procrun when
+     * running as a service on Windows, when the service is stopped.
+     *
+     * http://commons.apache.org/proper/commons-daemon/procrun.html
+     *
+     * NOTE: If this method is renamed and/or moved, make sure to update crate.bat!
+     */
+    static void close(String[] args) {
+        BootstrapProxy.stop();
     }
 
     public static void main(String[] args) {
         System.setProperty("es.foreground", "yes");
-        Crate.main(args);
+        String[] startArgs = {"start"};
+        startArgs = ArrayUtils.addAll(startArgs, args);
+        try {
+            BootstrapProxy.init(startArgs);
+        } catch (Throwable t) {
+            // format exceptions to the console in a special way
+            // to avoid 2MB stacktraces from guice, etc.
+            throw new StartupErrorProxy(t);
+        }
     }
 }

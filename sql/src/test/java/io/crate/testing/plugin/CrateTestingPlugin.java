@@ -22,10 +22,10 @@
 package io.crate.testing.plugin;
 
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.plugin.AbstractPlugin;
 import io.crate.testing.SleepScalarFunction;
+import org.elasticsearch.plugins.Plugin;
 
-public class CrateTestingPlugin extends AbstractPlugin {
+public class CrateTestingPlugin extends Plugin {
 
     @Override
     public String name() {
@@ -40,5 +40,4 @@ public class CrateTestingPlugin extends AbstractPlugin {
     public void onModule(ScalarFunctionModule module) {
         module.register(new SleepScalarFunction());
     }
-
 }

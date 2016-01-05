@@ -112,6 +112,9 @@ public class MetaDataToASTNodeResolver {
                     if (geoReferenceInfo.distanceErrorPct() != null) {
                         properties.add(new GenericProperty("distance_error_pct", StringLiteral.fromObject(geoReferenceInfo.distanceErrorPct())));
                     }
+                    if (geoReferenceInfo.precision() != null) {
+                        properties.add(new GenericProperty("precision", StringLiteral.fromObject(geoReferenceInfo.precision())));
+                    }
                     if (geoReferenceInfo.treeLevels() != null) {
                         properties.add(new GenericProperty("tree_levels", StringLiteral.fromObject(geoReferenceInfo.treeLevels())));
                     }

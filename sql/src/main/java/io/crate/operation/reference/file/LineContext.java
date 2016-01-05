@@ -23,6 +23,7 @@ package io.crate.operation.reference.file;
 
 import io.crate.metadata.ColumnIdent;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.xcontent.XContentHelper;
 
 import javax.annotation.Nullable;
@@ -45,7 +46,7 @@ public class LineContext {
     public Map<String, Object> sourceAsMap() {
         if (parsedSource == null) {
             try {
-                parsedSource = XContentHelper.convertToMap(rawSource, false).v2();
+                parsedSource = XContentHelper.convertToMap(new BytesArray(rawSource), false).v2();
             } catch (NullPointerException e) {
                 return null;
             }
@@ -59,7 +60,7 @@ public class LineContext {
             // TODO: optimize if collectorContext has prefetchColumns
 
             try {
-                parsedSource = XContentHelper.convertToMap(rawSource, false).v2();
+                parsedSource = XContentHelper.convertToMap(new BytesArray(rawSource), false).v2();
             } catch (NullPointerException e) {
                 return null;
             }

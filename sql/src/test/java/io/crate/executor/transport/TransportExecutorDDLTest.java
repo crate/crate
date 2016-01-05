@@ -43,10 +43,6 @@ import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
-import org.elasticsearch.cluster.settings.DynamicSettings;
-import org.elasticsearch.common.inject.Key;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
@@ -55,7 +51,7 @@ import org.junit.Test;
 import java.util.*;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static org.elasticsearch.common.settings.ImmutableSettings.Builder.EMPTY_SETTINGS;
+import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
@@ -79,7 +75,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                     .put("index", "not_analyzed")
                     .put("doc_values", false).build()
             ));
-    private final static Settings TEST_SETTINGS = ImmutableSettings.settingsBuilder()
+    private final static Settings TEST_SETTINGS = Settings.settingsBuilder()
             .put("number_of_replicas", 0)
             .put("number_of_shards", 2).build();
 
@@ -88,13 +84,11 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         executor = internalCluster().getInstance(TransportExecutor.class);
     }
 
-    @Override
     @After
-    public void tearDown() throws Exception {
-        super.tearDown();
+    public void resetSettings() throws Exception {
         client().admin().cluster().prepareUpdateSettings()
-                .setPersistentSettingsToRemove(ImmutableSet.of("persistent.level"))
-                .setTransientSettingsToRemove(ImmutableSet.of("persistent.level", "transient.uptime"))
+                .setPersistentSettingsToRemove(ImmutableSet.of("stats.enabled"))
+                .setTransientSettingsToRemove(ImmutableSet.of("stats.enabled", "bulk.request_timeout"))
                 .execute().actionGet();
     }
 
@@ -144,7 +138,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         // check that orphaned alias has been deleted
         assertThat(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().aliases().containsKey("test"), is(false));
+                .getState().metaData().hasAlias("test"), is(false));
         // check that orphaned partition has been deleted
         assertThat(client().admin().indices().exists(new IndicesExistsRequest(partitionName)).actionGet().isExists(), is(false));
     }
@@ -208,18 +202,11 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testClusterUpdateSettingsTask() throws Exception {
-        final String persistentSetting = "persistent.level";
-        final String transientSetting = "transient.uptime";
-
-        // allow our settings to be updated (at all nodes)
-        Key<DynamicSettings> dynamicSettingsKey = Key.get(DynamicSettings.class, ClusterDynamicSettings.class);
-        for (DynamicSettings settings : internalCluster().getInstances(dynamicSettingsKey)) {
-            settings.addDynamicSetting(persistentSetting);
-            settings.addDynamicSetting(transientSetting);
-        }
+        final String persistentSetting = "stats.enabled";
+        final String transientSetting = "bulk.request_timeout";
 
         // Update persistent only
-        Settings persistentSettings = ImmutableSettings.builder()
+        Settings persistentSettings = Settings.builder()
                 .put(persistentSetting, "panic")
                 .build();
 
@@ -231,22 +218,22 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertEquals("panic", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().persistentSettings().get(persistentSetting));
 
         // Update transient only
-        Settings transientSettings = ImmutableSettings.builder()
-                .put(transientSetting, "123")
+        Settings transientSettings = Settings.builder()
+                .put(transientSetting, "123s")
                 .build();
 
         node = new ESClusterUpdateSettingsNode(EMPTY_SETTINGS, transientSettings);
         objects = executePlanNode(node);
 
         assertThat(objects, contains(isRow(1L)));
-        assertEquals("123", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
+        assertEquals("123s", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
 
         // Update persistent & transient
-        persistentSettings = ImmutableSettings.builder()
+        persistentSettings = Settings.builder()
                 .put(persistentSetting, "normal")
                 .build();
-        transientSettings = ImmutableSettings.builder()
-                .put(transientSetting, "243")
+        transientSettings = Settings.builder()
+                .put(transientSetting, "243s")
                 .build();
 
         node = new ESClusterUpdateSettingsNode(persistentSettings, transientSettings);
@@ -254,7 +241,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         assertThat(objects, contains(isRow(1L)));
         assertEquals("normal", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().persistentSettings().get(persistentSetting));
-        assertEquals("243", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
+        assertEquals("243s", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
     }
 
     private Bucket executePlanNode(PlanNode node) throws InterruptedException, java.util.concurrent.ExecutionException {
@@ -267,7 +254,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateIndexTemplateTask() throws Exception {
-        Settings indexSettings = ImmutableSettings.builder()
+        Settings indexSettings = Settings.builder()
                 .put("number_of_replicas", 0)
                 .put("number_of_shards", 2)
                 .build();

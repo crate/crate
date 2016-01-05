@@ -52,7 +52,6 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -110,7 +109,7 @@ public class CopyStatementAnalyzer {
 
         Context context = new Context(analysisMetaData, analysis.parameterContext(), tableRelation, true);
         Predicate<DiscoveryNode> nodeFilters = Predicates.alwaysTrue();
-        Settings settings = ImmutableSettings.EMPTY;
+        Settings settings = Settings.EMPTY;
         if (node.genericProperties().isPresent()) {
             // copy map as items are removed. The GenericProperties map is cached in the query cache and removing
             // items would cause subsequent queries that hit the cache to have different genericProperties
@@ -272,7 +271,7 @@ public class CopyStatementAnalyzer {
     private Settings settingsFromProperties(Map<String, Expression> properties,
                                             ExpressionAnalyzer expressionAnalyzer,
                                             ExpressionAnalysisContext expressionAnalysisContext) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
         for (Map.Entry<String, Expression> entry : properties.entrySet()) {
             String key = entry.getKey();
             Expression expression = entry.getValue();
