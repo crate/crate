@@ -34,9 +34,9 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexShardMissingException;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -59,18 +59,18 @@ public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent<BulkRet
         this.clusterService = clusterService;
     }
 
-    public BulkRetryCoordinator coordinator(ShardId shardId) throws IndexMissingException, IndexShardMissingException {
+    public BulkRetryCoordinator coordinator(ShardId shardId) throws IndexNotFoundException, ShardNotFoundException {
         synchronized (coordinatorsByShardId) {
             BulkRetryCoordinator coordinator = coordinatorsByShardId.get(shardId);
             if (coordinator == null) {
                 IndexRoutingTable indexRoutingTable = clusterService.state().routingTable()
                         .index(shardId.getIndex());
                 if (indexRoutingTable == null) {
-                    throw new IndexMissingException(shardId.index());
+                    throw new IndexNotFoundException("cannot find index " + shardId.index());
                 }
                 IndexShardRoutingTable shardRoutingTable = indexRoutingTable.shard(shardId.id());
                 if (shardRoutingTable == null) {
-                    throw new IndexShardMissingException(shardId);
+                    throw new ShardNotFoundException(shardId);
                 }
                 String nodeId = shardRoutingTable.primaryShard().currentNodeId();
                 // for currently unassigned shards the nodeId will be null

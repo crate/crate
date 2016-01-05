@@ -47,7 +47,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -65,8 +65,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public class BulkShardProcessor<Request extends ShardRequest> {
 
     public static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
-    public static final AutoCreateIndex AUTO_CREATE_INDEX = new AutoCreateIndex(ImmutableSettings.builder()
-            .put("action.auto_create_index", true).build());
 
     private final boolean autoCreateIndices;
     private final Predicate<String> shouldAutocreateIndexPredicate;
@@ -200,7 +198,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                     id,
                     routing
             ).shardId();
-        } catch (IndexMissingException e) {
+        } catch (IndexNotFoundException e) {
             if (!autoCreateIndices) {
                 throw e;
             }

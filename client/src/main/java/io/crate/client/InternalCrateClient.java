@@ -64,8 +64,8 @@ public class InternalCrateClient {
     }
 
     protected <Request extends ActionRequest, Response extends ActionResponse,
-            RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder, Client>, Client extends ElasticsearchClient> ActionFuture<Response> execute(final Action<Request,
-            Response, RequestBuilder, Client> action, final Request request) {
+            RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> ActionFuture<Response> execute(final Action<Request,
+            Response, RequestBuilder> action, final Request request) {
         PlainActionFuture<Response> actionFuture = PlainActionFuture.newFuture();
         execute(action, request, actionFuture);
         return actionFuture;
@@ -81,8 +81,8 @@ public class InternalCrateClient {
 
     protected <Request extends ActionRequest, Response extends ActionResponse,
             RequestBuilder extends ActionRequestBuilder<Request, Response,
-                    RequestBuilder, Client>, Client extends ElasticsearchClient> void execute(final Action<Request,
-            Response, RequestBuilder, Client> action, final Request request, final ActionListener<Response> listener) {
+                    RequestBuilder> > void execute(final Action<Request,
+            Response, RequestBuilder> action, final Request request, final ActionListener<Response> listener) {
         final TransportActionNodeProxy<Request, Response> proxy = actions.get(action);
         nodesService.execute(
             new TransportClientNodesService.NodeListenerCallback<Response>() {

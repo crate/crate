@@ -57,7 +57,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.search.highlight.HighlightModule;
 import org.elasticsearch.test.cluster.NoopClusterService;
@@ -79,7 +79,7 @@ import static org.mockito.Mockito.*;
 public class ShardProjectorChainTest extends CrateUnitTest {
 
     protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     private ProjectionToProjectorVisitor projectionToProjectorVisitor;
     private ThreadPool threadPool;
@@ -105,7 +105,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
         projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
                 new NoopClusterService(),
                 threadPool,
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 mock(TransportActionProvider.class),
                 mock(BulkRetryCoordinatorPool.class),
                 implementationSymbolVisitor,
@@ -128,7 +128,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
             when(clusterService.state()).thenReturn(state);
             bind(ClusterService.class).toInstance(clusterService);
             bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
-            bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
+            bind(Settings.class).toInstance(Settings.EMPTY);
         }
     }
 

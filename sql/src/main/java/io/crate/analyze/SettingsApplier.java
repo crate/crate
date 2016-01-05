@@ -22,13 +22,12 @@
 package io.crate.analyze;
 
 import io.crate.sql.tree.Expression;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 public interface SettingsApplier {
-    void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression);
+    void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression);
 
-    void applyValue(ImmutableSettings.Builder settingsBuilder, Object value);
+    void applyValue(Settings.Builder settingsBuilder, Object value);
 
     Settings getDefault();
 }

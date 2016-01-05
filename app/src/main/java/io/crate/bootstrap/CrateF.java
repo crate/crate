@@ -26,12 +26,13 @@ package io.crate.bootstrap;
  */
 public class CrateF {
 
+    // TODO: FIX ME!
     public static void close(String[] args) {
-        Crate.close(args);
+        //Crate.close(args);
     }
 
     public static void main(String[] args) {
         System.setProperty("es.foreground", "yes");
-        Crate.main(args);
+        //Crate.main(args);
     }
 }

@@ -29,11 +29,11 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.*;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.DummyTransportAddress;
-import org.elasticsearch.index.IndexShardMissingException;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -82,7 +82,7 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
                 return state;
             }
         });
-        pool = new BulkRetryCoordinatorPool(ImmutableSettings.EMPTY, clusterService);
+        pool = new BulkRetryCoordinatorPool(Settings.EMPTY, clusterService);
         pool.start();
     }
 
@@ -106,7 +106,7 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
 
     @Test
     public void testUnknownIndex() throws Exception {
-        expectedException.expect(IndexMissingException.class);
+        expectedException.expect(IndexNotFoundException.class);
         expectedException.expectMessage("[unknown] missing");
 
         ShardId shardId = new ShardId("unknown", 42);
@@ -115,7 +115,7 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
 
     @Test
     public void testUnknownShard() throws Exception {
-        expectedException.expect(IndexShardMissingException.class);
+        expectedException.expect(ShardNotFoundException.class);
         expectedException.expectMessage("[test_index][42] missing");
 
         ShardId shardId = new ShardId(TEST_INDEX, 42);

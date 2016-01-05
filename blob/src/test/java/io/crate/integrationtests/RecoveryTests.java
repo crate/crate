@@ -34,14 +34,12 @@ import io.crate.plugin.CrateCorePlugin;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.elasticsearch.ElasticsearchIllegalStateException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
@@ -69,7 +67,7 @@ public class RecoveryTests extends ElasticsearchIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder()
+        return Settings.settingsBuilder()
                 .put(super.nodeSettings(nodeOrdinal))
                 .put("plugin.types", CrateCorePlugin.class.getName())
                 .put(InternalNode.HTTP_ENABLED, true)
@@ -151,7 +149,7 @@ public class RecoveryTests extends ElasticsearchIntegrationTest {
                                     startBlobRequest.transferId(), bytes, i,
                                     (i + 1) == content.length())
                     ).actionGet();
-                } catch (ElasticsearchIllegalStateException ex) {
+                } catch (IllegalStateException ex) {
                     Thread.interrupted();
                 }
             }
@@ -186,7 +184,7 @@ public class RecoveryTests extends ElasticsearchIntegrationTest {
         BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class, node1);
 
         logger.trace("--> creating test index ...");
-        Settings indexSettings = ImmutableSettings.builder()
+        Settings indexSettings = Settings.builder()
                 .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
                 .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
                 .build();

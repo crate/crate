@@ -263,7 +263,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 is(templateName + "*"));
         assertThat(templatesResponse.getIndexTemplates().get(0).name(),
                 is(templateName));
-        assertTrue(templatesResponse.getIndexTemplates().get(0).aliases().containsKey("parted"));
+        assertTrue(templatesResponse.getIndexTemplates().get(0).hasAlias("parted"));
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
                 new Object[]{1, "Ford", 13959981214861L});
@@ -271,7 +271,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureYellow();
         refresh();
 
-        assertTrue(clusterService().state().metaData().aliases().containsKey("parted"));
+        assertTrue(clusterService().state().metaData().hasAlias("parted"));
 
         String partitionName = new PartitionName("parted",
                 Arrays.asList(new BytesRef(String.valueOf(13959981214861L)))
@@ -1285,7 +1285,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureYellow();
         refresh();
 
-        assertTrue(clusterService().state().metaData().aliases().containsKey("quotes"));
+        assertTrue(clusterService().state().metaData().hasAlias("quotes"));
 
         execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'quotes'");
         assertEquals("0", response.rows()[0][0]);
@@ -1767,7 +1767,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(response.rowCount(), is(1L));
         refresh();
 
-        assertTrue(clusterService().state().metaData().aliases().containsKey("quotes"));
+        assertTrue(clusterService().state().metaData().hasAlias("quotes"));
 
         execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'quotes'");
         assertEquals("0-all", response.rows()[0][0]);
@@ -1986,7 +1986,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         });
         execute("refresh table t");
         execute("delete from t");
-        // used to throw IndexMissingException if the new cluster state after the delete wasn't propagated to all nodes
+        // used to throw IndexNotFoundException if the new cluster state after the delete wasn't propagated to all nodes
         // (on about 2 runs in 100 iterations)
         execute("alter table t set (number_of_replicas = 0)");
     }

@@ -24,12 +24,11 @@ package org.elasticsearch.node.internal;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.UnmodifiableIterator;
 import io.crate.node.NodeSettings;
-import org.elasticsearch.cluster.ClusterName;
+/*import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.Names;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.cli.Terminal;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.FailedToResolveConfigException;
@@ -38,14 +37,15 @@ import java.util.List;
 import java.util.Map;
 
 import static org.elasticsearch.common.Strings.cleanPath;
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;*/
 
 /**
  *
  */
 public class InternalSettingsPreparer {
 
-    static final List<String> ALLOWED_SUFFIXES = ImmutableList.of(".yml", ".yaml", ".json", ".properties");
+    // TODO: FIX ME!
+    /*static final List<String> ALLOWED_SUFFIXES = ImmutableList.of(".yml", ".yaml", ".json", ".properties");
 
     public static final String SECRET_PROMPT_VALUE = "${prompt.secret}";
     public static final String TEXT_PROMPT_VALUE = "${prompt.text}";
@@ -59,7 +59,7 @@ public class InternalSettingsPreparer {
      * @param loadConfigSettings flag to indicate whether to load settings from the configuration directory/file
      * @return the {@link Settings} and {@link Environment} as a {@link Tuple}
      */
-    public static Tuple<Settings, Environment> prepareSettings(Settings pSettings, boolean loadConfigSettings) {
+    /*public static Tuple<Settings, Environment> prepareSettings(Settings pSettings, boolean loadConfigSettings) {
         return prepareSettings(pSettings, loadConfigSettings, null);
     }
 
@@ -73,12 +73,12 @@ public class InternalSettingsPreparer {
      * @param terminal the Terminal to use for input/output
      * @return the {@link Settings} and {@link Environment} as a {@link Tuple}
      */
-    public static Tuple<Settings, Environment> prepareSettings(Settings pSettings, boolean loadConfigSettings, Terminal terminal) {
+    /*public static Tuple<Settings, Environment> prepareSettings(Settings pSettings, boolean loadConfigSettings, Terminal terminal) {
         // ignore this prefixes when getting properties from es. and elasticsearch.
         String[] ignorePrefixes = new String[]{"es.default.", "elasticsearch.default."};
         boolean useSystemProperties = !pSettings.getAsBoolean(IGNORE_SYSTEM_PROPERTIES_SETTING, false);
         // just create enough settings to build the environment
-        ImmutableSettings.Builder settingsBuilder = settingsBuilder().put(pSettings);
+        Settings.Builder settingsBuilder = settingsBuilder().put(pSettings);
         if (useSystemProperties) {
             settingsBuilder.putProperties("elasticsearch.default.", System.getProperties())
                     .putProperties("es.default.", System.getProperties())
@@ -179,7 +179,7 @@ public class InternalSettingsPreparer {
 
     static Settings replacePromptPlaceholders(Settings settings, Terminal terminal) {
         UnmodifiableIterator<Map.Entry<String, String>> iter = settings.getAsMap().entrySet().iterator();
-        ImmutableSettings.Builder builder = ImmutableSettings.builder().classLoader(settings.getClassLoaderIfSet());
+        Settings.Builder builder = Settings.builder().classLoader(settings.getClassLoaderIfSet());
 
         while (iter.hasNext()) {
             Map.Entry<String, String> entry = iter.next();
@@ -216,5 +216,5 @@ public class InternalSettingsPreparer {
             return new String(terminal.readSecret("Enter value for [%s]: ", key));
         }
         return terminal.readText("Enter value for [%s]: ", key);
-    }
+    }*/
 }
