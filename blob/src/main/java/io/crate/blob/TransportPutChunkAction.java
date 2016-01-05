@@ -23,19 +23,22 @@ package io.crate.blob;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.action.support.replication.TransportShardReplicationOperationAction;
+import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportPutChunkAction extends TransportShardReplicationOperationAction<PutChunkRequest, PutChunkReplicaRequest, PutChunkResponse> {
+public class TransportPutChunkAction extends TransportReplicationAction<PutChunkRequest, PutChunkReplicaRequest, PutChunkResponse> {
 
     private final BlobTransferTarget transferTarget;
 
@@ -47,30 +50,19 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
                                    ThreadPool threadPool,
                                    ShardStateAction shardStateAction,
                                    BlobTransferTarget transferTarget,
-                                   ActionFilters actionFilters) {
+                                   MappingUpdatedAction mappingUpdatedAction,
+                                   ActionFilters actionFilters,
+                                   IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, PutChunkAction.NAME, transportService, clusterService,
-                indicesService, threadPool, shardStateAction, actionFilters);
+                indicesService, threadPool, shardStateAction, mappingUpdatedAction, actionFilters,
+                indexNameExpressionResolver, PutChunkRequest.class, PutChunkReplicaRequest.class, ThreadPool.Names.INDEX);
+
         this.transferTarget = transferTarget;
-    }
-
-    @Override
-    protected PutChunkRequest newRequestInstance() {
-        return new PutChunkRequest();
-    }
-
-    @Override
-    protected PutChunkReplicaRequest newReplicaRequestInstance() {
-        return new PutChunkReplicaRequest();
     }
 
     @Override
     protected PutChunkResponse newResponseInstance() {
         return new PutChunkResponse();
-    }
-
-    @Override
-    protected String executor() {
-        return ThreadPool.Names.INDEX;
     }
 
     @Override
@@ -80,7 +72,7 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
         PutChunkResponse response = newResponseInstance();
         transferTarget.continueTransfer(request, response);
 
-        final PutChunkReplicaRequest replicaRequest = newReplicaRequestInstance();
+        final PutChunkReplicaRequest replicaRequest = new PutChunkReplicaRequest();
         replicaRequest.transferId = request.transferId();
         replicaRequest.sourceNodeId = clusterState.getNodes().localNode().getId();
         replicaRequest.currentPos = request.currentPos();
@@ -91,10 +83,9 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
     }
 
     @Override
-    protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
-        final PutChunkReplicaRequest request = shardRequest.request;
+    protected void shardOperationOnReplica(ShardId shardId, PutChunkReplicaRequest shardRequest) {
         PutChunkResponse response = newResponseInstance();
-        transferTarget.continueTransfer(request, response, shardRequest.shardId.id());
+        transferTarget.continueTransfer(shardRequest, response, shardId.id());
     }
 
     @Override

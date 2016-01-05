@@ -60,13 +60,11 @@ import io.crate.service.SQLService;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.cluster.settings.ClusterDynamicSettingsModule;
 import org.elasticsearch.cluster.settings.Validator;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.AbstractPlugin;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestModule;
 
 import java.util.Collection;
@@ -74,7 +72,7 @@ import java.util.List;
 
 import static com.google.common.collect.Lists.newArrayList;
 
-public class SQLPlugin extends AbstractPlugin {
+public class SQLPlugin extends Plugin {
 
     private final Settings settings;
 
@@ -84,7 +82,7 @@ public class SQLPlugin extends AbstractPlugin {
 
     @Override
     public Settings additionalSettings() {
-        ImmutableSettings.Builder settingsBuilder = ImmutableSettings.settingsBuilder();
+        Settings.Builder settingsBuilder = Settings.settingsBuilder();
 
         // Set default analyzer
         settingsBuilder.put("index.analysis.analyzer.default.type", "keyword");
@@ -105,59 +103,61 @@ public class SQLPlugin extends AbstractPlugin {
     }
 
     @Override
-    public Collection<Class<? extends LifecycleComponent>> services() {
+    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
         return ImmutableList.<Class<? extends LifecycleComponent>>of(
                 SQLService.class,
                 BulkRetryCoordinatorPool.class,
                 JobContextService.class);
     }
 
-    @Override
-    public Collection<Class<? extends Module>> modules() {
-        Collection<Class<? extends Module>> modules = newArrayList();
-        modules.add(SQLModule.class);
+    // TODO: FIX ME! Still needed?
+    //@Override
+    public Collection<Module> modules() {
+        Collection<Module> modules = newArrayList();
+        modules.add(new SQLModule());
 
-        modules.add(CircuitBreakerModule.class);
-        modules.add(TransportExecutorModule.class);
-        modules.add(JobModule.class);
-        modules.add(CollectOperationModule.class);
-        modules.add(MergeOperationModule.class);
-        modules.add(MetaDataModule.class);
-        modules.add(MetaDataSysModule.class);
-        modules.add(MetaDataDocModule.class);
-        modules.add(MetaDataBlobModule.class);
-        modules.add(MetaDataInformationModule.class);
-        modules.add(OperatorModule.class);
-        modules.add(PredicateModule.class);
-        modules.add(SysClusterExpressionModule.class);
-        modules.add(SysNodeExpressionModule.class);
-        modules.add(AggregationImplModule.class);
-        modules.add(ScalarFunctionModule.class);
-        modules.add(BulkModule.class);
-        modules.add(SysChecksModule.class);
-        modules.add(RepositorySettingsModule.class);
+        modules.add(new CircuitBreakerModule());
+        modules.add(new TransportExecutorModule());
+        // TODO: FIX ME! JobModule requires settings, this needs different treatment
+        modules.add(new JobModule());
+        modules.add(new CollectOperationModule());
+        modules.add(new MergeOperationModule());
+        modules.add(new MetaDataModule());
+        modules.add(new MetaDataSysModule());
+        modules.add(new MetaDataDocModule());
+        modules.add(new MetaDataBlobModule());
+        modules.add(new MetaDataInformationModule());
+        modules.add(new OperatorModule());
+        modules.add(new PredicateModule());
+        modules.add(new SysClusterExpressionModule());
+        modules.add(new SysNodeExpressionModule());
+        modules.add(new AggregationImplModule());
+        modules.add(new ScalarFunctionModule());
+        modules.add(new BulkModule());
+        modules.add(new SysChecksModule());
+        modules.add(new RepositorySettingsModule());
         return modules;
     }
 
 
     @Override
-    public Collection<Class<? extends Module>> indexModules() {
-        Collection<Class<? extends Module>> modules = newArrayList();
+    public Collection<Module> indexModules(Settings indexSettings) {
+        Collection<Module> modules = newArrayList();
         if (!settings.getAsBoolean("node.client", false)) {
-            modules.add(ArrayMapperIndexModule.class);
-            modules.add(CrateIndexModule.class);
+            modules.add(new ArrayMapperIndexModule());
+            modules.add(new CrateIndexModule());
         }
         return modules;
     }
 
     @Override
-    public Collection<Class<? extends Module>> shardModules() {
-        Collection<Class<? extends Module>> modules = newArrayList();
+    public Collection<Module> shardModules(Settings indexSettings) {
+        Collection<Module> modules = newArrayList();
         if (!settings.getAsBoolean("node.client", false)) {
-            modules.add(MetaDataShardModule.class);
-            modules.add(SysShardExpressionModule.class);
-            modules.add(BlobShardExpressionModule.class);
-            modules.add(CollectShardModule.class);
+            modules.add(new MetaDataShardModule());
+            modules.add(new SysShardExpressionModule());
+            modules.add(new BlobShardExpressionModule(indexSettings));
+            modules.add(new CollectShardModule());
         }
         return modules;
     }
@@ -166,7 +166,8 @@ public class SQLPlugin extends AbstractPlugin {
         restModule.addRestAction(RestSQLAction.class);
     }
 
-    public void onModule(ClusterDynamicSettingsModule clusterDynamicSettingsModule) {
+    // TODO: FIX ME! ClusterDynamicSettings not existent anymore
+    /*public void onModule(ClusterDynamicSettingsModule clusterDynamicSettingsModule) {
         // add our dynamic cluster settings
         clusterDynamicSettingsModule.addDynamicSettings(Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX + "*");
         clusterDynamicSettingsModule.addDynamicSettings(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING);
@@ -175,16 +176,16 @@ public class SQLPlugin extends AbstractPlugin {
     }
 
     private void registerSettings(ClusterDynamicSettingsModule clusterDynamicSettingsModule, List<Setting> settings) {
-        for (Setting setting : settings) {
+        for (Setting setting : settings) {*/
             /**
              * validation is done in
-             * {@link io.crate.analyze.SettingsAppliers.AbstractSettingsApplier#apply(org.elasticsearch.common.settings.ImmutableSettings.Builder, Object[], io.crate.sql.tree.Expression)}
+             * {@link io.crate.analyze.SettingsAppliers.AbstractSettingsApplier#apply(org.elasticsearch.common.settings.Settings.Builder, Object[], io.crate.sql.tree.Expression)}
              * here we use Validator.EMPTY, since ES ignores invalid settings silently
              */
-            clusterDynamicSettingsModule.addDynamicSetting(setting.settingName(), Validator.EMPTY);
+            /*clusterDynamicSettingsModule.addDynamicSetting(setting.settingName(), Validator.EMPTY);
             registerSettings(clusterDynamicSettingsModule, setting.children());
         }
-    }
+    }*/
 
 
     public void onModule(ActionModule actionModule) {

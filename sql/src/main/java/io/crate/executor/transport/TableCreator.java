@@ -145,9 +145,10 @@ public class TableCreator {
     }
 
     private void deleteOrphans(final CreateTableResponseListener listener, final CreateTableAnalyzedStatement statement) {
-        if (clusterService.state().metaData().aliases().containsKey(statement.tableIdent().fqn())
-            && PartitionName.isPartition(
-                clusterService.state().metaData().aliases().get(statement.tableIdent().fqn()).keysIt().next())) {
+        // TODO: FIX ME! keysIt does not exist
+        if (clusterService.state().metaData().hasAlias(statement.tableIdent().fqn())) {
+            /*&& PartitionName.isPartition(
+                clusterService.state().metaData().getAliasAndIndexLookup().get(statement.tableIdent().fqn()).keysIt().next())) {*/
             logger.debug("Deleting orphaned partitions with alias: {}", statement.tableIdent().fqn());
             transportActionProvider.transportDeleteIndexAction().execute(new DeleteIndexRequest(statement.tableIdent().fqn()), new ActionListener<DeleteIndexResponse>() {
                 @Override
@@ -177,7 +178,8 @@ public class TableCreator {
      */
     private void deleteOrphanedPartitions(final CreateTableResponseListener listener, TableIdent tableIdent) {
         String partitionWildCard = PartitionName.templateName(tableIdent.schema(), tableIdent.name()) + "*";
-        String[] orphans = clusterService.state().metaData().concreteIndices(IndicesOptions.strictExpand(), partitionWildCard);
+        // TODO: FIX ME! concreteIndices don't exist anymore
+        String[] orphans = null; //clusterService.state().metaData().concreteIndices(IndicesOptions.strictExpand(), partitionWildCard);
         if (orphans.length > 0) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Deleting orphaned partitions: {}", Joiner.on(", ").join(orphans));

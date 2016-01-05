@@ -41,7 +41,6 @@ import java.util.Locale;
 public class RestSQLAction extends BaseRestHandler {
 
     private static final String REQUEST_HEADER_USER = "User";
-    private static final String SCHEMA_HEADER = "Default-Schema";
 
     @Inject
     public RestSQLAction(Settings settings, Client client, RestController controller) {
@@ -104,23 +103,23 @@ public class RestSQLAction extends BaseRestHandler {
     }
 
     private void executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request, final RestChannel channel, Client client) {
-        final SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client);
+        // TODO: FIX ME! Builder requires Action
+        /*final SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client);
         requestBuilder.stmt(context.stmt());
         requestBuilder.args(context.args());
         requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
-        addFlags(requestBuilder, request);
-        requestBuilder.setSchema(request.header(SCHEMA_HEADER));
-        requestBuilder.execute(RestSQLAction.<SQLResponse>newListener(request, channel));
+        requestBuilder.addFlagsToRequestHeader(composeFlags(request));
+        requestBuilder.execute(RestSQLAction.<SQLResponse>newListener(request, channel));*/
     }
 
     private void executeBulkRequest(SQLXContentSourceContext context, RestRequest request, RestChannel channel, Client client) {
-        final SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client);
+        // TODO: FIX ME! Builder requires Action
+        /*final SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client);
         requestBuilder.stmt(context.stmt());
         requestBuilder.bulkArgs(context.bulkArgs());
         requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
-        addFlags(requestBuilder, request);
-        requestBuilder.setSchema(request.header(SCHEMA_HEADER));
-        requestBuilder.execute(RestSQLAction.<SQLBulkResponse>newListener(request, channel));
+        requestBuilder.addFlagsToRequestHeader(composeFlags(request));
+        requestBuilder.execute(RestSQLAction.<SQLBulkResponse>newListener(request, channel));*/
     }
 
     private static <TResponse extends SQLBaseResponse> ActionListener<TResponse> newListener(

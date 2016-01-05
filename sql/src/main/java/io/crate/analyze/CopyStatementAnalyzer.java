@@ -46,7 +46,6 @@ import io.crate.planner.projection.WriterProjection;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -244,11 +243,11 @@ public class CopyStatementAnalyzer {
                     context.expressionAnalyzer,
                     context.expressionAnalysisContext);
         }
-        return ImmutableSettings.EMPTY;
+        return Settings.EMPTY;
     }
 
     private Settings processCopyToProperties(Optional<GenericProperties> genericProperties, ParameterContext parameterContext) {
-        ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
+        Settings.Builder settingsBuilder = Settings.builder();
 
         if (genericProperties.isPresent()) {
             for (Map.Entry<String, Expression> setting : genericProperties.get().properties().entrySet()) {
@@ -279,7 +278,7 @@ public class CopyStatementAnalyzer {
     private Settings settingsFromProperties(GenericProperties properties,
                                             ExpressionAnalyzer expressionAnalyzer,
                                             ExpressionAnalysisContext expressionAnalysisContext) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
         for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
             String key = entry.getKey();
             Expression expression = entry.getValue();

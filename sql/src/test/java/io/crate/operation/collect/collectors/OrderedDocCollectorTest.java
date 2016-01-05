@@ -22,6 +22,7 @@
 
 package io.crate.operation.collect.collectors;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Reference;
@@ -31,7 +32,6 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
-import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -45,7 +45,6 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -53,15 +52,14 @@ import java.io.File;
 import java.io.IOException;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class OrderedDocCollectorTest extends CrateUnitTest {
+public class OrderedDocCollectorTest extends RandomizedTest {
 
     private Directory createLuceneIndex() throws IOException {
         File tmpDir = newTempDir();
-        Directory index = FSDirectory.open(tmpDir);
+        Directory index = FSDirectory.open(tmpDir.toPath());
         StandardAnalyzer analyzer = new StandardAnalyzer();
-        IndexWriterConfig cfg = new IndexWriterConfig(Version.LATEST, analyzer);
+        IndexWriterConfig cfg = new IndexWriterConfig(analyzer);
         IndexWriter w = new IndexWriter(index, cfg);
         for (Long i = 0L; i < 4; i++) {
             if ( i < 2) {

@@ -275,10 +275,10 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
             // search for aliases of deleted and created indices, they must be invalidated also
             for (String index : event.indicesDeleted()) {
-                invalidateAliases(event.previousState().metaData().index(index).aliases());
+                invalidateAliases(event.previousState().metaData().index(index).getAliases());
             }
             for (String index : event.indicesCreated()) {
-                invalidateAliases(event.state().metaData().index(index).aliases());
+                invalidateAliases(event.state().metaData().index(index).getAliases());
             }
 
             // search for templates with changed meta data => invalidate template aliases
@@ -306,11 +306,11 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                 if (newIndexMetaData != null && event.indexMetaDataChanged(newIndexMetaData)) {
                     cache.invalidate(tableName);
                     // invalidate aliases of changed indices
-                    invalidateAliases(newIndexMetaData.aliases());
+                    invalidateAliases(newIndexMetaData.getAliases());
 
                     IndexMetaData oldIndexMetaData = event.previousState().metaData().index(indexName);
                     if (oldIndexMetaData != null) {
-                        invalidateAliases(oldIndexMetaData.aliases());
+                        invalidateAliases(oldIndexMetaData.getAliases());
                     }
                 } else {
                     // this is the case if a single partition has been modified using alter table <t> partition (...)

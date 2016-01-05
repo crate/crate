@@ -41,6 +41,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Rule;
@@ -96,7 +97,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
                 referenceResolver,
                 mock(NodeSysExpression.class),
                 collectSourceResolver,
-                mock(ThreadPool.class)
+                new ThreadPool(Settings.builder().put("name", getClass().getName()).build())
         );
 
         File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");

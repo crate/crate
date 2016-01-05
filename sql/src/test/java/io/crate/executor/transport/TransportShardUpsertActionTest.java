@@ -41,12 +41,12 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -88,7 +88,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                                           ShardId shardId,
                                           boolean tryInsertFirst,
                                           int retryCount) throws ElasticsearchException {
-            throw new IndexMissingException(new Index(request.index()));
+            throw new IndexNotFoundException(new Index(request.index()));
         }
     }
 
@@ -103,7 +103,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         bindGeneratedColumnTable(functions);
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 mock(ThreadPool.class),
                 mock(ClusterService.class),
                 mock(TransportService.class),
@@ -131,7 +131,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
     }
 
     @Test
-    public void testIndexMissingExceptionWhileProcessingItemsResultsInFailure() throws Exception {
+    public void testIndexNotFoundExceptionWhileProcessingItemsResultsInFailure() throws Exception {
         TableIdent charactersIdent = new TableIdent(null, "characters");
         final Reference idRef = new Reference(new ReferenceInfo(
                 new ReferenceIdent(charactersIdent, "id"), RowGranularity.DOC, DataTypes.SHORT));
@@ -145,7 +145,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 shardId, request, new AtomicBoolean(false));
 
         assertThat(response.failures().size(), is(1));
-        assertThat(response.failures().get(0).message(), is("IndexMissingException[[characters] missing]"));
+        assertThat(response.failures().get(0).message(), is("IndexNotFoundException[[characters] missing]"));
     }
 
     @Test

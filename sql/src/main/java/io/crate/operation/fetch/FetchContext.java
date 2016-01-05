@@ -21,7 +21,7 @@
 
 package io.crate.operation.fetch;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.action.job.SharedShardContext;
 import io.crate.action.job.SharedShardContexts;
@@ -35,7 +35,7 @@ import io.crate.planner.node.fetch.FetchPhase;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -43,8 +43,8 @@ import java.util.*;
 
 public class FetchContext extends AbstractExecutionSubContext {
 
-    private final IntObjectOpenHashMap<Engine.Searcher> searchers = new IntObjectOpenHashMap<>();
-    private final IntObjectOpenHashMap<SharedShardContext> shardContexts = new IntObjectOpenHashMap<>();
+    private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
+    private final IntObjectHashMap<SharedShardContext> shardContexts = new IntObjectHashMap<>();
     private final FetchPhase phase;
     private final String localNodeId;
     private final SharedShardContexts sharedShardContexts;
@@ -103,7 +103,7 @@ public class FetchContext extends AbstractExecutionSubContext {
                         if (tablesWithFetchRefs.contains(ident)) {
                             try {
                                 searchers.put(readerId, shardContext.searcher());
-                            } catch (IndexMissingException e) {
+                            } catch (IndexNotFoundException e) {
                                 if (!PartitionName.isPartition(index)) {
                                     throw new TableUnknownException(index, e);
                                 }

@@ -43,7 +43,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.common.inject.*;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
@@ -74,11 +73,11 @@ public class S3RepositoryAnalyzerTest extends CrateUnitTest {
             ClusterService clusterService = mock(ClusterService.class);
             ClusterState state = mock(ClusterState.class);
             MetaData metaData = mock(MetaData.class);
-            when(metaData.settings()).thenReturn(ImmutableSettings.EMPTY);
+            when(metaData.settings()).thenReturn(Settings.EMPTY);
             when(state.metaData()).thenReturn(metaData);
             when(clusterService.state()).thenReturn(state);
             bind(ClusterService.class).toInstance(clusterService);
-            bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
+            bind(Settings.class).toInstance(Settings.EMPTY);
 
             bind(TransportActionProvider.class).toInstance(mock(TransportActionProvider.class));
 
@@ -99,7 +98,7 @@ public class S3RepositoryAnalyzerTest extends CrateUnitTest {
         });
         builder.add(
                 new RepositorySettingsModule(),
-                new S3RepositoryAnalysisModule(ImmutableSettings.EMPTY),
+                new S3RepositoryAnalysisModule(Settings.EMPTY),
                 new MyMockedClusterServiceModule(),
                 new MetaDataModule()
         );
