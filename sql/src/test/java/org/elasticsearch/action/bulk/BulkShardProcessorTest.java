@@ -36,8 +36,8 @@ import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesA
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.cluster.routing.operation.OperationRouting;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.cluster.routing.OperationRouting;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
@@ -83,7 +83,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         };
 
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                ImmutableSettings.EMPTY
+                Settings.EMPTY
         );
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
@@ -99,7 +99,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 coordinatorPool,
                 false,
                 1,
@@ -150,7 +150,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardBulkAction);
 
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                ImmutableSettings.EMPTY
+                Settings.EMPTY
         );
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
@@ -167,7 +167,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 coordinatorPool,
                 false,
                 1,
@@ -232,7 +232,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardBulkAction);
 
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                ImmutableSettings.EMPTY
+                Settings.EMPTY
         );
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
@@ -249,7 +249,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 coordinatorPool,
                 false,
                 1,

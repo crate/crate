@@ -27,7 +27,6 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.fielddata.FieldDataType;
@@ -47,12 +46,12 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
 
     protected CollectorContext ctx;
     protected IndexFieldDataService ifd;
-    protected AtomicReaderContext readerContext;
+    protected LeafReaderContext readerContext;
     private IndexWriter writer;
 
     @Before
     public void prepare() throws Exception {
-        Settings settings = ImmutableSettings.builder().put("index.fielddata.cache", "none").build();
+        Settings settings = Settings.builder().put("index.fielddata.cache", "none").build();
         IndexService indexService = createIndex("test", settings);
         ifd = indexService.fieldData();
 

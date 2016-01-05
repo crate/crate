@@ -62,6 +62,12 @@ public class NumericScalarSearchScript extends NumericScalarSortScript {
                     ctx.function,
                     ctx.operatorArgs);
         }
+
+        // TODO: FIX ME! Implement me!
+        @Override
+        public boolean needsScores() {
+            return false;
+        }
     }
 
     private final Operator operator;
@@ -80,9 +86,10 @@ public class NumericScalarSearchScript extends NumericScalarSortScript {
         Input[] operatorArgInputs = new Input[operatorArgs.size()];
         for (int i = 0; i < operatorArgs.size(); i++) {
             AbstractScalarScriptFactory.WrappedArgument operatorArg = operatorArgs.get(i);
-            operatorArgInputs[i] = Literal.newLiteral(
+            // TODO: FIX ME! doc should now be a LeafDocLookup
+            operatorArgInputs[i] = null; /*Literal.newLiteral(
                     operatorArg.getType(),
-                    operatorArg.getType().value(operatorArg.evaluate(doc())));
+                    operatorArg.getType().value(operatorArg.evaluate(doc())));*/
         }
         return operator.evaluate(operatorArgInputs);
     }

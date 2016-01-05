@@ -27,7 +27,7 @@ import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.node.NodeBuilder;
@@ -53,7 +53,7 @@ public class ArrayMapperMetaMigrationTest extends CrateUnitTest {
     private InternalNode startNode(File dataFolder) {
 
         InternalNode node = (InternalNode) NodeBuilder.nodeBuilder().local(true).data(true).settings(
-                ImmutableSettings.builder()
+                Settings.builder()
                         .put("path.data", dataFolder.getAbsolutePath())
                         .put(ClusterName.SETTING, getClass().getName())
                         .put("node.name", getClass().getName())

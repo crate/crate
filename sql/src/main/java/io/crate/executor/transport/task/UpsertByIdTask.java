@@ -89,7 +89,8 @@ public class UpsertByIdTask extends JobTask {
         this.node = node;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.jobContextService = jobContextService;
-        autoCreateIndex = new AutoCreateIndex(settings);
+        // TODO: FIX ME! AutoCreateIndex requires IndexNameExpressionResolver
+        autoCreateIndex = null; //new AutoCreateIndex(settings);
 
         if (node.items().size() == 1) {
             // skip useless usage of bulk processor if only 1 item in statement

@@ -30,9 +30,9 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.monitor.network.NetworkInfo;
+// import org.elasticsearch.monitor.network.NetworkInfo;
 import org.elasticsearch.node.service.NodeService;
-import org.hyperic.sigar.OperatingSystem;
+// import org.hyperic.sigar.OperatingSystem;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -47,6 +47,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+// TODO: FIX ME! sigar removal!
 public class PingTask extends TimerTask {
 
     public static final TimeValue HTTP_TIMEOUT = new TimeValue(5, TimeUnit.SECONDS);
@@ -73,7 +74,8 @@ public class PingTask extends TimerTask {
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> getKernelData() {
-        return OperatingSystem.getInstance().toMap();
+        // TODO: FIX ME!
+        return null; //OperatingSystem.getInstance().toMap();
     }
 
     public @Nullable String getClusterId() {
@@ -101,12 +103,13 @@ public class PingTask extends TimerTask {
 
     @Nullable
     public String getHardwareAddress() {
-        final NetworkInfo network = nodeService.info().getNetwork();
+        // TODO: FIX ME!
+        /*final NetworkInfo network = nodeService.info().getNetwork();
         if (network == null) {
             return null;
         }
-        final String macAddress = network.getPrimaryInterface().getMacAddress();
-        return (macAddress == null || macAddress.equals("")) ? null : macAddress.toLowerCase(Locale.ENGLISH);
+        final String macAddress = network.getPrimaryInterface().getMacAddress();*/
+        return null; // (macAddress == null || macAddress.equals("")) ? null : macAddress.toLowerCase(Locale.ENGLISH);
     }
 
     public String getCrateVersion() {

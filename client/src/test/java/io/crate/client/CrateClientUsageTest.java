@@ -27,7 +27,6 @@ import io.crate.plugin.CrateCorePlugin;
 import io.crate.types.DataType;
 import io.crate.types.IntegerType;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
@@ -53,7 +52,7 @@ public class CrateClientUsageTest extends ElasticsearchIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder()
+        return Settings.settingsBuilder()
                 .put(super.nodeSettings(nodeOrdinal))
                 .put("node.mode", "network")
                 .put("plugin.types", CrateCorePlugin.class.getName())

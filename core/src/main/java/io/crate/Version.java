@@ -35,7 +35,7 @@ public class Version {
 
 
     public static final boolean SNAPSHOT = true;
-    public static final Version CURRENT = new Version(550099, SNAPSHOT, org.elasticsearch.Version.V_1_7_3);
+    public static final Version CURRENT = new Version(550099, SNAPSHOT, org.elasticsearch.Version.V_2_1_2);
 
     static {
         // safe-guard that we don't release a version with DEBUG_MODE set to true
@@ -89,10 +89,12 @@ public class Version {
     }
 
     public static void main(String[] args) {
-        System.out.println("Version: " + Version.CURRENT + ", Build: " +
+        /*System.out.println("Version: " + Version.CURRENT.toString() + ", Build: " +
                 Build.CURRENT.hashShort() + "/" + Build.CURRENT.timestamp() +
                 ", ES: " + org.elasticsearch.Version.CURRENT +
-                ", JVM: " + JvmInfo.jvmInfo().version() );
+                ", JVM: " + JvmInfo.jvmInfo().version() );*/
+        // TODO: FIX ME!
+        System.out.println("Version: " + Version.CURRENT.toString());
     }
 
     @Override

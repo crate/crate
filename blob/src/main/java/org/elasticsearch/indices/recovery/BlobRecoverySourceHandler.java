@@ -47,6 +47,7 @@ import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.store.StoreFileMetaData;
+import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.transport.EmptyTransportResponseHandler;
 import org.elasticsearch.transport.RemoteTransportException;
@@ -77,13 +78,10 @@ public class BlobRecoverySourceHandler extends RecoverySourceHandler {
                                      final StartRecoveryRequest request,
                                      final RecoverySettings recoverySettings,
                                      final TransportService transportService,
-                                     final ClusterService clusterService,
-                                     final IndicesService indicesService,
-                                     final MappingUpdatedAction mappingUpdatedAction,
                                      final ESLogger logger,
                                      BlobTransferTarget blobTransferTarget,
                                      BlobIndices blobIndices) {
-        super(shard, request, recoverySettings, transportService, clusterService, indicesService, mappingUpdatedAction, logger);
+        super(shard, request, recoverySettings, transportService, logger);
 
         if (BlobIndices.isBlobIndex(shard.shardId().getIndex())) {
             blobRecoveryHandler = new BlobRecoveryHandler(
@@ -92,6 +90,8 @@ public class BlobRecoverySourceHandler extends RecoverySourceHandler {
             blobRecoveryHandler = null;
         }
     }
+
+    // TODO: FIX ME! just fix me...
 
     /**
      * Perform phase1 of the recovery operations. Once this {@link SnapshotIndexCommit}
@@ -106,8 +106,8 @@ public class BlobRecoverySourceHandler extends RecoverySourceHandler {
      * and releasing the snapshot once all 3 phases of recovery are complete
      */
     @Override
-    public void phase1(final SnapshotIndexCommit snapshot) throws ElasticsearchException {
-        cancellableThreads.checkForCancel();
+    public void phase1(final SnapshotIndexCommit snapshot, final Translog.View translogView) {
+        /*cancellableThreads.checkForCancel();
         // Total size of segment files that are recovered
         long totalSize = 0;
         // Total size of segment files that were able to be re-used
@@ -125,7 +125,7 @@ public class BlobRecoverySourceHandler extends RecoverySourceHandler {
                 if (md == null) {
                     logger.info("Snapshot differs from actual index for file: {} meta: {}", name, recoverySourceMetadata.asMap());
                     throw new CorruptIndexException("Snapshot differs from actual index - maybe index was removed metadata has " +
-                            recoverySourceMetadata.asMap().size() + " files");
+                            recoverySourceMetadata.asMap().size() + " files", name);
                 }
             }
             String recoverySourceSyncId = recoverySourceMetadata.getSyncId();
@@ -393,7 +393,7 @@ public class BlobRecoverySourceHandler extends RecoverySourceHandler {
             throw new RecoverFilesRecoveryException(request.shardId(), response.phase1FileNames.size(), new ByteSizeValue(totalSize), e);
         } finally {
             store.decRef();
-        }
+        }*/
     }
 
 }

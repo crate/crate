@@ -58,7 +58,6 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -93,7 +92,7 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder()
+        return Settings.settingsBuilder()
                 .put(super.nodeSettings(nodeOrdinal))
                 .put("plugin.types", CrateCorePlugin.class.getName())
                 .build();
@@ -120,7 +119,7 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
     @Override
     public Settings indexSettings() {
         // set number of replicas to 0 for getting a green cluster when using only one node
-        return ImmutableSettings.builder().put("number_of_replicas", 0).build();
+        return Settings.builder().put("number_of_replicas", 0).build();
     }
 
     @Override
@@ -381,9 +380,9 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
         for (IndexMetaData indexMetaData : metaData) {
-            builder.startObject(indexMetaData.index(), XContentBuilder.FieldCaseConversion.NONE);
+            builder.startObject(indexMetaData.getIndex(), XContentBuilder.FieldCaseConversion.NONE);
             builder.startObject("settings");
-            Settings settings = indexMetaData.settings();
+            Settings settings = indexMetaData.getSettings();
             for (Map.Entry<String, String> entry : settings.getAsMap().entrySet()) {
                 builder.field(entry.getKey(), entry.getValue());
             }

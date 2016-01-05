@@ -40,7 +40,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Rule;
@@ -96,7 +96,7 @@ public class MapSideDataCollectOperationTest {
                 functions,
                 referenceResolver,
                 mock(NodeSysExpression.class),
-                new ThreadPool(ImmutableSettings.builder().put("name", getClass().getName()).build()),
+                new ThreadPool(Settings.builder().put("name", getClass().getName()).build()),
                 collectSourceResolver
         );
 

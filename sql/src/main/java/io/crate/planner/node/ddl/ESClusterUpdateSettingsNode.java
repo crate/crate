@@ -23,7 +23,6 @@ package io.crate.planner.node.ddl;
 
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -42,7 +41,7 @@ public class ESClusterUpdateSettingsNode implements PlanNode {
         // always override transient settings with persistent ones, so they won't get overridden
         // on cluster settings merge, which prefers the transient ones over the persistent ones
         // which we don't
-        this.transientSettings = ImmutableSettings.builder().put(persistentSettings).put(transientSettings).build();
+        this.transientSettings = Settings.builder().put(persistentSettings).put(transientSettings).build();
         persistentSettingsToRemove = null;
         transientSettingsToRemove = null;
     }
@@ -54,8 +53,8 @@ public class ESClusterUpdateSettingsNode implements PlanNode {
     public ESClusterUpdateSettingsNode(Set<String> persistentSettingsToRemove, Set<String> transientSettingsToRemove) {
         this.persistentSettingsToRemove = persistentSettingsToRemove;
         this.transientSettingsToRemove = transientSettingsToRemove;
-        persistentSettings = ImmutableSettings.EMPTY;
-        transientSettings = ImmutableSettings.EMPTY;
+        persistentSettings = Settings.EMPTY;
+        transientSettings = Settings.EMPTY;
     }
 
     public Settings persistentSettings() {

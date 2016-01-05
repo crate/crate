@@ -29,8 +29,9 @@ import io.crate.Streamer;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.doc.DocSysColumns;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
-import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
+import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -42,12 +43,12 @@ import org.elasticsearch.index.shard.ShardId;
 import java.io.IOException;
 import java.util.*;
 
-public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item> {
+public class ShardUpsertRequest extends ReplicationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item> {
 
     @Nullable
     private String routing;
     private UUID jobId;
-    private int shardId;
+    private ShardId shardId;
     private List<Item> items;
     private IntArrayList locations;
     private boolean continueOnError = false;
@@ -86,7 +87,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         assert updateColumns != null || insertColumns != null
                 : "Missing updateAssignments, whether for update nor for insert";
         this.index = shardId.getIndex();
-        this.shardId = shardId.id();
+        this.shardId = shardId;
         locations = new IntArrayList();
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
@@ -121,7 +122,8 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         return Constants.DEFAULT_MAPPING_TYPE;
     }
 
-    public int shardId() {
+    // TODO: FIX ME! Clean up shardId usage
+    public ShardId shardId() {
         return shardId;
     }
 
@@ -210,7 +212,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        shardId = in.readInt();
+        shardId = new ShardId(index, in.readInt());
         routing = in.readOptionalString();
         jobId = new UUID(in.readLong(), in.readLong());
         int assignmentsColumnsSize = in.readVInt();
@@ -244,7 +246,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeInt(shardId);
+        out.writeInt(shardId.id());
         out.writeOptionalString(routing);
         out.writeLong(jobId.getMostSignificantBits());
         out.writeLong(jobId.getLeastSignificantBits());
@@ -383,7 +385,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                 }
             }
 
-            version = Versions.readVersion(in);
+            version = Version.readVersion(in).id;
         }
 
         @Override
@@ -407,7 +409,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                 out.writeVInt(0);
             }
 
-            Versions.writeVersion(version, out);
+            Version.writeVersion(Version.fromId((int)version), out);
         }
     }
 

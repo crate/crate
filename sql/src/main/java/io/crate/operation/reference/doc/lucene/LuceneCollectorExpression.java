@@ -22,7 +22,7 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.operation.Input;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Scorer;
 
 /**
@@ -37,7 +37,7 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
     public void setNextDocId(int doc){
     }
 
-    public void setNextReader(AtomicReaderContext context){
+    public void setNextReader(LeafReaderContext context){
     }
 
     public void setScorer(Scorer scorer) {
