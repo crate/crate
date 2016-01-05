@@ -25,60 +25,21 @@ import io.crate.blob.BlobContainer;
 import io.crate.blob.DigestBlob;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Locale;
 import java.util.UUID;
 
 public class DigestBlobTests extends CrateUnitTest {
 
-    private Path tmpDir;
+    @Rule
+    public TemporaryFolder tmpFolder = new TemporaryFolder();
 
-    @Before
-    public void prepare() throws Exception {
-        tmpDir = Files.createTempDirectory(getClass().getName());
-    }
-
-    @After
-    public void cleanUp() throws Exception {
-        if (tmpDir != null) {
-            Files.walkFileTree(tmpDir, new FileVisitor<Path>() {
-                @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.deleteIfExists(file);
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-
-                    return FileVisitResult.TERMINATE;
-                }
-
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    Files.deleteIfExists(dir);
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-            assert !tmpDir.toFile().exists() : "could not delete tmpDir";
-        }
-    }
 
     @Test
     public void testDigestBlobResumeHeadAndAddContent() throws IOException {
@@ -87,7 +48,7 @@ public class DigestBlobTests extends CrateUnitTest {
         UUID transferId = UUID.randomUUID();
         int currentPos = 2;
 
-        BlobContainer container = new BlobContainer(tmpDir.toFile());
+        BlobContainer container = new BlobContainer(tmpFolder.newFolder());
         File filePath = new File(container.getTmpDirectory(), String.format(Locale.ENGLISH, "%s.%s", digest, transferId.toString()));
         if (filePath.exists()) {
             filePath.delete();
@@ -133,7 +94,7 @@ public class DigestBlobTests extends CrateUnitTest {
     @Test
     public void testResumeDigestBlobAddHeadAfterContent() throws IOException {
         UUID transferId = UUID.randomUUID();
-        BlobContainer container = new BlobContainer(tmpDir.toFile());
+        BlobContainer container = new BlobContainer(tmpFolder.newFolder());
         DigestBlob digestBlob = DigestBlob.resumeTransfer(
             container, "417de3231e23dcd6d224ff60918024bc6c59aa58", transferId, 2);
 

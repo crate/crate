@@ -50,6 +50,7 @@ import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
@@ -89,6 +90,7 @@ public class ShardCollectService {
 
     @Inject
     public ShardCollectService(SearchContextFactory searchContextFactory,
+                               IndexNameExpressionResolver indexNameExpressionResolver,
                                ThreadPool threadPool,
                                ClusterService clusterService,
                                Settings settings,
@@ -127,6 +129,7 @@ public class ShardCollectService {
         this.projectorVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
                 functions,
+                indexNameExpressionResolver,
                 threadPool,
                 settings,
                 transportActionProvider,
@@ -207,7 +210,7 @@ public class ShardCollectService {
     }
 
     private CrateCollector getLuceneIndexCollector(ThreadPool threadPool,
-                                                   final RoutedCollectPhase collectNode,
+                                                   final RoutedCollectPhase collectPhase,
                                                    final ShardProjectorChain projectorChain,
                                                    final JobCollectContext jobCollectContext) throws Exception {
         SharedShardContext sharedShardContext = jobCollectContext.sharedShardContexts().getOrCreateContext(shardId);
@@ -219,15 +222,16 @@ public class ShardCollectService {
                     sharedShardContext.readerId(),
                     indexShard,
                     searcher,
-                    collectNode.whereClause()
+                    collectPhase.whereClause()
             );
             jobCollectContext.addSearchContext(sharedShardContext.readerId(), searchContext);
-            CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectNode);
+            CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectPhase);
             Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
 
             return new CrateDocCollector(
                     searchContext,
                     executor,
+                    Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
                     jobCollectContext.queryPhaseRamAccountingContext(),
                     projectorChain.newShardDownstreamProjector(projectorVisitor),
                     docCtx.topLevelInputs(),

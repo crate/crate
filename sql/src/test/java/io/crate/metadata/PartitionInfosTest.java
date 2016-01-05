@@ -25,11 +25,15 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -38,26 +42,25 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class PartitionInfosTest  extends CrateUnitTest {
 
     private ClusterService mockService(Map<String, IndexMetaData> indices) {
-        ClusterService clusterService = mock(ClusterService.class);
-        ClusterState clusterState = mock(ClusterState.class);
-        MetaData metaData = mock(MetaData.class);
-        when(clusterService.state()).thenReturn(clusterState);
-        when(clusterState.metaData()).thenReturn(metaData);
+        ImmutableOpenMap<String, IndexMetaData> indicesMap =
+                ImmutableOpenMap.<String, IndexMetaData>builder().putAll(indices).build();
+        return new NoopClusterService(
+                ClusterState.builder(ClusterName.DEFAULT).metaData(
+                        MetaData.builder().indices(indicesMap).build()).build());
+    }
 
-        when(metaData.indices()).thenReturn(ImmutableOpenMap.<String, IndexMetaData>builder().putAll(indices).build());
-        return clusterService;
+    private static Settings defaultSettings() {
+        return Settings.builder().put("index.version.created", Version.CURRENT).build();
     }
 
     @Test
     public void testIgnoreNoPartitions() throws Exception {
         Map<String, IndexMetaData> indices = new HashMap<>();
-        indices.put("test1", IndexMetaData.builder("test1").numberOfShards(10).numberOfReplicas(4).build());
+        indices.put("test1", IndexMetaData.builder("test1").settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4).build());
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(mockService(indices));
         assertThat(partitioninfos.iterator().hasNext(), is(false));
     }
@@ -66,7 +69,8 @@ public class PartitionInfosTest  extends CrateUnitTest {
     public void testPartitionWithoutMapping() throws Exception {
         Map<String, IndexMetaData> indices = new HashMap<>();
         PartitionName partitionName = new PartitionName("test1", ImmutableList.of(new BytesRef("foo")));
-        indices.put(partitionName.asIndexName(), IndexMetaData.builder(partitionName.asIndexName()).numberOfShards(10).numberOfReplicas(4).build());
+        indices.put(partitionName.asIndexName(), IndexMetaData.builder(partitionName.asIndexName())
+                .settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4).build());
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(mockService(indices));
         assertThat(partitioninfos.iterator().hasNext(), is(false));
     }
@@ -77,6 +81,7 @@ public class PartitionInfosTest  extends CrateUnitTest {
         PartitionName partitionName = new PartitionName("test1", ImmutableList.of(new BytesRef("foo")));
         IndexMetaData indexMetaData = IndexMetaData
                 .builder(partitionName.asIndexName())
+                .settings(defaultSettings())
                 .putMapping(Constants.DEFAULT_MAPPING_TYPE, "{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"]]}}")
                 .numberOfShards(10)
                 .numberOfReplicas(4).build();
@@ -97,6 +102,7 @@ public class PartitionInfosTest  extends CrateUnitTest {
         PartitionName partitionName = new PartitionName("test1", ImmutableList.of(new BytesRef("foo"), new BytesRef("1")));
         IndexMetaData indexMetaData = IndexMetaData
                 .builder(partitionName.asIndexName())
+                .settings(defaultSettings())
                 .putMapping(Constants.DEFAULT_MAPPING_TYPE, "{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"], [\"col2\", \"integer\"]]}}")
                 .numberOfShards(10)
                 .numberOfReplicas(4).build();

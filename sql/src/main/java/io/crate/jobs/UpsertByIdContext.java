@@ -32,9 +32,9 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -101,7 +101,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                     // on updates, set affected row to 0 if document is not found or version conflicted
                     futureResult.set(TaskResult.ZERO);
                 } else if (PartitionName.isPartition(request.index())
-                           && e instanceof IndexMissingException) {
+                           && e instanceof IndexNotFoundException) {
                     // index missing exception on a partition should never bubble, set affected row to 0
                     futureResult.set(TaskResult.ZERO);
                 } else {

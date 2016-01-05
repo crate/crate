@@ -13,15 +13,13 @@ configurations {
 
 dependencies {
     compile 'com.google.code.findbugs:jsr305:1.3.9'
-    compile 'joda-time:joda-time:2.8.1'
+    compile 'joda-time:joda-time:2.8.2'
     compile 'com.google.guava:guava:18.0'
-    compile 'org.antlr:antlr-runtime:3.5'
+    compile 'org.antlr:antlr-runtime:3.5.2'
 
-    antlr3 'org.antlr:antlr:3.4'
+    antlr3 'org.antlr:antlr:3.5.2'
     testCompile 'org.hamcrest:hamcrest-all:1.3'
-    testCompile ('junit:junit:4.11') {
-        exclude group: 'org.hamcrest', module: 'hamcrest-core'
-    }
+    testCompile 'junit:junit:4.11'
 }
 
 task generateWithANTLR3(type:Exec) {

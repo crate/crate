@@ -29,7 +29,7 @@ import io.crate.metadata.settings.Setting;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
 
@@ -39,7 +39,7 @@ public class SetStatementAnalyzer {
     private SetStatementAnalyzer() {}
 
     public static SetAnalyzedStatement analyze(SetStatement node, ParameterContext parameterContext) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
         for (Assignment assignment : node.assignments()) {
             String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(),
                     parameterContext.parameters());
@@ -74,7 +74,7 @@ public class SetStatementAnalyzer {
     }
 
     private static void checkIfSettingIsRuntime(String name) {
-        checkIfSettingIsRuntime(CrateSettings.CRATE_SETTINGS, name);
+        checkIfSettingIsRuntime(CrateSettings.SETTINGS, name);
     }
 
     private static void checkIfSettingIsRuntime(List<Setting> settings, String name) {

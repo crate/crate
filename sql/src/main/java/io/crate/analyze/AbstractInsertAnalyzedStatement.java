@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import com.carrotsearch.hppc.IntOpenHashSet;
+import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.analyze.symbol.Reference;
@@ -42,8 +42,8 @@ import java.util.Set;
 public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStatement {
 
     protected List<Reference> columns;
-    private IntSet primaryKeyColumnIndices = new IntOpenHashSet();
-    private IntSet partitionedByColumnsIndices = new IntOpenHashSet();
+    private IntSet primaryKeyColumnIndices = new IntHashSet();
+    private IntSet partitionedByColumnsIndices = new IntHashSet();
     private int routingColumnIndex = -1;
     protected DocTableInfo tableInfo;
 

@@ -23,8 +23,8 @@
 package io.crate.executor.transport;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 
@@ -46,7 +46,7 @@ public class ShardDeleteRequestTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         ShardDeleteRequest request2 = new ShardDeleteRequest();
         request2.readFrom(in);
 

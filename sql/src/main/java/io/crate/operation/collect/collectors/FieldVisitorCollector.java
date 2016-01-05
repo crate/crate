@@ -22,26 +22,28 @@
 
 package io.crate.operation.collect.collectors;
 
-import org.apache.lucene.index.AtomicReader;
-import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.Scorer;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.SimpleCollector;
 
 import java.io.IOException;
 
-class FieldVisitorCollector extends Collector {
-    private final Collector collector;
-    private final CollectorFieldsVisitor fieldsVisitor;
-    private AtomicReader currentReader;
+class FieldVisitorCollector extends SimpleCollector {
 
-    public FieldVisitorCollector(Collector collector, CollectorFieldsVisitor fieldsVisitor) {
+    private final SimpleCollector collector;
+    private final CollectorFieldsVisitor fieldsVisitor;
+    private LeafReader currentReader;
+
+    public FieldVisitorCollector(SimpleCollector collector, CollectorFieldsVisitor fieldsVisitor) {
         this.collector = collector;
         this.fieldsVisitor = fieldsVisitor;
     }
 
     @Override
-    public void setScorer(Scorer scorer) throws IOException {
-        collector.setScorer(scorer);
+    protected void doSetNextReader(LeafReaderContext context) throws IOException {
+        super.doSetNextReader(context);
+        collector.getLeafCollector(context);
+        currentReader = context.reader();
     }
 
     @Override
@@ -52,13 +54,7 @@ class FieldVisitorCollector extends Collector {
     }
 
     @Override
-    public void setNextReader(AtomicReaderContext context) throws IOException {
-        currentReader = context.reader();
-        collector.setNextReader(context);
-    }
-
-    @Override
-    public boolean acceptsDocsOutOfOrder() {
-        return collector.acceptsDocsOutOfOrder();
+    public boolean needsScores() {
+        return collector.needsScores();
     }
 }

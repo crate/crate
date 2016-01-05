@@ -22,9 +22,8 @@
 package io.crate.integrationtests;
 
 import io.crate.metadata.settings.CrateSettings;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
@@ -32,21 +31,18 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
-@ElasticsearchIntegrationTest.ClusterScope
+@ESIntegTestCase.ClusterScope
 public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder().put(super.nodeSettings(nodeOrdinal));
+        Settings.Builder builder = Settings.builder().put(super.nodeSettings(nodeOrdinal));
         builder.put(CrateSettings.BULK_REQUEST_TIMEOUT.settingName(), "42s");
-        builder.put("gateway.type", "local");
         return builder.build();
     }
 
-    @Override
     @After
-    public void tearDown() throws Exception {
-        super.tearDown();
+    public void resetSettings() throws Exception {
         execute("reset global bulk.partition_creation_timeout, bulk.request_timeout");
     }
 
@@ -99,7 +95,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDynamicTransientSettings() throws Exception {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder()
+        Settings.Builder builder = Settings.builder()
                 .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 1)
                 .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 2)
                 .put(CrateSettings.STATS_ENABLED.settingName(), false);
@@ -129,8 +125,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDynamicPersistentSettings() throws Exception {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder()
-                .put(CrateSettings.BULK_REQUEST_TIMEOUT.settingName(), "1s")
+        Settings.Builder builder = Settings.builder()
                 .put(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.settingName(), "2s");
         client().admin().cluster().prepareUpdateSettings().setPersistentSettings(builder.build()).execute().actionGet();
 
@@ -138,17 +133,21 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
         Map<String, Map> settings = (Map<String, Map>)response.rows()[0][0];
         Map bulk = settings.get(CrateSettings.BULK.name());
-        assertEquals("1s", bulk.get(CrateSettings.BULK_REQUEST_TIMEOUT.name()));
         assertEquals("2s", bulk.get(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.name()));
 
         internalCluster().fullRestart();
-
-        execute("select settings from sys.cluster");
-        assertEquals(1L, response.rowCount());
-        settings = (Map<String, Map>)response.rows()[0][0];
-        bulk = settings.get(CrateSettings.BULK.name());
-        assertEquals("1s", bulk.get(CrateSettings.BULK_REQUEST_TIMEOUT.name()));
-        assertEquals("2s", bulk.get(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.name()));
+        // the gateway recovery is async and
+        // it might take a bit until it reads the persisted cluster state and updates the settings expression
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                execute("select settings from sys.cluster");
+                assertEquals(1L, response.rowCount());
+                Map<String, Map> settings = (Map<String, Map>)response.rows()[0][0];
+                Map bulk = settings.get(CrateSettings.BULK.name());
+                assertEquals("2s", bulk.get(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.name()));
+            }
+        });
     }
 
     @Test

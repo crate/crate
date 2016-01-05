@@ -26,7 +26,6 @@ import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.ArrayList;
@@ -40,10 +39,10 @@ public class GenericPropertiesConverter {
     /**
      * Put a genericProperty into a settings-structure
      */
-    static void genericPropertyToSetting(ImmutableSettings.Builder builder,
-                                                String name,
-                                                Expression value,
-                                                ParameterContext parameterContext) {
+    static void genericPropertyToSetting(Settings.Builder builder,
+                                         String name,
+                                         Expression value,
+                                         ParameterContext parameterContext) {
         if (value instanceof ArrayLiteral) {
             ArrayLiteral array = (ArrayLiteral) value;
             List<String> values = new ArrayList<>(array.values().size());
@@ -56,7 +55,7 @@ public class GenericPropertiesConverter {
         }
     }
 
-    public static void genericPropertiesToSettings(ImmutableSettings.Builder builder,
+    public static void genericPropertiesToSettings(Settings.Builder builder,
                                                    GenericProperties genericProperties,
                                                    ParameterContext parameterContext) {
         for (Map.Entry<String, Expression> entry : genericProperties.properties().entrySet()) {
@@ -65,15 +64,15 @@ public class GenericPropertiesConverter {
     }
 
     static Settings genericPropertiesToSettings(GenericProperties genericProperties, ParameterContext parameterContext) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
         genericPropertiesToSettings(builder, genericProperties, parameterContext);
         return builder.build();
     }
 
-    public static ImmutableSettings.Builder settingsFromProperties(Optional<GenericProperties> properties,
-                                                                   ParameterContext parameterContext,
-                                                                   Map<String, ? extends SettingsApplier> settingAppliers) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+    public static Settings.Builder settingsFromProperties(Optional<GenericProperties> properties,
+                                                          ParameterContext parameterContext,
+                                                          Map<String, ? extends SettingsApplier> settingAppliers) {
+        Settings.Builder builder = Settings.builder();
         setDefaults(settingAppliers, builder);
         if (properties.isPresent()) {
             for (Map.Entry<String, Expression> entry : properties.get().properties().entrySet()) {
@@ -87,7 +86,7 @@ public class GenericPropertiesConverter {
         return builder;
     }
 
-    private static void setDefaults(Map<String, ? extends SettingsApplier> settingAppliers, ImmutableSettings.Builder builder) {
+    private static void setDefaults(Map<String, ? extends SettingsApplier> settingAppliers, Settings.Builder builder) {
         for (Map.Entry<String, ? extends SettingsApplier> entry : settingAppliers.entrySet()) {
             builder.put(entry.getValue().getDefault());
         }

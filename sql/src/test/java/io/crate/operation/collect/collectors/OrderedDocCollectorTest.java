@@ -22,6 +22,7 @@
 
 package io.crate.operation.collect.collectors;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Reference;
@@ -31,13 +32,11 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
-import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.LongField;
-import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.SortedDocValuesField;
+import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
@@ -45,7 +44,10 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.core.LongFieldMapper;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -53,18 +55,19 @@ import java.io.File;
 import java.io.IOException;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class OrderedDocCollectorTest extends CrateUnitTest {
+public class OrderedDocCollectorTest extends RandomizedTest {
+
+    private static final ReferenceInfo INFO = new ReferenceInfo(new ReferenceIdent(new TableIdent(null, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
 
     private Directory createLuceneIndex() throws IOException {
         File tmpDir = newTempDir();
-        Directory index = FSDirectory.open(tmpDir);
+        Directory index = FSDirectory.open(tmpDir.toPath());
         StandardAnalyzer analyzer = new StandardAnalyzer();
-        IndexWriterConfig cfg = new IndexWriterConfig(Version.LATEST, analyzer);
+        IndexWriterConfig cfg = new IndexWriterConfig(analyzer);
         IndexWriter w = new IndexWriter(index, cfg);
         for (Long i = 0L; i < 4; i++) {
-            if ( i < 2) {
+            if (i < 2) {
                 addDocToLucene(w, i + 1);
             } else {
                 addDocToLucene(w, null);
@@ -78,35 +81,38 @@ public class OrderedDocCollectorTest extends CrateUnitTest {
     private static void addDocToLucene(IndexWriter w, Long value) throws IOException {
         Document doc = new Document();
         if (value != null) {
-            doc.add(new LongField("value", value, Field.Store.NO));
+            MappedFieldType fieldType = new LongFieldMapper.LongFieldType();
+            fieldType.setNames(new MappedFieldType.Names("value"));
+            doc.add(new LongFieldMapper.CustomLongNumericField(value, fieldType));
+            doc.add(new SortedNumericDocValuesField("value", value));
         } else {
             // Create a placeholder field
-            doc.add(new StringField("null_value", "null", Field.Store.NO));
+            doc.add(new SortedDocValuesField("null_value", new BytesRef("null")));
         }
         w.addDocument(doc);
     }
 
-    private TopFieldDocs search(IndexReader reader, Query query, Sort sort) throws IOException {
+    private TopFieldDocs search(IndexReader reader, Query searchAfterQuery, Sort sort) throws IOException {
         IndexSearcher searcher = new IndexSearcher(reader);
 
-        BooleanQuery searchQuery = new BooleanQuery();
-        searchQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
-        if (query != null) {
-            searchQuery.add(query, BooleanClause.Occur.MUST_NOT);
+        Query query;
+        if (searchAfterQuery != null) {
+            // searchAfterQuery is actually a query for all before last doc, so negate it
+            query = Queries.not(searchAfterQuery);
+        } else {
+            query = new MatchAllDocsQuery();
         }
-        TopFieldDocs docs = searcher.search(searchQuery, 10, sort);
+        TopFieldDocs docs = searcher.search(query, 10, sort);
         return docs;
     }
 
-    private static ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(new TableIdent(null, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
-
     private Long[] nextPageQuery(IndexReader reader, FieldDoc lastCollected, boolean reverseFlag, @Nullable Boolean nullFirst) throws IOException {
-        OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(new Reference(info)),
+        OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(new Reference(INFO)),
                 new boolean[]{reverseFlag},
                 new Boolean[]{nullFirst});
 
-        SortField sortField = new SortField("value", SortField.Type.LONG, reverseFlag);
-        Long missingValue = (Long)LuceneMissingValue.missingValue(orderBy, 0);
+        SortField sortField = new SortedNumericSortField("value", SortField.Type.LONG, reverseFlag);
+        Long missingValue = (Long) LuceneMissingValue.missingValue(orderBy, 0);
         sortField.setMissingValue(missingValue);
         Sort sort = new Sort(sortField);
 
@@ -114,7 +120,7 @@ public class OrderedDocCollectorTest extends CrateUnitTest {
         TopFieldDocs result = search(reader, nextPageQuery, sort);
         Long results[] = new Long[result.scoreDocs.length];
         for (int i = 0; i < result.scoreDocs.length; i++) {
-            Long value = (Long)((FieldDoc)result.scoreDocs[i]).fields[0];
+            Long value = (Long) ((FieldDoc) result.scoreDocs[i]).fields[0];
             results[i] = value.equals(missingValue) ? null : value;
         }
         return results;
@@ -145,14 +151,14 @@ public class OrderedDocCollectorTest extends CrateUnitTest {
         // 2  1  null null
         //    ^
         afterDoc = new FieldDoc(0, 0, new Object[]{1L});
-        result = nextPageQuery(reader, afterDoc, true, null);
-        assertThat(result, is(new Long[]{null, null, 1L}));
+        result = nextPageQuery(reader, afterDoc, true, false);
+        assertThat(result, is(new Long[]{1L, null, null}));
 
         // reverseOrdering = true, nulls First = false
         // 2  1  null null
         //       ^
-        afterDoc = new FieldDoc(0, 0, new Object[]{LuceneMissingValue.missingValue(true, null, SortField.Type.LONG)});
-        result = nextPageQuery(reader, afterDoc, true, null);
+        afterDoc = new FieldDoc(0, 0, new Object[]{LuceneMissingValue.missingValue(true, false, SortField.Type.LONG)});
+        result = nextPageQuery(reader, afterDoc, true, false);
         assertThat(result, is(new Long[]{null, null}));
 
         reader.close();

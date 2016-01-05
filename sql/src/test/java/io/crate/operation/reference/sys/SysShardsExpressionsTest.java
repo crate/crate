@@ -22,8 +22,8 @@
 package io.crate.operation.reference.sys;
 
 import io.crate.metadata.*;
-import io.crate.metadata.shard.RecoveryShardReferenceResolver;
 import io.crate.metadata.shard.MetaDataShardModule;
+import io.crate.metadata.shard.RecoveryShardReferenceResolver;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -42,12 +42,12 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.cluster.routing.ShardRoutingHelper;
+import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.*;
@@ -106,7 +106,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         @Override
         protected void configure() {
             bind(ThreadPool.class).toInstance(threadPool);
-            bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
+            bind(Settings.class).toInstance(Settings.EMPTY);
 
             ClusterService clusterService = mock(ClusterService.class);
             bind(ClusterService.class).toInstance(clusterService);
@@ -160,11 +160,11 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
 
             when(recoveryStateTimer.time()).thenReturn(10000L);
 
-            ShardRouting shardRouting = mock(ShardRouting.class);
+            ShardRouting shardRouting = ShardRouting.newUnassigned(index.name(), shardId.id(), null, true, new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "foo"));
+            ShardRoutingHelper.initialize(shardRouting, "node1");
+            ShardRoutingHelper.moveToStarted(shardRouting);
+            ShardRoutingHelper.relocate(shardRouting, "node_X");
             when(indexShard.routingEntry()).thenReturn(shardRouting);
-            when(shardRouting.primary()).thenReturn(true);
-            when(shardRouting.state()).thenReturn(ShardRoutingState.STARTED);
-            when(shardRouting.relocatingNodeId()).thenReturn("node_X");
 
             TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
             bind(TransportPutIndexTemplateAction.class).toInstance(transportPutIndexTemplateAction);
@@ -231,7 +231,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     public void testRoutingState() throws Exception {
         ReferenceInfo refInfo = refInfo("sys.shards.routing_state", DataTypes.STRING, RowGranularity.SHARD);
         ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
-        assertEquals(new BytesRef("STARTED"), shardExpression.value());
+        assertEquals(new BytesRef("RELOCATING"), shardExpression.value());
     }
 
     @Test

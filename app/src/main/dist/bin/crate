@@ -125,7 +125,7 @@ launch_service()
     else
         # Startup Crate, background it, and write the pid.
         exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" $props \
-                    io.crate.bootstrap.Crate <&- &
+                    io.crate.bootstrap.CrateF -d <&- &
         execval=$?
         [ ! -z "$pidpath" ] && printf '%d' $! > "$pidpath"
     fi

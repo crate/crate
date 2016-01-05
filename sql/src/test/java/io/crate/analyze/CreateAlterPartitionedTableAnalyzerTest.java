@@ -34,7 +34,7 @@ import io.crate.sql.parser.ParsingException;
 import io.crate.testing.MockedClusterServiceModule;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -59,7 +59,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
             FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
             when(fulltextAnalyzerResolver.hasCustomAnalyzer("german")).thenReturn(false);
             when(fulltextAnalyzerResolver.hasCustomAnalyzer("ft_search")).thenReturn(true);
-            ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
+            Settings.Builder settingsBuilder = Settings.builder();
             settingsBuilder.put("search", "foobar");
             when(fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("ft_search")).thenReturn(settingsBuilder.build());
             bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
@@ -149,8 +149,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> oMapping = (Map<String, Object>)analysis.mappingProperties().get("o");
         assertThat(mapToSortedString(oMapping), is(
-                "doc_values=false, dynamic=true, index=not_analyzed, properties={"+
-                    "name={doc_values=false, index=no, store=false, type=string}}, store=false, type=object"));
+                "dynamic=true, properties={name={doc_values=false, index=no, store=false, type=string}}, type=object"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"), not(hasKey("date")));
 
         Map metaColumns = (Map) ((Map) analysis.mapping().get("_meta")).get("columns");

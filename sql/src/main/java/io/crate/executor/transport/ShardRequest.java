@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
 import io.crate.Constants;
-import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
+import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -39,13 +39,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
-public abstract class ShardRequest<T extends ShardReplicationOperationRequest, I extends ShardRequest.Item>
-        extends ShardReplicationOperationRequest<T> implements Iterable<I> {
+public abstract class ShardRequest<T extends ReplicationRequest, I extends ShardRequest.Item>
+        extends ReplicationRequest<T> implements Iterable<I> {
 
     @Nullable
     private String routing;
     private UUID jobId;
-    private int shardId;
     private List<I> items;
     protected IntArrayList locations;
 
@@ -55,10 +54,10 @@ public abstract class ShardRequest<T extends ShardReplicationOperationRequest, I
     public ShardRequest(ShardId shardId,
                         @Nullable String routing,
                         UUID jobId) {
+        setShardId(shardId);
         this.routing = routing;
         this.jobId = jobId;
         this.index = shardId.getIndex();
-        this.shardId = shardId.id();
         locations = new IntArrayList();
         items = new ArrayList<>();
     }
@@ -85,10 +84,6 @@ public abstract class ShardRequest<T extends ShardReplicationOperationRequest, I
         return Constants.DEFAULT_MAPPING_TYPE;
     }
 
-    public int shardId() {
-        return shardId;
-    }
-
     @Nullable
     public String routing() {
         return routing;
@@ -101,7 +96,6 @@ public abstract class ShardRequest<T extends ShardReplicationOperationRequest, I
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        shardId = in.readInt();
         routing = in.readOptionalString();
         jobId = new UUID(in.readLong(), in.readLong());
 
@@ -122,7 +116,6 @@ public abstract class ShardRequest<T extends ShardReplicationOperationRequest, I
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeInt(shardId);
         out.writeOptionalString(routing);
         out.writeLong(jobId.getMostSignificantBits());
         out.writeLong(jobId.getLeastSignificantBits());
@@ -143,8 +136,7 @@ public abstract class ShardRequest<T extends ShardReplicationOperationRequest, I
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ShardRequest<?, ?> that = (ShardRequest<?, ?>) o;
-        return shardId == that.shardId &&
-               Objects.equal(routing, that.routing) &&
+        return Objects.equal(routing, that.routing) &&
                Objects.equal(jobId, that.jobId) &&
                Objects.equal(items, that.items) &&
                Objects.equal(locations, that.locations);
@@ -152,7 +144,7 @@ public abstract class ShardRequest<T extends ShardReplicationOperationRequest, I
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(routing, jobId, shardId, items, locations);
+        return Objects.hashCode(routing, jobId, shardId(), items, locations);
     }
 
     protected abstract I readItem(StreamInput input) throws IOException;

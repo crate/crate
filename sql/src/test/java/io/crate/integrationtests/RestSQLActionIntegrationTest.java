@@ -38,8 +38,9 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         CloseableHttpResponse response = post();
         assertEquals(400, response.getStatusLine().getStatusCode());
         String bodyAsString = EntityUtils.toString(response.getEntity());
-        assertEquals("{\"error\":{\"message\":\"SQLActionException[missing request body]\",\"code\":4000},\"error_trace\":null}",
-                     bodyAsString);
+        assertThat(bodyAsString, startsWith(
+                "{\"error\":{\"message\":\"SQLActionException[missing request body]\",\"code\":4000},\"error_trace\":\"SQLActionException:"
+        ));
     }
 
     @Test
@@ -47,7 +48,8 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         CloseableHttpResponse response = post("{\"foo\": \"bar\"}");
         assertEquals(400, response.getStatusLine().getStatusCode());
         String bodyAsString = EntityUtils.toString(response.getEntity());
-        assertThat(bodyAsString, startsWith("{\"error\":{\"message\":\"SQLActionException[Failed to parse source [{\\\"foo\\\": \\\"bar\\\"}]]\",\"code\":4000},\"error_trace\":\"io.crate.exceptions.SQLParseException: Failed to parse source [{\\\"foo\\\": \\\"bar\\\"}]" + resolveEscapedNL() + "\\tat "));
+        assertThat(bodyAsString, startsWith(
+                "{\"error\":{\"message\":\"SQLActionException[Failed to parse source [{\\\"foo\\\": \\\"bar\\\"}]]\",\"code\":4000},\"error_trace\":\""));
     }
 
     @Test
@@ -55,7 +57,9 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         CloseableHttpResponse response = post("{\"stmt\": \"INSERT INTO foo (bar) values (?)\", \"args\": [0], \"bulk_args\": [[0], [1]]}");
         assertEquals(400, response.getStatusLine().getStatusCode());
         String bodyAsString = EntityUtils.toString(response.getEntity());
-        assertEquals("{\"error\":{\"message\":\"SQLActionException[request body contains args and bulk_args. It's forbidden to provide both]\",\"code\":4000},\"error_trace\":null}", bodyAsString);
+        assertThat(bodyAsString, startsWith(
+                "{\"error\":{\"message\":\"SQLActionException[request body contains args and bulk_args. It's forbidden to provide both]\",\"code\":4000},\"error_trace\":\"SQLActionException:"
+        ));
     }
 
     private String resolveEscapedNL(){

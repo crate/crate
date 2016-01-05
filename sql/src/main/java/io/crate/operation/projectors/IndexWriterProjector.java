@@ -40,6 +40,7 @@ import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.logging.ESLogger;
@@ -67,6 +68,7 @@ public class IndexWriterProjector extends AbstractProjector {
 
     public IndexWriterProjector(ClusterService clusterService,
                                 Functions functions,
+                                IndexNameExpressionResolver indexNameExpressionResolver,
                                 Settings settings,
                                 TransportActionProvider transportActionProvider,
                                 Supplier<String> indexNameResolver,
@@ -107,6 +109,8 @@ public class IndexWriterProjector extends AbstractProjector {
         bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 transportActionProvider.transportBulkCreateIndicesAction(),
+                indexNameExpressionResolver,
+                settings,
                 bulkRetryCoordinatorPool,
                 autoCreateIndices,
                 MoreObjects.firstNonNull(bulkActions, 100),

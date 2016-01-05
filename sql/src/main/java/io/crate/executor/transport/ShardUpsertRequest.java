@@ -26,6 +26,7 @@ import io.crate.Streamer;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.doc.DocSysColumns;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.Nullable;
@@ -353,8 +354,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                     insertValues[i] = insertValuesStreamer[i].readValueFrom(in);
                 }
             }
-
-            version = Versions.readVersion(in);
+            this.version = Version.readVersion(in).id;
             versionType = VersionType.fromValue(in.readByte());
             opType = IndexRequest.OpType.fromId(in.readByte());
             if (in.readBoolean()) {
@@ -383,7 +383,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 out.writeVInt(0);
             }
 
-            Versions.writeVersion(version, out);
+            Version.writeVersion(Version.fromId((int) version), out);
             out.writeByte(versionType.getValue());
             out.writeByte(opType.id());
             boolean sourceAvailable = source != null;

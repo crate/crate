@@ -41,6 +41,7 @@ import io.crate.exceptions.AlterTableAliasException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -54,13 +55,13 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.compress.CompressedString;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -74,8 +75,7 @@ public class AlterTableOperation {
     private final TransportActionProvider transportActionProvider;
 
     @Inject
-    public AlterTableOperation(ClusterService clusterService,
-                               TransportActionProvider transportActionProvider) {
+    public AlterTableOperation(ClusterService clusterService, TransportActionProvider transportActionProvider) {
         this.clusterService = clusterService;
         this.transportActionProvider = transportActionProvider;
     }
@@ -167,7 +167,7 @@ public class AlterTableOperation {
         Map<String, Object> mapping = mergeTemplateMapping(indexTemplateMetaData, newMappings);
 
         // merge settings
-        ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
+        Settings.Builder settingsBuilder = Settings.builder();
         settingsBuilder.put(indexTemplateMetaData.settings());
         settingsBuilder.put(newSettings);
 
@@ -199,7 +199,8 @@ public class AlterTableOperation {
         Map<String, Object> mapping;
         try {
             MetaData metaData = clusterService.state().metaData();
-            mapping = metaData.index(indices[0]).mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
+            String index = indices[0];
+            mapping = metaData.index(index).mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
         } catch (IOException e) {
             return Futures.immediateFailedFuture(e);
         }
@@ -219,13 +220,17 @@ public class AlterTableOperation {
     }
 
     private Map<String, Object> parseMapping(String mappingSource) throws IOException {
-        return XContentFactory.xContent(mappingSource).createParser(mappingSource).mapAndClose();
+        try (XContentParser parser = XContentFactory.xContent(mappingSource).createParser(mappingSource)) {
+            return parser.map();
+        } catch (IOException e) {
+            throw new ElasticsearchException("failed to parse mapping");
+        }
     }
 
     private Map<String, Object> mergeTemplateMapping(IndexTemplateMetaData templateMetaData,
                                                      Map<String, Object> newMapping) {
         Map<String, Object> mergedMapping = new HashMap<>();
-        for (ObjectObjectCursor<String, CompressedString> cursor : templateMetaData.mappings()) {
+        for (ObjectObjectCursor<String, CompressedXContent> cursor : templateMetaData.mappings()) {
             try {
                 Map<String, Object> mapping = parseMapping(cursor.value.toString());
                 Object o = mapping.get(Constants.DEFAULT_MAPPING_TYPE);
@@ -259,7 +264,7 @@ public class AlterTableOperation {
         final Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
 
         if (updateTemplate) {
-            results.add(updateTemplate(mapping, ImmutableSettings.EMPTY, analysis.table().ident()));
+            results.add(updateTemplate(mapping, Settings.EMPTY, analysis.table().ident()));
         }
 
         String[] indexNames = getIndexNames(analysis.table(), null);

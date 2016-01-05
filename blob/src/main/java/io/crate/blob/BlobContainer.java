@@ -21,14 +21,15 @@
 
 package io.crate.blob;
 
+import com.google.common.base.Throwables;
 import io.crate.blob.exceptions.DigestNotFoundException;
 import io.crate.common.Hex;
-import org.elasticsearch.ElasticsearchIllegalStateException;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -59,8 +60,19 @@ public class BlobContainer {
         this.baseDirectory = baseDirectory;
         this.tmpDirectory = new File(baseDirectory, "tmp");
         this.varDirectory = new File(baseDirectory, "var");
-        FileSystemUtils.mkdirs(this.varDirectory);
-        FileSystemUtils.mkdirs(this.tmpDirectory);
+        try {
+            Files.createDirectories(this.varDirectory.toPath());
+        } catch (IOException e) {
+            logger.error("Could not create 'var' path {}", this.varDirectory.getAbsolutePath());
+            Throwables.propagate(e);
+        }
+
+        try {
+            Files.createDirectories(this.tmpDirectory.toPath());
+        } catch (IOException e) {
+            logger.error("Could not create 'tmp' path {}", this.tmpDirectory.getAbsolutePath());
+            Throwables.propagate(e);
+        }
 
         createSubDirectories(this.varDirectory);
     }
@@ -115,7 +127,7 @@ public class BlobContainer {
         for(int i = 0; i < names.length; i ++){
             try {
                 digests[i] = Hex.decodeHex(names[i]);
-            } catch (ElasticsearchIllegalStateException ex) {
+            } catch (IllegalStateException ex) {
                 logger.error("Can't convert string {} to byte array", names[i]);
                 throw ex;
             }

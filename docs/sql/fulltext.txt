@@ -51,8 +51,8 @@ The higher the score value, the more relevant the row::
     +-----------+------------+
     | name      |     _score |
     +-----------+------------+
-    | Altair    | 0.56319076 |
-    | Bartledan | 0.4590714  |
+    | Bartledan | 0.52200186 |
+    | Altair    | 0.4790727  |
     +-----------+------------+
     SELECT 2 rows in set (... sec)
 
@@ -212,8 +212,8 @@ A fulltext search is done using the :ref:`predicates_match` predicate::
     +-----------+
     | name      |
     +-----------+
-    | Altair    |
     | Bartledan |
+    | Altair    |
     +-----------+
     SELECT 2 rows in set (... sec)
 
@@ -226,8 +226,8 @@ the :ref:`_score <sql_ddl_system_column_score>` can be selected::
     +-----------+------------+
     | name      |     _score |
     +-----------+------------+
-    | Altair    | 0.56319076 |
-    | Bartledan | 0.4590714  |
+    | Bartledan | 0.52200186 |
+    | Altair    | 0.4790727  |
     +-----------+------------+
     SELECT 2 rows in set (... sec)
 
@@ -268,29 +268,28 @@ use ``phrase`` or ``phrase_prefix``::
     ...     (name_description_ft, race['name'] 1.5, kind 0.75),
     ...     'end of the galaxy'
     ... ) order by _score desc;
-    +-------------------+-------------+
-    | name              |      _score |
-    +-------------------+-------------+
-    | NULL              | 0.85571706  |
-    | Altair            | 0.096532404 |
-    | Aldebaran         | 0.08557171  |
-    | North West Ripple | 0.084465854 |
-    | Outer Eastern Rim | 0.07487524  |
-    +-------------------+-------------+
+    +-------------------+------------+
+    | name              |     _score |
+    +-------------------+------------+
+    | NULL              | 0.91878563 |
+    | Altair            | 0.11727207 |
+    | Aldebaran         | 0.10617954 |
+    | North West Ripple | 0.06788038 |
+    | Outer Eastern Rim | 0.06788038 |
+    +-------------------+------------+
     SELECT 5 rows in set (... sec)
 
 ::
 
     cr> select name, description, _score from locations
     ... where match(
-    ...     (name_description_ft, race['name'] 1.5, kind 0.75),
-    ...     'end of the galaxy'
+    ...     (name_description_ft), 'end of the galaxy'
     ... ) using phrase with (analyzer='english', slop=4);
-    +------+-------------------------+------------+
-    | name | description             |     _score |
-    +------+-------------------------+------------+
-    | NULL | The end of the Galaxy.% | 0.85571706 |
-    +------+-------------------------+------------+
+    +------+-------------------------+----------+
+    | name | description             |   _score |
+    +------+-------------------------+----------+
+    | NULL | The end of the Galaxy.% | 2.296235 |
+    +------+-------------------------+----------+
     SELECT 1 row in set (... sec)
 
 A vast amount of options exist to fine-tune your fulltext search.
@@ -336,13 +335,14 @@ Anyway let's do it here for demonstration purpose::
 
     cr> select name, _score
     ... from locations where match(name_description_ft, 'time')
-    ... and _score >= 0.9;
-    +--------+-----------+
-    | name   | _score    |
-    +--------+-----------+
-    | Altair | 0.9204767 |
-    +--------+-----------+
-    SELECT 1 row in set (... sec)
+    ... and _score >= 0.8 order by _score;
+    +-----------+------------+
+    | name      |     _score |
+    +-----------+------------+
+    | Bartledan | 0.8679331  |
+    | Altair    | 0.88735807 |
+    +-----------+------------+
+    SELECT 2 rows in set (... sec)
 
 As you maybe noticed, the :ref:`_score <sql_ddl_system_column_score>` value has changed for the
 same query text and document because it's a ratio related to all results,

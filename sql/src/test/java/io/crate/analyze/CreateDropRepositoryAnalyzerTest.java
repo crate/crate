@@ -21,22 +21,26 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.RepositoryUnknownException;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSortedMap;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
+import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
@@ -68,7 +72,7 @@ public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
 
     @Before
     public void before() throws Exception {
-        RepositoryMetaData repositoryMetaData = new RepositoryMetaData("my_repo", "fs", ImmutableSettings.EMPTY);
+        RepositoryMetaData repositoryMetaData = new RepositoryMetaData("my_repo", "fs", Settings.EMPTY);
         when(repositoriesMetaData.repository(anyString())).thenReturn(null);
         when(repositoriesMetaData.repository("my_repo")).thenReturn(repositoryMetaData);
     }
@@ -101,5 +105,60 @@ public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
         DropRepositoryAnalyzedStatement statement = analyze("DROP REPOSITORY my_repo");
         assertThat(statement.repositoryName(), is("my_repo"));
 
+    }
+
+    @Test
+    public void testCreateS3RepositoryWithAllSettings() throws Exception {
+        CreateRepositoryAnalyzedStatement analysis = analyze("CREATE REPOSITORY foo TYPE s3 WITH (" +
+                                                             "bucket='abc'," +
+                                                             "region='us-north-42'," +
+                                                             "endpoint='www.example.com'," +
+                                                             "protocol='arp'," +
+                                                             "base_path='/holz/'," +
+                                                             "access_key='0xAFFE'," +
+                                                             "secret_key='0xCAFEE'," +
+                                                             "concurrent_streams=4," +
+                                                             "chunk_size=12," +
+                                                             "compress=true," +
+                                                             "server_side_encryption=false," +
+                                                             "buffer_size=128," +
+                                                             "max_retries=2," +
+                                                             "canned_acl=false)");
+        assertThat(analysis.repositoryType(), is("s3"));
+        assertThat(analysis.repositoryName(), is("foo"));
+        Map<String, String> sortedSettingsMap = ImmutableSortedMap.copyOf(analysis.settings().getAsMap());
+        assertThat(
+                Joiner.on(",").withKeyValueSeparator(":")
+                        .join(sortedSettingsMap),
+                is("access_key:0xAFFE," +
+                   "base_path:/holz/," +
+                   "bucket:abc," +
+                   "buffer_size:128," +
+                   "canned_acl:false," +
+                   "chunk_size:12," +
+                   "compress:true," +
+                   "concurrent_streams:4," +
+                   "endpoint:www.example.com," +
+                   "max_retries:2," +
+                   "protocol:arp," +
+                   "region:us-north-42," +
+                   "secret_key:0xCAFEE," +
+                   "server_side_encryption:false"));
+    }
+
+    @Test
+    public void testCreateS3RepoWithoutSettings() throws Exception {
+        CreateRepositoryAnalyzedStatement analysis = analyze("CREATE REPOSITORY foo TYPE s3");
+        assertThat(analysis.repositoryName(), is("foo"));
+        assertThat(analysis.repositoryType(), is("s3"));
+        // two settings are there because those have default values
+        assertThat(analysis.settings().getAsMap().keySet(), containsInAnyOrder("compress", "server_side_encryption"));
+    }
+
+    @Test
+    public void testCreateS3RepoWithWrongSettings() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("setting 'wrong' not supported");
+        analyze("CREATE REPOSITORY foo TYPE s3 WITH (wrong=true)");
     }
 }

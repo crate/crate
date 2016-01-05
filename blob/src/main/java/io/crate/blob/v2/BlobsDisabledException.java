@@ -21,14 +21,14 @@
 
 package io.crate.blob.v2;
 
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexException;
 import org.elasticsearch.rest.RestStatus;
 
-public class BlobsDisabledException extends IndexException {
+public class BlobsDisabledException extends ElasticsearchException {
 
-    public BlobsDisabledException(String index) {
-        super(new Index(index), "blobs not enabled on this index");
+    public BlobsDisabledException(String indexString) {
+        super("[" + (new Index(indexString) == null ? "_na" : (new Index(indexString)).name()) + "] " + "blobs not enabled on this index");
     }
 
     @Override

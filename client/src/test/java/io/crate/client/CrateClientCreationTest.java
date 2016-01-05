@@ -24,7 +24,6 @@ package io.crate.client;
 
 import org.elasticsearch.client.transport.TransportClientNodesService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -33,6 +32,7 @@ import org.junit.Test;
 import java.lang.reflect.Field;
 import java.util.List;
 
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
@@ -56,7 +56,7 @@ public class CrateClientCreationTest extends CrateClientIntegrationTest {
 
     @Test
     public void testWithNode() throws Exception {
-        CrateClient localClient = new CrateClient(ImmutableSettings.EMPTY, serverAddress());
+        CrateClient localClient = new CrateClient(serverAddress());
         try {
             assertThat(extractDiscoveryNodes(localClient), hasSize(1));
         } finally {
@@ -76,7 +76,7 @@ public class CrateClientCreationTest extends CrateClientIntegrationTest {
 
     @Test
     public void testCreateWithServer() throws Exception {
-        CrateClient localClient = new CrateClient(ImmutableSettings.EMPTY, serverAddress());
+        CrateClient localClient = new CrateClient(serverAddress());
         try {
             assertThat(extractDiscoveryNodes(localClient), hasSize(1));
         } finally {
@@ -104,7 +104,7 @@ public class CrateClientCreationTest extends CrateClientIntegrationTest {
 
     @Test
     public void testWithSettings() throws Exception {
-        CrateClient localClient = new CrateClient(ImmutableSettings.builder()
+        CrateClient localClient = new CrateClient(settingsBuilder()
                 .put("fancy.setting", "check") // will not be overridden
                 .put("node.name", "fancy-node-name") // will be overridden
                 .build());
