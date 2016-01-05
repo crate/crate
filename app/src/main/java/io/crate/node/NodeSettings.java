@@ -23,7 +23,7 @@ package io.crate.node;
 
 import io.crate.Constants;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.FailedToResolveConfigException;
 
@@ -31,10 +31,11 @@ import java.net.URL;
 
 public class NodeSettings {
 
+    // TODO: FIX ME!
     /**
      * Crate default settings
      */
-    public static void applyDefaultSettings(ImmutableSettings.Builder settingsBuilder) {
+    /*public static void applyDefaultSettings(Settings.Builder settingsBuilder) {
 
         // read also from crate.yml by default if no other config path has been set
         // if there is also a elasticsearch.yml file this file will be read first and the settings in crate.yml
@@ -64,5 +65,5 @@ public class NodeSettings {
         if (settingsBuilder.get(ClusterName.SETTING).equals(ClusterName.DEFAULT.value())) {
             settingsBuilder.put("cluster.name", "crate");
         }
-    }
+    }*/
 }

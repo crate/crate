@@ -37,6 +37,7 @@ import org.elasticsearch.monitor.sigar.SigarService;
 import org.elasticsearch.node.service.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -99,8 +100,13 @@ public class NodeSysExpression extends NestedObjectExpression {
                 return new NodeOsExpression(osStats);
             }
         } else if (SysNodesTableInfo.SYS_COL_PROCESS.equals(name)) {
-            return new NodeProcessExpression(nodeService.info().getProcess(),
-                    nodeService.stats().getProcess());
+            // TODO: FIX ME!
+            try {
+                return new NodeProcessExpression(nodeService.info().getProcess(),
+                        nodeService.stats().getProcess());
+            } catch (IOException e) {
+                // TODO: FIX ME! Add code!
+            }
         } else if (SysNodesTableInfo.SYS_COL_HEAP.equals(name)) {
             return new NodeHeapExpression(jvmService.stats());
         } else if (SysNodesTableInfo.SYS_COL_NETWORK.equals(name)) {

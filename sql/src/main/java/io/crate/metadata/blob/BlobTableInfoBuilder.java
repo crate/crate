@@ -33,10 +33,11 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 public class BlobTableInfoBuilder {
 
@@ -65,8 +66,9 @@ public class BlobTableInfoBuilder {
         DocIndexMetaData docIndexMetaData;
         String index = BlobIndices.fullIndexName(ident.name());
         try {
-            concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), index);
-        } catch (IndexMissingException ex) {
+            // TODO: FIX ME! concreteIndices is now on IndexNameExpressionResolver
+            concreteIndices = null; //metaData.concreteIndices(IndicesOptions.strictExpandOpen(), index);
+        } catch (IndexNotFoundException ex) {
             throw new TableUnknownException(index, ex);
         }
         docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
@@ -98,7 +100,7 @@ public class BlobTableInfoBuilder {
     private BytesRef blobsPath(DocIndexMetaData md) {
         BytesRef blobsPath;
         String blobsPathStr = metaData.index(md.concreteIndexName())
-                .settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH);
+                .getSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH);
         if (blobsPathStr != null) {
             blobsPath = new BytesRef(blobsPathStr);
         } else {
@@ -106,8 +108,8 @@ public class BlobTableInfoBuilder {
             if (path != null) {
                 blobsPath = new BytesRef(path.getPath());
             } else {
-                File[] dataFiles = environment.dataFiles();
-                blobsPath = new BytesRef(dataFiles[0].getAbsolutePath());
+                Path[] dataFiles = environment.dataFiles();
+                blobsPath = new BytesRef(dataFiles[0].toFile().getAbsolutePath());
             }
         }
         return blobsPath;

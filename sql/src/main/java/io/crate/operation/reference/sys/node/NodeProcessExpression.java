@@ -48,7 +48,8 @@ public class NodeProcessExpression extends SysNodeObjectReference {
                 }
             }
         });
-        childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, new SysNodeExpression<Long>() {
+        // TODO: FIX ME! max file descriptors not available anymore
+        /*childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, new SysNodeExpression<Long>() {
             @Override
             public Long value() {
                 if (processInfo != null) {
@@ -57,12 +58,12 @@ public class NodeProcessExpression extends SysNodeObjectReference {
                     return -1L;
                 }
             }
-        });
+        });*/
         childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
             @Override
             public Long value() {
                 if (processStats != null) {
-                    return processStats.timestamp();
+                    return processStats.getTimestamp();
                 } else { return -1L; }
             }
         });

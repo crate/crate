@@ -33,7 +33,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -48,7 +48,7 @@ public class ESJobContextTaskTest extends CrateUnitTest {
 
     private final ThreadPool testThreadPool = TestingHelpers.newMockedThreadPool();
     private final JobContextService jobContextService = new JobContextService(
-            ImmutableSettings.EMPTY, testThreadPool, mock(StatsTables.class), mock(Reaper.class), TimeValue.timeValueSeconds(2), TimeValue.timeValueSeconds(1));
+            Settings.EMPTY, testThreadPool, mock(StatsTables.class), mock(Reaper.class), TimeValue.timeValueSeconds(2), TimeValue.timeValueSeconds(1));
 
     @After
     public void cleanUp() throws Exception {

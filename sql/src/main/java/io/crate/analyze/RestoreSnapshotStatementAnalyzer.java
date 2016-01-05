@@ -38,7 +38,7 @@ import io.crate.sql.tree.Table;
 import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
 
@@ -70,7 +70,7 @@ public class RestoreSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnaly
         repositoryService.failIfRepositoryDoesNotExist(repositoryName);
 
         // validate and extract settings
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
 
         // apply defaults
         for (Map.Entry<String, SettingsApplier> entry : SETTINGS.entrySet()) {

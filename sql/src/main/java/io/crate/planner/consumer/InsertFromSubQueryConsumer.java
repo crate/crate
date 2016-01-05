@@ -42,7 +42,7 @@ import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.InputCreatingVisitor;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
 
@@ -75,7 +75,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
                     statement.partitionedByIndices(),
                     statement.routingColumn(),
                     statement.routingColumnIndex(),
-                    ImmutableSettings.EMPTY,
+                    Settings.EMPTY,
                     statement.tableInfo().isPartitioned()
             );
 

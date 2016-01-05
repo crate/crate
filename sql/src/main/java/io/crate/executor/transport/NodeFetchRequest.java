@@ -23,7 +23,7 @@ package io.crate.executor.transport;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import org.elasticsearch.common.Nullable;
@@ -40,12 +40,12 @@ public class NodeFetchRequest extends TransportRequest {
     private int fetchPhaseId;
 
     @Nullable
-    private IntObjectOpenHashMap<IntContainer> toFetch;
+    private IntObjectHashMap<IntContainer> toFetch;
 
     public NodeFetchRequest() {
     }
 
-    public NodeFetchRequest(UUID jobId, int fetchPhaseId, IntObjectOpenHashMap<IntContainer> toFetch) {
+    public NodeFetchRequest(UUID jobId, int fetchPhaseId, IntObjectHashMap<IntContainer> toFetch) {
         this.jobId = jobId;
         this.fetchPhaseId = fetchPhaseId;
         if (!toFetch.isEmpty()) {
@@ -62,7 +62,7 @@ public class NodeFetchRequest extends TransportRequest {
     }
 
     @Nullable
-    public IntObjectOpenHashMap<IntContainer> toFetch() {
+    public IntObjectHashMap<IntContainer> toFetch() {
         return toFetch;
     }
 
@@ -73,7 +73,7 @@ public class NodeFetchRequest extends TransportRequest {
         fetchPhaseId = in.readVInt();
         int numReaders = in.readVInt();
         if (numReaders > 0) {
-            toFetch = new IntObjectOpenHashMap<>(numReaders);
+            toFetch = new IntObjectHashMap<>(numReaders);
             for (int i = 0; i < numReaders; i++) {
                 int readerId = in.readVInt();
                 int numDocs = in.readVInt();
