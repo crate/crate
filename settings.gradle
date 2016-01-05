@@ -10,4 +10,7 @@ include 'es',
         'sql-parser',
         'udc',
         'dns-discovery',
-        'aws'
+        'sigar',
+        'es-cloud-aws',
+        'es-discovery-multicast',
+        'es-repository-hdfs'

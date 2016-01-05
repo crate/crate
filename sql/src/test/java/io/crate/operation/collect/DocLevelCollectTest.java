@@ -47,7 +47,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,7 +61,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.Mockito.mock;
 
 
-@ElasticsearchIntegrationTest.ClusterScope(randomDynamicTemplates = false, numDataNodes = 1)
+@ESIntegTestCase.ClusterScope(randomDynamicTemplates = false, numDataNodes = 1)
 public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     private static final String TEST_TABLE_NAME = "test_table";

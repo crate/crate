@@ -23,8 +23,6 @@ package io.crate.executor.transport;
 
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import io.crate.Constants;
 import io.crate.analyze.symbol.InputColumn;
@@ -46,6 +44,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -60,7 +59,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
-import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.*;
@@ -72,7 +71,6 @@ import org.elasticsearch.index.mapper.internal.RoutingFieldMapper;
 import org.elasticsearch.index.mapper.internal.TTLFieldMapper;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -92,7 +90,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     private final static SymbolToFieldExtractor<GetResult> SYMBOL_TO_FIELD_EXTRACTOR =
             new SymbolToFieldExtractor<>(new GetResultFieldExtractorFactory());
 
-    private final MappingUpdatedAction mappingUpdatedAction;
     private final IndicesService indicesService;
     private final Functions functions;
     private final Schemas schemas;
@@ -104,13 +101,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       TransportService transportService,
                                       ActionFilters actionFilters,
                                       JobContextService jobContextService,
-                                      MappingUpdatedAction mappingUpdatedAction,
                                       IndicesService indicesService,
                                       ShardStateAction shardStateAction,
                                       Functions functions,
-                                      Schemas schemas) {
-        super(settings, ACTION_NAME, transportService, clusterService, indicesService, threadPool, shardStateAction, actionFilters);
-        this.mappingUpdatedAction = mappingUpdatedAction;
+                                      Schemas schemas,
+                                      MappingUpdatedAction mappingUpdatedAction,
+                                      IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, ACTION_NAME, transportService, mappingUpdatedAction, indexNameExpressionResolver, clusterService,
+                indicesService, threadPool, shardStateAction, actionFilters, ShardUpsertRequest.class);
         this.indicesService = indicesService;
         this.functions = functions;
         this.schemas = schemas;
@@ -118,27 +116,17 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @Override
-    protected ShardUpsertRequest newRequestInstance() {
-        return new ShardUpsertRequest();
-    }
-
-    @Override
-    protected ShardUpsertRequest newReplicaRequestInstance() {
-        return new ShardUpsertRequest();
-    }
-
-    @Override
     protected boolean checkWriteConsistency() {
-        return true;
+        return false;
     }
 
     @Override
     protected ShardIterator shards(ClusterState clusterState, InternalRequest request) {
         IndexRoutingTable routingTable = clusterState.routingTable().index(request.concreteIndex());
         if (routingTable == null) {
-            throw new IndexMissingException(new Index(request.concreteIndex()));
+            throw new IndexNotFoundException(request.concreteIndex());
         }
-        return routingTable.shard(request.request().shardId()).shardsIt();
+        return routingTable.shard(request.request().shardId().id()).shardsIt();
     }
 
     @Override
@@ -219,7 +207,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     private void updateMapping(IndexService indexService) {
         DocumentMapper docMapper = indexService.mapperService().documentMapper(Constants.DEFAULT_MAPPING_TYPE);
         if (docMapper != null) {
-            mappingUpdatedAction.updateMappingOnMaster(indexService.index().name(), docMapper, indexService.indexUUID());
+            //mappingUpdatedAction.updateMappingOnMasterSynchronously(indexService.index().name(), Constants.DEFAULT_MAPPING_TYPE, docMapper.mapping());
         }
     }
 
@@ -283,12 +271,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 true, Versions.MATCH_ANY, VersionType.INTERNAL, FetchSourceContext.FETCH_SOURCE, false);
 
         if (!getResult.isExists()) {
-            throw new DocumentMissingException(new ShardId(request.index(), request.shardId()), request.type(), item.id());
+            throw new DocumentMissingException(new ShardId(request.index(), request.shardId().id()), request.type(), item.id());
         }
 
         if (getResult.internalSourceRef() == null) {
             // no source, we can't do nothing, through a failure...
-            throw new DocumentSourceMissingException(new ShardId(request.index(), request.shardId()), request.type(), item.id());
+            throw new DocumentSourceMissingException(new ShardId(request.index(), request.shardId().id()), request.type(), item.id());
         }
 
         if (item.version() != Versions.MATCH_ANY && item.version() != getResult.getVersion()) {
@@ -399,9 +387,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
                 Engine.Index index = indexShard.prepareIndex(sourceToParse, version, item.versionType(),
                         Engine.Operation.Origin.PRIMARY, request.canHaveDuplicates());
+                /*
                 if (index.parsedDoc().mappingsModified()) {
                     updateMappingRequired = true;
                 }
+                */
                 indexShard.index(index);
                 newVersion = index.version();
             } else {
@@ -411,9 +401,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
                 Engine.Create create = indexShard.prepareCreate(sourceToParse, version, item.versionType(),
                         Engine.Operation.Origin.PRIMARY, request.canHaveDuplicates(), false);
+                /*
                 if (create.parsedDoc().mappingsModified()) {
                     updateMappingRequired = true;
                 }
+                */
                 indexShard.create(create);
                 newVersion = create.version();
             }
@@ -479,7 +471,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         Map<String, Object> sourceAsMap;
         if (isRawSourceInsert) {
             BytesRef source = (BytesRef) insertValues[0];
-            sourceAsMap = XContentHelper.convertToMap(source.bytes, true).v2();
+            sourceAsMap = XContentHelper.convertToMap(new BytesArray(source), true).v2();
         } else {
             sourceAsMap = new LinkedHashMap<>(insertColumns.length);
             for (int i = 0; i < insertColumns.length; i++) {

@@ -26,15 +26,12 @@ import io.crate.core.CrateComponentLoader;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.PreProcessModule;
-import org.elasticsearch.common.inject.SpawnModules;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Collection;
 import java.util.List;
 
-import static org.elasticsearch.common.inject.Modules.createModule;
-
-public class CrateCoreShardModule extends AbstractModule implements SpawnModules, PreProcessModule {
+public class CrateCoreShardModule extends AbstractModule implements PreProcessModule {
 
     private final Settings settings;
     private final CrateComponentLoader crateComponentLoader;
@@ -42,17 +39,6 @@ public class CrateCoreShardModule extends AbstractModule implements SpawnModules
     public CrateCoreShardModule(Settings settings) {
         this.settings = settings;
         crateComponentLoader = CrateComponentLoader.getInstance(settings);
-    }
-
-    @Override
-    public Iterable<? extends Module> spawnModules() {
-        List<Module> modules = Lists.newArrayList();
-        Collection<Class<? extends Module>> modulesClasses = crateComponentLoader.shardModules();
-        for (Class<? extends Module> moduleClass : modulesClasses) {
-            modules.add(createModule(moduleClass, settings));
-        }
-        modules.addAll(crateComponentLoader.shardModules(settings));
-        return modules;
     }
 
     @Override

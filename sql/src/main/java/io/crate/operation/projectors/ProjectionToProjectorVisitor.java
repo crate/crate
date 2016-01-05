@@ -37,6 +37,7 @@ import io.crate.planner.projection.*;
 import io.crate.types.StringType;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -50,6 +51,7 @@ public class ProjectionToProjectorVisitor
 
     private final ClusterService clusterService;
     private final Functions functions;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private ThreadPool threadPool;
     private final Settings settings;
     private final TransportActionProvider transportActionProvider;
@@ -62,6 +64,7 @@ public class ProjectionToProjectorVisitor
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         Functions functions,
+                                        IndexNameExpressionResolver indexNameExpressionResolver,
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
@@ -71,6 +74,7 @@ public class ProjectionToProjectorVisitor
                                         @Nullable ShardId shardId) {
         this.clusterService = clusterService;
         this.functions = functions;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.threadPool = threadPool;
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
@@ -82,13 +86,14 @@ public class ProjectionToProjectorVisitor
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         Functions functions,
+                                        IndexNameExpressionResolver indexNameExpressionResolver,
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                         ImplementationSymbolVisitor symbolVisitor,
                                         EvaluatingNormalizer normalizer) {
-        this(clusterService, functions, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor, normalizer, null);
+        this(clusterService, functions, indexNameExpressionResolver, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor, normalizer, null);
     }
 
     @Override
@@ -234,6 +239,7 @@ public class ProjectionToProjectorVisitor
         return new IndexWriterProjector(
                 clusterService,
                 functions,
+                indexNameExpressionResolver,
                 clusterService.state().metaData().settings(),
                 transportActionProvider,
                 indexNameResolver,
@@ -268,6 +274,7 @@ public class ProjectionToProjectorVisitor
         return new ColumnIndexWriterProjector(
                 clusterService,
                 functions,
+                indexNameExpressionResolver,
                 clusterService.state().metaData().settings(),
                 IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
                 transportActionProvider,
@@ -306,6 +313,7 @@ public class ProjectionToProjectorVisitor
 
         return new UpdateProjector(
                 clusterService,
+                indexNameExpressionResolver,
                 settings,
                 shardId,
                 transportActionProvider,
@@ -323,6 +331,7 @@ public class ProjectionToProjectorVisitor
 
         return new DeleteProjector(
                 clusterService,
+                indexNameExpressionResolver,
                 settings,
                 shardId,
                 transportActionProvider,

@@ -25,6 +25,7 @@ import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.RestStatus;
 import org.junit.Test;
 
@@ -66,12 +67,20 @@ public class FailedShardsExceptionTest extends CrateUnitTest {
 
             @Override
             public void readFrom(StreamInput in) throws IOException {
-
             }
 
             @Override
             public void writeTo(StreamOutput out) throws IOException {
+            }
 
+            @Override
+            public Throwable getCause() {
+                return null;
+            }
+
+            @Override
+            public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+                return null;
             }
         }, null});
         assertThat(exception.getMessage(), is("query failed on shards 0 ( null )"));

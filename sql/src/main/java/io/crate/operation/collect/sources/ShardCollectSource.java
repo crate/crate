@@ -54,16 +54,17 @@ import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.IndexShardMissingException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -75,6 +76,7 @@ import java.util.concurrent.ExecutorService;
 public class ShardCollectSource implements CollectSource {
 
     private final Settings settings;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final IndicesService indicesService;
     private final Functions functions;
     private final ClusterService clusterService;
@@ -87,6 +89,7 @@ public class ShardCollectSource implements CollectSource {
 
     @Inject
     public ShardCollectSource(Settings settings,
+                              IndexNameExpressionResolver indexNameExpressionResolver,
                               IndicesService indicesService,
                               Functions functions,
                               ClusterService clusterService,
@@ -96,6 +99,7 @@ public class ShardCollectSource implements CollectSource {
                               SystemCollectSource systemCollectSource,
                               NodeSysExpression nodeSysExpression) {
         this.settings = settings;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.indicesService = indicesService;
         this.functions = functions;
         this.clusterService = clusterService;
@@ -120,6 +124,7 @@ public class ShardCollectSource implements CollectSource {
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
                 clusterService,
                 functions,
+                indexNameExpressionResolver,
                 threadPool,
                 settings,
                 transportActionProvider,
@@ -199,9 +204,9 @@ public class ShardCollectSource implements CollectSource {
                     Injector shardInjector = context.indexService().shardInjectorSafe(shardId);
                     ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
                     orderedDocCollectors.add(shardCollectService.getOrderedCollector(collectPhase, context, jobCollectContext));
-                } catch (IndexShardMissingException | CancellationException | IllegalIndexShardStateException e) {
+                } catch (ShardNotFoundException | CancellationException | IllegalIndexShardStateException e) {
                     throw e;
-                } catch (IndexMissingException e) {
+                } catch (IndexNotFoundException e) {
                     if (PartitionName.isPartition(indexName)) {
                         break;
                     }
@@ -237,7 +242,7 @@ public class ShardCollectSource implements CollectSource {
             IndexService indexService;
             try {
                 indexService = indicesService.indexServiceSafe(indexName);
-            } catch (IndexMissingException e) {
+            } catch (IndexNotFoundException e) {
                 if (PartitionName.isPartition(indexName)) {
                     continue;
                 }
@@ -255,7 +260,7 @@ public class ShardCollectSource implements CollectSource {
                             jobCollectContext
                     );
                     crateCollectors.add(collector);
-                } catch (IndexShardMissingException | CancellationException | IllegalIndexShardStateException e) {
+                } catch (ShardNotFoundException | CancellationException | IllegalIndexShardStateException e) {
                     projectorChain.fail(e);
                     throw e;
                 } catch (Throwable t) {
@@ -300,7 +305,7 @@ public class ShardCollectSource implements CollectSource {
                     if (row != null) {
                         rows.add(row);
                     }
-                } catch (IndexShardMissingException | IllegalIndexShardStateException e) {
+                } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     unassignedShards.add(toUnassignedShard(new ShardId(indexName, shard)));
                 } catch (Throwable t) {
                     projectorChain.fail(t);

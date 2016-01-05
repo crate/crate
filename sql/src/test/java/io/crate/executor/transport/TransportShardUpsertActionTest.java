@@ -36,8 +36,8 @@ import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.IndexService;
@@ -76,14 +76,16 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                                                  ClusterService clusterService,
                                                  TransportService transportService,
                                                  ActionFilters actionFilters,
-                                                 MappingUpdatedAction mappingUpdatedAction,
                                                  IndicesService indicesService,
                                                  JobContextService jobContextService,
                                                  ShardStateAction shardStateAction,
                                                  Functions functions,
-                                                 Schemas schemas) {
+                                                 Schemas schemas,
+                                                 MappingUpdatedAction mappingUpdatedAction,
+                                                 IndexNameExpressionResolver indexNameExpressionResolver) {
             super(settings, threadPool, clusterService, transportService, actionFilters,
-                    jobContextService, mappingUpdatedAction, indicesService, shardStateAction, functions, schemas);
+                    jobContextService, indicesService, shardStateAction, functions, schemas,
+                    mappingUpdatedAction, indexNameExpressionResolver);
         }
 
         @Override
@@ -93,7 +95,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                                           IndexShard indexShard,
                                           boolean tryInsertFirst,
                                           int retryCount) throws ElasticsearchException {
-            throw new DocumentAlreadyExistsException(new ShardId(request.index(), request.shardId()), request.type(), item.id());
+            throw new DocumentAlreadyExistsException(new ShardId(request.index(), request.shardId().id()), request.type(), item.id());
         }
     }
 
@@ -113,17 +115,19 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
 
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 mock(ThreadPool.class),
                 mock(ClusterService.class),
                 mock(TransportService.class),
                 mock(ActionFilters.class),
-                mock(MappingUpdatedAction.class),
                 indicesService,
                 mock(JobContextService.class),
                 mock(ShardStateAction.class),
                 functions,
-                mock(Schemas.class));
+                mock(Schemas.class),
+                mock(MappingUpdatedAction.class),
+                mock(IndexNameExpressionResolver.class)
+                );
     }
 
     private void bindGeneratedColumnTable(Functions functions) {

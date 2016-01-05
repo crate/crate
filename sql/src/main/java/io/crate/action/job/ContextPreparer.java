@@ -23,8 +23,8 @@ package io.crate.action.job;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntCollection;
-import com.carrotsearch.hppc.IntOpenHashSet;
-import com.carrotsearch.hppc.LongObjectOpenHashMap;
+import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.LongObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
@@ -107,7 +107,7 @@ public class ContextPreparer extends AbstractComponent {
         this.clusterService = clusterService;
         this.countOperation = countOperation;
         this.threadPool = threadPool;
-        circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
+        circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.rowDownstreamFactory = rowDownstreamFactory;
         innerPreparer = new InnerPreparer();
@@ -137,7 +137,7 @@ public class ContextPreparer extends AbstractComponent {
                 nodeOperations, handlerPhases, preparerContext.opCtx.targetToSourceMap);
 
         List<ExecutionSubContext> handlerContexts = new ArrayList<>(handlerPhases.size());
-        IntOpenHashSet leafs = new IntOpenHashSet();
+        IntHashSet leafs = new IntHashSet();
         for (Tuple<ExecutionPhase, RowReceiver> handlerPhase : handlerPhases) {
             ExecutionPhase phase = handlerPhase.v1();
             preparerContext.registerRowReceiver(phase.executionPhaseId(), handlerPhase.v2());
@@ -313,7 +313,7 @@ public class ContextPreparer extends AbstractComponent {
         /**
          * from toKey(phaseId, inputId) to RowReceiver.
          */
-        private final LongObjectOpenHashMap<RowReceiver> phaseIdToRowReceivers = new LongObjectOpenHashMap<>();
+        private final LongObjectHashMap<RowReceiver> phaseIdToRowReceivers = new LongObjectHashMap<>();
 
         @Nullable
         private final SharedShardContexts sharedShardContexts;

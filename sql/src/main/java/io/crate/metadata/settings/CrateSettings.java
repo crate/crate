@@ -1282,7 +1282,13 @@ public class CrateSettings {
 
     public static final StringSetting UDC_URL = new StringSetting("url", null, true, "https://udc.crate.io", UDC);
 
-    public static final ImmutableList<Setting> CRATE_SETTINGS = ImmutableList.<Setting>of(STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC);
+    public static final List<Setting<?, ?>> CRATE_SETTINGS = ImmutableList.<Setting<?, ?>>of(
+            STATS,
+            BULK
+    );
+
+    public static final List<Setting> SETTINGS = ImmutableList.<Setting>of(
+            STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC);
 
     public static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
             .put(CrateSettings.STATS.settingName(),

@@ -22,7 +22,7 @@
 package io.crate.executor.transport;
 
 import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -66,7 +66,7 @@ public class NodeFetchResponse extends TransportResponse {
         int numReaders = in.readVInt();
         if (numReaders > 0) {
             assert streamers != null;
-            fetched = new IntObjectOpenHashMap<>(numReaders);
+            fetched = new IntObjectHashMap<>(numReaders);
             for (int i = 0; i < numReaders; i++) {
                 int readerId = in.readVInt();
                 StreamBucket bucket = new StreamBucket(streamers.get(readerId));

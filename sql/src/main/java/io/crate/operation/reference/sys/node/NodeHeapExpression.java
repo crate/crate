@@ -42,25 +42,25 @@ public class NodeHeapExpression extends SysNodeObjectReference {
         childImplementations.put(FREE, new HeapExpression() {
             @Override
             public Long value() {
-                return stats.mem().getHeapMax().bytes() - stats.mem().getHeapUsed().bytes();
+                return stats.getMem().getHeapMax().bytes() - stats.getMem().getHeapUsed().bytes();
             }
         });
         childImplementations.put(USED, new HeapExpression() {
             @Override
             public Long value() {
-                return stats.mem().getHeapUsed().bytes();
+                return stats.getMem().getHeapUsed().bytes();
             }
         });
         childImplementations.put(MAX, new HeapExpression() {
             @Override
             public Long value() {
-                return stats.mem().getHeapMax().bytes();
+                return stats.getMem().getHeapMax().bytes();
             }
         });
         childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
             @Override
             public Long value() {
-                return stats.timestamp();
+                return stats.getTimestamp();
             }
         });
     }

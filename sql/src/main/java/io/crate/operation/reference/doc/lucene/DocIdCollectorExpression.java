@@ -22,7 +22,7 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.metadata.doc.DocSysColumns;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReaderContext;
 
 public class DocIdCollectorExpression extends LuceneCollectorExpression<Long> {
 
@@ -50,7 +50,7 @@ public class DocIdCollectorExpression extends LuceneCollectorExpression<Long> {
     }
 
     @Override
-    public void setNextReader(AtomicReaderContext context) {
+    public void setNextReader(LeafReaderContext context) {
         super.setNextReader(context);
         docBase = context.docBase;
     }

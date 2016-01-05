@@ -22,7 +22,7 @@
 package io.crate.operation.projectors.writer;
 
 import io.crate.planner.projection.WriterProjection;
-import org.elasticsearch.common.Preconditions;
+import com.google.common.base.Preconditions;
 import org.elasticsearch.common.settings.Settings;
 
 import java.io.File;

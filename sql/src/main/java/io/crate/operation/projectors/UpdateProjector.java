@@ -31,6 +31,7 @@ import io.crate.operation.collect.CollectExpression;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -39,12 +40,14 @@ import java.util.UUID;
 
 public class UpdateProjector extends DMLProjector<ShardUpsertRequest> {
 
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final String[] assignmentsColumns;
     private final Symbol[] assignments;
     @Nullable
     private final Long requiredVersion;
 
     public UpdateProjector(ClusterService clusterService,
+                           IndexNameExpressionResolver indexNameExpressionResolver,
                            Settings settings,
                            ShardId shardId,
                            TransportActionProvider transportActionProvider,
@@ -56,6 +59,7 @@ public class UpdateProjector extends DMLProjector<ShardUpsertRequest> {
                            UUID jobId) {
         super(clusterService, settings, shardId, transportActionProvider, bulkRetryCoordinatorPool,
                 collectUidExpression, jobId);
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.assignmentsColumns = assignmentsColumns;
         this.assignments = assignments;
         this.requiredVersion = requiredVersion;
@@ -74,6 +78,8 @@ public class UpdateProjector extends DMLProjector<ShardUpsertRequest> {
         return new BulkShardProcessor<>(
                 clusterService,
                 transportActionProvider.transportBulkCreateIndicesAction(),
+                indexNameExpressionResolver,
+                settings,
                 bulkRetryCoordinatorPool,
                 false,
                 DEFAULT_BULK_SIZE,

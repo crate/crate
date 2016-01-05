@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.monitor.os.OsService;
@@ -46,20 +45,22 @@ public class MockedClusterServiceModule extends AbstractModule {
         ClusterService clusterService = mock(ClusterService.class);
         ClusterState state = mock(ClusterState.class);
         MetaData metaData = mock(MetaData.class);
-        when(metaData.settings()).thenReturn(ImmutableSettings.EMPTY);
-        when(metaData.persistentSettings()).thenReturn(ImmutableSettings.EMPTY);
-        when(metaData.transientSettings()).thenReturn(ImmutableSettings.EMPTY);
+        // TODO: FIX ME!
+        //when(metaData.getSettings()).thenReturn(Settings.EMPTY);
+        when(metaData.persistentSettings()).thenReturn(Settings.EMPTY);
+        when(metaData.transientSettings()).thenReturn(Settings.EMPTY);
         when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
         when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
         when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
         when(state.metaData()).thenReturn(metaData);
         when(clusterService.state()).thenReturn(state);
         bind(ClusterService.class).toInstance(clusterService);
-        bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
+        bind(Settings.class).toInstance(Settings.EMPTY);
         OsService osService = mock(OsService.class);
         OsStats osStats = mock(OsStats.class);
         when(osService.stats()).thenReturn(osStats);
-        when(osStats.loadAverage()).thenReturn(new double[]{1, 5, 15});
+        // TODO: FIX ME!
+        //when(osStats.getLoadAverage()).thenReturn(new double[]{1, 5, 15});
         bind(OsService.class).toInstance(osService);
         Discovery discovery = mock(Discovery.class);
         bind(Discovery.class).toInstance(discovery);
