@@ -31,7 +31,7 @@ import org.xbill.DNS.*;
 import java.io.IOException;
 import java.net.URL;
 
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 @ElasticsearchIntegrationTest.ClusterScope(numClientNodes = 0, numDataNodes = 0)
 public class SrvDiscoveryIntegrationTest extends ElasticsearchIntegrationTest {

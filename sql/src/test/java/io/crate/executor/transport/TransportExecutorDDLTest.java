@@ -46,7 +46,6 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
 import org.elasticsearch.cluster.settings.DynamicSettings;
 import org.elasticsearch.common.inject.Key;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
@@ -55,7 +54,7 @@ import org.junit.Test;
 import java.util.*;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static org.elasticsearch.common.settings.ImmutableSettings.Builder.EMPTY_SETTINGS;
+import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
@@ -79,7 +78,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                     .put("index", "not_analyzed")
                     .put("doc_values", false).build()
             ));
-    private final static Settings TEST_SETTINGS = ImmutableSettings.settingsBuilder()
+    private final static Settings TEST_SETTINGS = Settings.settingsBuilder()
             .put("number_of_replicas", 0)
             .put("number_of_shards", 2).build();
 
@@ -144,7 +143,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         // check that orphaned alias has been deleted
         assertThat(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().aliases().containsKey("test"), is(false));
+                .getState().metaData().hasAlias("test"), is(false));
         // check that orphaned partition has been deleted
         assertThat(client().admin().indices().exists(new IndicesExistsRequest(partitionName)).actionGet().isExists(), is(false));
     }
@@ -219,7 +218,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         }
 
         // Update persistent only
-        Settings persistentSettings = ImmutableSettings.builder()
+        Settings persistentSettings = Settings.builder()
                 .put(persistentSetting, "panic")
                 .build();
 
@@ -231,7 +230,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertEquals("panic", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().persistentSettings().get(persistentSetting));
 
         // Update transient only
-        Settings transientSettings = ImmutableSettings.builder()
+        Settings transientSettings = Settings.builder()
                 .put(transientSetting, "123")
                 .build();
 
@@ -242,10 +241,10 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertEquals("123", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
 
         // Update persistent & transient
-        persistentSettings = ImmutableSettings.builder()
+        persistentSettings = Settings.builder()
                 .put(persistentSetting, "normal")
                 .build();
-        transientSettings = ImmutableSettings.builder()
+        transientSettings = Settings.builder()
                 .put(transientSetting, "243")
                 .build();
 
@@ -267,7 +266,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateIndexTemplateTask() throws Exception {
-        Settings indexSettings = ImmutableSettings.builder()
+        Settings indexSettings = Settings.builder()
                 .put("number_of_replicas", 0)
                 .put("number_of_shards", 2)
                 .build();

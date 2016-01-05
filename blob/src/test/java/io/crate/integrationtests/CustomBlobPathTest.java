@@ -25,7 +25,6 @@ import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.plugin.CrateCorePlugin;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
@@ -58,7 +57,7 @@ public class CustomBlobPathTest extends ElasticsearchIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder()
+        return Settings.settingsBuilder()
                 .put(super.nodeSettings(nodeOrdinal))
                 .put("plugin.types", CrateCorePlugin.class.getName())
                 .put(BlobEnvironment.SETTING_BLOBS_PATH, globalBlobPath.getAbsolutePath())
@@ -82,7 +81,7 @@ public class CustomBlobPathTest extends ElasticsearchIntegrationTest {
         BlobEnvironment blobEnvironment2 = internalCluster().getInstance(BlobEnvironment.class, node2);
         assertThat(blobEnvironment.blobsPath().getAbsolutePath(), is(globalBlobPath.getAbsolutePath()));
 
-        Settings indexSettings = ImmutableSettings.builder()
+        Settings indexSettings = Settings.builder()
                 .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
                 .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
                 .build();
@@ -109,7 +108,7 @@ public class CustomBlobPathTest extends ElasticsearchIntegrationTest {
         assertThat(blobEnvironment.blobsPath().getAbsolutePath(), is(globalBlobPath.getAbsolutePath()));
 
         File tempBlobPath = temporaryFolder.newFolder();
-        Settings indexSettings = ImmutableSettings.builder()
+        Settings indexSettings = Settings.builder()
                 .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
                 .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
                 .put(BlobIndices.SETTING_INDEX_BLOBS_PATH, tempBlobPath.getAbsolutePath())

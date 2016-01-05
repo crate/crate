@@ -34,11 +34,12 @@ import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportRequestHandler;
+import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
@@ -57,10 +58,12 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
                                   TransportService transportService,
                                   StatsTables statsTables,
                                   ActionFilters actionFilters,
+                                  IndexNameExpressionResolver indexNameExpressionResolver,
                                   TransportKillJobsNodeAction transportKillJobsNodeAction) {
         super(clusterService, settings, SQLBulkAction.NAME, threadPool, analyzer,
-                planner, executor, statsTables, actionFilters, transportKillJobsNodeAction);
-        transportService.registerHandler(SQLBulkAction.NAME, new TransportHandler());
+                planner, executor, statsTables, actionFilters, indexNameExpressionResolver, transportKillJobsNodeAction);
+
+        transportService.registerRequestHandler(SQLBulkAction.NAME, SQLBulkRequest.class, ThreadPool.Names.SAME, new TransportHandler());
     }
 
     @Override
@@ -96,24 +99,15 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
                 outputNames, results, request.creationTime(), dataTypes, request.includeTypesOnResponse());
     }
 
-    private class TransportHandler extends BaseTransportRequestHandler<SQLBulkRequest> {
-
-        @Override
-        public SQLBulkRequest newInstance() {
-            return new SQLBulkRequest();
-        }
-
+    // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
+    private class TransportHandler implements TransportRequestHandler<SQLBulkRequest> {
         @Override
         public void messageReceived(SQLBulkRequest request, final TransportChannel channel) throws Exception {
             // no need for a threaded listener
-            request.listenerThreaded(false);
+            // TODO: FIX ME! listenerThreaded does not exist anymore
+            // request.listenerThreaded(false);
             ActionListener<SQLBulkResponse> listener = ResponseForwarder.forwardTo(channel);
             execute(request, listener);
-        }
-
-        @Override
-        public String executor() {
-            return ThreadPool.Names.SAME;
         }
     }
 }

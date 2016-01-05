@@ -25,7 +25,6 @@ import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.hamcrest.Matchers;
@@ -40,7 +39,7 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder()
+        return Settings.settingsBuilder()
                 .put(super.nodeSettings(nodeOrdinal))
                 .put("threadpool.search.size", 2)
                 .put("threadpool.search.queue_size", 2)

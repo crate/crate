@@ -22,24 +22,39 @@
 
 package io.crate.operation.collect.collectors;
 
-import org.apache.lucene.index.AtomicReader;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Collector;
+import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.Scorer;
 
 import java.io.IOException;
 
-class FieldVisitorCollector extends Collector {
+// TODO: FIX ME! extend from appropriate new interface
+class FieldVisitorCollector implements Collector {
     private final Collector collector;
     private final CollectorFieldsVisitor fieldsVisitor;
-    private AtomicReader currentReader;
+    private LeafReader currentReader;
 
     public FieldVisitorCollector(Collector collector, CollectorFieldsVisitor fieldsVisitor) {
         this.collector = collector;
         this.fieldsVisitor = fieldsVisitor;
     }
 
+    // TODO: FIX ME! implement properly
     @Override
+    public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
+        return null;
+    }
+
+    // TODO: FIX ME! implement properly
+    @Override
+    public boolean needsScores() {
+        return false;
+    }
+
+    // TODO: FIX ME! Not needed anymore?
+    /*@Override
     public void setScorer(Scorer scorer) throws IOException {
         collector.setScorer(scorer);
     }
@@ -49,16 +64,20 @@ class FieldVisitorCollector extends Collector {
         fieldsVisitor.reset();
         currentReader.document(doc, fieldsVisitor);
         collector.collect(doc);
-    }
+    }*/
 
-    @Override
-    public void setNextReader(AtomicReaderContext context) throws IOException {
+    // TODO: FIX ME! Not needed anymore?
+    //@Override
+    public void setNextReader(LeafReaderContext context) throws IOException {
         currentReader = context.reader();
-        collector.setNextReader(context);
+        // TODO: FIX ME! setNextReader not available anymore
+        //collector.setNextReader(context);
     }
 
-    @Override
+    // TODO: FIX ME! Not needed anymore?
+    //@Override
     public boolean acceptsDocsOutOfOrder() {
-        return collector.acceptsDocsOutOfOrder();
+        // TODO: FIX ME! acceptsDocsOutOfOrder not available anymore
+        return false; //collector.acceptsDocsOutOfOrder();
     }
 }

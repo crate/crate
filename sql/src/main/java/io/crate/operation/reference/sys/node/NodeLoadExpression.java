@@ -38,7 +38,7 @@ public class NodeLoadExpression extends SysNodeObjectReference {
         childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
             @Override
             public Long value() {
-                return os.timestamp();
+                return os.getTimestamp();
             }
         });
     }
@@ -56,7 +56,7 @@ public class NodeLoadExpression extends SysNodeObjectReference {
         @Override
         public Double value() {
             try {
-                return stats.loadAverage()[idx];
+                return stats.getLoadAverage();
             } catch (IndexOutOfBoundsException e) {
                 return null;
             }

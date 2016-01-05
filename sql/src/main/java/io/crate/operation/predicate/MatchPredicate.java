@@ -90,7 +90,8 @@ public class MatchPredicate implements FunctionImplementation<Function> {
         }
         if (columnType.equals(DataTypes.STRING)) {
             try {
-                MultiMatchQueryBuilder.Type.parse(matchType);
+                // TODO: FIX ME! parse requires a ParseFieldMatcher
+                //MultiMatchQueryBuilder.Type.parse(matchType);
                 return matchType;
             } catch (ElasticsearchParseException e) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,

@@ -22,7 +22,7 @@
 package io.crate.blob;
 
 import org.elasticsearch.action.ActionRequestValidationException;
-import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
+import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -30,7 +30,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.UUID;
 
-public class PutChunkReplicaRequest extends ShardReplicationOperationRequest<PutChunkReplicaRequest> implements  IPutChunkRequest {
+public class PutChunkReplicaRequest extends ReplicationRequest<PutChunkReplicaRequest> implements  IPutChunkRequest {
 
 
     public String sourceNodeId;

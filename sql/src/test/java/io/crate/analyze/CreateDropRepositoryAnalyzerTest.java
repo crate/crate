@@ -29,7 +29,7 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -68,7 +68,7 @@ public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
 
     @Before
     public void before() throws Exception {
-        RepositoryMetaData repositoryMetaData = new RepositoryMetaData("my_repo", "fs", ImmutableSettings.EMPTY);
+        RepositoryMetaData repositoryMetaData = new RepositoryMetaData("my_repo", "fs", Settings.EMPTY);
         when(repositoriesMetaData.repository(anyString())).thenReturn(null);
         when(repositoriesMetaData.repository("my_repo")).thenReturn(repositoryMetaData);
     }
