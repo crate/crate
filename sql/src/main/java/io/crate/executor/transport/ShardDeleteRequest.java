@@ -111,14 +111,14 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
         @Override
         public void readFrom(StreamInput in) throws IOException {
             super.readFrom(in);
-            version = Versions.readVersion(in);
+            version = in.readLong();
             versionType = VersionType.fromValue(in.readByte());
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             super.writeTo(out);
-            Versions.writeVersion(version, out);
+            out.writeLong(version);
             out.writeByte(versionType.getValue());
         }
     }

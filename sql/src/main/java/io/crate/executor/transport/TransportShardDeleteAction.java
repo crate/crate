@@ -27,7 +27,9 @@ import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -52,22 +54,15 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     @Inject
     public TransportShardDeleteAction(Settings settings,
                                       TransportService transportService,
+                                      MappingUpdatedAction mappingUpdatedAction,
+                                      IndexNameExpressionResolver indexNameExpressionResolver,
                                       ClusterService clusterService,
                                       IndicesService indicesService,
                                       ThreadPool threadPool,
                                       ShardStateAction shardStateAction,
                                       ActionFilters actionFilters) {
-        super(settings, ACTION_NAME, transportService, clusterService, indicesService, threadPool, shardStateAction, actionFilters);
-    }
-
-    @Override
-    protected ShardDeleteRequest newRequestInstance() {
-        return new ShardDeleteRequest();
-    }
-
-    @Override
-    protected ShardDeleteRequest newReplicaRequestInstance() {
-        return new ShardDeleteRequest();
+        super(settings, ACTION_NAME, transportService, mappingUpdatedAction, indexNameExpressionResolver,
+                clusterService, indicesService, threadPool, shardStateAction, actionFilters, ShardDeleteRequest.class);
     }
 
     @Override
@@ -77,14 +72,16 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
 
     @Override
     protected ShardIterator shards(ClusterState clusterState, InternalRequest request) {
-        return clusterState.routingTable().index(request.concreteIndex()).shard(request.request().shardId()).shardsIt();
+        return clusterState.routingTable()
+                .index(request.concreteIndex())
+                .shard(request.request().shardId().getId()).shardsIt();
     }
 
     @Override
     protected ShardResponse processRequestItems(ShardId shardId, ShardDeleteRequest request, AtomicBoolean killed) {
         ShardResponse shardResponse = new ShardResponse();
         IndexService indexService = indicesService.indexServiceSafe(request.index());
-        IndexShard indexShard = indexService.shardSafe(request.shardId());
+        IndexShard indexShard = indexService.shardSafe(shardId.id());
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
             ShardDeleteRequest.Item item = request.items().get(i);
@@ -127,7 +124,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     @Override
     protected void processRequestItemsOnReplica(ShardId shardId, ShardDeleteRequest request, AtomicBoolean killed) {
         IndexService indexService = indicesService.indexServiceSafe(request.index());
-        IndexShard indexShard = indexService.shardSafe(request.shardId());
+        IndexShard indexShard = indexService.shardSafe(shardId.id());
         for (ShardDeleteRequest.Item item : request.items()) {
             if (killed.get()) {
                 throw new CancellationException();

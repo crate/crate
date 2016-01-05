@@ -38,6 +38,7 @@ import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateReque
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
@@ -56,12 +57,15 @@ public class TableCreator {
     protected static final ESLogger logger = Loggers.getLogger(TableCreator.class);
 
     private final ClusterService clusterService;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final TransportActionProvider transportActionProvider;
 
     @Inject
     public TableCreator(ClusterService clusterService,
+                        IndexNameExpressionResolver indexNameExpressionResolver,
                         TransportActionProvider transportActionProvider) {
         this.clusterService = clusterService;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.transportActionProvider = transportActionProvider;
     }
 
@@ -145,9 +149,9 @@ public class TableCreator {
     }
 
     private void deleteOrphans(final CreateTableResponseListener listener, final CreateTableAnalyzedStatement statement) {
-        if (clusterService.state().metaData().aliases().containsKey(statement.tableIdent().fqn())
+        if (clusterService.state().metaData().hasAlias(statement.tableIdent().fqn())
             && PartitionName.isPartition(
-                clusterService.state().metaData().aliases().get(statement.tableIdent().fqn()).keysIt().next())) {
+                clusterService.state().metaData().getAliasAndIndexLookup().get(statement.tableIdent().fqn()).getIndices().iterator().next().getIndex())) {
             logger.debug("Deleting orphaned partitions with alias: {}", statement.tableIdent().fqn());
             transportActionProvider.transportDeleteIndexAction().execute(new DeleteIndexRequest(statement.tableIdent().fqn()), new ActionListener<DeleteIndexResponse>() {
                 @Override
@@ -177,7 +181,7 @@ public class TableCreator {
      */
     private void deleteOrphanedPartitions(final CreateTableResponseListener listener, TableIdent tableIdent) {
         String partitionWildCard = PartitionName.templateName(tableIdent.schema(), tableIdent.name()) + "*";
-        String[] orphans = clusterService.state().metaData().concreteIndices(IndicesOptions.strictExpand(), partitionWildCard);
+        String[] orphans = indexNameExpressionResolver.concreteIndices(clusterService.state(), IndicesOptions.strictExpand(), partitionWildCard);
         if (orphans.length > 0) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Deleting orphaned partitions: {}", Joiner.on(", ").join(orphans));

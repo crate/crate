@@ -48,12 +48,10 @@ import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemp
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.*;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
@@ -68,7 +66,8 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     public static final String NAME = "doc";
 
     private final ClusterService clusterService;
-    private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
+    private final Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction;
     private final Functions functions;
 
     private final static Predicate<String> DOC_SCHEMA_TABLES_FILTER = new Predicate<String>() {
@@ -111,10 +110,12 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     @Inject
     public DocSchemaInfo(ClusterService clusterService,
                          ThreadPool threadPool,
-                         TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                         Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
+                         IndexNameExpressionResolver indexNameExpressionResolver,
                          Functions functions) {
         this(Schemas.DEFAULT_SCHEMA_NAME,
                 clusterService,
+                indexNameExpressionResolver,
                 (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST),
                 transportPutIndexTemplateAction, functions,
                 Predicates.and(Predicates.notNull(), DOC_SCHEMA_TABLES_FILTER),
@@ -127,9 +128,11 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     public DocSchemaInfo(final String schemaName,
                          ExecutorService executorService,
                          ClusterService clusterService,
-                         TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                         IndexNameExpressionResolver indexNameExpressionResolver,
+                         Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
                          Functions functions) {
-        this(schemaName, clusterService, executorService, transportPutIndexTemplateAction, functions,
+        this(schemaName, clusterService, indexNameExpressionResolver,
+                executorService, transportPutIndexTemplateAction, functions,
                 createSchemaNamePredicate(schemaName), new Function<String, String>() {
             @Nullable
             @Override
@@ -145,16 +148,18 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     private DocSchemaInfo(final String schemaName,
                           ClusterService clusterService,
+                          IndexNameExpressionResolver indexNameExpressionResolver,
                           ExecutorService executorService,
-                          TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                          Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
                           Functions functions,
                           Predicate<String> tableFilter,
                           final Function<String, String> fqTableNameToTableName) {
         this.schemaName = schemaName;
         this.clusterService = clusterService;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
+        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.clusterService.add(this);
         this.executorService = executorService;
-        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.functions = functions;
         this.tablesFilter = tableFilter;
         this.tableInfoFunction = new Function<String, TableInfo>() {
@@ -199,7 +204,8 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                 functions,
                 new TableIdent(name(), name),
                 clusterService,
-                transportPutIndexTemplateAction,
+                indexNameExpressionResolver,
+                transportPutIndexTemplateAction.get(),
                 executorService,
                 checkAliasSchema
         );
@@ -275,10 +281,10 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
             // search for aliases of deleted and created indices, they must be invalidated also
             for (String index : event.indicesDeleted()) {
-                invalidateAliases(event.previousState().metaData().index(index).aliases());
+                invalidateAliases(event.previousState().metaData().index(index).getAliases());
             }
             for (String index : event.indicesCreated()) {
-                invalidateAliases(event.state().metaData().index(index).aliases());
+                invalidateAliases(event.state().metaData().index(index).getAliases());
             }
 
             // search for templates with changed meta data => invalidate template aliases
@@ -306,11 +312,11 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                 if (newIndexMetaData != null && event.indexMetaDataChanged(newIndexMetaData)) {
                     cache.invalidate(tableName);
                     // invalidate aliases of changed indices
-                    invalidateAliases(newIndexMetaData.aliases());
+                    invalidateAliases(newIndexMetaData.getAliases());
 
                     IndexMetaData oldIndexMetaData = event.previousState().metaData().index(indexName);
                     if (oldIndexMetaData != null) {
-                        invalidateAliases(oldIndexMetaData.aliases());
+                        invalidateAliases(oldIndexMetaData.getAliases());
                     }
                 } else {
                     // this is the case if a single partition has been modified using alter table <t> partition (...)

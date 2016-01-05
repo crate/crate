@@ -150,7 +150,7 @@ the relevant ones::
 
       @Override
       public Settings additionalSettings() {
-          ImmutableSettings.Builder builder = ImmutableSettings.builder();
+          Settings.Builder builder = Settings.builder();
           // This plugin enables ``stats`` by default
           builder.put("stats.enabled", true);
           return builder.build();

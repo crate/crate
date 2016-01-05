@@ -22,18 +22,18 @@
 package io.crate.blob;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.replication.ShardReplicationOperationRequestBuilder;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.support.replication.ReplicationRequestBuilder;
+import org.elasticsearch.client.ElasticsearchClient;
 
-public class StartBlobRequestBuilder extends ShardReplicationOperationRequestBuilder<StartBlobRequest, StartBlobResponse,
+public class StartBlobRequestBuilder extends ReplicationRequestBuilder<StartBlobRequest, StartBlobResponse,
         StartBlobRequestBuilder> {
 
-    protected StartBlobRequestBuilder(Client client) {
-        super(client, new StartBlobRequest());
+    protected StartBlobRequestBuilder(ElasticsearchClient client, StartBlobAction action) {
+        super(client, action, new StartBlobRequest());
     }
 
     @Override
-    protected void doExecute(ActionListener<StartBlobResponse> listener) {
+    public void execute(ActionListener<StartBlobResponse> listener) {
         client.execute(StartBlobAction.INSTANCE, request, listener);
     }
 }

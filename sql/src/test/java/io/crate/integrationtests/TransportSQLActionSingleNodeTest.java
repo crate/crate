@@ -27,7 +27,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.action.sql.*;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,7 +40,7 @@ import java.util.concurrent.ExecutionException;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
 public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTest {
 
     @Rule

@@ -34,12 +34,9 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.fetch.FetchFieldExtractor;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.operation.operator.AndOperator;
-import org.elasticsearch.common.collect.IdentityHashSet;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 public class RelationSplitter {
@@ -157,7 +154,7 @@ public class RelationSplitter {
             return;
         }
         OrderBy orderBy = querySpec.orderBy().get();
-        Set<AnalyzedRelation> relations = new IdentityHashSet<>();
+        Set<AnalyzedRelation> relations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
         Multimap<AnalyzedRelation, Integer> splits = Multimaps.newSetMultimap(
                 new IdentityHashMap<AnalyzedRelation, Collection<Integer>>(specs.size()),
                 INT_SET_SUPPLIER);

@@ -24,28 +24,19 @@ package io.crate.operation.reference.sys.node.fs;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import io.crate.operation.reference.sys.SysStaticObjectArrayReference;
+import io.crate.monitor.ExtendedFsStats;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.monitor.sigar.SigarService;
-import org.hyperic.sigar.FileSystem;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NodeFsDataExpression extends SysStaticObjectArrayReference {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(NodeFsDataExpression.class);
-
-    private final SigarService sigarService;
-    private final NodeEnvironment nodeEnvironment;
+    private final ExtendedFsStats extendedFsStats;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
 
-    protected NodeFsDataExpression(SigarService sigarService, NodeEnvironment nodeEnvironment) {
-        this.sigarService = sigarService;
-        this.nodeEnvironment = nodeEnvironment;
+    protected NodeFsDataExpression(ExtendedFsStats extendedFsStats) {
+        this.extendedFsStats = extendedFsStats;
     }
 
     @Override
@@ -57,36 +48,8 @@ public class NodeFsDataExpression extends SysStaticObjectArrayReference {
     }
 
     private void addChildImplementations() {
-        if (!sigarService.sigarAvailable()) {
-            LOGGER.trace("sigar is not available");
-            return;
-        }
-        if (!nodeEnvironment.hasNodeFile()) {
-            LOGGER.trace("no node files available");
-            return;
-        }
-        try {
-            FileSystem[] fsList = sigarService.sigar().getFileSystemList();
-            for (Path dataLocation : nodeEnvironment.nodeDataPaths()) {
-                FileSystem winner = null;
-                String absDataLocation = dataLocation.toFile().getCanonicalPath();
-                for (FileSystem fs : fsList) {
-                    // ignore rootfs as ist might shadow another mount on /
-                    if (!FileSystems.SUPPORTED_FS_TYPE.apply(fs) || "rootfs".equals(fs.getDevName())) {
-                        continue;
-                    }
-                    if (absDataLocation.startsWith(fs.getDirName())
-                            && (winner == null || winner.getDirName().length() < fs.getDirName().length())) {
-                        winner = fs;
-                    }
-                }
-                childImplementations.add(new NodeFsDataChildExpression(
-                        winner != null ? new BytesRef(winner.getDevName()) : null,
-                        new BytesRef(absDataLocation)
-                ));
-            }
-        } catch (Exception e) {
-            LOGGER.warn("error getting fs['data'] expression", e);
+        for (ExtendedFsStats.Info info : extendedFsStats) {
+            childImplementations.add(new NodeFsDataChildExpression(info));
         }
     }
 
@@ -96,17 +59,17 @@ public class NodeFsDataExpression extends SysStaticObjectArrayReference {
         public static final String DEV = "dev";
         public static final String PATH = "path";
 
-        protected NodeFsDataChildExpression(final BytesRef device, final BytesRef dataPath) {
+        protected NodeFsDataChildExpression(final ExtendedFsStats.Info fsInfo) {
             childImplementations.put(DEV, new ChildExpression<BytesRef>() {
                 @Override
                 public BytesRef value() {
-                    return device;
+                    return fsInfo.dev();
                 }
             });
             childImplementations.put(PATH, new ChildExpression<BytesRef>() {
                 @Override
                 public BytesRef value() {
-                    return dataPath;
+                    return fsInfo.path();
                 }
             });
         }

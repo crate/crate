@@ -38,6 +38,7 @@ import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.SortField;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.MultiValueMode;
 import org.elasticsearch.search.sort.SortParseElement;
 
@@ -47,8 +48,10 @@ import java.util.Map;
 
 public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbolContext, SortField> {
 
+    public static final SortField SORT_SCORE_REVERSE = new SortField(null, SortField.Type.SCORE, true);
+
     public static final Map<DataType, SortField.Type> LUCENE_TYPE_MAP = ImmutableMap.<DataType, SortField.Type>builder()
-            .put(DataTypes.BOOLEAN, SortField.Type.STRING)
+            .put(DataTypes.BOOLEAN, SortField.Type.LONG)
             .put(DataTypes.BYTE, SortField.Type.LONG)
             .put(DataTypes.SHORT, SortField.Type.LONG)
             .put(DataTypes.LONG, SortField.Type.LONG)
@@ -114,7 +117,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
 
         if (columnIdent.isColumn()) {
             if (SortParseElement.SCORE_FIELD_NAME.equals(columnIdent.name())) {
-                return !context.reverseFlag ? SortParseElement.SORT_SCORE_REVERSE : SortParseElement.SORT_SCORE;
+                return !context.reverseFlag ? SORT_SCORE_REVERSE : SortParseElement.SORT_SCORE;
             } else if (DocSysColumns.RAW.equals(columnIdent) || DocSysColumns.ID.equals(columnIdent)) {
                 return customSortField(DocSysColumns.nameForLucene(columnIdent), symbol, context,
                         LUCENE_TYPE_MAP.get(symbol.valueType()), false);
@@ -125,14 +128,14 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
 
         String indexName;
         IndexFieldData.XFieldComparatorSource fieldComparatorSource;
-        FieldMapper fieldMapper = context.context.mapperService().smartNameFieldMapper(columnIdent.fqn());
-        if (fieldMapper == null){
+        MappedFieldType fieldType = context.context.mapperService().smartNameFieldType(columnIdent.fqn());
+        if (fieldType == null){
             indexName = columnIdent.fqn();
             fieldComparatorSource = new NullFieldComparatorSource(LUCENE_TYPE_MAP.get(symbol.valueType()), context.reverseFlag, context.nullFirst);
         } else {
-            indexName = fieldMapper.names().indexName();
+            indexName = fieldType.names().indexName();
             fieldComparatorSource = context.context.fieldData()
-                    .getForField(fieldMapper)
+                    .getForField(fieldType)
                     .comparatorSource(SortOrder.missing(context.reverseFlag, context.nullFirst), sortMode, null);
         }
         return new SortField(
