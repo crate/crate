@@ -31,7 +31,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -211,7 +210,7 @@ public class FulltextAnalyzerResolver {
 
     public static Settings decodeSettings(String encodedSettings) throws IOException {
         Map<String, String> loaded = new JsonSettingsLoader().load(encodedSettings);
-        return ImmutableSettings.builder().put(loaded).build();
+        return Settings.builder().put(loaded).build();
 
 
     }
@@ -245,7 +244,7 @@ public class FulltextAnalyzerResolver {
         Map<String, Settings> settingsMap = clusterService.state().metaData().persistentSettings
                 ().getGroups(Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
         Settings result = settingsMap.get(type.getName());
-        return result != null ? result : ImmutableSettings.EMPTY;
+        return result != null ? result : Settings.EMPTY;
     }
 
     /**
@@ -270,7 +269,7 @@ public class FulltextAnalyzerResolver {
      * @throws AnalyzerInvalidException if no custom analyzer with name ``name`` could be found
      */
     public Settings resolveFullCustomAnalyzerSettings(String name) throws AnalyzerInvalidException {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
         Settings analyzerSettings = getCustomAnalyzer(name);
         if (analyzerSettings != null) {
 

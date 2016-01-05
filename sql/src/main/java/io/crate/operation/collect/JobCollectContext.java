@@ -21,7 +21,7 @@
 
 package io.crate.operation.collect;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -51,7 +51,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
     private final RowReceiver rowReceiver;
     private final SharedShardContexts sharedShardContexts;
 
-    private final IntObjectOpenHashMap<CrateSearchContext> searchContexts = new IntObjectOpenHashMap<>();
+    private final IntObjectHashMap<CrateSearchContext> searchContexts = new IntObjectHashMap<>();
     private final Object subContextLock = new Object();
     private final ListenableRowReceiver listenableRowReceiver;
 

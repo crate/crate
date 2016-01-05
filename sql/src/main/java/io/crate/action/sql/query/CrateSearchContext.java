@@ -26,12 +26,8 @@ import com.google.common.base.Optional;
 import io.crate.Constants;
 import org.apache.lucene.util.Counter;
 import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
-import org.elasticsearch.common.HasContext;
-import org.elasticsearch.common.HasContextAndHeaders;
-import org.elasticsearch.common.HasHeaders;
-import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.*;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.util.BigArrays;
@@ -39,13 +35,14 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.script.Template;
 import org.elasticsearch.search.Scroll;
+import org.elasticsearch.search.SearchService;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.internal.DefaultSearchContext;
 import org.elasticsearch.search.internal.ShardSearchRequest;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Set;
 
 public class CrateSearchContext extends DefaultSearchContext {
@@ -59,18 +56,19 @@ public class CrateSearchContext extends DefaultSearchContext {
                               IndexService indexService,
                               final IndexShard indexShard,
                               ScriptService scriptService,
-                              CacheRecycler cacheRecycler,
                               PageCacheRecycler pageCacheRecycler,
                               BigArrays bigArrays,
                               Counter timeEstimateCounter,
                               Optional<Scroll> scroll,
                               long keepAlive) {
+        // TODO: FIX ME! ParseFieldMatcher
         super(id, new CrateSearchShardRequest(nowInMillis, scroll, indexShard),
                 shardTarget, engineSearcher, indexService,
-                indexShard, scriptService, cacheRecycler, pageCacheRecycler,
-                bigArrays, timeEstimateCounter);
+                indexShard, scriptService, pageCacheRecycler,
+                bigArrays, timeEstimateCounter, null, SearchService.NO_TIMEOUT);
         if (scroll.isPresent()) {
-            scroll(scroll.get());
+            // TODO: FIX ME!
+            // scroll(scroll.get());
         }
         keepAlive(keepAlive);
         this.engineSearcher = engineSearcher;
@@ -96,6 +94,17 @@ public class CrateSearchContext extends DefaultSearchContext {
             this.shardId = indexShard.shardId().id();
         }
 
+        // TODO: FIX ME! Implement me
+        @Override
+        public Boolean requestCache() {
+            return true;
+        }
+
+        // TODO: FIX ME! Implement me
+        @Override
+        public Template template() {
+           return new Template();
+        }
 
         @Override
         public String index() {
@@ -146,7 +155,7 @@ public class CrateSearchContext extends DefaultSearchContext {
             return nowInMillis;
         }
 
-        @Override
+        /* @Override
         public String templateName() {
             return null;
         }
@@ -159,27 +168,27 @@ public class CrateSearchContext extends DefaultSearchContext {
         @Override
         public Map<String, Object> templateParams() {
             return null;
-        }
+        } */
 
         @Override
         public BytesReference templateSource() {
             return null;
         }
 
-        @Override
+        /* @Override
         public Boolean queryCache() {
             return null;
-        }
+        } */
 
         @Override
         public Scroll scroll() {
             return scroll;
         }
 
-        @Override
+        /* @Override
         public boolean useSlowScroll() {
             return false;
-        }
+        } */
 
         @Override
         public BytesReference cacheKey() throws IOException {
@@ -235,8 +244,9 @@ public class CrateSearchContext extends DefaultSearchContext {
         }
 
         @Override
-        public HasHeaders putHeader(String key, Object value) {
-            return null;
+        // TODO: FIX ME! return type wrong!
+        public <V> void putHeader(String key, V value) {
+
         }
 
         @Override

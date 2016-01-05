@@ -35,7 +35,7 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
@@ -196,7 +196,7 @@ public class TablePropertiesAnalyzer {
 
     protected static class NumberOfReplicasSettingApplier extends SettingsAppliers.AbstractSettingsApplier {
 
-        private static final Settings DEFAULT = ImmutableSettings.builder()
+        private static final Settings DEFAULT = Settings.builder()
                 .put(TableParameterInfo.NUMBER_OF_REPLICAS, 1)
                 .put(TableParameterInfo.AUTO_EXPAND_REPLICAS, false)
                 .build();
@@ -206,7 +206,7 @@ public class TablePropertiesAnalyzer {
         }
 
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder,
+        public void apply(Settings.Builder settingsBuilder,
                           Object[] parameters,
                           Expression expression) {
             Preconditions.checkArgument(!(expression instanceof ArrayLiteral),
@@ -232,14 +232,14 @@ public class TablePropertiesAnalyzer {
         }
 
         @Override
-        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+        public void applyValue(Settings.Builder settingsBuilder, Object value) {
             throw new UnsupportedOperationException("Not supported");
         }
     }
 
     private static class RefreshIntervalSettingApplier extends SettingsAppliers.AbstractSettingsApplier {
 
-        public static final Settings DEFAULT = ImmutableSettings.builder()
+        public static final Settings DEFAULT = Settings.builder()
                 .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.defaultValue().millis()).build();
 
         private RefreshIntervalSettingApplier() {
@@ -247,7 +247,7 @@ public class TablePropertiesAnalyzer {
         }
 
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder,
+        public void apply(Settings.Builder settingsBuilder,
                           Object[] parameters,
                           Expression expression) {
             Number refreshIntervalValue;
@@ -265,7 +265,7 @@ public class TablePropertiesAnalyzer {
         }
 
         @Override
-        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+        public void applyValue(Settings.Builder settingsBuilder, Object value) {
             throw new UnsupportedOperationException("Not supported");
         }
     }
@@ -280,7 +280,7 @@ public class TablePropertiesAnalyzer {
                 "half"
         );
 
-        public static final Settings DEFAULT = ImmutableSettings.builder()
+        public static final Settings DEFAULT = Settings.builder()
                 .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, CrateTableSettings.RECOVERY_INITIAL_SHARDS.defaultValue())
                 .build();
 
@@ -290,7 +290,7 @@ public class TablePropertiesAnalyzer {
 
         @SuppressWarnings("SuspiciousMethodCalls")
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
             Object shardsRecoverySettings;
             try {
                 shardsRecoverySettings = ExpressionToNumberVisitor.convert(expression, parameters).intValue();
@@ -306,7 +306,7 @@ public class TablePropertiesAnalyzer {
 
     private static class NumberOfShardsSettingsApplier extends SettingsAppliers.AbstractSettingsApplier {
 
-        public static final Settings DEFAULT = ImmutableSettings.builder()
+        public static final Settings DEFAULT = Settings.builder()
                 .put(TableParameterInfo.NUMBER_OF_SHARDS, 5).build();
 
         private NumberOfShardsSettingsApplier() {
@@ -314,7 +314,7 @@ public class TablePropertiesAnalyzer {
         }
 
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder,
+        public void apply(Settings.Builder settingsBuilder,
                           Object[] parameters,
                           Expression expression) {
             int numberOfShardsValue = 0;
@@ -331,7 +331,7 @@ public class TablePropertiesAnalyzer {
         }
 
         @Override
-        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+        public void applyValue(Settings.Builder settingsBuilder, Object value) {
             throw new UnsupportedOperationException("Not supported");
         }
 
@@ -344,11 +344,11 @@ public class TablePropertiesAnalyzer {
     private static class BlobPathSettingApplier extends SettingsAppliers.AbstractSettingsApplier {
 
         private BlobPathSettingApplier() {
-            super(ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.BLOBS_PATH), ImmutableSettings.EMPTY);
+            super(ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.BLOBS_PATH), Settings.EMPTY);
         }
 
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder,
+        public void apply(Settings.Builder settingsBuilder,
                           Object[] parameters,
                           Expression expression) {
             String blobPath;
@@ -361,7 +361,7 @@ public class TablePropertiesAnalyzer {
         }
 
         @Override
-        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+        public void applyValue(Settings.Builder settingsBuilder, Object value) {
             throw new UnsupportedOperationException("Not supported");
         }
     }

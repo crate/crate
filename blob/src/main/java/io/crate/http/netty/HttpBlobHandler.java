@@ -33,7 +33,7 @@ import io.crate.blob.v2.BlobsDisabledException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.*;
@@ -228,7 +228,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         } else if (ex instanceof DigestNotFoundException) {
             status = HttpResponseStatus.NOT_FOUND;
             body = null;
-        } else if (ex instanceof BlobsDisabledException || ex instanceof IndexMissingException) {
+        } else if (ex instanceof BlobsDisabledException || ex instanceof IndexNotFoundException) {
             status = HttpResponseStatus.BAD_REQUEST;
             body = ex.getMessage();
         } else if (ex instanceof EsRejectedExecutionException) {

@@ -23,7 +23,7 @@ package io.crate.core;
 
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -32,13 +32,13 @@ public class NumberOfReplicasTest extends CrateUnitTest {
 
     @Test
     public void testFromEmptySettings() throws Exception {
-        BytesRef numberOfResplicas = NumberOfReplicas.fromSettings(ImmutableSettings.EMPTY);
+        BytesRef numberOfResplicas = NumberOfReplicas.fromSettings(Settings.EMPTY);
         assertThat(numberOfResplicas.utf8ToString(), is("1"));
     }
 
     @Test
     public void testNumber() throws Exception {
-        BytesRef numberOfResplicas = NumberOfReplicas.fromSettings(ImmutableSettings.builder()
+        BytesRef numberOfResplicas = NumberOfReplicas.fromSettings(Settings.builder()
                 .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 4)
                 .build());
         assertThat(numberOfResplicas.utf8ToString(), is("4"));
@@ -46,7 +46,7 @@ public class NumberOfReplicasTest extends CrateUnitTest {
 
     @Test
     public void testAutoExpandSettingsTakePrecedence() throws Exception {
-        BytesRef numberOfResplicas = NumberOfReplicas.fromSettings(ImmutableSettings.builder()
+        BytesRef numberOfResplicas = NumberOfReplicas.fromSettings(Settings.builder()
                 .put(NumberOfReplicas.AUTO_EXPAND_REPLICAS, "0-all")
                 .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 1)
                 .build());
@@ -57,7 +57,7 @@ public class NumberOfReplicasTest extends CrateUnitTest {
     public void testInvalidAutoExpandSettings() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("The \"number_of_replicas\" range \"abc\" isn't valid");
-        NumberOfReplicas.fromSettings(ImmutableSettings.builder()
+        NumberOfReplicas.fromSettings(Settings.builder()
                 .put(NumberOfReplicas.AUTO_EXPAND_REPLICAS, "abc")
                 .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 1)
                 .build());

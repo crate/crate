@@ -36,7 +36,7 @@ import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.cluster.metadata.SnapshotId;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -91,7 +91,7 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
         RepositoryMetaData repositoryMetaData = new RepositoryMetaData(
                 "my_repo",
                 "fs",
-                ImmutableSettings.builder().put("location", "/tmp/my_repo").build()
+                Settings.builder().put("location", "/tmp/my_repo").build()
         );
         when(repositoriesMetaData.repository(anyString())).thenReturn(null);
         when(repositoriesMetaData.repository("my_repo")).thenReturn(repositoryMetaData);

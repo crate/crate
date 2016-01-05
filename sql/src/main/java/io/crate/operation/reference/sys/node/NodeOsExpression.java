@@ -40,12 +40,13 @@ public class NodeOsExpression extends SysNodeObjectReference {
     }
 
     private void addChildImplementations(final OsStats os) {
-        childImplementations.put(UPTIME, new OsExpression() {
+        // TODO: FIX ME! uptime not available anymore
+        /*childImplementations.put(UPTIME, new OsExpression() {
             @Override
             public Long value() {
                 return os.uptime().millis();
             }
-        });
+        });*/
         childImplementations.put(TIMESTAMP, new OsExpression() {
             @Override
             public Long value() {
@@ -55,7 +56,7 @@ public class NodeOsExpression extends SysNodeObjectReference {
         childImplementations.put(PROBE_TIMESTAMP, new OsExpression() {
             @Override
             public Long value() {
-                return os.timestamp();
+                return os.getTimestamp();
             }
         });
         childImplementations.put(SysNodesTableInfo.SYS_COL_OS_CPU,

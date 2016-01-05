@@ -153,7 +153,8 @@ public class OptionParser {
     private static org.apache.lucene.search.MultiTermQuery.RewriteMethod rewrite(
             @Nullable Object fuzzyRewrite) {
         String rewrite = BytesRefs.toString(fuzzyRewrite);
-        return QueryParsers.parseRewriteMethod(rewrite, null);
+        // TODO: parseRewriteMethod now requires ParseFieldMatcher
+        return null; //QueryParsers.parseRewriteMethod(rewrite, null);
     }
 
     @Nullable

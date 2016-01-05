@@ -22,9 +22,12 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.node.service.NodeService;
+
+import java.io.IOException;
 
 
 public class NodePortExpression extends SysNodeObjectReference {
@@ -55,7 +58,11 @@ public class NodePortExpression extends SysNodeObjectReference {
         childImplementations.put(TRANSPORT, new PortExpression() {
             @Override
             public Integer value() {
-                return portFromAddress(nodeService.stats().getNode().address());
+                try {
+                    return portFromAddress(nodeService.stats().getNode().address());
+                } catch (IOException e) {
+                    throw new ElasticsearchException("unable to get transport statistics");
+                }
             }
         });
     }

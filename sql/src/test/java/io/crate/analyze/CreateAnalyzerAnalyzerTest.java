@@ -29,7 +29,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -73,7 +73,7 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
 
         assertEquals("a1", createAnalyzerAnalysis.ident());
         assertEquals("lowercase", createAnalyzerAnalysis.tokenizerDefinition().v1());
-        assertEquals(ImmutableSettings.EMPTY, createAnalyzerAnalysis.tokenizerDefinition().v2());
+        assertEquals(Settings.EMPTY, createAnalyzerAnalysis.tokenizerDefinition().v2());
 
         // be sure build succeeds
         createAnalyzerAnalysis.buildSettings();

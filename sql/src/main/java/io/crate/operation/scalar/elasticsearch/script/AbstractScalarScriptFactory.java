@@ -143,7 +143,8 @@ public abstract class AbstractScalarScriptFactory implements NativeScriptFactory
 
         @Override
         public Object evaluate(DocLookup doc) {
-            ScriptDocValues docValues = (ScriptDocValues)doc.get(fieldName);
+            // TODO: FIX ME! DocLookup has no get anymore
+            ScriptDocValues docValues = null; //(ScriptDocValues)doc.get(fieldName);
             if (docValues == null || docValues.isEmpty()) {
                 return null;
             } else {

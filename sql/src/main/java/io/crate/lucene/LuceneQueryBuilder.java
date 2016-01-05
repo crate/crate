@@ -58,8 +58,8 @@ import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.index.AtomicReader;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.BooleanFilter;
 import org.apache.lucene.queries.TermsFilter;
@@ -90,6 +90,7 @@ import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
 import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.mapper.geo.GeoPointFieldMapper;
@@ -373,7 +374,8 @@ public class LuceneQueryBuilder {
                 String columnName = reference.ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
                 for (Object value : toIterable(arrayLiteral.value())) {
-                    notQuery.add(builder.like(columnName, value, context.indexCache.filter()), BooleanClause.Occur.MUST);
+                    // TODO: FIX ME! filter() not available
+                    //notQuery.add(builder.like(columnName, value, context.indexCache.filter()), BooleanClause.Occur.MUST);
                 }
                 query.add(notQuery, BooleanClause.Occur.MUST_NOT);
                 return query;
@@ -415,7 +417,9 @@ public class LuceneQueryBuilder {
             public Query toQuery(Reference reference, Object value, Context context) {
                 String columnName = reference.info().ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
-                return builder.like(columnName, value, context.indexCache.filter());
+                // TODO: FIX ME! filter() not available
+                //return builder.like(columnName, value, context.indexCache.filter());
+                return null;
             }
         }
 
@@ -679,7 +683,8 @@ public class LuceneQueryBuilder {
 
                 Map fields = (Map) ((Literal) arguments.get(0)).value();
                 String fieldName = ((String) Iterables.getOnlyElement(fields.keySet()));
-                FieldMapper fieldMapper = context.mapperService.smartNameFieldMapper(fieldName);
+                // TODO: FIX ME! smartMapper not available anymore
+                /*FieldMapper fieldMapper = context.mapperService.smartNameFieldMapper(fieldName);
                 GeoShapeFieldMapper geoShapeFieldMapper = (GeoShapeFieldMapper) fieldMapper;
                 String matchType = ((BytesRef) ((Input) arguments.get(2)).value()).utf8ToString();
                 @SuppressWarnings("unchecked")
@@ -688,7 +693,8 @@ public class LuceneQueryBuilder {
                 ShapeRelation relation = ShapeRelation.getRelationByName(matchType);
                 assert relation != null : "invalid matchType: " + matchType;
                 SpatialArgs spatialArgs = getArgs(shape, relation);
-                return geoShapeFieldMapper.defaultStrategy().makeQuery(spatialArgs);
+                return geoShapeFieldMapper.defaultStrategy().makeQuery(spatialArgs);*/
+                return null;
             }
 
             private SpatialArgs getArgs(Shape shape, ShapeRelation relation) {
@@ -733,11 +739,13 @@ public class LuceneQueryBuilder {
         static class RegexpMatchQuery extends CmpQuery {
 
             private Query toLuceneRegexpQuery(String fieldName, BytesRef value, Context context) {
-                return new XConstantScoreQuery(
+                // TODO: FIX ME! filter() not available
+                /*return new XConstantScoreQuery(
                         context.indexCache.filter().cache(
                                 new RegexpFilter(new Term(fieldName, value), RegExp.ALL)
                         )
-                );
+                );*/
+                return null;
             }
 
             @Override
@@ -834,7 +842,8 @@ public class LuceneQueryBuilder {
                     // we have within('POINT(0 0)', shape_column)
                     return genericFunctionQuery(inner, context);
                 }
-                GeoPointFieldMapper mapper = getGeoPointFieldMapper(
+                // TODO: FIX ME! goe not working yet due to smartMapper missing
+                /*GeoPointFieldMapper mapper = getGeoPointFieldMapper(
                         innerPair.reference().info().ident().columnIdent().fqn(),
                         context.mapperService
                 );
@@ -859,7 +868,8 @@ public class LuceneQueryBuilder {
                     }
                     filter = new GeoPolygonFilter(fieldData, points);
                 }
-                return new FilteredQuery(Queries.newMatchAllQuery(), context.indexCache.filter().cache(filter));
+                return new FilteredQuery(Queries.newMatchAllQuery(), context.indexCache.filter().cache(filter));*/
+                return null;
             }
 
             @Override
@@ -898,8 +908,7 @@ public class LuceneQueryBuilder {
                 Double distance = DataTypes.DOUBLE.value(functionLiteralPair.input().value());
 
                 String fieldName = distanceRefLiteral.reference().info().ident().columnIdent().fqn();
-                FieldMapper mapper = getGeoPointFieldMapper(fieldName, context.mapperService);
-                GeoPointFieldMapper geoMapper = ((GeoPointFieldMapper) mapper);
+                MappedFieldType mapper = getGeoPointFieldType(fieldName, context.mapperService);
                 IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(mapper);
 
                 Input geoPointInput = distanceRefLiteral.input();
@@ -940,7 +949,10 @@ public class LuceneQueryBuilder {
                         return null;
                 }
                 GeoPoint geoPoint = new GeoPoint(lat, lon);
-                Filter filter = new GeoDistanceRangeFilter(
+
+                // TODO: FIX ME!
+                // GeoPointFieldMapper geoMapper = ((GeoPointFieldMapper) mapper);
+                /*Filter filter = new GeoDistanceRangeFilter(
                         geoPoint,
                         from,
                         to,
@@ -951,20 +963,20 @@ public class LuceneQueryBuilder {
                         fieldData,
                         OPTIMIZE_BOX
                 );
-                return new FilteredQuery(Queries.newMatchAllQuery(), context.indexCache.filter().cache(filter));
+                return new FilteredQuery(Queries.newMatchAllQuery(), context.indexCache.filter().cache(filter));*/
+                return null;
             }
         }
 
-        private static GeoPointFieldMapper getGeoPointFieldMapper(String fieldName, MapperService mapperService) {
-            MapperService.SmartNameFieldMappers smartMappers = mapperService.smartName(fieldName);
-            if (smartMappers == null || !smartMappers.hasMapper()) {
+        private static GeoPointFieldMapper.GeoPointFieldType getGeoPointFieldType(String fieldName, MapperService mapperService) {
+            MappedFieldType fieldType =  mapperService.smartNameFieldType(fieldName);
+            if (fieldType == null) {
                 throw new IllegalArgumentException(String.format("column \"%s\" doesn't exist", fieldName));
             }
-            FieldMapper mapper = smartMappers.mapper();
-            if (!(mapper instanceof GeoPointFieldMapper)) {
+            if (!(fieldType instanceof GeoPointFieldMapper.GeoPointFieldType)) {
                 throw new IllegalArgumentException(String.format("column \"%s\" isn't of type geo_point", fieldName));
             }
-            return (GeoPointFieldMapper) mapper;
+            return (GeoPointFieldMapper.GeoPointFieldType) fieldType;
         }
 
         private static final EqQuery eqQuery = new EqQuery();
@@ -1143,12 +1155,19 @@ public class LuceneQueryBuilder {
                 this.condition = condition;
             }
 
+            // TODO: FIX ME! implement me!
             @Override
-            public DocIdSet getDocIdSet(AtomicReaderContext context, Bits acceptDocs) throws IOException {
+            public String toString(String field) {
+                return "";
+            }
+
+            @Override
+            public DocIdSet getDocIdSet(LeafReaderContext context, Bits acceptDocs) throws IOException {
                 for (LuceneCollectorExpression expression : expressions) {
                     expression.setNextReader(context.reader().getContext());
                 }
-                return BitsFilteredDocIdSet.wrap(
+                // TODO: FIX ME!
+                /*return BitsFilteredDocIdSet.wrap(
                         new FunctionDocSet(
                                 context.reader(),
                                 collectorContext.visitor(),
@@ -1158,19 +1177,21 @@ public class LuceneQueryBuilder {
                                 acceptDocs
                         ),
                         acceptDocs
-                );
+                );*/
+                return null;
             }
         }
 
-        static class FunctionDocSet extends MatchDocIdSet {
+        // TODO: FIX ME!
+        /*static class FunctionDocSet extends MatchDocIdSet {
 
-            private final AtomicReader reader;
+            private final LeafReader reader;
             private final CollectorFieldsVisitor fieldsVisitor;
             private final Input<Boolean> condition;
             private final List<LuceneCollectorExpression> expressions;
             private final boolean fieldsVisitorEnabled;
 
-            protected FunctionDocSet(AtomicReader reader,
+            protected FunctionDocSet(LeafReader reader,
                                      @Nullable CollectorFieldsVisitor fieldsVisitor,
                                      Input<Boolean> condition,
                                      List<LuceneCollectorExpression> expressions,
@@ -1204,7 +1225,7 @@ public class LuceneQueryBuilder {
                 }
                 return value;
             }
-        }
+        }*/
 
         private static Query raiseUnsupported(Function function) {
             throw new UnsupportedOperationException(

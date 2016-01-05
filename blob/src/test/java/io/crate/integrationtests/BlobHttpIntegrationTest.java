@@ -36,7 +36,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
@@ -62,7 +61,7 @@ public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder()
+        return Settings.settingsBuilder()
                 .put(super.nodeSettings(nodeOrdinal))
                 .put("plugin.types", CrateCorePlugin.class.getName())
                 .put(InternalNode.HTTP_ENABLED, true)
@@ -78,7 +77,7 @@ public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
         address2 = ((InetSocketTransportAddress) httpTransports.next().boundAddress().publishAddress()).address();
         BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class);
 
-        Settings indexSettings = ImmutableSettings.builder()
+        Settings indexSettings = Settings.builder()
                 .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
                 .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
                 .build();
@@ -87,7 +86,7 @@ public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
 
         client().admin().indices().prepareCreate("test_no_blobs")
                 .setSettings(
-                        ImmutableSettings.builder()
+                        Settings.builder()
                                 .put("number_of_shards", 2)
                                 .put("number_of_replicas", 0).build()).execute().actionGet();
         ensureGreen();

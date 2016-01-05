@@ -28,7 +28,6 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
@@ -462,7 +461,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
         Settings analyzerSettings = FulltextAnalyzerResolver.decodeSettings(settings.get("crate.analysis.custom.analyzer.a11"));
         Settings tokenFilterSettings = FulltextAnalyzerResolver.decodeSettings(settings.get("crate" +
                 ".analysis.custom.filter.a11_mystop"));
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
         builder.put(analyzerSettings);
         builder.put(tokenFilterSettings);
 
