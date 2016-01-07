@@ -21,10 +21,10 @@
 
 package io.crate.action.sql;
 
-import org.elasticsearch.action.ClientAction;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.Action;
+import org.elasticsearch.client.ElasticsearchClient;
 
-public class SQLAction extends ClientAction<SQLRequest, SQLResponse, SQLRequestBuilder> {
+public class SQLAction extends Action<SQLRequest, SQLResponse, SQLRequestBuilder> {
 
     public static final SQLAction INSTANCE = new SQLAction();
     public static final String NAME = "crate_sql";
@@ -39,7 +39,7 @@ public class SQLAction extends ClientAction<SQLRequest, SQLResponse, SQLRequestB
     }
 
     @Override
-    public SQLRequestBuilder newRequestBuilder(Client client) {
+    public SQLRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new SQLRequestBuilder(client);
     }
 }

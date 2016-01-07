@@ -23,12 +23,12 @@ package io.crate.blob;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.ElasticsearchClient;
 
 public class PutChunkRequestBuilder extends ReplicationRequest<PutChunkRequest, PutChunkResponse,
         PutChunkRequestBuilder> {
 
-    protected PutChunkRequestBuilder(Client client) {
+    protected PutChunkRequestBuilder(ElasticsearchClient client) {
         super(client, new PutChunkRequest());
     }
 

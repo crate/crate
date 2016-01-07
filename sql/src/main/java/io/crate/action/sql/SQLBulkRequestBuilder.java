@@ -23,11 +23,11 @@ package io.crate.action.sql;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequestBuilder;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.ElasticsearchClient;
 
-public class SQLBulkRequestBuilder extends ActionRequestBuilder<SQLBulkRequest, SQLBulkResponse, SQLBulkRequestBuilder, Client> {
+public class SQLBulkRequestBuilder extends ActionRequestBuilder<SQLBulkRequest, SQLBulkResponse, SQLBulkRequestBuilder, ElasticsearchClient> {
 
-    public SQLBulkRequestBuilder(Client client) {
+    public SQLBulkRequestBuilder(ElasticsearchClient client) {
         super(client, new SQLBulkRequest());
     }
 

@@ -23,12 +23,12 @@ package io.crate.blob;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.ElasticsearchClient;
 
 public class StartBlobRequestBuilder extends ReplicationRequest<StartBlobRequest, StartBlobResponse,
         StartBlobRequestBuilder> {
 
-    protected StartBlobRequestBuilder(Client client) {
+    protected StartBlobRequestBuilder(ElasticsearchClient client) {
         super(client, new StartBlobRequest());
     }
 

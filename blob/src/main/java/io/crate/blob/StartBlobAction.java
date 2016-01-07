@@ -21,10 +21,10 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.action.ClientAction;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.Action;
+import org.elasticsearch.client.ElasticsearchClient;
 
-public class StartBlobAction extends ClientAction<StartBlobRequest, StartBlobResponse, StartBlobRequestBuilder> {
+public class StartBlobAction extends Action<StartBlobRequest, StartBlobResponse, StartBlobRequestBuilder> {
 
     public static final StartBlobAction INSTANCE = new StartBlobAction();
     public static final String NAME = "start_blob";
@@ -34,7 +34,7 @@ public class StartBlobAction extends ClientAction<StartBlobRequest, StartBlobRes
     }
 
     @Override
-    public StartBlobRequestBuilder newRequestBuilder(Client client) {
+    public StartBlobRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new StartBlobRequestBuilder(client);
     }
 

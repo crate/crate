@@ -23,12 +23,12 @@ package io.crate.blob;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.ElasticsearchClient;
 
 public class DeleteBlobRequestBuilder extends ReplicationRequest<DeleteBlobRequest, DeleteBlobResponse,
         DeleteBlobRequestBuilder> {
 
-    protected DeleteBlobRequestBuilder(Client client) {
+    protected DeleteBlobRequestBuilder(ElasticsearchClient client) {
         super(client, new DeleteBlobRequest());
     }
 
