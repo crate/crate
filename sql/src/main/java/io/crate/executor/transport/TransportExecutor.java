@@ -124,10 +124,8 @@ public class TransportExecutor implements Executor {
 
     @Override
     public Job newJob(Plan plan) {
-        final Job job = new Job(plan.jobId());
-        List<? extends Task> tasks = planVisitor.process(plan, job);
-        job.addTasks(tasks);
-        return job;
+        List<? extends Task> tasks = planVisitor.process(plan, plan.jobId());
+        return new Job(plan.jobId(), tasks);
     }
 
     @Override
@@ -137,7 +135,7 @@ public class TransportExecutor implements Executor {
 
     }
 
-    private List<? extends ListenableFuture<TaskResult>> execute(Collection<Task> tasks) {
+    private List<? extends ListenableFuture<TaskResult>> execute(Collection<? extends Task> tasks) {
         Task lastTask = null;
         assert tasks.size() > 0 : "need at least one task to execute";
         for (Task task : tasks) {
@@ -152,51 +150,51 @@ public class TransportExecutor implements Executor {
         return lastTask.result();
     }
 
-    class TaskCollectingVisitor extends PlanVisitor<Job, List<? extends Task>> {
+    class TaskCollectingVisitor extends PlanVisitor<UUID, List<? extends Task>> {
 
         @Override
-        public List<Task> visitIterablePlan(IterablePlan plan, Job job) {
+        public List<Task> visitIterablePlan(IterablePlan plan, UUID jobId) {
             List<Task> tasks = new ArrayList<>();
             for (PlanNode planNode : plan) {
-                tasks.addAll(planNode.accept(nodeVisitor, job.id()));
+                tasks.addAll(planNode.accept(nodeVisitor, jobId));
             }
             return tasks;
         }
 
         @Override
-        public List<Task> visitNoopPlan(NoopPlan plan, Job job) {
+        public List<Task> visitNoopPlan(NoopPlan plan, UUID jobId) {
             return ImmutableList.<Task>of(NoopTask.INSTANCE);
         }
 
         @Override
-        public List<? extends Task> visitUpsert(Upsert node, Job context) {
+        public List<? extends Task> visitUpsert(Upsert node, UUID jobId) {
             List<Plan> nonIterablePlans = new ArrayList<>();
             List<Task> tasks = new ArrayList<>();
             for (Plan plan : node.nodes()) {
                 if (plan instanceof IterablePlan) {
-                    tasks.addAll(process(plan, context));
+                    tasks.addAll(process(plan, jobId));
                 } else {
                     nonIterablePlans.add(plan);
                 }
             }
             if (!nonIterablePlans.isEmpty()) {
                 tasks.add(executionPhasesTask(
-                        new Upsert(nonIterablePlans, context.id()), context, ExecutionPhasesTask.OperationType.BULK));
+                        new Upsert(nonIterablePlans, jobId), jobId, ExecutionPhasesTask.OperationType.BULK));
             }
             return tasks;
         }
 
         @Override
-        protected List<? extends Task> visitPlan(Plan plan, Job job) {
-            ExecutionPhasesTask task = executionPhasesTask(plan, job, ExecutionPhasesTask.OperationType.UNKNOWN);
+        protected List<? extends Task> visitPlan(Plan plan, UUID jobId) {
+            ExecutionPhasesTask task = executionPhasesTask(plan, jobId, ExecutionPhasesTask.OperationType.UNKNOWN);
             return ImmutableList.of(task);
         }
 
-        private ExecutionPhasesTask executionPhasesTask(Plan plan, Job job, ExecutionPhasesTask.OperationType operationType) {
+        private ExecutionPhasesTask executionPhasesTask(Plan plan, UUID jobId, ExecutionPhasesTask.OperationType operationType) {
             List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(
                     plan, clusterService.localNode().id());
             return new ExecutionPhasesTask(
-                    job.id(),
+                    jobId,
                     clusterService,
                     contextPreparer,
                     jobContextService,
@@ -208,27 +206,27 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public List<Task> visitKillPlan(KillPlan killPlan, Job job) {
+        public List<Task> visitKillPlan(KillPlan killPlan, UUID jobId) {
             Task task = killPlan.jobToKill().isPresent() ?
                     new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
-                            job.id(),
+                            jobId,
                             killPlan.jobToKill().get()) :
                     new KillTask(clusterService,
                             transportActionProvider.transportKillAllNodeAction(),
-                            job.id());
+                            jobId);
             return ImmutableList.of(task);
         }
 
         @Override
-        public List<? extends Task> visitGenericShowPlan(GenericShowPlan genericShowPlan, Job job) {
-            return ImmutableList.<Task>of(new GenericShowTask(job.id(),
+        public List<? extends Task> visitGenericShowPlan(GenericShowPlan genericShowPlan, UUID jobId) {
+            return ImmutableList.<Task>of(new GenericShowTask(jobId,
                     showStatementDispatcherProvider,
                     genericShowPlan.statement()));
         }
 
         @Override
-        public List<? extends Task> visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, Job context) {
-            return ImmutableList.<Task>of(new DDLTask(context.id(),
+        public List<? extends Task> visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, UUID jobId) {
+            return ImmutableList.<Task>of(new DDLTask(jobId,
                     ddlAnalysisDispatcherProvider,
                     genericDDLPlan.statement()));
         }
