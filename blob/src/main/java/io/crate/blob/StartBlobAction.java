@@ -35,7 +35,7 @@ public class StartBlobAction extends Action<StartBlobRequest, StartBlobResponse,
 
     @Override
     public StartBlobRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new StartBlobRequestBuilder(client);
+        return new StartBlobRequestBuilder(client, this);
     }
 
     @Override

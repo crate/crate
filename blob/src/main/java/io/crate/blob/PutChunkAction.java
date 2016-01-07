@@ -35,7 +35,7 @@ public class PutChunkAction extends Action<PutChunkRequest, PutChunkResponse, Pu
 
     @Override
     public PutChunkRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new PutChunkRequestBuilder(client);
+        return new PutChunkRequestBuilder(client, this);
     }
 
     @Override

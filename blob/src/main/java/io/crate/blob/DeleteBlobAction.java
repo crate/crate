@@ -35,7 +35,7 @@ public class DeleteBlobAction extends Action<DeleteBlobRequest, DeleteBlobRespon
 
     @Override
     public DeleteBlobRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new DeleteBlobRequestBuilder(client);
+        return new DeleteBlobRequestBuilder(client, this);
     }
 
     @Override
