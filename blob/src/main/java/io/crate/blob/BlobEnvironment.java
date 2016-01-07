@@ -31,6 +31,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 
@@ -116,7 +117,7 @@ public class BlobEnvironment {
                         String.format(Locale.ENGLISH, "blobs path '%s' is not writable", blobsPath.getAbsolutePath()));
             }
         } else {
-            if(!FileSystemUtils.mkdirs(blobsPath)) {
+            if(!Files.createDirectories(blobsPath.toPath())) {
                 throw new SettingsException(
                         String.format(Locale.ENGLISH, "blobs path '%s' could not be created", blobsPath.getAbsolutePath()));
             }

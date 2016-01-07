@@ -28,6 +28,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -53,12 +54,12 @@ public class BlobContainer {
     private final File tmpDirectory;
     private final File varDirectory;
 
-    public BlobContainer(File baseDirectory) {
+    public BlobContainer(File baseDirectory) throws IOException {
         this.baseDirectory = baseDirectory;
         this.tmpDirectory = new File(baseDirectory, "tmp");
         this.varDirectory = new File(baseDirectory, "var");
-        FileSystemUtils.mkdirs(this.varDirectory);
-        FileSystemUtils.mkdirs(this.tmpDirectory);
+        Files.createDirectories(this.varDirectory.toPath());
+        Files.createDirectories(this.tmpDirectory.toPath());
 
         createSubDirectories(this.varDirectory);
     }
