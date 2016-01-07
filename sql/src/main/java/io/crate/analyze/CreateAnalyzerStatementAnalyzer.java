@@ -104,7 +104,7 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
             }
             // build
             // transform name as tokenizer is not publicly available
-            name = String.format("%s_%s", context.statement.ident(), name);
+            name = String.format(Locale.ENGLISH, "%s_%s", context.statement.ident(), name);
 
             ImmutableSettings.Builder builder = ImmutableSettings.builder();
             for (Map.Entry<String, Expression> tokenizerProperty : properties.get().properties().entrySet()) {
@@ -164,7 +164,7 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
 
                 // build
                 // transform name as token-filter is not publicly available
-                name = String.format("%s_%s", context.statement.ident(), name);
+                name = String.format(Locale.ENGLISH, "%s_%s", context.statement.ident(), name);
                 ImmutableSettings.Builder builder = ImmutableSettings.builder();
                 for (Map.Entry<String, Expression> tokenFilterProperty : properties.get().properties().entrySet()) {
                     GenericPropertiesConverter.genericPropertyToSetting(builder,
@@ -205,7 +205,7 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
 
                 // build
                 // transform name as char-filter is not publicly available
-                name = String.format("%s_%s", context.statement.ident(), name);
+                name = String.format(Locale.ENGLISH, "%s_%s", context.statement.ident(), name);
                 ImmutableSettings.Builder builder = ImmutableSettings.builder();
                 for (Map.Entry<String, Expression> charFilterProperty: properties.get().properties().entrySet()) {
                     GenericPropertiesConverter.genericPropertyToSetting(builder,

@@ -33,6 +33,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.Locale;
 
 public class ReferenceInfo implements Streamable {
 
@@ -89,7 +90,7 @@ public class ReferenceInfo implements Streamable {
         NO;
 
         public String toString() {
-            return name().toLowerCase();
+            return name().toLowerCase(Locale.ENGLISH);
         }
     }
 

@@ -94,7 +94,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             if (joinCriteria instanceof JoinOn) {
                 context.addJoinExpression(((JoinOn) joinCriteria).getExpression());
             } else {
-                throw new UnsupportedOperationException(String.format("join criteria %s not supported",
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
                         joinCriteria.getClass().getSimpleName()));
             }
         }
@@ -178,7 +178,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 if (!isAggregate(output)) {
                     throw new IllegalArgumentException(
                             SymbolFormatter.format("column '%s' must appear in the GROUP BY clause " +
-                                                       "or be used in an aggregation function", output));
+                                                   "or be used in an aggregation function", output));
                 }
             }
         }
@@ -330,7 +330,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             try {
                 longLiteral = io.crate.analyze.symbol.Literal.convert(symbol, DataTypes.LONG);
             } catch (ClassCastException | IllegalArgumentException e) {
-                throw new UnsupportedOperationException(String.format(
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                         "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printSimple(symbol), clause));
             }
             symbol = ordinalOutputReference(selectAnalysis.outputSymbols(), longLiteral, clause);

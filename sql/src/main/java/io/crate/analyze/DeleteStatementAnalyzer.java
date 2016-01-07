@@ -34,6 +34,8 @@ import io.crate.sql.tree.Node;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import java.util.Locale;
+
 @Singleton
 public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Analysis> {
 
@@ -101,7 +103,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
         AnalyzedRelation analyzedRelation = relationAnalyzer.process(node.getRelation(), relationAnalysisContext);
         if (Relations.isReadOnly(analyzedRelation)) {
-            throw new UnsupportedOperationException(String.format(
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "relation \"%s\" is read-only and cannot be deleted", analyzedRelation));
         }
         assert analyzedRelation instanceof DocTableRelation;

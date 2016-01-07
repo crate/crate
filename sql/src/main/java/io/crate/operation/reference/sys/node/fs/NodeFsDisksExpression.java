@@ -36,6 +36,7 @@ import org.hyperic.sigar.SigarPermissionDeniedException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class NodeFsDisksExpression extends SysObjectArrayReference {
 
@@ -62,8 +63,7 @@ public class NodeFsDisksExpression extends SysObjectArrayReference {
                         FileSystemUsage usage = sigarService.sigar().getFileSystemUsage(fs.getDirName());
                         diskRefs.add(new NodeFsDiskChildExpression(fs, usage));
                     } catch (SigarPermissionDeniedException e) {
-                        logger.warn(String.format(
-                            "Permission denied: couldn't get file system usage for \"%s\"", fs.getDirName()));
+                        logger.warn("Permission denied: couldn't get file system usage for \"{}\"", fs.getDirName());
                     }
                 }
             } catch (SigarException e) {

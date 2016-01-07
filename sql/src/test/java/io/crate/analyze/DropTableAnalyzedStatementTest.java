@@ -30,6 +30,8 @@ import io.crate.test.integration.CrateUnitTest;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Locale;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -50,7 +52,7 @@ public class DropTableAnalyzedStatementTest extends CrateUnitTest {
     @Test
     public void testUnknownTableRaisesExceptionIfNotIgnored() throws Exception {
         expectedException.expect(TableUnknownException.class);
-        expectedException.expectMessage(String.format("Table '%s.%s' unknown", IRRELEVANT, IRRELEVANT));
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "Table '%s.%s' unknown", IRRELEVANT, IRRELEVANT));
 
         TableIdent tableIdent = new TableIdent(IRRELEVANT, IRRELEVANT);
         when(schemas.getDropableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));

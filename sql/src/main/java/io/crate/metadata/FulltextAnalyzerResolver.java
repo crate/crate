@@ -228,7 +228,7 @@ public class FulltextAnalyzerResolver {
             return null;
         }
         String encodedSettings = clusterService.state().metaData().persistentSettings().get(
-                String.format("%s.%s.%s", Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name)
+                String.format(Locale.ENGLISH, "%s.%s.%s", Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name)
         );
         Settings decoded = null;
         if (encodedSettings != null) {
@@ -276,33 +276,33 @@ public class FulltextAnalyzerResolver {
 
             builder.put(analyzerSettings);
 
-            String tokenizerName = analyzerSettings.get(String.format("index.analysis.analyzer.%s.tokenizer", name));
+            String tokenizerName = analyzerSettings.get(String.format(Locale.ENGLISH, "index.analysis.analyzer.%s.tokenizer", name));
             if (tokenizerName != null) {
                 Settings customTokenizerSettings = getCustomTokenizer(tokenizerName);
                 if (customTokenizerSettings != null) {
                     builder.put(customTokenizerSettings);
                 } else if (!hasBuiltInTokenizer(tokenizerName)) {
-                    throw new AnalyzerInvalidException(String.format("Invalid Analyzer: could not resolve tokenizer '%s'", tokenizerName));
+                    throw new AnalyzerInvalidException(String.format(Locale.ENGLISH, "Invalid Analyzer: could not resolve tokenizer '%s'", tokenizerName));
                 }
             }
 
-            String[] tokenFilterNames = analyzerSettings.getAsArray(String.format("index.analysis.analyzer.%s.filter", name));
+            String[] tokenFilterNames = analyzerSettings.getAsArray(String.format(Locale.ENGLISH, "index.analysis.analyzer.%s.filter", name));
             for (int i=0; i<tokenFilterNames.length; i++) {
                 Settings customTokenFilterSettings = getCustomTokenFilter(tokenFilterNames[i]);
                 if (customTokenFilterSettings != null) {
                     builder.put(customTokenFilterSettings);
                 } else if (!hasBuiltInTokenFilter(tokenFilterNames[i])) {
-                    throw new AnalyzerInvalidException(String.format("Invalid Analyzer: could not resolve token-filter '%s'", tokenFilterNames[i]));
+                    throw new AnalyzerInvalidException(String.format(Locale.ENGLISH, "Invalid Analyzer: could not resolve token-filter '%s'", tokenFilterNames[i]));
                 }
             }
 
-            String[] charFilterNames = analyzerSettings.getAsArray(String.format("index.analysis.analyzer.%s.char_filter", name));
+            String[] charFilterNames = analyzerSettings.getAsArray(String.format(Locale.ENGLISH, "index.analysis.analyzer.%s.char_filter", name));
             for (int i=0; i<charFilterNames.length; i++) {
                 Settings customCharFilterSettings = getCustomCharFilter(charFilterNames[i]);
                 if (customCharFilterSettings != null) {
                     builder.put(customCharFilterSettings);
                 } else if (!hasBuiltInCharFilter(charFilterNames[i])) {
-                    throw new AnalyzerInvalidException(String.format("Invalid Analyzer: could not resolve char-filter '%s'", charFilterNames[i]));
+                    throw new AnalyzerInvalidException(String.format(Locale.ENGLISH, "Invalid Analyzer: could not resolve char-filter '%s'", charFilterNames[i]));
                 }
             }
         } else {

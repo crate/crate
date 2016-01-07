@@ -153,7 +153,7 @@ public abstract class AbstractScalarScriptFactory implements NativeScriptFactory
                     return ((ScriptDocValues.Longs)docValues).getValue();
                 } else {
                     throw new ScriptException(
-                            String.format("Field data type not supported"));
+                            String.format(Locale.ENGLISH, "Field data type not supported"));
                 }
             }
         }
@@ -266,7 +266,7 @@ public abstract class AbstractScalarScriptFactory implements NativeScriptFactory
 
             String scalarName = XContentMapValues.nodeStringValue(argSpec.get("scalar_name"), null);
             if (scalarName == null) {
-                throw new ScriptException(String.format("No scalar_name given"));
+                throw new ScriptException(String.format(Locale.ENGLISH, "No scalar_name given"));
             }
             List<WrappedArgument> wrappedArgs = ImmutableList.of();
             List<DataType> argumentTypes = ImmutableList.of();
@@ -283,7 +283,7 @@ public abstract class AbstractScalarScriptFactory implements NativeScriptFactory
             }
             Scalar scalar = getScalar(scalarName, argumentTypes);
             if (scalar == null) {
-                throw new ScriptException(String.format("Cannot resolve function %s", scalarName));
+                throw new ScriptException(String.format(Locale.ENGLISH, "Cannot resolve function %s", scalarName));
             }
             return new ScalarArgument(scalar, type, wrappedArgs);
 

@@ -210,7 +210,7 @@ public class TablePropertiesAnalyzer {
                           Object[] parameters,
                           Expression expression) {
             Preconditions.checkArgument(!(expression instanceof ArrayLiteral),
-                    String.format("array literal not allowed for \"%s\"", ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.NUMBER_OF_REPLICAS)));
+                    String.format(Locale.ENGLISH, "array literal not allowed for \"%s\"", ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.NUMBER_OF_REPLICAS)));
 
             NumberOfReplicas numberOfReplicas;
             try {
@@ -324,7 +324,7 @@ public class TablePropertiesAnalyzer {
                 throw invalidException(e);
             }
             if (numberOfShardsValue < 1) {
-                throw new IllegalArgumentException(String.format("%s must be greater than 0", name));
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "%s must be greater than 0", name));
             }
 
             settingsBuilder.put(TableParameterInfo.NUMBER_OF_SHARDS, numberOfShardsValue);

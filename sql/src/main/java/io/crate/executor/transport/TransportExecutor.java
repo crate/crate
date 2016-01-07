@@ -319,7 +319,7 @@ public class TransportExecutor implements Executor {
         @Override
         protected ImmutableList<Task> visitPlanNode(PlanNode node, UUID jobId) {
             throw new UnsupportedOperationException(
-                    String.format("Can't generate job/task for planNode %s", node));
+                    String.format(Locale.ENGLISH, "Can't generate job/task for planNode %s", node));
         }
     }
 
@@ -562,7 +562,7 @@ public class TransportExecutor implements Executor {
 
         @Override
         protected Void visitPlan(Plan plan, NodeOperationTreeContext context) {
-            throw new UnsupportedOperationException(String.format("Can't create NodeOperationTree from plan %s", plan));
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't create NodeOperationTree from plan %s", plan));
         }
     }
 }

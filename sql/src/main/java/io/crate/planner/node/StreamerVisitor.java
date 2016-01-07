@@ -28,6 +28,8 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.types.DataTypes;
 
+import java.util.Locale;
+
 /**
  * get input and output {@link io.crate.Streamer}s for {@link io.crate.planner.node.PlanNode}s
  */
@@ -67,7 +69,7 @@ public class StreamerVisitor {
 
         @Override
         protected Streamer<?>[] visitExecutionPhase(ExecutionPhase node, Void context) {
-            throw new UnsupportedOperationException(String.format("Got unsupported ExecutionNode %s", node.getClass().getName()));
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Got unsupported ExecutionNode %s", node.getClass().getName()));
         }
     }
 }

@@ -704,7 +704,7 @@ public class LuceneQueryBuilder {
             }
 
             private AssertionError invalidMatchType(String matchType) {
-                throw new AssertionError(String.format(
+                throw new AssertionError(String.format(Locale.ENGLISH,
                         "Invalid match type: %s. Analyzer should have made sure that it is valid", matchType));
             }
 
@@ -958,11 +958,11 @@ public class LuceneQueryBuilder {
         private static GeoPointFieldMapper getGeoPointFieldMapper(String fieldName, MapperService mapperService) {
             MapperService.SmartNameFieldMappers smartMappers = mapperService.smartName(fieldName);
             if (smartMappers == null || !smartMappers.hasMapper()) {
-                throw new IllegalArgumentException(String.format("column \"%s\" doesn't exist", fieldName));
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "column \"%s\" doesn't exist", fieldName));
             }
             FieldMapper mapper = smartMappers.mapper();
             if (!(mapper instanceof GeoPointFieldMapper)) {
-                throw new IllegalArgumentException(String.format("column \"%s\" isn't of type geo_point", fieldName));
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "column \"%s\" isn't of type geo_point", fieldName));
             }
             return (GeoPointFieldMapper) mapper;
         }

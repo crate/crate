@@ -38,6 +38,7 @@ import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.*;
 
 import java.util.Arrays;
+import java.util.Locale;
 
 import static java.lang.String.format;
 
@@ -65,7 +66,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
             if (args.length == 0) {
                 value = format;
             } else {
-                value = format(format, args);
+                value = format(Locale.ENGLISH, format, args);
             }
             output.append(Strings.repeat("  ", indent)).append(value).append('\n');
         }

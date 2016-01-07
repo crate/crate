@@ -25,6 +25,8 @@ import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.types.DataTypes;
 
+import java.util.Locale;
+
 public class GroupBySymbolValidator {
 
     private final static InnerValidator INNER_VALIDATOR = new InnerValidator();
@@ -47,11 +49,11 @@ public class GroupBySymbolValidator {
                 case AGGREGATE:
                     throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
                 case PREDICATE:
-                    throw new UnsupportedOperationException(String.format(
+                    throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                             "%s predicate cannot be used in a GROUP BY clause", symbol.info().ident().name()));
                 default:
                     throw new UnsupportedOperationException(
-                            String.format("FunctionInfo.Type %s not handled", symbol.info().type()));
+                            String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", symbol.info().type()));
             }
             context.insideFunction = true;
             for (Symbol argument : symbol.arguments()) {
@@ -66,7 +68,7 @@ public class GroupBySymbolValidator {
             // if insideFunction the type here doesn't matter, only the returnType of the function itself will matter.
             if (!context.insideFunction && !DataTypes.PRIMITIVE_TYPES.contains(field.valueType())) {
                 throw new IllegalArgumentException(
-                        String.format("Cannot GROUP BY '%s': invalid data type '%s'",
+                        String.format(Locale.ENGLISH, "Cannot GROUP BY '%s': invalid data type '%s'",
                                 SymbolPrinter.INSTANCE.printSimple(field),
                                 field.valueType()));
             }
@@ -75,7 +77,7 @@ public class GroupBySymbolValidator {
 
         @Override
         public Void visitMatchPredicate(MatchPredicate matchPredicate, Context context) {
-            throw new UnsupportedOperationException(String.format(
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "%s predicate cannot be used in a GROUP BY clause", io.crate.operation.predicate.MatchPredicate.NAME));
         }
 

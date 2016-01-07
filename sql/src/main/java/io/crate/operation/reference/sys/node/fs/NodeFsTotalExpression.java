@@ -110,8 +110,8 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
                         writes = setOrIncrementBy(writes, usage.getDiskWrites());
                         bytes_written = setOrIncrementBy(bytes_written, usage.getDiskWriteBytes());
                     } catch (SigarPermissionDeniedException e) {
-                        logger.warn(String.format(
-                            "Permission denied: couldn't get file system usage for \"%s\"", fs.getDirName()));
+                        logger.warn(
+                            "Permission denied: couldn't get file system usage for \"{}\"", fs.getDirName());
                     }
                 }
             } catch (SigarException e) {

@@ -124,7 +124,7 @@ public class OptionParser {
         } else if ("and".equalsIgnoreCase(op)) {
             return BooleanClause.Occur.MUST;
         }
-        throw new IllegalArgumentException(String.format(
+        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "value for operator must be either \"or\" or \"and\" not \"%s\"", op));
     }
 
@@ -137,7 +137,7 @@ public class OptionParser {
         } else if (o instanceof Number) {
             return ((Number) o).floatValue();
         }
-        throw new IllegalArgumentException(String.format("value for %s must be a number", optionName));
+        throw new IllegalArgumentException(String.format(Locale.ENGLISH, "value for %s must be a number", optionName));
     }
 
     private static Integer intValue(Map options, String optionName, Integer defaultValue) {
@@ -147,7 +147,7 @@ public class OptionParser {
         } else if (o instanceof Number) {
             return ((Number) o).intValue();
         }
-        throw new IllegalArgumentException(String.format("value for %s must be a number", optionName));
+        throw new IllegalArgumentException(String.format(Locale.ENGLISH, "value for %s must be a number", optionName));
     }
 
     private static org.apache.lucene.search.MultiTermQuery.RewriteMethod rewrite(
@@ -171,7 +171,7 @@ public class OptionParser {
         } else if ("all".equalsIgnoreCase(value)) {
             return MatchQuery.ZeroTermsQuery.ALL;
         }
-        throw new IllegalArgumentException(String.format(
+        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Unsupported value for %s option. Valid are \"none\" and \"all\"", OPTIONS.ZERO_TERMS_QUERY));
     }
 
@@ -198,11 +198,11 @@ public class OptionParser {
             }
         }
         if (!unknownOptions.isEmpty()) {
-            throw new IllegalArgumentException(String.format(
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "match predicate doesn't support any of the given options: %s",
                     Joiner.on(", ").join(unknownOptions)));
         } else {
-            throw new IllegalArgumentException(String.format(
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "match predicate option(s) \"%s\" cannot be used with matchType \"%s\"",
                     Joiner.on(", ").join(invalidOptions),
                     matchType.name().toLowerCase(Locale.ENGLISH)

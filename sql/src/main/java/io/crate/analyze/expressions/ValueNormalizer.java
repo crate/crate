@@ -78,7 +78,7 @@ public class ValueNormalizer {
         } catch (ConversionException e) {
             throw new ColumnValidationException(
                     reference.info().ident().columnIdent().name(),
-                    String.format("%s cannot be cast to type %s", SymbolPrinter.INSTANCE.printSimple(valueSymbol),
+                    String.format(Locale.ENGLISH, "%s cannot be cast to type %s", SymbolPrinter.INSTANCE.printSimple(valueSymbol),
                             reference.valueType().getName()));
         }
         Object value = literal.value();
@@ -190,7 +190,7 @@ public class ValueNormalizer {
             return info.type().value(primitiveValue);
         } catch (Exception e) {
             throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(),
-                    String.format("Invalid %s", info.type().getName())
+                    String.format(Locale.ENGLISH, "Invalid %s", info.type().getName())
             );
         }
     }

@@ -235,11 +235,11 @@ public class ExpressionAnalyzer {
                 return cast(symbolToCast, targetType, false);
             } catch (ConversionException e) {
                 // exception is just thrown for literals, rest is evaluated lazy
-                throw new IllegalArgumentException(String.format("%s cannot be cast to type %s",
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "%s cannot be cast to type %s",
                         SymbolPrinter.INSTANCE.printSimple(symbolToCast), targetType.getName()), e);
             }
         }
-        throw new IllegalArgumentException(String.format("%s cannot be cast to type %s",
+        throw new IllegalArgumentException(String.format(Locale.ENGLISH, "%s cannot be cast to type %s",
                 SymbolPrinter.INSTANCE.printSimple(symbolToCast), targetType.getName()));
     }
 
@@ -282,13 +282,13 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitNode(Node node, ExpressionAnalysisContext context) {
-            throw new UnsupportedOperationException(String.format(
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "Unsupported node %s", node));
         }
 
         @Override
         protected Symbol visitExpression(Expression node, ExpressionAnalysisContext context) {
-            throw new UnsupportedOperationException(String.format(
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "Unsupported expression %s", ExpressionFormatter.formatExpression(node)));
         }
 
@@ -488,7 +488,7 @@ public class ExpressionAnalyzer {
 
             DataType dataType = argument.valueType();
             if (!dataType.equals(DataTypes.BOOLEAN) && !dataType.equals(DataTypes.UNDEFINED)) {
-                throw new IllegalArgumentException(String.format(
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "Invalid argument of type \"%s\" passed to %s predicate. Argument must resolve to boolean or null",
                         dataType,
                         node
@@ -773,7 +773,7 @@ public class ExpressionAnalyzer {
         private void verifyTypesForMatch(Iterable<? extends Symbol> columns, DataType columnType) {
             Preconditions.checkArgument(
                     io.crate.operation.predicate.MatchPredicate.SUPPORTED_TYPES.contains(columnType),
-                    String.format("Can only use MATCH on columns of type STRING or GEO_SHAPE, not on '%s'", columnType));
+                    String.format(Locale.ENGLISH, "Can only use MATCH on columns of type STRING or GEO_SHAPE, not on '%s'", columnType));
             for (Symbol column : columns) {
                 if (!column.valueType().equals(columnType)) {
                     throw new IllegalArgumentException(String.format(

@@ -16,6 +16,7 @@ import org.elasticsearch.index.cache.filter.FilterCache;
 import org.elasticsearch.index.mapper.ip.IpFieldMapper;
 
 import javax.annotation.Nullable;
+import java.util.Locale;
 
 public abstract class QueryBuilderHelper {
 
@@ -58,7 +59,7 @@ public abstract class QueryBuilderHelper {
         if (dataType.equals(DataTypes.STRING)) {
             return stringQueryBuilder;
         }
-        throw new UnsupportedOperationException(String.format("type %s not supported", dataType));
+        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "type %s not supported", dataType));
     }
 
     public abstract Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper);

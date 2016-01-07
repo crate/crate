@@ -23,9 +23,11 @@ package io.crate.exceptions;
 
 import io.crate.metadata.ColumnIdent;
 
+import java.util.Locale;
+
 public class AmbiguousColumnException extends ValidationException {
 
     public AmbiguousColumnException(ColumnIdent columnIdent) {
-        super(String.format("Column \"%s\" is ambiguous", columnIdent.sqlFqn()));
+        super(String.format(Locale.ENGLISH, "Column \"%s\" is ambiguous", columnIdent.sqlFqn()));
     }
 }

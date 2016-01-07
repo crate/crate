@@ -32,6 +32,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.List;
+import java.util.Locale;
 
 @Singleton
 public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColumnAnalyzedStatement, Analysis> {
@@ -57,7 +58,7 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
     @Override
     protected AddColumnAnalyzedStatement visitNode(Node node, Analysis analysis) {
         throw new RuntimeException(
-                String.format("Encountered node %s but expected a AlterTableAddColumn node", node));
+                String.format(Locale.ENGLISH, "Encountered node %s but expected a AlterTableAddColumn node", node));
     }
 
     @Override
@@ -90,7 +91,7 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
 
     private void ensureColumnLeafsAreNew(AnalyzedColumnDefinition column, TableInfo tableInfo) {
         if ((!column.isParentColumn() || !column.hasChildren()) && tableInfo.getReferenceInfo(column.ident()) != null) {
-            throw new IllegalArgumentException(String.format(
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "The table %s already has a column named %s",
                     tableInfo.ident().sqlFqn(),
                     column.ident().sqlFqn()));

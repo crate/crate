@@ -103,10 +103,10 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 "  date timestamp" +
                 ") clustered into 2 shards partitioned by (date) with(number_of_replicas=0)", PARTITIONED_TABLE_NAME));
         ensureGreen();
-        execute(String.format("insert into %s (id, name, date) values (?, ?, ?)",
+        execute(String.format(Locale.ENGLISH, "insert into %s (id, name, date) values (?, ?, ?)",
                 PARTITIONED_TABLE_NAME),
                 new Object[]{1, "Ford", 0L});
-        execute(String.format("insert into %s (id, name, date) values (?, ?, ?)",
+        execute(String.format(Locale.ENGLISH, "insert into %s (id, name, date) values (?, ?, ?)",
                 PARTITIONED_TABLE_NAME),
                 new Object[]{2, "Trillian", 1L});
         ensureGreen();
@@ -117,8 +117,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 " doc integer" +
                 ") clustered into 2 shards with(number_of_replicas=0)", TEST_TABLE_NAME));
         ensureGreen();
-        execute(String.format("insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{1, 2});
-        execute(String.format("insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{3, 4});
+        execute(String.format(Locale.ENGLISH, "insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{1, 2});
+        execute(String.format(Locale.ENGLISH, "insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{3, 4});
         refresh();
     }
 

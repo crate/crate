@@ -151,7 +151,7 @@ public class SettingsAppliers {
             }
             if (!(value instanceof Map)) {
                 throw new IllegalArgumentException(
-                        String.format("Only object values are allowed at '%s'", name));
+                        String.format(Locale.ENGLISH, "Only object values are allowed at '%s'", name));
             }
             flattenSettings(settingsBuilder, this.name, value);
         }
@@ -159,7 +159,7 @@ public class SettingsAppliers {
         @Override
         public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
             throw new IllegalArgumentException(
-                    String.format("Only object values are allowed at '%s'", name));
+                    String.format(Locale.ENGLISH, "Only object values are allowed at '%s'", name));
         }
     }
 
@@ -263,7 +263,7 @@ public class SettingsAppliers {
             }
 
             if (byteSizeValue == null) {
-                throw new IllegalArgumentException(String.format(
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "'%s' does not support null values", name));
             }
 

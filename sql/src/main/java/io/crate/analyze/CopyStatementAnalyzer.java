@@ -128,7 +128,7 @@ public class CopyStatementAnalyzer {
         TableInfo tableInfo = analysisMetaData.schemas().getTableInfo(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         if (!(tableInfo instanceof DocTableInfo)) {
-            throw new UnsupportedOperationException(String.format(
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "Cannot COPY %s TO. COPY TO only supports user tables", tableInfo.ident()));
         }
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
@@ -249,7 +249,7 @@ public class CopyStatementAnalyzer {
             for (Map.Entry<String, Expression> setting : genericProperties.get().properties().entrySet()) {
                 SettingsApplier settingsApplier = SETTINGS_APPLIERS.get(setting.getKey());
                 if (settingsApplier == null) {
-                    throw new IllegalArgumentException(String.format("Unknown setting '%s'", setting.getKey()));
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Unknown setting '%s'", setting.getKey()));
                 }
 
                 settingsApplier.apply(settingsBuilder, parameterContext.parameters(), setting.getValue());
@@ -282,7 +282,7 @@ public class CopyStatementAnalyzer {
                 throw new IllegalArgumentException("Invalid argument(s) passed to parameter");
             }
             if (expression instanceof QualifiedNameReference) {
-                throw new IllegalArgumentException(String.format(
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "Can't use column reference in property assignment \"%s = %s\". Use literals instead.",
                         key,
                         ((QualifiedNameReference) expression).getName().toString()));

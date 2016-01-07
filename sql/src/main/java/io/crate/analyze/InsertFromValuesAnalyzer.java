@@ -71,7 +71,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             // use containsKey instead of checking result .get() for null because inserted value might actually be null
             Reference columnReference = tableRelation.resolveField(argumentColumn);
             if (!columns.contains(columnReference)) {
-                throw new IllegalArgumentException(String.format(
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "Referenced column '%s' isn't part of the column list of the INSERT statement",
                         argumentColumn.path().outputName()));
             }

@@ -32,6 +32,7 @@ import io.crate.types.SetType;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 
 public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> {
 
@@ -77,7 +78,7 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             for (DataType dataType : dataTypes) {
                 if (!isCollectionType(dataType)) {
-                    throw new IllegalArgumentException(String.format(
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                             "Function \"%s\" got an invalid argument of type \"%s\"",
                             NAME,
                             dataType.getName()));

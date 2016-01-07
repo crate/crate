@@ -23,6 +23,8 @@ package io.crate.analyze;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 
+import java.util.Locale;
+
 public class Analyzer {
 
     private final AnalyzerDispatcher dispatcher = new AnalyzerDispatcher();
@@ -252,7 +254,7 @@ public class Analyzer {
 
         @Override
         protected AnalyzedStatement visitNode(Node node, Analysis context) {
-            throw new UnsupportedOperationException(String.format("cannot analyze statement: '%s'", node));
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "cannot analyze statement: '%s'", node));
         }
     }
 }

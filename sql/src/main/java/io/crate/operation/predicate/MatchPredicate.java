@@ -72,7 +72,7 @@ public class MatchPredicate implements FunctionImplementation<Function> {
         if (boost == null) {
             return fieldName;
         }
-        return String.format("%s^%s", fieldName, BOOST_FORMAT.format(boost));
+        return String.format(Locale.ENGLISH, "%s^%s", fieldName, BOOST_FORMAT.format(boost));
     }
 
     private static String defaultMatchType(DataType dataType) {

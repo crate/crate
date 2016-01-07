@@ -30,6 +30,7 @@ import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Singleton
 public class ShowStatementAnalyzer {
@@ -62,7 +63,7 @@ public class ShowStatementAnalyzer {
             params.add(node.likePattern().get());
             sb.append("WHERE schema_name LIKE ? ");
         } else if (node.whereExpression().isPresent()) {
-            sb.append(String.format("WHERE %s ", node.whereExpression().get().toString()));
+            sb.append(String.format(Locale.ENGLISH, "WHERE %s ", node.whereExpression().get().toString()));
         }
         sb.append("ORDER BY schema_name");
 
@@ -104,7 +105,7 @@ public class ShowStatementAnalyzer {
             params.add(node.likePattern().get());
             sb.append("AND column_name LIKE ? ");
         } else if (node.where().isPresent()) {
-            sb.append(String.format("AND %s", ExpressionFormatter.formatExpression(node.where().get())));
+            sb.append(String.format(Locale.ENGLISH, "AND %s", ExpressionFormatter.formatExpression(node.where().get())));
         }
         sb.append("ORDER BY column_name");
 

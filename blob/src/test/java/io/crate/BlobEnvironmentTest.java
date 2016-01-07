@@ -39,6 +39,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Locale;
 
 import static org.hamcrest.Matchers.is;
 
@@ -101,7 +102,7 @@ public class BlobEnvironmentTest extends CrateUnitTest {
         testFile = File.createTempFile("test_blob_file", ".txt");
 
         expectedException.expect(SettingsException.class);
-        expectedException.expectMessage(String.format("blobs path '%s' is a file, must be a directory",
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "blobs path '%s' is a file, must be a directory",
                 testFile.getAbsolutePath()));
         blobEnvironment.validateBlobsPath(testFile);
     }
@@ -117,7 +118,7 @@ public class BlobEnvironmentTest extends CrateUnitTest {
         File file = new File(tmpDir, "crate_blobs");
 
         expectedException.expect(SettingsException.class);
-        expectedException.expectMessage(String.format("blobs path '%s' could not be created",
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "blobs path '%s' could not be created",
                 file.getAbsolutePath()));
         blobEnvironment.validateBlobsPath(file);
     }

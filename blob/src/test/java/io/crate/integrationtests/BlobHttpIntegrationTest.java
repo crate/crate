@@ -98,7 +98,7 @@ public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
     }
 
     protected String blobUri(String index, String digest){
-        return String.format("%s/%s", index, digest);
+        return String.format(Locale.ENGLISH, "%s/%s", index, digest);
     }
 
     protected CloseableHttpResponse put(String uri, String body) throws IOException {

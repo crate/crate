@@ -106,7 +106,7 @@ public class SetStatementAnalyzer {
         public Collection<String> visitObjectLiteral(ObjectLiteral node, String context) {
             Collection<String> settingNames = new ArrayList<>();
             for (Map.Entry<String, Expression> entry : node.values().entries()) {
-                String s = String.format("%s.%s", context, entry.getKey());
+                String s = String.format(Locale.ENGLISH, "%s.%s", context, entry.getKey());
                 if (entry.getValue() instanceof ObjectLiteral) {
                     settingNames.addAll(entry.getValue().accept(this, s));
                 } else {

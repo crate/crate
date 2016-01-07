@@ -11,6 +11,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class Function extends Symbol implements Cloneable {
 
@@ -88,7 +89,7 @@ public class Function extends Symbol implements Cloneable {
 
     @Override
     public String toString() {
-        return String.format("%s(%s)", info.ident().name(), Joiner.on(",").join(arguments()));
+        return String.format(Locale.ENGLISH, "%s(%s)", info.ident().name(), Joiner.on(",").join(arguments()));
     }
 
     @Override

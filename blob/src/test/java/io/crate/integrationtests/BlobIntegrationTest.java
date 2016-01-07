@@ -215,7 +215,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         // this test works only if ES API is enabled
         HttpPut httpPut = new HttpPut(String.format(Locale.ENGLISH, "http://%s:%s/test_no_blobs/default/1",
                 address.getHostName(), address.getPort()));
-        String blobData = String.format("{\"content\": \"%s\"}", StringUtils.repeat("a", 1024 * 64));
+        String blobData = String.format(Locale.ENGLISH, "{\"content\": \"%s\"}", StringUtils.repeat("a", 1024 * 64));
         httpPut.setEntity(new StringEntity(blobData, ContentType.APPLICATION_OCTET_STREAM));
         CloseableHttpResponse res = httpClient.execute(httpPut);
         assertEquals(201, res.getStatusLine().getStatusCode());

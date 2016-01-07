@@ -35,19 +35,21 @@ public class Literal<ReturnType>
     public static Literal implodeCollection(DataType itemType, Set<Literal> literals) {
         Set<Object> set = new HashSet<>(literals.size(), 1.0F);
         for (Literal literal : literals) {
-            assert literal.valueType() == itemType :
-                    String.format("Literal type: %s does not match item type: %s", literal.valueType(), itemType);
+            assert literal.valueType() == itemType : typeMismatchMsg(itemType, literal);
             set.add(literal.value());
         }
         return new Literal<>(new SetType(itemType), Collections.unmodifiableSet(set));
+    }
+
+    private static String typeMismatchMsg(DataType itemType, Literal literal) {
+        return String.format(Locale.ENGLISH, "Literal type: %s does not match item type: %s", literal.valueType(), itemType);
     }
 
     public static Literal implodeCollection(DataType itemType, List<Literal> literals) {
        Object[] values = new Object[literals.size()];
         for (int i = 0; i<literals.size(); i++) {
             assert literals.get(i).valueType().equals(itemType) || literals.get(i).valueType() == DataTypes.UNDEFINED:
-                    String.format("Literal type: %s does not match item type: %s",
-                            literals.get(i).valueType(), itemType);
+                    typeMismatchMsg(itemType, literals.get(i));
             values[i] = literals.get(i).value();
         }
         return new Literal<>(new ArrayType(itemType), values);
@@ -80,12 +82,12 @@ public class Literal<ReturnType>
     }
 
     private Literal(DataType type, ReturnType value) {
-        assert typeMatchesValue(type, value) : String.format("value %s is not of type %s", value, type.getName());
+        assert typeMatchesValue(type, value) : String.format(Locale.ENGLISH, "value %s is not of type %s", value, type.getName());
         this.type = type;
         this.value = value;
     }
 
-    private static <ReturnType> boolean typeMatchesValue(DataType type, Object value) {
+    private static boolean typeMatchesValue(DataType type, Object value) {
         if (value == null) {
             return true;
         }

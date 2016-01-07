@@ -25,6 +25,7 @@ import com.google.common.base.Joiner;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
+import java.util.Locale;
 import java.util.Map;
 
 public class Functions {
@@ -60,7 +61,7 @@ public class Functions {
         }
         if (implementation == null) {
             if (exceptionMessage == null) {
-                exceptionMessage = String.format("unknown function: %s(%s)", ident.name(),
+                exceptionMessage = String.format(Locale.ENGLISH, "unknown function: %s(%s)", ident.name(),
                         Joiner.on(", ").join(ident.argumentTypes()));
             }
             throw new UnsupportedOperationException(exceptionMessage);

@@ -36,6 +36,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.*;
@@ -342,7 +343,7 @@ public class DateFormatFunctionTest extends AbstractScalarFunctionsTest {
                 );
                 Object result = evaluateForArgs(args);
                 assertThat(result, instanceOf(BytesRef.class));
-                assertThat(String.format("Format String '%s' returned wrong result for date '%s'", ioEntry.getKey(), entry.getKey()),
+                assertThat(String.format(Locale.ENGLISH, "Format String '%s' returned wrong result for date '%s'", ioEntry.getKey(), entry.getKey()),
                         ((BytesRef)result).utf8ToString(),
                         is(ioEntry.getValue()));
             }

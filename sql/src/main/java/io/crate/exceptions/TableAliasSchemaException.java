@@ -21,10 +21,12 @@
 
 package io.crate.exceptions;
 
+import java.util.Locale;
+
 public class TableAliasSchemaException extends ConflictException {
 
     public TableAliasSchemaException(String tableAlias) {
-        super(String.format("Table alias \"%s\" contains tables with different schema", tableAlias));
+        super(String.format(Locale.ENGLISH, "Table alias \"%s\" contains tables with different schema", tableAlias));
     }
 
     @Override

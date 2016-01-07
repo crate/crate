@@ -37,6 +37,7 @@ import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Locale;
 import java.util.UUID;
 
 public class DigestBlobTests extends CrateUnitTest {
@@ -87,7 +88,7 @@ public class DigestBlobTests extends CrateUnitTest {
         int currentPos = 2;
 
         BlobContainer container = new BlobContainer(tmpDir.toFile());
-        File filePath = new File(container.getTmpDirectory(), String.format("%s.%s", digest, transferId.toString()));
+        File filePath = new File(container.getTmpDirectory(), String.format(Locale.ENGLISH, "%s.%s", digest, transferId.toString()));
         if (filePath.exists()) {
             filePath.delete();
         }

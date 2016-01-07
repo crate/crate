@@ -90,7 +90,7 @@ public abstract class AbstractScalarSearchScriptFactory extends AbstractScalarSc
         FunctionIdent operatorIdent = new FunctionIdent(operatorName, operatorArgTypes);
         Operator operator = (Operator)functions.get(operatorIdent);
         if (operator == null) {
-            throw new ScriptException(String.format("Cannot resolve operator with ident %s", operatorIdent));
+            throw new ScriptException(String.format(Locale.ENGLISH, "Cannot resolve operator with ident %s", operatorIdent));
         }
 
         return new SearchContext(function, operator, operatorArgs);

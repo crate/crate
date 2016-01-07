@@ -37,6 +37,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -81,7 +82,7 @@ public class DDLStatementDispatcher {
 
         @Override
         protected ListenableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, UUID jobId) {
-            throw new UnsupportedOperationException(String.format("Can't handle \"%s\"", analyzedStatement));
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analyzedStatement));
         }
 
 

@@ -62,7 +62,7 @@ public class SemanticSortValidator {
                 );
             }
             if (symbol.info().type() == FunctionInfo.Type.PREDICATE) {
-                throw new UnsupportedOperationException(String.format(
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                         "%s predicate cannot be used in an ORDER BY clause", symbol.info().ident().name()));
             }
             try {
@@ -77,7 +77,7 @@ public class SemanticSortValidator {
         }
 
         public Void visitMatchPredicate(MatchPredicate matchPredicate, SortContext context) {
-            throw new UnsupportedOperationException(String.format(
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "%s predicate cannot be used in an ORDER BY clause", io.crate.operation.predicate.MatchPredicate.NAME));
         }
 

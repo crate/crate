@@ -38,6 +38,7 @@ import org.elasticsearch.common.unit.DistanceUnit;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 public class DistanceFunction extends Scalar<Double, Object> {
@@ -174,7 +175,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
 
         private void validateType(DataType dataType) {
             if (!ALLOWED_TYPES.contains(dataType)) {
-                throw new IllegalArgumentException(String.format(
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "%s can't handle arguments of type \"%s\"", NAME, dataType.getName()));
 
             }

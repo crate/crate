@@ -43,6 +43,7 @@ import org.jboss.netty.util.CharsetUtil;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.ClosedChannelException;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -58,7 +59,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
     private static final String CACHE_CONTROL_VALUE = "max-age=315360000";
     private static final String EXPIRES_VALUE = "Thu, 31 Dec 2037 23:59:59 GMT";
     private static final String BLOBS_ENDPOINT = "/_blobs";
-    public static final Pattern BLOBS_PATTERN = Pattern.compile(String.format("^%s/([^_/][^/]*)/([0-9a-f]{40})$", BLOBS_ENDPOINT));
+    public static final Pattern BLOBS_PATTERN = Pattern.compile(String.format(Locale.ENGLISH, "^%s/([^_/][^/]*)/([0-9a-f]{40})$", BLOBS_ENDPOINT));
     private static final ESLogger LOGGER = Loggers.getLogger(HttpBlobHandler.class);
 
     private static final ChannelBuffer CONTINUE = ChannelBuffers.copiedBuffer(

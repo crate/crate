@@ -1,5 +1,6 @@
 apply plugin: 'idea'
 apply plugin: 'java'
+apply plugin: 'de.thetaphi.forbiddenapis'
 apply plugin: 'maven'
 
 archivesBaseName = 'crate-sql'
@@ -79,6 +80,11 @@ sourceSets {
             include "io/crate/action/sql/SQL*"
         }
     }
+}
+
+forbiddenApisMain {
+    bundledSignatures = ['jdk-unsafe', 'jdk-deprecated']
+    ignoreFailures = false
 }
 
 task benchmarks(type: Test) {

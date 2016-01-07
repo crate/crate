@@ -21,10 +21,12 @@
 
 package io.crate.exceptions;
 
+import java.util.Locale;
+
 public class AlterTableAliasException extends ValidationException {
 
     public AlterTableAliasException(String tableAlias) {
-        super(String.format("Alter table using a \"%s\" as table alias is not supported", tableAlias));
+        super(String.format(Locale.ENGLISH, "Alter table using a \"%s\" as table alias is not supported", tableAlias));
     }
 
     @Override

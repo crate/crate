@@ -32,10 +32,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocTableInfo;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * holding analysis results for any insert statement variant
@@ -131,13 +128,13 @@ public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStateme
                 }
                 referenceInfo = reference.info();
                 if (!allocatedReferences.add(referenceInfo)) {
-                    throw new IllegalArgumentException(String.format("reference '%s' repeated", ident.columnIdent().sqlFqn()));
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", ident.columnIdent().sqlFqn()));
                 }
                 return reference;
             }
         }
         if (!allocatedReferences.add(referenceInfo)) {
-            throw new IllegalArgumentException(String.format("reference '%s' repeated", ident.columnIdent().sqlFqn()));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", ident.columnIdent().sqlFqn()));
         }
         return new Reference(referenceInfo);
     }

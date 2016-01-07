@@ -70,7 +70,7 @@ public class RelationAnalysisContext {
             if (tableName.startsWith(".")) {
                 tableName = tableName.substring(1);
             }
-            String errorMessage = String.format("\"%s\" specified more than once in the FROM clause", tableName);
+            String errorMessage = String.format(Locale.ENGLISH, "\"%s\" specified more than once in the FROM clause", tableName);
             throw new IllegalArgumentException(errorMessage);
         }
     }

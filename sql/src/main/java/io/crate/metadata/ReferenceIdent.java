@@ -29,6 +29,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 public class ReferenceIdent implements Streamable {
 
@@ -93,7 +94,7 @@ public class ReferenceIdent implements Streamable {
 
     @Override
     public String toString() {
-        return String.format("<RefIdent: %s->%s>", tableIdent, columnIdent);
+        return String.format(Locale.ENGLISH, "<RefIdent: %s->%s>", tableIdent, columnIdent);
     }
 
     @Override

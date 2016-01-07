@@ -42,6 +42,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
@@ -110,10 +111,10 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         File tmpExport = folder.newFolder("tmpExport");
         execute("copy t to directory ?", new Object[]{tmpExport.getAbsolutePath()});
         assertThat(response.rowCount(), is(4L));
-        execute("copy t from ?", new Object[]{String.format("%s/*", tmpExport.getAbsolutePath())});
+        execute("copy t from ?", new Object[]{String.format(Locale.ENGLISH, "%s/*", tmpExport.getAbsolutePath())});
         assertThat(response.rowCount(), is(0L));
         execute("copy t from ? with (overwrite_duplicates = true, shared=true)",
-                new Object[]{String.format("%s/*", tmpExport.getAbsolutePath())});
+                new Object[]{String.format(Locale.ENGLISH, "%s/*", tmpExport.getAbsolutePath())});
         assertThat(response.rowCount(), is(4L));
         execute("refresh table t");
         execute("select count(*) from t");

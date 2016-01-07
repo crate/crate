@@ -21,10 +21,12 @@
 
 package io.crate.exceptions;
 
+import java.util.Locale;
+
 public class AnalyzerUnknownException extends ResourceUnknownException {
 
     public AnalyzerUnknownException(String analyzerName) {
-        super(String.format("Analyzer '%s' unknown", analyzerName));
+        super(String.format(Locale.ENGLISH, "Analyzer '%s' unknown", analyzerName));
     }
 
     @Override

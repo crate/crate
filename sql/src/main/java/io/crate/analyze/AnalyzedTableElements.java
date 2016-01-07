@@ -150,7 +150,7 @@ public class AnalyzedTableElements {
 
     public void add(AnalyzedColumnDefinition analyzedColumnDefinition) {
         if (columnIdents.contains(analyzedColumnDefinition.ident())) {
-            throw new IllegalArgumentException(String.format(
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "column \"%s\" specified more than once", analyzedColumnDefinition.ident().sqlFqn()));
         }
         columnIdents.add(analyzedColumnDefinition.ident());

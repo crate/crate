@@ -36,6 +36,7 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
+import java.util.Locale;
 import java.util.concurrent.RejectedExecutionException;
 
 
@@ -63,7 +64,7 @@ public class Transports {
             TransportResponseHandler<TResponse> transportResponseHandler) {
         DiscoveryNode discoveryNode = clusterService.state().nodes().get(node);
         if (discoveryNode == null) {
-            throw new IllegalArgumentException(String.format("node \"%s\" not found in cluster state!", node));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "node \"%s\" not found in cluster state!", node));
         }
         executeLocalOrWithTransport(nodeAction, discoveryNode, request, listener, transportResponseHandler);
     }

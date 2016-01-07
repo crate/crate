@@ -27,6 +27,8 @@ import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.index.mapper.core.BooleanFieldMapper.Values;
 
+import java.util.Locale;
+
 public abstract class TermBuilder<T> {
 
     private static final IntegerTermBuilder INTEGER_TERM_BUILDER = new IntegerTermBuilder();
@@ -63,7 +65,7 @@ public abstract class TermBuilder<T> {
             case StringType.ID:
                 return STRING_TERM_BUILDER;
             default:
-                throw new UnsupportedOperationException(String.format("type %s not supported", dataType));
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "type %s not supported", dataType));
         }
     }
 

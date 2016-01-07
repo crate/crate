@@ -36,6 +36,7 @@ import org.elasticsearch.rest.*;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Locale;
 
 public class RestSQLAction extends BaseRestHandler {
 
@@ -88,7 +89,7 @@ public class RestSQLAction extends BaseRestHandler {
         String user = request.header(REQUEST_HEADER_USER);
         if(user != null && !user.isEmpty()) {
             // Odbc is on
-            if(user.toLowerCase().contains("odbc")) {
+            if(user.toLowerCase(Locale.ENGLISH).contains("odbc")) {
                 flags |= SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT;
             }
         }

@@ -35,6 +35,7 @@ import org.junit.Before;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Locale;
 
 public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -54,7 +55,7 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
         HttpServerTransport httpServerTransport = internalCluster().getInstance(HttpServerTransport.class);
         InetSocketAddress address = ((InetSocketTransportAddress) httpServerTransport.boundAddress().publishAddress())
                 .address();
-        httpPost = new HttpPost(String.format("http://%s:%s/_sql?error_trace", address.getHostName(), address.getPort()));
+        httpPost = new HttpPost(String.format(Locale.ENGLISH, "http://%s:%s/_sql?error_trace", address.getHostName(), address.getPort()));
     }
 
     protected CloseableHttpClient httpClient = HttpClients.createDefault();

@@ -29,6 +29,7 @@ import io.crate.sql.tree.SubscriptExpression;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class OutputNameFormatter {
 
@@ -51,7 +52,7 @@ public class OutputNameFormatter {
 
         @Override
         protected String visitSubscriptExpression(SubscriptExpression node, Void context) {
-            return String.format("%s[%s]", process(node.name(), null), process(node.index(), null));
+            return String.format(Locale.ENGLISH, "%s[%s]", process(node.name(), null), process(node.index(), null));
         }
     }
 }

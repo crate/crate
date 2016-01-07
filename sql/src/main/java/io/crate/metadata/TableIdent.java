@@ -147,7 +147,7 @@ public class TableIdent implements Streamable {
 
     @Override
     public String toString() {
-        return String.format("%s.%s", schema, name);
+        return String.format(Locale.ENGLISH, "%s.%s", schema, name);
     }
 
     @Override

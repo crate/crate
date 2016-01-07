@@ -2,6 +2,9 @@ buildscript {
     repositories {
         mavenCentral()
     }
+    dependencies {
+        classpath 'de.thetaphi:forbiddenapis:2.0'
+    }
 }
 
 allprojects {

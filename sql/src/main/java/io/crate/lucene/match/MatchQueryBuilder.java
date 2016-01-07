@@ -48,6 +48,7 @@ import org.elasticsearch.index.search.MatchQuery;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class MatchQueryBuilder {
@@ -97,7 +98,7 @@ public class MatchQueryBuilder {
     }
 
     protected IllegalArgumentException illegalMatchType(String matchType) {
-        throw new IllegalArgumentException(String.format(
+        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Unknown matchType \"%s\". Possible matchTypes are: %s", matchType,
                 Joiner.on(", ").join(Iterables.transform(SUPPORTED_TYPES.keySet(), new Function<BytesRef, String>() {
                             @Nullable
@@ -252,7 +253,7 @@ public class MatchQueryBuilder {
             analyzer = mapperService.analysisService().analyzer(options.analyzer());
             if (analyzer == null) {
                 throw new IllegalArgumentException(
-                        String.format("Analyzer \"%s\" not found.", options.analyzer()));
+                        String.format(Locale.ENGLISH, "Analyzer \"%s\" not found.", options.analyzer()));
             }
         }
         return analyzer;

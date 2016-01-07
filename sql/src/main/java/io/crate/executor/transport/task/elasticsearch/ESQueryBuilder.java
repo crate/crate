@@ -726,7 +726,7 @@ public class ESQueryBuilder {
             private final LikeConverter likeConverter = new LikeConverter();
 
             public String negateWildcard(String wildCard) {
-                return String.format("~(%s)", wildCard);
+                return String.format(Locale.ENGLISH, "~(%s)", wildCard);
             }
 
             @Override
@@ -1033,7 +1033,7 @@ public class ESQueryBuilder {
                                 return null;
                             } else {
                                 throw new UnsupportedOperationException(
-                                        String.format("Function %s() not supported in WHERE clause", functionName));
+                                        String.format(Locale.ENGLISH, "Function %s() not supported in WHERE clause", functionName));
                             }
                         }
                     }

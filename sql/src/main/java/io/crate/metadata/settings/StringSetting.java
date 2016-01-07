@@ -27,6 +27,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.Locale;
 import java.util.Set;
 
 public abstract class StringSetting extends Setting<String, String> {
@@ -62,7 +63,7 @@ public abstract class StringSetting extends Setting<String, String> {
     @Nullable
     public String validate(String value) {
         if (allowedValues != null && !allowedValues.contains(value)) {
-            return String.format("'%s' is not an allowed value. Allowed values are: %s",
+            return String.format(Locale.ENGLISH, "'%s' is not an allowed value. Allowed values are: %s",
                     value, Joiner.on(", ").join(allowedValues)
 
             );

@@ -37,6 +37,7 @@ import io.crate.types.DataTypes;
 import org.joda.time.DateTimeUtils;
 
 import java.math.RoundingMode;
+import java.util.Locale;
 
 public class CurrentTimestampFunction extends Scalar<Long, Integer> implements FunctionFormatSpec {
 
@@ -58,7 +59,8 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> implements F
         if (args.length == 1) {
             Integer precision = args[0].value();
             if (precision == null) {
-                throw new IllegalArgumentException(String.format("NULL precision not supported for %s", NAME));
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                        "NULL precision not supported for %s", NAME));
             }
             int factor;
             switch (precision) {
@@ -96,7 +98,7 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> implements F
         if (precision.symbolType().isValueSymbol()) {
             return Literal.newLiteral(INFO.returnType(), evaluate((Input) precision));
         } else {
-            throw new IllegalArgumentException(String.format("Invalid argument to %s", NAME));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid argument to %s", NAME));
         }
 
     }

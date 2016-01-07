@@ -33,6 +33,7 @@ import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.CreateTable;
 import org.elasticsearch.common.inject.Singleton;
 
+import java.util.Locale;
 import java.util.UUID;
 
 @Singleton
@@ -40,7 +41,7 @@ public class ShowStatementDispatcher extends AnalyzedStatementVisitor<UUID, Task
 
     @Override
     protected TaskResult visitAnalyzedStatement(AnalyzedStatement analysis, UUID job) {
-        throw new UnsupportedOperationException(String.format("Can't handle \"%s\"", analysis));
+        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analysis));
     }
 
     @Override

@@ -172,13 +172,13 @@ public class AnalyzedColumnDefinition {
     public void validate() {
         if (analyzer != null && !analyzer.equals("not_analyzed") && !dataType.equals("string")) {
             throw new IllegalArgumentException(
-                    String.format("Can't use an Analyzer on column %s because analyzers are only allowed on columns of type \"string\".",
+                    String.format(Locale.ENGLISH, "Can't use an Analyzer on column %s because analyzers are only allowed on columns of type \"string\".",
                             ident.sqlFqn()
                     ));
         }
         if (isPrimaryKey() && collectionType != null) {
             throw new UnsupportedOperationException(
-                    String.format("Cannot use columns of type \"%s\" as primary key", collectionType));
+                    String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", collectionType));
         }
         for (AnalyzedColumnDefinition child : children) {
             child.validate();

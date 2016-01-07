@@ -31,6 +31,7 @@ import org.elasticsearch.common.logging.Loggers;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 public class BlobContainer {
@@ -45,7 +46,7 @@ public class BlobContainer {
 
     static {
         for (int i = 0; i < 256; i++) {
-            SUB_DIRS[i] = String.format("%02x", i & 0xFFFFF);
+            SUB_DIRS[i] = String.format(Locale.ENGLISH, "%02x", i & 0xFFFFF);
             PREFIXES[i] = (byte)i;
         }
     }

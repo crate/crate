@@ -74,6 +74,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 
@@ -395,7 +396,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             }
             StackTraceElement[] stackTraceElements = e.getStackTrace();
             if (stackTraceElements.length > 0) {
-                message = String.format("%s in %s", e.getClass().getSimpleName(), stackTraceElements[0]);
+                message = String.format(Locale.ENGLISH, "%s in %s", e.getClass().getSimpleName(), stackTraceElements[0]);
             } else {
                 message = "Error in " + e.getClass().getSimpleName();
             }

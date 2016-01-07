@@ -33,6 +33,7 @@ import org.junit.Test;
 import org.xbill.DNS.*;
 
 import java.util.List;
+import java.util.Locale;
 
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.eq;
@@ -59,8 +60,8 @@ public class SrvUnicastHostsProviderTest {
     public void mockTransportService() throws Exception {
         transportService = mock(TransportService.class);
         for (int i = 0; i < 4; i++) {
-            when(transportService.addressesFromString(eq(String.format("crate%d.internal:44300", i+1)))).thenReturn(new TransportAddress[]{
-                    new LocalTransportAddress(String.format("crate%d.internal", i+1))
+            when(transportService.addressesFromString(eq(String.format(Locale.ENGLISH, "crate%d.internal:44300", i + 1)))).thenReturn(new TransportAddress[]{
+                    new LocalTransportAddress(String.format(Locale.ENGLISH, "crate%d.internal", i+1))
             });
         }
     }

@@ -116,11 +116,11 @@ public class FullQualifedNameFieldProvider implements FieldProvider<Field> {
         }
         if (lastField == null) {
             if (!schemaMatched) {
-                throw new IllegalArgumentException(String.format(
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "Cannot resolve relation '%s.%s'", columnSchema, columnTableName));
             }
             if (!tableNameMatched) {
-                throw new IllegalArgumentException(String.format("Cannot resolve relation '%s'", columnTableName));
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Cannot resolve relation '%s'", columnTableName));
             }
             throw new ColumnUnknownException(columnIdent.sqlFqn());
         }

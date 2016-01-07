@@ -41,6 +41,7 @@ import org.junit.Test;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.hasKey;
@@ -69,7 +70,7 @@ public class PingTaskTest extends CrateUnitTest {
             for (byte b : mac) {
                 if (sb.length() > 0)
                     sb.append(':');
-                sb.append(String.format("%02x", b));
+                sb.append(String.format(Locale.ENGLISH, "%02x", b));
             }
             return sb.toString();
         } catch (Exception e) {

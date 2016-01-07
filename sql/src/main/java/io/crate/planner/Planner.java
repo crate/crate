@@ -303,7 +303,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Context context) {
-        throw new UnsupportedOperationException(String.format("AnalyzedStatement \"%s\" not supported.", analyzedStatement));
+        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "AnalyzedStatement \"%s\" not supported.", analyzedStatement));
     }
 
     @Override
