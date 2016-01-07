@@ -100,7 +100,8 @@ public class BlobRecoveryTarget extends AbstractComponent {
         transportService.registerHandler(Actions.FINALIZE_RECOVERY, new FinalizeRecoveryRequestHandler());
     }
 
-    abstract class BaseHandler<T extends TransportRequest> extends BaseTransportRequestHandler<T> {
+    // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
+    abstract class BaseHandler<T extends TransportRequest> implements TransportRequestHandler<T> {
 
         @Override
         public String executor() {

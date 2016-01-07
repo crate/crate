@@ -42,7 +42,7 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportRequestHandler;
+import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
@@ -124,7 +124,8 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
         );
     }
 
-    private class TransportHandler extends BaseTransportRequestHandler<SQLRequest> {
+    // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
+    private class TransportHandler implements TransportRequestHandler<SQLRequest> {
 
         @Override
         public SQLRequest newInstance() {

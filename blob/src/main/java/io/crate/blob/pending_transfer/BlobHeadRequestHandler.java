@@ -27,7 +27,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportRequestHandler;
+import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
@@ -66,7 +66,8 @@ public class BlobHeadRequestHandler {
         transportService.registerHandler(Actions.PUT_BLOB_HEAD_CHUNK, new PutBlobHeadChunkHandler());
     }
 
-    private class GetBlobHeadHandler extends BaseTransportRequestHandler<GetBlobHeadRequest> {
+    // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
+    private class GetBlobHeadHandler implements TransportRequestHandler<GetBlobHeadRequest> {
         @Override
         public GetBlobHeadRequest newInstance() {
             return new GetBlobHeadRequest();
@@ -105,7 +106,7 @@ public class BlobHeadRequestHandler {
 
 
 
-    class PutBlobHeadChunkHandler extends BaseTransportRequestHandler<PutBlobHeadChunkRequest> {
+    class PutBlobHeadChunkHandler implements TransportRequestHandler<PutBlobHeadChunkRequest> {
         @Override
         public PutBlobHeadChunkRequest newInstance() {
             return new PutBlobHeadChunkRequest();
@@ -128,7 +129,7 @@ public class BlobHeadRequestHandler {
         }
     }
 
-    class GetTransferInfoHandler extends BaseTransportRequestHandler<BlobInfoRequest> {
+    class GetTransferInfoHandler implements TransportRequestHandler<BlobInfoRequest> {
         @Override
         public BlobInfoRequest newInstance() {
             return new BlobInfoRequest();

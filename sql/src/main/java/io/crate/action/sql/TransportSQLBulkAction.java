@@ -38,7 +38,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportRequestHandler;
+import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
@@ -96,7 +96,8 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
                 outputNames, results, request.creationTime(), dataTypes, request.includeTypesOnResponse());
     }
 
-    private class TransportHandler extends BaseTransportRequestHandler<SQLBulkRequest> {
+    // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
+    private class TransportHandler implements TransportRequestHandler<SQLBulkRequest> {
 
         @Override
         public SQLBulkRequest newInstance() {

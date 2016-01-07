@@ -40,7 +40,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportRequestHandler;
+import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
@@ -146,7 +146,8 @@ public class BlobRecoverySource extends AbstractComponent {
         return handler.getResponse();
     }
 
-    class StartRecoveryTransportRequestHandler extends BaseTransportRequestHandler<StartRecoveryRequest> {
+    // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
+    class StartRecoveryTransportRequestHandler implements TransportRequestHandler<StartRecoveryRequest> {
 
         @Override
         public StartRecoveryRequest newInstance() {
