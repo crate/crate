@@ -23,7 +23,6 @@ package io.crate.blob;
 
 import io.crate.blob.exceptions.DigestNotFoundException;
 import io.crate.common.Hex;
-import org.elasticsearch.ElasticsearchIllegalStateException;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -114,7 +113,7 @@ public class BlobContainer {
         for(int i = 0; i < names.length; i ++){
             try {
                 digests[i] = Hex.decodeHex(names[i]);
-            } catch (ElasticsearchIllegalStateException ex) {
+            } catch (IllegalStateException ex) {
                 logger.error("Can't convert string {} to byte array", names[i]);
                 throw ex;
             }

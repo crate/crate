@@ -34,7 +34,6 @@ import io.crate.plugin.CrateCorePlugin;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.elasticsearch.ElasticsearchIllegalStateException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -150,7 +149,7 @@ public class RecoveryTests extends ElasticsearchIntegrationTest {
                                     startBlobRequest.transferId(), bytes, i,
                                     (i + 1) == content.length())
                     ).actionGet();
-                } catch (ElasticsearchIllegalStateException ex) {
+                } catch (IllegalStateException ex) {
                     Thread.interrupted();
                 }
             }
