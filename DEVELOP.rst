@@ -278,10 +278,31 @@ will receive information where more detailed benchmark-results got stored.
 internal benchmarks
 -------------------
 
-Internal benchmarks are part of the SQL module and test a specific component or
-unit and can be run using::
+Internal benchmarks test specific components or units.
+
+We used to write them using JUnitBenchmarks, but the project has been
+deprecated in favor of `JMH`_.
+
+The benchmarks that were written using JUnitBenchmarks can still be run using::
 
     $ ./gradlew benchmarks
+
+But they should eventually be replaced with benchmarks that use `JMH`_.
+
+Jmh
+---
+
+`JMH`_ benchmarks can be executed using ``gradle``::
+
+    $ ./gradlew jmh
+
+By default this will look for benchmarks inside ``<module>/src/jmh/java`` and
+execute them.
+
+Results will be generated into ``$buildDir/reports/jmh``.
+
+If you're writing new benchmarks take a look at this `JMH introduction`_ and
+those `JMH samples`_.
 
 Preparing a new Release
 =======================
@@ -346,4 +367,10 @@ the grammer changed::
 
 .. _`log4j`: http://logging.apache.org/log4j/2.x/
 
+.. _`JMH`: http://openjdk.java.net/projects/code-tools/jmh/
 
+.. _`jmh-gradle-plugin`: https://github.com/melix/jmh-gradle-plugin
+
+.. _`JMH introduction`: http://java-performance.info/jmh/
+
+.. _`JMH samples`: http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/

@@ -7,6 +7,11 @@ buildscript {
     }
 }
 
+plugins {
+     id 'me.champeau.gradle.jmh' version '0.2.0'
+}
+
+
 allprojects {
     apply plugin: 'idea'
     apply plugin: 'findbugs'
