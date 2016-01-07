@@ -23,7 +23,7 @@ package io.crate.blob;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.action.support.replication.TransportShardReplicationOperationAction;
+import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -31,11 +31,12 @@ import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportPutChunkAction extends TransportShardReplicationOperationAction<PutChunkRequest, PutChunkReplicaRequest, PutChunkResponse> {
+public class TransportPutChunkAction extends TransportReplicationAction<PutChunkRequest, PutChunkReplicaRequest, PutChunkResponse> {
 
     private final BlobTransferTarget transferTarget;
 
@@ -91,7 +92,7 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
     }
 
     @Override
-    protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
+    protected void shardOperationOnReplica(ShardId shardId, PutChunkRequest shardRequest) {
         final PutChunkReplicaRequest request = shardRequest.request;
         PutChunkResponse response = newResponseInstance();
         transferTarget.continueTransfer(request, response, shardRequest.shardId.id());

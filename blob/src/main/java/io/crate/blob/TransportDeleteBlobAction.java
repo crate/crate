@@ -25,7 +25,7 @@ import io.crate.blob.v2.BlobIndices;
 import io.crate.blob.v2.BlobShard;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.action.support.replication.TransportShardReplicationOperationAction;
+import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -33,11 +33,12 @@ import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportDeleteBlobAction extends TransportShardReplicationOperationAction<DeleteBlobRequest, DeleteBlobRequest,
+public class TransportDeleteBlobAction extends TransportReplicationAction<DeleteBlobRequest, DeleteBlobRequest,
         DeleteBlobResponse> {
 
     private final BlobIndices blobIndices;
@@ -88,7 +89,7 @@ public class TransportDeleteBlobAction extends TransportShardReplicationOperatio
     }
 
     @Override
-    protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
+    protected void shardOperationOnReplica(ShardId shardId, DeleteBlobRequest shardRequest) {
         logger.warn("shardOperationOnReplica operating on replica but relocation is not implemented {}", shardRequest);
         BlobShard blobShard = blobIndices.blobShardSafe(shardRequest.request.index(), shardRequest.shardId.id());
         blobShard.delete(shardRequest.request.id());

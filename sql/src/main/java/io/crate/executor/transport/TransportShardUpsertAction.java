@@ -47,7 +47,7 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportActions;
-import org.elasticsearch.action.support.replication.TransportShardReplicationOperationAction;
+import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -90,7 +90,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
 public class TransportShardUpsertAction
-        extends TransportShardReplicationOperationAction<ShardUpsertRequest, ShardUpsertRequest, ShardUpsertResponse>
+        extends TransportReplicationAction<ShardUpsertRequest, ShardUpsertRequest, ShardUpsertResponse>
         implements KillAllListener {
 
     private final static String ACTION_NAME = "indices:crate/data/write/upsert_symbol_based";
@@ -195,7 +195,7 @@ public class TransportShardUpsertAction
     }
 
     @Override
-    protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
+    protected void shardOperationOnReplica(ShardId shardId, ShardUpsertRequest shardRequest) {
     }
 
     protected ShardUpsertResponse processRequestItems(ShardId shardId,
