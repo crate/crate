@@ -22,10 +22,10 @@
 package io.crate.blob;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.replication.ShardReplicationOperationRequestBuilder;
+import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.client.Client;
 
-public class PutChunkRequestBuilder extends ShardReplicationOperationRequestBuilder<PutChunkRequest, PutChunkResponse,
+public class PutChunkRequestBuilder extends ReplicationRequest<PutChunkRequest, PutChunkResponse,
         PutChunkRequestBuilder> {
 
     protected PutChunkRequestBuilder(Client client) {

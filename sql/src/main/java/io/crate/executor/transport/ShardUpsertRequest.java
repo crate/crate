@@ -30,7 +30,7 @@ import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.doc.DocSysColumns;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
-import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
+import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -42,7 +42,7 @@ import org.elasticsearch.index.shard.ShardId;
 import java.io.IOException;
 import java.util.*;
 
-public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item> {
+public class ShardUpsertRequest extends ReplicationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item> {
 
     @Nullable
     private String routing;

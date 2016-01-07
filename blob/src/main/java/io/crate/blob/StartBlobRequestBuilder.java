@@ -22,10 +22,10 @@
 package io.crate.blob;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.replication.ShardReplicationOperationRequestBuilder;
+import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.client.Client;
 
-public class StartBlobRequestBuilder extends ShardReplicationOperationRequestBuilder<StartBlobRequest, StartBlobResponse,
+public class StartBlobRequestBuilder extends ReplicationRequest<StartBlobRequest, StartBlobResponse,
         StartBlobRequestBuilder> {
 
     protected StartBlobRequestBuilder(Client client) {
