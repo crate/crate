@@ -27,12 +27,11 @@ import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.core.ArrayMapper;
-import org.elasticsearch.index.settings.IndexSettings;
 
 public class ArrayMapperRegistration extends AbstractIndexComponent {
 
     @Inject
-    protected ArrayMapperRegistration(Index index, @IndexSettings Settings indexSettings, MapperService mapperService) {
+    protected ArrayMapperRegistration(Index index, Settings indexSettings, MapperService mapperService) {
         super(index, indexSettings);
 
         mapperService.documentMapperParser().putTypeParser(ArrayMapper.CONTENT_TYPE, new ArrayMapper.TypeParser());

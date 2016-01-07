@@ -28,7 +28,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.settings.IndexSettings;
 import org.elasticsearch.index.shard.ShardId;
 
 public class BlobIndex extends AbstractIndexComponent {
@@ -38,7 +37,7 @@ public class BlobIndex extends AbstractIndexComponent {
     private final ClusterService clusterService;
 
     @Inject
-    BlobIndex(Index index, @IndexSettings Settings indexSettings,
+    BlobIndex(Index index, Settings indexSettings,
             OperationRouting operationRouting,
             ClusterService clusterService) {
         super(index, indexSettings);
