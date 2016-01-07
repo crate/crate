@@ -62,7 +62,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -198,7 +198,7 @@ public class ShardCollectSource implements CollectSource {
                     orderedDocCollectors.add(shardCollectService.getOrderedCollector(collectPhase, context, jobCollectContext));
                 } catch (ShardNotFoundException | CancellationException | IllegalIndexShardStateException e) {
                     throw e;
-                } catch (IndexMissingException e) {
+                } catch (IndexNotFoundException e) {
                     if (PartitionName.isPartition(indexName)) {
                         break;
                     }
@@ -235,7 +235,7 @@ public class ShardCollectSource implements CollectSource {
             IndexService indexService;
             try {
                 indexService = indicesService.indexServiceSafe(indexName);
-            } catch (IndexMissingException e) {
+            } catch (IndexNotFoundException e) {
                 if (PartitionName.isPartition(indexName)) {
                     continue;
                 }

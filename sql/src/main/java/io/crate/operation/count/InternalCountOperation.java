@@ -36,7 +36,7 @@ import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -96,7 +96,7 @@ public class InternalCountOperation implements CountOperation {
         IndexService indexService;
         try {
             indexService = indicesService.indexServiceSafe(index);
-        } catch (IndexMissingException e) {
+        } catch (IndexNotFoundException e) {
             if (PartitionName.isPartition(index)) {
                 return 0L;
             }

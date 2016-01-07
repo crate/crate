@@ -33,7 +33,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.DummyTransportAddress;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -106,7 +106,7 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
 
     @Test
     public void testUnknownIndex() throws Exception {
-        expectedException.expect(IndexMissingException.class);
+        expectedException.expect(IndexNotFoundException.class);
         expectedException.expectMessage("[unknown] missing");
 
         ShardId shardId = new ShardId("unknown", 42);

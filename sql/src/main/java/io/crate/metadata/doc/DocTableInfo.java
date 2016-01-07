@@ -47,7 +47,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -188,7 +188,7 @@ public class DocTableInfo extends AbstractTableInfo implements ShardedTable {
 
     private GroupShardsIterator getShardIterators(WhereClause whereClause,
                                                   @Nullable String preference,
-                                                  ClusterState clusterState) throws IndexMissingException {
+                                                  ClusterState clusterState) throws IndexNotFoundException {
         String[] routingIndices = concreteIndices;
         if (whereClause.partitions().size() > 0) {
             routingIndices = whereClause.partitions().toArray(new String[whereClause.partitions().size()]);
@@ -214,7 +214,7 @@ public class DocTableInfo extends AbstractTableInfo implements ShardedTable {
         GroupShardsIterator shardIterators;
         try {
             shardIterators = getShardIterators(whereClause, preference, state);
-        } catch (IndexMissingException e) {
+        } catch (IndexNotFoundException e) {
             return new Routing(locations);
         }
 
@@ -254,7 +254,7 @@ public class DocTableInfo extends AbstractTableInfo implements ShardedTable {
                         GroupShardsIterator shardIterators;
                         try {
                             shardIterators = getShardIterators(whereClause, preference, state);
-                        } catch (IndexMissingException e) {
+                        } catch (IndexNotFoundException e) {
                             return true;
                         }
 

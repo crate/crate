@@ -58,7 +58,7 @@ import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.repositories.RepositoryMissingException;
@@ -328,8 +328,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         } else if (e instanceof InvalidIndexTemplateException) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(((InvalidIndexTemplateException) e).name());
             return new InvalidTableNameException(partitionName.tableIdent().fqn(), e);
-        } else if (e instanceof IndexMissingException) {
-            return new TableUnknownException(((IndexMissingException) e).index().name(), e);
+        } else if (e instanceof IndexNotFoundException) {
+            return new TableUnknownException(((IndexNotFoundException) e).index().name(), e);
         } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
             return new CircuitBreakingException(e.getMessage());
         } else if (e instanceof CancellationException) {

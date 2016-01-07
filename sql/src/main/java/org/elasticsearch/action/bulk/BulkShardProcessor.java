@@ -48,7 +48,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -222,7 +222,7 @@ public class BulkShardProcessor {
                     id,
                     routing
             ).shardId();
-        } catch (IndexMissingException e) {
+        } catch (IndexNotFoundException e) {
             if (!autoCreateIndices) {
                 throw e;
             }

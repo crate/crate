@@ -35,7 +35,7 @@ import io.crate.planner.node.fetch.FetchPhase;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -103,7 +103,7 @@ public class FetchContext extends AbstractExecutionSubContext {
                         if (tablesWithFetchRefs.contains(ident)) {
                             try {
                                 searchers.put(readerId, shardContext.searcher());
-                            } catch (IndexMissingException e) {
+                            } catch (IndexNotFoundException e) {
                                 if (!PartitionName.isPartition(index)) {
                                     throw new TableUnknownException(index, e);
                                 }

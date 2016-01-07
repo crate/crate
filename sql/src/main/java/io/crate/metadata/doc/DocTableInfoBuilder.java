@@ -36,7 +36,7 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -90,7 +90,7 @@ public class DocTableInfoBuilder {
                     throw new TableUnknownException(ident);
                 }
                 docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
-            } catch (IndexMissingException ex) {
+            } catch (IndexNotFoundException ex) {
                 throw new TableUnknownException(ident.fqn(), ex);
             }
         }

@@ -33,7 +33,7 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 
 import java.io.File;
 import java.io.IOException;
@@ -66,7 +66,7 @@ public class BlobTableInfoBuilder {
         String index = BlobIndices.fullIndexName(ident.name());
         try {
             concreteIndices = metaData.concreteIndices(IndicesOptions.strictExpandOpen(), index);
-        } catch (IndexMissingException ex) {
+        } catch (IndexNotFoundException ex) {
             throw new TableUnknownException(index, ex);
         }
         docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);

@@ -1986,7 +1986,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         });
         execute("refresh table t");
         execute("delete from t");
-        // used to throw IndexMissingException if the new cluster state after the delete wasn't propagated to all nodes
+        // used to throw IndexNotFoundException if the new cluster state after the delete wasn't propagated to all nodes
         // (on about 2 runs in 100 iterations)
         execute("alter table t set (number_of_replicas = 0)");
     }
