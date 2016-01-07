@@ -27,6 +27,7 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.format.ISODateTimeFormat;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 
 public class Build {
@@ -38,12 +39,9 @@ public class Build {
         String hashShort = "NA";
         String timestamp = "NA";
 
-        try {
-            String properties = Streams.copyToStringFromClasspath("/crate-build.properties");
+        try (InputStream inputStream = Build.class.getResourceAsStream("/crate-build.properties")){
             Properties props = new Properties();
-            try (FastStringReader fsr = new FastStringReader(properties)) {
-                props.load(fsr);
-            }
+            props.load(inputStream);
             hash = props.getProperty("hash", hash);
             if (!hash.equals("NA")) {
                 hashShort = hash.substring(0, 7);
