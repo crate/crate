@@ -59,7 +59,7 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.IndexShardMissingException;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexMissingException;
@@ -196,7 +196,7 @@ public class ShardCollectSource implements CollectSource {
                     Injector shardInjector = context.indexService().shardInjectorSafe(shardId);
                     ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
                     orderedDocCollectors.add(shardCollectService.getOrderedCollector(collectPhase, context, jobCollectContext));
-                } catch (IndexShardMissingException | CancellationException | IllegalIndexShardStateException e) {
+                } catch (ShardNotFoundException | CancellationException | IllegalIndexShardStateException e) {
                     throw e;
                 } catch (IndexMissingException e) {
                     if (PartitionName.isPartition(indexName)) {
@@ -253,7 +253,7 @@ public class ShardCollectSource implements CollectSource {
                             jobCollectContext
                     );
                     crateCollectors.add(collector);
-                } catch (IndexShardMissingException | CancellationException | IllegalIndexShardStateException e) {
+                } catch (ShardNotFoundException | CancellationException | IllegalIndexShardStateException e) {
                     projectorChain.fail(e);
                     throw e;
                 } catch (Throwable t) {
@@ -298,7 +298,7 @@ public class ShardCollectSource implements CollectSource {
                     if (row != null) {
                         rows.add(row);
                     }
-                } catch (IndexShardMissingException | IllegalIndexShardStateException e) {
+                } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     unassignedShards.add(toUnassignedShard(new ShardId(indexName, shard)));
                 } catch (Throwable t) {
                     projectorChain.fail(t);

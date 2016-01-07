@@ -50,7 +50,7 @@ import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.IndexShardMissingException;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
@@ -177,7 +177,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
             try {
                 Injector injector = indexService.shardInjectorSafe(shardId);
                 return injector.getInstance(BlobShard.class);
-            } catch (IndexShardMissingException e) {
+            } catch (ShardNotFoundException e) {
                 return null;
             }
         }
