@@ -45,6 +45,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.security.CodeSource;
 import java.util.*;
 
@@ -139,12 +140,12 @@ public class PluginLoader {
 
     @Nullable
     private List<URL> getPluginUrls() {
-        File pluginsDirectory = environment.pluginsFile();
+        Path pluginsDirectory = environment.pluginsFile();
         if (!isAccessibleDirectory(pluginsDirectory, logger)) {
             return Collections.emptyList();
         }
 
-        File[] plugins = pluginsDirectory.listFiles();
+        File[] plugins = pluginsDirectory.toFile().listFiles();
         if (plugins == null) {
             return Collections.emptyList();
         }
