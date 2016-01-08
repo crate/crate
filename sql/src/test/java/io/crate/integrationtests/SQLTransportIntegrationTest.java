@@ -380,9 +380,9 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
         for (IndexMetaData indexMetaData : metaData) {
-            builder.startObject(indexMetaData.index(), XContentBuilder.FieldCaseConversion.NONE);
+            builder.startObject(indexMetaData.getIndex(), XContentBuilder.FieldCaseConversion.NONE);
             builder.startObject("settings");
-            Settings settings = indexMetaData.settings();
+            Settings settings = indexMetaData.getSettings();
             for (Map.Entry<String, String> entry : settings.getAsMap().entrySet()) {
                 builder.field(entry.getKey(), entry.getValue());
             }

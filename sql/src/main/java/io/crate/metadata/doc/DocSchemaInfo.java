@@ -306,11 +306,11 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                 if (newIndexMetaData != null && event.indexMetaDataChanged(newIndexMetaData)) {
                     cache.invalidate(tableName);
                     // invalidate aliases of changed indices
-                    invalidateAliases(newIndexMetaData.aliases());
+                    invalidateAliases(newIndexMetaData.getAliases());
 
                     IndexMetaData oldIndexMetaData = event.previousState().metaData().index(indexName);
                     if (oldIndexMetaData != null) {
-                        invalidateAliases(oldIndexMetaData.aliases());
+                        invalidateAliases(oldIndexMetaData.getAliases());
                     }
                 } else {
                     // this is the case if a single partition has been modified using alter table <t> partition (...)

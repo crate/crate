@@ -262,7 +262,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     private void removeIndexLocationsForDeletedIndices(ClusterChangedEvent event, MetaData currentMetaData) {
         MetaData newMetaData = event.state().metaData();
         for (IndexMetaData current : currentMetaData) {
-            String index = current.index();
+            String index = current.getIndex();
             if (!newMetaData.hasIndex(index) && isBlobIndex(index)) {
                 deleteBlobIndexLocation(current, index);
             }
@@ -272,8 +272,8 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     private void deleteBlobIndexLocation(IndexMetaData current, String index) {
         File indexLocation = null;
         File customBlobsPath = null;
-        if (current.settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH) != null) {
-            customBlobsPath = new File(current.settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH));
+        if (current.getSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH) != null) {
+            customBlobsPath = new File(current.getSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH));
             indexLocation = blobEnvironment.indexLocation(new Index(index), customBlobsPath);
         } else if (blobEnvironment.blobsPath() != null) {
             indexLocation = blobEnvironment.indexLocation(new Index(index));
