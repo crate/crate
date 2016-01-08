@@ -23,8 +23,8 @@ package io.crate;
 
 import io.crate.blob.BlobEnvironment;
 import io.crate.test.integration.CrateUnitTest;
+import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.os.OsUtils;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
@@ -67,7 +67,7 @@ public class BlobEnvironmentTest extends CrateUnitTest {
             testFile.delete();
         }
         if (dataPath != null) {
-            FileSystemUtils.deleteRecursively(dataPath.toAbsolutePath().toFile());
+            IOUtils.rm(dataPath.toAbsolutePath());
         }
     }
 

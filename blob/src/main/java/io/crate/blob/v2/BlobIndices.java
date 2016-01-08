@@ -27,6 +27,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.BlobShardFuture;
+import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
@@ -46,16 +47,16 @@ import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 
 import java.io.File;
+import java.io.IOException;
 
 public class BlobIndices extends AbstractComponent implements ClusterStateListener {
 
@@ -287,7 +288,9 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         String absolutePath = indexLocation.getAbsolutePath();
         if (indexLocation.exists()) {
             logger.debug("[{}] Deleting blob index directory '{}'", index, absolutePath);
-            if (!FileSystemUtils.deleteRecursively(indexLocation)) {
+            try {
+                IOUtils.rm(indexLocation.toPath());
+            } catch (IOException e) {
                 logger.warn("Could not delete blob index directory {}", absolutePath);
             }
         } else {
@@ -298,7 +301,9 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         if (customBlobsPath != null && blobEnvironment.isCustomBlobPathEmpty(customBlobsPath)) {
             logger.debug("[{}] Empty per table defined blobs path found, deleting leftover folders inside {}",
                     index, customBlobsPath.getAbsolutePath());
-            if (!FileSystemUtils.deleteRecursively(customBlobsPath, false)) {
+            try {
+                IOUtils.rm(customBlobsPath.toPath());
+            } catch (IOException e) {
                 logger.warn("Could not delete custom blob path {}", customBlobsPath.getAbsolutePath());
             }
         }

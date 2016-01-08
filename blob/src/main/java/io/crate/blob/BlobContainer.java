@@ -21,6 +21,7 @@
 
 package io.crate.blob;
 
+import com.google.common.base.Throwables;
 import io.crate.blob.exceptions.DigestNotFoundException;
 import io.crate.common.Hex;
 import org.elasticsearch.common.io.FileSystemUtils;
@@ -54,12 +55,23 @@ public class BlobContainer {
     private final File tmpDirectory;
     private final File varDirectory;
 
-    public BlobContainer(File baseDirectory) throws IOException {
+    public BlobContainer(File baseDirectory) {
         this.baseDirectory = baseDirectory;
         this.tmpDirectory = new File(baseDirectory, "tmp");
         this.varDirectory = new File(baseDirectory, "var");
-        Files.createDirectories(this.varDirectory.toPath());
-        Files.createDirectories(this.tmpDirectory.toPath());
+        try {
+            Files.createDirectories(this.varDirectory.toPath());
+        } catch (IOException e) {
+            logger.error("Could not create 'var' path {}", this.varDirectory.getAbsolutePath());
+            Throwables.propagate(e);
+        }
+
+        try {
+            Files.createDirectories(this.tmpDirectory.toPath());
+        } catch (IOException e) {
+            logger.error("Could not create 'tmp' path {}", this.tmpDirectory.getAbsolutePath());
+            Throwables.propagate(e);
+        }
 
         createSubDirectories(this.varDirectory);
     }
