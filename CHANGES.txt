@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - BREAKING CHANGE: column names may not contain the `.` character anymore
+
  - Fixed bug that prevented ``insert into`` to respect ``blocks.read_only``
    setting of partitioned tables
 
