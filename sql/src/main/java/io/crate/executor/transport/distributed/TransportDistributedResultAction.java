@@ -69,16 +69,10 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
         this.jobContextService = jobContextService;
         scheduler = threadPool.scheduler();
 
-        // TODO: FIX ME! Check if ThreadPool.Names.SAME actually applies
         transportService.registerRequestHandler(DISTRIBUTED_RESULT_ACTION,
                 DistributedResultRequest.class,
-                ThreadPool.Names.SAME,
-                new NodeActionRequestHandler<DistributedResultRequest, DistributedResultResponse>(this) {
-                    @Override
-                    public DistributedResultRequest newInstance() {
-                        return new DistributedResultRequest();
-                    }
-                });
+                ThreadPool.Names.GENERIC,
+                new NodeActionRequestHandler<DistributedResultRequest, DistributedResultResponse>(this) { });
     }
 
     public void pushResult(String node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {

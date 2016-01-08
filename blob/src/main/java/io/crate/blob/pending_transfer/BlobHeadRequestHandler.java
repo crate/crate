@@ -61,25 +61,14 @@ public class BlobHeadRequestHandler {
     }
 
     public void registerHandler() {
-        // TODO: FIX ME! Check if ThreadPool.Names.SAME actually applies
-        transportService.registerRequestHandler(Actions.GET_BLOB_HEAD, GetBlobHeadRequest.class, ThreadPool.Names.SAME, new GetBlobHeadHandler());
+        transportService.registerRequestHandler(Actions.GET_BLOB_HEAD, GetBlobHeadRequest.class, ThreadPool.Names.GENERIC, new GetBlobHeadHandler());
         // TODO: FIX ME! Maybe change the name of either BlobInfoRequest to BlobTransferInfoRequest or remove Transfer alltogether
-        transportService.registerRequestHandler(Actions.GET_TRANSFER_INFO, BlobInfoRequest.class, ThreadPool.Names.SAME, new GetTransferInfoHandler());
-        transportService.registerRequestHandler(Actions.PUT_BLOB_HEAD_CHUNK, PutBlobHeadChunkRequest.class, ThreadPool.Names.SAME, new PutBlobHeadChunkHandler());
+        transportService.registerRequestHandler(Actions.GET_TRANSFER_INFO, BlobInfoRequest.class, ThreadPool.Names.GENERIC, new GetTransferInfoHandler());
+        transportService.registerRequestHandler(Actions.PUT_BLOB_HEAD_CHUNK, PutBlobHeadChunkRequest.class, ThreadPool.Names.GENERIC, new PutBlobHeadChunkHandler());
     }
 
     // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
     private class GetBlobHeadHandler implements TransportRequestHandler<GetBlobHeadRequest> {
-        @Override
-        public GetBlobHeadRequest newInstance() {
-            return new GetBlobHeadRequest();
-        }
-
-        @Override
-        public String executor() {
-            return ThreadPool.Names.GENERIC;
-        }
-
         /**
          * this is method is called on the recovery source node
          * the target is requesting the head of a file it got a PutReplicaChunkRequest for.
@@ -109,11 +98,6 @@ public class BlobHeadRequestHandler {
 
 
     class PutBlobHeadChunkHandler implements TransportRequestHandler<PutBlobHeadChunkRequest> {
-        @Override
-        public PutBlobHeadChunkRequest newInstance() {
-            return new PutBlobHeadChunkRequest();
-        }
-
         /**
          * called when the target node in a recovery receives a PutBlobHeadChunkRequest
          */
@@ -124,19 +108,9 @@ public class BlobHeadRequestHandler {
             transferStatus.digestBlob().addToHead(request.content);
             channel.sendResponse(TransportResponse.Empty.INSTANCE);
         }
-
-        @Override
-        public String executor() {
-            return ThreadPool.Names.GENERIC;
-        }
     }
 
     class GetTransferInfoHandler implements TransportRequestHandler<BlobInfoRequest> {
-        @Override
-        public BlobInfoRequest newInstance() {
-            return new BlobInfoRequest();
-        }
-
         @Override
         public void messageReceived(BlobInfoRequest request, TransportChannel channel) throws Exception {
             final BlobTransferStatus transferStatus = blobTransferTarget.getActiveTransfer(request.transferId);
@@ -148,11 +122,6 @@ public class BlobHeadRequestHandler {
                 transferStatus.digestBlob().getDigest()
             );
             channel.sendResponse(response);
-        }
-
-        @Override
-        public String executor() {
-            return ThreadPool.Names.GENERIC;
         }
     }
 }

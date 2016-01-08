@@ -61,7 +61,6 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
         super(clusterService, settings, SQLBulkAction.NAME, threadPool, analyzer,
                 planner, executor, statsTables, actionFilters, transportKillJobsNodeAction);
 
-        // TODO: FIX ME! Check if ThreadPool.Names.SAME actually applies
         transportService.registerRequestHandler(SQLBulkAction.NAME, SQLBulkRequest.class, ThreadPool.Names.SAME, new TransportHandler());
     }
 
@@ -100,23 +99,12 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
 
     // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
     private class TransportHandler implements TransportRequestHandler<SQLBulkRequest> {
-
-        @Override
-        public SQLBulkRequest newInstance() {
-            return new SQLBulkRequest();
-        }
-
         @Override
         public void messageReceived(SQLBulkRequest request, final TransportChannel channel) throws Exception {
             // no need for a threaded listener
             request.listenerThreaded(false);
             ActionListener<SQLBulkResponse> listener = ResponseForwarder.forwardTo(channel);
             execute(request, listener);
-        }
-
-        @Override
-        public String executor() {
-            return ThreadPool.Names.SAME;
         }
     }
 }

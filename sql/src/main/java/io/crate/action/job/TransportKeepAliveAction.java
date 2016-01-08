@@ -54,16 +54,10 @@ public class TransportKeepAliveAction implements NodeAction<KeepAliveRequest, Tr
         this.jobContextService = jobContextService;
         this.transports = transports;
 
-        // TODO: FIX ME! Check if ThreadPool.Names.SAME actually applies
         transportService.registerRequestHandler(ACTION_NAME,
                 KeepAliveRequest.class,
-                ThreadPool.Names.SAME,
-                new NodeActionRequestHandler<KeepAliveRequest, TransportResponse.Empty>(this) {
-                    @Override
-                    public KeepAliveRequest newInstance() {
-                        return new KeepAliveRequest();
-                    }
-                });
+                ThreadPool.Names.GENERIC,
+                new NodeActionRequestHandler<KeepAliveRequest, TransportResponse.Empty>(this) { });
     }
 
     public void keepAlive(String node, final KeepAliveRequest request, final ActionListener<TransportResponse.Empty> listener) {

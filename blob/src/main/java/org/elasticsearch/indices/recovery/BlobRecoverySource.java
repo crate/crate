@@ -98,8 +98,7 @@ public class BlobRecoverySource extends AbstractComponent {
     }
 
     public void registerHandler() {
-        // TODO: FIX ME! Check if ThreadPool.Names.SAME actually applies
-        transportService.registerRequestHandler(Actions.START_RECOVERY, StartRecoveryRequest.class, ThreadPool.Names.SAME, new StartRecoveryTransportRequestHandler());
+        transportService.registerRequestHandler(Actions.START_RECOVERY, StartRecoveryRequest.class, ThreadPool.Names.GENERIC, new StartRecoveryTransportRequestHandler());
     }
 
     private RecoveryResponse recover(final StartRecoveryRequest request) {
@@ -148,17 +147,6 @@ public class BlobRecoverySource extends AbstractComponent {
 
     // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
     class StartRecoveryTransportRequestHandler implements TransportRequestHandler<StartRecoveryRequest> {
-
-        @Override
-        public StartRecoveryRequest newInstance() {
-            return new StartRecoveryRequest();
-        }
-
-        @Override
-        public String executor() {
-            return ThreadPool.Names.GENERIC;
-        }
-
         @Override
         public void messageReceived(final StartRecoveryRequest request, final TransportChannel channel) throws Exception {
             RecoveryResponse response = recover(request);

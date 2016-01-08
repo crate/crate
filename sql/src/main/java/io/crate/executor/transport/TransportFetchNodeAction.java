@@ -73,16 +73,10 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
         this.jobContextService = jobContextService;
         this.threadPool = threadPool;
 
-        // TODO: FIX ME! Check if ThreadPool.Names.SAME actually applies
         transportService.registerRequestHandler(TRANSPORT_ACTION,
                 NodeFetchRequest.class,
-                ThreadPool.Names.SAME,
-                new NodeActionRequestHandler<NodeFetchRequest, NodeFetchResponse>(this) {
-                    @Override
-                    public NodeFetchRequest newInstance() {
-                        return new NodeFetchRequest();
-                    }
-                });
+                ThreadPool.Names.GENERIC,
+                new NodeActionRequestHandler<NodeFetchRequest, NodeFetchResponse>(this) { });
     }
 
     public void execute(String targetNode,

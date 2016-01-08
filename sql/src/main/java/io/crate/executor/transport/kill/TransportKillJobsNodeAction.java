@@ -57,16 +57,10 @@ public class TransportKillJobsNodeAction implements NodeAction<KillJobsRequest, 
         this.clusterService = clusterService;
         this.transports = transports;
 
-        // TODO: FIX ME! Check if ThreadPool.Names.SAME actually applies
         transportService.registerRequestHandler(TRANSPORT_ACTION,
                 KillJobsRequest.class,
-                ThreadPool.Names.SAME,
-                new NodeActionRequestHandler<KillJobsRequest, KillResponse>(this) {
-                    @Override
-                    public KillJobsRequest newInstance() {
-                        return new KillJobsRequest();
-                    }
-                });
+                ThreadPool.Names.GENERIC,
+                new NodeActionRequestHandler<KillJobsRequest, KillResponse>(this) { });
     }
 
     public void executeKillOnAllNodes(KillJobsRequest request, final ActionListener<KillResponse> listener) {

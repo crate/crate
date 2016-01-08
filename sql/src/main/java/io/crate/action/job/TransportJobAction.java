@@ -78,16 +78,10 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         this.contextPreparer = contextPreparer;
         this.keepAliveTimers = keepAliveTimers;
 
-        // TODO: FIX ME! Check if ThreadPool.Names.SAME actually applies
         transportService.registerRequestHandler(ACTION_NAME,
                 JobRequest.class,
-                ThreadPool.Names.SAME,
-                new NodeActionRequestHandler<JobRequest, JobResponse>(this) {
-                    @Override
-                    public JobRequest newInstance() {
-                        return new JobRequest();
-                    }
-                });
+                ThreadPool.Names.GENERIC,
+                new NodeActionRequestHandler<JobRequest, JobResponse>(this) { });
     }
 
     public void execute(String node, final JobRequest request, final ActionListener<JobResponse> listener) {
