@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.MoreObjects;
+import io.crate.action.sql.SQLBaseRequest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -33,7 +33,8 @@ import static io.crate.analyze.symbol.Literal.newLiteral;
 
 public class ParameterContext {
 
-    public static final ParameterContext EMPTY = new ParameterContext(new Object[0], new Object[0][], null, null);
+    public static final ParameterContext EMPTY = new ParameterContext(
+            new Object[0], new Object[0][], null, SQLBaseRequest.HEADER_FLAG_OFF);
 
     final Object[] parameters;
 
@@ -47,18 +48,18 @@ public class ParameterContext {
     private final int headerFlags;
 
     public ParameterContext(Object[] parameters, Object[][] bulkParameters,
-                            @Nullable String defaultSchema, @Nullable Integer headerFlags) {
+                            @Nullable String defaultSchema, int headerFlags) {
         this.parameters = parameters;
         this.defaultSchema = defaultSchema;
         if (bulkParameters.length > 0) {
             validateBulkParams(bulkParameters);
         }
         this.bulkParameters = bulkParameters;
-        this.headerFlags = MoreObjects.firstNonNull(headerFlags, 0);
+        this.headerFlags = headerFlags;
     }
 
     public ParameterContext(Object[] parameters, Object[][] bulkParameters, @Nullable String defaultSchema) {
-        this(parameters, bulkParameters, defaultSchema, null);
+        this(parameters, bulkParameters, defaultSchema, SQLBaseRequest.HEADER_FLAG_OFF);
     }
 
     public int headerFlags() {
