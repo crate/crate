@@ -21,11 +21,6 @@
 
 package io.crate;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-
-import java.util.regex.Pattern;
-
 public class Constants {
 
     /*
@@ -43,8 +38,5 @@ public class Constants {
     public static final Integer DEFAULT_NUM_SHARDS = 5;
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
-
-
-    public static final Predicate<CharSequence> INVALID_COLUMN_NAME_PREDICATE = Predicates.contains(Pattern.compile("[\\[\\'\\]]"));
 
 }

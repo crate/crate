@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - BREAKING CHANGE: column names may not contain the `.` character anymore
+
  - Exposed setting the default schema via HTTP header.
 
  - added `lower`` and `upper`` string functions

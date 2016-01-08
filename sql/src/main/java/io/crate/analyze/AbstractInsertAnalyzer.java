@@ -22,11 +22,12 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.Constants;
-import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.symbol.Reference;
 import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReferenceInfo;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.Node;
@@ -136,7 +137,7 @@ public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<Abs
     protected Reference addColumn(ReferenceIdent ident, AbstractInsertAnalyzedStatement context, int i) {
         final ColumnIdent columnIdent = ident.columnIdent();
         Preconditions.checkArgument(!columnIdent.name().startsWith("_"), "Inserting system columns is not allowed");
-        if (Constants.INVALID_COLUMN_NAME_PREDICATE.apply(columnIdent.name())) {
+        if (ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply(columnIdent.name())) {
             throw new InvalidColumnNameException(columnIdent.name());
         }
 
