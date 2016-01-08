@@ -49,6 +49,6 @@ public class SQLBulkRequestBuilder extends ActionRequestBuilder<SQLBulkRequest, 
     }
 
     public void addFlagsToRequestHeader(int flags) {
-        request.putHeader(request.FLAGS_HEADER_KEY, flags);
+        request.putHeader(SQLBaseRequest.FLAGS_HEADER_KEY, flags);
     }
 }

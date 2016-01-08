@@ -84,17 +84,22 @@ public class RestSQLAction extends BaseRestHandler {
         }
     }
 
-    private int composeFlags(final RestRequest request) {
-        int flags = SQLBaseRequest.HEADER_FLAG_OFF;
+    private static void addFlags(SQLRequestBuilder requestBuilder, RestRequest request) {
         String user = request.header(REQUEST_HEADER_USER);
-        if(user != null && !user.isEmpty()) {
-            // Odbc is on
-            if(user.toLowerCase(Locale.ENGLISH).contains("odbc")) {
-                flags |= SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT;
-            }
+        if (isOdbc(user)) {
+            requestBuilder.addFlagsToRequestHeader(SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT);
         }
+    }
 
-        return flags;
+    private static void addFlags(SQLBulkRequestBuilder requestBuilder, RestRequest request) {
+        String user = request.header(REQUEST_HEADER_USER);
+        if (isOdbc(user)) {
+            requestBuilder.addFlagsToRequestHeader(SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT);
+        }
+    }
+
+    private static boolean isOdbc(String user) {
+        return user != null && !user.isEmpty() && user.toLowerCase(Locale.ENGLISH).contains("odbc");
     }
 
     private void executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request, final RestChannel channel, Client client) {
@@ -102,7 +107,7 @@ public class RestSQLAction extends BaseRestHandler {
         requestBuilder.stmt(context.stmt());
         requestBuilder.args(context.args());
         requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
-        requestBuilder.addFlagsToRequestHeader(composeFlags(request));
+        addFlags(requestBuilder, request);
         requestBuilder.execute(RestSQLAction.<SQLResponse>newListener(request, channel));
     }
 
@@ -111,7 +116,7 @@ public class RestSQLAction extends BaseRestHandler {
         requestBuilder.stmt(context.stmt());
         requestBuilder.bulkArgs(context.bulkArgs());
         requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
-        requestBuilder.addFlagsToRequestHeader(composeFlags(request));
+        addFlags(requestBuilder, request);
         requestBuilder.execute(RestSQLAction.<SQLBulkResponse>newListener(request, channel));
     }
 
