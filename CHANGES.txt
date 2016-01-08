@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/01/08 0.54.2
+=================
+
  - Fixed bug that prevented ``insert into`` to respect ``blocks.read_only``
    setting of partitioned tables
 
