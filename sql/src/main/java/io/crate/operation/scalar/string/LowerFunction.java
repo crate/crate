@@ -70,16 +70,18 @@ public class LowerFunction extends Scalar<BytesRef, Object> {
 
     @Override
     public BytesRef evaluate(Input<Object>... args) {
-        if(args[0].value() == null) {
+        Object stringValue = args[0].value();
+        if (stringValue == null) {
             return null;
         }
 
-        BytesRef inputByteRef = BytesRefs.toBytesRef(args[0].value());
+        BytesRef inputByteRef = BytesRefs.toBytesRef(stringValue);
 
         if (args.length == 2 && currentLocale == null) {
+            Object localeValue = args[1].value();
             // we are dealing with a locale that is passed as a column reference here
-            if (args[1].value() == null) {
-                String localeString = BytesRefs.toBytesRef(args[1].value()).utf8ToString();
+            if (localeValue != null) {
+                String localeString = BytesRefs.toBytesRef(localeValue).utf8ToString();
                 currentLocale = Locale.forLanguageTag(localeString);
             } else {
                 currentLocale = Locale.getDefault();
@@ -98,13 +100,17 @@ public class LowerFunction extends Scalar<BytesRef, Object> {
     public Scalar<BytesRef, Object> compile(List<Symbol> arguments) {
         assert arguments.size() > 0 && arguments.size() < 3 : "invalid number of arguments";
 
-        if (arguments.size() == 2 && arguments.get(1).symbolType() == SymbolType.LITERAL) {
-            String localeString = BytesRefs.toBytesRef(arguments.get(1)).utf8ToString();
-            currentLocale = Locale.forLanguageTag(localeString);
-        } else if (arguments.size() == 2 && arguments.get(1).symbolType() != SymbolType.LITERAL) {
-            currentLocale = null;
-        } else {
+        if (arguments.size() < 2) {
             currentLocale = Locale.getDefault();
+        } else {
+            if (arguments.get(1).symbolType() == SymbolType.LITERAL) {
+                Object localeValue = ((Literal) arguments.get(1)).value();
+                if (localeValue != null) {
+                    currentLocale = Locale.forLanguageTag(BytesRefs.toBytesRef(localeValue).utf8ToString());
+                } else {
+                    currentLocale = Locale.getDefault();
+                }
+            }
         }
 
         return this;
@@ -115,17 +121,12 @@ public class LowerFunction extends Scalar<BytesRef, Object> {
         assert symbol != null;
         assert symbol.arguments().size() > 0 && symbol.arguments().size() < 3 : "invalid number of arguments";
 
-        if (containsNullLiteral(symbol.arguments())) {
-            return Literal.NULL;
-        }
-
-        currentLocale = Locale.getDefault();
+        Symbol arg = symbol.arguments().get(0);
         if (symbol.arguments().size() == 2) {
-            Literal localeLiteral = (Literal)symbol.arguments().get(1);
-            String localeString = BytesRefs.toBytesRef(localeLiteral.value()).utf8ToString();
-            currentLocale = Locale.forLanguageTag(localeString);
+            Symbol locale = symbol.arguments().get(1);
+            return Literal.newLiteral(evaluate((Input) arg, (Input) locale));
+        } else {
+            return Literal.newLiteral(evaluate((Input) arg));
         }
-
-        return evaluateIfLiterals(this, symbol);
     }
 }

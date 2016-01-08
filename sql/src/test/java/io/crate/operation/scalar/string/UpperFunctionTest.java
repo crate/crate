@@ -71,7 +71,7 @@ public class UpperFunctionTest extends AbstractScalarFunctionsTest {
         );
         assertThat(
                 normalizeForArgs(args),
-                isLiteral(new String("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜΑΒΓ")));
+                isLiteral("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜΑΒΓ"));
     }
 
     @Test
@@ -83,7 +83,7 @@ public class UpperFunctionTest extends AbstractScalarFunctionsTest {
         );
         assertThat(
                 normalizeForArgs(args),
-                isLiteral(new String("ISPARTA İSPARTA")));
+                isLiteral("ISPARTA İSPARTA"));
     }
 
     @Test
@@ -111,6 +111,6 @@ public class UpperFunctionTest extends AbstractScalarFunctionsTest {
         );
         assertThat(
                 normalizeForArgs(args),
-                isLiteral(new String("ISPARTA İSPARTA")));
+                isLiteral("ISPARTA İSPARTA"));
     }
 }

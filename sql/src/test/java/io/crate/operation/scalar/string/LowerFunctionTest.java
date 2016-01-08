@@ -30,7 +30,6 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -72,7 +71,7 @@ public class LowerFunctionTest extends AbstractScalarFunctionsTest {
         );
         assertThat(
                 normalizeForArgs(args),
-                isLiteral(new BytesRef("abcdefghijklmnopqrstuvwxyzäöüαβγ")));
+                isLiteral("abcdefghijklmnopqrstuvwxyzäöüαβγ"));
     }
 
     @Test
@@ -84,7 +83,7 @@ public class LowerFunctionTest extends AbstractScalarFunctionsTest {
         );
         assertThat(
                 normalizeForArgs(args),
-                isLiteral(new BytesRef("ısparta isparta")));
+                isLiteral("ısparta isparta"));
     }
 
     @Test
@@ -113,6 +112,20 @@ public class LowerFunctionTest extends AbstractScalarFunctionsTest {
 
         assertThat(
                 normalizeForArgs(args),
-                isLiteral(new BytesRef("ısparta isparta")));
+                isLiteral("ısparta isparta"));
+    }
+
+    @Test
+    public void testNormalizeWithNullLocale() throws Exception {
+        Locale.setDefault(Locale.forLanguageTag("en-US"));
+
+        List<Symbol> args = Lists.<Symbol>newArrayList(
+                Literal.newLiteral("ABCDE"),
+                Literal.newLiteral(DataTypes.STRING, null)
+        );
+
+        assertThat(
+                normalizeForArgs(args),
+                isLiteral("abcde"));
     }
 }
