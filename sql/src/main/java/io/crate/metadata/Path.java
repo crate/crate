@@ -23,5 +23,5 @@ package io.crate.metadata;
 
 public interface Path {
 
-    public String outputName();
+    String outputName();
 }

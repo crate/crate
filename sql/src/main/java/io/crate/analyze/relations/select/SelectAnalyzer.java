@@ -32,6 +32,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.validator.SelectSymbolValidator;
 import io.crate.metadata.OutputName;
+import io.crate.metadata.Path;
 import io.crate.sql.tree.*;
 
 import java.util.ArrayList;
@@ -56,7 +57,7 @@ public class SelectAnalyzer {
         private Map<QualifiedName, AnalyzedRelation> sources;
         private ExpressionAnalyzer expressionAnalyzer;
         private ExpressionAnalysisContext expressionAnalysisContext;
-        private List<OutputName> outputNames = new ArrayList<>();
+        private List<Path> outputNames = new ArrayList<>();
         private List<Symbol> outputSymbols = new ArrayList<>();
         private Multimap<String, Symbol> outputMultiMap = HashMultimap.create();
 
@@ -66,7 +67,7 @@ public class SelectAnalyzer {
             this.expressionAnalysisContext = context.expressionAnalysisContext();
         }
 
-        public List<OutputName> outputNames() {
+        public List<Path> outputNames() {
             return outputNames;
         }
 
@@ -87,10 +88,10 @@ public class SelectAnalyzer {
             return outputMultiMap;
         }
 
-        void add(String outputName, Symbol symbol) {
-            outputNames.add(new OutputName(outputName));
+        void add(Path path, Symbol symbol) {
+            outputNames.add(path);
             outputSymbols.add(symbol);
-            outputMultiMap.put(outputName, symbol);
+            outputMultiMap.put(path.outputName(), symbol);
         }
     }
 
@@ -100,9 +101,9 @@ public class SelectAnalyzer {
         protected Void visitSingleColumn(SingleColumn node, SelectAnalysis context) {
             Symbol symbol = context.toSymbol(node.getExpression());
             if (node.getAlias().isPresent()) {
-                context.add(node.getAlias().get(), symbol);
+                context.add(new OutputName(node.getAlias().get()), symbol);
             } else {
-                context.add(OutputNameFormatter.format(node.getExpression()), symbol);
+                context.add(new OutputName(OutputNameFormatter.format(node.getExpression())), symbol);
             }
             return null;
         }
@@ -152,7 +153,7 @@ public class SelectAnalyzer {
 
         private void addAllFieldsFromRelation(SelectAnalysis context, AnalyzedRelation relation) {
             for (Field field : relation.fields()) {
-                context.add(field.path().outputName(), field);
+                context.add(field.path(), field);
             }
         }
     }

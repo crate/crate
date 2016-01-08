@@ -28,7 +28,6 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationSplitter;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.sql.tree.QualifiedName;
 
@@ -70,7 +69,7 @@ public class MultiSourceSelect implements QueriedRelation {
 
     public MultiSourceSelect(
             Map<QualifiedName, AnalyzedRelation> sources,
-            List<OutputName> outputNames,
+            List<? extends Path> outputNames,
             QuerySpec querySpec) {
         assert sources.size() > 1 : "MultiSourceSelect requires at least 2 relations";
         this.querySpec = querySpec;
