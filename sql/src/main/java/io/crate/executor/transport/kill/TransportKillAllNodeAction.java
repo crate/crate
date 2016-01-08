@@ -46,12 +46,17 @@ public class TransportKillAllNodeAction implements NodeAction<KillAllRequest, Ki
                                       TransportService transportService) {
         this.jobContextService = jobContextService;
         this.transports = transports;
-        transportService.registerHandler(TRANSPORT_ACTION, new NodeActionRequestHandler<KillAllRequest, KillResponse>(this) {
-            @Override
-            public KillAllRequest newInstance() {
-                return new KillAllRequest();
-            }
-        });
+
+        // TODO: FIX ME! Check if ThreadPool.Names.SAME actually applies
+        transportService.registerRequestHandler(TRANSPORT_ACTION,
+                KillAllRequest.class,
+                ThreadPool.Names.SAME,
+                new NodeActionRequestHandler<KillAllRequest, KillResponse>(this) {
+                    @Override
+                    public KillAllRequest newInstance() {
+                        return new KillAllRequest();
+                    }
+                });
     }
 
     public void execute(String targetNode, KillAllRequest request, ActionListener<KillResponse> listener) {

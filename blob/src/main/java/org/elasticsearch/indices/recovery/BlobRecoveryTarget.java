@@ -92,12 +92,15 @@ public class BlobRecoveryTarget extends AbstractComponent {
         this.indexRecoveryTarget = indexRecoveryTarget;
         this.indicesService = indicesService;
 
-        transportService.registerHandler(Actions.START_RECOVERY, new StartRecoveryRequestHandler());
-        transportService.registerHandler(Actions.START_PREFIX, new StartPrefixSyncRequestHandler());
-        transportService.registerHandler(Actions.TRANSFER_CHUNK, new TransferChunkRequestHandler());
-        transportService.registerHandler(Actions.START_TRANSFER, new StartTransferRequestHandler());
-        transportService.registerHandler(Actions.DELETE_FILE, new DeleteFileRequestHandler());
-        transportService.registerHandler(Actions.FINALIZE_RECOVERY, new FinalizeRecoveryRequestHandler());
+        // TODO: FIX ME! Check if ThreadPool.Names.SAME actually applies
+        // TODO: FIX ME! Maybe add the Blob prefix to all Handlers
+        transportService.registerRequestHandler(Actions.START_RECOVERY, BlobStartRecoveryRequest.class, ThreadPool.Names.SAME, new StartRecoveryRequestHandler());
+        transportService.registerRequestHandler(Actions.START_PREFIX, BlobStartPrefixSyncRequest.class, ThreadPool.Names.SAME, new StartPrefixSyncRequestHandler());
+        // TODO: FIX ME! Rename handlers to match request names
+        transportService.registerRequestHandler(Actions.TRANSFER_CHUNK, BlobRecoveryChunkRequest.class, ThreadPool.Names.SAME, new TransferChunkRequestHandler());
+        transportService.registerRequestHandler(Actions.START_TRANSFER, BlobRecoveryStartTransferRequest.class, ThreadPool.Names.SAME, new StartTransferRequestHandler());
+        transportService.registerRequestHandler(Actions.DELETE_FILE, BlobRecoveryDeleteRequest.class, ThreadPool.Names.SAME, new DeleteFileRequestHandler());
+        transportService.registerRequestHandler(Actions.FINALIZE_RECOVERY, BlobFinalizeRecoveryRequest.class, ThreadPool.Names.SAME, new FinalizeRecoveryRequestHandler());
     }
 
     // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler

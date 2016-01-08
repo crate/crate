@@ -98,7 +98,8 @@ public class BlobRecoverySource extends AbstractComponent {
     }
 
     public void registerHandler() {
-        transportService.registerHandler(Actions.START_RECOVERY, new StartRecoveryTransportRequestHandler());
+        // TODO: FIX ME! Check if ThreadPool.Names.SAME actually applies
+        transportService.registerRequestHandler(Actions.START_RECOVERY, StartRecoveryRequest.class, ThreadPool.Names.SAME, new StartRecoveryTransportRequestHandler());
     }
 
     private RecoveryResponse recover(final StartRecoveryRequest request) {

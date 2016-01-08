@@ -60,7 +60,9 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
                                   TransportKillJobsNodeAction transportKillJobsNodeAction) {
         super(clusterService, settings, SQLBulkAction.NAME, threadPool, analyzer,
                 planner, executor, statsTables, actionFilters, transportKillJobsNodeAction);
-        transportService.registerHandler(SQLBulkAction.NAME, new TransportHandler());
+
+        // TODO: FIX ME! Check if ThreadPool.Names.SAME actually applies
+        transportService.registerRequestHandler(SQLBulkAction.NAME, SQLBulkRequest.class, ThreadPool.Names.SAME, new TransportHandler());
     }
 
     @Override

@@ -61,9 +61,11 @@ public class BlobHeadRequestHandler {
     }
 
     public void registerHandler() {
-        transportService.registerHandler(Actions.GET_BLOB_HEAD, new GetBlobHeadHandler());
-        transportService.registerHandler(Actions.GET_TRANSFER_INFO, new GetTransferInfoHandler());
-        transportService.registerHandler(Actions.PUT_BLOB_HEAD_CHUNK, new PutBlobHeadChunkHandler());
+        // TODO: FIX ME! Check if ThreadPool.Names.SAME actually applies
+        transportService.registerRequestHandler(Actions.GET_BLOB_HEAD, GetBlobHeadRequest.class, ThreadPool.Names.SAME, new GetBlobHeadHandler());
+        // TODO: FIX ME! Maybe change the name of either BlobInfoRequest to BlobTransferInfoRequest or remove Transfer alltogether
+        transportService.registerRequestHandler(Actions.GET_TRANSFER_INFO, BlobInfoRequest.class, ThreadPool.Names.SAME, new GetTransferInfoHandler());
+        transportService.registerRequestHandler(Actions.PUT_BLOB_HEAD_CHUNK, PutBlobHeadChunkRequest.class, ThreadPool.Names.SAME, new PutBlobHeadChunkHandler());
     }
 
     // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
