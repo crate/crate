@@ -5,6 +5,14 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added Amazon S3 support for Snapshot and Restore
+
+ - Made repository types and their settings pluggable,
+   so Crate plugins may add additional repository types
+
+2016/01/08 0.54.2
+=================
+
  - Fixed bug that prevented ``insert into`` to respect ``blocks.read_only``
    setting of partitioned tables
 
@@ -12,11 +20,6 @@ Unreleased
 
  - fix: ``show columns`` command returns an empty list if the table contains
    no constraints.
-
- - Added Amazon S3 support for Snapshot and Restore
-
- - Made repository types and their settings pluggable,
-   so Crate plugins may add additional repository types
 
 2015/12/23 0.54.1
 =================
