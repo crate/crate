@@ -644,6 +644,15 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testInvalidColumnNamePredicate() throws Exception {
+        assertThat(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply("validName"), is(false));
+        assertThat(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply("invalid["), is(true));
+        assertThat(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply("invalid'"), is(true));
+        assertThat(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply("invalid]"), is(true));
+        assertThat(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply("invalid."), is(true));
+    }
+
+    @Test
     public void testCreateTableShouldRaiseErrorIfItExists() throws Exception {
         expectedException.expect(TableAlreadyExistsException.class);
         analyze("create table users (\"'test\" string)");

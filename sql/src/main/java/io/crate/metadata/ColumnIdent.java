@@ -21,9 +21,7 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.Function;
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import com.google.common.base.*;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
@@ -38,8 +36,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
+
+
+    public static final Predicate<CharSequence> INVALID_COLUMN_NAME_PREDICATE = Predicates.contains(Pattern.compile("[\\[\\'\\]\\.]"));
 
     public static final Function<ColumnIdent, String> GET_FQN_NAME_FUNCTION = new com.google.common.base.Function<ColumnIdent, String>() {
         @Nullable

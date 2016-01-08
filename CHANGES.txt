@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - BREAKING CHANGE: column names may not contain the `.` character anymore
+
  - added `lower`` and `upper`` string functions
 
  - fix: don't quote column in response columns
