@@ -33,7 +33,7 @@ public class PutChunkRequestBuilder extends ReplicationRequestBuilder<PutChunkRe
     }
 
     @Override
-    protected void doExecute(ActionListener<PutChunkResponse> listener) {
+    public void execute(ActionListener<PutChunkResponse> listener) {
         client.execute(PutChunkAction.INSTANCE, request, listener);
     }
 }

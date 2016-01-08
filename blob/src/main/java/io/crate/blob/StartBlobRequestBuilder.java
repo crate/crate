@@ -33,7 +33,7 @@ public class StartBlobRequestBuilder extends ReplicationRequestBuilder<StartBlob
     }
 
     @Override
-    protected void doExecute(ActionListener<StartBlobResponse> listener) {
+    public void execute(ActionListener<StartBlobResponse> listener) {
         client.execute(StartBlobAction.INSTANCE, request, listener);
     }
 }
