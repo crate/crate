@@ -107,7 +107,7 @@ public class BlobRecoverySource extends AbstractComponent {
 
         // starting recovery from that our (the source) shard state is marking the shard to be in recovery mode as well, otherwise
         // the index operations will not be routed to it properly
-        RoutingNode node = clusterService.state().readOnlyRoutingNodes().node(request.targetNode().id());
+        RoutingNode node = clusterService.state().getRoutingNodes().node(request.targetNode().id());
         if (node == null) {
             logger.debug("delaying recovery of {} as source node {} is unknown", request.shardId(), request.targetNode());
             throw new DelayRecoveryException("source node does not have the node [" + request.targetNode() + "] in its state yet..");
@@ -132,17 +132,16 @@ public class BlobRecoverySource extends AbstractComponent {
         logger.trace("[{}][{}] starting recovery to {}, mark_as_relocated {}", request.shardId().index().name(), request.shardId().id(), request.targetNode(), request.markAsRelocated());
         final RecoverySourceHandler handler;
         if (IndexMetaData.isOnSharedFilesystem(shard.indexSettings())) {
-            handler = new SharedFSRecoverySourceHandler(shard, request, recoverySettings, transportService, clusterService, indicesService, mappingUpdatedAction, logger);
+            handler = new SharedFSRecoverySourceHandler(shard, request, recoverySettings, transportService, logger);
         } else {
             handler = new BlobRecoverySourceHandler(shard, request, recoverySettings, transportService, clusterService, indicesService, mappingUpdatedAction, logger, blobTransferTarget, blobIndices);
         }
         ongoingRecoveries.add(shard, handler);
         try {
-            shard.recover(handler);
+            return handler.recoverToTarget();
         } finally {
             ongoingRecoveries.remove(shard, handler);
         }
-        return handler.getResponse();
     }
 
     // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
