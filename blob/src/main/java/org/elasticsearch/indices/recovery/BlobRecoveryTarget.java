@@ -112,7 +112,8 @@ public class BlobRecoveryTarget extends AbstractComponent {
 
             IndexShard indexShard = indicesService.indexServiceSafe(request.shardId().index().name())
                                                   .shardSafe(request.shardId().id());
-            RecoveryStatus onGoingIndexRecovery = indexRecoveryTarget.recoveryStatus(request.recoveryId(), indexShard);
+            // TODO: FIX ME! Patch ES 2.1 or find different solution - currently just ignoring things
+            RecoveryStatus onGoingIndexRecovery = null; // indexRecoveryTarget.recoveryStatus(request.recoveryId(), indexShard);
 
             if (onGoingIndexRecovery.CancellableThreads().isCancelled()) {
                 throw new IndexShardClosedException(request.shardId());

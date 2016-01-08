@@ -134,7 +134,7 @@ public class BlobRecoverySource extends AbstractComponent {
         if (IndexMetaData.isOnSharedFilesystem(shard.indexSettings())) {
             handler = new SharedFSRecoverySourceHandler(shard, request, recoverySettings, transportService, logger);
         } else {
-            handler = new BlobRecoverySourceHandler(shard, request, recoverySettings, transportService, clusterService, indicesService, mappingUpdatedAction, logger, blobTransferTarget, blobIndices);
+            handler = new BlobRecoverySourceHandler(shard, request, recoverySettings, transportService, logger, blobTransferTarget, blobIndices);
         }
         ongoingRecoveries.add(shard, handler);
         try {
