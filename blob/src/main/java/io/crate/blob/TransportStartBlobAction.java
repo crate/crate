@@ -26,7 +26,9 @@ import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
@@ -49,34 +51,21 @@ public class TransportStartBlobAction
                                     ThreadPool threadPool,
                                     ShardStateAction shardStateAction,
                                     BlobTransferTarget transferTarget,
-                                    ActionFilters actionFilters) {
+                                    MappingUpdatedAction mappingUpdatedAction,
+                                    ActionFilters actionFilters,
+                                    IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, StartBlobAction.NAME, transportService, clusterService,
-                indicesService, threadPool, shardStateAction, actionFilters);
+                indicesService, threadPool, shardStateAction, mappingUpdatedAction, actionFilters,
+                indexNameExpressionResolver, StartBlobRequest.class, StartBlobRequest.class, ThreadPool.Names.INDEX);
+
         this.transferTarget = transferTarget;
         logger.trace("Constructor");
-    }
-
-    @Override
-    protected StartBlobRequest newRequestInstance() {
-        logger.trace("newRequestInstance");
-        return new StartBlobRequest();
-    }
-
-    @Override
-    protected StartBlobRequest newReplicaRequestInstance() {
-        logger.trace("newReplicaRequestInstance");
-        return new StartBlobRequest();
     }
 
     @Override
     protected StartBlobResponse newResponseInstance() {
         logger.trace("newResponseInstance");
         return new StartBlobResponse();
-    }
-
-    @Override
-    protected String executor() {
-        return ThreadPool.Names.INDEX;
     }
 
     @Override
@@ -93,9 +82,8 @@ public class TransportStartBlobAction
     @Override
     protected void shardOperationOnReplica(ShardId shardId, StartBlobRequest shardRequest) {
         logger.trace("shardOperationOnReplica operating on replica {}", shardRequest);
-        final StartBlobRequest request = shardRequest.request;
         final StartBlobResponse response = newResponseInstance();
-        transferTarget.startTransfer(shardRequest.shardId.id(), request, response);
+        transferTarget.startTransfer(shardId.id(), shardRequest, response);
     }
 
     @Override

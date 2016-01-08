@@ -51,7 +51,9 @@ import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.operation.plain.Preference;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -114,28 +116,17 @@ public class TransportShardUpsertAction
                                       IndicesService indicesService,
                                       ShardStateAction shardStateAction,
                                       Functions functions,
-                                      Schemas schemas) {
-        super(settings, ACTION_NAME, transportService, clusterService, indicesService, threadPool, shardStateAction, actionFilters);
+                                      Schemas schemas,
+                                      MappingUpdatedAction mappingUpdatedAction,
+                                      IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, ACTION_NAME, transportService, clusterService, indicesService, threadPool,
+                shardStateAction, mappingUpdatedAction, actionFilters, indexNameExpressionResolver,
+                ShardUpsertRequest.class, ShardUpsertRequest.class, ThreadPool.Names.BULK);
         this.indexAction = indexAction;
         this.indicesService = indicesService;
         this.functions = functions;
         this.schemas = schemas;
         jobContextService.addListener(this);
-    }
-
-    @Override
-    protected String executor() {
-        return ThreadPool.Names.BULK;
-    }
-
-    @Override
-    protected ShardUpsertRequest newRequestInstance() {
-        return new ShardUpsertRequest();
-    }
-
-    @Override
-    protected ShardUpsertRequest newReplicaRequestInstance() {
-        return new ShardUpsertRequest();
     }
 
     @Override

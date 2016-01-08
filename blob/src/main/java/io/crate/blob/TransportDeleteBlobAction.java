@@ -28,7 +28,9 @@ import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
@@ -51,30 +53,18 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
                                      ThreadPool threadPool,
                                      ShardStateAction shardStateAction,
                                      BlobIndices blobIndices,
-                                     ActionFilters actionFilters) {
-        super(settings, DeleteBlobAction.NAME, transportService, clusterService, indicesService, threadPool, shardStateAction, actionFilters);
+                                     MappingUpdatedAction mappingUpdatedAction,
+                                     ActionFilters actionFilters,
+                                     IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, DeleteBlobAction.NAME, transportService, clusterService, indicesService, threadPool, shardStateAction,
+                mappingUpdatedAction, actionFilters, indexNameExpressionResolver, DeleteBlobRequest.class, DeleteBlobRequest.class, ThreadPool.Names.INDEX);
         this.blobIndices = blobIndices;
         logger.trace("Constructor");
     }
 
     @Override
-    protected DeleteBlobRequest newRequestInstance() {
-        return new DeleteBlobRequest();
-    }
-
-    @Override
-    protected DeleteBlobRequest newReplicaRequestInstance() {
-        return new DeleteBlobRequest();
-    }
-
-    @Override
     protected DeleteBlobResponse newResponseInstance() {
         return new DeleteBlobResponse();
-    }
-
-    @Override
-    protected String executor() {
-        return ThreadPool.Names.INDEX;
     }
 
     @Override
@@ -85,14 +75,14 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
         BlobShard blobShard = blobIndices.blobShardSafe(shardRequest.request.index(), shardRequest.shardId.id());
         boolean deleted = blobShard.delete(request.id());
         final DeleteBlobResponse response = new DeleteBlobResponse(deleted);
-        return new Tuple<>(response,request);
+        return new Tuple<>(response, request);
     }
 
     @Override
     protected void shardOperationOnReplica(ShardId shardId, DeleteBlobRequest shardRequest) {
         logger.warn("shardOperationOnReplica operating on replica but relocation is not implemented {}", shardRequest);
-        BlobShard blobShard = blobIndices.blobShardSafe(shardRequest.request.index(), shardRequest.shardId.id());
-        blobShard.delete(shardRequest.request.id());
+        BlobShard blobShard = blobIndices.blobShardSafe(shardRequest.index(), shardId.id());
+        blobShard.delete(shardRequest.id());
     }
 
     @Override
@@ -105,6 +95,7 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
                         null
                 );
     }
+
     @Override
     protected boolean checkWriteConsistency() {
         return true;
