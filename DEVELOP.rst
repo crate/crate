@@ -5,10 +5,10 @@ DEVELOPMENT
 Prerequisites
 =============
 
-Crate is written in Java_ 7, so a JDK needs to be installed. On OS X we
-recommend using `Oracle's Java`_ and OpenJDK_ on Linux Systems.
-We recommend installing Java 7 update 55 or later or Java 8 update 20 or later.
-Previous versions of Java 7 can cause data corruption and data loss.
+Crate is written in Java_, so a JDK needs to be installed. On OS X we recommend
+using `Oracle's Java`_ and OpenJDK_ on Linux Systems.
+
+It is recommended to use a recent Java 8 version.
 
 Writing Documentation
 =====================
@@ -18,17 +18,17 @@ using Sphinx_. The line length shall not exceed 80 characters. Most text
 editors support automatic line breaks at a certain line width if you don't want
 to insert line break manually ;)
 
-Sphinx_ requires Python_ 2.7 to be installed in addition to Java_. Make sure
-that there is a python executable called ``python2.7`` in the global system
+Sphinx_ requires Python_ 2.7 or 3 to be installed in addition to Java_. Make
+sure that there is a python executable called ``python`` in the global system
 ``$PATH`` (most distributions do that by default if Python is installed).
 
 Git checkout and submodules
 ===========================
 
-Clone the repository and initialize the submodule::
+Clone the repository and initialize all contained submodules::
 
-    $ git clone https://github.com/crate/crate.git && cd crate
-    $ git submodule update --init
+    $ git clone --recursive https://github.com/crate/crate.git
+    $ cd crate
 
 Gradlew - Building Crate and Documentation
 ==========================================
@@ -253,7 +253,7 @@ Running `FindBugs`_ against our code base::
 
     ./gradlew findBugsMain
 
-the findbugs check will also be executed when running::
+The findbugs check will also be executed when running::
 
     ./gradlew check
 
@@ -338,7 +338,7 @@ Toubleshooting
 
 If you just pulled some new commits using git and get strange compile errors in
 the SQL parser code it is probably necessary to re-generate the parser code as
-the grammer changed::
+the grammar changed::
 
     ./gradlew :sql-parser:compileJava
 
@@ -357,7 +357,7 @@ the grammer changed::
 
 .. _`Oracle's Java`: http://www.java.com/en/download/help/mac_install.xml
 
-.. _OpenJDK: http://openjdk.java.net/projects/jdk7/
+.. _OpenJDK: http://openjdk.java.net/projects/jdk8/
 
 .. _`Read the Docs`: http://readthedocs.org
 
