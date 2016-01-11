@@ -14,7 +14,7 @@ public class SQLBulkAction extends Action<SQLBulkRequest, SQLBulkResponse, SQLBu
 
     @Override
     public SQLBulkRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new SQLBulkRequestBuilder(client);
+        return new SQLBulkRequestBuilder(client, this);
     }
 
     @Override

@@ -34,7 +34,8 @@ public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLRespo
     /**
      * Executes the built request on the client
      */
-    @Override
+    // TODO: FIX ME! not needed anymore?
+    //@Override
     protected void doExecute(ActionListener<SQLResponse> listener) {
         client.execute(SQLAction.INSTANCE, request, listener);
     }

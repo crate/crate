@@ -40,7 +40,7 @@ public class SQLAction extends Action<SQLRequest, SQLResponse, SQLRequestBuilder
 
     @Override
     public SQLRequestBuilder newRequestBuilder(ElasticsearchClient client) {
-        return new SQLRequestBuilder(client);
+        return new SQLRequestBuilder(client, this);
     }
 }
 

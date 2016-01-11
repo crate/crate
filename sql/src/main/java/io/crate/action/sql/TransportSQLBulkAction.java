@@ -34,6 +34,7 @@ import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
@@ -57,9 +58,10 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
                                   TransportService transportService,
                                   StatsTables statsTables,
                                   ActionFilters actionFilters,
+                                  IndexNameExpressionResolver indexNameExpressionResolver,
                                   TransportKillJobsNodeAction transportKillJobsNodeAction) {
         super(clusterService, settings, SQLBulkAction.NAME, threadPool, analyzer,
-                planner, executor, statsTables, actionFilters, transportKillJobsNodeAction);
+                planner, executor, statsTables, actionFilters, indexNameExpressionResolver, transportKillJobsNodeAction);
 
         transportService.registerRequestHandler(SQLBulkAction.NAME, SQLBulkRequest.class, ThreadPool.Names.SAME, new TransportHandler());
     }
