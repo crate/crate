@@ -28,7 +28,6 @@ import io.crate.blob.v2.BlobIndices;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.rest.CrateRestFilter;
 import org.apache.http.Header;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.entity.StringEntity;
@@ -39,12 +38,13 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.node.internal.InternalNode;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,7 +54,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.core.Is.is;
 
-public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
+public class BlobHttpIntegrationTest extends ESIntegTestCase {
 
     protected InetSocketAddress address;
     protected InetSocketAddress address2;
@@ -65,10 +65,13 @@ public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.settingsBuilder()
                 .put(super.nodeSettings(nodeOrdinal))
-                .put("plugin.types", CrateCorePlugin.class.getName())
-                .put(InternalNode.HTTP_ENABLED, true)
                 .put(CrateRestFilter.ES_API_ENABLED_SETTING, true)
                 .build();
+    }
+
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        return pluginList(CrateCorePlugin.class);
     }
 
     @Before

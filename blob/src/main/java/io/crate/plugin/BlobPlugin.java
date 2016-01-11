@@ -27,10 +27,12 @@ import io.crate.blob.*;
 import io.crate.blob.v2.BlobIndexModule;
 import io.crate.blob.v2.BlobIndicesModule;
 import io.crate.blob.v2.BlobShardModule;
+import io.crate.http.netty.NettyHttpServerTransport;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.http.HttpServerModule;
 import org.elasticsearch.plugins.Plugin;
 
 import java.util.Collection;
@@ -52,19 +54,16 @@ public class BlobPlugin extends Plugin {
     }
 
     @Override
-    public Settings additionalSettings() {
-        Settings.Builder settingsBuilder = Settings.settingsBuilder();
-        settingsBuilder.put("http.type",
-                "io.crate.http.netty.NettyHttpServerTransport");
-        return settingsBuilder.build();
-    }
-
-    @Override
     public Collection<Module> nodeModules() {
         Collection<Module> modules = Lists.newArrayList();
         if (!settings.getAsBoolean("node.client", false)) {
             modules.add(new BlobModule());
             modules.add(new BlobIndicesModule());
+
+            // FIXME: find better way to include NettyHttpServerTransport
+            HttpServerModule httpServerModule = new HttpServerModule(settings);
+            httpServerModule.setHttpServerTransport(NettyHttpServerTransport.class, "crate");
+            modules.add(httpServerModule);
         }
         return modules;
     }
