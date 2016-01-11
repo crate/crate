@@ -90,6 +90,7 @@ import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
 import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.mapper.geo.GeoPointFieldMapper;
@@ -898,8 +899,7 @@ public class LuceneQueryBuilder {
                 Double distance = DataTypes.DOUBLE.value(functionLiteralPair.input().value());
 
                 String fieldName = distanceRefLiteral.reference().info().ident().columnIdent().fqn();
-                FieldMapper mapper = getGeoPointFieldMapper(fieldName, context.mapperService);
-                GeoPointFieldMapper geoMapper = ((GeoPointFieldMapper) mapper);
+                MappedFieldType mapper = getGeoPointFieldType(fieldName, context.mapperService);
                 IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(mapper);
 
                 Input geoPointInput = distanceRefLiteral.input();
@@ -940,6 +940,9 @@ public class LuceneQueryBuilder {
                         return null;
                 }
                 GeoPoint geoPoint = new GeoPoint(lat, lon);
+
+                // TODO: FIX ME!
+                // GeoPointFieldMapper geoMapper = ((GeoPointFieldMapper) mapper);
                 Filter filter = new GeoDistanceRangeFilter(
                         geoPoint,
                         from,
@@ -955,16 +958,15 @@ public class LuceneQueryBuilder {
             }
         }
 
-        private static GeoPointFieldMapper getGeoPointFieldMapper(String fieldName, MapperService mapperService) {
-            MapperService.SmartNameFieldMappers smartMappers = mapperService.smartName(fieldName);
-            if (smartMappers == null || !smartMappers.hasMapper()) {
+        private static GeoPointFieldMapper.GeoPointFieldType getGeoPointFieldType(String fieldName, MapperService mapperService) {
+            MappedFieldType fieldType =  mapperService.smartNameFieldType(fieldName);
+            if (fieldType == null) {
                 throw new IllegalArgumentException(String.format("column \"%s\" doesn't exist", fieldName));
             }
-            FieldMapper mapper = smartMappers.mapper();
-            if (!(mapper instanceof GeoPointFieldMapper)) {
+            if (!(fieldType instanceof GeoPointFieldMapper.GeoPointFieldType)) {
                 throw new IllegalArgumentException(String.format("column \"%s\" isn't of type geo_point", fieldName));
             }
-            return (GeoPointFieldMapper) mapper;
+            return (GeoPointFieldMapper.GeoPointFieldType) fieldType;
         }
 
         private static final EqQuery eqQuery = new EqQuery();

@@ -32,6 +32,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 
 import javax.annotation.Nullable;
@@ -160,16 +161,18 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
             List<Tuple<String, Float>> missing = new ArrayList<>();
             for (Map.Entry<String, Object> entry : fieldNames.entrySet()) {
                 String name = entry.getKey();
-                MapperService.SmartNameFieldMappers smartNameFieldMappers = mapperService.smartName(name);
-                if (smartNameFieldMappers != null && smartNameFieldMappers.hasMapper()) {
-                    Analyzer actualAnalyzer = getAnalyzer(smartNameFieldMappers.mapper(), smartNameFieldMappers);
-                    name = smartNameFieldMappers.mapper().names().indexName();
-                    if (!groups.containsKey(actualAnalyzer)) {
+                MappedFieldType fieldType = mapperService.smartNameFieldType(name);
+                if (fieldType != null) {
+                    // TODO: FIX ME! SmartMappers have been removed!
+                    //Analyzer actualAnalyzer = getAnalyzer(smartNameFieldMappers.mapper(), smartNameFieldMappers);
+                    name = fieldType.names().indexName();
+                    // TODO: FIX ME! SmartMappers have been removed!
+                    /* if (!groups.containsKey(actualAnalyzer)) {
                         groups.put(actualAnalyzer, new ArrayList<FieldAndMapper>());
                     }
                     Float boost = floatOrNull(entry.getValue());
                     boost = boost == null ? Float.valueOf(1.0f) : boost;
-                    groups.get(actualAnalyzer).add(new FieldAndMapper(name, smartNameFieldMappers.mapper(), boost));
+                    groups.get(actualAnalyzer).add(new FieldAndMapper(name, smartNameFieldMappers.mapper(), boost));*/
                 } else {
                     missing.add(new Tuple<>(name, floatOrNull(entry.getValue())));
                 }

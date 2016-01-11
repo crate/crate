@@ -39,6 +39,7 @@ import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.elasticsearch.index.query.QueryParseContext;
@@ -119,7 +120,8 @@ public class MatchQueryBuilder {
     }
 
     protected Query singleQuery(MatchQuery.Type type, String fieldName, BytesRef queryString) {
-        FieldMapper mapper = null;
+        // TODO: FIX ME! SmartMappers have been removed
+        /*FieldMapper mapper = null;
         final String field;
         MapperService.SmartNameFieldMappers smartNameFieldMappers = mapperService.smartName(fieldName);
         if (smartNameFieldMappers != null && smartNameFieldMappers.hasMapper()) {
@@ -195,11 +197,12 @@ public class MatchQueryBuilder {
             return zeroTermsQuery();
         } else {
             return wrapSmartNameQuery(query, smartNameFieldMappers, indexCache);
-        }
+        }*/
     }
 
+    // TODO: FIX ME! SmartMapper removed!
     private static Query wrapSmartNameQuery(Query query,
-                                            @Nullable MapperService.SmartNameFieldMappers smartNameFieldMappers,
+                                            @Nullable MappedFieldType smartNameFieldMappers,
                                             IndexCache indexCache) {
         if (query == null) {
             return null;
@@ -207,11 +210,12 @@ public class MatchQueryBuilder {
         if (smartNameFieldMappers == null) {
             return query;
         }
+        /*
         if (!smartNameFieldMappers.explicitTypeInNameWithDocMapper()) {
             return query;
         }
         DocumentMapper documentMapper = smartNameFieldMappers.docMapper();
-        return new XFilteredQuery(query, indexCache.filter().cache(documentMapper.typeFilter()));
+        return new XFilteredQuery(query, indexCache.filter().cache(documentMapper.typeFilter())); */
     }
 
     protected Query singleQueryAndApply(MatchQuery.Type type,
@@ -236,15 +240,16 @@ public class MatchQueryBuilder {
 
 
     protected Analyzer getAnalyzer(@Nullable FieldMapper mapper,
-                                   MapperService.SmartNameFieldMappers smartNameFieldMappers) {
+                                   FieldMapper smartNameFieldMappers) {
         Analyzer analyzer = null;
         if (options.analyzer() == null) {
             if (mapper != null) {
                 analyzer = mapper.searchAnalyzer();
             }
-            if (analyzer == null && smartNameFieldMappers != null) {
+            // TODOL FIX ME! SmartMappers have been removed!
+            /*if (analyzer == null && smartNameFieldMappers != null) {
                 analyzer = smartNameFieldMappers.searchAnalyzer();
-            }
+            }*/
             if (analyzer == null) {
                 analyzer = mapperService.searchAnalyzer();
             }
