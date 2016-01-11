@@ -51,6 +51,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardNotFoundException;
@@ -114,8 +115,9 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                                   Provider<Executor> executorProvider,
                                   StatsTables statsTables,
                                   ActionFilters actionFilters,
+                                  IndexNameExpressionResolver indexNameExpressionResolver,
                                   TransportKillJobsNodeAction transportKillJobsNodeAction) {
-        super(settings, actionName, threadPool, actionFilters);
+        super(settings, actionName, threadPool, actionFilters, indexNameExpressionResolver);
         this.clusterService = clusterService;
         this.analyzer = analyzer;
         this.planner = planner;
@@ -317,19 +319,19 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             return new DuplicateKeyException(
                     "A document with the same primary key exists already", e);
         } else if (e instanceof IndexAlreadyExistsException) {
-            return new TableAlreadyExistsException(((IndexAlreadyExistsException) e).index().name(), e);
+            return new TableAlreadyExistsException(((IndexAlreadyExistsException) e).getIndex(), e);
         } else if ((e instanceof InvalidIndexNameException)) {
             if (e.getMessage().contains("already exists as alias")) {
                 // treat an alias like a table as aliases are not officially supported
-                return new TableAlreadyExistsException(((InvalidIndexNameException) e).index().getName(),
+                return new TableAlreadyExistsException(((InvalidIndexNameException) e).getIndex(),
                         e);
             }
-            return new InvalidTableNameException(((InvalidIndexNameException) e).index().getName(), e);
+            return new InvalidTableNameException(((InvalidIndexNameException) e).getIndex(), e);
         } else if (e instanceof InvalidIndexTemplateException) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(((InvalidIndexTemplateException) e).name());
             return new InvalidTableNameException(partitionName.tableIdent().fqn(), e);
         } else if (e instanceof IndexNotFoundException) {
-            return new TableUnknownException(((IndexNotFoundException) e).index().name(), e);
+            return new TableUnknownException(((IndexNotFoundException) e).getIndex(), e);
         } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
             return new CircuitBreakingException(e.getMessage());
         } else if (e instanceof CancellationException) {
