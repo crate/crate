@@ -100,7 +100,7 @@ public class ContextPreparer {
         this.clusterService = clusterService;
         this.countOperation = countOperation;
         this.threadPool = threadPool;
-        circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
+        circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.rowDownstreamFactory = rowDownstreamFactory;
         innerPreparer = new InnerPreparer();

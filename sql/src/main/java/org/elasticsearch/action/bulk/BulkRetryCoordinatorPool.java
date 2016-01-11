@@ -66,7 +66,7 @@ public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent<BulkRet
                 IndexRoutingTable indexRoutingTable = clusterService.state().routingTable()
                         .index(shardId.getIndex());
                 if (indexRoutingTable == null) {
-                    throw new IndexNotFoundException(shardId.index());
+                    throw new IndexNotFoundException("cannot find index " + shardId.index());
                 }
                 IndexShardRoutingTable shardRoutingTable = indexRoutingTable.shard(shardId.id());
                 if (shardRoutingTable == null) {
