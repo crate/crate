@@ -55,11 +55,14 @@ public class CrateCorePluginTest extends CrateUnitTest {
         // mock ClusterService for ClusterIdService, which is bound in CrateCoreModule
         modulesBuilder.add(new TestModule());
 
+        assertTrue(false);
+        /* FIXME
         for (Module module : plugin.modules(Settings.EMPTY)) {
             modulesBuilder.add(module);
         }
         ExampleCrateComponent.IBound iBoundImpl = modulesBuilder.createInjector()
                 .getInstance(ExampleCrateComponent.IBound.class);
         assertThat(iBoundImpl, instanceOf(ExampleCrateComponent.Bound.class));
+        */
     }
 }

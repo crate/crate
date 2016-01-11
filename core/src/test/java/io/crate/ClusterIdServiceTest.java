@@ -23,13 +23,13 @@ package io.crate;
 
 import io.crate.plugin.CrateCorePlugin;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
-@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.TEST, numDataNodes = 0)
-public class ClusterIdServiceTest extends ElasticsearchIntegrationTest  {
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
+public class ClusterIdServiceTest extends ESIntegTestCase  {
 
     @Test
     public void testClusterIdGeneration() throws Exception {

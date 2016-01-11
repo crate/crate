@@ -22,8 +22,8 @@
 package io.crate.types;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -38,7 +38,7 @@ public class ArrayTypeTest extends CrateUnitTest {
 
         DataTypes.toStream(arrayType, out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
 
         DataType readType = DataTypes.fromStream(in);
         assertThat(readType, instanceOf(ArrayType.class));
