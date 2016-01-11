@@ -31,12 +31,14 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.ConcurrentMapLong;
-import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.*;
+import org.elasticsearch.transport.TransportChannel;
+import org.elasticsearch.transport.TransportRequestHandler;
+import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportService;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -92,10 +94,8 @@ public class BlobRecoveryTarget extends AbstractComponent {
         this.indexRecoveryTarget = indexRecoveryTarget;
         this.indicesService = indicesService;
 
-        // TODO: FIX ME! Maybe add the Blob prefix to all Handlers
         transportService.registerRequestHandler(Actions.START_RECOVERY, BlobStartRecoveryRequest.class, ThreadPool.Names.GENERIC, new StartRecoveryRequestHandler());
         transportService.registerRequestHandler(Actions.START_PREFIX, BlobStartPrefixSyncRequest.class, ThreadPool.Names.GENERIC, new StartPrefixSyncRequestHandler());
-        // TODO: FIX ME! Rename handlers to match request names
         transportService.registerRequestHandler(Actions.TRANSFER_CHUNK, BlobRecoveryChunkRequest.class, ThreadPool.Names.GENERIC, new TransferChunkRequestHandler());
         transportService.registerRequestHandler(Actions.START_TRANSFER, BlobRecoveryStartTransferRequest.class, ThreadPool.Names.GENERIC, new StartTransferRequestHandler());
         transportService.registerRequestHandler(Actions.DELETE_FILE, BlobRecoveryDeleteRequest.class, ThreadPool.Names.GENERIC, new DeleteFileRequestHandler());
@@ -110,22 +110,22 @@ public class BlobRecoveryTarget extends AbstractComponent {
             logger.info("[{}] StartRecoveryRequestHandler start recovery with recoveryId {}",
                 request.shardId().getId(), request.recoveryId);
 
-            IndexShard indexShard = indicesService.indexServiceSafe(request.shardId().index().name())
-                                                  .shardSafe(request.shardId().id());
-            // TODO: FIX ME! Patch ES 2.1 or find different solution - currently just ignoring things
-            RecoveryStatus onGoingIndexRecovery = null; // indexRecoveryTarget.recoveryStatus(request.recoveryId(), indexShard);
+            try (RecoveriesCollection.StatusRef statusSafe = indexRecoveryTarget.onGoingRecoveries().getStatusSafe(
+                    request.recoveryId(), request.shardId())) {
+                RecoveryStatus onGoingIndexRecovery = statusSafe.status();
 
-            if (onGoingIndexRecovery.CancellableThreads().isCancelled()) {
-                throw new IndexShardClosedException(request.shardId());
+                if (onGoingIndexRecovery.CancellableThreads().isCancelled()) {
+                    throw new IndexShardClosedException(request.shardId());
+                }
+
+                BlobShard blobShard = indicesService.indexServiceSafe(
+                        onGoingIndexRecovery.shardId().getIndex()).shardInjectorSafe(
+                        onGoingIndexRecovery.shardId().id()).getInstance(BlobShard.class);
+
+                BlobRecoveryStatus status = new BlobRecoveryStatus(onGoingIndexRecovery, blobShard);
+                onGoingRecoveries.put(request.recoveryId(), status);
+                channel.sendResponse(TransportResponse.Empty.INSTANCE);
             }
-
-            BlobShard blobShard = indicesService.indexServiceSafe(
-                    onGoingIndexRecovery.shardId().getIndex()).shardInjectorSafe(
-                    onGoingIndexRecovery.shardId().id()).getInstance(BlobShard.class);
-
-            BlobRecoveryStatus status = new BlobRecoveryStatus(onGoingIndexRecovery, blobShard);
-            onGoingRecoveries.put(request.recoveryId(), status);
-            channel.sendResponse(TransportResponse.Empty.INSTANCE);
         }
     }
 
