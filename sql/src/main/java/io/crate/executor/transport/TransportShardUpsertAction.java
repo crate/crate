@@ -153,7 +153,7 @@ public class TransportShardUpsertAction
     @Override
     protected ShardIterator shards(ClusterState state, InternalRequest request) {
         return clusterService.operationRouting()
-                .getShards(state, request.request().index(), request.request().shardId(), Preference.PRIMARY.type());
+                .getShards(state, request.request().index(), request.request().shardId().id(), Preference.PRIMARY.type());
     }
 
     @Override
@@ -281,12 +281,12 @@ public class TransportShardUpsertAction
                 true, item.version(), VersionType.INTERNAL, FetchSourceContext.FETCH_SOURCE, false);
 
         if (!getResult.isExists()) {
-            throw new DocumentMissingException(new ShardId(request.index(), request.shardId()), request.type(), item.id());
+            throw new DocumentMissingException(new ShardId(request.index(), request.shardId().id()), request.type(), item.id());
         }
 
         if (getResult.internalSourceRef() == null) {
             // no source, we can't do nothing, through a failure...
-            throw new DocumentSourceMissingException(new ShardId(request.index(), request.shardId()), request.type(), item.id());
+            throw new DocumentSourceMissingException(new ShardId(request.index(), request.shardId().id()), request.type(), item.id());
         }
 
         Tuple<XContentType, Map<String, Object>> sourceAndContent = XContentHelper.convertToMap(getResult.internalSourceRef(), true);
@@ -328,7 +328,8 @@ public class TransportShardUpsertAction
                 .parent(parent)
                 .source(updatedSourceAsMap, updateSourceContentType)
                 .version(getResult.getVersion());
-        indexRequest.operationThreaded(false);
+        // TODO: FIX ME!
+        // indexRequest.operationThreaded(false);
         return indexRequest;
     }
 
@@ -369,13 +370,14 @@ public class TransportShardUpsertAction
             source = XContentFactory.jsonBuilder().map(sourceMap).bytes();
         }
 
+        // TODO: FIX ME!
         IndexRequest indexRequest = Requests.indexRequest(request.index())
                 .type(request.type())
                 .id(item.id())
                 .routing(request.routing())
                 .source(source)
-                .create(!request.overwriteDuplicates())
-                .operationThreaded(false);
+                .create(!request.overwriteDuplicates());
+        //        .operationThreaded(false);
         if (logger.isTraceEnabled()) {
             logger.trace("Inserting document with id {}, source: {}", item.id(), indexRequest.source().toUtf8());
         }
@@ -399,7 +401,8 @@ public class TransportShardUpsertAction
         Map<String, Object> sourceAsMap;
         if (isRawSourceInsert) {
             BytesRef source = (BytesRef) insertValues[0];
-            sourceAsMap = XContentHelper.convertToMap(source.bytes, true).v2();
+            // TODO: FIX ME!
+            // sourceAsMap = XContentHelper.convertToMap(source.bytes, true).v2();
         } else {
             sourceAsMap = new LinkedHashMap<>(insertColumns.length);
             for (int i = 0; i < insertColumns.length; i++) {

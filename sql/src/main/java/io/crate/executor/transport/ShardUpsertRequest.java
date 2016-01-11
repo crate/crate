@@ -47,7 +47,7 @@ public class ShardUpsertRequest extends ReplicationRequest<ShardUpsertRequest> i
     @Nullable
     private String routing;
     private UUID jobId;
-    private int shardId;
+    private ShardId shardId;
     private List<Item> items;
     private IntArrayList locations;
     private boolean continueOnError = false;
@@ -86,7 +86,7 @@ public class ShardUpsertRequest extends ReplicationRequest<ShardUpsertRequest> i
         assert updateColumns != null || insertColumns != null
                 : "Missing updateAssignments, whether for update nor for insert";
         this.index = shardId.getIndex();
-        this.shardId = shardId.id();
+        this.shardId = shardId;
         locations = new IntArrayList();
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
@@ -121,7 +121,8 @@ public class ShardUpsertRequest extends ReplicationRequest<ShardUpsertRequest> i
         return Constants.DEFAULT_MAPPING_TYPE;
     }
 
-    public int shardId() {
+    // TODO: FIX ME! Clean up shardId usage
+    public ShardId shardId() {
         return shardId;
     }
 
@@ -244,7 +245,7 @@ public class ShardUpsertRequest extends ReplicationRequest<ShardUpsertRequest> i
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeInt(shardId);
+        out.writeInt(shardId.id());
         out.writeOptionalString(routing);
         out.writeLong(jobId.getMostSignificantBits());
         out.writeLong(jobId.getLeastSignificantBits());
