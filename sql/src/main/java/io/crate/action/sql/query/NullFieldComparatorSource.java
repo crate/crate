@@ -22,7 +22,7 @@
 package io.crate.action.sql.query;
 
 import io.crate.executor.transport.task.elasticsearch.SortOrder;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.SortField;
 import org.elasticsearch.index.fielddata.IndexFieldData;
@@ -84,7 +84,7 @@ class NullFieldComparatorSource extends IndexFieldData.XFieldComparatorSource {
             }
 
             @Override
-            public FieldComparator<Object> setNextReader(AtomicReaderContext context) throws IOException {
+            public FieldComparator<Object> setNextReader(LeafReaderContext context) throws IOException {
                 return this;
             }
 

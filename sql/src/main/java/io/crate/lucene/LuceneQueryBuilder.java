@@ -58,8 +58,8 @@ import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.index.AtomicReader;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.BooleanFilter;
 import org.apache.lucene.queries.TermsFilter;
@@ -1144,7 +1144,7 @@ public class LuceneQueryBuilder {
             }
 
             @Override
-            public DocIdSet getDocIdSet(AtomicReaderContext context, Bits acceptDocs) throws IOException {
+            public DocIdSet getDocIdSet(LeafReaderContext context, Bits acceptDocs) throws IOException {
                 for (LuceneCollectorExpression expression : expressions) {
                     expression.setNextReader(context.reader().getContext());
                 }
@@ -1164,13 +1164,13 @@ public class LuceneQueryBuilder {
 
         static class FunctionDocSet extends MatchDocIdSet {
 
-            private final AtomicReader reader;
+            private final LeafReader reader;
             private final CollectorFieldsVisitor fieldsVisitor;
             private final Input<Boolean> condition;
             private final List<LuceneCollectorExpression> expressions;
             private final boolean fieldsVisitorEnabled;
 
-            protected FunctionDocSet(AtomicReader reader,
+            protected FunctionDocSet(LeafReader reader,
                                      @Nullable CollectorFieldsVisitor fieldsVisitor,
                                      Input<Boolean> condition,
                                      List<LuceneCollectorExpression> expressions,

@@ -46,7 +46,7 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
 
     protected CollectorContext ctx;
     protected IndexFieldDataService ifd;
-    protected AtomicReaderContext readerContext;
+    protected LeafReaderContext readerContext;
     private IndexWriter writer;
 
     @Before

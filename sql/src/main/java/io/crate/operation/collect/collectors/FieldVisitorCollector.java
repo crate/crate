@@ -22,8 +22,8 @@
 
 package io.crate.operation.collect.collectors;
 
-import org.apache.lucene.index.AtomicReader;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
 
@@ -32,7 +32,7 @@ import java.io.IOException;
 class FieldVisitorCollector extends Collector {
     private final Collector collector;
     private final CollectorFieldsVisitor fieldsVisitor;
-    private AtomicReader currentReader;
+    private LeafReader currentReader;
 
     public FieldVisitorCollector(Collector collector, CollectorFieldsVisitor fieldsVisitor) {
         this.collector = collector;
@@ -52,7 +52,7 @@ class FieldVisitorCollector extends Collector {
     }
 
     @Override
-    public void setNextReader(AtomicReaderContext context) throws IOException {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         currentReader = context.reader();
         collector.setNextReader(context);
     }

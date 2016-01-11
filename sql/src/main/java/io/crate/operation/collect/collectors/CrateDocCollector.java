@@ -36,7 +36,7 @@ import io.crate.operation.collect.UnexpectedCollectionTerminatedException;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.BulkScorer;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
@@ -90,7 +90,7 @@ public class CrateDocCollector implements CrateCollector {
                         debugLog("repeat collect");
                         ContextIndexSearcher indexSearcher = searchContext.searcher();
                         indexSearcher.inStage(ContextIndexSearcher.Stage.MAIN_QUERY);
-                        Iterator<AtomicReaderContext> iterator = indexSearcher.getTopReaderContext().leaves().iterator();
+                        Iterator<LeafReaderContext> iterator = indexSearcher.getTopReaderContext().leaves().iterator();
                         innerCollect(state.collector, state.weight, iterator, null);
                     }
                 }
@@ -143,7 +143,7 @@ public class CrateDocCollector implements CrateCollector {
         contextIndexSearcher.inStage(ContextIndexSearcher.Stage.MAIN_QUERY);
 
         Weight weight;
-        Iterator<AtomicReaderContext> leavesIt;
+        Iterator<LeafReaderContext> leavesIt;
         try {
             weight = searchContext.engineSearcher().searcher().createNormalizedWeight(searchContext.query());
             leavesIt = contextIndexSearcher.getTopReaderContext().leaves().iterator();
@@ -159,7 +159,7 @@ public class CrateDocCollector implements CrateCollector {
         innerCollect(collector, weight, leavesIt, null);
     }
 
-    private void innerCollect(Collector collector, Weight weight, Iterator<AtomicReaderContext> leavesIt, @Nullable BulkScorer scorer) {
+    private void innerCollect(Collector collector, Weight weight, Iterator<LeafReaderContext> leavesIt, @Nullable BulkScorer scorer) {
         try {
             if (collectLeaves(collector, weight, leavesIt, scorer) == Result.FINISHED) {
                 finishCollect();
@@ -194,14 +194,14 @@ public class CrateDocCollector implements CrateCollector {
 
     private Result collectLeaves(Collector collector,
                                  Weight weight,
-                                 Iterator<AtomicReaderContext> leaves,
+                                 Iterator<LeafReaderContext> leaves,
                                  @Nullable BulkScorer scorer) throws IOException {
         if (scorer != null) {
             if (processScorer(collector, leaves, scorer)) return Result.PAUSED;
         }
         try {
             while (leaves.hasNext()) {
-                AtomicReaderContext leaf = leaves.next();
+                LeafReaderContext leaf = leaves.next();
                 collector.setNextReader(leaf);
                 scorer = weight.bulkScorer(leaf, !collector.acceptsDocsOutOfOrder(), leaf.reader().getLiveDocs());
                 if (scorer == null) {
@@ -215,7 +215,7 @@ public class CrateDocCollector implements CrateCollector {
         return Result.FINISHED;
     }
 
-    private boolean processScorer(Collector collector, Iterator<AtomicReaderContext> leaves, BulkScorer scorer) throws IOException {
+    private boolean processScorer(Collector collector, Iterator<LeafReaderContext> leaves, BulkScorer scorer) throws IOException {
         try {
             scorer.score(collector);
         } catch (CollectionPauseException e) {
@@ -234,7 +234,7 @@ public class CrateDocCollector implements CrateCollector {
 
     static class State {
         BulkScorer scorer;
-        Iterator<AtomicReaderContext> leaveIt;
+        Iterator<LeafReaderContext> leaveIt;
         Collector collector;
         Weight weight;
     }
@@ -303,7 +303,7 @@ public class CrateDocCollector implements CrateCollector {
         }
 
         @Override
-        public void setNextReader(AtomicReaderContext context) throws IOException {
+        public void setNextReader(LeafReaderContext context) throws IOException {
             // trigger keep-alive here as well
             // in case we have a long running query without actual matches
             keepAliveListener.keepAlive();
