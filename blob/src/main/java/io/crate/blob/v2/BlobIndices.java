@@ -47,6 +47,7 @@ import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -302,7 +303,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
             logger.debug("[{}] Empty per table defined blobs path found, deleting leftover folders inside {}",
                     index, customBlobsPath.getAbsolutePath());
             try {
-                IOUtils.rm(customBlobsPath.toPath());
+                FileSystemUtils.deleteSubDirectories(customBlobsPath.toPath());
             } catch (IOException e) {
                 logger.warn("Could not delete custom blob path {}", customBlobsPath.getAbsolutePath());
             }
