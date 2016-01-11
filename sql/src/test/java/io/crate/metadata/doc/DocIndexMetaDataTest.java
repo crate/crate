@@ -859,7 +859,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
         when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
         when(state.metaData()).thenReturn(metaData);
-        when(metaData.settings()).thenReturn(Settings.EMPTY);
+        when(metaData.getSettings()).thenReturn(Settings.EMPTY);
         when(clusterService.state()).thenReturn(state);
         TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(

@@ -541,17 +541,17 @@ public class DocIndexMetaData {
                 // this is older, update template and return other
                 // settings in template are always authoritative for table information about
                 // number_of_shards and number_of_replicas
-                updateTemplate(other, transportPutIndexTemplateAction, this.metaData.settings());
+                updateTemplate(other, transportPutIndexTemplateAction, this.metaData.getSettings());
                 // merge the new mapping with the template settings
                 return new DocIndexMetaData(
                         functions,
-                        IndexMetaData.builder(other.metaData).settings(this.metaData.settings()).build(),
+                        IndexMetaData.builder(other.metaData).settings(this.metaData.getSettings()).build(),
                         other.ident).build();
             } else if (references().size() == other.references().size() &&
                     !references().keySet().equals(other.references().keySet())) {
                 XContentHelper.update(defaultMappingMap, other.defaultMappingMap, false);
                 // update the template with new information
-                updateTemplate(this, transportPutIndexTemplateAction, this.metaData.settings());
+                updateTemplate(this, transportPutIndexTemplateAction, this.metaData.getSettings());
                 return this;
             }
             // other is older, just return this

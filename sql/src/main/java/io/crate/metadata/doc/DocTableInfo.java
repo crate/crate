@@ -196,12 +196,12 @@ public class DocTableInfo extends AbstractTableInfo implements ShardedTable {
 
         Map<String, Set<String>> routingMap = null;
         if (whereClause.clusteredBy().isPresent()) {
-            routingMap = clusterState.metaData().resolveSearchRouting(
-                    whereClause.routingValues(), routingIndices);
+            // TODO: FIX ME! resolveSearchRouting is now in indexNameExpressionResolver
+            /*routingMap = clusterState.metaData().resolveSearchRouting(
+                    clusterState, whereClause.routingValues(), routingIndices);*/
         }
         return clusterService.operationRouting().searchShards(
                 clusterState,
-                indices,
                 routingIndices,
                 routingMap,
                 preference
