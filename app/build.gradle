@@ -407,15 +407,8 @@ task downloadPlugins << {
         from(project(':aws').tasks.jar.archivePath)
         into 'plugins/aws'
     }
-    // copy aws deps
-    def awsLib = new File(project.projectDir, 'plugins/aws/lib')
-    awsLib.mkdirs()
-    copy {
-        from(project(':aws').configurations.awsDeps)
-        into awsLib
-    }
-
 }
+
 downloadPlugins.outputs.dir files(
     "$projectDir/plugins/crate-admin",
     "$projectDir/plugins/hdfs",
