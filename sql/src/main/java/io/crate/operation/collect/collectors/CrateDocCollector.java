@@ -37,10 +37,7 @@ import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.search.BulkScorer;
-import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
@@ -239,7 +236,8 @@ public class CrateDocCollector implements CrateCollector {
         Weight weight;
     }
 
-    static class LuceneDocCollector extends Collector {
+    // TODO: FIX ME! extend from appropriate new interface
+    static class LuceneDocCollector implements Collector {
 
         private static final int KEEP_ALIVE_AFTER_ROWS = 1_000_000;
         private final KeepAliveListener keepAliveListener;
@@ -263,6 +261,18 @@ public class CrateDocCollector implements CrateCollector {
             this.rowReceiver = rowReceiver;
             this.inputRow = inputRow;
             this.expressions = expressions;
+        }
+
+        // TODO: FIX ME! implement properly
+        @Override
+        public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
+
+        }
+
+        // TODO: FIX ME! implement properly
+        @Override
+        public boolean needsScores() {
+
         }
 
         @Override

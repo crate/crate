@@ -25,11 +25,13 @@ package io.crate.operation.collect.collectors;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Collector;
+import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.Scorer;
 
 import java.io.IOException;
 
-class FieldVisitorCollector extends Collector {
+// TODO: FIX ME! extend from appropriate new interface
+class FieldVisitorCollector implements Collector {
     private final Collector collector;
     private final CollectorFieldsVisitor fieldsVisitor;
     private LeafReader currentReader;
@@ -37,6 +39,18 @@ class FieldVisitorCollector extends Collector {
     public FieldVisitorCollector(Collector collector, CollectorFieldsVisitor fieldsVisitor) {
         this.collector = collector;
         this.fieldsVisitor = fieldsVisitor;
+    }
+
+    // TODO: FIX ME! implement properly
+    @Override
+    public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
+
+    }
+
+    // TODO: FIX ME! implement properly
+    @Override
+    public boolean needsScores() {
+
     }
 
     @Override
