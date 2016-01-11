@@ -79,7 +79,7 @@ import static org.mockito.Mockito.*;
 public class ShardProjectorChainTest extends CrateUnitTest {
 
     protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     private ProjectionToProjectorVisitor projectionToProjectorVisitor;
     private ThreadPool threadPool;

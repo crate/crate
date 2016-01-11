@@ -80,7 +80,7 @@ import static org.mockito.Mockito.mock;
 public class PageDownstreamFactoryTest extends CrateUnitTest {
 
     private static final RamAccountingContext ramAccountingContext =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     private GroupProjection groupProjection;
     private Functions functions;

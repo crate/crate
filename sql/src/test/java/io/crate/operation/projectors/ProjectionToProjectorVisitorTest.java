@@ -77,7 +77,7 @@ import static org.mockito.Mockito.mock;
 public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
 
     protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
     private ProjectionToProjectorVisitor visitor;
     private FunctionInfo countInfo;
     private FunctionInfo avgInfo;
