@@ -46,6 +46,7 @@ buildscript {
 
 test {
     testLogging.exceptionFormat = 'full'
+    outputs.dir("$projectDir/data")
 
     // fix powermock issue - causing VerifyErrors being thrown
     // see: https://issues.jboss.org/browse/JASSIST-228
@@ -53,6 +54,8 @@ test {
 
     jacoco.excludes = ["*Test*"]
 }
+
+clean.dependsOn(cleanTest)
 
 sourceSets {
     test {
