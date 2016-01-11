@@ -56,7 +56,6 @@ import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.compress.CompressedString;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -222,7 +221,8 @@ public class AlterTableOperation {
     private Map<String, Object> mergeMapping(IndexTemplateMetaData templateMetaData,
                                              Map<String, Object> newMapping) {
         Map<String, Object> mergedMapping = new HashMap<>();
-        for (ObjectObjectCursor<String, CompressedString> cursor : templateMetaData.mappings()) {
+        // TODO: FIX ME! CompressedString
+        /*for (ObjectObjectCursor<String, CompressedString> cursor : templateMetaData.mappings()) {
             try {
                 Map<String, Object> mapping = parseMapping(cursor.value.toString());
                 Object o = mapping.get(Constants.DEFAULT_MAPPING_TYPE);
@@ -232,7 +232,7 @@ public class AlterTableOperation {
             } catch (IOException e) {
                 // pass
             }
-        }
+        }*/
         XContentHelper.update(mergedMapping, newMapping, false);
         return mergedMapping;
     }
