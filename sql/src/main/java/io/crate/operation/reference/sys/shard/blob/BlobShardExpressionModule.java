@@ -26,7 +26,6 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.Settings;
 
@@ -34,7 +33,6 @@ public class BlobShardExpressionModule extends AbstractModule {
 
     private final Settings settings;
 
-    @Inject
     public BlobShardExpressionModule(Settings settings) {
         this.settings = settings;
     }
