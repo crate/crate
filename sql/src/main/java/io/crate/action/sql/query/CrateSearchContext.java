@@ -245,8 +245,8 @@ public class CrateSearchContext extends DefaultSearchContext {
 
         @Override
         // TODO: FIX ME! return type wrong!
-        public HasHeaders putHeader(String key, Object value) {
-            return null;
+        public <V> void putHeader(String key, V value) {
+
         }
 
         @Override

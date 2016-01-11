@@ -69,7 +69,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
         this.transports = transports;
         this.statsTables = statsTables;
         this.nodeFetchOperation = nodeFetchOperation;
-        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
+        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         this.jobContextService = jobContextService;
         this.threadPool = threadPool;
 

@@ -45,10 +45,10 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
                 Settings.EMPTY, settingsService, esBreakerService);
 
-        CircuitBreaker breaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
+        CircuitBreaker breaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         assertThat(breaker, notNullValue());
         assertThat(breaker, instanceOf(CircuitBreaker.class));
-        assertThat(breaker.getName(), is(CrateCircuitBreakerService.QUERY_BREAKER));
+        assertThat(breaker.getName(), is(CrateCircuitBreakerService.QUERY));
     }
 
     @Test
@@ -71,7 +71,7 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
 
         listeners[0].onRefreshSettings(newSettings);
 
-        CircuitBreaker breaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
+        CircuitBreaker breaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         assertThat(breaker, notNullValue());
         assertThat(breaker, instanceOf(CircuitBreaker.class));
         assertThat(breaker.getOverhead(), is(2.0));
@@ -93,7 +93,7 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
         CircuitBreakerStats[] stats = breakerService.stats().getAllStats();
         assertThat(stats.length, is(4));
 
-        CircuitBreakerStats queryBreakerStats = breakerService.stats(CrateCircuitBreakerService.QUERY_BREAKER);
+        CircuitBreakerStats queryBreakerStats = breakerService.stats(CrateCircuitBreakerService.QUERY);
         assertThat(queryBreakerStats.getEstimated(), is(0L));
     }
 
