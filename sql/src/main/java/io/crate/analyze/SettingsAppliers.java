@@ -281,7 +281,7 @@ public class SettingsAppliers {
             } else if (value instanceof String) {
                 try {
                     byteSizeValue = ByteSizeValue.parseBytesSizeValue((String) value,
-                            ExpressionToByteSizeValueVisitor.DEFAULT_VALUE);
+                            ExpressionToByteSizeValueVisitor.DEFAULT_VALUE.toString());
                 } catch (ElasticsearchParseException e) {
                     throw invalidException(e);
                 }
@@ -359,7 +359,8 @@ public class SettingsAppliers {
             TimeValue timeValue;
             if (value instanceof String) {
                 try {
-                    timeValue = TimeValue.parseTimeValue((String) value, ExpressionToTimeValueVisitor.DEFAULT_VALUE);
+                    // TODO: FIX ME! settings name required
+                    timeValue = TimeValue.parseTimeValue((String) value, ExpressionToTimeValueVisitor.DEFAULT_VALUE, "");
                 } catch (ElasticsearchParseException e) {
                     throw invalidException(e);
                 }

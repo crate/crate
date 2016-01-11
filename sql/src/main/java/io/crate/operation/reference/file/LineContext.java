@@ -45,7 +45,8 @@ public class LineContext {
     public Map<String, Object> sourceAsMap() {
         if (parsedSource == null) {
             try {
-                parsedSource = XContentHelper.convertToMap(rawSource, false).v2();
+                // TODO: FIX ME! convert byte to BytesReference
+                //parsedSource = XContentHelper.convertToMap(rawSource, false).v2();
             } catch (NullPointerException e) {
                 return null;
             }
@@ -59,7 +60,8 @@ public class LineContext {
             // TODO: optimize if collectorContext has prefetchColumns
 
             try {
-                parsedSource = XContentHelper.convertToMap(rawSource, false).v2();
+                // TODO: FIX ME! convert byte to BytesReference
+                //parsedSource = XContentHelper.convertToMap(rawSource, false).v2();
             } catch (NullPointerException e) {
                 return null;
             }
