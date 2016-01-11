@@ -27,13 +27,15 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilderString;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.mapper.*;
-import org.elasticsearch.index.mapper.array.ArrayValueMapperParser;
-import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
-import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperException;
-import org.elasticsearch.index.mapper.object.DynamicValueMapperLookup;
+import org.elasticsearch.index.mapper.object.ArrayValueMapperParser;
+// TODO: FIX ME! Assess need for DynamicArrayMappers
+/* import org.elasticsearch.index.mapper.object.DynamicArrayFieldMapperBuilderFactory;
+import org.elasticsearch.index.mapper.object.DynamicArrayFieldMapperException;
+import org.elasticsearch.index.mapper.object.DynamicValueMapperLookup; */
 import org.elasticsearch.index.mapper.object.ObjectMapper;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -68,12 +70,22 @@ import java.util.Map;
  *  will pass.
  *
  */
-public class ArrayMapper implements ArrayValueMapperParser, Mapper {
+public class ArrayMapper extends Mapper implements ArrayValueMapperParser {
 
     public static final String CONTENT_TYPE = "array";
     public static final XContentBuilderString INNER = new XContentBuilderString("inner");
     private Mapper innerMapper;
     private InnerParser innerParser;
+
+    // TODO: FIX ME! implement interface
+    public void merge(Mapper mergeWith, MergeResult mergeResult) throws MergeMappingException {
+
+    }
+
+    // TODO: FIX ME! implement interface
+    public Iterator<Mapper> iterator() {
+
+    }
 
     /**
      * inner class used to parse single values from arrays
@@ -87,7 +99,7 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
         }
 
         public void parse(Mapper mapper, ParseContext ctx) throws IOException {
-            mapper.parse(ctx);
+            // mapper.parse(ctx);
         }
     }
 
@@ -114,12 +126,12 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
 
         private Mapper.Builder innerMapperBuilder;
 
-        public static class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
+        /* public static class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
 
             public Builder create(String name){
                 return new Builder(name);
             }
-        }
+        } */
 
         public Builder(String name) {
             super(name);
@@ -134,10 +146,10 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
         @Override
         public ArrayMapper build(BuilderContext context) {
             if (innerMapperBuilder == null) {
-                return new ArrayMapper(name);
+                // return new ArrayMapper(name);
             } else {
                 Mapper innerMapper = innerMapperBuilder.build(context);
-                return new ArrayMapper(innerMapper, name);
+                // return new ArrayMapper(innerMapper, name);
             }
         }
     }
@@ -187,22 +199,22 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
      * when calling {@linkplain #parse(org.elasticsearch.index.mapper.ParseContext)}.
      *
      */
-    private ArrayMapper(String name) {
+    /* private ArrayMapper(String name) {
         this.name = name;
-    }
+    } */
 
-    public ArrayMapper(Mapper innerMapper, String name) {
+    /* public ArrayMapper(Mapper innerMapper, String name) {
         this(name);
         this.innerMapper = innerMapper;
         setInnerParser();
-    }
+    } */
 
     @Override
     public String name() {
         return name;
     }
 
-    @Override
+    /* @Override
     public void parse(ParseContext context) throws IOException {
         XContentParser parser = context.parser();
         XContentParser.Token token = parser.currentToken();
@@ -225,7 +237,7 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
                 throw new ElasticsearchParseException("nested arrays are not supported");
             } else if  (token == XContentParser.Token.END_ARRAY) {
                 // empty or null arrays -- cannot guess
-                throw new DynamicArrayFieldMapperException();
+                // throw new DynamicArrayFieldMapperException();
             }
 
             Mapper mapper = DynamicValueMapperLookup.getMapper(context, name(), token);
@@ -242,7 +254,7 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
             innerParser.parse(innerMapper, context);
             token = parser.nextToken();
         }
-    }
+    }*/
 
     private void setInnerParser() {
         if (innerMapper != null && innerMapper instanceof ObjectMapper) {
@@ -254,13 +266,13 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
 
     private void parseNull(ParseContext context) throws IOException {
         assert innerMapper != null : "should only end up here, if mapper is not dynamic, so innerMapper is not null";
-        if (innerMapper instanceof FieldMapper && !((FieldMapper) innerMapper).supportsNullValue()) {
+        /* if (innerMapper instanceof FieldMapper && !((FieldMapper) innerMapper).supportsNullValue()) {
             throw new MapperParsingException("no object mapping found for null value in [" + name() + "]");
-        }
+        }*/
         innerParser.parse(innerMapper, context);
     }
 
-    @Override
+    /* @Override
     public void merge(Mapper mergeWith, MergeContext mergeContext) throws MergeMappingException {
         innerMapper.merge(mergeWith, mergeContext);
     }
@@ -278,7 +290,7 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
     @Override
     public void close() {
         innerMapper.close();
-    }
+    }*/
 
     protected String contentType() {
         return CONTENT_TYPE;
@@ -289,12 +301,12 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
         builder.startObject(innerMapper.name());
         builder.field("type", contentType());
         builder.startObject(INNER);
-        if (innerMapper instanceof AbstractFieldMapper) {
+        /* if (innerMapper instanceof AbstractFieldMapper) {
             boolean includeDefaults = params.paramAsBoolean("include_defaults", false);
             ((AbstractFieldMapper)innerMapper).doXContentBody(builder, includeDefaults, params);
         } else if (innerMapper instanceof ObjectMapper) {
             ((ObjectMapper)innerMapper).doXContentBody(builder, params, null, Mapper.EMPTY_ARRAY);
-        }
+        }*/
 
         builder.endObject();
         return builder.endObject();
