@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 public class GeoPointType extends DataType<Double[]> implements Streamer<Double[]>, DataTypeFactory, FixedWidthType {
 
@@ -86,7 +87,7 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
             Point point = (Point)SPATIAL_CONTEXT.readShapeFromWkt(value);
             return new Double[] {point.getX(), point.getY()};
         } catch (ParseException e) {
-            throw new IllegalArgumentException(String.format(
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Cannot convert \"%s\" to geo_point", value), e);
         }
     }
