@@ -31,7 +31,8 @@ public class SQLBulkRequestBuilder extends ActionRequestBuilder<SQLBulkRequest, 
         super(client, action, new SQLBulkRequest());
     }
 
-    @Override
+    // TODO: FIX ME! is this still needed?
+    //@Override
     protected void doExecute(ActionListener<SQLBulkResponse> listener) {
         client.execute(SQLBulkAction.INSTANCE, request, listener);
     }
