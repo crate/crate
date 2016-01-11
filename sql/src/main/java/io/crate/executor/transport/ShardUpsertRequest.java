@@ -29,6 +29,7 @@ import io.crate.Streamer;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.doc.DocSysColumns;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.Nullable;
@@ -211,7 +212,7 @@ public class ShardUpsertRequest extends ReplicationRequest<ShardUpsertRequest> i
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        shardId = in.readInt();
+        shardId = new ShardId(index, in.readInt());
         routing = in.readOptionalString();
         jobId = new UUID(in.readLong(), in.readLong());
         int assignmentsColumnsSize = in.readVInt();
@@ -384,7 +385,7 @@ public class ShardUpsertRequest extends ReplicationRequest<ShardUpsertRequest> i
                 }
             }
 
-            version = Versions.readVersion(in);
+            version = Version.readVersion(in).id;
         }
 
         @Override
@@ -408,7 +409,7 @@ public class ShardUpsertRequest extends ReplicationRequest<ShardUpsertRequest> i
                 out.writeVInt(0);
             }
 
-            Versions.writeVersion(version, out);
+            Version.writeVersion(Version.fromId((int)version), out);
         }
     }
 

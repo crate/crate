@@ -403,6 +403,7 @@ public class TransportShardUpsertAction
             BytesRef source = (BytesRef) insertValues[0];
             // TODO: FIX ME!
             // sourceAsMap = XContentHelper.convertToMap(source.bytes, true).v2();
+            sourceAsMap = new LinkedHashMap<>();
         } else {
             sourceAsMap = new LinkedHashMap<>(insertColumns.length);
             for (int i = 0; i < insertColumns.length; i++) {
