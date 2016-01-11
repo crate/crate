@@ -21,7 +21,7 @@
 
 package io.crate.action.job;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
@@ -221,8 +221,8 @@ public class ContextPreparer {
         private final UUID jobId;
         private final RowDownstreamFactory rowDownstreamFactory;
         private final Map<Tuple<Integer, Byte>, Boolean> phaseHasSameNodeUpstream = new HashMap<>();
-        private final IntObjectOpenHashMap<NodeOperation> phaseIdToNodeOperations = new IntObjectOpenHashMap<>();
-        private final IntObjectOpenHashMap<RowReceiver> phaseIdToRowReceivers = new IntObjectOpenHashMap<>();
+        private final IntObjectHashMap<NodeOperation> phaseIdToNodeOperations = new IntObjectHashMap<>();
+        private final IntObjectHashMap<RowReceiver> phaseIdToRowReceivers = new IntObjectHashMap<>();
         private final List<ExecutionPhase> executionPhasesToProcess = new ArrayList<>();
         private final Iterable<? extends NodeOperation> nodeOperations;
 

@@ -25,8 +25,8 @@ package io.crate.executor.transport;
 import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.Iterables;
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.IntOpenHashSet;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntHashSet;
 import io.crate.Streamer;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
@@ -43,16 +43,16 @@ public class NodeFetchResponseTest {
     @Test
     public void testStreaming() throws Exception {
 
-        IntObjectOpenHashMap<IntContainer> toFetch = new IntObjectOpenHashMap<>();
-        IntOpenHashSet docIds = new IntOpenHashSet(3);
+        IntObjectHashMap<IntContainer> toFetch = new IntObjectHashMap<>();
+        IntHashSet docIds = new IntHashSet(3);
         toFetch.put(1, docIds);
 
-        IntObjectMap<Streamer[]> streamers = new IntObjectOpenHashMap<>(1);
+        IntObjectMap<Streamer[]> streamers = new IntObjectHashMap<>(1);
         streamers.put(1, new Streamer[]{DataTypes.BOOLEAN.streamer()});
 
         StreamBucket.Builder builder = new StreamBucket.Builder(streamers.get(1));
         builder.add(new RowN(new Object[]{true}));
-        IntObjectOpenHashMap<StreamBucket> fetched = new IntObjectOpenHashMap<>(1);
+        IntObjectHashMap<StreamBucket> fetched = new IntObjectHashMap<>(1);
         fetched.put(1, builder.build());
 
         NodeFetchResponse orig = NodeFetchResponse.forSending(fetched);

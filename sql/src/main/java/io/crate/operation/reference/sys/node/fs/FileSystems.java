@@ -21,7 +21,7 @@
 
 package io.crate.operation.reference.sys.node.fs;
 
-import com.carrotsearch.hppc.IntOpenHashSet;
+import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.base.Predicate;
 import org.hyperic.sigar.FileSystem;
@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
 
 public class FileSystems {
 
-    private final static IntSet SUPPORTED_FS_TYPES = IntOpenHashSet.from(
+    private final static IntSet SUPPORTED_FS_TYPES = IntHashSet.from(
             FileSystem.TYPE_LOCAL_DISK, FileSystem.TYPE_NETWORK, FileSystem.TYPE_RAM_DISK);
 
     public final static Predicate<FileSystem> SUPPORTED_FS_TYPE = new Predicate<FileSystem>() {

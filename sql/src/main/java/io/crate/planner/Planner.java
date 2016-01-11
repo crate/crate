@@ -21,7 +21,7 @@
 
 package io.crate.planner;
 
-import com.carrotsearch.hppc.IntOpenHashSet;
+import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -117,7 +117,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                         int readerId = base + nodeEntries.getKey();
                         IntSet readerIds = nodeReaders.get(nodeEntries.getValue());
                         if (readerIds == null){
-                            readerIds = new IntOpenHashSet();
+                            readerIds = new IntHashSet();
                             nodeReaders.put(nodeEntries.getValue(), readerIds);
                         }
                         readerIds.add(readerId);
