@@ -62,12 +62,10 @@ public class BlobHeadRequestHandler {
 
     public void registerHandler() {
         transportService.registerRequestHandler(Actions.GET_BLOB_HEAD, GetBlobHeadRequest.class, ThreadPool.Names.GENERIC, new GetBlobHeadHandler());
-        // TODO: FIX ME! Maybe change the name of either BlobInfoRequest to BlobTransferInfoRequest or remove Transfer alltogether
         transportService.registerRequestHandler(Actions.GET_TRANSFER_INFO, BlobInfoRequest.class, ThreadPool.Names.GENERIC, new GetTransferInfoHandler());
         transportService.registerRequestHandler(Actions.PUT_BLOB_HEAD_CHUNK, PutBlobHeadChunkRequest.class, ThreadPool.Names.GENERIC, new PutBlobHeadChunkHandler());
     }
 
-    // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
     private class GetBlobHeadHandler implements TransportRequestHandler<GetBlobHeadRequest> {
         /**
          * this is method is called on the recovery source node
