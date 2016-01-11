@@ -25,10 +25,10 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.client.ElasticsearchClient;
 
-public class SQLBulkRequestBuilder extends ActionRequestBuilder<SQLBulkRequest, SQLBulkResponse, SQLBulkRequestBuilder, ElasticsearchClient> {
+public class SQLBulkRequestBuilder extends ActionRequestBuilder<SQLBulkRequest, SQLBulkResponse, SQLBulkRequestBuilder> {
 
-    public SQLBulkRequestBuilder(ElasticsearchClient client) {
-        super(client, new SQLBulkRequest());
+    public SQLBulkRequestBuilder(ElasticsearchClient client, SQLBulkAction action) {
+        super(client, action, new SQLBulkRequest());
     }
 
     @Override
