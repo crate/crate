@@ -143,7 +143,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         // check that orphaned alias has been deleted
         assertThat(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().aliases().containsKey("test"), is(false));
+                .getState().metaData().hasAlias("test"), is(false));
         // check that orphaned partition has been deleted
         assertThat(client().admin().indices().exists(new IndicesExistsRequest(partitionName)).actionGet().isExists(), is(false));
     }

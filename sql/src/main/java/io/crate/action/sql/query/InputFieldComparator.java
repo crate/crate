@@ -27,6 +27,7 @@ import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.types.DataType;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;
+import org.apache.lucene.search.LeafFieldComparator;
 
 import java.io.IOException;
 import java.util.List;
@@ -56,13 +57,20 @@ class InputFieldComparator extends FieldComparator {
         this.input = input;
     }
 
+    // TODO: FIX ME! implement me
+    @Override
+    public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
+        return null;
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     public int compare(int slot1, int slot2) {
         return valueType.compareValueTo(values[slot1], values[slot2]);
     }
 
-    @Override
+    // TODO: FIX ME! not needed anymore?
+    //@Override
     public void setBottom(int slot) {
         bottom = values[slot];
     }
@@ -73,7 +81,8 @@ class InputFieldComparator extends FieldComparator {
     }
 
     @SuppressWarnings("unchecked")
-    @Override
+    // TODO: FIX ME! not needed anymore?
+    //@Override
     public int compareBottom(int doc) throws IOException {
         for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
             collectorExpression.setNextDocId(doc);
@@ -82,7 +91,8 @@ class InputFieldComparator extends FieldComparator {
     }
 
     @SuppressWarnings("unchecked")
-    @Override
+    // TODO: FIX ME! not needed anymore?
+    //@Override
     public int compareTop(int doc) throws IOException {
         for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
             collectorExpression.setNextDocId(doc);
@@ -90,7 +100,8 @@ class InputFieldComparator extends FieldComparator {
         return valueType.compareValueTo(top, MoreObjects.firstNonNull(input.value(), missingValue));
     }
 
-    @Override
+    // TODO: FIX ME! not needed anymore?
+    //@Override
     public void copy(int slot, int doc) throws IOException {
         for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
             collectorExpression.setNextDocId(doc);
@@ -103,7 +114,8 @@ class InputFieldComparator extends FieldComparator {
         }
     }
 
-    @Override
+    // TODO: FIX ME! not needed anymore?
+    //@Override
     public FieldComparator setNextReader(LeafReaderContext context) throws IOException {
         for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
             collectorExpression.setNextReader(context);

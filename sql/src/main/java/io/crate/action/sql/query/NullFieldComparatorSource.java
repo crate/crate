@@ -24,6 +24,7 @@ package io.crate.action.sql.query;
 import io.crate.executor.transport.task.elasticsearch.SortOrder;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;
+import org.apache.lucene.search.LeafFieldComparator;
 import org.apache.lucene.search.SortField;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 
@@ -53,12 +54,20 @@ class NullFieldComparatorSource extends IndexFieldData.XFieldComparatorSource {
     @Override
     public FieldComparator<?> newComparator(String fieldname, int numHits, int sortPos, boolean reversed) throws IOException {
         return new FieldComparator<Object>() {
+            // TODO: FIX ME! implement me
+            @Override
+            public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
+                return null;
+            }
+
             @Override
             public int compare(int slot1, int slot2) {
                 return 0;
             }
 
-            @Override
+            // TODO: FIX ME! not needed anymore?
+            //@Override
+
             public void setBottom(int slot) {
 
             }
@@ -68,22 +77,26 @@ class NullFieldComparatorSource extends IndexFieldData.XFieldComparatorSource {
 
             }
 
-            @Override
+            // TODO: FIX ME! not needed anymore?
+            //@Override
             public int compareBottom(int doc) throws IOException {
                 return 0;
             }
 
-            @Override
+            // TODO: FIX ME! not needed anymore?
+            //@Override
             public int compareTop(int doc) throws IOException {
                 return 0;
             }
 
-            @Override
+            // TODO: FIX ME! not needed anymore?
+            //@Override
             public void copy(int slot, int doc) throws IOException {
 
             }
 
-            @Override
+            // TODO: FIX ME! not needed anymore?
+            //@Override
             public FieldComparator<Object> setNextReader(LeafReaderContext context) throws IOException {
                 return this;
             }

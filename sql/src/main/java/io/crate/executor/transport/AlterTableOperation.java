@@ -40,6 +40,7 @@ import io.crate.exceptions.AlterTableAliasException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -61,6 +62,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -197,7 +199,8 @@ public class AlterTableOperation {
         Map<String, Object> mapping;
         try {
             MetaData metaData = clusterService.state().metaData();
-            String index = metaData.concreteSingleIndex(indexOrAlias, IndicesOptions.lenientExpandOpen());
+            // TODO: FIX ME! concreteSingleIndex does not exist anymore
+            String index = ""; //metaData.concreteSingleIndex(indexOrAlias, IndicesOptions.lenientExpandOpen());
             mapping = metaData.index(index).mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
         } catch (IOException e) {
             return Futures.immediateFailedFuture(e);
@@ -215,7 +218,11 @@ public class AlterTableOperation {
     }
 
     private Map<String, Object> parseMapping(String mappingSource) throws IOException {
-        return XContentFactory.xContent(mappingSource).createParser(mappingSource).mapAndClose();
+        try (XContentParser parser = XContentFactory.xContent(mappingSource).createParser(mappingSource)) {
+            return parser.map();
+        } catch (IOException e) {
+            throw new ElasticsearchException("failed to parse mapping");
+        }
     }
 
     private Map<String, Object> mergeMapping(IndexTemplateMetaData templateMetaData,
