@@ -31,6 +31,7 @@ import io.crate.blob.v2.BlobIndices;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
 import io.crate.plugin.CrateCorePlugin;
+import io.crate.rest.CrateRestFilter;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
@@ -43,13 +44,14 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.node.internal.InternalNode;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -61,18 +63,15 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.core.IsEqual.equalTo;
 
-@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE, numDataNodes = 0)
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 0, numClientNodes = 0, transportClientRatio = 0)
 @ThreadLeakFilters(defaultFilters = true, filters = {RecoveryTests.RecoveryTestThreadFilter.class})
-public class RecoveryTests extends ElasticsearchIntegrationTest {
+public class RecoveryTests extends ESIntegTestCase {
 
     @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.settingsBuilder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put("plugin.types", CrateCorePlugin.class.getName())
-                .put(InternalNode.HTTP_ENABLED, true)
-                .build();
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        return pluginList(CrateCorePlugin.class);
     }
+
 
     public static class RecoveryTestThreadFilter implements ThreadFilter {
         @Override
