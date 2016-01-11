@@ -28,11 +28,11 @@ import com.google.common.collect.ImmutableList;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.monitor.sigar.SigarService;
+/* import org.elasticsearch.monitor.sigar.SigarService;
 import org.hyperic.sigar.FileSystem;
 import org.hyperic.sigar.FileSystemUsage;
 import org.hyperic.sigar.SigarException;
-import org.hyperic.sigar.SigarPermissionDeniedException;
+import org.hyperic.sigar.SigarPermissionDeniedException; */
 
 import javax.annotation.Nonnull;
 import java.util.HashMap;
@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+// TODO: FIX ME! sigar removal!
 public class NodeFsTotalExpression extends SysNodeObjectReference {
 
     public static final String SIZE = "size";
@@ -55,7 +56,7 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
             SIZE, USED, AVAILABLE, READS, BYTES_READ, WRITES, BYTES_WRITTEN);
     private static final ESLogger logger = Loggers.getLogger(NodeFsTotalExpression.class);
 
-    private final SigarService sigarService;
+    // private final SigarService sigarService;
 
     // cache that collects all totals at once, even if only one total value is queried
     private final LoadingCache<String, Long> totals = CacheBuilder.newBuilder()
@@ -74,8 +75,8 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
                 }
             });
 
-    protected NodeFsTotalExpression(SigarService sigarService) {
-        this.sigarService = sigarService;
+    protected NodeFsTotalExpression(Object sigarService) {
+        // this.sigarService = sigarService;
         addChildImplementations();
     }
 
@@ -90,7 +91,7 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
     }
 
     private Map<String,Long> getTotals() {
-        Map<String, Long> totals = new HashMap<>(7);
+        /* Map<String, Long> totals = new HashMap<>(7);
         long size=-1L, used=-1L, available=-1L,
              reads=-1L, bytes_read=-1L,
              writes=-1L, bytes_written=-1L;
@@ -127,7 +128,7 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
         totals.put(BYTES_READ, bytes_read);
         totals.put(WRITES, writes);
         totals.put(BYTES_WRITTEN, bytes_written);
-        return totals;
+        return totals; */
     }
 
     private static long setOrIncrementBy(long l, long val) {

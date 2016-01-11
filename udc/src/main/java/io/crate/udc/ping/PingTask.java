@@ -30,9 +30,9 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.monitor.network.NetworkInfo;
+// import org.elasticsearch.monitor.network.NetworkInfo;
 import org.elasticsearch.node.service.NodeService;
-import org.hyperic.sigar.OperatingSystem;
+// import org.hyperic.sigar.OperatingSystem;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -47,6 +47,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+// TODO: FIX ME! sigar removal!
 public class PingTask extends TimerTask {
 
     public static final TimeValue HTTP_TIMEOUT = new TimeValue(5, TimeUnit.SECONDS);
