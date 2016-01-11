@@ -37,6 +37,7 @@ import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
@@ -64,10 +65,11 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
             TransportService transportService,
             StatsTables statsTables,
             ActionFilters actionFilters,
+            IndexNameExpressionResolver indexNameExpressionResolver,
             TransportKillJobsNodeAction transportKillJobsNodeAction) {
         super(clusterService, settings, SQLAction.NAME, threadPool,
                 analyzer, planner, executor, statsTables, actionFilters,
-                transportKillJobsNodeAction);
+                indexNameExpressionResolver, transportKillJobsNodeAction);
 
         transportService.registerRequestHandler(SQLAction.NAME, SQLRequest.class, ThreadPool.Names.SAME, new TransportHandler());
     }
@@ -130,7 +132,8 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
         @Override
         public void messageReceived(SQLRequest request, final TransportChannel channel) throws Exception {
             // no need for a threaded listener
-            request.listenerThreaded(false);
+            // TODO: FIX ME! listenerThreaded does not exist anymore
+            // request.listenerThreaded(false);
             ActionListener<SQLResponse> listener = ResponseForwarder.forwardTo(channel);
             execute(request, listener);
         }

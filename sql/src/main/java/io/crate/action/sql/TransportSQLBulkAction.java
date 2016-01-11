@@ -102,7 +102,8 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
         @Override
         public void messageReceived(SQLBulkRequest request, final TransportChannel channel) throws Exception {
             // no need for a threaded listener
-            request.listenerThreaded(false);
+            // TODO: FIX ME! listenerThreaded does not exist anymore
+            // request.listenerThreaded(false);
             ActionListener<SQLBulkResponse> listener = ResponseForwarder.forwardTo(channel);
             execute(request, listener);
         }
