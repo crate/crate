@@ -80,9 +80,7 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
         ESLogger transportServiceLogger = Loggers.getLogger(TransportService.class);
         String previousLevel = transportServiceLogger.getLevel();
         transportServiceLogger.setLevel("ERROR");
-
         injector.getInstance(BlobRecoverySource.class).registerHandler();
-
         transportServiceLogger.setLevel(previousLevel);
 
         // validate the optional blob path setting
@@ -96,21 +94,25 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
         // by default the http server is started after the discovery service.
         // For the BlobService this is too late.
 
+        // FIXME:
+
         // The HttpServer has to be started before so that the boundAddress
         // can be added to DiscoveryNodes - this is required for the redirect logic.
-        if (settings.getAsBoolean("http.enabled", true)) {
+        //if (settings.getAsBoolean("http.enabled", true)) {
             injector.getInstance(HttpServer.class).start();
-        } else {
-            logger.warn("Http server should be enabled for blob support");
-        }
+        //} else {
+        //    logger.warn("Http server should be enabled for blob support");
+        //}
     }
 
     @Override
     protected void doStop() throws ElasticsearchException {
+        injector.getInstance(HttpServer.class).stop();
     }
 
     @Override
     protected void doClose() throws ElasticsearchException {
+        injector.getInstance(HttpServer.class).close();
     }
 
     /**

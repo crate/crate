@@ -1,30 +1,28 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
- * obtain a copy of the License at
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
  * under the License.
- *
- * However, if you have executed another commercial license agreement
- * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 
 package io.crate.http.netty;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.blob.BlobService;
 import io.crate.blob.v2.BlobIndices;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.node.DiscoveryNodeService;
 import org.elasticsearch.common.Booleans;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -93,9 +91,9 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
 
     protected final NetworkService networkService;
     protected final BigArrays bigArrays;
-    private final DiscoveryNodeService discoveryNodeService;
     private final BlobService blobService;
     private final BlobIndices blobIndices;
+    private final DiscoveryNodeService discoveryNodeService;
 
     protected final ByteSizeValue maxContentLength;
     protected final ByteSizeValue maxInitialLineLength;
@@ -128,7 +126,7 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
 
     protected final String tcpNoDelay;
     protected final String tcpKeepAlive;
-    protected final Boolean reuseAddress;
+    protected final boolean reuseAddress;
 
     protected final ByteSizeValue tcpSendBufferSize;
     protected final ByteSizeValue tcpReceiveBufferSize;
@@ -141,8 +139,6 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
 
     protected volatile BoundTransportAddress boundAddress;
 
-    protected volatile Channel serverChannel;
-
     protected volatile List<Channel> serverChannels = new ArrayList<>();
 
     protected OpenChannelsHandler serverOpenChannels;
@@ -151,13 +147,13 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
 
     @Inject
     public NettyHttpServerTransport(Settings settings, NetworkService networkService, BigArrays bigArrays,
-                                    DiscoveryNodeService discoveryNodeService, BlobService blobService, BlobIndices blobIndices) {
+                                    BlobService blobService, BlobIndices blobIndices, DiscoveryNodeService discoveryNodeService) {
         super(settings);
         this.networkService = networkService;
         this.bigArrays = bigArrays;
-        this.discoveryNodeService = discoveryNodeService;
         this.blobService = blobService;
         this.blobIndices = blobIndices;
+        this.discoveryNodeService = discoveryNodeService;
 
         if (settings.getAsBoolean("netty.epollBugWorkaround", false)) {
             System.setProperty("org.jboss.netty.epollBugWorkaround", "true");
@@ -173,8 +169,8 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
         this.maxCumulationBufferCapacity = settings.getAsBytesSize("http.netty.max_cumulation_buffer_capacity", null);
         this.maxCompositeBufferComponents = settings.getAsInt("http.netty.max_composite_buffer_components", -1);
         this.workerCount = settings.getAsInt("http.netty.worker_count", EsExecutors.boundedNumberOfProcessors(settings) * 2);
-        this.blockingServer = settings.getAsBoolean("http.blocking_server", settings.getAsBoolean(TCP_BLOCKING_SERVER, settings.getAsBoolean(TCP_BLOCKING, false)));
-        this.port = settings.get("http.netty.port", settings.get("http.port", "4200-4300"));
+        this.blockingServer = settings.getAsBoolean("http.netty.http.blocking_server", settings.getAsBoolean(TCP_BLOCKING_SERVER, settings.getAsBoolean(TCP_BLOCKING, false)));
+        this.port = settings.get("http.netty.port", settings.get("http.port", "4200-2300"));
         this.bindHost = settings.get("http.netty.bind_host", settings.get("http.bind_host", settings.get("http.host")));
         this.publishHost = settings.get("http.netty.publish_host", settings.get("http.publish_host", settings.get("http.host")));
         this.publishPort = settings.getAsInt("http.netty.publish_port", settings.getAsInt("http.publish_port", 0));
@@ -215,21 +211,19 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
 
         logger.debug("using max_chunk_size[{}], max_header_size[{}], max_initial_line_length[{}], max_content_length[{}], receive_predictor[{}->{}], pipelining[{}], pipelining_max_events[{}]",
                 maxChunkSize, maxHeaderSize, maxInitialLineLength, this.maxContentLength, receivePredictorMin, receivePredictorMax, pipelining, pipeliningMaxEvents);
-
-
-
     }
 
     public Settings settings() {
         return this.settings;
     }
 
+    @Override
     public void httpServerAdapter(HttpServerAdapter httpServerAdapter) {
         this.httpServerAdapter = httpServerAdapter;
     }
 
     @Override
-    protected void doStart() throws ElasticsearchException {
+    protected void doStart() {
         this.serverOpenChannels = new OpenChannelsHandler(logger);
 
         if (blockingServer) {
@@ -260,10 +254,8 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
         }
         serverBootstrap.setOption("receiveBufferSizePredictorFactory", receiveBufferSizePredictorFactory);
         serverBootstrap.setOption("child.receiveBufferSizePredictorFactory", receiveBufferSizePredictorFactory);
-        if (reuseAddress != null) {
-            serverBootstrap.setOption("reuseAddress", reuseAddress);
-            serverBootstrap.setOption("child.reuseAddress", reuseAddress);
-        }
+        serverBootstrap.setOption("reuseAddress", reuseAddress);
+        serverBootstrap.setOption("child.reuseAddress", reuseAddress);
 
         // Bind and start to accept incoming connections.
         InetAddress hostAddresses[];
@@ -291,15 +283,15 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
         this.boundAddress = new BoundTransportAddress(boundAddresses.toArray(new TransportAddress[boundAddresses.size()]), new InetSocketTransportAddress(publishAddress));
 
         final String httpAddress = "http://" + publishAddress.getAddress().getHostAddress() + ":" + publishAddress.getPort();
-
         discoveryNodeService.addCustomAttributeProvider(new DiscoveryNodeService.CustomAttributesProvider() {
             @Override
             public Map<String, String> buildAttributes() {
                 return ImmutableMap.<String, String>builder().put("http_address", httpAddress).build();
             }
         });
-    }
 
+    }
+    
     private InetSocketTransportAddress bindAddress(final InetAddress hostAddress) {
         PortsRange portsRange = new PortsRange(port);
         final AtomicReference<Exception> lastException = new AtomicReference<>();
@@ -331,10 +323,14 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
     }
 
     @Override
-    protected void doStop() throws ElasticsearchException {
-        if (serverChannel != null) {
-            serverChannel.close().awaitUninterruptibly();
-            serverChannel = null;
+    protected void doStop() {
+        synchronized (serverChannels) {
+            if (serverChannels != null) {
+                for (Channel channel : serverChannels) {
+                    channel.close().awaitUninterruptibly();
+                }
+                serverChannels = null;
+            }
         }
 
         if (serverOpenChannels != null) {
@@ -349,9 +345,10 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
     }
 
     @Override
-    protected void doClose() throws ElasticsearchException {
+    protected void doClose() {
     }
 
+    @Override
     public BoundTransportAddress boundAddress() {
         return this.boundAddress;
     }
@@ -431,6 +428,7 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
             }
             pipeline.addLast("decoder", requestDecoder);
             pipeline.addLast("decoder_compress", new ESHttpContentDecompressor(transport.compression));
+
 
             HttpBlobHandler blobHandler = new HttpBlobHandler(transport.blobService, transport.blobIndices);
             pipeline.addLast("blob_handler", blobHandler);
