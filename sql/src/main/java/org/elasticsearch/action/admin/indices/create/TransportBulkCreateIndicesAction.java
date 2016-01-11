@@ -35,7 +35,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.action.support.master.TransportMasterNodeOperationAction;
+import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -94,7 +94,7 @@ import static org.elasticsearch.common.settings.Settings.settingsBuilder;
  */
 @Singleton
 public class TransportBulkCreateIndicesAction
-        extends TransportMasterNodeOperationAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse>
+        extends TransportMasterNodeAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse>
         implements KillAllListener {
 
     public static final String NAME = "indices:admin/bulk_create";
