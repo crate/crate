@@ -42,6 +42,7 @@ import java.util.Locale;
 public class UpperFunction extends Scalar<BytesRef, Object> {
     public static final String NAME = "upper";
 
+    final private FunctionInfo info;
     private Locale currentLocale;
 
     public static void register(ScalarFunctionModule module) {
@@ -62,10 +63,14 @@ public class UpperFunction extends Scalar<BytesRef, Object> {
         }
     }
 
-    private FunctionInfo info;
-
     public UpperFunction(FunctionInfo info) {
         this.info = info;
+        this.currentLocale = null;
+    }
+
+    public UpperFunction(FunctionInfo info, Locale currentLocale) {
+        this(info);
+        this.currentLocale = currentLocale;
     }
 
     @Override
@@ -100,20 +105,22 @@ public class UpperFunction extends Scalar<BytesRef, Object> {
     public Scalar<BytesRef, Object> compile(List<Symbol> arguments) {
         assert arguments.size() > 0 && arguments.size() < 3 : "invalid number of arguments";
 
-        if (arguments.size() < 2) {
-            currentLocale = Locale.getDefault();
-        } else {
+        Locale locale = null;
+
+        if (arguments.size() == 2) {
             if (arguments.get(1).symbolType() == SymbolType.LITERAL) {
                 Object localeValue = ((Literal) arguments.get(1)).value();
                 if (localeValue != null) {
-                    currentLocale = Locale.forLanguageTag(BytesRefs.toBytesRef(localeValue).utf8ToString());
+                    locale = Locale.forLanguageTag(BytesRefs.toString(localeValue));
                 } else {
-                    currentLocale = Locale.getDefault();
+                    locale = Locale.getDefault();
                 }
             }
+        } else {
+            locale = Locale.getDefault();
         }
 
-        return this;
+        return new UpperFunction(this.info, locale);
     }
 
     @Override
@@ -121,12 +128,6 @@ public class UpperFunction extends Scalar<BytesRef, Object> {
         assert symbol != null;
         assert symbol.arguments().size() > 0 && symbol.arguments().size() < 3 : "invalid number of arguments";
 
-        Symbol arg = symbol.arguments().get(0);
-        if (symbol.arguments().size() == 2) {
-            Symbol locale = symbol.arguments().get(1);
-            return Literal.newLiteral(evaluate((Input) arg, (Input) locale));
-        } else {
-            return Literal.newLiteral(evaluate((Input) arg));
-        }
+        return evaluateIfLiterals(this, symbol);
     }
 }

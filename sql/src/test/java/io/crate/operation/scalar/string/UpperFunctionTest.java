@@ -21,15 +21,20 @@
 
 package io.crate.operation.scalar.string;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -99,6 +104,15 @@ public class UpperFunctionTest extends AbstractScalarFunctionsTest {
             Object value = evaluateForArgs(argList);
             assertThat(value, is(nullValue()));
         }
+    }
+
+    public void testNormalizeSymbol() throws Exception {
+        Function function = (Function) sqlExpressions.asSymbol("upper(name)");
+        UpperFunction upperFunction = (UpperFunction) functions.get(function.info().ident());
+
+        Symbol result = upperFunction.normalizeSymbol(function);
+        assertThat(result, instanceOf(Function.class));
+        assertThat((Function)result, is(function));
     }
 
     @Test
