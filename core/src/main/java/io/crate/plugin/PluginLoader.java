@@ -32,13 +32,14 @@ import io.crate.core.CrateComponentLoader;
 import org.apache.xbean.finder.ResourceFinder;
 import org.elasticsearch.bootstrap.JarHell;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -56,16 +57,22 @@ public class PluginLoader {
     private static final String RESOURCE_PATH = "META-INF/services/";
 
     private final Settings settings;
-    private final Environment environment;
     private final ImmutableMap<Plugin, List<CrateComponentLoader.OnModuleReference>> onModuleReferences;
     private final ESLogger logger;
 
     @VisibleForTesting
     final List<Plugin> plugins;
+    private final Path pluginPath;
 
     public PluginLoader(Settings settings) {
         this.settings = settings;
-        environment = new Environment(settings);
+
+        String pluginFolder = settings.get("path.crate_plugins");
+        if (pluginFolder == null) {
+            pluginPath = PathUtils.get(Strings.cleanPath(settings.get("path.home"))).resolve("plugins");
+        } else {
+            pluginPath = PathUtils.get(Strings.cleanPath(pluginFolder));
+        }
         logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
 
         List<URL> pluginUrls = getPluginUrls();
@@ -140,12 +147,11 @@ public class PluginLoader {
 
     @Nullable
     private List<URL> getPluginUrls() {
-        Path pluginsDirectory = environment.pluginsFile();
-        if (!isAccessibleDirectory(pluginsDirectory, logger)) {
+        if (!isAccessibleDirectory(pluginPath, logger)) {
             return Collections.emptyList();
         }
 
-        File[] plugins = pluginsDirectory.toFile().listFiles();
+        File[] plugins = pluginPath.toFile().listFiles();
         if (plugins == null) {
             return Collections.emptyList();
         }

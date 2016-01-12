@@ -22,7 +22,10 @@
 package io.crate.plugin;
 
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.plugins.PluginInfo;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -31,6 +34,8 @@ import org.junit.Test;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Collection;
+import java.util.List;
 
 import static org.elasticsearch.client.Requests.clusterHealthRequest;
 import static org.elasticsearch.common.settings.Settings.settingsBuilder;
@@ -40,13 +45,18 @@ import static org.hamcrest.Matchers.is;
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, numClientNodes = 0)
 public class PluginLoaderTest extends ESIntegTestCase {
 
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        return pluginList(CrateCorePlugin.class);
+    }
+
     @Test
     public void testLoadPlugin() throws Exception {
+        // FIXME: fails because plugin in /io/crate/plugin/duplicates uses old Plugin API
         String node = startNodeWithPlugins("/io/crate/plugin/simple_plugin");
 
         PluginsService pluginsService = internalCluster().getInstance(PluginsService.class, node);
-        assertThat(pluginsService.plugins().get(0).v2(), instanceOf(CrateCorePlugin.class));
-        CrateCorePlugin corePlugin = (CrateCorePlugin) pluginsService.plugins().get(0).v2();
+        CrateCorePlugin corePlugin = getCrateCorePlugin(pluginsService.plugins());
 
         PluginLoader pluginLoader = corePlugin.pluginLoader;
         assertThat(pluginLoader.plugins.size(), is(1));
@@ -59,7 +69,7 @@ public class PluginLoaderTest extends ESIntegTestCase {
 
         String node = startNodeWithPlugins("/io/crate/plugin/plugin_with_already_loaded_class");
         PluginsService pluginsService = internalCluster().getInstance(PluginsService.class, node);
-        CrateCorePlugin corePlugin = (CrateCorePlugin) pluginsService.plugins().get(0).v2();
+        CrateCorePlugin corePlugin = getCrateCorePlugin(pluginsService.plugins());
 
         PluginLoader pluginLoader = corePlugin.pluginLoader;
         assertThat(pluginLoader.plugins, Matchers.empty());
@@ -70,25 +80,33 @@ public class PluginLoaderTest extends ESIntegTestCase {
         URL resource = PluginLoaderTest.class.getResource(pluginDir);
         Settings.Builder settings = settingsBuilder();
         if (resource != null) {
-            settings.put("path.plugins", new File(resource.toURI()).getAbsolutePath());
+            settings.put("path.crate_plugins", new File(resource.toURI()).getAbsolutePath());
         }
-        settings.put("plugin.types", CrateCorePlugin.class.getName());
-
         String nodeName = internalCluster().startNode(settings);
-
         // We wait for a Green status
         client().admin().cluster().health(clusterHealthRequest().waitForGreenStatus()).actionGet();
-
         return internalCluster().getInstance(ClusterService.class, nodeName).state().nodes().localNode().name();
     }
 
     @Test
     public void testDuplicates() throws Exception {
+        // FIXME: fails because plugin in /io/crate/plugin/duplicates uses old Plugin API
         String node = startNodeWithPlugins("/io/crate/plugin/duplicates");
         PluginsService pluginsService = internalCluster().getInstance(PluginsService.class, node);
-        CrateCorePlugin corePlugin = (CrateCorePlugin) pluginsService.plugins().get(0).v2();
+
+        CrateCorePlugin corePlugin = getCrateCorePlugin(pluginsService.plugins());
 
         PluginLoader pluginLoader = corePlugin.pluginLoader;
         assertThat(pluginLoader.plugins, Matchers.hasSize(1));
+    }
+
+    private CrateCorePlugin getCrateCorePlugin(List<Tuple<PluginInfo, Plugin>> pluginsService) {
+        // there are now a couple of Mock*Plugins loaded in Tests as well.. find the CrateCorePlugin
+        for (Tuple<PluginInfo, Plugin> pluginInfoPluginTuple : pluginsService) {
+            if (pluginInfoPluginTuple.v2() instanceof CrateCorePlugin) {
+                return ((CrateCorePlugin) pluginInfoPluginTuple.v2());
+            }
+        }
+        throw new IllegalStateException("Couldn't find CrateCorePlugin");
     }
 }
