@@ -41,7 +41,9 @@ public class Build {
 
         try (InputStream inputStream = Build.class.getResourceAsStream("/crate-build.properties")){
             Properties props = new Properties();
-            props.load(inputStream);
+            if (inputStream != null) {
+                props.load(inputStream);
+            }
             hash = props.getProperty("hash", hash);
             if (!hash.equals("NA")) {
                 hashShort = hash.substring(0, 7);
