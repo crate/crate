@@ -194,8 +194,16 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
         return sqlFqn();
     }
 
+    public String quotedOutputName() {
+        return sqlFqn(Identifiers.quoteIfNeeded(name));
+    }
+
     public String sqlFqn() {
-        StringBuilder sb = new StringBuilder(Identifiers.quoteIfNeeded(name));
+        return sqlFqn(name);
+    }
+
+    private String sqlFqn(String name) {
+        StringBuilder sb = new StringBuilder(name);
         for (String s : path) {
             sb.append("['");
             sb.append(s);

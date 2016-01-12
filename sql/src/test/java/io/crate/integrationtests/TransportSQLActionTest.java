@@ -139,7 +139,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table test (\"firstName\" string, \"lastName\" string)");
         ensureYellow();
         execute("select * from test");
-        assertArrayEquals(new String[]{"\"firstName\"", "\"lastName\""}, response.cols());
+        assertArrayEquals(new String[]{"firstName", "lastName"}, response.cols());
         assertEquals(0, response.rowCount());
     }
 
@@ -177,7 +177,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}")
                 .execute().actionGet();
         execute("select \"_version\", *, \"_id\" from test");
-        assertArrayEquals(new String[]{"_version", "\"firstName\"", "\"lastName\"", "_id"},
+        assertArrayEquals(new String[]{"_version", "firstName", "lastName", "_id"},
                 response.cols());
         assertEquals(1, response.rowCount());
         assertArrayEquals(new Object[]{1L, "Youri", "Zoon", "id1"}, response.rows()[0]);
@@ -220,7 +220,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}")
                 .execute().actionGet();
         execute("select *, \"_version\", \"_version\" as v from test");
-        assertArrayEquals(new String[]{"\"firstName\"", "\"lastName\"", "_version", "v"},
+        assertArrayEquals(new String[]{"firstName", "lastName", "_version", "v"},
                 response.cols());
         assertEquals(1, response.rowCount());
         assertArrayEquals(new Object[]{"Youri", "Zoon", 1L, 1L}, response.rows()[0]);
@@ -2033,7 +2033,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("REFRESH TABLE with_quote");
         execute("SELECT * FROM with_quote");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), is(arrayContaining("\"\"\"\"")));
+        assertThat(response.cols(), is(arrayContaining("\"")));
         assertThat((String)response.rows()[0][0], is("'"));
     }
 }

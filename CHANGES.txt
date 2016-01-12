@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix: don't quote column in response columns
+
 2016/01/08 0.54.2
 =================
 

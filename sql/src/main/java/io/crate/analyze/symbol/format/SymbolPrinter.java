@@ -24,6 +24,7 @@ package io.crate.analyze.symbol.format;
 
 import io.crate.analyze.relations.RelationPrinter;
 import io.crate.analyze.symbol.*;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.operation.operator.InOperator;
@@ -271,7 +272,7 @@ public class SymbolPrinter {
                 context.builder.append(symbol.info().ident().tableIdent().sqlFqn())
                         .append(DOT);
             }
-            context.builder.append(symbol.info().ident().columnIdent().sqlFqn());
+            context.builder.append(symbol.info().ident().columnIdent().quotedOutputName());
             return null;
         }
 
@@ -290,7 +291,11 @@ public class SymbolPrinter {
                 context.builder.append(RelationPrinter.INSTANCE.process(field.relation(), null))
                         .append(DOT);
             }
-            context.builder.append(field.path().outputName());
+            if (field.path() instanceof ColumnIdent) {
+                context.builder.append(((ColumnIdent) field.path()).quotedOutputName());
+            } else {
+                context.builder.append(field.path().outputName());
+            }
             return null;
         }
 
