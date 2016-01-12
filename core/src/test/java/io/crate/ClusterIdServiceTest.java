@@ -23,18 +23,25 @@ package io.crate;
 
 import io.crate.plugin.CrateCorePlugin;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
+
+import java.util.Collection;
 
 import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
 public class ClusterIdServiceTest extends ESIntegTestCase  {
 
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        return pluginList(CrateCorePlugin.class);
+    }
+
     @Test
     public void testClusterIdGeneration() throws Exception {
         Settings localSettings = settingsBuilder()
-                .put("plugin.types", CrateCorePlugin.class.getName())
                 .put("discovery.type", "local").build();
         String node_0 = internalCluster().startNode(localSettings);
 
@@ -45,7 +52,6 @@ public class ClusterIdServiceTest extends ESIntegTestCase  {
     @Test
     public void testClusterIdTransient() throws Exception {
         Settings localSettings = settingsBuilder()
-                .put("plugin.types", CrateCorePlugin.class.getName())
                 .put("discovery.type", "local").build();
         String node_0 = internalCluster().startNode(localSettings);
 
@@ -64,8 +70,8 @@ public class ClusterIdServiceTest extends ESIntegTestCase  {
 
     @Test
     public void testClusterIdDistribution() throws Exception {
+        // FIXME: requires multicast discovery
         Settings localSettings = settingsBuilder()
-                .put("plugin.types", CrateCorePlugin.class.getName())
                 .put("discovery.type", "zen").build();
         String node_0 = internalCluster().startNode(localSettings);
 
