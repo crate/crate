@@ -48,6 +48,10 @@ public class SQLBulkRequestBuilder extends ActionRequestBuilder<SQLBulkRequest, 
         request.includeTypesOnResponse(includeTypes);
     }
 
+    public void setSchema(String name) {
+        request.setDefaultSchema(name);
+    }
+
     public void addFlagsToRequestHeader(int flags) {
         request.putHeader(SQLBaseRequest.FLAGS_HEADER_KEY, flags);
     }

@@ -86,6 +86,26 @@ The same query using question marks as placeholders looks like this::
     With some queries the row count is not ascertainable. In this cases
     rowcount is -1.
 
+Default schema
+==============
+
+It is possible to set a default schema while querying the Crate cluster via
+``_sql`` end point. In such case the HTTP request should contain the
+``Default-Schema`` header with the specified schema name::
+
+    sh$ curl -sSXPOST '127.0.0.1:4200/_sql?pretty' -H 'Default-Schema: doc' -d '{
+    ... "stmt":"select name, position from locations order by id limit 2"
+    ... }'
+    {
+      "cols" : [ "name", "position" ],
+      "duration" : ...,
+      "rows" : [ [ "North West Ripple", 1 ], [ "Arkintoofle Minor", 3 ] ],
+      "rowcount" : 2
+    }
+
+If the schema name is not specified in the header, the default ``doc`` schema
+will be used instead.
+
 Column Types
 ============
 

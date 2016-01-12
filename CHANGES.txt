@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Exposed setting the default schema via HTTP header.
+
  - added `lower`` and `upper`` string functions
 
  - fix: don't quote column in response columns

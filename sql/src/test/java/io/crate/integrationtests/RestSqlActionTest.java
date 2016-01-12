@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -41,16 +42,16 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
         String json = restSQLExecute("{\"stmt\": \"select * from locations where id = '1'\"}");
         JSONAssert.assertEquals(
                 "{\n" +
-                        "  \"cols\" : [ \"date\", \"description\", \"id\", \"kind\", \"name\", " +
-                        "\"position\", \"race\" ],\n" +
-                        "  \"rows\" : [ [ 308534400000, " +
-                        "\"Relative to life on NowWhat, living on an affluent world in the North" +
-                        " West ripple of the Galaxy is said to be easier by a factor of about " +
-                        "seventeen million.\", \"1\", \"Galaxy\", \"North West Ripple\", 1, " +
-                        "null ] ],\n" +
-                        " \"rowcount\": 1," +
-                        " \"duration\": " + responseDuration +
-                        "}"
+                "  \"cols\" : [ \"date\", \"description\", \"id\", \"kind\", \"name\", " +
+                "\"position\", \"race\" ],\n" +
+                "  \"rows\" : [ [ 308534400000, " +
+                "\"Relative to life on NowWhat, living on an affluent world in the North" +
+                " West ripple of the Galaxy is said to be easier by a factor of about " +
+                "seventeen million.\", \"1\", \"Galaxy\", \"North West Ripple\", 1, " +
+                "null ] ],\n" +
+                " \"rowcount\": 1," +
+                " \"duration\": " + responseDuration +
+                "}"
                 , json, true
         );
     }
@@ -60,17 +61,17 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
         String json = restSQLExecute("{\"stmt\": \"select * from locations where id = '1'\"}", true);
         JSONAssert.assertEquals(
                 "{\n" +
-                        "  \"cols\" : [ \"date\", \"description\", \"id\", \"kind\", \"name\", " +
-                        "\"position\", \"race\" ],\n" +
-                        "  \"col_types\" : [ 11, 4, 4, 4, 4, 9, 12 ],\n" +
-                        "  \"rows\" : [ [ 308534400000, " +
-                        "\"Relative to life on NowWhat, living on an affluent world in the North" +
-                        " West ripple of the Galaxy is said to be easier by a factor of about " +
-                        "seventeen million.\", \"1\", \"Galaxy\", \"North West Ripple\", 1, " +
-                        "null ] ],\n" +
-                        " \"rowcount\": 1," +
-                        " \"duration\": " + responseDuration +
-                        "}"
+                "  \"cols\" : [ \"date\", \"description\", \"id\", \"kind\", \"name\", " +
+                "\"position\", \"race\" ],\n" +
+                "  \"col_types\" : [ 11, 4, 4, 4, 4, 9, 12 ],\n" +
+                "  \"rows\" : [ [ 308534400000, " +
+                "\"Relative to life on NowWhat, living on an affluent world in the North" +
+                " West ripple of the Galaxy is said to be easier by a factor of about " +
+                "seventeen million.\", \"1\", \"Galaxy\", \"North West Ripple\", 1, " +
+                "null ] ],\n" +
+                " \"rowcount\": 1," +
+                " \"duration\": " + responseDuration +
+                "}"
                 , json, true);
     }
 
@@ -83,7 +84,7 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
                 "    \"args\": [[\"1\", \"2\"], \"1\", 1, 2, 2.0, 99999999999999999999999999999999]\n" +
                 "}\n");
         JSONAssert.assertEquals(
-            "{\n" +
+                "{\n" +
                 "  \"cols\" : [ \"date\", \"description\", \"id\", \"kind\", \"name\", " +
                 "\"position\", \"race\" ],\n" +
                 "  \"rows\" : [ [ 308534400000, " +
@@ -93,7 +94,7 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
                 " \"rowcount\": 1," +
                 " \"duration\": " + responseDuration +
                 "}"
-            , json, true);
+                , json, true);
     }
 
     @Test
@@ -105,7 +106,7 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
                 "}\n");
 
         JSONAssert.assertEquals(
-            "{\n" +
+                "{\n" +
                 "  \"cols\" : [ ],\n" +
                 "  \"rows\" : [ ],\n" +
                 "  \"rowcount\" : 1,\n" +
@@ -125,8 +126,8 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
 
         ObjectMapper mapper = new ObjectMapper();
         assertEquals(
-            "[[\"1\",\"2\"],\"1\",1,2,2.0,99999999999999999999999999999999]",
-            mapper.writeValueAsString(context.args()));
+                "[[\"1\",\"2\"],\"1\",1,2,2.0,99999999999999999999999999999999]",
+                mapper.writeValueAsString(context.args()));
     }
 
     @Test
@@ -141,7 +142,7 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
         parser.parseSource(source);
         ObjectMapper mapper = new ObjectMapper();
         assertEquals("[[\"1\",\"2\",[\"1\"]],\"1\",1,2,2.0,99999999999999999999999999999999]",
-            mapper.writeValueAsString(context.args()));
+                mapper.writeValueAsString(context.args()));
     }
 
     @Test
@@ -170,7 +171,7 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
         parser.parseSource(source);
         ObjectMapper mapper = new ObjectMapper();
         assertEquals("[{\"1\":{\"2\":{\"3\":3}}},[{\"1\":{\"2\":[2,2]}}]]",
-            mapper.writeValueAsString(context.args()));
+                mapper.writeValueAsString(context.args()));
     }
 
     @Test
@@ -183,10 +184,44 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
 
         JSONAssert.assertEquals(
                 "{\n" +
-                        "  \"cols\" : [ ],\n" +
-                        "  \"results\" : [ {\"rowcount\" : 1 }, {\"rowcount\": 1 } ],\n" +
-                        "  \"duration\" : \n" + responseDuration +
-                        "}", json, true);
+                "  \"cols\" : [ ],\n" +
+                "  \"results\" : [ {\"rowcount\" : 1 }, {\"rowcount\": 1 } ],\n" +
+                "  \"duration\" : \n" + responseDuration +
+                "}", json, true);
+    }
+
+    @Test
+    public void testSqlRequestWithCustomSchema() throws Exception {
+        restSQLExecute("{\"stmt\": \"create table foo (name string)\"}", false, "bar");
+        String json = restSQLExecute("{\"stmt\": \"select * from bar.foo\"}");
+
+        JSONAssert.assertEquals(
+                "{\n" +
+                "  \"cols\" : [ \"name\" ],\n" +
+                "  \"duration\" : " + responseDuration + ",\n" +
+                "  \"rows\" : [ ],\n" +
+                "  \"rowcount\" : 0\n" +
+                "}", json, true);
+    }
+
+    @Test
+    public void testSqlRequestWithDefaultSchema() throws Exception {
+        restSQLExecute("{\"stmt\": \"create table foo1 (name string)\"}");
+        String json = restSQLExecute("{\"stmt\": \"select * from foo1\"}");
+
+        JSONAssert.assertEquals(
+                "{\n" +
+                "  \"cols\" : [ \"name\" ],\n" +
+                "  \"duration\" : " + responseDuration + ",\n" +
+                "  \"rows\" : [ ],\n" +
+                "  \"rowcount\" : 0\n" +
+                "}", json, true);
+    }
+
+    @Test(expected = SQLActionException.class)
+    public void testSqlRequestWithWrongSchema() throws Exception {
+        restSQLExecute("{\"stmt\": \"create table foo2 (id string)\"}", false, "bar2");
+        restSQLExecute("{\"stmt\": \"select * from doc.foo2\"}");
     }
 
 }

@@ -47,6 +47,10 @@ public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLRespo
         request.args(args);
     }
 
+    public void setSchema(String name) {
+        request.setDefaultSchema(name);
+    }
+
     public void includeTypesOnResponse(boolean includeTypes) {
         request.includeTypesOnResponse(includeTypes);
     }

@@ -55,6 +55,7 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -403,10 +404,11 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
      *
      * @param source the body of the statement, a JSON String containing the "stmt" and the "args"
      * @param includeTypes include data types in response
+     * @param schema default schema
      * @return the Response as JSON String
      * @throws IOException
      */
-    protected String restSQLExecute(String source, boolean includeTypes) throws IOException {
+    protected String restSQLExecute(String source, boolean includeTypes, @Nullable String schema) throws IOException {
         XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
         builder.generator().usePrettyPrint();
         SQLXContentSourceContext context = new SQLXContentSourceContext();
@@ -420,17 +422,23 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
             requestBuilder.bulkArgs(context.bulkArgs());
             requestBuilder.stmt(context.stmt());
             requestBuilder.includeTypesOnResponse(includeTypes);
+            requestBuilder.setSchema(schema);
             sqlResponse = requestBuilder.execute().actionGet();
         } else {
             SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client());
             requestBuilder.args(context.args());
             requestBuilder.stmt(context.stmt());
             requestBuilder.includeTypesOnResponse(includeTypes);
+            requestBuilder.setSchema(schema);
             sqlResponse = requestBuilder.execute().actionGet();
         }
         sqlResponse.toXContent(builder, ToXContent.EMPTY_PARAMS);
         responseDuration = sqlResponse.duration();
         return builder.string();
+    }
+
+    protected String restSQLExecute(String source, boolean includeTypes) throws IOException {
+        return restSQLExecute(source, includeTypes, null);
     }
 
     protected String restSQLExecute(String source) throws IOException {
