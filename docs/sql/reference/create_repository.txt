@@ -5,7 +5,7 @@
 CREATE REPOSITORY
 =================
 
-Register a new repository that is used to store, manage and restore snapshots.
+Register a new repository used to store, manage and restore snapshots.
 
 Synopsis
 ========
@@ -45,8 +45,8 @@ WITH Clause
     [ WITH (repository_parameter [= value], [, ...]) ]
 
 The following configuration parameters apply to repositories of all types.
-For further configuration options see the documentation of the used
-repository ``type`` (e.g. type :ref:`ref-create-repository-types-fs`).
+For further configuration options see the documentation of the repository
+``type`` (e.g. type :ref:`ref-create-repository-types-fs`).
 
 :max_restore_bytes_per_sec: The maximum rate at which snapshots are restored on
                             a single node from this repository.
@@ -75,7 +75,7 @@ by all master and data nodes in the cluster.
 
 .. note::
 
-    In order to create repositories of this type, it is necessary to configure
+    To create repositories of this type, it's necessary to configure
     the possible locations for repositories inside the ``crate.yml`` file
     under ``path.repo`` as list of strings.
 
@@ -92,8 +92,8 @@ Parameters
   If the path is relative, it will be appended to the first entry in the
   :ref:`path.repo <conf-path-repo>` setting.
 
-  Windows UNC paths are allowed as well, given server name and share are specified
-  and backslashes are properly escaped.
+  Windows UNC paths are allowed, if server name and shares are specified
+  and backslashes properly escaped.
 
   Only paths starting with an entry from :ref:`path.repo <conf-path-repo>` are possible.
 
@@ -109,7 +109,7 @@ Parameters
   | *Default:* ``null``
 
   Defines the maximum size of a single file that gets created during snapshot
-  creation. If set to ``null`` big files will not be split up into smaller
+  creation. If set to ``null`` big files will not be split into smaller
   chunks. The chunk size can be either specified in bytes or using size value
   notation (e.g. ``1g``, ``5m``, or ``9k``).
 
@@ -138,42 +138,42 @@ Parameters
   | *Type:*    ``string``
 
   HDFS filesystem path to where the data gets stored.
-  
+
 **load_defaults**
   | *Type:*    ``boolean``
   | *Default:* ``true``
 
-  Whether or not to load the default Hadoop Configuration.  
-  
+  Whether to load the default Hadoop Configuration.
+
 **conf_location**
   | *Type:*    ``string``
 
   Comma separated string of files to Hadoop XML configuration files to load.
-  
+
 **conf.<key>**
   | *Type:*    various
 
   Dynamic config values added to the Hadoop configuration.
-  
+
 **concurrent_streams**
   | *Type:*    ``integer``
   | *Default:* ``5``
 
   The number of concurrent streams to use for backup and restore.
-  
+
 **compress**
   | *Type:*    ``boolean``
   | *Default:* ``true``
 
   Whether the metadata part of the snapshot should be compressed or not.
   The actual table data is not compressed.
-  
+
 **chunk_size**
   | *Type:*    ``long`` or ``string``
   | *Default:* ``null``
 
   Defines the maximum size of a single file that gets created during snapshot
-  creation. If set to ``null`` big files will not be split up into smaller
+  creation. If set to ``null`` big files will not be split into smaller
   chunks. The chunk size can be either specified in bytes or using size value
   notation (e.g. ``1g``, ``5m``, or ``9k``).
 
@@ -190,7 +190,7 @@ Parameters
 **bucket**
   | *Type:*    ``string``
 
-  Name of the S3 bucket to be used for storing snapshots. If the bucket
+  Name of the S3 bucket used for storing snapshots. If the bucket
   does not yet exist, a new bucket will be created on S3 (assuming the
   required permissions are set).
 
@@ -241,7 +241,7 @@ Parameters
   | *Default:* ``null``
 
   Defines the maximum size of a single file that gets created during snapshot
-  creation. If set to ``null`` big files will not be split up into smaller
+  creation. If set to ``null`` big files will not be split into smaller
   chunks. The chunk size can be either specified in bytes or using size value
   notation (e.g. ``1g``, ``5m``, or ``9k``).
 
@@ -249,7 +249,7 @@ Parameters
   | *Type:*    ``boolean``
   | *Default:* ``true``
 
-  Whether the metadata part of the snapshot should be compressed or not.
+  Whether the metadata part of the snapshot should be compressed.
   The actual table data is not compressed.
 
 **server_side_encryption**
@@ -309,6 +309,6 @@ Parameters
   This url must point to the root of the shared :ref:`ref-create-repository-types-fs`
   repository.
 
-  Due to security reasons only URLs that are whitelisted can be used. URLs can be
+  Due to security reasons only whitelisted URLs can be used. URLs can be
   whitelisted in the ``crate.yml`` configuration file. See
   :ref:`ref-configuration-repositories`.
