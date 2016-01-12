@@ -17,35 +17,35 @@ The information schema contains a table called `tables`.
 This table can be queried to get a list of all available tables and their
 settings like the ``number of shards`` or ``number of replicas``::
 
-    cr> select schema_name, table_name, number_of_shards, number_of_replicas
+    cr> select schema_name, table_name, number_of_shards, number_of_replicas, settings
     ... from information_schema.tables
     ... where table_name not like 'my_table%'
     ... order by schema_name asc, table_name asc;
-    +--------------------+-------------------+------------------+--------------------+
-    | schema_name        | table_name        | number_of_shards | number_of_replicas |
-    +--------------------+-------------------+------------------+--------------------+
-    | blob               | myblobs           |                3 |                  1 |
-    | doc                | documents         |                5 |                  1 |
-    | doc                | locations         |                2 |                  0 |
-    | doc                | partitioned_table |                5 |                  1 |
-    | doc                | quotes            |                2 |                  0 |
-    | information_schema | columns           |                1 |                  0 |
-    | information_schema | routines          |                1 |                  0 |
-    | information_schema | schemata          |                1 |                  0 |
-    | information_schema | table_constraints |                1 |                  0 |
-    | information_schema | table_partitions  |                1 |                  0 |
-    | information_schema | tables            |                1 |                  0 |
-    | sys                | checks            |                1 |                  0 |
-    | sys                | cluster           |                1 |                  0 |
-    | sys                | jobs              |                1 |                  0 |
-    | sys                | jobs_log          |                1 |                  0 |
-    | sys                | nodes             |                1 |                  0 |
-    | sys                | operations        |                1 |                  0 |
-    | sys                | operations_log    |                1 |                  0 |
-    | sys                | repositories      |                1 |                  0 |
-    | sys                | shards            |                1 |                  0 |
-    | sys                | snapshots         |                1 |                  0 |
-    +--------------------+-------------------+------------------+--------------------+
+    +--------------------+-------------------+------------------+--------------------+------...-+
+    | schema_name        | table_name        | number_of_shards | number_of_replicas | settings |
+    +--------------------+-------------------+------------------+--------------------+------...-+
+    | blob               | myblobs           |                3 |                  1 |      ... |
+    | doc                | documents         |                5 |                  1 |      ... |
+    | doc                | locations         |                2 |                  0 |      ... |
+    | doc                | partitioned_table |                5 |                  1 |      ... |
+    | doc                | quotes            |                2 |                  0 |      ... |
+    | information_schema | columns           |                1 |                  0 |     NULL |
+    | information_schema | routines          |                1 |                  0 |     NULL |
+    | information_schema | schemata          |                1 |                  0 |     NULL |
+    | information_schema | table_constraints |                1 |                  0 |     NULL |
+    | information_schema | table_partitions  |                1 |                  0 |     NULL |
+    | information_schema | tables            |                1 |                  0 |     NULL |
+    | sys                | checks            |                1 |                  0 |     NULL |
+    | sys                | cluster           |                1 |                  0 |     NULL |
+    | sys                | jobs              |                1 |                  0 |     NULL |
+    | sys                | jobs_log          |                1 |                  0 |     NULL |
+    | sys                | nodes             |                1 |                  0 |     NULL |
+    | sys                | operations        |                1 |                  0 |     NULL |
+    | sys                | operations_log    |                1 |                  0 |     NULL |
+    | sys                | repositories      |                1 |                  0 |     NULL |
+    | sys                | shards            |                1 |                  0 |     NULL |
+    | sys                | snapshots         |                1 |                  0 |     NULL |
+    +--------------------+-------------------+------------------+--------------------+------...-+
     SELECT 21 rows in set (... sec)
 
 The table also contains additional information such as specified routing
