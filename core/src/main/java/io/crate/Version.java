@@ -89,12 +89,10 @@ public class Version {
     }
 
     public static void main(String[] args) {
-        /*System.out.println("Version: " + Version.CURRENT.toString() + ", Build: " +
+        System.out.println("Version: " + Version.CURRENT + ", Build: " +
                 Build.CURRENT.hashShort() + "/" + Build.CURRENT.timestamp() +
                 ", ES: " + org.elasticsearch.Version.CURRENT +
-                ", JVM: " + JvmInfo.jvmInfo().version() );*/
-        // TODO: FIX ME!
-        System.out.println("Version: " + Version.CURRENT.toString());
+                ", JVM: " + JvmInfo.jvmInfo().version() );
     }
 
     @Override
