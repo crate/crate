@@ -76,10 +76,12 @@ public class NodeSettingsTest {
             .put("index.number_of_replicas", "0")
             .put("cluster.routing.schedule", "50ms")
             .put("node.local", true);
-        Tuple<Settings,Environment> settingsEnvironmentTuple = InternalSettingsPreparer.prepareSettings(builder.build(), true);
+        // TODO: FIX ME!
+        Tuple<Settings,Environment> settingsEnvironmentTuple = null; //InternalSettingsPreparer.prepareEnvironment(builder.build(), null);
         node = NodeBuilder.nodeBuilder()
             .settings(settingsEnvironmentTuple.v1())
-            .loadConfigSettings(false)
+            // TODO: FIX ME!
+            //.loadConfigSettings(false)
             .build();
         node.start();
         client = node.client();
@@ -93,7 +95,8 @@ public class NodeSettingsTest {
             client = null;
         }
         if (node != null) {
-            node.stop();
+            // TODO: FIX ME! should we use close except?
+            //node.stop();
             node = null;
         }
 

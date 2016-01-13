@@ -29,7 +29,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -41,7 +41,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.*;
 
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     final static Joiner commaJoiner = Joiner.on(", ");
@@ -340,14 +340,15 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("myotheranalyzer", response.rows()[1][0]);
         assertEquals("ANALYZER", response.rows()[1][1]);
         client().admin().cluster().prepareUpdateSettings()
-                .setPersistentSettingsToRemove(
+                // TODO: FIX ME! settingsToRemove not available
+                /*.setPersistentSettingsToRemove(
                     ImmutableSet.of("crate.analysis.custom.analyzer.myanalyzer",
                             "crate.analysis.custom.analyzer.myotheranalyzer",
                             "crate.analysis.custom.filter.myanalyzer_mytokenfilter"))
                 .setTransientSettingsToRemove(
                         ImmutableSet.of("crate.analysis.custom.analyzer.myanalyzer",
                                 "crate.analysis.custom.analyzer.myotheranalyzer",
-                                "crate.analysis.custom.filter.myanalyzer_mytokenfilter"))
+                                "crate.analysis.custom.filter.myanalyzer_mytokenfilter"))*/
                 .execute().actionGet();
     }
 

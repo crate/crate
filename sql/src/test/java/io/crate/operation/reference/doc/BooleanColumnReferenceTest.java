@@ -32,6 +32,7 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.elasticsearch.index.fielddata.FieldDataType;
 import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.core.BooleanFieldMapper;
 import org.junit.Test;
 
@@ -44,15 +45,16 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
         for (int i = 0; i<10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            doc.add(new StringField(fieldName().name(),
+            // TODO: FIX ME! is indexName proper replacement of name()?
+            doc.add(new StringField(fieldName().indexName(),
                     (i%2 == 0 ? BooleanFieldMapper.Values.TRUE : BooleanFieldMapper.Values.FALSE).utf8ToString(), Field.Store.NO));
             writer.addDocument(doc);
         }
     }
 
     @Override
-    protected FieldMapper.Names fieldName() {
-        return new FieldMapper.Names("bool");
+    protected MappedFieldType.Names fieldName() {
+        return new MappedFieldType.Names("bool");
     }
 
     /**
@@ -65,7 +67,8 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        BooleanColumnReference booleanColumn = new BooleanColumnReference(fieldName().name());
+        // TODO: FIX ME! is indexName proper replacement of name()?
+        BooleanColumnReference booleanColumn = new BooleanColumnReference(fieldName().indexName());
         booleanColumn.startCollect(ctx);
         booleanColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

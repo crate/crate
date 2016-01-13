@@ -28,7 +28,7 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.operation.Paging;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Rule;
@@ -41,7 +41,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.isIn;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);

@@ -37,6 +37,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -81,6 +82,7 @@ public class TableStatsServiceTest extends CrateUnitTest  {
                 mock(TransportService.class),
                 mock(StatsTables.class),
                 new ActionFilters(ImmutableSet.<ActionFilter>of()),
+                mock(IndexNameExpressionResolver.class),
                 mock(TransportKillJobsNodeAction.class)
         ) {
             @Override
