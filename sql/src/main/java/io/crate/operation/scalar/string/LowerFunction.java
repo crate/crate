@@ -22,54 +22,37 @@
 package io.crate.operation.scalar.string;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.SymbolType;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.analysis.util.CharacterUtils;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.UnicodeUtil;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.List;
-import java.util.Locale;
 
 public class LowerFunction extends Scalar<BytesRef, Object> {
-    public static final String NAME = "lower";
+    public final static String NAME = "lower";
+    private final static CharacterUtils charUtils = CharacterUtils.getInstance();
 
-    final private FunctionInfo info;
-    private Locale currentLocale;
+    private final FunctionInfo info;
 
     public static void register(ScalarFunctionModule module) {
-        List<DataType> supportedLowerTypes = ImmutableList.<DataType>of(
-                DataTypes.STRING);
-
-        for (DataType dataType : supportedLowerTypes) {
-            // without locale
-            module.register(new LowerFunction(new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.of(dataType)),
-                    DataTypes.STRING)
-            ));
-            // with locale
-            module.register(new LowerFunction(new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.of(dataType, DataTypes.STRING)),
-                    DataTypes.STRING)
-            ));
-        }
+        module.register(new LowerFunction(new FunctionInfo(
+                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.STRING)),
+                DataTypes.STRING)
+        ));
     }
 
     public LowerFunction(FunctionInfo info) {
         this.info = info;
-    }
-
-    public LowerFunction(FunctionInfo info, Locale currentLocale) {
-        this(info);
-        this.currentLocale = currentLocale;
     }
 
     @Override
@@ -81,45 +64,18 @@ public class LowerFunction extends Scalar<BytesRef, Object> {
 
         BytesRef inputByteRef = BytesRefs.toBytesRef(stringValue);
 
-        if (args.length == 2 && currentLocale == null) {
-            Object localeValue = args[1].value();
-            // we are dealing with a locale that is passed as a column reference here
-            if (localeValue != null) {
-                String localeString = BytesRefs.toString(localeValue);
-                currentLocale = Locale.forLanguageTag(localeString);
-            } else {
-                currentLocale = Locale.getDefault();
-            }
-        }
+        char[] ref = new char[inputByteRef.length];
+        int len = UnicodeUtil.UTF8toUTF16(inputByteRef.bytes, inputByteRef.offset, inputByteRef.length, ref);
+        charUtils.toLowerCase(ref, 0, len);
 
-        return new BytesRef(inputByteRef.utf8ToString().toLowerCase(currentLocale));
+        byte[] res = new byte[UnicodeUtil.MAX_UTF8_BYTES_PER_CHAR * len];
+        len = UnicodeUtil.UTF16toUTF8(ref, 0, len, res);
+        return new BytesRef(res, 0, len);
     }
 
     @Override
     public FunctionInfo info() {
         return info;
-    }
-
-    @Override
-    public Scalar<BytesRef, Object> compile(List<Symbol> arguments) {
-        assert arguments.size() > 0 && arguments.size() < 3 : "invalid number of arguments";
-
-        Locale locale = null;
-
-        if (arguments.size() == 2) {
-            if (arguments.get(1).symbolType() == SymbolType.LITERAL) {
-                Object localeValue = ((Literal) arguments.get(1)).value();
-                if (localeValue != null) {
-                    locale = Locale.forLanguageTag(BytesRefs.toString(localeValue));
-                } else {
-                    locale = Locale.getDefault();
-                }
-            }
-        } else {
-            locale = Locale.getDefault();
-        }
-
-        return new LowerFunction(this.info, locale);
     }
 
     @Override

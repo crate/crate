@@ -21,28 +21,23 @@
 
 package io.crate.operation.scalar.string;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
-import io.crate.operation.Input;
-import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.types.DataType;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Scalar;
+import io.crate.operation.Input;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.TestingHelpers.createFunction;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.*;
 
 public class LowerFunctionTest extends AbstractScalarFunctionsTest {
@@ -70,8 +65,6 @@ public class LowerFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeDefault() throws Exception {
-        Locale.setDefault(Locale.forLanguageTag("en-US"));
-
         List<Symbol> args = Lists.<Symbol>newArrayList(
                 Literal.newLiteral("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜΑΒΓ")
         );
@@ -81,21 +74,7 @@ public class LowerFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testNormalizeCornerCaseTurkishIWithTurkishLocale() throws Exception {
-        Locale.setDefault(Locale.forLanguageTag("tr-TR"));
-
-        List<Symbol> args = Lists.<Symbol>newArrayList(
-                Literal.newLiteral("Isparta İsparta")
-        );
-        assertThat(
-                normalizeForArgs(args),
-                isLiteral("ısparta isparta"));
-    }
-
-    @Test
     public void testEvaluateNull() throws Exception {
-        Locale.setDefault(Locale.forLanguageTag("en-US"));
-
         Literal stringNull = Literal.newLiteral(DataTypes.STRING, null);
         List<List<Symbol>> argLists = Arrays.asList(
                 Arrays.<Symbol>asList(stringNull)
@@ -107,40 +86,16 @@ public class LowerFunctionTest extends AbstractScalarFunctionsTest {
         }
     }
 
-    @Test
-    public void testNormalizeCornerCaseTurkishIWithTurkishLocaleArg() throws Exception {
-        Locale.setDefault(Locale.forLanguageTag("en-US"));
-
-        List<Symbol> args = Lists.<Symbol>newArrayList(
-                Literal.newLiteral("Isparta İsparta"),
-                Literal.newLiteral("tr-TR")
-        );
-
-        assertThat(
-                normalizeForArgs(args),
-                isLiteral("ısparta isparta"));
-    }
-
     public void testNormalizeSymbol() throws Exception {
-        Function function = (Function) sqlExpressions.asSymbol("lower(name)");
+        Function function = (Function) sqlExpressions.asSymbol("lower('SomeString')");
         LowerFunction lowerFunction = (LowerFunction) functions.get(function.info().ident());
-
         Symbol result = lowerFunction.normalizeSymbol(function);
+        assertThat(result, isLiteral(new BytesRef("somestring")));
+
+        function = (Function) sqlExpressions.asSymbol("lower(name)");
+        lowerFunction = (LowerFunction) functions.get(function.info().ident());
+        result = lowerFunction.normalizeSymbol(function);
         assertThat(result, instanceOf(Function.class));
         assertThat((Function)result, is(function));
-    }
-
-    @Test
-    public void testNormalizeWithNullLocale() throws Exception {
-        Locale.setDefault(Locale.forLanguageTag("en-US"));
-
-        List<Symbol> args = Lists.<Symbol>newArrayList(
-                Literal.newLiteral("ABCDE"),
-                Literal.newLiteral(DataTypes.STRING, null)
-        );
-
-        assertThat(
-                normalizeForArgs(args),
-                isLiteral("abcde"));
     }
 }
