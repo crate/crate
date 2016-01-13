@@ -29,7 +29,7 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.test.integration.ClassLifecycleIntegrationTest;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.common.os.OsUtils;
+import org.apache.lucene.util.Constants;
 import org.hamcrest.Matchers;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
@@ -46,7 +46,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
-import static org.elasticsearch.test.ElasticsearchTestCase.assertBusy;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
@@ -444,7 +443,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         response = executor.exec("select ? + 2 from sys.cluster", 1);
         assertThat((Long) response.rows()[0][0], is(3L));
 
-        if (!OsUtils.WINDOWS) {
+        if (!Constants.WINDOWS) {
             response = executor.exec("select load['1'] + load['5'], load['1'], load['5'] from sys.nodes limit 1");
             assertEquals(response.rows()[0][0], (Double) response.rows()[0][1] + (Double) response.rows()[0][2]);
         }

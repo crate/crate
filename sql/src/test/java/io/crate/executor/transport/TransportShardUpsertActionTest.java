@@ -37,7 +37,9 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -76,9 +78,12 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                                                  JobContextService jobContextService,
                                                  ShardStateAction shardStateAction,
                                                  Functions functions,
-                                                 Schemas schemas) {
+                                                 Schemas schemas,
+                                                 MappingUpdatedAction mappingUpdatedAction,
+                                                 IndexNameExpressionResolver indexNameExpressionResolver) {
             super(settings, threadPool, clusterService, transportService, actionFilters,
-                    jobContextService, indexAction, indicesService, shardStateAction, functions, schemas);
+                    jobContextService, indexAction, indicesService, shardStateAction, functions, schemas,
+                    mappingUpdatedAction, indexNameExpressionResolver);
         }
 
         @Override
@@ -88,7 +93,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                                           ShardId shardId,
                                           boolean tryInsertFirst,
                                           int retryCount) throws ElasticsearchException {
-            throw new IndexNotFoundException(new Index(request.index()));
+            throw new IndexNotFoundException("Error retrieving " + request.index());
         }
     }
 
@@ -113,7 +118,9 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 mock(JobContextService.class),
                 mock(ShardStateAction.class),
                 functions,
-                mock(Schemas.class)
+                mock(Schemas.class),
+                mock(MappingUpdatedAction.class),
+                mock(IndexNameExpressionResolver.class)
                 );
     }
 

@@ -56,7 +56,7 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -74,7 +74,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE, numDataNodes = 1)
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 1)
 public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     private final static Integer NODE_PAGE_SIZE_HINT = 20;
@@ -475,9 +475,9 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     private Directory createLuceneIndex() throws IOException {
         File tmpDir = temporaryFolder.newFolder();
-        Directory index = FSDirectory.open(tmpDir);
+        Directory index = FSDirectory.open(tmpDir.toPath());
         StandardAnalyzer analyzer = new StandardAnalyzer();
-        IndexWriterConfig cfg = new IndexWriterConfig(Version.LATEST, analyzer);
+        IndexWriterConfig cfg = new IndexWriterConfig(analyzer);
         IndexWriter w = new IndexWriter(index, cfg);
         for (Long i = 0L; i < 4; i++) {
             if ( i < 2) {

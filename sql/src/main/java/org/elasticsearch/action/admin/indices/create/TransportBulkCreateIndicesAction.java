@@ -379,9 +379,9 @@ public class TransportBulkCreateIndicesAction
             MapperService mapperService = indexService.mapperService();
             // first, add the default mapping
             if (mappings.containsKey(MapperService.DEFAULT_MAPPING)) {
-                // TODO: FIX ME! CompressedString
+                // TODO: FIX ME! CompressedXContent
                 /* try {
-                    mapperService.merge(MapperService.DEFAULT_MAPPING, new CompressedString(XContentFactory.jsonBuilder().map(mappings.get(MapperService.DEFAULT_MAPPING)).string()), false);
+                    mapperService.merge(MapperService.DEFAULT_MAPPING, new CompressedXContent(XContentFactory.jsonBuilder().map(mappings.get(MapperService.DEFAULT_MAPPING)).string()), false);
                 } catch (Exception e) {
                     removalReason = "failed on parsing default mapping on index creation";
                     throw new MapperParsingException("mapping [" + MapperService.DEFAULT_MAPPING + "]", e);
@@ -391,10 +391,10 @@ public class TransportBulkCreateIndicesAction
                 if (entry.getKey().equals(MapperService.DEFAULT_MAPPING)) {
                     continue;
                 }
-                // TODO: FIX ME! CompressedString
+                // TODO: FIX ME! CompressedXContent
                 /*try {
                     // apply the default here, its the first time we parse it
-                    mapperService.merge(entry.getKey(), new CompressedString(XContentFactory.jsonBuilder().map(entry.getValue()).string()), true);
+                    mapperService.merge(entry.getKey(), new CompressedXContent(XContentFactory.jsonBuilder().map(entry.getValue()).string()), true);
                 } catch (Exception e) {
                     removalReason = "failed on parsing mappings on index creation";
                     throw new MapperParsingException("mapping [" + entry.getKey() + "]", e);
@@ -595,8 +595,8 @@ public class TransportBulkCreateIndicesAction
 
         for (IndexTemplateMetaData template : templates) {
             templateNames.add(template.getName());
-            // TODO: FIX ME! CompressedString
-            /*for (ObjectObjectCursor<String, CompressedString> cursor : template.mappings()) {
+            // TODO: FIX ME! CompressedXContent
+            /*for (ObjectObjectCursor<String, CompressedXContent> cursor : template.mappings()) {
                 if (mappings.containsKey(cursor.key)) {
                     XContentHelper.mergeDefaults(mappings.get(cursor.key), parseMapping(cursor.value.string()));
                 } else {

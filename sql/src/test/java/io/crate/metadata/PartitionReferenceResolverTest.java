@@ -68,7 +68,7 @@ public class PartitionReferenceResolverTest extends CrateUnitTest {
 
     }
 
-    private static boolean assertionsEnabled() {
+    public static boolean assertionsEnabled() {
         boolean assertsEnabled = false;
         assert assertsEnabled = true; // Intentional side effect!!!
         return assertsEnabled;
