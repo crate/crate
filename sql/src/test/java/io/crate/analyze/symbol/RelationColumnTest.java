@@ -24,7 +24,7 @@ package io.crate.analyze.symbol;
 
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -39,7 +39,7 @@ public class RelationColumnTest {
         RelationColumn rc = new RelationColumn(QualifiedName.of("a", "b"), 5, DataTypes.STRING);
         BytesStreamOutput out = new BytesStreamOutput(256);
         Symbol.toStream(rc, out);
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         RelationColumn rc2 = (RelationColumn) Symbol.fromStream(in);
         assertThat(rc2, is(rc));
     }
