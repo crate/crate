@@ -55,6 +55,11 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
         return this;
     }
 
+    @Override
+    public Symbol normalizeSymbol(Function symbol) {
+        return evaluateIfLiterals(this, symbol);
+    }
+
     protected static boolean anyNonLiterals(Collection<? extends Symbol> arguments) {
         for (Symbol symbol : arguments) {
             if (!symbol.symbolType().isValueSymbol()) {
@@ -82,7 +87,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
      * Otherwise it will return the function as is or NULL in case it contains a null literal
      *
      */
-    public static <ReturnType, InputType> Symbol evaluateIfLiterals(Scalar<ReturnType, InputType> scalar, Function function) {
+    private static <ReturnType, InputType> Symbol evaluateIfLiterals(Scalar<ReturnType, InputType> scalar, Function function) {
         Input[] inputs = new Input[function.arguments().size()];
         int idx = 0;
         for (Symbol arg : function.arguments()) {

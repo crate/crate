@@ -59,11 +59,6 @@ public class SubscriptFunction extends Scalar<Object, Object[]> implements Dynam
 
 
     @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        return Scalar.evaluateIfLiterals(this, symbol);
-    }
-
-    @Override
     public Object evaluate(Input[] args) {
         assert args.length == 2 : "invalid number of arguments";
         return evaluate(args[0].value(), args[1].value());

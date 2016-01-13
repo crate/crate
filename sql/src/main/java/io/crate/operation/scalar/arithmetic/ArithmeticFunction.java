@@ -57,19 +57,6 @@ abstract class ArithmeticFunction extends Scalar<Number, Number> {
         return info;
     }
 
-    @SuppressWarnings("unchecked")
-    public Symbol normalizeSymbol(Function symbol) {
-         assert symbol.arguments().size() == 2;
-
-         Symbol left = symbol.arguments().get(0);
-         Symbol right = symbol.arguments().get(1);
-
-         if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
-             return Literal.newLiteral(info.returnType(), evaluate(new Input[]{(Input) left, (Input) right}));
-         }
-         return symbol;
-    }
-
     protected static FunctionInfo genDoubleInfo(String functionName, List<DataType> dataTypes) {
         return genDoubleInfo(functionName, dataTypes, false);
     }

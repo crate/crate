@@ -102,12 +102,4 @@ public class DateFormatFunction extends Scalar<BytesRef, Object> {
     public FunctionInfo info() {
         return info;
     }
-
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        assert symbol != null;
-        assert symbol.arguments().size() > 0 && symbol.arguments().size() < 4 : "invalid number of arguments";
-
-        return evaluateIfLiterals(this, symbol);
-    }
 }

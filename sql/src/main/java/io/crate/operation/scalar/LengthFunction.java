@@ -73,16 +73,6 @@ public abstract class LengthFunction extends Scalar<Integer, BytesRef> {
         return (BytesRef) string;
     }
 
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        assert symbol.arguments().size() == 1;
-        Symbol argument = symbol.arguments().get(0);
-        if (argument.symbolType().isValueSymbol()) {
-            return Literal.newLiteral(info().returnType(), evaluate((Input) argument));
-        }
-        return symbol;
-    }
-
     static class OctetLengthFunction extends LengthFunction {
         public static final String NAME = "octet_length";
 

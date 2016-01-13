@@ -47,15 +47,6 @@ public abstract class FloorFunction extends Scalar<Number, Number> {
         module.register(new NoopFloorFunction(DataTypes.UNDEFINED));
     }
 
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        Symbol argument = symbol.arguments().get(0);
-        if (argument.symbolType().isValueSymbol()) {
-            return Literal.newLiteral(info().returnType(), evaluate((Input) argument));
-        }
-        return symbol;
-    }
-
     static class DoubleFloorFunction extends FloorFunction {
 
         private static final FunctionInfo INFO = new FunctionInfo(

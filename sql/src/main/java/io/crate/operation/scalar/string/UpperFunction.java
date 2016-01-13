@@ -22,8 +22,6 @@
 package io.crate.operation.scalar.string;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -35,8 +33,6 @@ import org.apache.lucene.analysis.util.CharacterUtils;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.UnicodeUtil;
 import org.elasticsearch.common.lucene.BytesRefs;
-
-import java.util.List;
 
 public class UpperFunction extends Scalar<BytesRef, Object> {
     public final static String NAME = "upper";
@@ -78,11 +74,4 @@ public class UpperFunction extends Scalar<BytesRef, Object> {
         return info;
     }
 
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        assert symbol != null;
-        assert symbol.arguments().size() > 0 && symbol.arguments().size() < 3 : "invalid number of arguments";
-
-        return evaluateIfLiterals(this, symbol);
-    }
 }

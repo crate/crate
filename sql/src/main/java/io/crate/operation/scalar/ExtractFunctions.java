@@ -130,16 +130,6 @@ public class ExtractFunctions {
         }
 
         @Override
-        public Symbol normalizeSymbol(Function symbol) {
-            assert symbol.arguments().size() == 1 : "extract only takes one argument";
-            Symbol arg = symbol.arguments().get(0);
-            if (arg.symbolType().isValueSymbol()) {
-                return Literal.newLiteral(evaluate(((Input) arg)));
-            }
-            return symbol;
-        }
-
-        @Override
         public boolean formatArgs(Function function) {
             return true;
         }

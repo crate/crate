@@ -24,8 +24,6 @@ package io.crate.operation.scalar.arithmetic;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -57,15 +55,6 @@ public abstract class SquareRootFunction extends Scalar<Number, Number> {
     @Override
     public FunctionInfo info() {
         return info;
-    }
-
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        Symbol argument = symbol.arguments().get(0);
-        if (argument.symbolType().isValueSymbol()) {
-            return Literal.newLiteral(info().returnType(), evaluate((Input) argument));
-        }
-        return symbol;
     }
 
     static class DoubleSquareRootFunction extends SquareRootFunction {
