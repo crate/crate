@@ -32,7 +32,7 @@ import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -58,7 +58,7 @@ public class GroupProjectionTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         GroupProjection p2 = (GroupProjection) Projection.fromStream(in);
 
         assertEquals(p, p2);
@@ -81,7 +81,7 @@ public class GroupProjectionTest extends CrateUnitTest {
         Projection.toStream(groupProjection, out);
 
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         GroupProjection p2 = (GroupProjection) Projection.fromStream(in);
 
         assertThat(p2.keys.size(), is(1));
@@ -102,7 +102,7 @@ public class GroupProjectionTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         GroupProjection p2 = (GroupProjection) Projection.fromStream(in);
         assertEquals(p, p2);
     }

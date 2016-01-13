@@ -50,7 +50,7 @@ import io.crate.planner.projection.UpdateProjection;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.routing.operation.plain.Preference;
+import org.elasticsearch.cluster.routing.Preference;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.search.SearchHits;
 import org.junit.Test;

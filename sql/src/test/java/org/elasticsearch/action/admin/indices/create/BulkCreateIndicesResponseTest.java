@@ -21,7 +21,7 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -46,7 +46,7 @@ public class BulkCreateIndicesResponseTest {
         BulkCreateIndicesResponse response = new BulkCreateIndicesResponse(acknowledged);
         BytesStreamOutput out = new BytesStreamOutput();
         response.writeTo(out);
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
 
         BulkCreateIndicesResponse responseDeserialized = new BulkCreateIndicesResponse();
         responseDeserialized.readFrom(in);

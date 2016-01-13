@@ -22,7 +22,7 @@
 package io.crate.action.sql;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -42,7 +42,7 @@ public class SQLBaseRequestTest extends CrateUnitTest {
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         SQLBulkRequest serialized = new SQLBulkRequest();
         serialized.readFrom(in);
 
@@ -54,7 +54,7 @@ public class SQLBaseRequestTest extends CrateUnitTest {
         SQLBulkRequest request = new SQLBulkRequest("select * from sys.cluster");
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         SQLBulkRequest serialized = new SQLBulkRequest();
         serialized.readFrom(in);
 

@@ -32,7 +32,6 @@ import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.gateway.local.state.meta.LocalGatewayMetaMigrator;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -48,11 +47,11 @@ import java.util.Set;
  * remove _meta.columns from crate index mappings
  *
  */
-public class ArrayMapperMetaMigration implements LocalGatewayMetaMigrator.LocalGatewayMetaDataMigration {
+// FIXME: implement correct class
+public class ArrayMapperMetaMigration {
 
     private static final ESLogger logger = Loggers.getLogger(ArrayMapperMetaMigration.class);
 
-    @Override
     public MetaData migrateMetaData(MetaData globalMetaData) {
         MetaData.Builder metaBuilder = MetaData.builder(globalMetaData);
         for (ObjectObjectCursor<String, IndexMetaData> cursor : globalMetaData.indices()) {
