@@ -21,47 +21,30 @@
 
 package io.crate.operation.scalar;
 
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Scalar;
-import io.crate.operation.Input;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isLiteral;
-import static org.hamcrest.core.Is.is;
 
 public class FormatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
-        Function function = (Function) sqlExpressions.asSymbol("format('%tY', cast('2014-03-02' as timestamp))");
-        FunctionImplementation format = getFunctionFromArgs(FormatFunction.NAME, function.arguments());
-        Symbol result = format.normalizeSymbol(function);
-
-        assertThat(result, isLiteral("2014"));
+        assertNormalize("format('%tY', cast('2014-03-02' as timestamp))", isLiteral("2014"));
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testEvaluate() throws Exception {
-        Function function = (Function) sqlExpressions.asSymbol("format('%s bla %s', name, age)");
-        Scalar<BytesRef, Object> format = (Scalar<BytesRef, Object>) functions.get(function.info().ident());
+        assertEvaluate("format('%s bla %s', name, age)",
+                "Arthur bla 38",
+                Literal.newLiteral("Arthur"),
+                Literal.newLiteral(38L));
 
-        Input<Object> arg1 = ((Literal) function.arguments().get(0));
-        Input arg2 = Literal.newLiteral("Arthur");
-        Input arg3 = Literal.newLiteral(38L);
-
-        BytesRef result = format.evaluate(arg1, arg2, arg3);
-        assertThat(result.utf8ToString(), is("Arthur bla 38"));
-
-        arg3 = Literal.newLiteral(42L);
-
-        result = format.evaluate(arg1, arg2, arg3);
-        assertThat(result.utf8ToString(), is("Arthur bla 42"));
-
+        assertEvaluate("format('%s bla %s', name, age)",
+                "Arthur bla 42",
+                Literal.newLiteral("Arthur"),
+                Literal.newLiteral(42L));
     }
 }
