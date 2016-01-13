@@ -68,7 +68,7 @@ public class CollectSetAggregationTest extends AggregationTest {
         BytesStreamOutput streamOutput = new BytesStreamOutput();
         impl.partialType().streamer().writeValueTo(streamOutput, state);
 
-        Object newState = impl.partialType().streamer().readValueFrom(new BytesStreamInput(streamOutput.bytes()));
+        Object newState = impl.partialType().streamer().readValueFrom(StreamInput.wrap(streamOutput.bytes()));
         assertEquals(state, newState);
     }
 

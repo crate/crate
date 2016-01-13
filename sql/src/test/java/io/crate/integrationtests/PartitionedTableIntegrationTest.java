@@ -54,7 +54,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
@@ -76,7 +76,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest {
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(10, TimeUnit.SECONDS);
@@ -188,7 +188,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
             assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                     .getState().metaData().indices().get(partitionName));
             assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                    .getState().metaData().indices().get(partitionName).aliases().get("quotes"));
+                    .getState().metaData().indices().get(partitionName).getAliases().get("quotes"));
         }
 
         execute("select * from quotes");
@@ -263,7 +263,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 is(templateName + "*"));
         assertThat(templatesResponse.getIndexTemplates().get(0).name(),
                 is(templateName));
-        assertTrue(templatesResponse.getIndexTemplates().get(0).hasAlias("parted"));
+        assertTrue(templatesResponse.getIndexTemplates().get(0).getAliases().get("parted") != null);
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
                 new Object[]{1, "Ford", 13959981214861L});
@@ -278,7 +278,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ).asIndexName();
         MetaData metaData = client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData();
-        assertNotNull(metaData.indices().get(partitionName).aliases().get("parted"));
+        assertNotNull(metaData.indices().get(partitionName).getAliases().get("parted"));
         assertThat(
                 client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                         .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
@@ -298,7 +298,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ).asIndexName();
         assertTrue(internalCluster().clusterService().state().metaData().hasIndex(partitionName));
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+                .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
         assertThat(
                 client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                         .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
@@ -308,7 +308,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         partitionName = new PartitionName("parted", Arrays.asList(new BytesRef(String.valueOf(0L)))).asIndexName();
         assertTrue(internalCluster().clusterService().state().metaData().hasIndex(partitionName));
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+                .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
         assertThat(
                 client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                         .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
@@ -320,7 +320,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         partitionName = new PartitionName("parted", nullList).asIndexName();
         assertTrue(internalCluster().clusterService().state().metaData().hasIndex(partitionName));
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+                .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
         assertThat(
                 client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                         .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
@@ -377,7 +377,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 Arrays.asList(new BytesRef("Ford"), new BytesRef(String.valueOf(13959981214861L)))
         ).asIndexName();
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+                .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
         assertThat(
                 client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                         .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
@@ -454,7 +454,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         String partitionName = new PartitionName("parted",
                 Arrays.asList(new BytesRef("Trillian"), null)).asIndexName();
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+                .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
 
         execute("select id, name, date from parted");
         assertThat(response.rowCount(), is(1L));
@@ -478,7 +478,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         String partitionName = new PartitionName("parted",
                 Arrays.asList(new BytesRef("Trillian"), new BytesRef(dateValue.toString()))).asIndexName();
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().indices().get(partitionName).aliases().get("parted"));
+                .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
     }
 
     @Test
@@ -1648,9 +1648,10 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         IndexTemplateMetaData metaData = templatesResponse.getIndexTemplates().get(0);
         String mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
-                .createParser(mappingSource)
-                .mapAndClose()
-                .get(Constants.DEFAULT_MAPPING_TYPE);
+                .createParser(mappingSource);
+                // TODO: FIX ME! mapAndClose not available anymore
+                //.mapAndClose()
+                //.get(Constants.DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
         assertNotNull(((Map) mapping.get("properties")).get("ft_name"));
     }
@@ -1675,9 +1676,10 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         IndexTemplateMetaData metaData = templatesResponse.getIndexTemplates().get(0);
         String mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
-                .createParser(mappingSource)
-                .mapAndClose()
-                .get(Constants.DEFAULT_MAPPING_TYPE);
+                .createParser(mappingSource);
+                // TODO: FIX ME! mapAndClose not available anymore
+                //.mapAndClose()
+                //.get(Constants.DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
     }
 
