@@ -32,7 +32,7 @@ import io.crate.testing.LuceneDocCollectorProvider;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -47,7 +47,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE, numDataNodes = 1)
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 1)
 public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     private final static Integer NODE_PAGE_SIZE_HINT = 20;

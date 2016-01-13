@@ -25,7 +25,7 @@ import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -47,7 +47,7 @@ import java.util.Locale;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, randomDynamicTemplates = false)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2, randomDynamicTemplates = false)
 public class CopyIntegrationTest extends SQLTransportIntegrationTest {
 
     private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
@@ -309,7 +309,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute("copy singleshard to ?", new Object[] { uri });
         assertThat(response.rowCount(), is(1L));
         List<String> lines = Files.readAllLines(
-                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), UTF8);
+                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), StandardCharsets.UTF_8);
 
         assertThat(lines.size(), is(1));
         for (String line : lines) {
@@ -400,7 +400,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute("copy singleshard (name, test['foo']) to ? with (format='json_object')", new Object[]{uri});
         assertThat(response.rowCount(), is(1L));
         List<String> lines = Files.readAllLines(
-                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), UTF8);
+                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), StandardCharsets.UTF_8);
 
         assertThat(lines.size(), is(1));
         for (String line : lines) {

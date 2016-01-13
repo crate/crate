@@ -22,8 +22,8 @@
 package org.elasticsearch.action.bulk;
 
 import io.crate.analyze.symbol.Reference;
-import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardResponse;
+import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -35,8 +35,8 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.OperationRouting;
+import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
@@ -99,7 +99,6 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
-                Settings.EMPTY,
                 coordinatorPool,
                 false,
                 1,
@@ -167,7 +166,6 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
-                Settings.EMPTY,
                 coordinatorPool,
                 false,
                 1,
@@ -249,7 +247,6 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
-                Settings.EMPTY,
                 coordinatorPool,
                 false,
                 1,

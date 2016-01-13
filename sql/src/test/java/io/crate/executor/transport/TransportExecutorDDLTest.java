@@ -92,8 +92,9 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     public void tearDown() throws Exception {
         super.tearDown();
         client().admin().cluster().prepareUpdateSettings()
-                .setPersistentSettingsToRemove(ImmutableSet.of("persistent.level"))
-                .setTransientSettingsToRemove(ImmutableSet.of("persistent.level", "transient.uptime"))
+                // TODO: FIX ME! serPersistentSettingsToRemove and setTransientSettingsToRemove no available anymore
+                //.setPersistentSettingsToRemove(ImmutableSet.of("persistent.level"))
+                //.setTransientSettingsToRemove(ImmutableSet.of("persistent.level", "transient.uptime"))
                 .execute().actionGet();
     }
 
@@ -212,10 +213,11 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         // allow our settings to be updated (at all nodes)
         Key<DynamicSettings> dynamicSettingsKey = Key.get(DynamicSettings.class, ClusterDynamicSettings.class);
-        for (DynamicSettings settings : internalCluster().getInstances(dynamicSettingsKey)) {
+        // TODO: FIX ME! addDynamicSettings not available anymore
+        /*for (DynamicSettings settings : internalCluster().getInstances(dynamicSettingsKey)) {
             settings.addDynamicSetting(persistentSetting);
             settings.addDynamicSetting(transientSetting);
-        }
+        }*/
 
         // Update persistent only
         Settings persistentSettings = Settings.builder()

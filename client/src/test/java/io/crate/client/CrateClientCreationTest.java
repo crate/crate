@@ -27,7 +27,7 @@ import org.elasticsearch.client.transport.TransportClientNodesService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -43,7 +43,7 @@ import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
 
-public class CrateClientCreationTest extends ElasticsearchIntegrationTest {
+public class CrateClientCreationTest extends ESIntegTestCase {
 
     private int port;
     private String serverAddress;
@@ -62,9 +62,10 @@ public class CrateClientCreationTest extends ElasticsearchIntegrationTest {
     @Before
     public void prepare() {
         System.setProperty("es.config", TEST_SETTINGS_PATH);
+        // TODO: FIX ME! boundAddresses which element to use?
         InetSocketAddress address = ((InetSocketTransportAddress) internalCluster()
                 .getInstance(TransportService.class)
-                .boundAddress().boundAddress()).address();
+                .boundAddress().boundAddresses()[0]).address();
         port = address.getPort();
         serverAddress = String.format(Locale.ENGLISH, "localhost:%s", port);
     }

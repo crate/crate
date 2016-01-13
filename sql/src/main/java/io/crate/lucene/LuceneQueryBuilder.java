@@ -742,7 +742,7 @@ public class LuceneQueryBuilder {
 
             private Query toLuceneRegexpQuery(String fieldName, BytesRef value, Context context) {
                 // TODO: FIX ME! filter() not available
-                /*return new XConstantScoreQuery(
+                /*return new ConstantScoreQuery(
                         context.indexCache.filter().cache(
                                 new RegexpFilter(new Term(fieldName, value), RegExp.ALL)
                         )

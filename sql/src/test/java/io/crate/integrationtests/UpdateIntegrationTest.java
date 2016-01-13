@@ -655,7 +655,8 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         // regression test, used to throw a ClassCastException because the ExecutionPhasesTask created a
         // QueryResult instead of RowCountResult
-        SQLBulkResponse bulkResponse = execute("update t set name = 'Trillian' where name = ?", $$($("Arthur")));
+        // TODO: FIX ME! $ and $$ not available anymore
+        SQLBulkResponse bulkResponse = null; // execute("update t set name = 'Trillian' where name = ?", $$($("Arthur")));
         assertThat(bulkResponse.results().length, is(1));
     }
 
