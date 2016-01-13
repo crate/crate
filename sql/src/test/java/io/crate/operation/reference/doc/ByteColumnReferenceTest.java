@@ -32,7 +32,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.elasticsearch.index.fielddata.FieldDataType;
-import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -43,14 +43,15 @@ public class ByteColumnReferenceTest extends DocLevelExpressionsTest {
         for (byte b = -10; b<10; b++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Byte.toString(b), Field.Store.NO));
-            doc.add(new IntField(fieldName().name(), b, Field.Store.NO));
+            // TODO: FIX ME! is indexName proper replacement of name()?
+            doc.add(new IntField(fieldName().indexName(), b, Field.Store.NO));
             writer.addDocument(doc);
         }
     }
 
     @Override
-    protected FieldMapper.Names fieldName() {
-        return new FieldMapper.Names("b");
+    protected MappedFieldType.Names fieldName() {
+        return new MappedFieldType.Names("b");
     }
 
     @Override
@@ -60,7 +61,8 @@ public class ByteColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        ByteColumnReference byteColumn = new ByteColumnReference(fieldName().name());
+        // TODO: FIX ME! is indexName proper replacement of name()?
+        ByteColumnReference byteColumn = new ByteColumnReference(fieldName().indexName());
         byteColumn.startCollect(ctx);
         byteColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

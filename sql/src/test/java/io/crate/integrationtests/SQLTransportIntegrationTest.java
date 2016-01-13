@@ -67,7 +67,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -84,7 +84,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
 
-public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrationTest {
+public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     protected final SQLTransportExecutor sqlExecutor;
 
@@ -106,7 +106,7 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
                 new SQLTransportExecutor.ClientProvider() {
                     @Override
                     public Client client() {
-                        return ElasticsearchIntegrationTest.client();
+                        return ESIntegTestCase.client();
                     }
                 }
         ));
@@ -122,7 +122,8 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         return Settings.builder().put("number_of_replicas", 0).build();
     }
 
-    @Override
+    // TODO: FIX ME! Not needed anymore?
+    //@Override
     public void waitForConcreteMappingsOnAll(String index, String type, String... fieldNames) throws Exception {
         waitForMappingUpdateOnAll(index, fieldNames);
     }
@@ -331,7 +332,7 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
         IndexMetaData indexMetaData = metaData.iterator().next();
-        for (ObjectCursor<MappingMetaData> cursor: indexMetaData.mappings().values()) {
+        for (ObjectCursor<MappingMetaData> cursor: indexMetaData.getMappings().values()) {
             builder.field(cursor.value.type());
             builder.map(cursor.value.sourceAsMap());
         }
@@ -415,13 +416,15 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         SQLBaseResponse sqlResponse;
         Object[][] bulkArgs = context.bulkArgs();
         if (bulkArgs != null && bulkArgs.length > 0) {
-            SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client());
+            // TODO: FIX ME! RequestBuilder requires Action
+            SQLBulkRequestBuilder requestBuilder = null; //new SQLBulkRequestBuilder(client());
             requestBuilder.bulkArgs(context.bulkArgs());
             requestBuilder.stmt(context.stmt());
             requestBuilder.includeTypesOnResponse(includeTypes);
             sqlResponse = requestBuilder.execute().actionGet();
         } else {
-            SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client());
+            // TODO: FIX ME! RequestBuilder requires Action
+            SQLRequestBuilder requestBuilder = null; //new SQLRequestBuilder(client());
             requestBuilder.args(context.args());
             requestBuilder.stmt(context.stmt());
             requestBuilder.includeTypesOnResponse(includeTypes);

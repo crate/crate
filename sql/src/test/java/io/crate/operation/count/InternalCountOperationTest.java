@@ -27,12 +27,12 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.operation.operator.EqOperator;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1)
 public class InternalCountOperationTest extends SQLTransportIntegrationTest {
 
     @Test

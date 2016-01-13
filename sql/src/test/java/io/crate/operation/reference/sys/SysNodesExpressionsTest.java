@@ -292,9 +292,9 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
             bind(JvmService.class).toInstance(jvmService);
 
             ThreadPool threadPool = new ThreadPool(getClass().getName());
-            bind(ThreadPool.class).toInstance(threadPool);
+            bind(ThreadPool.class).toInstance(threadPool);*/
 
-        } */
+        }
     }
 
     @Before

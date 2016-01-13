@@ -71,9 +71,10 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
             }
         });
         if (!settingsToRemove.isEmpty()) {
-            client().admin().cluster().prepareUpdateSettings()
-                    .setTransientSettingsToRemove(settingsToRemove)
-                    .setPersistentSettingsToRemove(settingsToRemove).execute().actionGet();
+            client().admin().cluster().prepareUpdateSettings();
+                    // TODO: FIX ME! setTransientSettingsToRemove et al not available anymore
+                    //.setTransientSettingsToRemove(settingsToRemove)
+                    //.setPersistentSettingsToRemove(settingsToRemove).execute().actionGet();
         }
         super.tearDown();
     }

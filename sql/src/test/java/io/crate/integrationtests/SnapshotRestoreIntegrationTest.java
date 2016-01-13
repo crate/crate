@@ -162,8 +162,9 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         assertBusy(new Runnable() {
             @Override
             public void run() {
-                SQLRequest request = new SQLRequest(
-                        "select count(*) from sys.snapshots where state = 'SUCCESS' and name = ?", $(snapshotName));
+                // TODO: FIX ME! $ not available anymore
+                SQLRequest request = null; /*new SQLRequest(
+                        "select count(*) from sys.snapshots where state = 'SUCCESS' and name = ?", $(snapshotName));*/
                 for (TransportSQLAction transportSQLAction : internalCluster().getInstances(TransportSQLAction.class)) {
                     SQLResponse response = transportSQLAction.execute(request).actionGet(5, TimeUnit.SECONDS);
                     assertThat(((long) response.rows()[0][0]), is(1L));

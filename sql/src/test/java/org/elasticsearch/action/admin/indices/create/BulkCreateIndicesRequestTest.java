@@ -52,7 +52,7 @@ public class BulkCreateIndicesRequestTest {
         request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c"), jobId);
         out = new BytesStreamOutput();
         request.writeTo(out);
-        in = new BytesStreamInput(out.bytes());
+        in = StreamInput.wrap(out.bytes());
         requestDeserialized = new BulkCreateIndicesRequest();
         requestDeserialized.readFrom(in);
 

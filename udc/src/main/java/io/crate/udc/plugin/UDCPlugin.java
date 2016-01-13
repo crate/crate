@@ -25,14 +25,15 @@ import io.crate.udc.service.UDCService;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.plugins.AbstractPlugin;
+//import org.elasticsearch.plugins.AbstractPlugin;
 
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.collect.Lists.newArrayList;
 
-public class UDCPlugin extends AbstractPlugin {
+// TODO: FIX ME!
+public class UDCPlugin { // extends AbstractPlugin {
 
     public static final String ENABLED_SETTING_NAME = "udc.enabled";
     public static final boolean ENABLED_DEFAULT_SETTING = true;
@@ -53,7 +54,8 @@ public class UDCPlugin extends AbstractPlugin {
         this.settings = settings;
     }
 
-    @Override
+    // TODO: FIX ME!
+    /*@Override
     public Collection<Class<? extends LifecycleComponent>> services() {
         if (!settings.getAsBoolean("node.client", false)
                 && settings.getAsBoolean(ENABLED_SETTING_NAME, ENABLED_DEFAULT_SETTING)) {
@@ -72,6 +74,6 @@ public class UDCPlugin extends AbstractPlugin {
     @Override
     public String description() {
         return "Crate plugin for Usage Data Collection (UDC)";
-    }
+    }*/
 
 }

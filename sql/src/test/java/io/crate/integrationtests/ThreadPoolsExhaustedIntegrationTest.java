@@ -26,7 +26,7 @@ import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -34,7 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@ElasticsearchIntegrationTest.ClusterScope(maxNumDataNodes = 2)
+@ESIntegTestCase.ClusterScope(maxNumDataNodes = 2)
 public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegrationTest {
 
     @Override
