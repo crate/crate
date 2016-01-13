@@ -59,7 +59,7 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.search.highlight.HighlightModule;
+//import org.elasticsearch.search.highlight.HighlightModule;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -95,7 +95,8 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 new ScalarFunctionModule(),
                 new OperatorModule(),
                 new AggregationImplModule(),
-                new HighlightModule(),
+                // TODO: FIX ME!
+                //new HighlightModule(),
                 new TestModule(),
                 new MetaDataModule());
         Injector injector = builder.createInjector();

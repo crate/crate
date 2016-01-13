@@ -29,7 +29,7 @@ import io.crate.types.IntegerType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
@@ -43,7 +43,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.*;
 
-public class CrateClientUsageTest extends ElasticsearchIntegrationTest {
+public class CrateClientUsageTest extends ESIntegTestCase {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -61,9 +61,10 @@ public class CrateClientUsageTest extends ElasticsearchIntegrationTest {
 
     @Before
     public void prepare() {
+        // TODO: FIX ME! boundAddresses which element to use? 
         int port = ((InetSocketTransportAddress) internalCluster()
                 .getInstance(TransportService.class)
-                .boundAddress().boundAddress()).address().getPort();
+                .boundAddress().boundAddresses()[0]).address().getPort();
         client = new CrateClient("localhost:" + port);
     }
 

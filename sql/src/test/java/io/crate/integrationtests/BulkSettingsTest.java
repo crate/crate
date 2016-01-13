@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import org.elasticsearch.cluster.metadata.MetaDataService;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
 
-@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE, numDataNodes = 1)
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 1)
 public class BulkSettingsTest extends SQLTransportIntegrationTest {
 
     @Rule
@@ -66,8 +66,9 @@ public class BulkSettingsTest extends SQLTransportIntegrationTest {
         // locks are acquired here to make sure that the indices operation cannot finish within 1ms
         String masterName = internalCluster().getMasterName();
         MetaDataService metaDataService = internalCluster().getInstance(MetaDataService.class, masterName);
-        Map<Semaphore, Collection<String>> semaphoreCollectionMap = metaDataService.indexMetaDataLocks(Arrays.asList(
-                ".partitioned.ttt.04134", ".partitioned.ttt.04136", ".partitioned.ttt.04132"));
+        // TODO: FIX ME! indexMetaDataLocks not available
+        Map<Semaphore, Collection<String>> semaphoreCollectionMap = null; /*metaDataService.indexMetaDataLocks(Arrays.asList(
+                ".partitioned.ttt.04134", ".partitioned.ttt.04136", ".partitioned.ttt.04132"));*/
         for (Semaphore semaphore : semaphoreCollectionMap.keySet()) {
             semaphore.acquire();
         }

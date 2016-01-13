@@ -123,7 +123,7 @@ public class SQLResponseTest extends CrateUnitTest {
         r1.writeTo(o);
 
         r2 = new SQLResponse();
-        r2.readFrom(new BytesStreamInput(o.bytes()));
+        r2.readFrom(StreamInput.wrap(o.bytes()));
 
 
         assertArrayEquals(r1.cols(), r2.cols());
@@ -141,7 +141,7 @@ public class SQLResponseTest extends CrateUnitTest {
         r1.writeTo(o);
 
         r2 = new SQLResponse();
-        r2.readFrom(new BytesStreamInput(o.bytes()));
+        r2.readFrom(StreamInput.wrap(o.bytes()));
 
         assertArrayEquals(r1.cols(), r2.cols());
         assertArrayEquals(r1.columnTypes(), r2.columnTypes());
@@ -159,7 +159,7 @@ public class SQLResponseTest extends CrateUnitTest {
         r1.writeTo(o);
 
         r2 = new SQLResponse();
-        r2.readFrom(new BytesStreamInput(o.bytes()));
+        r2.readFrom(StreamInput.wrap(o.bytes()));
 
         assertArrayEquals(r1.cols(), r2.cols());
         assertArrayEquals(r1.columnTypes(), r2.columnTypes());

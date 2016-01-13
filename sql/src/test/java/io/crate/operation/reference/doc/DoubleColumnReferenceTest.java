@@ -32,7 +32,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.elasticsearch.index.fielddata.FieldDataType;
-import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -44,14 +44,15 @@ public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
         for (double d = 0.5; d<10.0d; d++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Double.toString(d), Field.Store.NO));
-            doc.add(new DoubleField(fieldName().name(), d, Field.Store.NO));
+            // TODO: FIX ME! is indexName proper replacement of name()?
+            doc.add(new DoubleField(fieldName().indexName(), d, Field.Store.NO));
             writer.addDocument(doc);
         }
     }
 
     @Override
-    protected FieldMapper.Names fieldName() {
-        return new FieldMapper.Names("d");
+    protected MappedFieldType.Names fieldName() {
+        return new MappedFieldType.Names("d");
     }
 
     @Override
@@ -61,7 +62,8 @@ public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        DoubleColumnReference doubleColumn = new DoubleColumnReference(fieldName().name());
+        // TODO: FIX ME! is indexName proper replacement of name()?
+        DoubleColumnReference doubleColumn = new DoubleColumnReference(fieldName().indexName());
         doubleColumn.startCollect(ctx);
         doubleColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
