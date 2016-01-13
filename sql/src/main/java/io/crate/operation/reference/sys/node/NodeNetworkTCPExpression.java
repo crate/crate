@@ -22,10 +22,10 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.monitor.network.NetworkStats;
 
 class NodeNetworkTCPExpression extends SysNodeObjectReference {
 
+    /*
     private static final Long VALUE_UNAVAILABLE = -1L;
 
     public NodeNetworkTCPExpression(NetworkStats stats) {
@@ -166,4 +166,5 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
 
     }
 
+*/
 }
