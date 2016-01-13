@@ -30,7 +30,7 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.hamcrest.core.Is;
 import org.junit.Test;
@@ -61,7 +61,7 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
         BytesStreamOutput output = new BytesStreamOutput();
         node.writeTo(output);
 
-        BytesStreamInput input = new BytesStreamInput(output.bytes());
+        StreamInput input = StreamInput.wrap(output.bytes());
         NestedLoopPhase node2 = new NestedLoopPhase();
         node2.readFrom(input);
 
