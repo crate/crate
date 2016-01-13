@@ -10,9 +10,7 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.lucene.search.MatchNoDocsFilter;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.cache.filter.FilterCache;
 import org.elasticsearch.index.mapper.ip.IpFieldMapper;
 
 import javax.annotation.Nullable;
@@ -67,7 +65,7 @@ public abstract class QueryBuilderHelper {
 
     public Filter eqFilter(String columnName, Object value) {
         if (value == null) {
-            return new MatchNoDocsFilter();
+            throw new UnsupportedOperationException();
         }
         return rangeFilter(columnName, value, value, true, true);
     }
@@ -239,7 +237,7 @@ public abstract class QueryBuilderHelper {
         @Override
         public Filter eqFilter(String columnName, Object value) {
             if (value == null) {
-                return new MatchNoDocsFilter();
+                throw new UnsupportedOperationException();
             }
             return new TermFilter(new Term(columnName, valueForSearch(value)));
         }
@@ -268,7 +266,7 @@ public abstract class QueryBuilderHelper {
         @Override
         public Filter eqFilter(String columnName, Object value) {
             if (value == null) {
-                return new MatchNoDocsFilter();
+                throw new UnsupportedOperationException();
             }
             return new TermFilter(new Term(columnName, (BytesRef) value));
         }

@@ -29,7 +29,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.Preconditions;
+import com.google.common.base.Preconditions;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;

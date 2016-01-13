@@ -47,8 +47,8 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.routing.Preference;
 import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.cluster.routing.operation.plain.Preference;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
@@ -109,9 +109,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       Schemas schemas,
                                       MappingUpdatedAction mappingUpdatedAction,
                                       IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, ACTION_NAME, transportService, clusterService, indicesService, threadPool,
-                shardStateAction, mappingUpdatedAction, actionFilters, indexNameExpressionResolver,
-                ShardUpsertRequest.class, ShardUpsertRequest.class, ThreadPool.Names.BULK);
+        super(settings, ACTION_NAME, transportService, mappingUpdatedAction, indexNameExpressionResolver, clusterService,
+                indicesService, threadPool, shardStateAction, actionFilters, ShardUpsertRequest.class);
         this.indexAction = indexAction;
         this.indicesService = indicesService;
         this.functions = functions;

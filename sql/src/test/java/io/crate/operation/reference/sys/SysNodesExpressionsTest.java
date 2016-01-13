@@ -295,269 +295,270 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
             bind(ThreadPool.class).toInstance(threadPool);
 
         } */
-    }
+        }
 
-    @Before
-    public void prepare() throws Exception {
-        injector = new ModulesBuilder().add(
-                new TestModule(),
-                new SysNodeExpressionModule()
-        ).createInjector();
-        resolver = new NodeSysReferenceResolver(injector.getInstance(NodeSysExpression.class));
-    }
+        @Before
+        public void prepare() throws Exception {
+            injector = new ModulesBuilder().add(
+                    new TestModule(),
+                    new SysNodeExpressionModule()
+            ).createInjector();
+            resolver = new NodeSysReferenceResolver(injector.getInstance(NodeSysExpression.class));
+        }
 
-    @After
-    public void cleanUp() throws Exception {
-        injector.getInstance(ThreadPool.class).shutdownNow();
-    }
+        @After
+        public void cleanUp() throws Exception {
+            injector.getInstance(ThreadPool.class).shutdownNow();
+        }
 
-    @Test
-    public void testLoad() throws Exception {
+        @Test
+        public void testLoad() throws Exception {
 
-        NestedObjectExpression load = (NestedObjectExpression) resolver.getImplementation(loadRefInfo);
+            NestedObjectExpression load = (NestedObjectExpression) resolver.getImplementation(loadRefInfo);
 
-        Map<String, Object> v = load.value();
-        assertNull(v.get("something"));
-        assertEquals(1D, v.get("1"));
-        assertEquals(5D, v.get("5"));
-        assertEquals(15D, v.get("15"));
+            Map<String, Object> v = load.value();
+            assertNull(v.get("something"));
+            assertEquals(1D, v.get("1"));
+            assertEquals(5D, v.get("5"));
+            assertEquals(15D, v.get("15"));
 
-        Input ci = load.getChildImplementation("1");
-        assertEquals(1D, ci.value());
-        ci = load.getChildImplementation("5");
-        assertEquals(5D, ci.value());
-        ci = load.getChildImplementation("15");
-        assertEquals(15D, ci.value());
-    }
+            Input ci = load.getChildImplementation("1");
+            assertEquals(1D, ci.value());
+            ci = load.getChildImplementation("5");
+            assertEquals(5D, ci.value());
+            ci = load.getChildImplementation("15");
+            assertEquals(15D, ci.value());
+        }
 
-    @Test
-    public void testWindowsLoad() throws Exception {
-        onWindows = true;
-        NestedObjectExpression load = (NestedObjectExpression) resolver.getImplementation(loadRefInfo);
-        Map<String, Object> windowsValue = load.value();
-        assertNull(windowsValue.get("1"));
-        assertNull(windowsValue.get("5"));
-        assertNull(windowsValue.get("10"));
-        onWindows = false;
-    }
+        @Test
+        public void testWindowsLoad() throws Exception {
+            onWindows = true;
+            NestedObjectExpression load = (NestedObjectExpression) resolver.getImplementation(loadRefInfo);
+            Map<String, Object> windowsValue = load.value();
+            assertNull(windowsValue.get("1"));
+            assertNull(windowsValue.get("5"));
+            assertNull(windowsValue.get("10"));
+            onWindows = false;
+        }
 
-    @Test
-    public void testName() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.name", DataTypes.STRING, RowGranularity.NODE);
-        SimpleObjectExpression<String> name = (SimpleObjectExpression<String>) resolver.getImplementation(refInfo);
-        assertEquals(new BytesRef("node 1"), name.value());
-    }
+        @Test
+        public void testName() throws Exception {
+            ReferenceInfo refInfo = refInfo("sys.nodes.name", DataTypes.STRING, RowGranularity.NODE);
+            SimpleObjectExpression<String> name = (SimpleObjectExpression<String>) resolver.getImplementation(refInfo);
+            assertEquals(new BytesRef("node 1"), name.value());
+        }
 
-    @Test
-    public void testId() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.id", DataTypes.STRING, RowGranularity.NODE);
-        SimpleObjectExpression<BytesRef> id = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
-        assertEquals(new BytesRef("node-id-1"), id.value());
-    }
+        @Test
+        public void testId() throws Exception {
+            ReferenceInfo refInfo = refInfo("sys.nodes.id", DataTypes.STRING, RowGranularity.NODE);
+            SimpleObjectExpression<BytesRef> id = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
+            assertEquals(new BytesRef("node-id-1"), id.value());
+        }
 
-    @Test
-    public void testHostname() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.hostname", DataTypes.STRING, RowGranularity.NODE);
-        SimpleObjectExpression<BytesRef> hostname = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
-        assertEquals(new BytesRef("localhost"), hostname.value());
-    }
+        @Test
+        public void testHostname() throws Exception {
+            ReferenceInfo refInfo = refInfo("sys.nodes.hostname", DataTypes.STRING, RowGranularity.NODE);
+            SimpleObjectExpression<BytesRef> hostname = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
+            assertEquals(new BytesRef("localhost"), hostname.value());
+        }
 
-    @Test
-    public void testRestUrl() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.rest_url", DataTypes.STRING, RowGranularity.NODE);
-        SimpleObjectExpression<BytesRef> http_addr = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
-        assertEquals(new BytesRef("http://localhost:44200"), http_addr.value());
-    }
+        @Test
+        public void testRestUrl() throws Exception {
+            ReferenceInfo refInfo = refInfo("sys.nodes.rest_url", DataTypes.STRING, RowGranularity.NODE);
+            SimpleObjectExpression<BytesRef> http_addr = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
+            assertEquals(new BytesRef("http://localhost:44200"), http_addr.value());
+        }
 
-    @Test
-    public void testPorts() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.port", DataTypes.OBJECT, RowGranularity.NODE);
-        NestedObjectExpression port = (NestedObjectExpression) resolver.getImplementation(refInfo);
+        @Test
+        public void testPorts() throws Exception {
+            ReferenceInfo refInfo = refInfo("sys.nodes.port", DataTypes.OBJECT, RowGranularity.NODE);
+            NestedObjectExpression port = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
-        Map<String, Object> v = port.value();
-        assertEquals(44200, v.get("http"));
-        assertEquals(44300, v.get("transport"));
-    }
+            Map<String, Object> v = port.value();
+            assertEquals(44200, v.get("http"));
+            assertEquals(44300, v.get("transport"));
+        }
 
-    @Test
-    public void testMemory() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.mem", DataTypes.OBJECT, RowGranularity.NODE);
-        NestedObjectExpression mem = (NestedObjectExpression) resolver.getImplementation(refInfo);
+        @Test
+        public void testMemory() throws Exception {
+            ReferenceInfo refInfo = refInfo("sys.nodes.mem", DataTypes.OBJECT, RowGranularity.NODE);
+            NestedObjectExpression mem = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
-        Map<String, Object> v = mem.value();
+            Map<String, Object> v = mem.value();
 
-        assertEquals(12345342234L, v.get("free"));
-        assertEquals(new Short("78"), v.get("free_percent"));
+            assertEquals(12345342234L, v.get("free"));
+            assertEquals(new Short("78"), v.get("free_percent"));
 
-        assertEquals(12345342234L, v.get("used"));
-        assertEquals(new Short("22"), v.get("used_percent"));
-    }
+            assertEquals(12345342234L, v.get("used"));
+            assertEquals(new Short("22"), v.get("used_percent"));
+        }
 
-    @Test
-    public void testHeap() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.heap", DataTypes.STRING, RowGranularity.NODE);
-        NestedObjectExpression heap = (NestedObjectExpression) resolver.getImplementation(refInfo);
+        @Test
+        public void testHeap() throws Exception {
+            ReferenceInfo refInfo = refInfo("sys.nodes.heap", DataTypes.STRING, RowGranularity.NODE);
+            NestedObjectExpression heap = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
-        Map<String, Object> v = heap.value();
+            Map<String, Object> v = heap.value();
 
-        assertEquals(123456L, v.get("max"));
-        assertEquals(123456L, v.get("used"));
-        assertEquals(0L, v.get("free"));
-    }
+            assertEquals(123456L, v.get("max"));
+            assertEquals(123456L, v.get("used"));
+            assertEquals(0L, v.get("free"));
+        }
 
-    @Test
-    public void testFs() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
-        NestedObjectExpression fs = (NestedObjectExpression) resolver.getImplementation(refInfo);
+        @Test
+        public void testFs() throws Exception {
+            ReferenceInfo refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
+            NestedObjectExpression fs = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
-        Map<String, Object> v = fs.value();
-        String total = mapToSortedString((Map<String, Object>) v.get("total"));
-        assertThat(total, is("available=86016, bytes_read=84, bytes_written=84, reads=84, size=86016, used=84, writes=84"));
-        Object[] disks = (Object[]) v.get("disks");
-        assertThat(disks.length, is(2));
-        Map<String, Object> disk0 = (Map<String, Object>) disks[0];
-        assertThat((String) disk0.get("dev"), is(resolveCanonicalPath("/dev/sda1")));
-        assertThat((Long) disk0.get("size"), is(42L * 1024));
+            Map<String, Object> v = fs.value();
+            String total = mapToSortedString((Map<String, Object>) v.get("total"));
+            assertThat(total, is("available=86016, bytes_read=84, bytes_written=84, reads=84, size=86016, used=84, writes=84"));
+            Object[] disks = (Object[]) v.get("disks");
+            assertThat(disks.length, is(2));
+            Map<String, Object> disk0 = (Map<String, Object>) disks[0];
+            assertThat((String) disk0.get("dev"), is(resolveCanonicalPath("/dev/sda1")));
+            assertThat((Long) disk0.get("size"), is(42L * 1024));
 
-        Map<String, Object> disk1 = (Map<String, Object>) disks[1];
-        assertThat((String) disk1.get("dev"), is(resolveCanonicalPath("/dev/sda2")));
-        assertThat((Long) disk0.get("used"), is(42L * 1024));
+            Map<String, Object> disk1 = (Map<String, Object>) disks[1];
+            assertThat((String) disk1.get("dev"), is(resolveCanonicalPath("/dev/sda2")));
+            assertThat((Long) disk0.get("used"), is(42L * 1024));
 
-        Object[] data = (Object[]) v.get("data");
-        assertThat(data.length, is(2));
-        assertThat((String) ((Map<String, Object>) data[0]).get("dev"), is(resolveCanonicalPath("/dev/sda1")));
-        assertThat((String) ((Map<String, Object>) data[0]).get("path"), is(resolveCanonicalPath("/foo")));
+            Object[] data = (Object[]) v.get("data");
+            assertThat(data.length, is(2));
+            assertThat((String) ((Map<String, Object>) data[0]).get("dev"), is(resolveCanonicalPath("/dev/sda1")));
+            assertThat((String) ((Map<String, Object>) data[0]).get("path"), is(resolveCanonicalPath("/foo")));
 
-        assertThat((String) ((Map<String, Object>) data[1]).get("dev"), is(resolveCanonicalPath("/dev/sda2")));
-        assertThat((String) ((Map<String, Object>) data[1]).get("path"), is(resolveCanonicalPath("/bar")));
+            assertThat((String) ((Map<String, Object>) data[1]).get("dev"), is(resolveCanonicalPath("/dev/sda2")));
+            assertThat((String) ((Map<String, Object>) data[1]).get("path"), is(resolveCanonicalPath("/bar")));
 
-        refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE, "data", "dev");
-        SimpleObjectExpression<Object[]> fsData = (SimpleObjectExpression<Object[]>) resolver.getImplementation(refInfo);
-        for (Object arrayElement : fsData.value()) {
-            assertThat(arrayElement, instanceOf(BytesRef.class));
+            refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE, "data", "dev");
+            SimpleObjectExpression<Object[]> fsData = (SimpleObjectExpression<Object[]>) resolver.getImplementation(refInfo);
+            for (Object arrayElement : fsData.value()) {
+                assertThat(arrayElement, instanceOf(BytesRef.class));
+            }
+
+        }
+
+        @Test
+        public void testFsWithoutSigar() throws Exception {
+            sigarAvailable = false;
+            ReferenceInfo refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
+            NestedObjectExpression fs = (NestedObjectExpression) resolver.getImplementation(refInfo);
+
+            Map<String, Object> v = fs.value();
+            assertThat(mapToSortedString((Map<String, Object>) v.get("total")),
+                    is("available=-1, bytes_read=-1, bytes_written=-1, reads=-1, size=-1, used=-1, writes=-1"));
+            Object[] disks = (Object[]) v.get("disks");
+            assertThat(disks.length, is(0));
+
+            Object[] data = (Object[]) v.get("data");
+            assertThat(data.length, is(0));
+            sigarAvailable = true;
+        }
+
+        @Test
+        public void testFsDataOnNonDataNode() throws Exception {
+            isDataNode = false;
+            ReferenceInfo refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE, "data");
+            SysObjectArrayReference fs = (SysObjectArrayReference) resolver.getImplementation(refInfo);
+            assertThat(fs.value().length, is(0));
+            isDataNode = true;
+        }
+
+
+        @Test
+        public void testVersion() throws Exception {
+            ReferenceInfo refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
+            NestedObjectExpression version = (NestedObjectExpression) resolver.getImplementation(refInfo);
+
+            Map<String, Object> v = version.value();
+            assertEquals(Version.CURRENT.number(), v.get("number"));
+            assertEquals(Build.CURRENT.hash(), v.get("build_hash"));
+            assertEquals(Version.CURRENT.snapshot, v.get("build_snapshot"));
+
+        }
+
+        @Test
+        public void testNetwork() throws Exception {
+            ReferenceInfo refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE);
+            NestedObjectExpression networkRef = (NestedObjectExpression) resolver.getImplementation(refInfo);
+
+            Map<String, Object> networkStats = networkRef.value();
+            assertThat(mapToSortedString(networkStats),
+                    is(                                                                                                   "probe_timestamp=0, tcp={" +
+                       "connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
+                       "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}"                +
+                       "}"));
+        }
+
+        @Test
+        public void testNetworkTCP() throws Exception {
+            ReferenceInfo refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE, "tcp");
+            NestedObjectExpression tcpRef = (NestedObjectExpression) resolver.getImplementation(refInfo);
+
+            Map<String, Object> tcpStats = tcpRef.value();
+
+            assertThat(tcpStats, instanceOf(Map.class));
+            assertThat(mapToSortedString(tcpStats),
+                    is("connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
+                       "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}"));
+        }
+
+        @Test
+        public void testCpu() throws Exception {
+            ReferenceInfo refInfo = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
+            NestedObjectExpression os = (NestedObjectExpression) resolver.getImplementation(refInfo);
+
+            Map<String, Object> v = os.value();
+            assertEquals(3600000L, v.get("uptime"));
+
+            Map<String, Short> cpuObj = new HashMap<>(5);
+            cpuObj.put("system", (short) 2);
+            cpuObj.put("user", (short) 4);
+            cpuObj.put("idle", (short) 94);
+            cpuObj.put("used", (short) 6);
+            cpuObj.put("stolen", (short) 10);
+            assertEquals(cpuObj, v.get("cpu"));
+        }
+
+        @Test
+        public void testProcess() throws Exception {
+            ReferenceInfo refInfo = refInfo("sys.nodes.process", DataTypes.OBJECT, RowGranularity.NODE);
+            NestedObjectExpression processRef = (NestedObjectExpression) resolver.getImplementation(refInfo);
+
+            Map<String, Object> v = processRef.value();
+            assertEquals(42L, (long) v.get("open_file_descriptors"));
+            assertEquals(1000L, (long) v.get("max_open_file_descriptors"));
+
+            Map<String, Object> cpuObj = new HashMap<>(4);
+            cpuObj.put("percent", (short) 50);
+            cpuObj.put("system", 1000L);
+            cpuObj.put("user", 500L);
+            assertEquals(cpuObj, v.get("cpu"));
+        }
+
+        @Test
+        public void testOsInfo() throws Exception {
+            ReferenceInfo refInfo = refInfo("sys.nodes.os_info", DataTypes.OBJECT, RowGranularity.NODE);
+            NestedObjectExpression ref = (NestedObjectExpression) resolver.getImplementation(refInfo);
+
+            Map<String, Object> v = ref.value();
+            int cores = (int) v.get("available_processors");
+            assertEquals(4, cores);
+        }
+
+        @Test
+        public void testNestedBytesRefExpressionsString() throws Exception {
+            ReferenceInfo refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
+            NestedObjectExpression version = (NestedObjectExpression) resolver.getImplementation(refInfo);
+
+            refInfo = refInfo("sys.nodes.version", DataTypes.STRING, RowGranularity.NODE, "number");
+            SysNodeExpression<BytesRef> versionNumber = (SysNodeExpression<BytesRef>) resolver.getImplementation(refInfo);
+
+            assertThat(version.value().get(NodeVersionExpression.NUMBER), instanceOf(String.class));
+            assertThat(versionNumber.value(), is(new BytesRef(version.value().get(NodeVersionExpression.NUMBER).toString())));
+
         }
 
     }
-
-    @Test
-    public void testFsWithoutSigar() throws Exception {
-        sigarAvailable = false;
-        ReferenceInfo refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
-        NestedObjectExpression fs = (NestedObjectExpression) resolver.getImplementation(refInfo);
-
-        Map<String, Object> v = fs.value();
-        assertThat(mapToSortedString((Map<String, Object>) v.get("total")),
-                is("available=-1, bytes_read=-1, bytes_written=-1, reads=-1, size=-1, used=-1, writes=-1"));
-        Object[] disks = (Object[]) v.get("disks");
-        assertThat(disks.length, is(0));
-
-        Object[] data = (Object[]) v.get("data");
-        assertThat(data.length, is(0));
-        sigarAvailable = true;
-    }
-
-    @Test
-    public void testFsDataOnNonDataNode() throws Exception {
-        isDataNode = false;
-        ReferenceInfo refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE, "data");
-        SysObjectArrayReference fs = (SysObjectArrayReference) resolver.getImplementation(refInfo);
-        assertThat(fs.value().length, is(0));
-        isDataNode = true;
-    }
-
-
-    @Test
-    public void testVersion() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
-        NestedObjectExpression version = (NestedObjectExpression) resolver.getImplementation(refInfo);
-
-        Map<String, Object> v = version.value();
-        assertEquals(Version.CURRENT.number(), v.get("number"));
-        assertEquals(Build.CURRENT.hash(), v.get("build_hash"));
-        assertEquals(Version.CURRENT.snapshot, v.get("build_snapshot"));
-
-    }
-
-    @Test
-    public void testNetwork() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE);
-        NestedObjectExpression networkRef = (NestedObjectExpression) resolver.getImplementation(refInfo);
-
-        Map<String, Object> networkStats = networkRef.value();
-        assertThat(mapToSortedString(networkStats),
-                is("probe_timestamp=0, tcp={" +
-                        "connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
-                        "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}" +
-                        "}"));
-    }
-
-    @Test
-    public void testNetworkTCP() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE, "tcp");
-        NestedObjectExpression tcpRef = (NestedObjectExpression) resolver.getImplementation(refInfo);
-
-        Map<String, Object> tcpStats = tcpRef.value();
-
-        assertThat(tcpStats, instanceOf(Map.class));
-        assertThat(mapToSortedString(tcpStats),
-                is("connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
-                        "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}"));
-    }
-
-    @Test
-    public void testCpu() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
-        NestedObjectExpression os = (NestedObjectExpression) resolver.getImplementation(refInfo);
-
-        Map<String, Object> v = os.value();
-        assertEquals(3600000L, v.get("uptime"));
-
-        Map<String, Short> cpuObj = new HashMap<>(5);
-        cpuObj.put("system", (short) 2);
-        cpuObj.put("user", (short) 4);
-        cpuObj.put("idle", (short) 94);
-        cpuObj.put("used", (short) 6);
-        cpuObj.put("stolen", (short) 10);
-        assertEquals(cpuObj, v.get("cpu"));
-    }
-
-    @Test
-    public void testProcess() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.process", DataTypes.OBJECT, RowGranularity.NODE);
-        NestedObjectExpression processRef = (NestedObjectExpression) resolver.getImplementation(refInfo);
-
-        Map<String, Object> v = processRef.value();
-        assertEquals(42L, (long) v.get("open_file_descriptors"));
-        assertEquals(1000L, (long) v.get("max_open_file_descriptors"));
-
-        Map<String, Object> cpuObj = new HashMap<>(4);
-        cpuObj.put("percent", (short) 50);
-        cpuObj.put("system", 1000L);
-        cpuObj.put("user", 500L);
-        assertEquals(cpuObj, v.get("cpu"));
-    }
-
-    @Test
-    public void testOsInfo() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.os_info", DataTypes.OBJECT, RowGranularity.NODE);
-        NestedObjectExpression ref = (NestedObjectExpression) resolver.getImplementation(refInfo);
-
-        Map<String, Object> v = ref.value();
-        int cores = (int) v.get("available_processors");
-        assertEquals(4, cores);
-    }
-
-    @Test
-    public void testNestedBytesRefExpressionsString() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
-        NestedObjectExpression version = (NestedObjectExpression) resolver.getImplementation(refInfo);
-
-        refInfo = refInfo("sys.nodes.version", DataTypes.STRING, RowGranularity.NODE, "number");
-        SysNodeExpression<BytesRef> versionNumber = (SysNodeExpression<BytesRef>) resolver.getImplementation(refInfo);
-
-        assertThat(version.value().get(NodeVersionExpression.NUMBER), instanceOf(String.class));
-        assertThat(versionNumber.value(), is(new BytesRef(version.value().get(NodeVersionExpression.NUMBER).toString())));
-
-    }
-
 }
