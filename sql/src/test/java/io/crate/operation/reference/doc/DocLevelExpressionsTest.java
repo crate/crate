@@ -32,7 +32,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.fielddata.FieldDataType;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
-import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.junit.After;
 import org.junit.Before;
@@ -56,15 +56,16 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
         ifd = indexService.fieldData();
 
         MapperService mapperService = mock(MapperService.class);
-        FieldMapper fieldMapper = mock(FieldMapper.class);
+        MappedFieldType fieldMapper = mock(MappedFieldType.class);
         when(fieldMapper.names()).thenReturn(fieldName());
         when(fieldMapper.fieldDataType()).thenReturn(fieldType());
-        when(mapperService.smartNameFieldMapper(anyString(), Matchers.<String[]>any())).thenReturn(fieldMapper);
+        // TODO: FIX ME! smart mappers not available anymore
+        //when(mapperService.smartNameFieldMapper(anyString(), Matchers.<String[]>any())).thenReturn(fieldMapper);
 
 
         IndexFieldData<?> fieldData = ifd.getForField(fieldMapper);
         writer = new IndexWriter(new RAMDirectory(),
-                new IndexWriterConfig(Lucene.VERSION, new StandardAnalyzer())
+                new IndexWriterConfig(new StandardAnalyzer())
                         .setMergePolicy(new LogByteSizeMergePolicy()));
 
         insertValues(writer);
@@ -85,7 +86,7 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
 
     protected abstract void insertValues(IndexWriter writer) throws Exception;
 
-    protected abstract FieldMapper.Names fieldName();
+    protected abstract MappedFieldType.Names fieldName();
 
     protected abstract FieldDataType fieldType();
 }

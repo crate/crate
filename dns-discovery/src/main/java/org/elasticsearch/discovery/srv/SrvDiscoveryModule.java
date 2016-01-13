@@ -24,18 +24,19 @@ package org.elasticsearch.discovery.srv;
 
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.zen.ZenDiscoveryModule;
+//import org.elasticsearch.discovery.zen.ZenDiscoveryModule;
 
 /**
  * This module is loaded by the DiscoveryModule.
  * Different types of discovery modules can be defined on startup using the `discovery.type` setting.
  * This SrvDiscoveryModule can be loaded using `-Des.discovery.type=srv`
  */
-public class SrvDiscoveryModule extends ZenDiscoveryModule {
+// TODO: FIX ME!
+public class SrvDiscoveryModule { /* extends ZenDiscoveryModule {
 
     @Inject
     public SrvDiscoveryModule(Settings settings) {
         addUnicastHostProvider(SrvUnicastHostsProvider.class);
-    }
+    }*/
 
 }

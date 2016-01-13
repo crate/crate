@@ -25,7 +25,7 @@ import io.crate.Constants;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.env.FailedToResolveConfigException;
+//import org.elasticsearch.env.FailedToResolveConfigException;
 
 import java.net.URL;
 
