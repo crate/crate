@@ -32,7 +32,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.elasticsearch.index.fielddata.FieldDataType;
-import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -43,14 +43,15 @@ public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
         for (float f = -0.5f; f<10.0f; f++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Float.toString(f), Field.Store.NO));
-            doc.add(new FloatField(fieldName().name(), f, Field.Store.NO));
+            // TODO: FIX ME! is indexName proper replacement of name()?
+            doc.add(new FloatField(fieldName().indexName(), f, Field.Store.NO));
             writer.addDocument(doc);
         }
     }
 
     @Override
-    protected FieldMapper.Names fieldName() {
-        return new FieldMapper.Names("f");
+    protected MappedFieldType.Names fieldName() {
+        return new MappedFieldType.Names("f");
     }
 
     @Override
@@ -60,7 +61,8 @@ public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        FloatColumnReference floatColumn = new FloatColumnReference(fieldName().name());
+        // TODO: FIX ME! is indexName proper replacement of name()?
+        FloatColumnReference floatColumn = new FloatColumnReference(fieldName().indexName());
         floatColumn.startCollect(ctx);
         floatColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

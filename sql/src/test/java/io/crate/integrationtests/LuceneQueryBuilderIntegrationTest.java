@@ -21,12 +21,12 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope (randomDynamicTemplates = false)
+@ESIntegTestCase.ClusterScope (randomDynamicTemplates = false)
 public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
@@ -125,10 +125,11 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
     public void testWithinGenericFunction() throws Exception {
         execute("create table shaped (id int, point geo_point, shape geo_shape) with (number_of_replicas=0)");
         ensureYellow();
-        execute("insert into shaped (id, point, shape) VALUES (?, ?, ?)", $$(
+        // TODO: FIX ME! $ and $$ not available anymore
+        /*execute("insert into shaped (id, point, shape) VALUES (?, ?, ?)", $$(
                 $(1, "POINT (15 15)", "polygon (( 10 10, 10 20, 20 20, 20 15, 10 10))"),
                 $(1, "POINT (-10 -10)", "polygon (( 10 10, 10 20, 20 20, 20 15, 10 10))")
-        ));
+        ));*/
         execute("refresh table shaped");
 
         execute("select * from shaped where within(point, shape) order by id");
