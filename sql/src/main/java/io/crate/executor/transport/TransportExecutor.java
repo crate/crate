@@ -257,11 +257,7 @@ public class TransportExecutor implements Executor {
 
         @Override
         public ImmutableList<Task> visitESDeleteByQueryNode(ESDeleteByQueryNode node, UUID jobId) {
-            return singleTask(new ESDeleteByQueryTask(
-                    jobId,
-                    node,
-                    transportActionProvider.transportDeleteByQueryAction(),
-                    jobContextService));
+            throw new UnsupportedOperationException("DeleteByQuery NYI");
         }
 
         @Override

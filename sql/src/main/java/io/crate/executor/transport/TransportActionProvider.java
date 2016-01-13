@@ -43,7 +43,6 @@ import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemp
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.action.delete.TransportDeleteAction;
-import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.get.TransportMultiGetAction;
 import org.elasticsearch.common.inject.Inject;
@@ -59,7 +58,6 @@ public class TransportActionProvider {
     private final Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateActionProvider;
     private final Provider<TransportDeleteIndexTemplateAction> transportDeleteIndexTemplateActionProvider;
     private final Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider;
-    private final Provider<TransportDeleteByQueryAction> transportDeleteByQueryActionProvider;
     private final Provider<TransportDeleteAction> transportDeleteActionProvider;
 
     private final Provider<TransportGetAction> transportGetActionProvider;
@@ -91,7 +89,6 @@ public class TransportActionProvider {
                                    Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateActionProvider,
                                    Provider<TransportDeleteIndexTemplateAction> transportDeleteIndexTemplateActionProvider,
                                    Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider,
-                                   Provider<TransportDeleteByQueryAction> transportDeleteByQueryActionProvider,
                                    Provider<TransportDeleteAction> transportDeleteActionProvider,
                                    Provider<TransportGetAction> transportGetActionProvider,
                                    Provider<TransportMultiGetAction> transportMultiGetActionProvider,
@@ -115,7 +112,6 @@ public class TransportActionProvider {
         this.transportGetIndexTemplatesActionProvider = transportGetIndexTemplatesActionProvider;
         this.transportDeleteIndexTemplateActionProvider = transportDeleteIndexTemplateActionProvider;
         this.transportClusterUpdateSettingsActionProvider = transportClusterUpdateSettingsActionProvider;
-        this.transportDeleteByQueryActionProvider = transportDeleteByQueryActionProvider;
         this.transportDeleteActionProvider = transportDeleteActionProvider;
         this.transportGetActionProvider = transportGetActionProvider;
         this.transportMultiGetActionProvider = transportMultiGetActionProvider;
@@ -162,10 +158,6 @@ public class TransportActionProvider {
 
     public TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction() {
         return transportClusterUpdateSettingsActionProvider.get();
-    }
-
-    public TransportDeleteByQueryAction transportDeleteByQueryAction() {
-        return transportDeleteByQueryActionProvider.get();
     }
 
     public TransportDeleteAction transportDeleteAction() {

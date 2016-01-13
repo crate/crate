@@ -22,7 +22,7 @@
 package io.crate.action.sql;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -56,7 +56,7 @@ public class SQLRequestTest extends CrateUnitTest {
     public void testSerializationReadFrom() throws Exception {
         byte[] buf = new byte[]
                 {0,19,115,101,108,101,99,116,32,42,32,102,114,111,109,32,117,115,101,114,115,2,0,4,97,114,103,49,0,4,97,114,103, 50, 0, 1};
-        BytesStreamInput in = new BytesStreamInput(buf);
+        StreamInput in = StreamInput.wrap(buf);
         SQLRequest request = new SQLRequest();
         request.readFrom(in);
 
@@ -73,7 +73,7 @@ public class SQLRequestTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         SQLRequest inRequest = new SQLRequest();
         inRequest.readFrom(in);
 
