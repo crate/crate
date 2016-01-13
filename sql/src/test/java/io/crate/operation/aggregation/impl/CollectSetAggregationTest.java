@@ -29,7 +29,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 

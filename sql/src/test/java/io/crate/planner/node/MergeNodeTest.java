@@ -38,7 +38,7 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -78,7 +78,7 @@ public class MergeNodeTest extends CrateUnitTest {
         node.writeTo(output);
 
 
-        BytesStreamInput input = new BytesStreamInput(output.bytes());
+        StreamInput input = StreamInput.wrap(output.bytes());
         MergePhase node2 = MergePhase.FACTORY.create();
         node2.readFrom(input);
 

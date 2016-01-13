@@ -39,15 +39,13 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
-import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -120,8 +118,11 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                 @Override
                 public boolean apply(@Nullable String input) {
                     assert input != null;
+                    /*
                     return AUTO_CREATE_INDEX.shouldAutoCreate(input,
                             BulkShardProcessor.this.clusterService.state());
+                            */
+                    return false;
                 }
             };
         } else {

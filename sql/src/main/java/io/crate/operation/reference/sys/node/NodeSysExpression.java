@@ -24,16 +24,13 @@ package io.crate.operation.reference.sys.node;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.NestedObjectExpression;
-import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.jvm.JvmService;
-import org.elasticsearch.monitor.network.NetworkService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
-import org.elasticsearch.monitor.sigar.SigarService;
 import org.elasticsearch.node.service.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -46,7 +43,6 @@ public class NodeSysExpression extends NestedObjectExpression {
     private final NodeService nodeService;
     private final OsService osService;
     private final JvmService jvmService;
-    private final NetworkService networkService;
 
     private static final Collection EXPRESSIONS_WITH_OS_STATS = Arrays.asList(
             SysNodesTableInfo.SYS_COL_MEM,
@@ -56,20 +52,19 @@ public class NodeSysExpression extends NestedObjectExpression {
 
     @Inject
     public NodeSysExpression(ClusterService clusterService,
-                             SigarService sigarService,
                              OsService osService,
                              NodeService nodeService,
                              JvmService jvmService,
-                             NetworkService networkService,
                              NodeEnvironment nodeEnvironment,
                              Discovery discovery,
                              ThreadPool threadPool) {
         this.nodeService = nodeService;
         this.osService = osService;
         this.jvmService = jvmService;
-        this.networkService = networkService;
+        /* FIXME
         childImplementations.put(SysNodesTableInfo.SYS_COL_FS,
                 new NodeFsExpression(sigarService, nodeEnvironment));
+        */
         childImplementations.put(SysNodesTableInfo.SYS_COL_HOSTNAME,
                 new NodeHostnameExpression(clusterService));
         childImplementations.put(SysNodesTableInfo.SYS_COL_REST_URL,
@@ -110,7 +105,7 @@ public class NodeSysExpression extends NestedObjectExpression {
         } else if (SysNodesTableInfo.SYS_COL_HEAP.equals(name)) {
             return new NodeHeapExpression(jvmService.stats());
         } else if (SysNodesTableInfo.SYS_COL_NETWORK.equals(name)) {
-            return new NodeNetworkExpression(networkService.stats());
+            throw new UnsupportedOperationException();
         }
         return super.getChildImplementation(name);
     }

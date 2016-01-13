@@ -31,7 +31,7 @@ import io.crate.Streamer;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -61,7 +61,7 @@ public class NodeFetchResponseTest {
         orig.writeTo(out);
 
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
 
         // receiving side is required to set the streamers
         NodeFetchResponse streamed = NodeFetchResponse.forReceiveing(streamers);
