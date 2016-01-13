@@ -24,7 +24,7 @@ package io.crate.metadata;
 import com.google.common.base.Objects;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.Preconditions;
+import com.google.common.base.Preconditions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 

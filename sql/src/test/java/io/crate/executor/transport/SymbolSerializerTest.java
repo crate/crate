@@ -25,7 +25,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Value;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -39,7 +39,7 @@ public class SymbolSerializerTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Symbol.toStream(v, out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         Value v2 = (Value) Symbol.fromStream(in);
         assertEquals(v2.valueType(), DataTypes.STRING);
     }
