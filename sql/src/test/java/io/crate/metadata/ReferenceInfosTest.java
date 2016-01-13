@@ -110,7 +110,9 @@ public class ReferenceInfosTest {
         Map<String, SchemaInfo> builtInSchema = new HashMap<>();
         builtInSchema.put(schemaInfo.name(), schemaInfo);
 
-        return new ReferenceInfos(builtInSchema, clusterService, mock(ThreadPool.class),
-                mock(TransportPutIndexTemplateAction.class), functions);
+        // TODO: FIX ME!
+        /*return new ReferenceInfos(builtInSchema, clusterService, mock(ThreadPool.class),
+                mock(TransportPutIndexTemplateAction.class), functions);*/
+        return null;
     }
 }

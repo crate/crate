@@ -31,7 +31,6 @@ import com.carrotsearch.junitbenchmarks.annotation.LabelType;
 import com.google.common.collect.AbstractIterator;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.testing.RowCountRowReceiver;
 import io.crate.testing.RowSender;
@@ -62,7 +61,7 @@ public class NestedLoopOperationBenchmark {
 
     @Before
     public void prepare() {
-        executor = EsExecutors.newFixed(5, 10, EsExecutors.daemonThreadFactory(getClass().getSimpleName()));
+        executor = EsExecutors.newFixed("nl-benchmark", 5, 10, EsExecutors.daemonThreadFactory(getClass().getSimpleName()));
     }
 
     @After

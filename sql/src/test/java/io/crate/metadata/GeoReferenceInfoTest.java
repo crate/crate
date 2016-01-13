@@ -47,7 +47,7 @@ public class GeoReferenceInfoTest extends CrateUnitTest {
         GeoReferenceInfo geoReferenceInfo3 = new GeoReferenceInfo(referenceIdent, "some_tree", null, null);
         out = new BytesStreamOutput();
         ReferenceInfo.toStream(geoReferenceInfo3, out);
-        in = new BytesStreamInput(out.bytes());
+        in = StreamInput.wrap(out.bytes());
         GeoReferenceInfo geoReferenceInfo4 = ReferenceInfo.fromStream(in);
 
         assertThat(geoReferenceInfo4, is(geoReferenceInfo3));

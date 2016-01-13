@@ -32,7 +32,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.elasticsearch.index.fielddata.FieldDataType;
-import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -43,14 +43,15 @@ public class LongColumnReferenceTest extends DocLevelExpressionsTest {
         for (long l = Long.MIN_VALUE; l< Long.MIN_VALUE + 10; l++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Long.toString(l), Field.Store.NO));
-            doc.add(new LongField(fieldName().name(), l, Field.Store.NO));
+            // TODO: FIX ME! is indexName proper replacement of name()?
+            doc.add(new LongField(fieldName().indexName(), l, Field.Store.NO));
             writer.addDocument(doc);
         }
     }
 
     @Override
-    protected FieldMapper.Names fieldName() {
-        return new FieldMapper.Names("l");
+    protected MappedFieldType.Names fieldName() {
+        return new MappedFieldType.Names("l");
     }
 
     @Override
@@ -60,7 +61,8 @@ public class LongColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        LongColumnReference longColumn = new LongColumnReference(fieldName().name());
+        // TODO: FIX ME! is indexName proper replacement of name()?
+        LongColumnReference longColumn = new LongColumnReference(fieldName().indexName());
         longColumn.startCollect(ctx);
         longColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

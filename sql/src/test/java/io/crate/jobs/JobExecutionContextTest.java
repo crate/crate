@@ -48,7 +48,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.elasticsearch.test.ElasticsearchTestCase.assertBusy;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.*;
 

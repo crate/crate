@@ -85,7 +85,8 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                                            Settings settings,
                                            @Nullable AliasMetaData aliasMetaData) throws IOException {
         byte[] data = builder.bytes().toBytes();
-        Map<String, Object> mappingSource = XContentHelper.convertToMap(data, true).v2();
+        // TODO: FIX ME! convertToMap has different interface
+        /*Map<String, Object> mappingSource = XContentHelper.convertToMap(data, true).v2();
         mappingSource = sortProperties(mappingSource);
 
         Settings.Builder settingsBuilder = Settings.builder()
@@ -99,7 +100,8 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         if (aliasMetaData != null) {
             mdBuilder.putAlias(aliasMetaData);
         }
-        return mdBuilder.build();
+        return mdBuilder.build();*/
+        return null;
     }
 
     private DocIndexMetaData newMeta(IndexMetaData metaData, String name) throws IOException {
@@ -855,14 +857,17 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         ClusterState state = mock(ClusterState.class);
         MetaData metaData = mock(MetaData.class);
         when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
-        when(metaData.concreteIndices(Mockito.any(IndicesOptions.class), Mockito.any(String[].class))).thenReturn(new String[0]);
+        // TODO: FIX ME!
+        //when(metaData.concreteIndices(Mockito.any(IndicesOptions.class), Mockito.any(String[].class))).thenReturn(new String[0]);
         when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
         when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
         when(state.metaData()).thenReturn(metaData);
-        when(metaData.getSettings()).thenReturn(Settings.EMPTY);
+        // TODO: FIX ME!
+        //when(metaData.getSettings()).thenReturn(Settings.EMPTY);
         when(clusterService.state()).thenReturn(state);
         TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
-        CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
+        // TODO: FIX ME!
+        /*CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
             new ReferenceInfos(
                 ImmutableMap.<String, SchemaInfo>of("doc",
                     new DocSchemaInfo(clusterService, threadPool, transportPutIndexTemplateAction, functions)),
@@ -887,7 +892,8 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                 .putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, analyzedStatement.mapping()))
                 .build();
 
-        return newMeta(indexMetaData, analyzedStatement.tableIdent().name());
+        return newMeta(indexMetaData, analyzedStatement.tableIdent().name());*/
+        return null;
     }
 
     @Test

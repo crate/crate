@@ -701,11 +701,12 @@ public class TestingHelpers {
     }
 
     public static Map<String, Object> jsonMap(String json) {
-        try {
-            return JsonXContent.jsonXContent.createParser(json).mapAndClose();
-        } catch (IOException e) {
+        //try {
+            // TODO: FIX ME! mapAndClose not available anymore
+            return null; //JsonXContent.jsonXContent.createParser(json).mapAndClose();
+        /*} catch (IOException e) {
             throw new RuntimeException(e);
-        }
+        }*/
     }
 
     public static BytesRef addOffset(BytesRef bytesRef) {
