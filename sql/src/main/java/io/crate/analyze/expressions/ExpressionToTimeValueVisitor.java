@@ -27,61 +27,74 @@ import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.Locale;
 
-public class ExpressionToTimeValueVisitor extends AstVisitor<TimeValue, Object[]> {
+public class ExpressionToTimeValueVisitor {
 
     public static final TimeValue DEFAULT_VALUE = new TimeValue(0);
-    private static final ExpressionToTimeValueVisitor INSTANCE = new ExpressionToTimeValueVisitor();
+    private static final Visitor VISITOR = new Visitor();
 
     private ExpressionToTimeValueVisitor() {}
 
-    public static TimeValue convert(Node node, Object[] parameters) {
-        return INSTANCE.process(node, parameters);
+    public static TimeValue convert(Node node, Object[] parameters, String settingName) {
+        return VISITOR.process(node, new Context(settingName, parameters));
     }
 
-    @Override
-    protected TimeValue visitStringLiteral(StringLiteral node, Object[] context) {
-        try {
-            //TODO: FIX ME! parseTimeValue requires setting
-            return TimeValue.parseTimeValue(node.getValue(), DEFAULT_VALUE, "");
-        } catch (ElasticsearchParseException e) {
-            throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid time value '%s'", node.getValue()));
+    private static class Context {
+        final String settingName;
+        final Object[] params;
+
+        public Context(String settingName, Object[] params) {
+            this.settingName = settingName;
+            this.params = params;
         }
     }
 
-    @Override
-    protected TimeValue visitLongLiteral(LongLiteral node, Object[] context) {
-        return new TimeValue(node.getValue());
-    }
+    private static class Visitor extends AstVisitor<TimeValue, Context> {
 
-    @Override
-    protected TimeValue visitDoubleLiteral(DoubleLiteral node, Object[] context) {
-        return new TimeValue((long) node.getValue());
-    }
-
-    @Override
-    public TimeValue visitParameterExpression(ParameterExpression node, Object[] context) {
-        TimeValue timeValue;
-        Object param = context[node.index()];
-        if (param instanceof Number) {
-            timeValue = new TimeValue(((Number) param).longValue());
-        } else if (param instanceof String) {
+        @Override
+        protected TimeValue visitStringLiteral(StringLiteral node, Context context) {
             try {
                 //TODO: FIX ME! parseTimeValue requires setting
-                timeValue = TimeValue.parseTimeValue((String) param, DEFAULT_VALUE, "");
+                return TimeValue.parseTimeValue(node.getValue(), DEFAULT_VALUE, "");
             } catch (ElasticsearchParseException e) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Invalid time value '%s'", param));
+                        String.format(Locale.ENGLISH, "Invalid time value '%s'", node.getValue()));
             }
-        } else {
-            throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid time value %s", param));
         }
-        return timeValue;
-    }
 
-    @Override
-    protected TimeValue visitNode(Node node, Object[] context) {
-        throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid time value %s", node));
+        @Override
+        protected TimeValue visitLongLiteral(LongLiteral node, Context context) {
+            return new TimeValue(node.getValue());
+        }
+
+        @Override
+        protected TimeValue visitDoubleLiteral(DoubleLiteral node, Context context) {
+            return new TimeValue((long) node.getValue());
+        }
+
+        @Override
+        public TimeValue visitParameterExpression(ParameterExpression node, Context context) {
+            TimeValue timeValue;
+            Object param = context.params[node.index()];
+            if (param instanceof Number) {
+                timeValue = new TimeValue(((Number) param).longValue());
+            } else if (param instanceof String) {
+                try {
+                    //TODO: FIX ME! parseTimeValue requires setting
+                    timeValue = TimeValue.parseTimeValue((String) param, DEFAULT_VALUE, "");
+                } catch (ElasticsearchParseException e) {
+                    throw new IllegalArgumentException(
+                            String.format(Locale.ENGLISH, "Invalid time value '%s'", param));
+                }
+            } else {
+                throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH, "Invalid time value %s", param));
+            }
+            return timeValue;
+        }
+
+        @Override
+        protected TimeValue visitNode(Node node, Context context) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid time value %s", node));
+        }
     }
 }

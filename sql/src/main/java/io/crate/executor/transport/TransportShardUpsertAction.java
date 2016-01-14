@@ -272,16 +272,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         updateSourceByPaths(updatedSourceAsMap, pathsToUpdate);
 
-        final IndexRequest indexRequest = Requests.indexRequest(request.index())
+        return Requests.indexRequest(request.index())
                 .type(request.type())
                 .id(item.id())
                 .routing(routing)
                 .parent(parent)
                 .source(updatedSourceAsMap, updateSourceContentType)
                 .version(getResult.getVersion());
-        // TODO: FIX ME!
-        // indexRequest.operationThreaded(false);
-        return indexRequest;
     }
 
     private IndexRequest prepareInsert(DocTableInfo tableInfo, ShardUpsertRequest request, ShardUpsertRequest.Item item) throws IOException {
@@ -329,7 +326,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 .routing(request.routing())
                 .source(source)
                 .create(!request.overwriteDuplicates());
-        //        .operationThreaded(false);
         if (logger.isTraceEnabled()) {
             logger.trace("Inserting document with id {}, source: {}", item.id(), indexRequest.source().toUtf8());
         }
@@ -353,9 +349,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         Map<String, Object> sourceAsMap;
         if (isRawSourceInsert) {
             BytesRef source = (BytesRef) insertValues[0];
-            // TODO: FIX ME!
-            // sourceAsMap = XContentHelper.convertToMap(source.bytes, true).v2();
-            sourceAsMap = new LinkedHashMap<>();
+            sourceAsMap = XContentHelper.convertToMap(new BytesArray(source), true).v2();
         } else {
             sourceAsMap = new LinkedHashMap<>(insertColumns.length);
             for (int i = 0; i < insertColumns.length; i++) {

@@ -103,23 +103,21 @@ public class RestSQLAction extends BaseRestHandler {
     }
 
     private void executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request, final RestChannel channel, Client client) {
-        // TODO: FIX ME! Builder requires Action
-        /*final SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client);
+        final SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client, SQLAction.INSTANCE);
         requestBuilder.stmt(context.stmt());
         requestBuilder.args(context.args());
         requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
-        requestBuilder.addFlagsToRequestHeader(composeFlags(request));
-        requestBuilder.execute(RestSQLAction.<SQLResponse>newListener(request, channel));*/
+        addFlags(requestBuilder, request);
+        requestBuilder.execute(RestSQLAction.<SQLResponse>newListener(request, channel));
     }
 
     private void executeBulkRequest(SQLXContentSourceContext context, RestRequest request, RestChannel channel, Client client) {
-        // TODO: FIX ME! Builder requires Action
-        /*final SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client);
+        final SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client, SQLBulkAction.INSTANCE);
         requestBuilder.stmt(context.stmt());
         requestBuilder.bulkArgs(context.bulkArgs());
         requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
-        requestBuilder.addFlagsToRequestHeader(composeFlags(request));
-        requestBuilder.execute(RestSQLAction.<SQLBulkResponse>newListener(request, channel));*/
+        addFlags(requestBuilder, request);
+        requestBuilder.execute(RestSQLAction.<SQLBulkResponse>newListener(request, channel));
     }
 
     private static <TResponse extends SQLBaseResponse> ActionListener<TResponse> newListener(

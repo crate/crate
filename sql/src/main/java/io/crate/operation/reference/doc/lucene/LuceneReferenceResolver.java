@@ -66,10 +66,9 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         }
 
         String colName = refInfo.ident().columnIdent().fqn();
-        // TODO: FIX ME! smartMapper not available
-        /*if (this.mapperService != null && mapperService.smartNameFieldMapper(colName) == null) {
+        if (this.mapperService != null && mapperService.smartNameFieldType(colName) == null) {
             return NULL_COLLECTOR_EXPRESSION;
-        }*/
+        }
 
         switch (refInfo.type().id()) {
             case ByteType.ID:
