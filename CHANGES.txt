@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Comparing generated partition columns using a <= or >=
+   operator resulted in a NPE exception
+
  - Added Amazon S3 support for Snapshot and Restore
 
  - Made repository types and their settings pluggable,
