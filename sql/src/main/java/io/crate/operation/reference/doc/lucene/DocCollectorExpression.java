@@ -78,17 +78,16 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
             LuceneCollectorExpression<ReturnType> {
 
         protected SourceLookup sourceLookup;
+        private LeafReaderContext context;
 
         @Override
         public void setNextDocId(int doc) {
-            // TODO: FIX ME! setNextDocId not available
-            // sourceLookup.setNextDocId(doc);
+            sourceLookup.setSegmentAndDocument(context, doc);
         }
 
         @Override
         public void setNextReader(LeafReaderContext context) {
-            // TODO: FIX ME! setNextReader not available
-            // sourceLookup.setNextReader(context);
+            this.context = context;
         }
 
         @Override

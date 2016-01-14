@@ -53,10 +53,9 @@ import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateReque
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.*;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -73,12 +72,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AlterTableOperation {
 
     private final ClusterService clusterService;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final TransportActionProvider transportActionProvider;
 
     @Inject
     public AlterTableOperation(ClusterService clusterService,
+                               IndexNameExpressionResolver indexNameExpressionResolver,
                                TransportActionProvider transportActionProvider) {
         this.clusterService = clusterService;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.transportActionProvider = transportActionProvider;
     }
 
@@ -198,9 +200,13 @@ public class AlterTableOperation {
 
         Map<String, Object> mapping;
         try {
-            MetaData metaData = clusterService.state().metaData();
-            // TODO: FIX ME! concreteSingleIndex does not exist anymore
-            String index = ""; //metaData.concreteSingleIndex(indexOrAlias, IndicesOptions.lenientExpandOpen());
+            ClusterState state = clusterService.state();
+            MetaData metaData = state.metaData();
+            String[] indices = indexNameExpressionResolver.concreteIndices(state, IndicesOptions.lenientExpandOpen());
+            if (indices.length != 1) {
+                throw new IllegalArgumentException("unable to return a single index as the index and options provided got resolved to multiple indices");
+            }
+            String index = indices[0];
             mapping = metaData.index(index).mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
         } catch (IOException e) {
             return Futures.immediateFailedFuture(e);
@@ -225,11 +231,9 @@ public class AlterTableOperation {
         }
     }
 
-    private Map<String, Object> mergeMapping(IndexTemplateMetaData templateMetaData,
-                                             Map<String, Object> newMapping) {
+    private Map<String, Object> mergeMapping(IndexTemplateMetaData templateMetaData, Map<String, Object> newMapping) {
         Map<String, Object> mergedMapping = new HashMap<>();
-        // TODO: FIX ME! CompressedString
-        /*for (ObjectObjectCursor<String, CompressedString> cursor : templateMetaData.mappings()) {
+        for (ObjectObjectCursor<String, CompressedXContent> cursor : templateMetaData.mappings()) {
             try {
                 Map<String, Object> mapping = parseMapping(cursor.value.toString());
                 Object o = mapping.get(Constants.DEFAULT_MAPPING_TYPE);
@@ -239,7 +243,7 @@ public class AlterTableOperation {
             } catch (IOException e) {
                 // pass
             }
-        }*/
+        }
         XContentHelper.update(mergedMapping, newMapping, false);
         return mergedMapping;
     }
