@@ -80,7 +80,7 @@ public class RowSender implements Runnable, RowUpstream {
 
     @Override
     public void pause() {
-        topRowUpstream.pause();;
+        topRowUpstream.pause();
     }
 
     @Override

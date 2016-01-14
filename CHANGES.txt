@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition which could cause a join on more than 2 tables to
+   produce an incorrect result.
+
  - Fix: Comparing generated partition columns using a <= or >=
    operator resulted in a NPE exception
 
