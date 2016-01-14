@@ -171,7 +171,7 @@ public class NestedLoopOperationBenchmark {
         Iterable<Row> right = new RowIter(rightSize);
 
         RowCountRowReceiver receiver = new RowCountRowReceiver();
-        NestedLoopOperation operation = new NestedLoopOperation(receiver);
+        NestedLoopOperation operation = new NestedLoopOperation(0, receiver);
         ListenableRowReceiver leftSide = operation.leftRowReceiver();
         ListenableRowReceiver rightSide = operation.rightRowReceiver();
 

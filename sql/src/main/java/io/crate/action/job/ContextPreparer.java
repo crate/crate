@@ -463,7 +463,7 @@ public class ContextPreparer {
                 flatProjectorChain = FlatProjectorChain.withReceivers(Collections.singletonList(downstreamRowReceiver));
             }
 
-            NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(flatProjectorChain.firstProjector());
+            NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(phase.executionPhaseId(), flatProjectorChain.firstProjector());
             return new NestedLoopContext(
                     phase,
                     flatProjectorChain,
