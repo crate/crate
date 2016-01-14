@@ -295,13 +295,7 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitUpdateProjection(UpdateProjection projection, Context context) {
-        if (shardId == null) {
-            throw new UnsupportedOperationException("Update projection can only be executed on a shard");
-        }
-
-        ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor.Context();
-        symbolVisitor.process(projection.uidSymbol(), ctx);
-        assert ctx.collectExpressions().size() == 1;
+        checkShardLevel("Update projection can only be executed on a shard");
 
         return new UpdateProjector(
                 clusterService,
@@ -309,11 +303,39 @@ public class ProjectionToProjectorVisitor
                 shardId,
                 transportActionProvider,
                 bulkRetryCoordinatorPool,
-                ctx.collectExpressions().toArray(new CollectExpression[ctx.collectExpressions().size()])[0],
+                resolveUidCollectExpression(projection),
                 projection.assignmentsColumns(),
                 projection.assignments(),
                 projection.requiredVersion(),
                 context.jobId);
+    }
+
+    @Override
+    public Projector visitDeleteProjection(DeleteProjection projection, Context context) {
+        checkShardLevel("Delete projection can only be executed on a shard");
+
+        return new DeleteProjector(
+                clusterService,
+                settings,
+                shardId,
+                transportActionProvider,
+                bulkRetryCoordinatorPool,
+                resolveUidCollectExpression(projection),
+                context.jobId);
+    }
+
+    private void checkShardLevel(String errorMessage) {
+        if (shardId == null) {
+            throw new UnsupportedOperationException(errorMessage);
+        }
+    }
+
+    private CollectExpression<Row, ?> resolveUidCollectExpression(DMLProjection projection) {
+        ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor.Context();
+        symbolVisitor.process(projection.uidSymbol(), ctx);
+        assert ctx.collectExpressions().size() == 1;
+
+        return ctx.collectExpressions().iterator().next();
     }
 
     @Override

@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -201,25 +200,17 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
     /**
      * Same as above, running through the same code path for DELETE expressions.
      *
-     * Making this possible requires patching ES => postponed.
-     *
-     * @see {@link io.crate.executor.transport.task.elasticsearch.ESQueryBuilder}
      * @see {@link org.elasticsearch.index.query.RegexpQueryParser}
      * @see {@link org.elasticsearch.index.mapper.core.AbstractFieldMapper#regexpQuery}
      */
     @Test
     public void testRegexpMatchQueryOperatorWithPcreViaElasticSearchForDelete() throws Exception {
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Using ~ with PCRE regular expressions currently not supported for this type of query");
-
         this.setup.setUpLocations();
         ensureGreen();
         refresh();
 
         execute("delete from locations where name ~ '(?i).*centauri.*'");
-        assertThat(response.rowCount(), is(-1L));
-
+        assertThat(response.rowCount(), is(1L));
     }
 
     /**

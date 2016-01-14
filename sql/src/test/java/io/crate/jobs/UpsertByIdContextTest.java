@@ -2,7 +2,7 @@ package io.crate.jobs;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.test.integration.CrateUnitTest;
@@ -46,7 +46,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         // context is killed
         context.kill(null);
         // listener returns
-        ShardUpsertResponse response = mock(ShardUpsertResponse.class);
+        ShardResponse response = mock(ShardResponse.class);
         listener.getValue().onResponse(response);
 
         expectedException.expectCause(TestingHelpers.cause(CancellationException.class));

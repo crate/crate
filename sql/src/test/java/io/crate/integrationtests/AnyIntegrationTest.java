@@ -69,7 +69,7 @@ public class AnyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(TestingHelpers.getColumn(response.rows(), 0), Matchers.<Object>arrayContaining("foo", "bar", "updated"));
 
         execute("delete from t where 'a%' like ANY (sa)");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), is(2L));
         execute("refresh table t");
 
         execute("select * from t");

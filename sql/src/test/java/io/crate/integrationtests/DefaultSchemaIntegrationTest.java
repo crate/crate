@@ -64,7 +64,9 @@ public class DefaultSchemaIntegrationTest extends SQLTransportIntegrationTest {
 
         File foobarExport = tmpFolder.newFolder("foobar_export");
         execute(requestWithSchema("foo", "copy foobar to directory ?", foobarExport.getAbsolutePath()));
+        refresh();
         execute(requestWithSchema("foo", "delete from foobar"));
+        refresh();
 
         execute(requestWithSchema("foo", "select * from foobar"));
         assertThat(response.rowCount(), is(0L));

@@ -24,7 +24,7 @@ package io.crate.jobs;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.executor.transport.ShardResponse;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -60,15 +60,15 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
 
     @Override
     protected void innerStart() {
-        transportShardUpsertActionDelegate.execute(request, new ActionListener<ShardUpsertResponse>() {
+        transportShardUpsertActionDelegate.execute(request, new ActionListener<ShardResponse>() {
             @Override
-            public void onResponse(ShardUpsertResponse updateResponse) {
+            public void onResponse(ShardResponse updateResponse) {
                 if (future.closed()) {
                     return;
                 }
                 int location = updateResponse.itemIndices().get(0);
 
-                ShardUpsertResponse.Failure failure = updateResponse.failures().get(location);
+                ShardResponse.Failure failure = updateResponse.failures().get(location);
                 if (failure == null) {
                     futureResult.set(TaskResult.ONE_ROW);
                 } else {

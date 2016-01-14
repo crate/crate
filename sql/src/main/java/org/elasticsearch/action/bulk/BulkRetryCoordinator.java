@@ -21,8 +21,8 @@
 
 package org.elasticsearch.action.bulk;
 
-import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.executor.transport.ShardRequest;
+import io.crate.executor.transport.ShardResponse;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -61,10 +61,10 @@ public class BulkRetryCoordinator {
         return retryLock;
     }
 
-    public void retry(final ShardUpsertRequest request,
+    public void retry(final ShardRequest request,
                       final BulkRequestExecutor executor,
                       boolean repeatingRetry,
-                      ActionListener<ShardUpsertResponse> listener) {
+                      ActionListener<ShardResponse> listener) {
         trace("doRetry");
         final RetryBulkActionListener retryBulkActionListener = new RetryBulkActionListener(listener);
         if (repeatingRetry) {
@@ -118,16 +118,16 @@ public class BulkRetryCoordinator {
         retryExecutorService.shutdownNow();
     }
 
-    private class RetryBulkActionListener implements ActionListener<ShardUpsertResponse> {
+    private class RetryBulkActionListener implements ActionListener<ShardResponse> {
 
-        private final ActionListener<ShardUpsertResponse> listener;
+        private final ActionListener<ShardResponse> listener;
 
-        private RetryBulkActionListener(ActionListener<ShardUpsertResponse> listener) {
+        private RetryBulkActionListener(ActionListener<ShardResponse> listener) {
             this.listener = listener;
         }
 
         @Override
-        public void onResponse(ShardUpsertResponse response) {
+        public void onResponse(ShardResponse response) {
             currentDelay.set(0);
             retryLock.releaseWriteLock();
             listener.onResponse(response);

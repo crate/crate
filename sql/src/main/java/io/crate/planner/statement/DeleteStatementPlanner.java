@@ -22,18 +22,36 @@
 
 package io.crate.planner.statement;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.DeleteAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.where.DocKeys;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
+import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ddl.ESDeletePartitionNode;
-import io.crate.planner.node.dml.ESDeleteByQueryNode;
+import io.crate.planner.node.dml.Delete;
 import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dql.CollectAndMerge;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.projection.DeleteProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.types.DataTypes;
+import org.elasticsearch.cluster.routing.operation.plain.Preference;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
@@ -43,7 +61,6 @@ import java.util.List;
 public class DeleteStatementPlanner {
 
     public Plan planDelete(DeleteAnalyzedStatement analyzedStatement, Planner.Context context) {
-        IterablePlan plan = new IterablePlan(context.jobId());
         DocTableRelation tableRelation = analyzedStatement.analyzedRelation();
         List<WhereClause> whereClauses = new ArrayList<>(analyzedStatement.whereClauses().size());
         List<DocKeys.DocKey> docKeys = new ArrayList<>(analyzedStatement.whereClauses().size());
@@ -58,39 +75,74 @@ public class DeleteStatementPlanner {
             }
         }
         if (!docKeys.isEmpty()) {
-            plan.add(new ESDeleteNode(context.nextExecutionPhaseId(), tableRelation.tableInfo(), docKeys));
+            return new IterablePlan(
+                    context.jobId(),
+                    new ESDeleteNode(context.nextExecutionPhaseId(), tableRelation.tableInfo(), docKeys));
         } else if (!whereClauses.isEmpty()) {
-            createESDeleteByQueryNode(tableRelation.tableInfo(), whereClauses, plan, context);
+            return deleteByQuery(tableRelation.tableInfo(), whereClauses, context);
         }
 
-        if (plan.isEmpty()) {
-            return new NoopPlan(context.jobId());
-        }
-        return plan;
+        return new NoopPlan(context.jobId());
     }
 
-    private void createESDeleteByQueryNode(DocTableInfo tableInfo,
-                                           List<WhereClause> whereClauses,
-                                           IterablePlan plan,
-                                           Planner.Context context) {
+    private Plan deleteByQuery(DocTableInfo tableInfo,
+                               List<WhereClause> whereClauses,
+                               Planner.Context context) {
 
-        List<String[]> indicesList = new ArrayList<>(whereClauses.size());
+        List<Plan> planNodes = new ArrayList<>();
+        IterablePlan iterablePlan = new IterablePlan(context.jobId());
         for (WhereClause whereClause : whereClauses) {
             String[] indices = Planner.indices(tableInfo, whereClause);
             if (indices.length > 0) {
                 if (!whereClause.hasQuery() && tableInfo.isPartitioned()) {
-                    plan.add(new ESDeletePartitionNode(indices));
+                    iterablePlan.add(new ESDeletePartitionNode(indices));
                 } else {
-                    indicesList.add(indices);
+                    planNodes.add(collectWithDeleteProjection(tableInfo, whereClause, context));
                 }
             }
         }
-        // TODO: if we allow queries like 'partitionColumn=X or column=Y' which is currently
-        // forbidden through analysis, we must issue deleteByQuery request in addition
-        // to above deleteIndex request(s)
-        if (!indicesList.isEmpty()) {
-            plan.add(new ESDeleteByQueryNode(context.nextExecutionPhaseId(), indicesList, whereClauses));
+        if (!iterablePlan.isEmpty()) {
+            planNodes.add(iterablePlan);
         }
+
+        if (planNodes.isEmpty()) {
+            return new NoopPlan(context.jobId());
+        }
+
+        return new Delete(planNodes, context.jobId());
     }
 
+    private Plan collectWithDeleteProjection(TableInfo tableInfo,
+                                             WhereClause whereClause,
+                                             Planner.Context plannerContext) {
+        // for delete, we always need to collect the `_uid`
+        Reference uidReference = new Reference(
+                new ReferenceInfo(
+                        new ReferenceIdent(tableInfo.ident(), "_uid"),
+                        RowGranularity.DOC, DataTypes.STRING));
+
+        DeleteProjection deleteProjection = new DeleteProjection(
+                new InputColumn(0, DataTypes.STRING));
+
+        Routing routing = plannerContext.allocateRouting(tableInfo, whereClause, Preference.PRIMARY.type());
+        CollectPhase collectPhase = new CollectPhase(
+                plannerContext.jobId(),
+                plannerContext.nextExecutionPhaseId(),
+                "collect",
+                routing,
+                tableInfo.rowGranularity(),
+                ImmutableList.<Symbol>of(uidReference),
+                ImmutableList.<Projection>of(deleteProjection),
+                whereClause,
+                DistributionInfo.DEFAULT_BROADCAST
+        );
+        MergePhase mergeNode = MergePhase.localMerge(
+                plannerContext.jobId(),
+                plannerContext.nextExecutionPhaseId(),
+                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
+                collectPhase.executionNodes().size(),
+                collectPhase.outputTypes()
+        );
+        return new CollectAndMerge(collectPhase, mergeNode);
+    }
 }

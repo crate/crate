@@ -31,10 +31,9 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.Exceptions;
-import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.executor.transport.ShardRequest;
+import io.crate.executor.transport.ShardResponse;
 import io.crate.metadata.settings.CrateSettings;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
@@ -45,7 +44,6 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
@@ -64,7 +62,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * If the Bulk threadPool Queue is full retries are made and
  * the {@link #add} method will start to block.
  */
-public class BulkShardProcessor {
+public class BulkShardProcessor<Request extends ShardRequest> {
 
     public static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
     public static final AutoCreateIndex AUTO_CREATE_INDEX = new AutoCreateIndex(ImmutableSettings.builder()
@@ -77,7 +75,7 @@ public class BulkShardProcessor {
     private final UUID jobId;
     private final int createIndicesBulkSize;
 
-    private final Map<ShardId, ShardUpsertRequest> requestsByShard = new HashMap<>();
+    private final Map<ShardId, Request> requestsByShard = new HashMap<>();
     private final AtomicInteger globalCounter = new AtomicInteger(0);
     private final AtomicInteger requestItemCounter = new AtomicInteger(0);
     private final AtomicInteger pending = new AtomicInteger(0);
@@ -98,19 +96,18 @@ public class BulkShardProcessor {
 
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
-    private final BulkRequestBuilder requestBuilder;
-    private final BulkRequestExecutor requestExecutor;
+    private final BulkRequestBuilder<Request> requestBuilder;
+    private final BulkRequestExecutor<Request> requestExecutor;
 
     private static final ESLogger LOGGER = Loggers.getLogger(BulkShardProcessor.class);
 
     public BulkShardProcessor(ClusterService clusterService,
                               TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
-                              final Settings settings,
                               BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                               final boolean autoCreateIndices,
                               int bulkSize,
-                              BulkRequestBuilder requestBuilder,
-                              BulkRequestExecutor requestExecutor,
+                              BulkRequestBuilder<Request> requestBuilder,
+                              BulkRequestExecutor<Request> requestExecutor,
                               UUID jobId) {
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.clusterService = clusterService;
@@ -141,13 +138,8 @@ public class BulkShardProcessor {
         this.requestBuilder = requestBuilder;
     }
 
-    public boolean add(String indexName,
-                       String id,
-                       @Nullable Symbol[] assignments,
-                       @Nullable Object[] missingAssignments,
-                       @Nullable String routing,
-                       @Nullable Long version) {
-        assert id != null : "id must not be null";
+    public boolean add(String indexName, Request.Item item, @Nullable String routing) {
+        assert item != null : "request item must not be null";
         pending.incrementAndGet();
         Throwable throwable = failure.get();
         if (throwable != null) {
@@ -155,9 +147,9 @@ public class BulkShardProcessor {
             return false;
         }
 
-        ShardId shardId = shardId(indexName, id, routing);
+        ShardId shardId = shardId(indexName, item.id(), routing);
         if (shardId == null) {
-            addRequestForNewIndex(indexName, id, assignments, missingAssignments, routing, version);
+            addRequestForNewIndex(indexName, item, routing);
         } else {
             try {
                 // will only block if retries/writer are active
@@ -168,27 +160,14 @@ public class BulkShardProcessor {
                 setFailure(e);
                 return false;
             }
-            partitionRequestByShard(shardId, id, assignments, missingAssignments, routing, version);
+            partitionRequestByShard(shardId, item, routing);
         }
         executeIfNeeded();
         return true;
     }
 
-    public boolean add(String indexName,
-                       String id,
-                       Object[] missingAssignments,
-                       @Nullable String routing,
-                       @Nullable Long version) {
-        return add(indexName, id, null, missingAssignments, routing, version);
-    }
-
-    public boolean addForExistingShard(ShardId shardId,
-                                       String id,
-                                       @Nullable Symbol[] assignments,
-                                       @Nullable Object[] missingAssignments,
-                                       @Nullable String routing,
-                                       @Nullable Long version) {
-        assert id != null : "id must not be null";
+    public boolean addForExistingShard(ShardId shardId, Request.Item item, @Nullable String routing) {
+        assert item != null : "item must not be null";
         pending.incrementAndGet();
         Throwable throwable = failure.get();
         if (throwable != null) {
@@ -205,15 +184,13 @@ public class BulkShardProcessor {
             setFailure(e);
             return false;
         }
-        partitionRequestByShard(shardId, id, assignments, missingAssignments, routing, version);
+        partitionRequestByShard(shardId, item, routing);
         executeIfNeeded();
         return true;
     }
 
     @Nullable
-    private ShardId shardId(String indexName,
-                            String id,
-                            @Nullable String routing) {
+    private ShardId shardId(String indexName, String id, @Nullable String routing) {
         ShardId shardId = null;
         try {
             shardId = clusterService.operationRouting().indexShards(
@@ -231,44 +208,28 @@ public class BulkShardProcessor {
         return shardId;
     }
 
-    private void addRequestForNewIndex(String indexName,
-                                       String id,
-                                       @Nullable Symbol[] assignments,
-                                       @Nullable Object[] missingAssignments,
-                                       @Nullable String routing,
-                                       @Nullable Long version) {
+    private void addRequestForNewIndex(String indexName, Request.Item item, @Nullable String routing) {
         synchronized (requestsForNewIndices) {
             List<PendingRequest> pendingRequestList = requestsForNewIndices.get(indexName);
             if (pendingRequestList == null) {
                 pendingRequestList = new ArrayList<>();
                 requestsForNewIndices.put(indexName, pendingRequestList);
             }
-            pendingRequestList.add(new PendingRequest(indexName, id, assignments,
-                    missingAssignments, routing, version));
+            pendingRequestList.add(new PendingRequest(indexName, item, routing));
             pendingNewIndexRequests.incrementAndGet();
         }
     }
 
-    private void partitionRequestByShard(ShardId shardId,
-                                         String id,
-                                         @Nullable Symbol[] assignments,
-                                         @Nullable Object[] missingAssignments,
-                                         @Nullable String routing,
-                                         @Nullable Long version) {
+    private void partitionRequestByShard(ShardId shardId, Request.Item item, @Nullable String routing) {
         try {
             executeLock.acquire();
-            ShardUpsertRequest request = requestsByShard.get(shardId);
+            Request request = requestsByShard.get(shardId);
             if (request == null) {
                 request = requestBuilder.newRequest(shardId, routing);
                 requestsByShard.put(shardId, request);
             }
             requestItemCounter.getAndIncrement();
-            request.add(
-                    globalCounter.getAndIncrement(),
-                    id,
-                    assignments,
-                    missingAssignments,
-                    version);
+            request.add(globalCounter.getAndIncrement(), item);
         } catch (InterruptedException e) {
             Thread.interrupted();
         } finally {
@@ -279,16 +240,16 @@ public class BulkShardProcessor {
     private void executeRequests() {
         try {
             executeLock.acquire();
-            for (Iterator<Map.Entry<ShardId, ShardUpsertRequest>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
+            for (Iterator<Map.Entry<ShardId, Request>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
                 if (failure.get() != null) {
                     return;
                 }
-                Map.Entry<ShardId, ShardUpsertRequest> entry = it.next();
-                final ShardUpsertRequest request = entry.getValue();
+                Map.Entry<ShardId, Request> entry = it.next();
+                final Request request = entry.getValue();
                 final ShardId shardId = entry.getKey();
-                requestExecutor.execute(request, new ActionListener<ShardUpsertResponse>() {
+                requestExecutor.execute(request, new ActionListener<ShardResponse>() {
                     @Override
-                    public void onResponse(ShardUpsertResponse response) {
+                    public void onResponse(ShardResponse response) {
                         processResponse(response);
                     }
 
@@ -342,11 +303,8 @@ public class BulkShardProcessor {
                     trace("applying pending requests for created indices...");
                     for (final PendingRequest pendingRequest : pendings) {
                         // add pending requests for created indices
-                        ShardId shardId = shardId(pendingRequest.indexName, pendingRequest.id, pendingRequest.routing);
-                        partitionRequestByShard(shardId, pendingRequest.id,
-                                pendingRequest.assignments,
-                                pendingRequest.missingAssignments,
-                                pendingRequest.routing, pendingRequest.version);
+                        ShardId shardId = shardId(pendingRequest.indexName, pendingRequest.item.id(), pendingRequest.routing);
+                        partitionRequestByShard(shardId, pendingRequest.item, pendingRequest.routing);
                     }
                     trace("added %d pending requests, lets see if we can execute them", pendings.size());
                     executeRequestsIfNeeded();
@@ -432,11 +390,11 @@ public class BulkShardProcessor {
         }
     }
 
-    private void processResponse(ShardUpsertResponse response) {
+    private void processResponse(ShardResponse response) {
         trace("process response");
         for (int i = 0; i < response.itemIndices().size(); i++) {
             int location = response.itemIndices().get(i);
-            ShardUpsertResponse.Failure failure = response.failures().get(i);
+            ShardResponse.Failure failure = response.failures().get(i);
             boolean succeeded = failure == null;
             if (LOGGER.isWarnEnabled() && !succeeded) {
                 LOGGER.warn("ShardUpsert Item {} failed: {}", location, failure);
@@ -449,7 +407,7 @@ public class BulkShardProcessor {
         trace("response executed.");
     }
 
-    private void processFailure(Throwable e, final ShardId shardId, final ShardUpsertRequest request, com.google.common.base.Optional<BulkRetryCoordinator> retryCoordinator) {
+    private void processFailure(Throwable e, final ShardId shardId, final Request request, com.google.common.base.Optional<BulkRetryCoordinator> retryCoordinator) {
         trace("execute failure");
         e = Exceptions.unwrap(e);
         final BulkRetryCoordinator coordinator;
@@ -465,9 +423,9 @@ public class BulkShardProcessor {
         }
         if (e instanceof EsRejectedExecutionException) {
             LOGGER.trace("{}, retrying", e.getMessage());
-            coordinator.retry(request, requestExecutor, retryCoordinator.isPresent(), new ActionListener<ShardUpsertResponse>() {
+            coordinator.retry(request, requestExecutor, retryCoordinator.isPresent(), new ActionListener<ShardResponse>() {
                 @Override
-                public void onResponse(ShardUpsertResponse response) {
+                public void onResponse(ShardResponse response) {
                     processResponse(response);
                 }
 
@@ -500,33 +458,19 @@ public class BulkShardProcessor {
 
     static class PendingRequest {
         private final String indexName;
-        private final String id;
-        @Nullable
-        private final Symbol[] assignments;
-        @Nullable
-        private final Object[] missingAssignments;
+        private final ShardRequest.Item item;
         @Nullable
         private final String routing;
-        @Nullable
-        private final Long version;
 
 
-        PendingRequest(String indexName,
-                       String id,
-                       @Nullable Symbol[] assignments,
-                       @Nullable Object[] missingAssignments,
-                       @Nullable String routing,
-                       @Nullable Long version) {
+        PendingRequest(String indexName, ShardRequest.Item item, @Nullable String routing) {
             this.indexName = indexName;
-            this.id = id;
-            this.assignments = assignments;
-            this.missingAssignments = missingAssignments;
+            this.item = item;
             this.routing = routing;
-            this.version = version;
         }
     }
 
-    public interface BulkRequestBuilder {
-        ShardUpsertRequest newRequest(ShardId shardId, String routing);
+    public interface BulkRequestBuilder<Request extends ShardRequest> {
+        Request newRequest(ShardId shardId, String routing);
     }
 }

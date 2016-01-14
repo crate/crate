@@ -21,7 +21,7 @@
 
 package io.crate.jobs;
 
-import io.crate.analyze.symbol.Symbol;
+import io.crate.executor.transport.ShardRequest;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 
 import javax.annotation.Nonnull;
@@ -29,9 +29,9 @@ import javax.annotation.Nullable;
 
 public class BulkShardProcessorContext extends AbstractExecutionSubContext {
 
-    private final BulkShardProcessor bulkShardProcessor;
+    private final BulkShardProcessor<? extends ShardRequest> bulkShardProcessor;
 
-    public BulkShardProcessorContext(int id, BulkShardProcessor bulkShardProcessor) {
+    public BulkShardProcessorContext(int id, BulkShardProcessor<? extends ShardRequest> bulkShardProcessor) {
         super(id);
         this.bulkShardProcessor = bulkShardProcessor;
     }
@@ -54,12 +54,9 @@ public class BulkShardProcessorContext extends AbstractExecutionSubContext {
     }
 
     public boolean add(String indexName,
-                       String id,
-                       @Nullable Symbol[] assignments,
-                       @Nullable Object[] missingAssignments,
-                       @Nullable String routing,
-                       @Nullable Long version) {
-        return bulkShardProcessor.add(indexName, id, assignments, missingAssignments, routing, version);
+                       ShardRequest.Item item,
+                       @Nullable String routing) {
+        return bulkShardProcessor.add(indexName, item, routing);
     }
 
     @Override

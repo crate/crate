@@ -63,7 +63,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
     @Before
     public void initTestData() throws Exception {
-        synchronized (SysShardsTest.class) {
+        synchronized (TransportSQLActionClassLifecycleTest.class) {
             if (dataInitialized) {
                 return;
             }
@@ -612,9 +612,13 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     public void testEmptyJobsInLog() throws Exception {
         executor.exec("set global transient stats.enabled = true");
         executor.exec("insert into characters (name) values ('sysjobstest')");
-        executor.exec("delete from characters where name = 'sysjobstest'");
+        executor.exec("refresh table characters");
+        SQLResponse response = executor.exec("delete from characters where name = 'sysjobstest'");
+        // make sure everything is deleted (nothing changed in whole class lifecycle cluster state)
+        assertThat(response.rowCount(), is(1L));
+        executor.exec("refresh table characters");
 
-        SQLResponse response = executor.exec(
+        response = executor.exec(
                 "select * from sys.jobs_log where stmt like 'insert into%' or stmt like 'delete%'");
         assertThat(response.rowCount(), is(2L));
     }

@@ -23,6 +23,7 @@ package io.crate.planner;
 
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.CopyTo;
+import io.crate.planner.node.dml.Delete;
 import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.CollectAndMerge;
@@ -53,6 +54,10 @@ public class PlanVisitor<C, R> {
     }
 
     public R visitUpsert(Upsert node, C context) {
+        return visitPlan(node, context);
+    }
+
+    public R visitDelete(Delete node, C context) {
         return visitPlan(node, context);
     }
 

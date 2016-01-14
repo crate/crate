@@ -256,15 +256,6 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public ImmutableList<Task> visitESDeleteByQueryNode(ESDeleteByQueryNode node, UUID jobId) {
-            return singleTask(new ESDeleteByQueryTask(
-                    jobId,
-                    node,
-                    transportActionProvider.transportDeleteByQueryAction(),
-                    jobContextService));
-        }
-
-        @Override
         public ImmutableList<Task> visitESDeleteNode(ESDeleteNode node, UUID jobId) {
             return singleTask(new ESDeleteTask(
                     jobId,

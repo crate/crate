@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ShardUpsertResponse extends ActionResponse {
+public class ShardResponse extends ActionResponse {
 
     /**
      * Represents a failure.
@@ -45,7 +45,7 @@ public class ShardUpsertResponse extends ActionResponse {
 
         Failure() {
         }
-         
+
         public Failure(String id, String message, boolean versionConflict) {
              this.id = id;
              this.message = message;
@@ -55,7 +55,7 @@ public class ShardUpsertResponse extends ActionResponse {
         public String id() {
             return id;
         }
-         
+
         public String message() {
             return this.message;
         }
@@ -69,14 +69,14 @@ public class ShardUpsertResponse extends ActionResponse {
             failure.readFrom(in);
             return failure;
         }
-         
+
         @Override
         public void readFrom(StreamInput in) throws IOException {
             id = in.readString();
             message = in.readString();
             versionConflict = in.readBoolean();
         }
-         
+
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(id);
@@ -97,7 +97,7 @@ public class ShardUpsertResponse extends ActionResponse {
     private IntArrayList locations = new IntArrayList();
     private List<Failure> failures = new ArrayList<>();
 
-    public ShardUpsertResponse() {
+    public ShardResponse() {
     }
 
     public void add(int location) {

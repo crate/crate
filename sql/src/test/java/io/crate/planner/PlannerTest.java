@@ -437,11 +437,13 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testBulkDeletePartitionedTable() throws Exception {
-        IterablePlan plan = (IterablePlan) plan("delete from parted where date = ?", new Object[][]{
+        Delete plan = (Delete) plan("delete from parted where date = ?", new Object[][]{
                 new Object[]{"0"},
                 new Object[]{"123"},
         });
-        Iterator<PlanNode> iterator = plan.iterator();
+        assertThat(plan.nodes().size(), is(1));
+        IterablePlan iterablePlan =  (IterablePlan) plan.nodes().get(0);
+        Iterator<PlanNode> iterator = iterablePlan.iterator();
         ESDeletePartitionNode node1 = (ESDeletePartitionNode) iterator.next();
         assertThat(node1.indices(), is(new String[]{".partitioned.parted.04130"}));
         ESDeletePartitionNode node2 = (ESDeletePartitionNode) iterator.next();
@@ -451,9 +453,12 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testMultiDeletePlan() throws Exception {
-        IterablePlan plan = plan("delete from users where id in (1, 2)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        assertThat(iterator.next(), instanceOf(ESDeleteByQueryNode.class));
+        Delete plan = plan("delete from users where id in (1, 2)");
+        assertThat(plan.nodes().size(), is(1));
+
+        CollectAndMerge collectAndMerge = (CollectAndMerge) plan.nodes().get(0);
+        assertThat(collectAndMerge.collectPhase().projections().size(), is(1));
+        assertThat(collectAndMerge.collectPhase().projections().get(0), instanceOf(DeleteProjection.class));
     }
 
     @Test

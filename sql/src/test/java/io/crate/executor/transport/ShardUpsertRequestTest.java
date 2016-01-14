@@ -63,14 +63,16 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 jobId);
         request.validateGeneratedColumns(false);
 
-        request.add(123, "99",
+        request.add(123, new ShardUpsertRequest.Item(
+                "99",
                 null,
                 new Object[]{99, new BytesRef("Marvin")},
-                null);
-        request.add(5, "42",
+                null));
+        request.add(5, new ShardUpsertRequest.Item(
+                "42",
                 new Symbol[]{Literal.newLiteral(42), Literal.newLiteral("Deep Thought") },
                 null,
-                2L);
+                2L));
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);

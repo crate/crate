@@ -409,8 +409,10 @@ An example import from a file URI::
 
 .. Hidden: delete imported data
 
+    cr> refresh table quotes;
+    REFRESH OK (... sec)
     cr> delete from quotes;
-    DELETE OK, -1 rows affected (... sec)
+    DELETE OK, 3 rows affected (... sec)
 
 If all files inside a directory should be imported a ``*`` wildcard has to be
 used::
@@ -420,8 +422,12 @@ used::
 
 .. Hidden: delete imported data
 
+    cr> refresh table quotes;
+    REFRESH OK (... sec)
     cr> delete from quotes;
-    DELETE OK, -1 rows affected (... sec)
+    DELETE OK, 3 rows affected (... sec)
+    cr> refresh table quotes;
+    REFRESH OK (... sec)
 
 This wildcard can also be used to only match certain files::
 

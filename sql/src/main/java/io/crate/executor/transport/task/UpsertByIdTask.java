@@ -58,7 +58,7 @@ import java.util.concurrent.CancellationException;
 
 public class UpsertByIdTask extends JobTask {
 
-    private final BulkRequestExecutor transportShardUpsertActionDelegate;
+    private final BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportBulkCreateIndicesAction transportBulkCreateIndicesAction;
     private final ClusterService clusterService;
@@ -75,7 +75,7 @@ public class UpsertByIdTask extends JobTask {
     public UpsertByIdTask(UUID jobId,
                           ClusterService clusterService,
                           Settings settings,
-                          BulkRequestExecutor transportShardUpsertActionDelegate,
+                          BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate,
                           TransportCreateIndexAction transportCreateIndexAction,
                           TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
                           BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
@@ -120,13 +120,9 @@ public class UpsertByIdTask extends JobTask {
             } else if (bulkShardProcessorContext != null) {
                 assert jobExecutionContext != null;
                 for (UpsertByIdNode.Item item : node.items()) {
-                    bulkShardProcessorContext.add(
-                            item.index(),
-                            item.id(),
-                            item.updateAssignments(),
-                            item.insertValues(),
-                            item.routing(),
-                            item.version());
+                    ShardUpsertRequest.Item requestItem = new ShardUpsertRequest.Item(
+                            item.id(), item.updateAssignments(), item.insertValues(), item.version());
+                    bulkShardProcessorContext.add(item.index(), requestItem, item.routing());
                 }
                 jobExecutionContext.start();
             }
@@ -137,7 +133,7 @@ public class UpsertByIdTask extends JobTask {
         }
     }
 
-    private void executeUpsertRequest(final UpsertByIdNode.Item item, final SettableFuture futureResult) {
+    private void executeUpsertRequest(final UpsertByIdNode.Item item, final SettableFuture<TaskResult> futureResult) {
         ShardId shardId = clusterService.operationRouting().indexShards(
                 clusterService.state(),
                 item.index(),
@@ -149,7 +145,9 @@ public class UpsertByIdTask extends JobTask {
         ShardUpsertRequest upsertRequest = new ShardUpsertRequest(
                 shardId, node.updateColumns(), node.insertColumns(), item.routing(), jobId());
         upsertRequest.continueOnError(false);
-        upsertRequest.add(0, item.id(), item.updateAssignments(), item.insertValues(), item.version());
+        ShardUpsertRequest.Item requestItem = new ShardUpsertRequest.Item(
+                item.id(), item.updateAssignments(), item.insertValues(), item.version());
+        upsertRequest.add(0, requestItem);
 
         UpsertByIdContext upsertByIdContext = new UpsertByIdContext(
                 node.executionPhaseId(), upsertRequest, item, futureResult, transportShardUpsertActionDelegate);
@@ -180,10 +178,9 @@ public class UpsertByIdTask extends JobTask {
                 jobId(),
                 false
         );
-        BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
+        BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 transportBulkCreateIndicesAction,
-                settings,
                 bulkRetryCoordinatorPool,
                 node.isPartitionedTable(),
                 node.items().size(),
@@ -265,7 +262,7 @@ public class UpsertByIdTask extends JobTask {
     }
 
     private void createIndexAndExecuteUpsertRequest(final UpsertByIdNode.Item item,
-                                                    final SettableFuture futureResult) {
+                                                    final SettableFuture<TaskResult> futureResult) {
         transportCreateIndexAction.execute(
                 new CreateIndexRequest(item.index()).cause("upsert single item"),
                 new ActionListener<CreateIndexResponse>() {

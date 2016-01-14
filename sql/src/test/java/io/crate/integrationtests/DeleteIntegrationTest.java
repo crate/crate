@@ -38,8 +38,9 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
         client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
         refresh();
         execute("delete from test");
-        assertEquals(-1, response.rowCount());
+        assertEquals(1, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
+        refresh();
         execute("select \"_id\" from test");
         assertEquals(0, response.rowCount());
     }
@@ -109,8 +110,7 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("delete from quotes where id=1");
-        // no rowCount available for deleteByQuery requests
-        assertEquals(-1L, response.rowCount());
+        assertEquals(2L, response.rowCount());
         refresh();
 
         execute("select quote from quotes where id=1");
@@ -124,7 +124,8 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into ip_table (fqdn, addr) values ('localhost', '127.0.0.1'), ('crate.io', '23.235.33.143')");
         execute("refresh table ip_table");
         execute("delete from ip_table where addr = '127.0.0.1'");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), is(1L));
+        refresh();
         execute("select addr from ip_table");
         assertThat(response.rowCount(), is(1L));
         assertThat((String) response.rows()[0][0], is("23.235.33.143"));

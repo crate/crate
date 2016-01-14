@@ -25,18 +25,12 @@ package io.crate.executor.transport;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.base.Throwables;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
-import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractor;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
 import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.jobs.JobContextService;
-import io.crate.jobs.KillAllListener;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.util.BytesRef;
@@ -47,7 +41,6 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportActions;
-import org.elasticsearch.action.support.replication.TransportShardReplicationOperationAction;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -89,9 +82,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
-public class TransportShardUpsertAction
-        extends TransportShardReplicationOperationAction<ShardUpsertRequest, ShardUpsertRequest, ShardUpsertResponse>
-        implements KillAllListener {
+public class TransportShardUpsertAction extends TransportShardAction<ShardUpsertRequest> {
 
     private final static String ACTION_NAME = "indices:crate/data/write/upsert_symbol_based";
     private final static SymbolToFieldExtractor<GetResult> SYMBOL_TO_FIELD_EXTRACTOR =
@@ -101,7 +92,6 @@ public class TransportShardUpsertAction
     private final IndicesService indicesService;
     private final Functions functions;
     private final Schemas schemas;
-    private final Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
 
     @Inject
     public TransportShardUpsertAction(Settings settings,
@@ -124,11 +114,6 @@ public class TransportShardUpsertAction
     }
 
     @Override
-    protected String executor() {
-        return ThreadPool.Names.BULK;
-    }
-
-    @Override
     protected ShardUpsertRequest newRequestInstance() {
         return new ShardUpsertRequest();
     }
@@ -136,16 +121,6 @@ public class TransportShardUpsertAction
     @Override
     protected ShardUpsertRequest newReplicaRequestInstance() {
         return new ShardUpsertRequest();
-    }
-
-    @Override
-    protected ShardUpsertResponse newResponseInstance() {
-        return new ShardUpsertResponse();
-    }
-
-    @Override
-    protected boolean resolveIndex() {
-        return true;
     }
 
     @Override
@@ -165,43 +140,10 @@ public class TransportShardUpsertAction
     }
 
     @Override
-    protected Tuple<ShardUpsertResponse, ShardUpsertRequest> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) {
-        KillableCallable<Tuple> callable = new KillableCallable<Tuple>() {
-
-            private AtomicBoolean killed = new AtomicBoolean(false);
-
-            @Override
-            public void kill() {
-                killed.getAndSet(true);
-            }
-
-            @Override
-            public Tuple call() throws Exception {
-                ShardUpsertResponse shardUpsertResponse = processRequestItems(shardRequest.shardId, shardRequest.request, killed);
-                return new Tuple<>(shardUpsertResponse, shardRequest.request);
-            }
-        };
-        activeOperations.put(shardRequest.request.jobId(), callable);
-        Tuple<ShardUpsertResponse, ShardUpsertRequest> response;
-        try {
-            //noinspection unchecked
-            response = callable.call();
-        } catch (Throwable e) {
-            throw Throwables.propagate(e);
-        } finally {
-            activeOperations.remove(shardRequest.request.jobId(), callable);
-        }
-        return response;
-    }
-
-    @Override
-    protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
-    }
-
-    protected ShardUpsertResponse processRequestItems(ShardId shardId,
-                                                      ShardUpsertRequest request,
-                                                      AtomicBoolean killed) {
-        ShardUpsertResponse shardUpsertResponse = new ShardUpsertResponse();
+    protected ShardResponse processRequestItems(ShardId shardId,
+                                                ShardUpsertRequest request,
+                                                AtomicBoolean killed) {
+        ShardResponse shardResponse = new ShardResponse();
         DocTableInfo tableInfo = schemas.getWritableTable(TableIdent.fromIndexName(request.index()));
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
@@ -217,15 +159,15 @@ public class TransportShardUpsertAction
                         shardId,
                         item.insertValues() != null, // try insert first
                         0);
-                shardUpsertResponse.add(location);
+                shardResponse.add(location);
             } catch (Throwable t) {
                 if (!TransportActions.isShardNotAvailableException(t) && !request.continueOnError()) {
                     throw t;
                 } else {
                     logger.debug("{} failed to execute upsert for [{}]/[{}]",
                             t, request.shardId(), request.type(), item.id());
-                    shardUpsertResponse.add(location,
-                            new ShardUpsertResponse.Failure(
+                    shardResponse.add(location,
+                            new ShardResponse.Failure(
                                     item.id(),
                                     ExceptionsHelper.detailedMessage(t),
                                     (t instanceof VersionConflictEngineException)));
@@ -233,7 +175,14 @@ public class TransportShardUpsertAction
             }
         }
 
-        return shardUpsertResponse;
+        return shardResponse;
+    }
+
+    /**
+     * Should never be called because replicas should be ignored, see {@link #ignoreReplicas}
+     */
+    @Override
+    protected void processRequestItemsOnReplica(ShardId shardId, ShardUpsertRequest request, AtomicBoolean killed) {
     }
 
     protected IndexResponse indexItem(DocTableInfo tableInfo,
@@ -258,10 +207,10 @@ public class TransportShardUpsertAction
             return indexAction.execute(indexRequest).actionGet();
         } catch (Throwable t) {
             if (t instanceof VersionConflictEngineException
-                    && retryCount < item.retryOnConflict()) {
+                && retryCount < item.retryOnConflict()) {
                 return indexItem(tableInfo, request, item, shardId, false, retryCount + 1);
             } else if (tryInsertFirst && item.updateAssignments() != null
-                    && t instanceof DocumentAlreadyExistsException) {
+                       && t instanceof DocumentAlreadyExistsException) {
                 // insert failed, document already exists, try update
                 return indexItem(tableInfo, request, item, shardId, false, 0);
             } else {
@@ -270,11 +219,9 @@ public class TransportShardUpsertAction
         }
     }
 
-
-
     /**
      * Prepares an update request by converting it into an index request.
-     *
+     * <p/>
      * TODO: detect a NOOP and return an update response if true
      */
     @SuppressWarnings("unchecked")
@@ -370,7 +317,8 @@ public class TransportShardUpsertAction
         }
 
         int numMissingGeneratedColumns = generatedColumnSize - generatedReferencesWithValue.size();
-        if (numMissingGeneratedColumns > 0 || (generatedReferencesWithValue.size() > 0 && request.validateGeneratedColumns())) {
+        if (numMissingGeneratedColumns > 0 ||
+            (generatedReferencesWithValue.size() > 0 && request.validateGeneratedColumns())) {
             // we need to evaluate some generated column expressions
             Map<String, Object> sourceMap = processGeneratedColumnsOnInsert(tableInfo, request.insertColumns(), item.insertValues(),
                     request.isRawSourceInsert(), request.validateGeneratedColumns());
@@ -437,7 +385,8 @@ public class TransportShardUpsertAction
             if (!tableInfo.partitionedByColumns().contains(referenceInfo)) {
                 Object givenValue = updatedGeneratedColumns.get(referenceInfo.ident().columnIdent().fqn());
                 if ((givenValue != null && validateExpressionValue)
-                    || generatedExpressionEvaluationNeeded(referenceInfo.referencedReferenceInfos(), updatedColumns.keySet())) {
+                    ||
+                    generatedExpressionEvaluationNeeded(referenceInfo.referencedReferenceInfos(), updatedColumns.keySet())) {
                     // at least one referenced column was updated, need to evaluate expression and update column
                     FieldExtractor<GetResult> extractor = SYMBOL_TO_FIELD_EXTRACTOR.convert(referenceInfo.generatedExpression(), ctx);
                     Object value = extractor.extract(getResult);
@@ -474,7 +423,7 @@ public class TransportShardUpsertAction
      * it will not be merged but overwritten. The keys of the changes map representing a path of
      * the source map tree.
      * If the path doesn't exists, a new tree will be inserted.
-     *
+     * <p/>
      * TODO: detect NOOP
      */
     @SuppressWarnings("unchecked")
@@ -499,41 +448,21 @@ public class TransportShardUpsertAction
         }
     }
 
-    @Override
-    public void killAllJobs(long timestamp) {
-        synchronized (activeOperations) {
-            for(KillableCallable callable : activeOperations.values()) {
-                callable.kill();
-            }
-            activeOperations.clear();
-        }
-    }
-
-    @Override
-    public void killJob(UUID jobId) {
-        synchronized (activeOperations) {
-            Collection<KillableCallable> operations = activeOperations.get(jobId);
-            for(KillableCallable callable : operations) {
-                callable.kill();
-            }
-            activeOperations.removeAll(jobId);
-        }
-    }
-
     static class SymbolToFieldExtractorContext extends SymbolToFieldExtractor.Context {
 
         private final Object[] insertValues;
         private final Map<String, Object> updatedColumnValues;
 
         private SymbolToFieldExtractorContext(Functions functions,
-                                             int size,
-                                             @Nullable Object[] insertValues,
-                                             @Nullable Map<String, Object> updatedColumnValues) {
+                                              int size,
+                                              @Nullable Object[] insertValues,
+                                              @Nullable Map<String, Object> updatedColumnValues) {
             super(functions, size);
             this.insertValues = insertValues;
             this.updatedColumnValues = updatedColumnValues;
 
         }
+
         public SymbolToFieldExtractorContext(Functions functions, Object[] insertValues) {
             this(functions, insertValues != null ? insertValues.length : 0, insertValues, null);
         }

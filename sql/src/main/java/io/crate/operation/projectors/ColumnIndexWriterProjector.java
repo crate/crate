@@ -56,7 +56,7 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
     private final Supplier<String> indexNameResolver;
     private final Symbol[] assignments;
     private final InputRow insertValues;
-    private BulkShardProcessor bulkShardProcessor;
+    private BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor;
     private final AtomicBoolean failed = new AtomicBoolean(false);
 
 
@@ -99,10 +99,9 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
                 jobId);
 
         insertValues = new InputRow(insertInputs);
-        bulkShardProcessor = new BulkShardProcessor(
+        bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 transportActionProvider.transportBulkCreateIndicesAction(),
-                settings,
                 bulkRetryCoordinatorPool,
                 autoCreateIndices,
                 MoreObjects.firstNonNull(bulkActions, 100),
@@ -124,14 +123,9 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
             collectExpression.setNextRow(row);
         }
         rowShardResolver.setNextRow(row);
-        return bulkShardProcessor.add(
-                indexNameResolver.get(),
-                rowShardResolver.id(),
-                assignments,
-                insertValues.materialize(),
-                rowShardResolver.routing(),
-                null
-        );
+        ShardUpsertRequest.Item item = new ShardUpsertRequest.Item(
+                rowShardResolver.id(), assignments, insertValues.materialize(), null);
+        return bulkShardProcessor.add(indexNameResolver.get(), item, rowShardResolver.routing());
     }
 
     @Override

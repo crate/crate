@@ -228,7 +228,10 @@ COPY FROM Command
   REFRESH OK (... sec)
 
   cr> delete from user;
-  DELETE OK, -1 rows affected (... sec)
+  DELETE OK, 150 rows affected (... sec)
+
+  cr> REFRESH TABLE user;
+  REFRESH OK (... sec)
 
 .. note::
 
@@ -257,7 +260,10 @@ For example::
   REFRESH OK (... sec)
 
   cr> delete from user;
-  DELETE OK, -1 rows affected (... sec)
+  DELETE OK, 150 rows affected (... sec)
+
+  cr> REFRESH TABLE user;
+  REFRESH OK (... sec)
 
 In our example it will not make a difference, but if you have a more complex
 data set with a lot of columns and large values, it probably makes sense to

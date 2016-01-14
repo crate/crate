@@ -139,9 +139,9 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         ShardId shardId = new ShardId("characters", 0);
         final ShardUpsertRequest request = new ShardUpsertRequest(
                 shardId, null, new Reference[]{idRef}, null, UUID.randomUUID());
-        request.add(1, "1", null, new Object[]{1}, null);
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
-        ShardUpsertResponse response = transportShardUpsertAction.processRequestItems(
+        ShardResponse response = transportShardUpsertAction.processRequestItems(
                 shardId, request, new AtomicBoolean(false));
 
         assertThat(response.failures().size(), is(1));

@@ -717,7 +717,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         refresh();
 
         execute("delete from quotes where timestamp = 1395874800000 and id = 1");
-        assertEquals(-1, response.rowCount());
+        assertEquals(1, response.rowCount());
         refresh();
 
         execute("select id, quote from quotes where timestamp = 1395874800000");
@@ -1242,7 +1242,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat((Long) response.rows()[0][0], is(1L));
 
         execute("delete from quotes where created['user_id'] = 'Arthur' and id = 1 and created['date'] = 1395874800000");
-        assertEquals(-1L, response.rowCount());
+        assertEquals(1L, response.rowCount());
         refresh();
 
         execute("select * from quotes");

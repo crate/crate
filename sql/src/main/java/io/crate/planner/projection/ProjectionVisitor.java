@@ -66,6 +66,10 @@ public class ProjectionVisitor<C, R> {
         return visitProjection(projection, context);
     }
 
+    public R visitDeleteProjection(DeleteProjection projection, C context) {
+        return visitProjection(projection, context);
+    }
+
     public R visitFetchProjection(FetchProjection projection, C context) {
         return visitProjection(projection, context);
     }

@@ -301,10 +301,6 @@ Lucene documentation for more details.
     the regular expression engine of the Java standard library,
     features of `Lucene Regular Expressions`_ do not work there.
 
-.. warning::
-
-    `PCRE`_ features currently do not work for ``SELECT COUNT(*)`` and ``DELETE`` queries.
-
 Examples::
 
     cr> select name from locations where name ~ '([A-Z][a-z0-9]+)+'

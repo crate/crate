@@ -5,6 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+ - BREAKING CHANGE: Tables are not refreshed automatically anymore
+   before and after a `DELETE-BY-QUERY` operation is applied.
+
+ - Removed the limitation that the WHERE clause couldn't contain
+   certain expressions in `DELETE` statements
+
  - BREAKING CHANGE: column names may not contain the `.` character anymore
 
  - Exposed setting the default schema via HTTP header.

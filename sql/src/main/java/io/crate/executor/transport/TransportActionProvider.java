@@ -41,9 +41,9 @@ import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteInd
 import org.elasticsearch.action.admin.indices.template.get.TransportGetIndexTemplatesAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
+import org.elasticsearch.action.bulk.TransportShardDeleteActionDelegate;
 import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.action.delete.TransportDeleteAction;
-import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.get.TransportMultiGetAction;
 import org.elasticsearch.common.inject.Inject;
@@ -59,7 +59,7 @@ public class TransportActionProvider {
     private final Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateActionProvider;
     private final Provider<TransportDeleteIndexTemplateAction> transportDeleteIndexTemplateActionProvider;
     private final Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider;
-    private final Provider<TransportDeleteByQueryAction> transportDeleteByQueryActionProvider;
+    private final Provider<TransportShardDeleteAction> transportShardDeleteActionProvider;
     private final Provider<TransportDeleteAction> transportDeleteActionProvider;
 
     private final Provider<TransportGetAction> transportGetActionProvider;
@@ -91,7 +91,7 @@ public class TransportActionProvider {
                                    Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateActionProvider,
                                    Provider<TransportDeleteIndexTemplateAction> transportDeleteIndexTemplateActionProvider,
                                    Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider,
-                                   Provider<TransportDeleteByQueryAction> transportDeleteByQueryActionProvider,
+                                   Provider<TransportShardDeleteAction> transportShardDeleteActionProvider,
                                    Provider<TransportDeleteAction> transportDeleteActionProvider,
                                    Provider<TransportGetAction> transportGetActionProvider,
                                    Provider<TransportMultiGetAction> transportMultiGetActionProvider,
@@ -115,7 +115,7 @@ public class TransportActionProvider {
         this.transportGetIndexTemplatesActionProvider = transportGetIndexTemplatesActionProvider;
         this.transportDeleteIndexTemplateActionProvider = transportDeleteIndexTemplateActionProvider;
         this.transportClusterUpdateSettingsActionProvider = transportClusterUpdateSettingsActionProvider;
-        this.transportDeleteByQueryActionProvider = transportDeleteByQueryActionProvider;
+        this.transportShardDeleteActionProvider = transportShardDeleteActionProvider;
         this.transportDeleteActionProvider = transportDeleteActionProvider;
         this.transportGetActionProvider = transportGetActionProvider;
         this.transportMultiGetActionProvider = transportMultiGetActionProvider;
@@ -164,10 +164,6 @@ public class TransportActionProvider {
         return transportClusterUpdateSettingsActionProvider.get();
     }
 
-    public TransportDeleteByQueryAction transportDeleteByQueryAction() {
-        return transportDeleteByQueryActionProvider.get();
-    }
-
     public TransportDeleteAction transportDeleteAction() {
         return transportDeleteActionProvider.get();
     }
@@ -180,8 +176,12 @@ public class TransportActionProvider {
         return transportMultiGetActionProvider.get();
     }
 
-    public BulkRequestExecutor transportShardUpsertActionDelegate() {
+    public BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate() {
         return new TransportShardUpsertActionDelegate(transportShardUpsertActionProvider.get());
+    }
+
+    public BulkRequestExecutor<ShardDeleteRequest> transportShardDeleteActionDelegate() {
+        return new TransportShardDeleteActionDelegate(transportShardDeleteActionProvider.get());
     }
 
     public TransportJobAction transportJobInitAction() {

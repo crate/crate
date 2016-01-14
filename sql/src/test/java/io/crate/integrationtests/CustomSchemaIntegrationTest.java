@@ -52,13 +52,15 @@ public class CustomSchemaIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Long)response.rows()[0][0], is(4L));
 
         execute("delete from custom.t where id=1");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), is(1L));
+        refresh();
 
         execute("select * from custom.t");
         assertThat(response.rowCount(), is(3L));
 
         execute("delete from custom.t");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), is(3L));
+        refresh();
 
         execute("select count(*) from custom.t");
         assertThat((Long)response.rows()[0][0], is(0L));

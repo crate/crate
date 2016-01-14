@@ -1256,7 +1256,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         });
         assertThat(bulkResp.results().length, is(2));
         for (SQLBulkResponse.Result result : bulkResp.results()) {
-            assertThat(result.rowCount(), is(-1L));
+            assertThat(result.rowCount(), is(1L));
         }
         refresh();
 

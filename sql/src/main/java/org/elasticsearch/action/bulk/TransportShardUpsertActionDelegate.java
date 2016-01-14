@@ -22,12 +22,12 @@
 package org.elasticsearch.action.bulk;
 
 import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.TransportShardUpsertAction;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 
-public class TransportShardUpsertActionDelegate implements BulkRequestExecutor {
+public class TransportShardUpsertActionDelegate implements BulkRequestExecutor<ShardUpsertRequest> {
 
     private final TransportShardUpsertAction transportShardUpsertAction;
 
@@ -37,7 +37,7 @@ public class TransportShardUpsertActionDelegate implements BulkRequestExecutor {
     }
 
     @Override
-    public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
+    public void execute(ShardUpsertRequest request, ActionListener<ShardResponse> listener) {
         transportShardUpsertAction.execute(request, listener);
     }
 }
