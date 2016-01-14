@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added Amazon S3 support for Snapshot and Restore
+
+ - Made repository types and their settings pluggable,
+   so Crate plugins may add additional repository types
+
  - fix: don't quote column in response columns
 
 2016/01/08 0.54.2

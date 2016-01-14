@@ -22,19 +22,27 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.repositories.RepositoryParamValidator;
+import io.crate.analyze.repositories.TypeSettings;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ParamValidatorTest extends CrateUnitTest {
+public class RepositoryParamValidatorTest extends CrateUnitTest {
 
-    private CreateRepositoryAnalyzer.ParamValidator validator;
+    private RepositoryParamValidator validator;
 
     @Before
     public void initValidator() throws Exception {
-        validator = new CreateRepositoryAnalyzer.ParamValidator();
+        validator = new RepositoryParamValidator(
+                ImmutableMap.of(
+                        "fs", new TypeSettings(ImmutableSet.of("location"), ImmutableSet.<String>of()),
+                        "hdfs", new TypeSettings(ImmutableSet.<String>of(), ImmutableSet.of("path"))
+                        ));
     }
 
     @Test

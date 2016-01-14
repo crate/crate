@@ -1,0 +1,84 @@
+apply plugin: 'java'
+
+archivesBaseName = 'crate-aws'
+group = 'io.crate'
+description = 'Crate.IO AWS Plugin'
+
+configurations {
+    all*.exclude group: 'org.elasticsearch'
+}
+
+dependencies {
+    compile project(':es')
+    compile project(':core')
+    compile project(':sql')
+
+    compile 'com.amazonaws:aws-java-sdk-ec2:1.10.12'
+    compile 'com.amazonaws:aws-java-sdk-s3:1.10.12'
+
+    testCompile project(':testing')
+}
+
+test {
+    testLogging.exceptionFormat = 'full'
+}
+
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+        resources {
+            include '**/*.Plugin'
+        }
+    }
+    test {
+        java {
+            srcDir 'src/test/java'
+        }
+    }
+}
+
+task copyUpstreamSource << {
+    if (!file('upstream/src/main/java').exists()) {
+        throw new GradleException("Please run 'git submodule update --init' first")
+    }
+    if (!file('src/main/java/org/elasticsearch').exists()) {
+        copy {
+            from 'upstream/src/main/java'
+            into 'src/main/java'
+        }
+    }
+    if (!file('src/test/java').exists()) {
+        copy {
+            from 'upstream/src/test/java'
+            into 'src/test/java'
+        }
+    }
+}
+
+task deleteUpstreamSource(type: Delete) {
+    delete "src/main/java"
+    delete "src/test/java"
+}
+
+compileJava {
+    dependsOn copyUpstreamSource
+}
+
+// get version and set it on the project, so it gets appended to the jar name
+task getVersion(dependsOn: [':core:getVersion']) {
+    doFirst {
+        project.version = project(':core').getVersion.version
+    }
+}
+
+jar {
+    doLast {
+        manifest {
+            attributes("Implementation-Title": "Crate.IO AWS Plugin", "Implementation-Version": project.version)
+        }
+    }
+}
+jar.dependsOn(getVersion)

@@ -26,6 +26,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import io.crate.Plugin;
 import io.crate.core.CrateComponentLoader;
 import org.apache.xbean.finder.ResourceFinder;
@@ -45,6 +46,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.security.CodeSource;
 import java.util.*;
 
 import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
@@ -69,10 +71,12 @@ public class PluginLoader {
         List<URL> pluginUrls = getPluginUrls();
         URL[] urls = pluginUrls.toArray(new URL[pluginUrls.size()]);
         ClassLoader loader = URLClassLoader.newInstance(urls, getClass().getClassLoader());
+
         ResourceFinder finder = new ResourceFinder(RESOURCE_PATH, loader, urls);
-        List<Class<? extends Plugin>> implementations = null;
+        Set<Class<? extends Plugin>> implementations = null;
         try {
-            implementations = finder.findAllImplementations(Plugin.class);
+            List<Class<? extends Plugin>> allImplementations = finder.findAllImplementations(Plugin.class);
+            implementations = removeAndLogDuplicates(allImplementations);
         } catch (ClassCastException e) {
             logger.error("plugin does implement io.crate.Plugin interface", e);
         } catch (ClassNotFoundException e) {
@@ -119,6 +123,19 @@ public class PluginLoader {
                 }
             }));
         }
+    }
+
+    private Set<Class<? extends Plugin>> removeAndLogDuplicates(List<Class<? extends Plugin>> allImplementations) {
+        Set<Class<? extends Plugin>> uniques = Sets.newHashSet();
+        for(Class<? extends Plugin> elem : allImplementations) {
+            if (uniques.contains(elem)) {
+                CodeSource codeSource = elem.getProtectionDomain().getCodeSource();
+                String pluginStr = (codeSource != null ? codeSource.getLocation().toString() : elem.getName());
+                logger.warn("Plugin [{}] already loaded. ignoring...", pluginStr);
+            }
+            uniques.add(elem);
+        }
+        return uniques;
     }
 
     @Nullable

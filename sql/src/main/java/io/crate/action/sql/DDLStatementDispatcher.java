@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.*;
+import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.*;
 import org.elasticsearch.action.ActionListener;
