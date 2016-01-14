@@ -21,7 +21,6 @@
 
 package io.crate.action.sql;
 
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.client.ElasticsearchClient;
 
@@ -29,12 +28,6 @@ public class SQLBulkRequestBuilder extends ActionRequestBuilder<SQLBulkRequest, 
 
     public SQLBulkRequestBuilder(ElasticsearchClient client, SQLBulkAction action) {
         super(client, action, new SQLBulkRequest());
-    }
-
-    // TODO: FIX ME! is this still needed?
-    //@Override
-    protected void doExecute(ActionListener<SQLBulkResponse> listener) {
-        client.execute(SQLBulkAction.INSTANCE, request, listener);
     }
 
     public void stmt(String stmt) {

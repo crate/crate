@@ -21,7 +21,6 @@
 
 package io.crate.action.sql;
 
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.client.ElasticsearchClient;
 
@@ -29,15 +28,6 @@ public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLRespo
 
     public SQLRequestBuilder(ElasticsearchClient client, SQLAction action) {
         super(client, action, new SQLRequest());
-    }
-
-    /**
-     * Executes the built request on the client
-     */
-    // TODO: FIX ME! not needed anymore?
-    //@Override
-    protected void doExecute(ActionListener<SQLResponse> listener) {
-        client.execute(SQLAction.INSTANCE, request, listener);
     }
 
     public void stmt(String stmt) {

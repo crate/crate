@@ -43,8 +43,8 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
+import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nullable;
@@ -127,13 +127,9 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
         );
     }
 
-    // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
     private class TransportHandler implements TransportRequestHandler<SQLRequest> {
         @Override
         public void messageReceived(SQLRequest request, final TransportChannel channel) throws Exception {
-            // no need for a threaded listener
-            // TODO: FIX ME! listenerThreaded does not exist anymore
-            // request.listenerThreaded(false);
             ActionListener<SQLResponse> listener = ResponseForwarder.forwardTo(channel);
             execute(request, listener);
         }

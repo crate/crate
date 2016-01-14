@@ -44,6 +44,7 @@ import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
@@ -74,6 +75,7 @@ public class UpsertByIdTask extends JobTask {
 
     public UpsertByIdTask(UUID jobId,
                           ClusterService clusterService,
+                          IndexNameExpressionResolver indexNameExpressionResolver,
                           Settings settings,
                           BulkRequestExecutor transportShardUpsertActionDelegate,
                           TransportCreateIndexAction transportCreateIndexAction,
@@ -89,8 +91,7 @@ public class UpsertByIdTask extends JobTask {
         this.node = node;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.jobContextService = jobContextService;
-        // TODO: FIX ME! AutoCreateIndex requires IndexNameExpressionResolver
-        autoCreateIndex = null; //new AutoCreateIndex(settings);
+        autoCreateIndex = new AutoCreateIndex(settings, indexNameExpressionResolver);
 
         if (node.items().size() == 1) {
             // skip useless usage of bulk processor if only 1 item in statement

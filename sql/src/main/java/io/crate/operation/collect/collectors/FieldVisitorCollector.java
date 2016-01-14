@@ -24,39 +24,24 @@ package io.crate.operation.collect.collectors;
 
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.LeafCollector;
-import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.SimpleCollector;
 
 import java.io.IOException;
 
-// TODO: FIX ME! extend from appropriate new interface
-class FieldVisitorCollector implements Collector {
-    private final Collector collector;
+class FieldVisitorCollector extends SimpleCollector {
+
+    private final SimpleCollector collector;
     private final CollectorFieldsVisitor fieldsVisitor;
     private LeafReader currentReader;
 
-    public FieldVisitorCollector(Collector collector, CollectorFieldsVisitor fieldsVisitor) {
+    public FieldVisitorCollector(SimpleCollector collector, CollectorFieldsVisitor fieldsVisitor) {
         this.collector = collector;
         this.fieldsVisitor = fieldsVisitor;
     }
 
-    // TODO: FIX ME! implement properly
     @Override
-    public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
-        return null;
-    }
-
-    // TODO: FIX ME! implement properly
-    @Override
-    public boolean needsScores() {
-        return false;
-    }
-
-    // TODO: FIX ME! Not needed anymore?
-    /*@Override
-    public void setScorer(Scorer scorer) throws IOException {
-        collector.setScorer(scorer);
+    protected void doSetNextReader(LeafReaderContext context) throws IOException {
+        currentReader = context.reader();
     }
 
     @Override
@@ -64,20 +49,10 @@ class FieldVisitorCollector implements Collector {
         fieldsVisitor.reset();
         currentReader.document(doc, fieldsVisitor);
         collector.collect(doc);
-    }*/
-
-    // TODO: FIX ME! Not needed anymore?
-    //@Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
-        currentReader = context.reader();
-        // TODO: FIX ME! setNextReader not available anymore
-        //collector.setNextReader(context);
     }
 
-    // TODO: FIX ME! Not needed anymore?
-    //@Override
-    public boolean acceptsDocsOutOfOrder() {
-        // TODO: FIX ME! acceptsDocsOutOfOrder not available anymore
-        return false; //collector.acceptsDocsOutOfOrder();
+    @Override
+    public boolean needsScores() {
+        return collector.needsScores();
     }
 }
