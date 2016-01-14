@@ -39,8 +39,8 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
+import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nullable;
@@ -99,13 +99,9 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
                 outputNames, results, request.creationTime(), dataTypes, request.includeTypesOnResponse());
     }
 
-    // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
     private class TransportHandler implements TransportRequestHandler<SQLBulkRequest> {
         @Override
         public void messageReceived(SQLBulkRequest request, final TransportChannel channel) throws Exception {
-            // no need for a threaded listener
-            // TODO: FIX ME! listenerThreaded does not exist anymore
-            // request.listenerThreaded(false);
             ActionListener<SQLBulkResponse> listener = ResponseForwarder.forwardTo(channel);
             execute(request, listener);
         }
