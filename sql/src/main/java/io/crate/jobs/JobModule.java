@@ -34,12 +34,8 @@ public class JobModule extends AbstractModule {
     private static final String JOB_KEEP_ALIVE = "jobs.keep_alive_timeout";
     private final TimeValue keepAlive;
 
-    // TODO: FIX ME! Settings cannot be passed here
-    /* public JobModule(Settings settings) {
+    public JobModule(Settings settings) {
         keepAlive = settings.getAsTime(JOB_KEEP_ALIVE, timeValueSeconds(0));
-    }*/
-    public JobModule() {
-        keepAlive = timeValueSeconds(0);
     }
 
     @Override

@@ -22,14 +22,12 @@
 package io.crate.plugin;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLBulkAction;
 import io.crate.action.sql.TransportSQLAction;
 import io.crate.action.sql.TransportSQLBulkAction;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.breaker.CircuitBreakerModule;
-import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobModule;
@@ -39,8 +37,6 @@ import io.crate.metadata.blob.MetaDataBlobModule;
 import io.crate.metadata.doc.MetaDataDocModule;
 import io.crate.metadata.doc.array.ArrayMapperIndexModule;
 import io.crate.metadata.information.MetaDataInformationModule;
-import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.settings.Setting;
 import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -62,7 +58,6 @@ import io.crate.service.SQLService;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.cluster.settings.Validator;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
@@ -71,7 +66,6 @@ import org.elasticsearch.rest.RestModule;
 import org.elasticsearch.script.ScriptModule;
 
 import java.util.Collection;
-import java.util.List;
 
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -113,16 +107,14 @@ public class SQLPlugin extends Plugin {
                 JobContextService.class);
     }
 
-    // TODO: FIX ME! Still needed?
-    //@Override
-    public Collection<Module> modules() {
+    @Override
+    public Collection<Module> nodeModules() {
         Collection<Module> modules = newArrayList();
         modules.add(new SQLModule());
 
         modules.add(new CircuitBreakerModule());
         modules.add(new TransportExecutorModule());
-        // TODO: FIX ME! JobModule requires settings, this needs different treatment
-        modules.add(new JobModule());
+        modules.add(new JobModule(settings));
         modules.add(new CollectOperationModule());
         modules.add(new MergeOperationModule());
         modules.add(new MetaDataModule());
