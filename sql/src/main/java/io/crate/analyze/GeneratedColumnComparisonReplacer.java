@@ -139,7 +139,10 @@ public class GeneratedColumnComparisonReplacer {
                     }
                     // rewrite operator
                     if (ROUNDING_FUNCTIONS.contains(generatedFunction.info().ident().name())) {
-                        operatorName = ROUNDING_FUNCTION_MAPPING.getOrDefault(operatorName, operatorName);
+                        String replacedOperatorName = ROUNDING_FUNCTION_MAPPING.get(operatorName);
+                        if (replacedOperatorName != null) {
+                            operatorName = replacedOperatorName;
+                        }
                     }
                 }
 
