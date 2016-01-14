@@ -127,8 +127,6 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
 
     @Override
     public void close() {
-        // TODO: FIX ME! finishStage not available anymore
-        //searcher.finishStage(ContextIndexSearcher.Stage.MAIN_QUERY);
         searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
         searchContext.close();
     }
@@ -147,7 +145,7 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
             return empty;
         }
         LOGGER.debug("searchMore from [{}]", lastDoc);
-        TopDocs topDocs = searcher.searchAfter(lastDoc, query(lastDoc), null, batchSize, sort, doDocsScores, false);
+        TopDocs topDocs = searcher.searchAfter(lastDoc, query(lastDoc), batchSize, sort, doDocsScores, false);
         return scoreDocToIterable(topDocs.scoreDocs);
     }
 
@@ -156,9 +154,7 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
             expression.startCollect(collectorContext);
             expression.setScorer(scorer);
         }
-        // TODO: FIX ME! inStage not available anymore
-        //searcher.inStage(ContextIndexSearcher.Stage.MAIN_QUERY);
-        TopFieldDocs topFieldDocs = searcher.search(searchContext.query(), null, batchSize, sort, doDocsScores, false);
+        TopFieldDocs topFieldDocs = searcher.search(searchContext.query(), batchSize, sort, doDocsScores, false);
         return scoreDocToIterable(topFieldDocs.scoreDocs);
     }
 
