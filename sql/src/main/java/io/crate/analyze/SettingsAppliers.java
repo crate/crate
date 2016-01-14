@@ -110,7 +110,7 @@ public class SettingsAppliers {
         @Override
         public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
             try {
-                applyValue(settingsBuilder, ExpressionToMemoryValueVisitor.convert(expression, parameters));
+                applyValue(settingsBuilder, ExpressionToMemoryValueVisitor.convert(expression, parameters, name));
             } catch (IllegalArgumentException e) {
                 throw invalidException(e);
             }
@@ -343,7 +343,7 @@ public class SettingsAppliers {
         public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
             TimeValue time;
             try {
-                time = ExpressionToTimeValueVisitor.convert(expression, parameters);
+                time = ExpressionToTimeValueVisitor.convert(expression, parameters, name);
             } catch (IllegalArgumentException e) {
                 throw invalidException(e);
             }
@@ -359,8 +359,7 @@ public class SettingsAppliers {
             TimeValue timeValue;
             if (value instanceof String) {
                 try {
-                    // TODO: FIX ME! settings name required
-                    timeValue = TimeValue.parseTimeValue((String) value, ExpressionToTimeValueVisitor.DEFAULT_VALUE, "");
+                    timeValue = TimeValue.parseTimeValue((String) value, ExpressionToTimeValueVisitor.DEFAULT_VALUE, name);
                 } catch (ElasticsearchParseException e) {
                     throw invalidException(e);
                 }

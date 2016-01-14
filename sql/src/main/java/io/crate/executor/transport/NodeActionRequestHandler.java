@@ -41,15 +41,4 @@ public abstract class NodeActionRequestHandler<TRequest extends TransportRequest
         ActionListener<TResponse> actionListener = ResponseForwarder.forwardTo(channel);
         nodeAction.nodeOperation(request, actionListener);
     }
-
-    // TODO: FIX ME! Overrides!
-    // @Override
-    public String executor() {
-        return nodeAction.executorName();
-    }
-
-    // @Override
-    public boolean isForceExecution() {
-        return false;
-    }
 }
