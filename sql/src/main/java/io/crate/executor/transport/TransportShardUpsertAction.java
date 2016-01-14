@@ -54,8 +54,8 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.Preference;
+import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
@@ -321,16 +321,13 @@ public class TransportShardUpsertAction
 
         updateSourceByPaths(updatedSourceAsMap, pathsToUpdate);
 
-        final IndexRequest indexRequest = Requests.indexRequest(request.index())
+        return Requests.indexRequest(request.index())
                 .type(request.type())
                 .id(item.id())
                 .routing(routing)
                 .parent(parent)
                 .source(updatedSourceAsMap, updateSourceContentType)
                 .version(getResult.getVersion());
-        // TODO: FIX ME!
-        // indexRequest.operationThreaded(false);
-        return indexRequest;
     }
 
     private IndexRequest prepareInsert(DocTableInfo tableInfo, ShardUpsertRequest request, ShardUpsertRequest.Item item) throws IOException {
@@ -377,7 +374,6 @@ public class TransportShardUpsertAction
                 .routing(request.routing())
                 .source(source)
                 .create(!request.overwriteDuplicates());
-        //        .operationThreaded(false);
         if (logger.isTraceEnabled()) {
             logger.trace("Inserting document with id {}, source: {}", item.id(), indexRequest.source().toUtf8());
         }
@@ -401,9 +397,7 @@ public class TransportShardUpsertAction
         Map<String, Object> sourceAsMap;
         if (isRawSourceInsert) {
             BytesRef source = (BytesRef) insertValues[0];
-            // TODO: FIX ME!
-            // sourceAsMap = XContentHelper.convertToMap(source.bytes, true).v2();
-            sourceAsMap = new LinkedHashMap<>();
+            sourceAsMap = XContentHelper.convertToMap(new BytesArray(source), true).v2();
         } else {
             sourceAsMap = new LinkedHashMap<>(insertColumns.length);
             for (int i = 0; i < insertColumns.length; i++) {

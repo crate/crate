@@ -22,8 +22,8 @@
 package io.crate.operation.projectors;
 
 import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
@@ -411,15 +411,10 @@ public class FetchProjector extends AbstractProjector {
         public void fetched(Bucket bucket) {
             assert bucket.size() == docs.size();
             Iterator<Row> rowIterator = bucket.iterator();
-            final Object[] values = docs.values;
-            // TODO: FIX ME! allocated not available on docs anymore
-            /*final boolean[] states = docs.allocated;
-            for (int i = 0; i < states.length; i++) {
-                if (states[i]) {
-                    assert values[i] == null;
-                    values[i] = rowIterator.next().materialize();
-                }
-            }*/
+
+            for (IntCursor intCursor : docs.keys()) {
+                docs.indexReplace(intCursor.index, rowIterator.next().materialize());
+            }
             assert !rowIterator.hasNext();
         }
     }

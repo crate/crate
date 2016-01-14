@@ -30,6 +30,7 @@ import java.util.Map;
 public class ObjectColumnReference extends ColumnReferenceCollectorExpression<Map<String, Object>> {
 
     protected SourceLookup sourceLookup;
+    private LeafReaderContext context;
 
     public ObjectColumnReference(String columnName) {
         super(columnName);
@@ -37,14 +38,12 @@ public class ObjectColumnReference extends ColumnReferenceCollectorExpression<Ma
 
     @Override
     public void setNextDocId(int doc) {
-        // TODO: FIX ME! setNextDocId not available
-        // sourceLookup.setNextDocId(doc);
+        sourceLookup.setSegmentAndDocument(context, doc);
     }
 
     @Override
     public void setNextReader(LeafReaderContext context) {
-        // TODO: FIX ME! setNextReader not available
-        // sourceLookup.setNextReader(context);
+        this.context = context;
     }
 
     @Override

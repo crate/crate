@@ -31,6 +31,8 @@ import io.crate.metadata.doc.DocIndexMetaData;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -42,23 +44,28 @@ import java.nio.file.Path;
 public class BlobTableInfoBuilder {
 
     private final TableIdent ident;
-    private final MetaData metaData;
     private final ClusterService clusterService;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final BlobEnvironment blobEnvironment;
     private final Environment environment;
     private final Functions functions;
+    private final ClusterState state;
+    private final MetaData metaData;
     private String[] concreteIndices;
 
     public BlobTableInfoBuilder(TableIdent ident,
                                 ClusterService clusterService,
+                                IndexNameExpressionResolver indexNameExpressionResolver,
                                 BlobEnvironment blobEnvironment,
                                 Environment environment,
                                 Functions functions) {
         this.clusterService = clusterService;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.blobEnvironment = blobEnvironment;
         this.environment = environment;
         this.functions = functions;
-        this.metaData = clusterService.state().metaData();
+        this.state = clusterService.state();
+        this.metaData = state.metaData();
         this.ident = ident;
     }
 
@@ -66,8 +73,7 @@ public class BlobTableInfoBuilder {
         DocIndexMetaData docIndexMetaData;
         String index = BlobIndices.fullIndexName(ident.name());
         try {
-            // TODO: FIX ME! concreteIndices is now on IndexNameExpressionResolver
-            concreteIndices = null; //metaData.concreteIndices(IndicesOptions.strictExpandOpen(), index);
+            concreteIndices = indexNameExpressionResolver.concreteIndices(state, IndicesOptions.strictExpandOpen(), index);
         } catch (IndexNotFoundException ex) {
             throw new TableUnknownException(index, ex);
         }
