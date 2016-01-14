@@ -40,11 +40,12 @@ import java.util.*;
 
 public class WhereClauseAnalyzer {
 
+    private final static GeneratedColumnComparisonReplacer GENERATED_COLUMN_COMPARISON_REPLACER = new GeneratedColumnComparisonReplacer();
+
     private final AnalysisMetaData analysisMetaData;
     private final DocTableInfo tableInfo;
     private final EqualityExtractor eqExtractor;
     private final EvaluatingNormalizer normalizer;
-    private final static GeneratedColumnComparisonReplacer generatedColumnComparisonReplacer = new GeneratedColumnComparisonReplacer();
 
     public WhereClauseAnalyzer(AnalysisMetaData analysisMetaData, DocTableRelation tableRelation) {
         this.analysisMetaData = analysisMetaData;
@@ -61,7 +62,7 @@ public class WhereClauseAnalyzer {
         Set<Symbol> clusteredBy = null;
         if (whereClause.hasQuery()) {
             WhereClauseValidator.validate(whereClause);
-            Symbol query = generatedColumnComparisonReplacer.replaceIfPossible(whereClause.query(), tableInfo);
+            Symbol query = GENERATED_COLUMN_COMPARISON_REPLACER.replaceIfPossible(whereClause.query(), tableInfo);
             if (!whereClause.query().equals(query)) {
                 whereClause = new WhereClause(normalizer.normalize(query));
             }

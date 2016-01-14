@@ -723,6 +723,13 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testGenColRoundingFunctionNoSwappingOperatorOptimization() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts >= '2015-01-02T12:00:00'");
+        assertThat(whereClause.partitions().size(), is(1));
+        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420200000000"), new BytesRef("-2"))).asIndexName()));
+    }
+
+    @Test
     public void testMultiplicationGenColNoOptimization() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from generated_col where y > 1");
         // no optimization is done

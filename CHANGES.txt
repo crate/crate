@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Comparing generated partition columns using a <= or >=
+   operator resulted in a NPE exception
+
  - BREAKING CHANGE: column names may not contain the `.` character anymore
 
  - Exposed setting the default schema via HTTP header.
