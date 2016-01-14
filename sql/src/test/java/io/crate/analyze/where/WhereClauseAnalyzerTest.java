@@ -111,7 +111,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
                         .addGeneratedColumn("x_incr", DataTypes.LONG, "x + 1", false)
                         .addPartitions(
                                 new PartitionName("generated_col", Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName(),
-                                new PartitionName("generated_col", Arrays.asList(new BytesRef("1420200000000"), new BytesRef("-2"))).asIndexName()
+                                new PartitionName("generated_col", Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()
                         )
                         .build(injector.getInstance(Functions.class));
         when(schemaInfo.getTableInfo(GENERATED_COL_TABLE_NAME)).thenReturn(genInfo);
@@ -719,14 +719,14 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     public void testGtGenColOptimization() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts > '2015-01-02T12:00:00'");
         assertThat(whereClause.partitions().size(), is(1));
-        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420200000000"), new BytesRef("-2"))).asIndexName()));
+        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()));
     }
 
     @Test
     public void testGenColRoundingFunctionNoSwappingOperatorOptimization() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts >= '2015-01-02T12:00:00'");
         assertThat(whereClause.partitions().size(), is(1));
-        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420200000000"), new BytesRef("-2"))).asIndexName()));
+        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()));
     }
 
     @Test
@@ -758,5 +758,13 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         assertThat(whereClause.query(), isSQL("(doc.double_gen_parted.x > 3)"));
         assertThat(whereClause.partitions().size(), is(1));
         assertThat(whereClause.partitions().get(0), is(".partitioned.double_gen_parted.0813a0hm"));
+    }
+
+    @Test
+    public void testGenColRangeOptimization() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts >= '2015-01-01T12:00:00' and ts <= '2015-01-02T00:00:00'");
+        assertThat(whereClause.partitions().size(), is(2));
+        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName()));
+        assertThat(whereClause.partitions().get(1), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()));
     }
 }
