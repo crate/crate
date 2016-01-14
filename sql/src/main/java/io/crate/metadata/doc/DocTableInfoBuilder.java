@@ -30,7 +30,9 @@ import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.logging.ESLogger;
@@ -50,10 +52,12 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF
 public class DocTableInfoBuilder {
 
     private final TableIdent ident;
+    private final ClusterState state;
     private ExecutorService executorService;
     private final boolean checkAliasSchema;
     private final Functions functions;
     private final ClusterService clusterService;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private final MetaData metaData;
     private String[] concreteIndices;
@@ -62,15 +66,18 @@ public class DocTableInfoBuilder {
     public DocTableInfoBuilder(Functions functions,
                                TableIdent ident,
                                ClusterService clusterService,
+                               IndexNameExpressionResolver indexNameExpressionResolver,
                                TransportPutIndexTemplateAction transportPutIndexTemplateAction,
                                ExecutorService executorService,
                                boolean checkAliasSchema) {
         this.functions = functions;
         this.clusterService = clusterService;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.ident = ident;
         this.executorService = executorService;
-        this.metaData = clusterService.state().metaData();
+        this.state = clusterService.state();
+        this.metaData = state.metaData();
         this.checkAliasSchema = checkAliasSchema;
     }
 
@@ -81,12 +88,12 @@ public class DocTableInfoBuilder {
         if (metaData.getTemplates().containsKey(templateName)) {
             docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.indexName(), templateName);
             createdFromTemplate = true;
-            // TODO: FIX ME! concreteIndices are now somewhere else
-            concreteIndices = null; //metaData.concreteIndices(IndicesOptions.lenientExpandOpen(), ident.indexName());
+            concreteIndices = indexNameExpressionResolver.concreteIndices(
+                    state, IndicesOptions.lenientExpandOpen(), ident.indexName());
         } else {
             try {
-                // TODO: FIX ME! concreteIndices are now somewhere else
-                concreteIndices = null; //metaData.concreteIndices(IndicesOptions.strictExpandOpen(), ident.indexName());
+                concreteIndices = indexNameExpressionResolver.concreteIndices(
+                        state, IndicesOptions.strictExpandOpen(), ident.indexName());
                 if (concreteIndices.length == 0) {
                     // no matching index found
                     throw new TableUnknownException(ident);
