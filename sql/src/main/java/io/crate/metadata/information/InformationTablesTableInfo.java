@@ -91,12 +91,8 @@ public class InformationTablesTableInfo extends InformationTableInfo {
         public static final ReferenceInfo TABLE_SETTINGS_WARMER_ENABLED = info(
                 Columns.TABLE_SETTINGS_WARMER_ENABLED, DataTypes.BOOLEAN);
 
-        public static final ReferenceInfo TABLE_SETTINGS_GATEWAY = info(
-                Columns.TABLE_SETTINGS_GATEWAY, DataTypes.OBJECT);
-        public static final ReferenceInfo TABLE_SETTINGS_GATEWAY_LOCAL = info(
-                Columns.TABLE_SETTINGS_GATEWAY_LOCAL, DataTypes.OBJECT);
-        public static final ReferenceInfo TABLE_SETTINGS_GATEWAY_LOCAL_SYNC = info(
-                Columns.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC, DataTypes.LONG);
+        public static final ReferenceInfo TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL = info(
+                Columns.TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL, DataTypes.LONG);
 
         public static final ReferenceInfo TABLE_SETTINGS_UNASSIGNED = info(
                 Columns.TABLE_SETTINGS_UNASSIGNED, DataTypes.OBJECT);
@@ -135,6 +131,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                    .put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD)
                    .put(Columns.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH)
                    .put(Columns.TABLE_SETTINGS_TRANSLOG_INTERVAL, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_INTERVAL)
+                   .put(Columns.TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL)
                    .put(Columns.TABLE_SETTINGS_REFRESH_INTERVAL, ReferenceInfos.TABLE_SETTINGS_REFRESH_INTERVAL)
                    .put(Columns.TABLE_SETTINGS_ROUTING, ReferenceInfos.TABLE_SETTINGS_ROUTING)
                    .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION)
@@ -144,9 +141,6 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                    .put(Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, ReferenceInfos.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS)
                    .put(Columns.TABLE_SETTINGS_WARMER, ReferenceInfos.TABLE_SETTINGS_WARMER)
                    .put(Columns.TABLE_SETTINGS_WARMER_ENABLED, ReferenceInfos.TABLE_SETTINGS_WARMER_ENABLED)
-                   .put(Columns.TABLE_SETTINGS_GATEWAY, ReferenceInfos.TABLE_SETTINGS_GATEWAY)
-                   .put(Columns.TABLE_SETTINGS_GATEWAY_LOCAL, ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL)
-                   .put(Columns.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC, ReferenceInfos.TABLE_SETTINGS_GATEWAY_LOCAL_SYNC)
                    .put(Columns.TABLE_SETTINGS_UNASSIGNED, ReferenceInfos.TABLE_SETTINGS_UNASSIGNED)
                    .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT, ReferenceInfos.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT)
                    .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, ReferenceInfos.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)

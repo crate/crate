@@ -334,8 +334,8 @@ Sets frequency of flush necessity check.
 :value: frequency in milliseconds.
 
 
-gateway.local.sync
-~~~~~~~~~~~~~~~~~~
+translog.sync_interval
+~~~~~~~~~~~~~~~~~~~~~~
 
 How often the translog is fsynced to disk. Defaults to 5s
 
@@ -380,13 +380,6 @@ Enabled by default.
 :value: ``true`` to enable warming up, otherwise ``false``
 
 .. _sql_ref_column_policy:
-
-gateway.local.sync
-~~~~~~~~~~~~~~~~~~
-
-How often the translog is ``fsync`` ed to disk.
-
-:value: time in seconds of ``fsync`` period
 
 column_policy
 ~~~~~~~~~~~~~
