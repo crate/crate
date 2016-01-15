@@ -44,7 +44,6 @@ dependencies {
     compile 'org.ow2.asm:asm-commons:4.1'
     compile 'org.ow2.asm:asm:4.1'
     compile 'org.slf4j:slf4j-api:1.6.2'
-    compile 'org.yaml:snakeyaml:1.15'
 
     compile 'org.hdrhistogram:HdrHistogram:2.1.6'
 
