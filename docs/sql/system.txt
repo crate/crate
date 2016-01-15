@@ -978,15 +978,15 @@ results
     cr> select id, severity, description, passed
     ... from sys.checks
     ... order by id asc;
-    +----+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
-    | id | severity | description                                                                                                                                                                                                             | passed |
-    +----+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
-    |  1 |        3 | The value of the cluster setting 'discovery.zen.minimum_master_nodes' needs to be greater than half of the maximum/expected number of nodes and equal or less than the maximum/expected number of nodes in the cluster. | TRUE   |
-    |  2 |        3 | The value of the cluster setting 'gateway.expected_nodes' must be equal to the maximum/expected number of nodes in the cluster.                                                                                         | TRUE   |
-    |  3 |        3 | The value of the cluster setting 'gateway.recover_after_nodes' needs to be greater than half of the maximum/expected number of nodes and equal or less than the maximum/expected number of nodes in the cluster.        | TRUE   |
-    |  4 |        2 | The value of the cluster setting 'gateway.recover_after_time' must not be less than its default value (5m).                                                                                                             | TRUE   |
-    |  5 |        2 | The total number of partitions of one or more partitioned tables should not be greater than 1000. A large amount of shards can significantly reduce performance.                                                        | TRUE   |
-    +----+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+    +----+----------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+    | id | severity | description                                                                                                                                                                                                      | passed |
+    +----+----------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
+    |  1 |        3 | The setting 'discovery.zen.minimum_master_nodes' must not be less than half + 1 of eligible master nodes in the cluster. It should be set to (number_master_nodes / 2) + 1                                       | TRUE   |
+    |  2 |        3 | The value of the cluster setting 'gateway.expected_nodes' must be equal to the maximum/expected number of nodes in the cluster.                                                                                  | TRUE   |
+    |  3 |        3 | The value of the cluster setting 'gateway.recover_after_nodes' needs to be greater than half of the maximum/expected number of nodes and equal or less than the maximum/expected number of nodes in the cluster. | TRUE   |
+    |  4 |        2 | The value of the cluster setting 'gateway.recover_after_time' must not be less than its default value (5m).                                                                                                      | TRUE   |
+    |  5 |        2 | The total number of partitions of one or more partitioned tables should not be greater than 1000. A large amount of shards can significantly reduce performance.                                                 | TRUE   |
+    +----+----------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
     SELECT 5 rows in set (... sec)
 
 .. _sys-repositories:
