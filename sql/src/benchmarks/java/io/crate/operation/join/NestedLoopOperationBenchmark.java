@@ -62,7 +62,7 @@ public class NestedLoopOperationBenchmark {
 
     @Before
     public void prepare() {
-        executor = EsExecutors.newFixed(5, 10, EsExecutors.daemonThreadFactory(getClass().getSimpleName()));
+        executor = EsExecutors.newFixed("nl-benchmark", 5, 10, EsExecutors.daemonThreadFactory(getClass().getSimpleName()));
     }
 
     @After
