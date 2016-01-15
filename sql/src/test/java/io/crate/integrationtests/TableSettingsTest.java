@@ -51,7 +51,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
                 "\"translog.disable_flush\" = false, " +
                 "\"recovery.initial_shards\" = 'quorum', " +
                 "\"warmer.enabled\" = false, " +
-                "\"gateway.local.sync\" = '20s'," +
+                "\"translog.sync_interval\" = '20s'," +
                 "\"refresh_interval\" = '1000'," +
                 "\"unassigned.node_left.delayed_timeout\" = '1m'" +
                 ")");
@@ -81,8 +81,8 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSetNonDynamicTableSetting() {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Can't update non dynamic settings[[index.gateway.local.sync]] for open indices [[settings_table]]");
-        execute("alter table settings_table set (\"gateway.local.sync\"='10s')");
+        expectedException.expectMessage("Can't update non dynamic settings[[index.translog.sync_interval]] for open indices [[settings_table]]");
+        execute("alter table settings_table set (\"translog.sync_inveral\"='10s')");
     }
 
     @Test
