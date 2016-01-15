@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Minimum master nodes settings check. Number of minimum master nodes is
+   validated against eligible master nodes instead of all nodes in the cluster.
+
  - Fixed bug that prevented ``insert into`` to respect ``blocks.read_only``
    setting of partitioned tables
  
