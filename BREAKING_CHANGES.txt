@@ -1,0 +1,8 @@
+
+Temporary file for breaking changes. The entries should latter be integrated
+into CHANGES.txt
+
+
+## Breaking Changes 
+
+ - The `gateway.local.sync` setting has been renamed to `translog.sync_interval`
