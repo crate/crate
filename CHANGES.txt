@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Minimum master nodes settings check. Number of minimum master nodes is
+   validated against eligible master nodes instead of all nodes in the cluster.
+
  - Fixed a race condition which could cause a join on more than 2 tables to
    produce an incorrect result.
 

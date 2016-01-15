@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLResponse;
 import io.crate.operation.reference.sys.check.checks.SysCheck.Severity;
+import org.elasticsearch.cluster.ClusterState;
 import org.junit.After;
 import org.junit.Test;
 
@@ -44,7 +45,7 @@ public class SysCheckerIntegrtionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testMinimumMasterNodesCheckSetNotCorrectNumberOfMasterNodes() throws InterruptedException {
-        int setMinimumMasterNodes = internalCluster().size() / 2;
+        int setMinimumMasterNodes = numberOfMasterNodes() / 2;
         execute("set global discovery.zen.minimum_master_nodes=?", new Object[]{setMinimumMasterNodes});
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
         assertThat((Integer) response.rows()[0][0], is(Severity.HIGH.value()));
@@ -53,11 +54,16 @@ public class SysCheckerIntegrtionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testMinimumMasterNodesCheckWithResetCorrectSetting() {
-        int setMinimumMasterNodes = internalCluster().size() / 2 + 1;
+        int setMinimumMasterNodes = numberOfMasterNodes() / 2 + 1;
         execute("set global discovery.zen.minimum_master_nodes=?", new Object[]{setMinimumMasterNodes});
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
         assertThat((Integer) response.rows()[0][0], is(Severity.HIGH.value()));
         assertThat((Boolean) response.rows()[0][1], is(true));
+    }
+
+    private int numberOfMasterNodes() {
+        ClusterState clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
+        return clusterState.nodes().masterNodes().size();
     }
 
     @Test

@@ -43,9 +43,9 @@ public class MinMasterNodesSysCheck extends AbstractSysCheck {
     private final NestedReferenceResolver nestedReferenceResolver;
 
     private static final int ID = 1;
-    private static final String DESCRIPTION = "The value of the cluster setting 'discovery.zen.minimum_master_nodes' " +
-            "needs to be greater than half of the maximum/expected number of nodes and equal or less than " +
-            "the maximum/expected number of nodes in the cluster.";
+    private static final String DESCRIPTION = "The setting 'discovery.zen.minimum_master_nodes' " +
+            "must not be less than half + 1 of eligible master nodes in the cluster. " +
+            "It should be set to (number_master_nodes / 2) + 1";
 
     private static final ReferenceInfo MIN_MASTER_NODES_REFERENCE_INFO = new ReferenceInfo(
             new ReferenceIdent(
@@ -66,13 +66,13 @@ public class MinMasterNodesSysCheck extends AbstractSysCheck {
 
     @Override
     public boolean validate() {
-        return validate(clusterService.state().nodes().getSize(),
+        return validate(clusterService.state().nodes().masterNodes().size(),
                 (Integer) nestedReferenceResolver.getImplementation(MIN_MASTER_NODES_REFERENCE_INFO).value());
     }
 
-    protected boolean validate( int clusterSize, int minMasterNodes) {
-        return clusterSize == 1
-                || ((clusterSize / 2) + 1) <= minMasterNodes && minMasterNodes <= clusterSize;
+    protected boolean validate(int masterNodes, int minMasterNodes) {
+        return masterNodes == 1
+                || ((masterNodes / 2) + 1) <= minMasterNodes && minMasterNodes <= masterNodes;
     }
 
 }
