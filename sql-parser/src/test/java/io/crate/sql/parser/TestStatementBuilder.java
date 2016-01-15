@@ -27,7 +27,7 @@ import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.*;
 import org.antlr.runtime.tree.CommonTree;
-import org.testng.annotations.Test;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,8 +39,6 @@ import static java.lang.String.format;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.*;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
 
 public class TestStatementBuilder {
 
@@ -743,7 +741,7 @@ public class TestStatementBuilder {
             sql = sql.replaceAll(format(":%s", i + 1), String.valueOf(values[i]));
         }
 
-        assertFalse(sql.matches("(?s).*:[0-9].*"), "Not all bind parameters were replaced: " + sql);
+        assertFalse("Not all bind parameters were replaced: " + sql, sql.matches("(?s).*:[0-9].*"));
 
         sql = fixTpchQuery(sql);
         printStatement(sql);
