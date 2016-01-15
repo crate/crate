@@ -51,6 +51,7 @@ import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.*;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
@@ -66,7 +67,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     private final ClusterService clusterService;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
-    private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
+    private final Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction;
     private final Functions functions;
 
     private final static Predicate<String> DOC_SCHEMA_TABLES_FILTER = new Predicate<String>() {
@@ -109,7 +110,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     @Inject
     public DocSchemaInfo(ClusterService clusterService,
                          ThreadPool threadPool,
-                         TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                         Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
                          IndexNameExpressionResolver indexNameExpressionResolver,
                          Functions functions) {
         this(Schemas.DEFAULT_SCHEMA_NAME,
@@ -128,7 +129,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                          ExecutorService executorService,
                          ClusterService clusterService,
                          IndexNameExpressionResolver indexNameExpressionResolver,
-                         TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                         Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
                          Functions functions) {
         this(schemaName, clusterService, indexNameExpressionResolver,
                 executorService, transportPutIndexTemplateAction, functions,
@@ -149,16 +150,16 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                           ClusterService clusterService,
                           IndexNameExpressionResolver indexNameExpressionResolver,
                           ExecutorService executorService,
-                          TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                          Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
                           Functions functions,
                           Predicate<String> tableFilter,
                           final Function<String, String> fqTableNameToTableName) {
         this.schemaName = schemaName;
         this.clusterService = clusterService;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
+        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.clusterService.add(this);
         this.executorService = executorService;
-        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.functions = functions;
         this.tablesFilter = tableFilter;
         this.tableInfoFunction = new Function<String, TableInfo>() {
@@ -204,7 +205,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                 new TableIdent(name(), name),
                 clusterService,
                 indexNameExpressionResolver,
-                transportPutIndexTemplateAction,
+                transportPutIndexTemplateAction.get(),
                 executorService,
                 checkAliasSchema
         );
