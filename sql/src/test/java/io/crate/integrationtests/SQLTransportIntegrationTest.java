@@ -70,6 +70,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
@@ -94,11 +95,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     private final static ESLogger LOGGER = Loggers.getLogger(SQLTransportIntegrationTest.class);
 
     @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.settingsBuilder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put("plugin.types", CrateCorePlugin.class.getName())
-                .build();
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        return pluginList(CrateCorePlugin.class);
     }
 
     protected long responseDuration;
