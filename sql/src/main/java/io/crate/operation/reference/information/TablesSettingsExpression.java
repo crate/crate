@@ -182,7 +182,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String SYNC = "sync";
 
         private void addChildImplementations() {
-            childImplementations.put(SYNC, new TableParameterExpression(TableParameterInfo.GATEWAY_LOCAL_SYNC));
+            childImplementations.put(SYNC, new TableParameterExpression(TableParameterInfo.TRANSLOG_SYNC_INTERVAL));
         }
     }
 
