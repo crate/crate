@@ -193,8 +193,9 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSqlRequestWithCustomSchema() throws Exception {
         restSQLExecute("{\"stmt\": \"create table foo (name string)\"}", false, "bar");
-        String json = restSQLExecute("{\"stmt\": \"select * from bar.foo\"}");
+        ensureYellow();
 
+        String json = restSQLExecute("{\"stmt\": \"select * from bar.foo\"}");
         JSONAssert.assertEquals(
                 "{\n" +
                 "  \"cols\" : [ \"name\" ],\n" +
@@ -207,8 +208,9 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSqlRequestWithDefaultSchema() throws Exception {
         restSQLExecute("{\"stmt\": \"create table foo1 (name string)\"}");
-        String json = restSQLExecute("{\"stmt\": \"select * from foo1\"}");
+        ensureYellow();
 
+        String json = restSQLExecute("{\"stmt\": \"select * from foo1\"}");
         JSONAssert.assertEquals(
                 "{\n" +
                 "  \"cols\" : [ \"name\" ],\n" +
@@ -221,6 +223,8 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
     @Test(expected = SQLActionException.class)
     public void testSqlRequestWithWrongSchema() throws Exception {
         restSQLExecute("{\"stmt\": \"create table foo2 (id string)\"}", false, "bar2");
+        ensureYellow();
+
         restSQLExecute("{\"stmt\": \"select * from doc.foo2\"}");
     }
 
