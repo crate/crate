@@ -24,18 +24,18 @@ package io.crate.node;
 import io.crate.Constants;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
-//import org.elasticsearch.env.FailedToResolveConfigException;
 
 import java.net.URL;
+import java.nio.file.Path;
 
 public class NodeSettings {
 
-    // TODO: FIX ME!
     /**
      * Crate default settings
      */
-    /*public static void applyDefaultSettings(Settings.Builder settingsBuilder) {
+    public static void applyDefaultSettings(Settings.Builder settingsBuilder) {
 
         // read also from crate.yml by default if no other config path has been set
         // if there is also a elasticsearch.yml file this file will be read first and the settings in crate.yml
@@ -44,9 +44,9 @@ public class NodeSettings {
         if (System.getProperty("es.config") == null && System.getProperty("elasticsearch.config") == null) {
             // no explicit config path set
             try {
-                URL crateConfigUrl = environment.resolveConfig("crate.yml");
-                settingsBuilder.loadFromUrl(crateConfigUrl);
-            } catch (FailedToResolveConfigException e) {
+                Path crateConfigPath = environment.configFile().resolve("crate.yml");
+                settingsBuilder.loadFromPath(crateConfigPath);
+            } catch (SettingsException e) {
                 // ignore
             }
         }
@@ -65,5 +65,5 @@ public class NodeSettings {
         if (settingsBuilder.get(ClusterName.SETTING).equals(ClusterName.DEFAULT.value())) {
             settingsBuilder.put("cluster.name", "crate");
         }
-    }*/
+    }
 }
