@@ -37,6 +37,7 @@ import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsReques
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -51,6 +52,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
+@ESIntegTestCase.ClusterScope(transportClientRatio = 0)
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
