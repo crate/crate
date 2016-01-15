@@ -178,7 +178,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String SYNC = "sync";
 
         private void addChildImplementations() {
-            childImplementations.put(SYNC, new PartitionTableParameterExpression(TableParameterInfo.GATEWAY_LOCAL_SYNC));
+            childImplementations.put(SYNC, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_SYNC_INTERVAL));
         }
     }
     
