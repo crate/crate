@@ -169,74 +169,12 @@ files that can be opened in IntelliJ::
 Run/Debug Configurations
 ------------------------
 
-It is also possible to run Crate Data nodes directly from within IntelliJ. But
-before that can be done a bit of preparation is necessary.
+``gradlew idea`` will have created a Run/Debug configuration called ``Crate``.
+This configuration can be used to launch and debug Crate from within IntelliJ.
 
-First create the folders for the configuration and data::
-
-    for i in {1..2}; do mkdir -p sandbox/crate_$i/{config,data,plugins}; done
-
-Then create the configuration files for both nodes::
-
-    touch sandbox/crate_1/config/crate.yml
-    touch sandbox/crate_2/config/crate.yml
-
-And add the following settings::
-
-    node.name: local1
-
-    http.port: 19201
-    transport.tcp.port: 19301
-    network.host: localhost
-
-    multicast.enabled: false
-    discovery.zen.ping.unicast.hosts:
-      - 127.0.0.1:19301
-      - 127.0.0.1:19302
-
-.. note::
-
-    In the second files the port number and node name has to be changed.
-    19201 to 19202 and 19301 to 19302.
-
-In addition to the ``crate.yml`` file it is also recommended to create a logging
-configuration file for both nodes. To do so create the files
-``sandbox/crate_1/config/logging.yml`` and
-``sandbox/crate_2/config/logging.yml``.
-
-.. _minimum_logging_config:
-
-A minimal example for the logging configuration looks like this::
-
-    rootLogger: INFO, console
-    logger:
-      # log action execution errors for easier debugging
-      action: DEBUG
-      crate.elasticsearch.blob: TRACE
-
-    appender:
-      console:
-        type: console
-        layout:
-          type: consolePattern
-          conversionPattern: "[%d{ISO8601}][%-5p][%-25c] %m%n"
-
-In order for the admin interface to work please check out the crate admin
-repository::
-
-	https://github.com/crate/crate-admin
-
-After that the Run/Debug Configurations can be added within IntelliJ. Go to the
-`Run/Debug Configurations` window and add a new `Application` configuration
-(one for each node) with the following settings:
-
-+--------------------------+-----------------------------------------------+
-| Main class               | io.crate.bootstrap.CrateF                     |
-+--------------------------+-----------------------------------------------+
-| VM Options               | -Des.path.home=/full/path/to/sandbox/crate_1/ |
-+--------------------------+-----------------------------------------------+
-| Use classpath of module: | app                                           |
-+--------------------------+-----------------------------------------------+
+The ``home`` directory will be set to ``<project_root>/sandbox/crate`` and the
+configuration files for it can be found in
+``<project_root>/sandbox/crate/config``.
 
 Test Coverage
 --------------
@@ -333,8 +271,8 @@ Crate::
 The resulting tarball and zip will reside in the folder
 ``./app/build/distributions``.
 
-Toubleshooting
-==============
+Troubleshooting
+===============
 
 If you just pulled some new commits using git and get strange compile errors in
 the SQL parser code it is probably necessary to re-generate the parser code as

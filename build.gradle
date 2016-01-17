@@ -195,6 +195,12 @@ idea {
             junitDefaults.option.find { it.@name == 'VM_PARAMETERS' }.replaceNode {
                 option(name: 'VM_PARAMETERS', value: jvmTestFlags.join(' '))
             }
+
+            // add Crate application configuration
+            def crateApp = runManager.configuration.find { it.@name == 'Crate' && it.@type == 'Application' }
+            if (crateApp == null) {
+                runManager.append(new XmlParser().parse(file("idea/crateApp.xml")))
+            }
         }
     }
 
@@ -205,12 +211,12 @@ idea {
         ipr {
             withXml { provider ->
                 def node = provider.asNode()
-                node.append(new XmlParser().parse(file("codeStyle.xml")))
+                node.append(new XmlParser().parse(file("idea/codeStyle.xml")))
                 def copyrightManager = node.component.find { it.'@name' == 'CopyrightManager' }
                 copyrightManager.@default = "CrateASL2"
                 def aslCopyright = copyrightManager.copyright.find { it.option.find { it.@name == "myName" }?.@value == "CrateASL2" }
                 if (aslCopyright == null) {
-                    copyrightManager.append(new XmlParser().parse(file("copyright.xml")))
+                    copyrightManager.append(new XmlParser().parse(file("idea/copyright.xml")))
                 }
             }
         }
