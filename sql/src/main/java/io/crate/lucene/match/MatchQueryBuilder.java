@@ -36,12 +36,9 @@ import org.elasticsearch.common.lucene.search.MultiPhrasePrefixQuery;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.cache.IndexCache;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
-import org.elasticsearch.index.query.QueryParseContext;
 import org.elasticsearch.index.query.support.QueryParsers;
 import org.elasticsearch.index.search.MatchQuery;
 
@@ -120,47 +117,24 @@ public class MatchQueryBuilder {
     }
 
     protected Query singleQuery(MatchQuery.Type type, String fieldName, BytesRef queryString) {
-        // TODO: FIX ME! SmartMappers have been removed
-        /*FieldMapper mapper = null;
-        final String field;
-        MapperService.SmartNameFieldMappers smartNameFieldMappers = mapperService.smartName(fieldName);
-        if (smartNameFieldMappers != null && smartNameFieldMappers.hasMapper()) {
-            mapper = smartNameFieldMappers.mapper();
-            field = mapper.names().indexName();
-        } else {
+        String field;
+        MappedFieldType fieldType = mapperService.smartNameFieldType(fieldName);
+        if (fieldType == null) {
             field = fieldName;
+        } else {
+            field = fieldType.names().indexName();
         }
 
-        if (mapper != null && mapper.useTermQueryWithQueryString() && !forceAnalyzeQueryString()) {
-            if (smartNameFieldMappers.explicitTypeInNameWithDocMapper()) {
-                String[] previousTypes = QueryParseContext.setTypesWithPrevious(
-                        new String[]{smartNameFieldMappers.docMapper().type()});
-                try {
-                    return wrapSmartNameQuery(
-                            mapper.termQuery(queryString, null),
-                            smartNameFieldMappers,
-                            indexCache
-                    );
-                } catch (RuntimeException e) {
-                    return null;
-                } finally {
-                    QueryParseContext.setTypes(previousTypes);
-                }
-            } else {
-                try {
-                    return wrapSmartNameQuery(
-                            mapper.termQuery(queryString, null),
-                            smartNameFieldMappers,
-                            indexCache
-                    );
-                } catch (RuntimeException e) {
-                    return null;
-                }
+        if (fieldType != null && fieldType.useTermQueryWithQueryString() && !forceAnalyzeQueryString()) {
+            try {
+               return fieldType.termQuery(queryString, null);
+            } catch (RuntimeException e) {
+                return null;
             }
         }
 
-        Analyzer analyzer = getAnalyzer(mapper, smartNameFieldMappers);
-        InnerQueryBuilder builder = new InnerQueryBuilder(analyzer, mapper);
+        Analyzer analyzer = getAnalyzer(fieldType);
+        InnerQueryBuilder builder = new InnerQueryBuilder(analyzer, fieldType);
 
         Query query;
         switch (type) {
@@ -174,7 +148,7 @@ public class MatchQueryBuilder {
                             options.operator(),
                             options.operator(),
                             options.commonTermsCutoff(),
-                            mapper
+                            fieldType
                     );
                 }
                 break;
@@ -196,28 +170,8 @@ public class MatchQueryBuilder {
         if (query == null) {
             return zeroTermsQuery();
         } else {
-            return wrapSmartNameQuery(query, smartNameFieldMappers, indexCache);
-        }*/
-        return null;
-    }
-
-    // TODO: FIX ME! SmartMapper removed!
-    private static Query wrapSmartNameQuery(Query query,
-                                            @Nullable MappedFieldType smartNameFieldMappers,
-                                            IndexCache indexCache) {
-        if (query == null) {
-            return null;
-        }
-        if (smartNameFieldMappers == null) {
             return query;
         }
-        /*
-        if (!smartNameFieldMappers.explicitTypeInNameWithDocMapper()) {
-            return query;
-        }
-        DocumentMapper documentMapper = smartNameFieldMappers.docMapper();
-        return new XFilteredQuery(query, indexCache.filter().cache(documentMapper.typeFilter())); */
-        return null;
     }
 
     protected Query singleQueryAndApply(MatchQuery.Type type,
@@ -240,47 +194,39 @@ public class MatchQueryBuilder {
                 Queries.newMatchAllQuery();
     }
 
-
-    protected Analyzer getAnalyzer(@Nullable FieldMapper mapper,
-                                   FieldMapper smartNameFieldMappers) {
-        Analyzer analyzer = null;
+    protected Analyzer getAnalyzer(MappedFieldType fieldType) {
         if (options.analyzer() == null) {
-            if (mapper != null) {
-                // TODO: FIX ME! serachAnalyzer is now in parseContext.getSearchAnalyzer
-                //analyzer = mapper.searchAnalyzer();
+            if (fieldType != null) {
+                if (fieldType.searchAnalyzer() != null) {
+                    return fieldType.searchAnalyzer();
+                }
             }
-            // TODO: FIX ME! SmartMappers have been removed!
-            /*if (analyzer == null && smartNameFieldMappers != null) {
-                analyzer = smartNameFieldMappers.searchAnalyzer();
-            }*/
-            if (analyzer == null) {
-                analyzer = mapperService.searchAnalyzer();
-            }
-        } else {
-            analyzer = mapperService.analysisService().analyzer(options.analyzer());
-            if (analyzer == null) {
-                throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Analyzer \"%s\" not found.", options.analyzer()));
-            }
+            return mapperService.searchAnalyzer();
+        }
+
+        Analyzer analyzer = mapperService.analysisService().analyzer(options.analyzer());
+        if (analyzer == null) {
+            throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "Analyzer \"%s\" not found.", options.analyzer()));
         }
         return analyzer;
     }
 
 
-
     private class InnerQueryBuilder extends QueryBuilder {
 
-        @Nullable
-        private final FieldMapper mapper;
 
-        public InnerQueryBuilder(Analyzer analyzer, @Nullable FieldMapper mapper) {
+        @Nullable
+        private final MappedFieldType fieldType;
+
+        public InnerQueryBuilder(Analyzer analyzer, @Nullable MappedFieldType fieldType) {
             super(analyzer);
-            this.mapper = mapper;
+            this.fieldType = fieldType;
         }
 
         @Override
         protected Query newTermQuery(Term term) {
-            return blendTermQuery(term, mapper);
+            return blendTermQuery(term, fieldType);
         }
 
         public Query createCommonTermsQuery(String field,
@@ -335,18 +281,25 @@ public class MatchQueryBuilder {
         }
     }
 
-    protected Query blendTermQuery(Term term, FieldMapper mapper) {
+    protected Query blendTermQuery(Term term, MappedFieldType fieldType) {
         Fuzziness fuzziness = options.fuzziness();
         if (fuzziness != null) {
+            if (fieldType != null) {
+                Query query = fieldType.fuzzyQuery(
+                        term.text(), fuzziness, options.prefixLength(), options.maxExpansions(), options.transpositions());
+                if (query instanceof FuzzyQuery) {
+                    QueryParsers.setRewriteMethod(((FuzzyQuery) query), options.rewriteMethod());
+                }
+                return query;
+            }
             int edits = fuzziness.asDistance(term.text());
             FuzzyQuery query = new FuzzyQuery(
                     term, edits, options.prefixLength(), options.maxExpansions(), options.transpositions());
             QueryParsers.setRewriteMethod(query, options.rewriteMethod());
             return query;
         }
-        if (mapper != null) {
-            // TODO: FIX ME! MappedFieldType now contains queryStringTermQuery
-            Query termQuery = null; //mapper.queryStringTermQuery(term);
+        if (fieldType != null) {
+            Query termQuery = fieldType.queryStringTermQuery(term);
             if (termQuery != null) {
                 return termQuery;
             }
