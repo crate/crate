@@ -5,4 +5,13 @@ into CHANGES.txt
 
 ## Breaking Changes 
 
+ - It is no longer possible to specify the location of the config file with the
+   `CONF_FILE` environment variable, or the `-Des.config`, `-Des.default.config`,
+   or `-Delasticsearch.config` parameters.
+
+   The config file must now be named `crate.yml` and must be located in the
+   default `config/` directory, in the directory specified in the `CONF_DIR`
+   environmental variable, or the one specified in the `-Des.path.home`
+   parameter.
+
  - The `gateway.local.sync` setting has been renamed to `translog.sync_interval`
