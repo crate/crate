@@ -34,9 +34,12 @@ import io.crate.executor.TaskResult;
 import io.crate.planner.Plan;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -1703,9 +1706,21 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testMatchTypes() throws Exception {
         this.setup.setUpLocations();
         refresh();
+
+        SearchRequest searchRequest = new SearchRequest("locations")
+                .source("{\"query\": {\"multi_match\": {\"fields\": [\"kind^0.8\", \"name_description_ft^0.6\"], \"query\": \"planet earth\"}}}");
+        SearchResponse searchResponse = client().search(searchRequest).actionGet();
+
         execute("select name, _score from locations where match((kind 0.8, name_description_ft 0.6), 'planet earth') using best_fields order by _score desc");
+
+        SearchHit[] hits = searchResponse.getHits().getHits();
+        for (int i = 0; i < hits.length; i++) {
+            assertThat(hits[i].score(), is(((float) response.rows()[i][1])));
+        }
+
         assertThat(TestingHelpers.printedTable(response.rows()),
                 is("Alpha Centauri| 0.22184466\n| 0.21719791\nAllosimanius Syneca| 0.09626817\nBartledan| 0.08423465\nGalactic Sector QQ7 Active J Gamma| 0.08144922\n"));
+
 
         execute("select name, _score from locations where match((kind 0.6, name_description_ft 0.8), 'planet earth') using most_fields order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
