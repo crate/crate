@@ -29,6 +29,7 @@ import io.crate.types.DataType;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.FieldComparator;
+import org.apache.lucene.search.LeafFieldComparator;
 
 import java.io.IOException;
 import java.util.List;
@@ -69,9 +70,9 @@ public class FieldsVisitorInputFieldComparator extends InputFieldComparator {
     }
 
     @Override
-    public FieldComparator setNextReader(LeafReaderContext context) throws IOException {
+    public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
         currentReader = context.reader();
-        return super.setNextReader(context);
+        return super.getLeafComparator(context);
     }
 
     private void setFieldsVisitor(int doc) {
