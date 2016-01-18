@@ -48,7 +48,7 @@ dependencies {
     compile project(':dns-discovery')
     compile project(':aws')
 
-    testCompile ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.1.10') {
+    testCompile ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.1.16') {
         exclude group: 'junit', module: 'junit'
     }
     testCompile 'junit:junit:4.11'
