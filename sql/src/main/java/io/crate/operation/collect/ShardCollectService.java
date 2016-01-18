@@ -204,7 +204,7 @@ public class ShardCollectService {
     }
 
     private CrateCollector getLuceneIndexCollector(ThreadPool threadPool,
-                                                   final CollectPhase collectNode,
+                                                   final CollectPhase collectPhase,
                                                    final ShardProjectorChain projectorChain,
                                                    final JobCollectContext jobCollectContext) throws Exception {
         SharedShardContext sharedShardContext = jobCollectContext.sharedShardContexts().getOrCreateContext(shardId);
@@ -216,15 +216,16 @@ public class ShardCollectService {
                     sharedShardContext.readerId(),
                     indexShard,
                     searcher,
-                    collectNode.whereClause()
+                    collectPhase.whereClause()
             );
             jobCollectContext.addSearchContext(sharedShardContext.readerId(), searchContext);
-            CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectNode);
+            CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectPhase);
             Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
 
             return new CrateDocCollector(
                     searchContext,
                     executor,
+                    Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
                     jobCollectContext.keepAliveListener(),
                     jobCollectContext.queryPhaseRamAccountingContext(),
                     projectorChain.newShardDownstreamProjector(projectorVisitor),
