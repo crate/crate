@@ -63,7 +63,6 @@ import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
 import org.apache.lucene.spatial.query.SpatialArgs;
 import org.apache.lucene.spatial.query.SpatialOperation;
-import org.apache.lucene.util.BitDocIdSet;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.RegExp;
@@ -476,10 +475,7 @@ public class LuceneQueryBuilder {
 
                 String columnName = reference.info().ident().columnIdent().fqn();
                 QueryBuilderHelper builderHelper = QueryBuilderHelper.forType(reference.valueType());
-
-                BooleanQuery.Builder builder = new BooleanQuery.Builder();
-                builder.add(builderHelper.rangeQuery(columnName, null, null, true, true), BooleanClause.Occur.MUST_NOT);
-                return builder.build();
+                return Queries.not(builderHelper.rangeQuery(columnName, null, null, true, true));
             }
         }
 
