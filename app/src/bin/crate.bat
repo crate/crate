@@ -72,7 +72,7 @@ if "%CRATE_CLASSPATH%" == "" (
     ECHO Add plugins and their dependencies into the plugins/ folder instead. 1>&2
     EXIT /B 1
 )
-set CRATE_PARAMS=-Dcrate -Des.path.home="%CRATE_HOME%" -Des.config="%CRATE_HOME%/config/crate.yml"
+set CRATE_PARAMS=-Dcrate -Des.path.home="%CRATE_HOME%"
 
 "%JAVA_HOME%\bin\java" %JAVA_OPTS% %CRATE_JAVA_OPTS% %CRATE_PARAMS% %* -cp "%CRATE_CLASSPATH%" "io.crate.bootstrap.CrateF"
 goto finally
