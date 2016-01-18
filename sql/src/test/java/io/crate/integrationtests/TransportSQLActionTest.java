@@ -655,7 +655,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .endObject()
                 .startObject("data")
                 .field("type", "object")
-                .field("index", "not_analyzed")
                 .field("dynamic", false)
                 .endObject()
                 .endObject()
