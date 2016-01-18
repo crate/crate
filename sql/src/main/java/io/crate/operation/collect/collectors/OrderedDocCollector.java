@@ -36,6 +36,7 @@ import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
 import org.apache.lucene.search.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.search.internal.ContextIndexSearcher;
 import org.elasticsearch.search.internal.SearchContext;
 
@@ -153,8 +154,16 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
             expression.startCollect(collectorContext);
             expression.setScorer(scorer);
         }
-        TopFieldDocs topFieldDocs = searcher.search(searchContext.query(), batchSize, sort, doDocsScores, false);
-        return scoreDocToIterable(topFieldDocs.scoreDocs);
+        TopFieldCollector topFieldCollector = TopFieldCollector.create(sort, batchSize, true, doDocsScores, doDocsScores);
+        Collector collector = topFieldCollector;
+        if (searchContext.minimumScore() != null) {
+            collector = new MinimumScoreCollector(collector, searchContext.minimumScore());
+        }
+        assert searchContext.queryCollectors().isEmpty() : "queryCollectors not supported";
+        assert searchContext.parsedPostFilter() == null : "parsedPostFilter not supported";
+
+        searcher.search(searchContext.query(), collector);
+        return scoreDocToIterable(topFieldCollector.topDocs().scoreDocs);
     }
 
     private Query query(FieldDoc lastDoc) {
@@ -162,10 +171,10 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
         if (query == null) {
             return searchContext.query();
         }
-        BooleanQuery searchAfterQuery = new BooleanQuery();
+        BooleanQuery.Builder searchAfterQuery = new BooleanQuery.Builder();
         searchAfterQuery.add(searchContext.query(), BooleanClause.Occur.MUST);
         searchAfterQuery.add(query, BooleanClause.Occur.MUST_NOT);
-        return searchAfterQuery;
+        return searchAfterQuery.build();
     }
 
     @Nullable
