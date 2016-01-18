@@ -155,7 +155,7 @@ public class CrateDocCollector implements CrateCollector {
         innerCollect(collector, weight, leavesIt, null);
     }
 
-    private void innerCollect(LeafCollector collector, Weight weight, Iterator<LeafReaderContext> leavesIt, @Nullable BulkScorer scorer) {
+    private void innerCollect(SimpleCollector collector, Weight weight, Iterator<LeafReaderContext> leavesIt, @Nullable BulkScorer scorer) {
         try {
             if (collectLeaves(collector, weight, leavesIt, scorer) == Result.FINISHED) {
                 finishCollect();
@@ -186,7 +186,7 @@ public class CrateDocCollector implements CrateCollector {
         rowReceiver.finish();
     }
 
-    private Result collectLeaves(LeafCollector collector,
+    private Result collectLeaves(SimpleCollector collector,
                                  Weight weight,
                                  Iterator<LeafReaderContext> leaves,
                                  @Nullable BulkScorer scorer) throws IOException {
@@ -196,11 +196,12 @@ public class CrateDocCollector implements CrateCollector {
         try {
             while (leaves.hasNext()) {
                 LeafReaderContext leaf = leaves.next();
+                LeafCollector leafCollector = collector.getLeafCollector(leaf);
                 scorer = weight.bulkScorer(leaf);
                 if (scorer == null) {
                     continue;
                 }
-                if (processScorer(collector, leaves, scorer)) return Result.PAUSED;
+                if (processScorer(leafCollector, leaves, scorer)) return Result.PAUSED;
             }
         } finally {
             searchContext.clearReleasables(SearchContext.Lifetime.COLLECTION);
@@ -228,7 +229,7 @@ public class CrateDocCollector implements CrateCollector {
     static class State {
         BulkScorer scorer;
         Iterator<LeafReaderContext> leaveIt;
-        LeafCollector collector;
+        SimpleCollector collector;
         Weight weight;
     }
 
