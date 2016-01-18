@@ -51,7 +51,7 @@ Command Line Options
 
 Example::
 
-  sh$ ./bin/crate -d -p ./crate.pid -Des.config=./config/crate.yml
+  sh$ ./bin/crate -d -p ./crate.pid
 
 
 .. _cli_signals:
