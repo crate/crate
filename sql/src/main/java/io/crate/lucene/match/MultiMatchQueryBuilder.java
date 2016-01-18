@@ -80,11 +80,11 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
     }
 
     @Override
-    protected Query blendTermQuery(Term term, FieldMapper mapper) {
+    protected Query blendTermQuery(Term term, MappedFieldType fieldType) {
         if (builder == null) {
-            super.blendTermQuery(term, mapper);
+            super.blendTermQuery(term, fieldType);
         }
-        return builder.blendTerm(term, mapper);
+        return builder.blendTerm(term, fieldType);
     }
 
     @Override
@@ -137,8 +137,8 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
             }
         }
 
-        public Query blendTerm(Term term, FieldMapper mapper) {
-            return MultiMatchQueryBuilder.super.blendTermQuery(term, mapper);
+        public Query blendTerm(Term term, MappedFieldType fieldType) {
+            return MultiMatchQueryBuilder.super.blendTermQuery(term, fieldType);
         }
 
         public boolean forceAnalyzeQueryString() {
@@ -209,9 +209,9 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
             return blendedFields != null;
         }
 
-        public Query blendTerm(Term term, FieldMapper mapper) {
+        public Query blendTerm(Term term, MappedFieldType fieldType) {
             if (blendedFields == null) {
-                return super.blendTerm(term, mapper);
+                return super.blendTerm(term, fieldType);
             }
             final Term[] terms = new Term[blendedFields.length];
             float[] blendedBoost = new float[blendedFields.length];
