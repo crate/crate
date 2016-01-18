@@ -25,6 +25,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.sql.tree.Expression;
@@ -59,6 +60,7 @@ public class AnalyzedColumnDefinition {
     private String formattedGeneratedExpression;
     @Nullable
     private Expression generatedExpression;
+    private final static Set<String> NO_DOC_VALUES_SUPPORT = Sets.newHashSet("object", "geo_shape");
 
     public AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition parent) {
         this.parent = parent;
@@ -190,10 +192,12 @@ public class AnalyzedColumnDefinition {
     public Map<String, Object> toMapping() {
         Map<String, Object> mapping = new HashMap<>();
 
-        mapping.put("doc_values", docValues());
         mapping.put("type", dataType());
-        mapping.put("index", index());
-        mapping.put("store", false);
+        if (!NO_DOC_VALUES_SUPPORT.contains(dataType)) {
+            mapping.put("doc_values", docValues());
+            mapping.put("index", index());
+            mapping.put("store", false);
+        }
 
         if (geoTree != null) {
             mapping.put("tree", geoTree);
