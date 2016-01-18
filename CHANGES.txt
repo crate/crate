@@ -5,6 +5,15 @@ Changes for Crate
 Unreleased
 ==========
 
+ - BREAKING CHANGE: column names may not contain the `.` character anymore
+
+ - Exposed setting the default schema via HTTP header.
+
+ - added `lower`` and `upper`` string functions
+
+2016/01/18 0.54.3
+=================
+
  - Fix: Minimum master nodes settings check. Number of minimum master nodes is
    validated against eligible master nodes instead of all nodes in the cluster.
 
@@ -13,12 +22,6 @@ Unreleased
 
  - Fix: Comparing generated partition columns using a <= or >=
    operator resulted in a NPE exception
-
- - BREAKING CHANGE: column names may not contain the `.` character anymore
-
- - Exposed setting the default schema via HTTP header.
-
- - added `lower`` and `upper`` string functions
 
  - fix: don't quote column in response columns
 
