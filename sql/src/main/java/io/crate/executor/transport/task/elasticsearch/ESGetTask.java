@@ -24,6 +24,7 @@ package io.crate.executor.transport.task.elasticsearch;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.symbol.InputColumn;
@@ -39,6 +40,7 @@ import io.crate.jobs.JobContextService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.QueryResultRowDownstream;
 import io.crate.operation.RowUpstream;
@@ -63,6 +65,8 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
     private final static SymbolToFieldExtractor<GetResponse> SYMBOL_TO_FIELD_EXTRACTOR =
             new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
 
+    private final static Set<ColumnIdent> FETCH_SOURCE_COLUMNS = ImmutableSet.of(DocSysColumns.DOC, DocSysColumns.RAW);
+
     public ESGetTask(UUID jobId,
                      Functions functions,
                      ProjectorFactory projectorFactory,
@@ -77,49 +81,17 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         assert node.docKeys().size() > 0;
         assert node.limit() == null || node.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
 
-        final GetResponseContext ctx = new GetResponseContext(functions, node);
-        List<FieldExtractor<GetResponse>> extractors = new ArrayList<>(node.outputs().size());
-        for (Symbol symbol : node.outputs()) {
-            extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
-        }
-        for (Symbol symbol : node.sortSymbols()) {
-            extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
-        }
-
-        boolean fetchSource = false;
-        List<String> includes = new ArrayList<>(ctx.references().size());
-
-        for (Reference ref : ctx.references()) {
-            if (ref.ident().columnIdent().isSystemColumn()) {
-                if (ref.ident().columnIdent().name().equals("_raw")
-                        || ref.ident().columnIdent().name().equals("_doc")) {
-                    fetchSource = true;
-                    break;
-                }
-            } else {
-                includes.add(ref.ident().columnIdent().name());
-            }
-        }
-
-        final FetchSourceContext fsc;
-
-        if (fetchSource) {
-            fsc = new FetchSourceContext(true);
-        } else if (includes.size() > 0) {
-            fsc = new FetchSourceContext(includes.toArray(new String[includes.size()]));
-        } else {
-            fsc = new FetchSourceContext(false);
-        }
-
         ActionListener listener;
         ActionRequest request;
         TransportAction transportAction;
-
         FlatProjectorChain projectorChain = null;
 
         SettableFuture<TaskResult> result = SettableFuture.create();
         results.add(result);
 
+        GetResponseContext ctx = new GetResponseContext(functions, node);
+        List<FieldExtractor<GetResponse>> extractors = getFieldExtractors(node, ctx);
+        FetchSourceContext fsc = getFetchSourceContext(ctx.references());
         if (node.docKeys().size() > 1) {
             request = prepareMultiGetRequest(node, fsc);
             transportAction = multiGetAction;
@@ -135,6 +107,32 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
 
         createContext("lookup by primary key", ImmutableList.of(request), ImmutableList.of(listener),
                 transportAction, projectorChain);
+    }
+
+    private static FetchSourceContext getFetchSourceContext(List<Reference> references) {
+        List<String> includes = new ArrayList<>(references.size());
+        for (Reference ref : references) {
+            if (ref.ident().columnIdent().isSystemColumn() &&
+                FETCH_SOURCE_COLUMNS.contains(ref.ident().columnIdent())) {
+                return new FetchSourceContext(true);
+            }
+            includes.add(ref.ident().columnIdent().name());
+        }
+        if (includes.size() > 0) {
+            return new FetchSourceContext(includes.toArray(new String[includes.size()]));
+        }
+        return new FetchSourceContext(false);
+    }
+
+    private static List<FieldExtractor<GetResponse>> getFieldExtractors(ESGetNode node, GetResponseContext ctx) {
+        List<FieldExtractor<GetResponse>> extractors = new ArrayList<>(node.outputs().size() + node.sortSymbols().size());
+        for (Symbol symbol : node.outputs()) {
+            extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
+        }
+        for (Symbol symbol : node.sortSymbols()) {
+            extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
+        }
+        return extractors;
     }
 
     public static String indexName(DocTableInfo tableInfo, Optional<List<BytesRef>> values) {
