@@ -41,39 +41,23 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.queries.BooleanFilter;
 import org.apache.lucene.queries.TermsFilter;
+import org.apache.lucene.queries.TermsQuery;
 import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
-//import org.apache.lucene.spatial.DisjointSpatialFilter;
-import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeFilter;
-import org.apache.lucene.spatial.prefix.WithinPrefixTreeFilter;
-//import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
-//import org.elasticsearch.common.lucene.search.RegexpFilter;
-//import org.elasticsearch.common.lucene.search.ConstantScoreQuery;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.cache.IndexCache;
-//import org.elasticsearch.index.cache.filter.FilterCache;
-import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.IndexFieldDataService;
-import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
-import org.elasticsearch.index.mapper.*;
-import org.elasticsearch.index.mapper.geo.GeoPointFieldMapper;
-import org.elasticsearch.index.mapper.geo.GeoShapeFieldMapper;
+import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
-import org.mockito.Matchers;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+
 
 public class LuceneQueryBuilderTest extends CrateUnitTest {
 
@@ -151,7 +135,8 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testNoMatchWhereClause() throws Exception {
         Query query = convert(WhereClause.NO_MATCH);
-        assertThat(query, instanceOf(MatchNoDocsQuery.class));
+        assertThat(query, instanceOf(BooleanQuery.class));
+        assertThat(((BooleanQuery) query).clauses().size(), is(0));
     }
 
     @Test
@@ -160,11 +145,12 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
             Reference foo = createReference("foo", type);
             Query query = convert(whereClause(EqOperator.NAME, foo, Literal.newLiteral(type, null)));
 
-            // must always become a MatchNoDocsQuery
+            // must always become a MatchNoDocsQuery (empty BooleanQuery)
             // string: term query with null would cause NPE
             // int/numeric: rangeQuery from null to null would match all
             // bool:  term would match false too because of the condition in the eq query builder
-            assertThat(query, instanceOf(MatchNoDocsQuery.class));
+            assertThat(query, instanceOf(BooleanQuery.class));
+            assertThat(((BooleanQuery) query).clauses().size(), is(0));
         }
     }
 
@@ -234,8 +220,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testWhereStringRefInSetLiteralIsConvertedToBooleanQuery() throws Exception {
         Query query = convert("name in ('foo', 'bar')");
-        assertThat(query, instanceOf(FilteredQuery.class));
-        assertThat(((FilteredQuery)query).getFilter(), instanceOf(TermsFilter.class));
+        assertThat(query, instanceOf(TermsQuery.class));
     }
 
     /**
