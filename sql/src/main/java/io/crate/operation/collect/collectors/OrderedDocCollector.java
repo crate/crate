@@ -33,7 +33,6 @@ import io.crate.operation.merge.NumberedIterable;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
-import org.apache.lucene.queries.BooleanFilter;
 import org.apache.lucene.search.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -171,7 +170,7 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
 
     @Nullable
     public static Query nextPageQuery(FieldDoc lastCollected, OrderBy orderBy, Object[] missingValues) {
-        BooleanQuery query = new BooleanQuery();
+        BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
         for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
             Symbol order = orderBy.orderBySymbols().get(i);
             Object value = lastCollected.fields[i];
@@ -188,13 +187,13 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
                 Query orderQuery;
                 // nulls already gone, so they should be excluded
                 if (nullsFirst && value != null) {
-                    BooleanFilter booleanFilter = new BooleanFilter();
+                    BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                     if (orderBy.reverseFlags()[i]) {
-                        booleanFilter.add(helper.rangeFilter(columnName, null, value, false, true), BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(helper.rangeQuery(columnName, null, value, false, true), BooleanClause.Occur.MUST_NOT);
                     } else {
-                        booleanFilter.add(helper.rangeFilter(columnName, value, null, true, false), BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(helper.rangeQuery(columnName, value, null, true, false), BooleanClause.Occur.MUST_NOT);
                     }
-                    orderQuery = new FilteredQuery(new MatchAllDocsQuery(), booleanFilter);
+                    orderQuery = booleanQuery.build();
                 } else {
                     if (orderBy.reverseFlags()[i]) {
                         orderQuery = helper.rangeQuery(columnName, value, null, false, false);
@@ -202,9 +201,10 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
                         orderQuery = helper.rangeQuery(columnName, null, value, false, false);
                     }
                 }
-                query.add(orderQuery, BooleanClause.Occur.MUST);
+                queryBuilder.add(orderQuery, BooleanClause.Occur.MUST);
             }
         }
+        BooleanQuery query = queryBuilder.build();
         if (query.clauses().size() > 0) {
             return query;
         } else {
