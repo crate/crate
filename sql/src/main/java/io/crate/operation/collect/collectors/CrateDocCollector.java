@@ -62,9 +62,11 @@ public class CrateDocCollector implements CrateCollector {
     private final SimpleCollector luceneCollector;
     private final TopRowUpstream upstreamState;
     private final State state = new State();
+    private final boolean doScores;
 
     public CrateDocCollector(final CrateSearchContext searchContext,
                              Executor executor,
+                             boolean doScores,
                              KeepAliveListener keepAliveListener,
                              RamAccountingContext ramAccountingContext,
                              RowReceiver rowReceiver,
@@ -100,11 +102,13 @@ public class CrateDocCollector implements CrateCollector {
                 ((int) searchContext.id())
         );
         rowReceiver.setUpstream(upstreamState);
+        this.doScores = doScores || searchContext.minimumScore() != null;
         SimpleCollector collector = new LuceneDocCollector(
                 keepAliveListener,
                 ramAccountingContext,
                 upstreamState,
                 rowReceiver,
+                this.doScores,
                 new InputRow(inputs),
                 expressions
         );
@@ -140,8 +144,7 @@ public class CrateDocCollector implements CrateCollector {
         Weight weight;
         Iterator<LeafReaderContext> leavesIt;
         try {
-            weight = searchContext.engineSearcher().searcher().createNormalizedWeight(
-                    searchContext.query(), searchContext.trackScores());
+            weight = searchContext.engineSearcher().searcher().createNormalizedWeight(searchContext.query(), doScores);
             leavesIt = contextIndexSearcher.getTopReaderContext().leaves().iterator();
         } catch (IOException e) {
             fail(e);
@@ -240,6 +243,7 @@ public class CrateDocCollector implements CrateCollector {
         private final RamAccountingContext ramAccountingContext;
         private final TopRowUpstream topRowUpstream;
         private final RowReceiver rowReceiver;
+        private final boolean doScores;
         private final Row inputRow;
         private final Collection<? extends LuceneCollectorExpression<?>> expressions;
 
@@ -249,12 +253,14 @@ public class CrateDocCollector implements CrateCollector {
                                   RamAccountingContext ramAccountingContext,
                                   TopRowUpstream topRowUpstream,
                                   RowReceiver rowReceiver,
+                                  boolean doScores,
                                   Row inputRow,
                                   Collection<? extends LuceneCollectorExpression<?>> expressions) {
             this.keepAliveListener = keepAliveListener;
             this.ramAccountingContext = ramAccountingContext;
             this.topRowUpstream = topRowUpstream;
             this.rowReceiver = rowReceiver;
+            this.doScores = doScores;
             this.inputRow = inputRow;
             this.expressions = expressions;
         }
@@ -262,7 +268,7 @@ public class CrateDocCollector implements CrateCollector {
 
         @Override
         public boolean needsScores() {
-            return false;
+            return doScores;
         }
 
         @Override
