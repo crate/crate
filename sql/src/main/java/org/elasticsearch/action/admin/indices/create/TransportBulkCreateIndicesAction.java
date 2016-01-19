@@ -28,7 +28,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import io.crate.exceptions.CrateException;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.KillAllListener;
 import org.apache.lucene.util.CollectionUtil;
@@ -50,6 +49,7 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.Streams;
@@ -153,9 +153,7 @@ public class TransportBulkCreateIndicesAction
             for (IndexTemplateFilter indexTemplateFilter : indexTemplateFilters) {
                 templateFilters[i++] = indexTemplateFilter;
             }
-            // TODO: FIX ME!
-            //this.indexTemplateFilter = new IndexTemplateFilter.Compound(templateFilters);
-            this.indexTemplateFilter = null;
+            this.indexTemplateFilter = new IndexTemplateFilter.Compound(templateFilters);
         }
     }
 
@@ -205,9 +203,7 @@ public class TransportBulkCreateIndicesAction
 
         final ActionListener<BulkCreateIndicesResponse> listener = new PendingTriggeringActionListener(responseListener);
         final Map<Semaphore, Collection<String>> locked = new HashMap<>();
-        // TODO: FIX ME! Revisit me
-        // final Map<Semaphore, Collection<String>> unlocked = metaDataService.indexMetaDataLocks(request.indices());
-        final Map<Semaphore, Collection<String>> unlocked = null;
+        final Map<Semaphore, Collection<String>> unlocked = metaDataService.indexMetaDataLocks(request.indices());
 
         try {
             tryAcquireLocksAndRemoveExistingIndices(state, locked, unlocked, 0L);
@@ -379,26 +375,24 @@ public class TransportBulkCreateIndicesAction
             MapperService mapperService = indexService.mapperService();
             // first, add the default mapping
             if (mappings.containsKey(MapperService.DEFAULT_MAPPING)) {
-                // TODO: FIX ME! CompressedXContent
-                /* try {
-                    mapperService.merge(MapperService.DEFAULT_MAPPING, new CompressedXContent(XContentFactory.jsonBuilder().map(mappings.get(MapperService.DEFAULT_MAPPING)).string()), false);
+                try {
+                    mapperService.merge(MapperService.DEFAULT_MAPPING, new CompressedXContent(XContentFactory.jsonBuilder().map(mappings.get(MapperService.DEFAULT_MAPPING)).string()), false, false);
                 } catch (Exception e) {
                     removalReason = "failed on parsing default mapping on index creation";
                     throw new MapperParsingException("mapping [" + MapperService.DEFAULT_MAPPING + "]", e);
-                }*/
+                }
             }
             for (Map.Entry<String, Map<String, Object>> entry : mappings.entrySet()) {
                 if (entry.getKey().equals(MapperService.DEFAULT_MAPPING)) {
                     continue;
                 }
-                // TODO: FIX ME! CompressedXContent
-                /*try {
+                try {
                     // apply the default here, its the first time we parse it
-                    mapperService.merge(entry.getKey(), new CompressedXContent(XContentFactory.jsonBuilder().map(entry.getValue()).string()), true);
+                    mapperService.merge(entry.getKey(), new CompressedXContent(XContentFactory.jsonBuilder().map(entry.getValue()).string()), true, false);
                 } catch (Exception e) {
                     removalReason = "failed on parsing mappings on index creation";
                     throw new MapperParsingException("mapping [" + entry.getKey() + "]", e);
-                }*/
+                }
             }
 
             IndexQueryParserService indexQueryParserService = indexService.queryParserService();
@@ -595,14 +589,13 @@ public class TransportBulkCreateIndicesAction
 
         for (IndexTemplateMetaData template : templates) {
             templateNames.add(template.getName());
-            // TODO: FIX ME! CompressedXContent
-            /*for (ObjectObjectCursor<String, CompressedXContent> cursor : template.mappings()) {
+            for (ObjectObjectCursor<String, CompressedXContent> cursor : template.mappings()) {
                 if (mappings.containsKey(cursor.key)) {
                     XContentHelper.mergeDefaults(mappings.get(cursor.key), parseMapping(cursor.value.string()));
                 } else {
                     mappings.put(cursor.key, parseMapping(cursor.value.string()));
                 }
-            }*/
+            }
             // handle custom
             for (ObjectObjectCursor<String, IndexMetaData.Custom> cursor : template.customs()) {
                 String type = cursor.key;
@@ -611,9 +604,8 @@ public class TransportBulkCreateIndicesAction
                 if (existing == null) {
                     customs.put(type, custom);
                 } else {
-                    // TODO: FIX ME! lookupFactorySafe is now lookupPrototypeSafe but merge is broken
-                    //IndexMetaData.Custom merged = IndexMetaData.lookupFactorySafe(type).merge(existing, custom);
-                    //customs.put(type, merged);
+                    IndexMetaData.Custom merged = existing.mergeWith(custom);
+                    customs.put(type, merged);
                 }
             }
             //handle aliases
@@ -628,7 +620,6 @@ public class TransportBulkCreateIndicesAction
                                                       ClusterState state,
                                                       IndexTemplateFilter indexTemplateFilter) {
         List<IndexTemplateMetaData> templates = new ArrayList<>();
-        // TODO: FIX ME! Check if updateAll should be false or true below
         CreateIndexClusterStateUpdateRequest dummyRequest =
                 new CreateIndexClusterStateUpdateRequest(request, "bulk-create", request.indices().iterator().next(), false);
 

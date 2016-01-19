@@ -49,6 +49,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -110,6 +111,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         ImplementationSymbolVisitor symbolvisitor = new ImplementationSymbolVisitor(functions);
         visitor = new ProjectionToProjectorVisitor(
                 mock(ClusterService.class),
+                new IndexNameExpressionResolver(Settings.EMPTY),
                 threadPool,
                 Settings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),

@@ -36,6 +36,7 @@ import io.crate.planner.projection.*;
 import io.crate.types.StringType;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -48,6 +49,7 @@ public class ProjectionToProjectorVisitor
         extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
 
     private final ClusterService clusterService;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private ThreadPool threadPool;
     private final Settings settings;
     private final TransportActionProvider transportActionProvider;
@@ -59,6 +61,7 @@ public class ProjectionToProjectorVisitor
     private final ShardId shardId;
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        IndexNameExpressionResolver indexNameExpressionResolver,
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
@@ -67,6 +70,7 @@ public class ProjectionToProjectorVisitor
                                         EvaluatingNormalizer normalizer,
                                         @Nullable ShardId shardId) {
         this.clusterService = clusterService;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.threadPool = threadPool;
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
@@ -77,13 +81,14 @@ public class ProjectionToProjectorVisitor
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        IndexNameExpressionResolver indexNameExpressionResolver,
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                         ImplementationSymbolVisitor symbolVisitor,
                                         EvaluatingNormalizer normalizer) {
-        this(clusterService, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor, normalizer, null);
+        this(clusterService, indexNameExpressionResolver, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor, normalizer, null);
     }
 
     @Override
@@ -228,6 +233,7 @@ public class ProjectionToProjectorVisitor
                 IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         return new IndexWriterProjector(
                 clusterService,
+                indexNameExpressionResolver,
                 clusterService.state().metaData().settings(),
                 transportActionProvider,
                 indexNameResolver,
@@ -261,6 +267,7 @@ public class ProjectionToProjectorVisitor
         }
         return new ColumnIndexWriterProjector(
                 clusterService,
+                indexNameExpressionResolver,
                 clusterService.state().metaData().settings(),
                 IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
                 transportActionProvider,
@@ -299,6 +306,7 @@ public class ProjectionToProjectorVisitor
 
         return new UpdateProjector(
                 clusterService,
+                indexNameExpressionResolver,
                 settings,
                 shardId,
                 transportActionProvider,
@@ -316,6 +324,7 @@ public class ProjectionToProjectorVisitor
 
         return new DeleteProjector(
                 clusterService,
+                indexNameExpressionResolver,
                 settings,
                 shardId,
                 transportActionProvider,

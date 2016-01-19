@@ -53,16 +53,17 @@ import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -74,6 +75,7 @@ import java.util.concurrent.ExecutorService;
 public class ShardCollectSource implements CollectSource {
 
     private final Settings settings;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final IndicesService indicesService;
     private final Functions functions;
     private final ClusterService clusterService;
@@ -86,6 +88,7 @@ public class ShardCollectSource implements CollectSource {
 
     @Inject
     public ShardCollectSource(Settings settings,
+                              IndexNameExpressionResolver indexNameExpressionResolver,
                               IndicesService indicesService,
                               Functions functions,
                               ClusterService clusterService,
@@ -95,6 +98,7 @@ public class ShardCollectSource implements CollectSource {
                               SystemCollectSource systemCollectSource,
                               NodeSysExpression nodeSysExpression) {
         this.settings = settings;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.indicesService = indicesService;
         this.functions = functions;
         this.clusterService = clusterService;
@@ -117,6 +121,7 @@ public class ShardCollectSource implements CollectSource {
 
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
                 clusterService,
+                indexNameExpressionResolver,
                 threadPool,
                 settings,
                 transportActionProvider,
