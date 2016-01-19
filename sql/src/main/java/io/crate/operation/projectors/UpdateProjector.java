@@ -34,6 +34,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.ShardId;
@@ -61,6 +62,7 @@ public class UpdateProjector extends AbstractProjector {
     private final BulkShardProcessor bulkShardProcessor;
 
     public UpdateProjector(ClusterService clusterService,
+                           IndexNameExpressionResolver indexNameExpressionResolver,
                            Settings settings,
                            ShardId shardId,
                            TransportActionProvider transportActionProvider,
@@ -85,6 +87,7 @@ public class UpdateProjector extends AbstractProjector {
         this.bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
                 transportActionProvider.transportBulkCreateIndicesAction(),
+                indexNameExpressionResolver,
                 settings,
                 bulkRetryCoordinatorPool,
                 false,
