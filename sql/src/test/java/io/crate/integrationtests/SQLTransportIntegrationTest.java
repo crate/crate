@@ -111,6 +111,11 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         ));
     }
 
+    @Override
+    protected double getPerTestTransportClientRatio() {
+        return 0.0d;
+    }
+
     public SQLTransportIntegrationTest(SQLTransportExecutor sqlExecutor) {
         this.sqlExecutor = sqlExecutor;
     }
