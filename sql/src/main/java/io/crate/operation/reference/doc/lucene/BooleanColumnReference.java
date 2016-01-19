@@ -29,7 +29,7 @@ import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
 public class BooleanColumnReference extends FieldCacheExpression<IndexFieldData, Boolean> {
 
-    private static final BytesRef TRUE_BYTESREF = new BytesRef("T");
+    private static final BytesRef TRUE_BYTESREF = new BytesRef("1");
     private SortedBinaryDocValues values;
 
     public BooleanColumnReference(String columnName) {
