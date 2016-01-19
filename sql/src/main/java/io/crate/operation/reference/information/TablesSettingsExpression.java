@@ -43,7 +43,6 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         childImplementations.put(TablesSettingsRecoveryExpression.NAME, new TablesSettingsRecoveryExpression());
         childImplementations.put(TablesSettingsWarmerExpression.NAME, new TablesSettingsWarmerExpression());
         childImplementations.put(TablesSettingsTranslogExpression.NAME, new TablesSettingsTranslogExpression());
-        childImplementations.put(TablesSettingsGatewayExpression.NAME, new TablesSettingsGatewayExpression());
         childImplementations.put(TablesSettingsUnassignedExpression.NAME, new TablesSettingsUnassignedExpression());
     }
 
@@ -156,36 +155,6 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         }
     }
 
-    static class TablesSettingsGatewayExpression extends AbstractTablesSettingsExpression {
-
-        public static final String NAME = "gateway";
-
-        public TablesSettingsGatewayExpression() {
-            addChildImplementations();
-        }
-
-
-        private void addChildImplementations() {
-            childImplementations.put(TablesSettingsGatewayLocalExpression.NAME, new TablesSettingsGatewayLocalExpression());
-        }
-
-    }
-
-    static class TablesSettingsGatewayLocalExpression extends AbstractTablesSettingsExpression {
-
-        public static final String NAME = "local";
-
-        public TablesSettingsGatewayLocalExpression() {
-            addChildImplementations();
-        }
-
-        public static final String SYNC = "sync";
-
-        private void addChildImplementations() {
-            childImplementations.put(SYNC, new TableParameterExpression(TableParameterInfo.TRANSLOG_SYNC_INTERVAL));
-        }
-    }
-
     static class TablesSettingsTranslogExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "translog";
@@ -199,6 +168,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String FLUSH_THRESHOLD_PERIOD = "flush_threshold_period";
         public static final String DISABLE_FLUSH = "disable_flush";
         public static final String INTERVAL = "interval";
+        public static final String SYNC_INTERVAL = "sync_interval";
 
         private void addChildImplementations() {
             childImplementations.put(FLUSH_THRESHOLD_OPS, new TableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_OPS));
@@ -206,6 +176,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
             childImplementations.put(FLUSH_THRESHOLD_PERIOD, new TableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_PERIOD));
             childImplementations.put(DISABLE_FLUSH, new TableParameterExpression(TableParameterInfo.FLUSH_DISABLE));
             childImplementations.put(INTERVAL, new TableParameterExpression(TableParameterInfo.TRANSLOG_INTERVAL));
+            childImplementations.put(SYNC_INTERVAL, new TableParameterExpression(TableParameterInfo.TRANSLOG_SYNC_INTERVAL));
         }
     }
 

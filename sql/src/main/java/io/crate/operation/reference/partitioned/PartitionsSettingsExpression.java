@@ -39,7 +39,6 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         childImplementations.put(PartitionsSettingsRecoveryExpression.NAME, new PartitionsSettingsRecoveryExpression());
         childImplementations.put(PartitionsSettingsWarmerExpression.NAME, new PartitionsSettingsWarmerExpression());
         childImplementations.put(PartitionsSettingsTranslogExpression.NAME, new PartitionsSettingsTranslogExpression());
-        childImplementations.put(PartitionsSettingsGatewayExpression.NAME, new PartitionsSettingsGatewayExpression());
         childImplementations.put(PartitionsSettingsUnassignedExpression.NAME, new PartitionsSettingsUnassignedExpression());
     }
 
@@ -153,35 +152,6 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         }
     }
 
-    static class PartitionsSettingsGatewayExpression extends AbstractPartitionsSettingsExpression {
-
-        public static final String NAME = "gateway";
-
-        public PartitionsSettingsGatewayExpression() {
-            addChildImplementations();
-        }
-
-        private void addChildImplementations() {
-            childImplementations.put(PartitionsSettingsGatewayLocalExpression.NAME, new PartitionsSettingsGatewayLocalExpression());
-        }
-
-    }
-
-    static class PartitionsSettingsGatewayLocalExpression extends AbstractPartitionsSettingsExpression {
-
-        public static final String NAME = "local";
-
-        public PartitionsSettingsGatewayLocalExpression() {
-            addChildImplementations();
-        }
-
-        public static final String SYNC = "sync";
-
-        private void addChildImplementations() {
-            childImplementations.put(SYNC, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_SYNC_INTERVAL));
-        }
-    }
-    
     static class PartitionsSettingsTranslogExpression extends AbstractPartitionsSettingsExpression {
 
         public static final String NAME = "translog";
@@ -195,6 +165,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         public static final String FLUSH_THRESHOLD_PERIOD = "flush_threshold_period";
         public static final String DISABLE_FLUSH = "disable_flush";
         public static final String INTERVAL = "interval";
+        public static final String SYNC_INTERVAL = "sync_interval";
 
         private void addChildImplementations() {
             childImplementations.put(FLUSH_THRESHOLD_OPS, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_OPS));
@@ -202,6 +173,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
             childImplementations.put(FLUSH_THRESHOLD_PERIOD, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_PERIOD));
             childImplementations.put(DISABLE_FLUSH, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_DISABLE));
             childImplementations.put(INTERVAL, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_INTERVAL));
+            childImplementations.put(SYNC_INTERVAL, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_SYNC_INTERVAL));
         }
     }
 
