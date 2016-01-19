@@ -568,7 +568,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testDropTableIfExists() {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureGreen();
+        ensureYellow();
 
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());

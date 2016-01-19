@@ -21,6 +21,7 @@
 
 package io.crate.test.integration;
 
+import com.google.common.collect.Sets;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
 import org.elasticsearch.cluster.settings.DynamicSettings;
 import org.elasticsearch.common.inject.Key;
@@ -36,8 +37,7 @@ public class CrateSingleNodeTest extends ESSingleNodeTestCase {
         //dynamicSettings.addDynamicSetting("cluster_id");
         client().admin().cluster()
                 .prepareUpdateSettings()
-                // FIX ME: requires ES patch
-                // .setTransientSettingsToRemove(Sets.newHashSet("cluster_id"))
+                .setTransientSettingsToRemove(Sets.newHashSet("cluster_id"))
                 .execute().actionGet();
         super.tearDown();
     }

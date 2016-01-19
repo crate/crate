@@ -26,6 +26,7 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.elasticsearch.test.NodeConfigurationSource;
@@ -34,6 +35,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Random;
 
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
@@ -54,11 +57,18 @@ public abstract class ClassLifecycleIntegrationTest extends ESTestCase {
 
     public static final NodeConfigurationSource SETTINGS_SOURCE = new NodeConfigurationSource() {
         @Override
+        public Collection<Class<? extends Plugin>> nodePlugins() {
+            try {
+                Class<? extends Plugin> aClass = (Class<? extends Plugin>) Class.forName("io.crate.plugin.CrateCorePlugin");
+                return Collections.<Class<? extends Plugin>>singletonList(aClass);
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
         public Settings nodeSettings(int i) {
-            return Settings.builder()
-                    .put(Node.HTTP_ENABLED, false)
-                    .put("bootstrap.sigar", true)
-                    .put("plugin.types", "io.crate.plugin.CrateCorePlugin").build();
+            return Settings.builder().put(Node.HTTP_ENABLED, false).build();
         }
 
         @Override

@@ -66,9 +66,8 @@ public class BulkSettingsTest extends SQLTransportIntegrationTest {
         // locks are acquired here to make sure that the indices operation cannot finish within 1ms
         String masterName = internalCluster().getMasterName();
         MetaDataService metaDataService = internalCluster().getInstance(MetaDataService.class, masterName);
-        // TODO: FIX ME! indexMetaDataLocks not available
-        Map<Semaphore, Collection<String>> semaphoreCollectionMap = null; /*metaDataService.indexMetaDataLocks(Arrays.asList(
-                ".partitioned.ttt.04134", ".partitioned.ttt.04136", ".partitioned.ttt.04132"));*/
+        Map<Semaphore, Collection<String>> semaphoreCollectionMap = metaDataService.indexMetaDataLocks(Arrays.asList(
+                ".partitioned.ttt.04134", ".partitioned.ttt.04136", ".partitioned.ttt.04132"));
         for (Semaphore semaphore : semaphoreCollectionMap.keySet()) {
             semaphore.acquire();
         }

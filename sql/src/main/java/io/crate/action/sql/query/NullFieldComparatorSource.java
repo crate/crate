@@ -25,6 +25,7 @@ import io.crate.executor.transport.task.elasticsearch.SortOrder;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.LeafFieldComparator;
+import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.SortField;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 
@@ -40,6 +41,29 @@ class NullFieldComparatorSource extends IndexFieldData.XFieldComparatorSource {
 
     private final SortField.Type sortFieldType;
     private final Object missingValue;
+    private final static LeafFieldComparator LEAF_FIELD_COMPARATOR = new LeafFieldComparator() {
+        @Override
+        public void setBottom(int slot) {
+        }
+
+        @Override
+        public int compareBottom(int doc) throws IOException {
+            return 0;
+        }
+
+        @Override
+        public int compareTop(int doc) throws IOException {
+            return 0;
+        }
+
+        @Override
+        public void copy(int slot, int doc) throws IOException {
+        }
+
+        @Override
+        public void setScorer(Scorer scorer) {
+        }
+    };
 
     NullFieldComparatorSource(SortField.Type sortFieldType, boolean reversed, Boolean nullsFirst) {
         this.sortFieldType = sortFieldType;
@@ -54,10 +78,9 @@ class NullFieldComparatorSource extends IndexFieldData.XFieldComparatorSource {
     @Override
     public FieldComparator<?> newComparator(String fieldname, int numHits, int sortPos, boolean reversed) throws IOException {
         return new FieldComparator<Object>() {
-            // TODO: FIX ME! implement me
             @Override
             public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
-                return null;
+                return LEAF_FIELD_COMPARATOR;
             }
 
             @Override
@@ -65,40 +88,8 @@ class NullFieldComparatorSource extends IndexFieldData.XFieldComparatorSource {
                 return 0;
             }
 
-            // TODO: FIX ME! not needed anymore?
-            //@Override
-
-            public void setBottom(int slot) {
-
-            }
-
             @Override
             public void setTopValue(Object value) {
-
-            }
-
-            // TODO: FIX ME! not needed anymore?
-            //@Override
-            public int compareBottom(int doc) throws IOException {
-                return 0;
-            }
-
-            // TODO: FIX ME! not needed anymore?
-            //@Override
-            public int compareTop(int doc) throws IOException {
-                return 0;
-            }
-
-            // TODO: FIX ME! not needed anymore?
-            //@Override
-            public void copy(int slot, int doc) throws IOException {
-
-            }
-
-            // TODO: FIX ME! not needed anymore?
-            //@Override
-            public FieldComparator<Object> setNextReader(LeafReaderContext context) throws IOException {
-                return this;
             }
 
             @Override

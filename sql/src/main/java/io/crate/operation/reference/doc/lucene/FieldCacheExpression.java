@@ -23,7 +23,7 @@ package io.crate.operation.reference.doc.lucene;
 
 import io.crate.Constants;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 
@@ -41,6 +41,6 @@ public abstract class FieldCacheExpression<IFD extends IndexFieldData, ReturnTyp
 
     public void startCollect(CollectorContext context){
         MappedFieldType mapper = context.mapperService().smartNameFieldType(columnName, DEFAULT_MAPPING_TYPES);
-        indexFieldData = (IFD) context.fieldData().getForField(mapper);
+        indexFieldData = context.fieldData().getForField(mapper);
     }
 }
