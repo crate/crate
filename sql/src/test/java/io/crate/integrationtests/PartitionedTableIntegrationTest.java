@@ -1648,10 +1648,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         IndexTemplateMetaData metaData = templatesResponse.getIndexTemplates().get(0);
         String mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
-                .createParser(mappingSource);
-                // TODO: FIX ME! mapAndClose not available anymore
-                //.mapAndClose()
-                //.get(Constants.DEFAULT_MAPPING_TYPE);
+                .createParser(mappingSource)
+                .map()
+                .get(Constants.DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
         assertNotNull(((Map) mapping.get("properties")).get("ft_name"));
     }
@@ -1676,10 +1675,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         IndexTemplateMetaData metaData = templatesResponse.getIndexTemplates().get(0);
         String mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
-                .createParser(mappingSource);
-                // TODO: FIX ME! mapAndClose not available anymore
-                //.mapAndClose()
-                //.get(Constants.DEFAULT_MAPPING_TYPE);
+                .createParser(mappingSource)
+                .map().get(Constants.DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
     }
 

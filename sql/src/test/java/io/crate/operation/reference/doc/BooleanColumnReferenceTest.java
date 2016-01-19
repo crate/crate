@@ -30,8 +30,8 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.FieldDataType;
-import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.core.BooleanFieldMapper;
 import org.junit.Test;
@@ -40,14 +40,16 @@ import static org.hamcrest.core.Is.is;
 
 public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
 
+    private static final BytesRef TRUE = new BytesRef("1");
+    private static final BytesRef FALSE = new BytesRef("0");
+
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (int i = 0; i<10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            // TODO: FIX ME! is indexName proper replacement of name()?
             doc.add(new StringField(fieldName().indexName(),
-                    (i%2 == 0 ? BooleanFieldMapper.Values.TRUE : BooleanFieldMapper.Values.FALSE).utf8ToString(), Field.Store.NO));
+                    (i%2 == 0 ? TRUE : FALSE).utf8ToString(), Field.Store.NO));
             writer.addDocument(doc);
         }
     }
@@ -67,7 +69,6 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        // TODO: FIX ME! is indexName proper replacement of name()?
         BooleanColumnReference booleanColumn = new BooleanColumnReference(fieldName().indexName());
         booleanColumn.startCollect(ctx);
         booleanColumn.setNextReader(readerContext);
