@@ -55,7 +55,6 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope(transportClientRatio = 0)
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
