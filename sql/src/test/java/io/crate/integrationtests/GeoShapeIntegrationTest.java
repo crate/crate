@@ -26,16 +26,20 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Map;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 
+@ESIntegTestCase.ClusterScope(transportClientRatio = 0)
 public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
 
     @Before
@@ -45,8 +49,7 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
                 "  shape geo_shape" +
                 ") with (number_of_replicas=0)");
         ensureGreen();
-        // TODO: FIX ME! $ and $$ not available anymore
-        /*execute("INSERT INTO shaped (id, shape) VALUES (?, ?)", $$(
+        execute("INSERT INTO shaped (id, shape) VALUES (?, ?)", $$(
                 $(1L, "POINT (13.0 52.4)"),
                 $(42L, ImmutableMap.of(
                         "type", "LineString",
@@ -55,7 +58,7 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
                                 {1, 1}
                         }
                 ))
-        ));*/
+        ));
         execute("REFRESH TABLE shaped");
     }
 
@@ -165,8 +168,7 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectWhereIntersects() throws Exception {
-        // TODO: FIX ME! $ not available anymore
-        /*execute("select id from shaped where intersects(shape, ?) order by id",
+        execute("select id from shaped where intersects(shape, ?) order by id",
                 $("POLYGON(" +
                      "(12.995452 52.417497," +
                      " 13.051071 52.424407," +
@@ -175,9 +177,8 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
                      " 13.069953 52.391944," +
                      " 13.024635 52.354425," +
                      " 12.970390 52.347714," +
-                     " 12.995452 52.417497))"));*/
+                     " 12.995452 52.417497))"));
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], is((Object)1L));
-
     }
 }
