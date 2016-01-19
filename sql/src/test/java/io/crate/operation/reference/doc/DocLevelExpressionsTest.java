@@ -59,8 +59,7 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
         MappedFieldType fieldMapper = mock(MappedFieldType.class);
         when(fieldMapper.names()).thenReturn(fieldName());
         when(fieldMapper.fieldDataType()).thenReturn(fieldType());
-        // TODO: FIX ME! smart mappers not available anymore
-        //when(mapperService.smartNameFieldMapper(anyString(), Matchers.<String[]>any())).thenReturn(fieldMapper);
+        when(mapperService.smartNameFieldType(anyString(), Matchers.<String[]>any())).thenReturn(fieldMapper);
 
 
         IndexFieldData<?> fieldData = ifd.getForField(fieldMapper);
