@@ -30,7 +30,9 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.CrateDocIndexService;
-import io.crate.metadata.*;
+import io.crate.metadata.AbstractReferenceResolver;
+import io.crate.metadata.Functions;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.RecoveryShardReferenceResolver;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -48,6 +50,7 @@ import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.planner.node.dql.CollectPhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
@@ -87,6 +90,7 @@ public class ShardCollectService {
 
     @Inject
     public ShardCollectService(SearchContextFactory searchContextFactory,
+                               IndexNameExpressionResolver indexNameExpressionResolver,
                                ThreadPool threadPool,
                                ClusterService clusterService,
                                Settings settings,
@@ -124,6 +128,7 @@ public class ShardCollectService {
         );
         this.projectorVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
+                indexNameExpressionResolver,
                 threadPool,
                 settings,
                 transportActionProvider,

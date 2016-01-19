@@ -27,6 +27,7 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
@@ -137,9 +138,13 @@ public class DocTableInfoBuilder {
             IndexMetaData.Builder builder = new IndexMetaData.Builder(index);
             builder.putMapping(Constants.DEFAULT_MAPPING_TYPE,
                     indexTemplateMetaData.getMappings().get(Constants.DEFAULT_MAPPING_TYPE).toString());
-            Settings settings = indexTemplateMetaData.settings();
+
+            Settings.Builder settingsBuilder = Settings.builder()
+                    .put(indexTemplateMetaData.settings())
+                    .put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT);
+
+            Settings settings = settingsBuilder.build();
             builder.settings(settings);
-            // default values
             builder.numberOfShards(settings.getAsInt(SETTING_NUMBER_OF_SHARDS, 5));
             builder.numberOfReplicas(settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));
             docIndexMetaData = new DocIndexMetaData(functions, builder.build(), ident);

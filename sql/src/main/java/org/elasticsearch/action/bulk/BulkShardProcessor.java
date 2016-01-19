@@ -39,9 +39,12 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
+import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -99,6 +102,8 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
     public BulkShardProcessor(ClusterService clusterService,
                               TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
+                              IndexNameExpressionResolver indexNameExpressionResolver,
+                              final Settings settings,
                               BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                               final boolean autoCreateIndices,
                               int bulkSize,
@@ -114,15 +119,12 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
 
         if (autoCreateIndices) {
+            final AutoCreateIndex autoCreateIndex = new AutoCreateIndex(settings, indexNameExpressionResolver);
             shouldAutocreateIndexPredicate = new Predicate<String>() {
                 @Override
                 public boolean apply(@Nullable String input) {
                     assert input != null;
-                    /*
-                    return AUTO_CREATE_INDEX.shouldAutoCreate(input,
-                            BulkShardProcessor.this.clusterService.state());
-                            */
-                    return false;
+                    return autoCreateIndex.shouldAutoCreate(input, BulkShardProcessor.this.clusterService.state());
                 }
             };
         } else {
