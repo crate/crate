@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static com.google.common.collect.Maps.newHashMap;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -655,8 +657,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         // regression test, used to throw a ClassCastException because the ExecutionPhasesTask created a
         // QueryResult instead of RowCountResult
-        // TODO: FIX ME! $ and $$ not available anymore
-        SQLBulkResponse bulkResponse = null; // execute("update t set name = 'Trillian' where name = ?", $$($("Arthur")));
+        SQLBulkResponse bulkResponse = execute("update t set name = 'Trillian' where name = ?", $$($("Arthur")));
         assertThat(bulkResponse.results().length, is(1));
     }
 
