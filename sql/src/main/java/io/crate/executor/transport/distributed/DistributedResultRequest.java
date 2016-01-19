@@ -134,8 +134,7 @@ public class DistributedResultRequest extends TransportRequest {
 
         boolean failure = in.readBoolean();
         if (failure) {
-            // FIXME: stream throwable
-            throwable = new UnknownUpstreamFailure();
+            throwable = in.readThrowable();
         } else {
             StreamBucket bucket = new StreamBucket(streamers);
             bucket.readFrom(in);
@@ -156,7 +155,7 @@ public class DistributedResultRequest extends TransportRequest {
         boolean failure = throwable != null;
         out.writeBoolean(failure);
         if (failure) {
-            // FIXME: stream throwable
+            out.writeThrowable(throwable);
         } else {
             // TODO: we should not rely on another bucket in this class and instead write to the stream directly
             StreamBucket.writeBucket(out, streamers, rows);
