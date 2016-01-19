@@ -49,6 +49,7 @@ import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemp
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -58,8 +59,6 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.Settings;
-//import org.elasticsearch.search.highlight.HighlightModule;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -75,6 +74,8 @@ import static io.crate.testing.TestingHelpers.newMockedThreadPool;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.*;
+
+//import org.elasticsearch.search.highlight.HighlightModule;
 
 public class ShardProjectorChainTest extends CrateUnitTest {
 
@@ -105,6 +106,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
                 new NoopClusterService(),
+                new IndexNameExpressionResolver(Settings.EMPTY),
                 threadPool,
                 Settings.EMPTY,
                 mock(TransportActionProvider.class),

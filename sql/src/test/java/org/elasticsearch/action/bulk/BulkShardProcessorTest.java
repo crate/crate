@@ -35,6 +35,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.settings.Settings;
@@ -99,6 +100,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                Settings.EMPTY,
                 coordinatorPool,
                 false,
                 1,
@@ -166,6 +169,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                Settings.EMPTY,
                 coordinatorPool,
                 false,
                 1,
@@ -247,6 +252,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                Settings.EMPTY,
                 coordinatorPool,
                 false,
                 1,

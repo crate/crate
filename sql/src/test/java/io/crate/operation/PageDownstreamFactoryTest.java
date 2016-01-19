@@ -52,6 +52,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.collect.Tuple;
@@ -139,6 +140,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         BucketPage page = new BucketPage(Futures.immediateFuture(rows));
         final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
                 mock(ClusterService.class),
+                new IndexNameExpressionResolver(Settings.EMPTY),
                 threadPool,
                 Settings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
@@ -185,6 +187,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
                 Arrays.<Projection>asList(groupProjection), DistributionInfo.DEFAULT_BROADCAST);
         final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
                 mock(ClusterService.class),
+                new IndexNameExpressionResolver(Settings.EMPTY),
                 threadPool,
                 Settings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
