@@ -41,6 +41,7 @@ import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.planner.node.dql.MergePhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -56,6 +57,7 @@ public class PageDownstreamFactory {
 
     @Inject
     public PageDownstreamFactory(ClusterService clusterService,
+                                 IndexNameExpressionResolver indexNameExpressionResolver,
                                  ThreadPool threadPool,
                                  Settings settings,
                                  TransportActionProvider transportActionProvider,
@@ -66,6 +68,7 @@ public class PageDownstreamFactory {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.DOC, referenceResolver);
         this.projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
+                indexNameExpressionResolver,
                 threadPool,
                 settings,
                 transportActionProvider,
