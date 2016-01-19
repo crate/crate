@@ -4,10 +4,9 @@
     :target: https://crate.io
 
 =================================
-CRATE: The Scalable SQL Database*
+CRATE: Put data to work. Simply.
 =================================
 
-\* with the NoSQL goodies
 
     Crate allows to query and compute data with SQL in real time by providing a
     distributed aggregation engine, native search and super simple scalability.
@@ -88,7 +87,7 @@ Or with docker::
 
     docker pull crate && docker run -p 4200:4200 crate
 
-Visit the download_ page to see all available download and install options.
+Visit our `getting started`_ page to see all available download and install options.
 
 
 Use Crate
@@ -138,10 +137,10 @@ Do you have any questions? Or suggestions? We would be very happy
 to help you. So, feel free to to contact us on our public room in HipChat_.
 
 .. _HipChat: https://www.hipchat.com/g7Pc2CYwi
-  
+
 Or for further information and official contact please
 visit `https://crate.io/ <https://crate.io/>`_.
 
 .. _documentation: https://crate.io/docs/stable/installation.html
-.. _download: https://crate.io/download/
+.. _getting started: https://crate.io/docs/getting-started
 .. _crate introduction: https://crate.io/docs/stable/hello.html
