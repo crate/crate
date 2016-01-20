@@ -44,7 +44,6 @@ public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
         for (double d = 0.5; d<10.0d; d++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Double.toString(d), Field.Store.NO));
-            // TODO: FIX ME! is indexName proper replacement of name()?
             doc.add(new DoubleField(fieldName().indexName(), d, Field.Store.NO));
             writer.addDocument(doc);
         }
@@ -62,7 +61,6 @@ public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        // TODO: FIX ME! is indexName proper replacement of name()?
         DoubleColumnReference doubleColumn = new DoubleColumnReference(fieldName().indexName());
         doubleColumn.startCollect(ctx);
         doubleColumn.setNextReader(readerContext);

@@ -319,7 +319,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             source = XContentFactory.jsonBuilder().map(sourceMap).bytes();
         }
 
-        // TODO: FIX ME!
         IndexRequest indexRequest = Requests.indexRequest(request.index())
                 .type(request.type())
                 .id(item.id())

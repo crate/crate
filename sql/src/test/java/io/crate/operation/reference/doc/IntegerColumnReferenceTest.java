@@ -44,7 +44,6 @@ public class IntegerColumnReferenceTest extends DocLevelExpressionsTest {
         for (int i = -10; i<10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            // TODO: FIX ME! is indexName proper replacement of name()?
             doc.add(new IntField(fieldName().indexName(), i, Field.Store.NO));
             writer.addDocument(doc);
         }
@@ -62,7 +61,6 @@ public class IntegerColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        // TODO: FIX ME! is indexName proper replacement of name()?
         IntegerColumnReference integerColumn = new IntegerColumnReference(fieldName().indexName());
         integerColumn.startCollect(ctx);
         integerColumn.setNextReader(readerContext);
