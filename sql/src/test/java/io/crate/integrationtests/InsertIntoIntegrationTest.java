@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -36,6 +35,8 @@ import org.junit.rules.ExpectedException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
@@ -693,11 +694,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     public void testInsertFromSubQueryGeoShapes() throws Exception {
         execute("create table strshapes (id int primary key, shape string) with (number_of_replicas=0)");
         ensureYellow();
-        // TODO: FIX ME! $ and $$ not available anymore
-        /*execute("insert into strshapes (id, shape) VALUES (?, ?)", $$(
+        execute("insert into strshapes (id, shape) VALUES (?, ?)", $$(
                 $(1, "POINT (0 0)"),
                 $(2, "LINESTRING (0 0, 1 1, 2 2)")
-        ));*/
+        ));
         execute("refresh table strshapes");
 
         execute("create table shapes (id int primary key, shape geo_shape) with (number_of_replicas=0)");
