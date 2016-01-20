@@ -61,15 +61,10 @@ public class CrateSearchContext extends DefaultSearchContext {
                               Counter timeEstimateCounter,
                               Optional<Scroll> scroll,
                               long keepAlive) {
-        // TODO: FIX ME! ParseFieldMatcher
         super(id, new CrateSearchShardRequest(nowInMillis, scroll, indexShard),
                 shardTarget, engineSearcher, indexService,
                 indexShard, scriptService, pageCacheRecycler,
-                bigArrays, timeEstimateCounter, null, SearchService.NO_TIMEOUT);
-        if (scroll.isPresent()) {
-            // TODO: FIX ME!
-            // scroll(scroll.get());
-        }
+                bigArrays, timeEstimateCounter, ParseFieldMatcher.STRICT, SearchService.NO_TIMEOUT);
         keepAlive(keepAlive);
         this.engineSearcher = engineSearcher;
     }
@@ -94,13 +89,11 @@ public class CrateSearchContext extends DefaultSearchContext {
             this.shardId = indexShard.shardId().id();
         }
 
-        // TODO: FIX ME! Implement me
         @Override
         public Boolean requestCache() {
             return true;
         }
 
-        // TODO: FIX ME! Implement me
         @Override
         public Template template() {
            return new Template();
@@ -155,40 +148,15 @@ public class CrateSearchContext extends DefaultSearchContext {
             return nowInMillis;
         }
 
-        /* @Override
-        public String templateName() {
-            return null;
-        }
-
-        @Override
-        public ScriptService.ScriptType templateType() {
-            return null;
-        }
-
-        @Override
-        public Map<String, Object> templateParams() {
-            return null;
-        } */
-
         @Override
         public BytesReference templateSource() {
             return null;
         }
 
-        /* @Override
-        public Boolean queryCache() {
-            return null;
-        } */
-
         @Override
         public Scroll scroll() {
             return scroll;
         }
-
-        /* @Override
-        public boolean useSlowScroll() {
-            return false;
-        } */
 
         @Override
         public BytesReference cacheKey() throws IOException {
@@ -244,7 +212,6 @@ public class CrateSearchContext extends DefaultSearchContext {
         }
 
         @Override
-        // TODO: FIX ME! return type wrong!
         public <V> void putHeader(String key, V value) {
 
         }

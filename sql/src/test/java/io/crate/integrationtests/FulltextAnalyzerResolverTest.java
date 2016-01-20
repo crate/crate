@@ -71,10 +71,9 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
             }
         });
         if (!settingsToRemove.isEmpty()) {
-            client().admin().cluster().prepareUpdateSettings();
-                    // TODO: FIX ME! setTransientSettingsToRemove et al not available anymore
-                    //.setTransientSettingsToRemove(settingsToRemove)
-                    //.setPersistentSettingsToRemove(settingsToRemove).execute().actionGet();
+            client().admin().cluster().prepareUpdateSettings()
+                    .setTransientSettingsToRemove(settingsToRemove)
+                    .setPersistentSettingsToRemove(settingsToRemove).execute().actionGet();
         }
         super.tearDown();
     }
@@ -278,7 +277,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 is("arabic, armenian, basque, brazilian, bulgarian, catalan, chinese, cjk, " +
                         "classic, czech, danish, default, dutch, english, finnish, french, " +
                         "galician, german, greek, hindi, hungarian, indonesian, irish, " +
-                        "italian, keyword, latvian, norwegian, pattern, persian, portuguese, " +
+                        "italian, keyword, latvian, lithuanian, norwegian, pattern, persian, portuguese, " +
                         "romanian, russian, simple, snowball, sorani, spanish, standard, " +
                         "standard_html_strip, stop, swedish, thai, turkish, whitespace"));
     }
