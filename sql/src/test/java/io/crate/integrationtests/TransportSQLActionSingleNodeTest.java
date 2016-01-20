@@ -226,9 +226,8 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
             assertResponseWithTypes("create ANALYZER \"german_snowball\" extends snowball WITH (language='german')");
         } finally {
             client().admin().cluster().prepareUpdateSettings()
-                    // TODO: FIX ME! settingsToRemove not available anymore
-                    /*.setPersistentSettingsToRemove(ImmutableSet.of("crate.analysis.custom.analyzer.german_snowball"))
-                    .setTransientSettingsToRemove(ImmutableSet.of("crate.analysis.custom.analyzer.german_snowball"))*/
+                    .setPersistentSettingsToRemove(ImmutableSet.of("crate.analysis.custom.analyzer.german_snowball"))
+                    .setTransientSettingsToRemove(ImmutableSet.of("crate.analysis.custom.analyzer.german_snowball"))
                     .execute().actionGet();
         }
     }

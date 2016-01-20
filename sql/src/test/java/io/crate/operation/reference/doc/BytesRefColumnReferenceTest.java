@@ -45,7 +45,6 @@ public class BytesRefColumnReferenceTest extends DocLevelExpressionsTest {
             builder.append(i);
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            // TODO: FIX ME! is indexName proper replacement of name()?
             doc.add(new StringField(fieldName().indexName(), builder.toString(), Field.Store.NO));
             writer.addDocument(doc);
         }
@@ -63,7 +62,6 @@ public class BytesRefColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        // TODO: FIX ME! is indexName proper replacement of name()?
         BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(fieldName().indexName());
         bytesRefColumn.startCollect(ctx);
         bytesRefColumn.setNextReader(readerContext);

@@ -73,8 +73,7 @@ public class ExpressionToMemoryValueVisitor {
                 value = new ByteSizeValue(((Number) param).longValue());
             } else if (param instanceof String) {
                 try {
-                    // TODO: FIX ME! parseBytesSizeValueOr... requires settings to be passed in
-                    value = null; //MemorySizeValue.parseBytesSizeValueOrHeapRatio((String) param);
+                    value = MemorySizeValue.parseBytesSizeValueOrHeapRatio((String) param, context.settingName);
                 } catch (ElasticsearchParseException e) {
                     throw new IllegalArgumentException(
                             String.format(Locale.ENGLISH, "Invalid byte size value '%s'", param));

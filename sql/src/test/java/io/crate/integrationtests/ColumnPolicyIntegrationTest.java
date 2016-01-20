@@ -383,8 +383,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         IndexTemplateMetaData template = response.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
-        // TODO: FIX ME!
-        Tuple<XContentType, Map<String, Object>> typeAndMap = null; //XContentHelper.convertToMap(mappingStr.uncompressed(), false);
+        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>)typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(String.valueOf(mapping.get("dynamic")), is(ColumnPolicy.STRICT.value()));
@@ -420,8 +419,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         IndexTemplateMetaData template = response.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
-        // TODO: FIX ME!
-        Tuple<XContentType, Map<String, Object>> typeAndMap = null; //XContentHelper.convertToMap(mappingStr.uncompressed(), false);
+        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>)typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(String.valueOf(mapping.get("dynamic")), is(ColumnPolicy.STRICT.value()));
@@ -457,8 +455,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         IndexTemplateMetaData template = templateResponse.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
-        // TODO: FIX ME!
-        Tuple<XContentType, Map<String, Object>> typeAndMap = null; //XContentHelper.convertToMap(mappingStr.uncompressed(), false);
+        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>)typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(String.valueOf(mapping.get("dynamic")), is("true"));
@@ -587,8 +584,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         IndexTemplateMetaData template = response.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
-        // TODO: FIX ME!
-        Tuple<XContentType, Map<String, Object>> typeAndMap = null; //XContentHelper.convertToMap(mappingStr.uncompressed(), false);
+        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>)typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(String.valueOf(mapping.get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));

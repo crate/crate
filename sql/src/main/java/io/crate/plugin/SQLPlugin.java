@@ -22,6 +22,7 @@
 package io.crate.plugin;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.Constants;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLBulkAction;
 import io.crate.action.sql.TransportSQLAction;
@@ -37,6 +38,8 @@ import io.crate.metadata.blob.MetaDataBlobModule;
 import io.crate.metadata.doc.MetaDataDocModule;
 import io.crate.metadata.doc.array.ArrayMapperIndexModule;
 import io.crate.metadata.information.MetaDataInformationModule;
+import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.settings.Setting;
 import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -56,6 +59,8 @@ import io.crate.service.SQLService;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
+import org.elasticsearch.cluster.ClusterModule;
+import org.elasticsearch.cluster.settings.Validator;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
@@ -158,26 +163,30 @@ public class SQLPlugin extends Plugin {
         restModule.addRestAction(RestSQLAction.class);
     }
 
-    // TODO: FIX ME! ClusterDynamicSettings not existent anymore
-    /*public void onModule(ClusterDynamicSettingsModule clusterDynamicSettingsModule) {
+    public void onModule(ClusterModule clusterModule) {
         // add our dynamic cluster settings
-        clusterDynamicSettingsModule.addDynamicSettings(Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX + "*");
+        clusterModule.registerClusterDynamicSetting(Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX + "*", Validator.EMPTY);
+
+        /* FIXME
         clusterDynamicSettingsModule.addDynamicSettings(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING);
         clusterDynamicSettingsModule.addDynamicSettings(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING);
-        registerSettings(clusterDynamicSettingsModule, CrateSettings.CRATE_SETTINGS);
+        */
+
+        registerSettings(clusterModule, CrateSettings.CRATE_SETTINGS);
     }
 
-    private void registerSettings(ClusterDynamicSettingsModule clusterDynamicSettingsModule, List<Setting> settings) {
-        for (Setting setting : settings) {*/
+    private void registerSettings(ClusterModule clusterModule, Collection<? extends Setting> settings) {
+        for (Setting setting : settings) {
             /**
              * validation is done in
              * {@link io.crate.analyze.SettingsAppliers.AbstractSettingsApplier#apply(org.elasticsearch.common.settings.Settings.Builder, Object[], io.crate.sql.tree.Expression)}
              * here we use Validator.EMPTY, since ES ignores invalid settings silently
-             */
-            /*clusterDynamicSettingsModule.addDynamicSetting(setting.settingName(), Validator.EMPTY);
-            registerSettings(clusterDynamicSettingsModule, setting.children());
+             **/
+
+            clusterModule.registerClusterDynamicSetting(setting.settingName(), Validator.EMPTY);
+            registerSettings(clusterModule, setting.children());
         }
-    }*/
+    }
 
 
     public void onModule(ActionModule actionModule) {

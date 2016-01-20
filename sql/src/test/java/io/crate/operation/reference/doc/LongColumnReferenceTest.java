@@ -43,7 +43,6 @@ public class LongColumnReferenceTest extends DocLevelExpressionsTest {
         for (long l = Long.MIN_VALUE; l< Long.MIN_VALUE + 10; l++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Long.toString(l), Field.Store.NO));
-            // TODO: FIX ME! is indexName proper replacement of name()?
             doc.add(new LongField(fieldName().indexName(), l, Field.Store.NO));
             writer.addDocument(doc);
         }
@@ -61,7 +60,6 @@ public class LongColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        // TODO: FIX ME! is indexName proper replacement of name()?
         LongColumnReference longColumn = new LongColumnReference(fieldName().indexName());
         longColumn.startCollect(ctx);
         longColumn.setNextReader(readerContext);

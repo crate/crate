@@ -431,16 +431,14 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         SQLBaseResponse sqlResponse;
         Object[][] bulkArgs = context.bulkArgs();
         if (bulkArgs != null && bulkArgs.length > 0) {
-            // TODO: FIX ME! RequestBuilder requires Action
-            SQLBulkRequestBuilder requestBuilder = null; //new SQLBulkRequestBuilder(client());
+            SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client(), SQLBulkAction.INSTANCE);
             requestBuilder.bulkArgs(context.bulkArgs());
             requestBuilder.stmt(context.stmt());
             requestBuilder.includeTypesOnResponse(includeTypes);
             requestBuilder.setSchema(schema);
             sqlResponse = requestBuilder.execute().actionGet();
         } else {
-            // TODO: FIX ME! RequestBuilder requires Action
-            SQLRequestBuilder requestBuilder = null; //new SQLRequestBuilder(client());
+            SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client(), SQLAction.INSTANCE);
             requestBuilder.args(context.args());
             requestBuilder.stmt(context.stmt());
             requestBuilder.includeTypesOnResponse(includeTypes);
