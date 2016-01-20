@@ -239,7 +239,7 @@ public class TablePropertiesAnalyzer {
     private static class RefreshIntervalSettingApplier extends SettingsAppliers.AbstractSettingsApplier {
 
         public static final Settings DEFAULT = Settings.builder()
-                .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.defaultValue().millis()).build();
+                .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.defaultValue().millis() + "ms").build();
 
         private RefreshIntervalSettingApplier() {
             super(ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.REFRESH_INTERVAL), DEFAULT);
@@ -255,7 +255,7 @@ public class TablePropertiesAnalyzer {
             } catch (IllegalArgumentException e) {
                 throw invalidException(e);
             }
-            settingsBuilder.put(TableParameterInfo.REFRESH_INTERVAL, refreshIntervalValue.toString());
+            settingsBuilder.put(TableParameterInfo.REFRESH_INTERVAL, refreshIntervalValue.toString() + "ms");
         }
 
         @Override

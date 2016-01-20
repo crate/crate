@@ -137,7 +137,6 @@ public class AnalyzedColumnDefinition {
     public boolean docValues() {
         return !isIndex()
                 && collectionType == null
-                && !dataType.equals("object")
                 && index().equals("not_analyzed");
     }
 
