@@ -43,7 +43,6 @@ public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
         for (float f = -0.5f; f<10.0f; f++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Float.toString(f), Field.Store.NO));
-            // TODO: FIX ME! is indexName proper replacement of name()?
             doc.add(new FloatField(fieldName().indexName(), f, Field.Store.NO));
             writer.addDocument(doc);
         }
@@ -61,7 +60,6 @@ public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        // TODO: FIX ME! is indexName proper replacement of name()?
         FloatColumnReference floatColumn = new FloatColumnReference(fieldName().indexName());
         floatColumn.startCollect(ctx);
         floatColumn.setNextReader(readerContext);

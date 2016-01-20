@@ -169,10 +169,8 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         DateTimeZone timeZone = TimeZoneParser.parseTimeZone(timeZoneString);
 
         TimeZoneRounding.Builder tzRoundingBuilder = TimeZoneRounding.builder(intervalAsUnit);
-        // TODO: FIX ME! TimeZone handling changed
         return tzRoundingBuilder
-                //.preZone(timeZone)
-                //.preZoneAdjustLargeInterval(true)
+                .timeZone(timeZone)
                 .build();
     }
 

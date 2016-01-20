@@ -43,7 +43,6 @@ public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
         for (short i = -10; i<10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Short.toString(i), Field.Store.NO));
-            // TODO: FIX ME! is indexName proper replacement of name()?
             doc.add(new IntField(fieldName().indexName(), i, Field.Store.NO));
             writer.addDocument(doc);
         }
@@ -61,7 +60,6 @@ public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        // TODO: FIX ME! is indexName proper replacement of name()?
         ShortColumnReference shortColumn = new ShortColumnReference(fieldName().indexName());
         shortColumn.startCollect(ctx);
         shortColumn.setNextReader(readerContext);
