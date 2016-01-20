@@ -41,6 +41,8 @@ class FieldVisitorCollector extends SimpleCollector {
 
     @Override
     protected void doSetNextReader(LeafReaderContext context) throws IOException {
+        super.doSetNextReader(context);
+        collector.getLeafCollector(context);
         currentReader = context.reader();
     }
 
