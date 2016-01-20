@@ -51,7 +51,6 @@ import org.junit.Test;
 
 import java.util.*;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
@@ -100,11 +99,11 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         assertThat(((BytesRef) result.iterator().next().get(0)).utf8ToString(), Matchers.startsWith("SUITE-"));
     }
 
-    private Bucket collect(CollectPhase collectNode) throws Exception {
+    private Bucket collect(CollectPhase collectPhase) throws Exception {
         CollectingRowReceiver collectingProjector = new CollectingRowReceiver();
         collectingProjector.prepare(mock(ExecutionState.class));
-        Collection<CrateCollector> collectors = operation.createCollectors(collectNode, collectingProjector, mock(JobCollectContext.class));
-        operation.launchCollectors(collectors);
+        Collection<CrateCollector> collectors = operation.createCollectors(collectPhase, collectingProjector, mock(JobCollectContext.class));
+        operation.launchCollectors(collectors, JobCollectContext.threadPoolName(collectPhase, clusterService().localNode().id()));
         return collectingProjector.result();
     }
 

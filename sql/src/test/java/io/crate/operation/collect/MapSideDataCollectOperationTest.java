@@ -34,13 +34,13 @@ import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.projection.Projection;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Rule;
@@ -55,13 +55,12 @@ import java.util.*;
 import static io.crate.testing.TestingHelpers.createReference;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class MapSideDataCollectOperationTest {
+public class MapSideDataCollectOperationTest extends CrateUnitTest {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -96,8 +95,8 @@ public class MapSideDataCollectOperationTest {
                 functions,
                 referenceResolver,
                 mock(NodeSysExpression.class),
-                new ThreadPool(ImmutableSettings.builder().put("name", getClass().getName()).build()),
-                collectSourceResolver
+                collectSourceResolver,
+                mock(ThreadPool.class)
         );
 
         File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");
@@ -127,13 +126,15 @@ public class MapSideDataCollectOperationTest {
                 false
         );
 
+        String threadPoolName = JobCollectContext.threadPoolName(collectNode, "dummyNodeId");
+
         CollectingRowReceiver cd = new CollectingRowReceiver();
         cd.prepare(mock(ExecutionState.class));
         JobCollectContext jobCollectContext = mock(JobCollectContext.class);
         KeepAliveListener keepAliveListener = mock(KeepAliveListener.class);
         when(jobCollectContext.keepAliveListener()).thenReturn(keepAliveListener);
         Collection<CrateCollector> collectors = collectOperation.createCollectors(collectNode, cd, jobCollectContext);
-        collectOperation.launchCollectors(collectors);
+        collectOperation.launchCollectors(collectors, threadPoolName);
         assertThat(cd.result(), contains(
                 isRow("Arthur", 38),
                 isRow("Trillian", 33)

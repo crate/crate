@@ -25,6 +25,8 @@ import com.google.common.base.Throwables;
 import io.crate.Streamer;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
@@ -39,6 +41,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
@@ -119,12 +122,20 @@ public class JobExecutionContextTest extends CrateUnitTest {
 
     @Test
     public void testFailureClosesAllSubContexts() throws Exception {
+        String localNodeId = "localNodeId";
+        CollectPhase collectPhase = Mockito.mock(CollectPhase.class);
+        Routing routing = Mockito.mock(Routing.class);
+        when(routing.containsShards(localNodeId)).thenReturn(false);
+        when(collectPhase.routing()).thenReturn(routing);
+        when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
+
         JobExecutionContext.Builder builder =
                 new JobExecutionContext.Builder(UUID.randomUUID(), threadPool, mock(StatsTables.class));
 
         JobCollectContext jobCollectContext = new JobCollectContext(
-                mock(CollectPhase.class),
+                collectPhase,
                 mock(MapSideDataCollectOperation.class),
+                localNodeId,
                 mock(RamAccountingContext.class),
                 mock(RowReceiver.class),
                 mock(SharedShardContexts.class));
