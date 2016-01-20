@@ -340,15 +340,14 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("myotheranalyzer", response.rows()[1][0]);
         assertEquals("ANALYZER", response.rows()[1][1]);
         client().admin().cluster().prepareUpdateSettings()
-                // TODO: FIX ME! settingsToRemove not available
-                /*.setPersistentSettingsToRemove(
+                .setPersistentSettingsToRemove(
                     ImmutableSet.of("crate.analysis.custom.analyzer.myanalyzer",
                             "crate.analysis.custom.analyzer.myotheranalyzer",
                             "crate.analysis.custom.filter.myanalyzer_mytokenfilter"))
                 .setTransientSettingsToRemove(
                         ImmutableSet.of("crate.analysis.custom.analyzer.myanalyzer",
                                 "crate.analysis.custom.analyzer.myotheranalyzer",
-                                "crate.analysis.custom.filter.myanalyzer_mytokenfilter"))*/
+                                "crate.analysis.custom.filter.myanalyzer_mytokenfilter"))
                 .execute().actionGet();
     }
 

@@ -61,7 +61,6 @@ public class ByteColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        // TODO: FIX ME! is indexName proper replacement of name()?
         ByteColumnReference byteColumn = new ByteColumnReference(fieldName().indexName());
         byteColumn.startCollect(ctx);
         byteColumn.setNextReader(readerContext);
