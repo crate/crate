@@ -404,6 +404,7 @@ public class ContextPreparer {
             return new JobCollectContext(
                     phase,
                     collectOperation,
+                    clusterService.state().nodes().localNodeId(),
                     ramAccountingContext,
                     rowReceiver,
                     context.sharedShardContexts

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved reliability of queries on system tables even if cluster is
+   overloaded and/or doc table queries are stuck.
+
  - Fewer retries are done when a shard is not fully recovered and
    queried in order to safe threads.
 

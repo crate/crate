@@ -23,6 +23,7 @@ package io.crate.operation.collect;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -32,11 +33,13 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.jobs.ExecutionState;
 import io.crate.jobs.KeepAliveListener;
+import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dql.CollectPhase;
 import org.elasticsearch.common.StopWatch;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -54,11 +57,13 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
     private final IntObjectOpenHashMap<CrateSearchContext> searchContexts = new IntObjectOpenHashMap<>();
     private final Object subContextLock = new Object();
     private final ListenableRowReceiver listenableRowReceiver;
+    private final String threadPoolName;
 
     private Collection<CrateCollector> collectors;
 
     public JobCollectContext(final CollectPhase collectPhase,
                              MapSideDataCollectOperation collectOperation,
+                             String localNodeId,
                              RamAccountingContext queryPhaseRamAccountingContext,
                              final RowReceiver rowReceiver,
                              SharedShardContexts sharedShardContexts) {
@@ -81,6 +86,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
             }
         });
         this.rowReceiver = listenableRowReceiver;
+        this.threadPoolName = threadPoolName(collectPhase, localNodeId);
     }
 
     public void addSearchContext(int jobSearchContextId, CrateSearchContext searchContext) {
@@ -163,7 +169,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
             if (LOGGER.isTraceEnabled()) {
                 measureCollectTime();
             }
-            collectOperation.launchCollectors(collectors);
+            collectOperation.launchCollectors(collectors, threadPoolName);
         }
     }
 
@@ -200,5 +206,20 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
     @Override
     public SubContextMode subContextMode() {
         return SubContextMode.ACTIVE;
+    }
+
+    @VisibleForTesting
+    static String threadPoolName(CollectPhase collectPhase, String localNodeId) {
+        if (collectPhase.maxRowGranularity() == RowGranularity.DOC
+            && collectPhase.routing().containsShards(localNodeId)) {
+            // DOC table collectors
+            return ThreadPool.Names.SEARCH;
+        } else if (collectPhase.maxRowGranularity() == RowGranularity.NODE
+                || collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
+            // Node or Shard system table collector
+            return ThreadPool.Names.MANAGEMENT;
+        }
+        // Anything else like INFORMATION_SCHEMA tables or sys.cluster table collector
+        return ThreadPool.Names.PERCOLATE;
     }
 }

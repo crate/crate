@@ -42,6 +42,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Collection;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -54,24 +55,22 @@ public class MapSideDataCollectOperation {
     private final EvaluatingNormalizer clusterNormalizer;
     private final ClusterService clusterService;
     private final CollectSourceResolver collectSourceResolver;
-    private final ThreadPoolExecutor executor;
-    private final int poolSize;
     private final Functions functions;
     private final NodeSysExpression nodeSysExpression;
+    private final ThreadPool threadPool;
 
     @Inject
     public MapSideDataCollectOperation(ClusterService clusterService,
                                        Functions functions,
                                        NestedReferenceResolver clusterReferenceResolver,
                                        NodeSysExpression nodeSysExpression,
-                                       ThreadPool threadPool,
-                                       CollectSourceResolver collectSourceResolver) {
+                                       CollectSourceResolver collectSourceResolver,
+                                       ThreadPool threadPool) {
         this.functions = functions;
         this.nodeSysExpression = nodeSysExpression;
-        this.executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
-        this.poolSize = executor.getMaximumPoolSize();
         this.clusterService = clusterService;
         this.collectSourceResolver = collectSourceResolver;
+        this.threadPool = threadPool;
 
         clusterNormalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, clusterReferenceResolver);
     }
@@ -123,12 +122,19 @@ public class MapSideDataCollectOperation {
         return collectPhase;
     }
 
-    public void launchCollectors(Collection<CrateCollector> shardCollectors) throws RejectedExecutionException {
+    public void launchCollectors(Collection<CrateCollector> shardCollectors, String threadPoolName) throws RejectedExecutionException {
         assert !shardCollectors.isEmpty() : "must have at least one collector to launch";
-        ThreadPools.runWithAvailableThreads(
-                executor,
-                poolSize,
-                collectors2Runnables(shardCollectors));
+        Executor executor = threadPool.executor(threadPoolName);
+        if (executor instanceof ThreadPoolExecutor) {
+            ThreadPools.runWithAvailableThreads(
+                    (ThreadPoolExecutor) executor,
+                    collectors2Runnables(shardCollectors));
+        } else {
+            // assume executor is just a wrapper to 1 thread
+            for (CrateCollector collector : shardCollectors) {
+                collector.doCollect();
+            }
+        }
     }
 
     private Collection<Runnable> collectors2Runnables(Collection<CrateCollector> collectors) {
