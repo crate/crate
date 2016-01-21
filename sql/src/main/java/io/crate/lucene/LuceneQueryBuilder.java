@@ -1129,16 +1129,21 @@ public class LuceneQueryBuilder {
             for (LuceneCollectorExpression expression : expressions) {
                 expression.startCollect(collectorContext);
             }
-            return new FunctionFilter(expressions, collectorContext, condition);
+            return new FunctionFilter(function, expressions, collectorContext, condition);
         }
 
         public static class FunctionFilter extends Filter {
 
+            private final Function function;
             private final List<LuceneCollectorExpression> expressions;
             private final CollectorContext collectorContext;
             private final Input<Boolean> condition;
 
-            public FunctionFilter(List<LuceneCollectorExpression> expressions, CollectorContext collectorContext, Input<Boolean> condition) {
+            public FunctionFilter(Function function,
+                                  List<LuceneCollectorExpression> expressions,
+                                  CollectorContext collectorContext,
+                                  Input<Boolean> condition) {
+                this.function = function;
                 this.expressions = expressions;
                 this.collectorContext = collectorContext;
                 this.condition = condition;
@@ -1171,6 +1176,15 @@ public class LuceneQueryBuilder {
                         ),
                         acceptDocs
                 );
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                if (!super.equals(o)) return false;
+                FunctionFilter that = (FunctionFilter) o;
+                return Objects.equals(function, that.function);
             }
 
             @Override
