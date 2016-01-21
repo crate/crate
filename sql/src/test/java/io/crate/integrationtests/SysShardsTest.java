@@ -142,14 +142,14 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name = 'characters'");
         assertEquals(10L, response.rowCount());
-        assertEquals(11, response.cols().length);
+        assertEquals(12, response.cols().length);
     }
 
     @Test
     public void testSelectStarAllTables() throws Exception {
         SQLResponse response = transportExecutor.exec("select * from sys.shards");
         assertEquals(30L, response.rowCount());
-        assertEquals(11, response.cols().length);
+        assertEquals(12, response.cols().length);
         assertThat(response.cols(), arrayContaining(
                 "id",
                 "num_docs",
@@ -158,6 +158,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
                 "primary",
                 "recovery",
                 "relocating_node",
+                "routing_state",
                 "schema_name",
                 "size",
                 "state",
@@ -169,7 +170,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name like 'charact%'");
         assertEquals(10L, response.rowCount());
-        assertEquals(11, response.cols().length);
+        assertEquals(12, response.cols().length);
     }
 
     @Test
@@ -177,7 +178,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name not like 'quotes%'");
         assertEquals(20L, response.rowCount());
-        assertEquals(11, response.cols().length);
+        assertEquals(12, response.cols().length);
     }
 
     @Test
@@ -185,7 +186,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name in ('characters')");
         assertEquals(10L, response.rowCount());
-        assertEquals(11, response.cols().length);
+        assertEquals(12, response.cols().length);
     }
 
     @Test
@@ -202,7 +203,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         String[] tableNames = {"blobs", "characters", "quotes"};
         for (int i = 0; i < response.rowCount(); i++) {
             int idx = i/10;
-            assertEquals(tableNames[idx], response.rows()[i][10]);
+            assertEquals(tableNames[idx], response.rows()[i][11]);
         }
     }
 

@@ -56,6 +56,7 @@ public class SysShardsTableInfo extends SysTableInfo {
         public static final ColumnIdent RELOCATING_NODE = new ColumnIdent("relocating_node");
         public static final ColumnIdent SIZE = new ColumnIdent("size");
         public static final ColumnIdent STATE = new ColumnIdent("state");
+        public static final ColumnIdent ROUTING_STATE = new ColumnIdent("routing_state");
         public static final ColumnIdent ORPHAN_PARTITION = new ColumnIdent("orphan_partition");
 
         public static final ColumnIdent RECOVERY = new ColumnIdent("recovery");
@@ -96,6 +97,7 @@ public class SysShardsTableInfo extends SysTableInfo {
         public static final ReferenceIdent RELOCATING_NODE = new ReferenceIdent(IDENT, Columns.RELOCATING_NODE);
         public static final ReferenceIdent SIZE = new ReferenceIdent(IDENT, Columns.SIZE);
         public static final ReferenceIdent STATE = new ReferenceIdent(IDENT, Columns.STATE);
+        public static final ReferenceIdent ROUTING_STATE = new ReferenceIdent(IDENT, Columns.ROUTING_STATE);
         public static final ReferenceIdent ORPHAN_PARTITION = new ReferenceIdent(IDENT, Columns.ORPHAN_PARTITION);
         public static final ReferenceIdent RECOVERY = new ReferenceIdent(IDENT, Columns.RECOVERY);
     }
@@ -124,6 +126,7 @@ public class SysShardsTableInfo extends SysTableInfo {
                 .register(Columns.RELOCATING_NODE, StringType.INSTANCE)
                 .register(Columns.SIZE, LongType.INSTANCE)
                 .register(Columns.STATE, StringType.INSTANCE)
+                .register(Columns.ROUTING_STATE, StringType.INSTANCE)
                 .register(Columns.ORPHAN_PARTITION, BooleanType.INSTANCE)
 
                 .register(Columns.RECOVERY, ObjectType.INSTANCE)

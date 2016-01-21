@@ -40,6 +40,7 @@ public class SysShardExpressionModule extends AbstractModule {
         b.addBinding(SysShardsTableInfo.ReferenceIdents.NUM_DOCS).to(ShardNumDocsExpression.class).asEagerSingleton();
         b.addBinding(SysShardsTableInfo.ReferenceIdents.PRIMARY).to(ShardPrimaryExpression.class).asEagerSingleton();
         b.addBinding(SysShardsTableInfo.ReferenceIdents.STATE).to(ShardStateExpression.class).asEagerSingleton();
+        b.addBinding(SysShardsTableInfo.ReferenceIdents.ROUTING_STATE).to(ShardRoutingStateExpression.class).asEagerSingleton();
         b.addBinding(SysShardsTableInfo.ReferenceIdents.RELOCATING_NODE).to(ShardRelocatingNodeExpression.class).asEagerSingleton();
         b.addBinding(SysShardsTableInfo.ReferenceIdents.TABLE_NAME).to(ShardTableNameExpression.class).asEagerSingleton();
         b.addBinding(SysShardsTableInfo.ReferenceIdents.SCHEMA_NAME).to(ShardSchemaNameExpression.class).asEagerSingleton();
