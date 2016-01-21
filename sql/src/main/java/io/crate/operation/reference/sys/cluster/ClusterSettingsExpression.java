@@ -97,7 +97,7 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
 
         @Override
         public void onRefreshSettings(Settings settings) {
-            applySettings(CrateSettings.CRATE_SETTINGS,
+            applySettings(CrateSettings.SETTINGS,
                     Settings.builder()
                             .put(initialSettings)
                             .put(settings).build()
@@ -131,7 +131,7 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
 
     @Inject
     public ClusterSettingsExpression(Settings settings, NodeSettingsService nodeSettingsService) {
-        applyDefaults(CrateSettings.CRATE_SETTINGS);
+        applyDefaults(CrateSettings.SETTINGS);
         ApplySettings applySettings = new ApplySettings(settings, values);
 
         nodeSettingsService.addListener(applySettings);
