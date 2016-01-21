@@ -44,7 +44,7 @@ public class EngineSearcher {
             try {
                 engineSearcher = indexShard.acquireSearcher(searcherName);
             } catch (IllegalIndexShardStateException e) {
-                if (e.currentState() == IndexShardState.POST_RECOVERY && retry < 100) {
+                if (e.currentState() == IndexShardState.POST_RECOVERY && retry < 12) {
                     try {
                         if (LOGGER.isWarnEnabled() && retry > 10) {
                             LOGGER.warn("shard in POST_RECOVERY - retry: " + retry);

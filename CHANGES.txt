@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fewer retries are done when a shard is not fully recovered and
+   queried in order to safe threads.
+
  - Fix: The recovery expected nodes check incorrectly included client nodes
    instead of just data and master nodes.
 
