@@ -663,7 +663,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     @Test
     public void testCreateTableWithInvalidAnalyzer() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Analyzer [foobar] not found for field [content]");
+        expectedException.expectMessage("analyzer [foobar] not found for field [content]");
         executor.exec("create table t (content string index using fulltext with (analyzer='foobar'))");
     }
 
