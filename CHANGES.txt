@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: The recovery expected nodes check incorrectly included client nodes
+   instead of just data and master nodes.
+
 2016/01/18 0.54.3
 =================
 
