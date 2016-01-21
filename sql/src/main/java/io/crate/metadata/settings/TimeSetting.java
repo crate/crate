@@ -51,8 +51,8 @@ public abstract class TimeSetting extends Setting<TimeValue, String> {
         return extractTimeValue(settings).toString();
     }
 
-    public String extractMillis(Settings settings) {
-        return extractTimeValue(settings).millis() + "ms";
+    public long extractMillis(Settings settings) {
+        return extractTimeValue(settings).millis();
     }
 
     public TimeValue extractTimeValue(Settings settings) {

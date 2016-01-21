@@ -72,7 +72,6 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
             assertTrue(((Map<String, Object>) row[0]).containsKey("translog"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("recovery"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("warmer"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("gateway"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("refresh_interval"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("unassigned"));
         }
