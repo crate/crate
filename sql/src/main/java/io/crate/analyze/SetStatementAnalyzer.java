@@ -74,7 +74,7 @@ public class SetStatementAnalyzer {
     }
 
     private static void checkIfSettingIsRuntime(String name) {
-        checkIfSettingIsRuntime(CrateSettings.CRATE_SETTINGS, name);
+        checkIfSettingIsRuntime(CrateSettings.SETTINGS, name);
     }
 
     private static void checkIfSettingIsRuntime(List<Setting> settings, String name) {
