@@ -51,7 +51,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     public static final SortField SORT_SCORE_REVERSE = new SortField(null, SortField.Type.SCORE, true);
 
     public static final Map<DataType, SortField.Type> LUCENE_TYPE_MAP = ImmutableMap.<DataType, SortField.Type>builder()
-            .put(DataTypes.BOOLEAN, SortField.Type.STRING)
+            .put(DataTypes.BOOLEAN, SortField.Type.LONG)
             .put(DataTypes.BYTE, SortField.Type.LONG)
             .put(DataTypes.SHORT, SortField.Type.LONG)
             .put(DataTypes.LONG, SortField.Type.LONG)
