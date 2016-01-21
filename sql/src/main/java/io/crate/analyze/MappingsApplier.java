@@ -65,4 +65,9 @@ public abstract class MappingsApplier {
         return new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Invalid value for argument '%s'", publicName));
     }
+
+    @Override
+    public String toString() {
+        return "MappingsApplier{" + publicName + '}';
+    }
 }
