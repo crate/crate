@@ -32,11 +32,13 @@ import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class SettingsAppliers {
 
@@ -76,6 +78,11 @@ public class SettingsAppliers {
         public IllegalArgumentException invalidException() {
             return new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid value for argument '%s'", name));
+        }
+
+        @Override
+        public String toString() {
+            return "SettingsApplier{" + "name='" + name + '\'' + '}';
         }
     }
 
@@ -245,8 +252,8 @@ public class SettingsAppliers {
             this.setting = setting;
         }
 
-        private long validate(long num) {
-            if (num < setting.minValue() || num > setting.maxValue()) {
+        private ByteSizeValue validate(ByteSizeValue num) {
+            if (num.bytes() < setting.minValue() || num.bytes() > setting.maxValue()) {
                 throw invalidException();
             }
             return num;
@@ -266,11 +273,12 @@ public class SettingsAppliers {
                         "'%s' does not support null values", name));
             }
 
-            applyValue(settingsBuilder, byteSizeValue.bytes());
+            applyValue(settingsBuilder, byteSizeValue);
         }
 
-        public void applyValue(Settings.Builder settingsBuilder, long value) {
-            settingsBuilder.put(this.name, validate(value));
+        public void applyValue(Settings.Builder settingsBuilder, ByteSizeValue value) {
+            value = validate(value);
+            settingsBuilder.put(name, value.bytes(), ByteSizeUnit.BYTES);
         }
 
         @Override
@@ -288,7 +296,7 @@ public class SettingsAppliers {
             } else {
                 throw invalidException();
             }
-            applyValue(settingsBuilder, byteSizeValue.bytes());
+            applyValue(settingsBuilder, byteSizeValue);
         }
     }
 
@@ -332,8 +340,8 @@ public class SettingsAppliers {
             this.setting = setting;
         }
 
-        private long validate(long value) {
-            if (value < setting.minValue().getMillis() || value > setting.maxValue().getMillis()) {
+        private TimeValue validate(TimeValue value) {
+            if (value.getMillis() < setting.minValue().getMillis() || value.getMillis() > setting.maxValue().getMillis()) {
                 throw invalidException();
             }
             return value;
@@ -350,8 +358,9 @@ public class SettingsAppliers {
             applyValue(settingsBuilder, time.millis());
         }
 
-        public void applyValue(Settings.Builder settingsBuilder, long value) {
-            settingsBuilder.put(name, validate(value));
+        public void applyValue(Settings.Builder settingsBuilder, TimeValue value) {
+            value = validate(value);
+            settingsBuilder.put(name, value.getMillis(), TimeUnit.MILLISECONDS);
         }
 
         @Override
@@ -369,7 +378,7 @@ public class SettingsAppliers {
             } else {
                 throw invalidException();
             }
-            applyValue(settingsBuilder, timeValue.millis());
+            applyValue(settingsBuilder, timeValue);
         }
     }
 
