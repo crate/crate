@@ -54,7 +54,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
     private static final ESLogger LOGGER = Loggers.getLogger(TransportJobAction.class);
 
     public static final String ACTION_NAME = "crate/sql/job";
-    private static final String EXECUTOR = ThreadPool.Names.SAME;
+    private static final String EXECUTOR = ThreadPool.Names.PERCOLATE;
 
     private final IndicesService indicesService;
     private final Transports transports;
