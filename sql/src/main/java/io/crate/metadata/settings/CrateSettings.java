@@ -1825,7 +1825,9 @@ public class CrateSettings {
 
     public static final List<Setting<?, ?>> CRATE_SETTINGS = ImmutableList.<Setting<?, ?>>of(
             GRACEFUL_STOP,
-            STATS
+            STATS,
+            BULK_REQUEST_TIMEOUT,
+            BULK_PARTITION_CREATION_TIMEOUT
     );
 
     public static final List<Setting> SETTINGS = ImmutableList.<Setting>of(
