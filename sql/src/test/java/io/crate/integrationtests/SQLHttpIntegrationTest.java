@@ -45,7 +45,6 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
         return Settings.settingsBuilder()
                 .put(super.nodeSettings(nodeOrdinal))
                 .put("http.host", "127.0.0.1")
-                .put("http.enabled", true)
                 .build();
     }
 

@@ -38,7 +38,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         Settings.Builder builder = Settings.builder().put(super.nodeSettings(nodeOrdinal));
         builder.put(CrateSettings.BULK_REQUEST_TIMEOUT.settingName(), "42s");
-        builder.put("gateway.type", "local");
+        builder.put("gateway.type", "default");
         return builder.build();
     }
 
