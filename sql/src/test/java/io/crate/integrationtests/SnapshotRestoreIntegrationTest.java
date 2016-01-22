@@ -23,22 +23,24 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
-import io.crate.action.sql.TransportSQLAction;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.cluster.metadata.SnapshotId;
+import org.elasticsearch.cluster.metadata.SnapshotMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.snapshots.SnapshotInfo;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-
 
 public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -67,10 +69,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     }
 
     @After
-    public void dropRepository() throws Exception {
-        execute("DROP REPOSITORY " + REPOSITORY_NAME);
-        assertThat(response.rowCount(), is(1L));
-
+    public void resetSettings() throws Exception {
         execute("reset GLOBAL cluster.routing.allocation.enable");
         waitNoPendingTasksOnAll();
     }
@@ -155,22 +154,27 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         // this test just verifies that no exception is thrown if wait_for_completion is false
         execute("CREATE SNAPSHOT my_repo.snapshot_no_wait ALL WITH (wait_for_completion=false)");
         assertThat(response.rowCount(), is(1L));
-        waitForSnapshotCompletion("snapshot_no_wait");
+        waitForCompletion(REPOSITORY_NAME, "snapshot_no_wait", TimeValue.timeValueSeconds(20));
     }
 
-    private void waitForSnapshotCompletion(final String snapshotName) throws Exception {
-        // wait for success so that @after dropRepository doesn't fail
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                SQLRequest request = new SQLRequest(
-                        "select count(*) from sys.snapshots where state = 'SUCCESS' and name = ?", $(snapshotName));
-                for (TransportSQLAction transportSQLAction : internalCluster().getInstances(TransportSQLAction.class)) {
-                    SQLResponse response = transportSQLAction.execute(request).actionGet(5, TimeUnit.SECONDS);
-                    assertThat(((long) response.rows()[0][0]), is(1L));
+    private SnapshotInfo waitForCompletion(String repository, String snapshot, TimeValue timeout) throws InterruptedException {
+        long start = System.currentTimeMillis();
+        SnapshotId snapshotId = new SnapshotId(repository, snapshot);
+        while (System.currentTimeMillis() - start < timeout.millis()) {
+            ImmutableList<SnapshotInfo> snapshotInfos = client().admin().cluster().prepareGetSnapshots(repository).setSnapshots(snapshot).get().getSnapshots();
+            assertThat(snapshotInfos.size(), equalTo(1));
+            if (snapshotInfos.get(0).state().completed()) {
+                // Make sure that snapshot clean up operations are finished
+                ClusterStateResponse stateResponse = client().admin().cluster().prepareState().get();
+                SnapshotMetaData snapshotMetaData = stateResponse.getState().getMetaData().custom(SnapshotMetaData.TYPE);
+                if (snapshotMetaData == null || snapshotMetaData.snapshot(snapshotId) == null) {
+                    return snapshotInfos.get(0);
                 }
             }
-        });
+            Thread.sleep(100);
+        }
+        fail("Timeout waiting for snapshot completion!");
+        return null;
     }
 
     @Test
@@ -194,7 +198,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Snapshot \"my_repo\".\"my_snapshot\" already exists");
-        execute("CREATE SNAPSHOT my_repo.my_snapshot ALL WITH (wait_for_completion=true)");
+        execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
     }
 
     @Test
