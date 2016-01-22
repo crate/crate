@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Job prepare phases now run on their own threads in order to prevent
+   deadlocks in netty event loop.
+
  - Improved reliability of queries on system tables even if cluster is
    overloaded and/or doc table queries are stuck.
 
