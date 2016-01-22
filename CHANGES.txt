@@ -5,18 +5,6 @@ Changes for Crate
 Unreleased
 ==========
 
- - Job prepare phases now run on their own threads in order to prevent
-   deadlocks in netty event loop.
-
- - Improved reliability of queries on system tables even if cluster is
-   overloaded and/or doc table queries are stuck.
-
- - Fewer retries are done when a shard is not fully recovered and
-   queried in order to safe threads.
-
- - Fix: The recovery expected nodes check incorrectly included client nodes
-   instead of just data and master nodes.
-
  - BREAKING CHANGE: Tables are not refreshed automatically anymore
    before and after a `DELETE-BY-QUERY` operation is applied.
 
@@ -28,6 +16,21 @@ Unreleased
  - Exposed setting the default schema via HTTP header.
 
  - added `lower`` and `upper`` string functions
+
+2016/01/22 0.54.4
+=================
+
+ - Job prepare phases now run on their own threads in order to prevent
+   deadlocks in netty event loop.
+
+ - Improved reliability of queries on system tables even if cluster is
+   overloaded and/or doc table queries are stuck.
+
+ - Fewer retries are done when a shard is not fully recovered and
+   queried in order to safe threads.
+
+ - Fix: The recovery expected nodes check incorrectly included client nodes
+   instead of just data and master nodes.
 
 2016/01/18 0.54.3
 =================
