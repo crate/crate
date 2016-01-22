@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/01/22 0.54.4
+=================
+
  - Job prepare phases now run on their own threads in order to prevent
    deadlocks in netty event loop.
 
