@@ -23,11 +23,12 @@
 package io.crate.plugin.aws;
 
 import com.google.common.collect.Lists;
-import io.crate.Plugin;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
-// import org.elasticsearch.plugin.cloud.aws.CloudAwsPlugin;
+import org.elasticsearch.discovery.DiscoveryModule;
+import org.elasticsearch.plugin.cloud.aws.CloudAwsPlugin;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.RepositoriesModule;
 
 import java.util.Collection;
@@ -35,12 +36,13 @@ import java.util.List;
 
 public class CrateAwsPlugin extends Plugin {
 
-    // TODO: FIX ME!
-    // private final CloudAwsPlugin esAwsPlugin;
+    private final CloudAwsPlugin esAwsPlugin;
+
+    private final Settings settings;
 
     public CrateAwsPlugin(Settings settings) {
-        // TODO: FIX ME!
-        // this.esAwsPlugin = new CloudAwsPlugin(settings);
+        this.settings = settings;
+        this.esAwsPlugin = new CloudAwsPlugin(settings);
     }
 
     @Override
@@ -53,21 +55,26 @@ public class CrateAwsPlugin extends Plugin {
         return "crate on aws";
     }
 
-    // TODO: FIX ME!
-    /* @Override
-    public Collection<Module> modules(Settings settings) {
-        List<Module> modules = Lists.newArrayList(super.modules(settings));
+    @Override
+    public Collection<Module> nodeModules() {
+        List<Module> modules = Lists.newArrayList(super.nodeModules());
+
         modules.add(new S3RepositoryAnalysisModule(settings));
-        modules.addAll(esAwsPlugin.modules(settings));
+        modules.addAll(esAwsPlugin.nodeModules());
         return modules;
     }
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> nodeServices() {
-        return esAwsPlugin.services();
+        return esAwsPlugin.nodeServices();
     }
+
 
     public void onModule(RepositoriesModule repositoriesModule) {
         esAwsPlugin.onModule(repositoriesModule);
-    }*/
+    }
+
+    public void onModule(DiscoveryModule discoveryModule) {
+        esAwsPlugin.onModule(discoveryModule);
+    }
 }
