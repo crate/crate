@@ -407,6 +407,11 @@ task downloadPlugins << {
         from(project(':aws').tasks.jar.archivePath)
         into 'plugins/aws'
     }
+
+    copy {
+        from(project(':aws').projectDir.path + "/build/plugin-descriptor.properties")
+        into 'plugins/aws'
+    }
 }
 
 downloadPlugins.outputs.dir files(
