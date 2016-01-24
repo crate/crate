@@ -40,31 +40,51 @@ sourceSets {
     }
 }
 
-task copyUpstreamSource << {
-    if (!file('upstream/src/main/java').exists()) {
-        throw new GradleException("Please run 'git submodule update --init' first")
-    }
+task copyPluginSource << {
     if (!file('src/main/java/org/elasticsearch').exists()) {
         copy {
-            from 'upstream/src/main/java'
+            from '../es/upstream/plugins/cloud-aws/src/main/java'
             into 'src/main/java'
         }
     }
     if (!file('src/test/java').exists()) {
         copy {
-            from 'upstream/src/test/java'
+            from '../es/upstream/plugins/cloud-aws/src/test/java'
             into 'src/test/java'
         }
     }
 }
 
-task deleteUpstreamSource(type: Delete) {
+task deletePluginSource(type: Delete) {
     delete "src/main/java"
     delete "src/test/java"
 }
 
+task writePropertiesFile (dependsOn: ['getVersion']) << {
+
+    def file = new File("${buildDir}/plugin-descriptor.properties");
+    if (file.isFile()){
+        file.delete();
+    }
+    if(!file.isFile()){
+        file.createNewFile();
+    }
+
+    ant.propertyfile(file:file.path, comment:'Plugin Descriptor') {
+        ant.entry(key:'name', value:project.archivesBaseName)
+        ant.entry(key:'description', value:project.description)
+        ant.entry(key:'version', value:project.version)
+        ant.entry(key:'jvm', value:true)
+        ant.entry(key:'classname', value:'io.crate.plugin.aws.CrateAwsPlugin')
+        ant.entry(key:'elasticsearch.version', value:'2.1.2')
+        ant.entry(key:'java.version', value:JavaVersion.current())
+    }
+}
+
+processResources.dependsOn writePropertiesFile
+
 compileJava {
-    dependsOn copyUpstreamSource
+    dependsOn copyPluginSource
 }
 
 // get version and set it on the project, so it gets appended to the jar name
@@ -81,4 +101,4 @@ jar {
         }
     }
 }
-jar.dependsOn(getVersion)
+jar.dependsOn(getVersion, writePropertiesFile)
