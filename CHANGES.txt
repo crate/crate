@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Implemented the EXPLAIN command for SELECT statements.
+
  - Added `routing_state` column to `sys.shards` table in order to fix the
    underreplicated shards calculation in admin ui
 

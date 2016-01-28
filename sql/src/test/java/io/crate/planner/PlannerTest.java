@@ -39,6 +39,7 @@ import io.crate.planner.node.ddl.ESDeletePartitionNode;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.projection.*;
 import io.crate.sql.parser.SqlParser;
@@ -102,6 +103,17 @@ public class PlannerTest extends CrateUnitTest {
             .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g",  Arrays.asList(1, 2)).map())
             .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g",  Arrays.asList(3)).map())
             .map());
+
+
+    private static final List<String> EXPLAIN_TEST_STATEMENTS =  ImmutableList.of(
+            "select id from sys.cluster",
+            "select id from users order by id",
+            "select * from users",
+            "select count(*) from users",
+            "select name, count(distinct id) from users group by name",
+            "select avg(id) from users"
+    );
+
 
 
     private ClusterService clusterService;
@@ -2088,4 +2100,28 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
     }
 
+    @Test
+    public void testExplain() throws Exception {
+        for (String statement : EXPLAIN_TEST_STATEMENTS) {
+            ExplainPlan plan = plan("explain " + statement);
+            assertNotNull(plan);
+            assertNotNull(plan.subPlan());
+        }
+    }
+
+    @Test
+    public void testPrinter() throws Exception {
+        for (String statement : EXPLAIN_TEST_STATEMENTS) {
+            Plan plan = plan(statement);
+            Map<String, Object> map = null;
+            try {
+                map = PlanPrinter.objectMap(plan);
+            } catch (Exception e){
+                fail("statement not printable: " + statement);
+            }
+            assertNotNull(map);
+            assertThat(map.size(), greaterThan(0));
+        }
+
+    }
 }

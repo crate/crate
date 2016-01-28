@@ -50,6 +50,7 @@ public class QueryThenFetch extends PlanAndPlannedAnalyzedRelation {
         return fetchPhase;
     }
 
+    @Nullable
     public MergePhase localMerge() {
         return localMerge;
     }

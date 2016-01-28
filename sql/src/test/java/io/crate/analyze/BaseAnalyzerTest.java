@@ -297,19 +297,33 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
         }
     }
 
-    protected <T> T analyze(String statement) {
+    protected <T extends AnalyzedStatement> T analyze(String statement) {
         //noinspection unchecked
-        return (T) analyze(statement, new Object[0]);
+        return (T) analysis(statement).analyzedStatement();
     }
 
-    protected AnalyzedStatement analyze(String statement, Object[] params) {
-        return analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(params, new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+    protected <T extends AnalyzedStatement> T analyze(String statement, Object[] params) {
+        //noinspection unchecked
+        return (T) analysis(statement, params).analyzedStatement();
     }
 
-    protected AnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
+    protected <T extends AnalyzedStatement> T analyze(String statement, Object[][] bulkArgs) {
+        //noinspection unchecked
+        return (T) analysis(statement, bulkArgs).analyzedStatement();
+    }
+
+    protected Analysis analysis(String statement) {
+        return analysis(statement, new Object[0]);
+    }
+
+    protected Analysis analysis(String statement, Object[][] bulkArgs) {
         return analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+                new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME));
+    }
+
+    protected Analysis analysis(String statement, Object [] params) {
+        return analyzer.analyze(SqlParser.createStatement(statement),
+                new ParameterContext(params, new Object[0][], Schemas.DEFAULT_SCHEMA_NAME));
     }
 
     protected List<Module> getModules() {

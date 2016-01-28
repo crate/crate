@@ -32,6 +32,7 @@ import io.crate.executor.Job;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.executor.task.DDLTask;
+import io.crate.executor.task.ExplainTask;
 import io.crate.executor.task.NoopTask;
 import io.crate.executor.transport.task.*;
 import io.crate.executor.transport.task.elasticsearch.*;
@@ -54,6 +55,7 @@ import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -164,6 +166,11 @@ public class TransportExecutor implements Executor {
         @Override
         public List<Task> visitNoopPlan(NoopPlan plan, UUID jobId) {
             return ImmutableList.<Task>of(NoopTask.INSTANCE);
+        }
+
+        @Override
+        public List<? extends Task> visitExplainPlan(ExplainPlan explainPlan, UUID context) {
+            return ImmutableList.of(new ExplainTask(explainPlan));
         }
 
         @Override

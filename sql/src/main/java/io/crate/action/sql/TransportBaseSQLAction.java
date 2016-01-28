@@ -53,6 +53,7 @@ import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.IndexShardMissingException;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.mapper.MapperParsingException;
@@ -70,6 +71,7 @@ import org.elasticsearch.transport.NodeDisconnectedException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Collections;
@@ -296,11 +298,18 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
     private void tracePlan(Plan plan) {
         if (logger.isTraceEnabled()) {
-            PlanPrinter printer = new PlanPrinter();
-            logger.trace(printer.print(plan));
+            String json = null;
+            try {
+                json = JsonXContent.contentBuilder()
+                        .humanReadable(true)
+                        .prettyPrint()
+                        .value(PlanPrinter.objectMap(plan)).bytes().toUtf8();
+            } catch (IOException e) {
+                logger.error("Failed to print plan", e);
+            }
+            logger.trace(json);
         }
     }
-
 
     /**
      * Returns the cause throwable of a {@link org.elasticsearch.transport.RemoteTransportException}
