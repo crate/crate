@@ -48,6 +48,7 @@ import io.crate.planner.node.ddl.GenericDDLNode;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertByIdNode;
+import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.statement.CopyStatementPlanner;
@@ -424,6 +425,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         return analysis.jobId().isPresent() ?
                 new KillPlan(context.jobId(), analysis.jobId().get()) :
                 new KillPlan(context.jobId());
+    }
+
+    @Override
+    public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, Context context) {
+        return new ExplainPlan(process(explainAnalyzedStatement.statement(), context));
     }
 
     private Upsert processInsertStatement(InsertFromValuesAnalyzedStatement analysis, Context context) {

@@ -75,4 +75,8 @@ public abstract class AnalyzedRelationVisitor<C, R> {
     public R visitTwoTableJoin(TwoTableJoin twoTableJoin, C context) {
         return visitAnalyzedRelation(twoTableJoin, context);
     }
+
+    public R visitExplain(ExplainAnalyzedStatement explainAnalyzedStatement, C context) {
+        return visitAnalyzedRelation(explainAnalyzedStatement, context);
+    }
 }

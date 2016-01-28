@@ -140,4 +140,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitResetAnalyzedStatement(ResetAnalyzedStatement resetAnalyzedStatement, C context) {
         return visitAnalyzedStatement(resetAnalyzedStatement, context);
     }
+
+    public R visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, C context) {
+        return visitAnalyzedStatement(explainAnalyzedStatement, context);
+    }
 }

@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
@@ -48,5 +49,12 @@ public class SysClusterTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         String node = (String) response.rows()[0][0];
         assertTrue(nodes.contains(node));
+    }
+
+    @Test
+    public void testExplainSysCluster() throws Exception {
+        execute("explain select * from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((String) ((Map<String, Object>) response.rows()[0][0]).get("planType"), is("CollectAndMerge"));
     }
 }

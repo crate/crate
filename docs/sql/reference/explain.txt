@@ -1,0 +1,31 @@
+.. highlight:: psql
+.. _sql_ref_refresh:
+
+=======
+EXPLAIN
+=======
+
+Explain the plan for a given statement.
+
+
+Synopsis
+========
+
+::
+
+    EXPLAIN statement
+
+
+Description
+===========
+
+The ``EXPLAIN`` command displays the execution plan that the planner
+generates for the supplied statement. The plan is returned as a nested
+object containing the plan tree.
+
+Parameters
+==========
+
+:statement: The statement for which a plan should be
+            returned. Currently only SELECT statements are supported.
+
