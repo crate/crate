@@ -57,6 +57,24 @@ public final class SqlFormatter {
             throw new UnsupportedOperationException("not yet implemented: " + node);
         }
 
+
+        @Override
+        public Void visitRefreshStatement(RefreshStatement node, Integer indent) {
+            append(indent, "REFRESH TABLE ");
+            appendFlatNodeList(node.tables(), indent);
+            return null;
+        }
+
+        @Override
+        protected Void visitExplain(Explain node, Integer indent) {
+            append(indent, "EXPLAIN ");
+            for (ExplainOption explainOption : node.getOptions()) {
+                process(explainOption, indent);
+            }
+            process(node.getStatement(), indent);
+            return null;
+        }
+
         @Override
         protected Void visitExpression(Expression node, Integer indent) {
             builder.append(formatExpression(node));
@@ -217,7 +235,7 @@ public final class SqlFormatter {
             }
             builder.append(quoteIdentifierIfNeeded(node.getName().toString()));
             if (!node.partitionProperties().isEmpty()) {
-                builder.append("PARTITION (");
+                builder.append(" PARTITION (");
                 for (Assignment assignment : node.partitionProperties()) {
                     builder.append(assignment.columnName().toString());
                     builder.append("=");
