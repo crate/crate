@@ -86,6 +86,9 @@ dependencies {
     testCompile ('junit:junit:4.11') {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
+
+    // If the version here is increased the `AssertingLeafReader` class needs to
+    // be updated as it is a copy from lucene-test-framework
     testCompile ('org.apache.lucene:lucene-test-framework:5.3.1') {
         exclude group: 'junit', module: 'junit'
     }
