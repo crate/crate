@@ -9,15 +9,15 @@ Crate provides custom public `AMI`_ s that can be launched by every EC2 user
 by using the AWS Management Console or `AWS CLI`_. The naming convention
 is as follows:
 
-  ``crate-<VERSION>-<REVISION>-<BASE_AMI>``
+  ``crate-<VERSION>-<REVISION>-<AMI_REVISION>-<BASE_AMI>``
 
-``<VERSION>`` is the Crate version in the format ``x.y.z``, ``<REVISION>`` is
-the build revision and ``<BASE_AMI>`` is the full name of the  `Amazon Linux`_
-base image.
+``<VERSION>-<REVISION>`` is the Crate version and its revision in the format
+``w.x.y-z``, ``<AMI_REVISION>`` is the AMI build revision and ``<BASE_AMI>`` is
+the full name of the  `Amazon Linux`_ base image.
 
 Example::
 
-    crate-0.51.1-1-amzn-ami-hvm-2015.03.0.x86_64
+    crate-0.51.1-1-1-amzn-ami-hvm-2015.03.0.x86_64
 
 The Crate AMI is based on comes with Java 8 and Crate pre-installed.
 
@@ -89,8 +89,8 @@ EC2 Discovery
 -------------
 
 The AMI uses *EC2 discovery* as a default unicast host discovery mechanism.
-(see :ref:`ec2_setup`). For security reasons it is **strongly recommended** to 
-use `IAM roles`_ instead of providing your AWS credentials manually on your 
+(see :ref:`ec2_setup`). For security reasons it is **strongly recommended** to
+use `IAM roles`_ instead of providing your AWS credentials manually on your
 instances (see :ref:`ec2_authentication`).
 
 .. note::
@@ -124,10 +124,10 @@ configuration is used when a cluster with 3 or more nodes is set up.
 Launch AMI by using the AWS CLI
 -------------------------------
 
-Instances which have the IAM role ``crate-ec2`` assigned will securely fetch 
-their credentials which are then used for authentication in the discovery 
-mechanism. The following example shows how to run a single instance of type 
-``m3.medium``. The adapted Crate configuration is passed via ``user-data.sh`` 
+Instances which have the IAM role ``crate-ec2`` assigned will securely fetch
+their credentials which are then used for authentication in the discovery
+mechanism. The following example shows how to run a single instance of type
+``m3.medium``. The adapted Crate configuration is passed via ``user-data.sh``
 file.
 
 .. code-block:: bash
