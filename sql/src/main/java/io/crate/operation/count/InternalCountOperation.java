@@ -29,12 +29,12 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.operation.ThreadPools;
-import io.crate.operation.collect.EngineSearcher;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.engine.EngineSearcher;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndicesService;
@@ -104,7 +104,7 @@ public class InternalCountOperation implements CountOperation {
         }
 
         IndexShard indexShard = indexService.shardSafe(shardId);
-        try (Engine.Searcher searcher = EngineSearcher.getSearcherWithRetry(indexShard, "count-operation", null)) {
+        try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
                     whereClause, indexService.mapperService(), indexService.fieldData(), indexService.cache());
             if (Thread.interrupted()) {
