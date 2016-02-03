@@ -23,7 +23,7 @@ package io.crate.operation.reference.sys.node;
 
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.monitor.os.OsStats;
+import io.crate.stats.ExtendedOsStats;
 
 
 public class NodeOsExpression extends SysNodeObjectReference {
@@ -35,18 +35,17 @@ public class NodeOsExpression extends SysNodeObjectReference {
     public static final String TIMESTAMP = "timestamp";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
-    public NodeOsExpression(OsStats stats) {
-        addChildImplementations(stats);
+    public NodeOsExpression(ExtendedOsStats extendedOsStats) {
+        addChildImplementations(extendedOsStats);
     }
 
-    private void addChildImplementations(final OsStats os) {
-        // TODO: FIX ME! uptime not available anymore
-        /*childImplementations.put(UPTIME, new OsExpression() {
+    private void addChildImplementations(final ExtendedOsStats extendedOsStats) {
+        childImplementations.put(UPTIME, new OsExpression() {
             @Override
             public Long value() {
-                return os.uptime().millis();
+                return extendedOsStats.uptime().millis();
             }
-        });*/
+        });
         childImplementations.put(TIMESTAMP, new OsExpression() {
             @Override
             public Long value() {
@@ -56,11 +55,11 @@ public class NodeOsExpression extends SysNodeObjectReference {
         childImplementations.put(PROBE_TIMESTAMP, new OsExpression() {
             @Override
             public Long value() {
-                return os.getTimestamp();
+                return extendedOsStats.timestamp();
             }
         });
         childImplementations.put(SysNodesTableInfo.SYS_COL_OS_CPU,
-                new NodeOsCpuExpression(os));
+                new NodeOsCpuExpression(extendedOsStats.cpu()));
     }
 
 }
