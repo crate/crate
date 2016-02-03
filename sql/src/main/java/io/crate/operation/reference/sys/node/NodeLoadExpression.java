@@ -22,7 +22,7 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.monitor.os.OsStats;
+import io.crate.stats.ExtendedOsStats;
 
 public class NodeLoadExpression extends SysNodeObjectReference {
 
@@ -31,14 +31,14 @@ public class NodeLoadExpression extends SysNodeObjectReference {
     public static final String FIFTEEN = "15";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
-    public NodeLoadExpression(final OsStats os) {
+    public NodeLoadExpression(final ExtendedOsStats os) {
         childImplementations.put(ONE, new LoadExpression(os, 0));
         childImplementations.put(FIVE, new LoadExpression(os, 1));
         childImplementations.put(FIFTEEN, new LoadExpression(os, 2));
         childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
             @Override
             public Long value() {
-                return os.getTimestamp();
+                return os.timestamp();
             }
         });
     }
@@ -46,9 +46,9 @@ public class NodeLoadExpression extends SysNodeObjectReference {
     static class LoadExpression extends SysNodeExpression<Double> {
 
         private final int idx;
-        private final OsStats stats;
+        private final ExtendedOsStats stats;
 
-        LoadExpression(OsStats stats, int idx) {
+        LoadExpression(ExtendedOsStats stats, int idx) {
             this.idx = idx;
             this.stats = stats;
         }
@@ -56,9 +56,9 @@ public class NodeLoadExpression extends SysNodeObjectReference {
         @Override
         public Double value() {
             try {
-                return stats.getLoadAverage();
+                return stats.loadAverage()[idx];
             } catch (IndexOutOfBoundsException e) {
-                return null;
+                return -1d;
             }
         }
     }

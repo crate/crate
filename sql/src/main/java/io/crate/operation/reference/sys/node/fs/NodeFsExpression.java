@@ -23,17 +23,14 @@ package io.crate.operation.reference.sys.node.fs;
 
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.env.NodeEnvironment;
+import io.crate.stats.ExtendedFsStats;
 
 public class NodeFsExpression extends SysNodeObjectReference {
 
-    public NodeFsExpression(
-                            NodeEnvironment nodeEnvironment) {
-        /*
-        childImplementations.put(SysNodesTableInfo.SYS_COL_FS_TOTAL, new NodeFsTotalExpression(sigarService));
-        childImplementations.put(SysNodesTableInfo.SYS_COL_FS_DISKS, new NodeFsDisksExpression(sigarService));
-        childImplementations.put(SysNodesTableInfo.SYS_COL_FS_DATA, new NodeFsDataExpression(sigarService, nodeEnvironment));
-        */
+    public NodeFsExpression(ExtendedFsStats fsStats) {
+        childImplementations.put(SysNodesTableInfo.SYS_COL_FS_TOTAL, new NodeFsTotalExpression(fsStats));
+        childImplementations.put(SysNodesTableInfo.SYS_COL_FS_DISKS, new NodeFsDisksExpression(fsStats));
+        childImplementations.put(SysNodesTableInfo.SYS_COL_FS_DATA, new NodeFsDataExpression(fsStats));
     }
 
 }
