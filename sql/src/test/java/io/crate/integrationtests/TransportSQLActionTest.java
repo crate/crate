@@ -36,8 +36,10 @@ import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsReques
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.search.SearchHit;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -85,7 +87,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testTableUnknownExceptionIsRaisedIfDeletedAfterPlan() throws Throwable {
-        expectedException.expect(TableUnknownException.class);
+        expectedException.expectMessage("Table 't' unknown");
+        // if the exception is streamed over the transport it is wrapped in a NotSerializableExceptionWrapper
+        // as long as the message is correct this is fine.
+        expectedException.expect(Matchers.anyOf(instanceOf(TableUnknownException.class), instanceOf(NotSerializableExceptionWrapper.class)));
 
         execute("create table t (name string)");
         ensureYellow();

@@ -42,7 +42,7 @@ public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
         RamAccountingContext.FLUSH_BUFFER_SIZE = 24;
         return Settings.builder()
                 .put(super.nodeSettings(nodeOrdinal))
-                .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING, 512)
+                .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING, "512b")
                 .build();
     }
 
