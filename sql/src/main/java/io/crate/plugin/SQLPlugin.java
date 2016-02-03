@@ -29,6 +29,7 @@ import io.crate.action.sql.TransportSQLAction;
 import io.crate.action.sql.TransportSQLBulkAction;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.breaker.CircuitBreakerModule;
+import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobModule;
@@ -167,10 +168,8 @@ public class SQLPlugin extends Plugin {
         // add our dynamic cluster settings
         clusterModule.registerClusterDynamicSetting(Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX + "*", Validator.EMPTY);
 
-        /* FIXME
-        clusterDynamicSettingsModule.addDynamicSettings(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING);
-        clusterDynamicSettingsModule.addDynamicSettings(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING);
-        */
+        clusterModule.registerClusterDynamicSetting(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING, Validator.MEMORY_SIZE);
+        clusterModule.registerClusterDynamicSetting(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING, Validator.NON_NEGATIVE_DOUBLE);
 
         registerSettings(clusterModule, CrateSettings.CRATE_SETTINGS);
     }
