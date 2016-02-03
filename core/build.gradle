@@ -7,6 +7,7 @@ archivesBaseName = 'crate-core'
 
 configurations {
     all*.exclude group: 'org.elasticsearch'
+    all*.exclude group: 'org.apache.commons', module: 'commons-math3'
     sharedCompile.extendsFrom compile
 }
 

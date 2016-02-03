@@ -232,10 +232,11 @@ Jmh
 
 `JMH`_ benchmarks can be executed using ``gradle``::
 
-    $ ./gradlew jmh
+    $ ./gradlew :core:jmh
 
 By default this will look for benchmarks inside ``<module>/src/jmh/java`` and
 execute them.
+Currently, the `JMH`_ plugin is only enabled at the `core` module.
 
 Results will be generated into ``$buildDir/reports/jmh``.
 
