@@ -80,8 +80,8 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSetNonDynamicTableSetting() {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Can't update non dynamic settings[[index.translog.sync_interval]] for open indices [[settings_table]]");
-        execute("alter table settings_table set (\"translog.sync_inveral\"='10s')");
+        expectedException.expectMessage("Can't update non dynamic settings[[index.translog.sync_interval]] for open indices");
+        execute("alter table settings_table set (\"translog.sync_interval\"='10s')");
     }
 
     @Test

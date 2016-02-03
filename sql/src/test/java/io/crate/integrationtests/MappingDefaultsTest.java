@@ -32,7 +32,7 @@ public class MappingDefaultsTest extends SQLTransportIntegrationTest {
     @Test
     public void testAllFieldsDisabled() throws Exception {
         execute("create table test (col1 string)");
-        ensureGreen();
+        ensureYellow();
 
         SQLResponse sqlResponse = execute("insert into test (col1) values ('foo')");
         assertEquals(1, sqlResponse.rowCount());
