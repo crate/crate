@@ -24,13 +24,14 @@ package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.document.Field;
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilderString;
+import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.mapper.object.ArrayValueMapperParser;
 import org.elasticsearch.index.mapper.object.ObjectMapper;
-import org.elasticsearch.index.mapper.object.ObjectMapperProxy;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -157,19 +158,39 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        /**
+         * array mapping should look like:
+         *
+         * "fieldName": {
+         *      "type": "array":
+         *      "inner": {
+         *          "type": "string"
+         *          ...
+         *      }
+         * }
+         *
+         *
+         * Use the innerMapper to generate the mapping for the inner type which will look like:
+         *
+         * "fieldName": {
+         *      "type": "string",
+         *      ...
+         * }
+         *
+         * and then parse the contents of the object to set it into the "inner" field of the outer array type.
+         */
+        XContentBuilder innerBuilder = new XContentBuilder(builder.contentType().xContent(), new BytesStreamOutput(0));
+        innerBuilder = innerMapper.toXContent(innerBuilder, params);
+        innerBuilder.close();
+        XContentParser parser = builder.contentType().xContent().createParser(innerBuilder.bytes());
+        while ((parser.nextToken() != XContentParser.Token.START_OBJECT)) {
+            // consume tokens until start of object
+        }
+        Map<String, Object> innerMap = parser.mapOrdered();
+
         builder.startObject(name());
         builder.field("type", contentType());
-        builder.startObject(INNER);
-
-        if (innerMapper instanceof FieldMapper) {
-            boolean includeDefaults = params.paramAsBoolean("include_defaults", false);
-            ((FieldMapper)innerMapper).doXContentBody(builder, includeDefaults, params);
-        } else if (innerMapper instanceof ObjectMapper) {
-            ObjectMapperProxy objectMapperProxy = new ObjectMapperProxy((ObjectMapper)innerMapper);
-            objectMapperProxy.toXContent(builder, params, null);
-        }
-
-        builder.endObject();
+        builder.field(INNER, innerMap);
         return builder.endObject();
     }
 
