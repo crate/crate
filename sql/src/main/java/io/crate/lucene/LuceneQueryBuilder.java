@@ -321,14 +321,11 @@ public class LuceneQueryBuilder {
                 String columnName = reference.info().ident().columnIdent().fqn();
                 QueryBuilderHelper helper = QueryBuilderHelper.forType(reference.valueType());
 
-                BooleanQuery.Builder filter = new BooleanQuery.Builder();
-                BooleanQuery.Builder notBuilder = new BooleanQuery.Builder();
+                BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
                 for (Object value : toIterable(arrayLiteral.value())) {
-                    notBuilder.add(helper.eq(columnName, value), BooleanClause.Occur.MUST);
+                    andBuilder.add(helper.eq(columnName, value), BooleanClause.Occur.MUST);
                 }
-                filter.add(notBuilder.build(), BooleanClause.Occur.MUST_NOT);
-
-                return filter.build();
+                return Queries.not(andBuilder.build());
             }
         }
 
@@ -350,16 +347,14 @@ public class LuceneQueryBuilder {
             @Override
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
-                BooleanQuery.Builder query = new BooleanQuery.Builder();
-                BooleanQuery.Builder notQuery = new BooleanQuery.Builder();
-
                 String columnName = reference.ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
+
+                BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
                 for (Object value : toIterable(arrayLiteral.value())) {
-                    notQuery.add(builder.like(columnName, value, context.indexCache.query()), BooleanClause.Occur.MUST);
+                    andLikeQueries.add(builder.like(columnName, value, context.indexCache.query()), BooleanClause.Occur.MUST);
                 }
-                query.add(notQuery.build(), BooleanClause.Occur.MUST_NOT);
-                return query.build();
+                return Queries.not(andLikeQueries.build());
             }
         }
 
@@ -428,12 +423,7 @@ public class LuceneQueryBuilder {
             public Query apply(Function input, Context context) {
                 assert input != null;
                 assert input.arguments().size() == 1;
-                BooleanQuery.Builder query = new BooleanQuery.Builder();
-
-                query.add(process(input.arguments().get(0), context), BooleanClause.Occur.MUST_NOT);
-                query.add(Queries.newMatchAllQuery(), BooleanClause.Occur.MUST);
-
-                return query.build();
+                return Queries.not(process(input.arguments().get(0), context));
             }
         }
 
@@ -793,9 +783,7 @@ public class LuceneQueryBuilder {
                 if (query == null) return null;
                 Boolean negate = !(Boolean) outerPair.input().value();
                 if (negate) {
-                    BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
-                    booleanQuery.add(query, BooleanClause.Occur.MUST_NOT);
-                    return booleanQuery.build();
+                    return Queries.not(query);
                 } else {
                     return query;
                 }
