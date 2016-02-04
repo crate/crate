@@ -23,6 +23,7 @@ package io.crate.metadata.doc.array;
 
 import com.google.common.base.Joiner;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
@@ -416,8 +417,6 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         mapper(INDEX, TYPE, mapping);
     }
 
-    // TODO: enable the test once dynamic array support is back
-    /*
     @Test
     public void testParseDynamicNestedArray() throws Exception {
         String mapping = XContentFactory.jsonBuilder()
@@ -445,7 +444,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
                 .endObject()
                 .bytes());
 
-    }*/
+    }
 
     @Test
     public void testParseNull() throws Exception {

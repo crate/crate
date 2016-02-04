@@ -28,11 +28,13 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilderString;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
+import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperException;
 import org.elasticsearch.index.mapper.object.ArrayValueMapperParser;
 import org.elasticsearch.index.mapper.object.ObjectMapper;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -76,29 +78,45 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
     private static final String INNER_TYPE = "inner";
     public static final XContentBuilderString INNER = new XContentBuilderString(INNER_TYPE);
-    private final Mapper innerMapper;
+    private Mapper innerMapper;
+    private final ObjectMapper parentMapper;
 
     protected ArrayMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType,
-                          Settings indexSettings, MultiFields multiFields, CopyTo copyTo, Mapper innerMapper) {
+                          Settings indexSettings, MultiFields multiFields, CopyTo copyTo, @Nullable Mapper innerMapper,
+                          ObjectMapper parentMapper) {
         super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         this.innerMapper = innerMapper;
+        this.parentMapper = parentMapper;
+    }
+
+    public static class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
+
+        @Override
+        public Mapper.Builder create(String name, ObjectMapper parentMapper) {
+            return new Builder(name, null, parentMapper);
+        }
     }
 
     public static class Builder extends FieldMapper.Builder<Builder, ArrayMapper> {
 
         private final Mapper.Builder innerBuilder;
+        private final ObjectMapper parentMapper;
 
-        public Builder(String name, Mapper.Builder innerBuilder) {
+        public Builder(String name, Mapper.Builder innerBuilder, ObjectMapper parentMapper) {
             super(name, new ArrayFieldType());
             this.innerBuilder = innerBuilder;
+            this.parentMapper = parentMapper;
         }
 
         @Override
         public ArrayMapper build(BuilderContext context) {
-            Mapper innerMapper = innerBuilder.build(context);
+            Mapper innerMapper = null;
+            if (innerBuilder != null) {
+                innerMapper = innerBuilder.build(context);
+            }
             fieldType.setNames(new MappedFieldType.Names(name));
             return new ArrayMapper(name, fieldType, defaultFieldType, context.indexSettings(),
-                    multiFieldsBuilder.build(this, context), copyTo, innerMapper);
+                    multiFieldsBuilder.build(this, context), copyTo, innerMapper, parentMapper);
         }
     }
 
@@ -143,7 +161,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             Mapper.TypeParser innerTypeParser = parserContext.typeParser(typeName);
             Mapper.Builder innerBuilder = innerTypeParser.parse(name, innerNode, parserContext);
 
-            return new Builder(name, innerBuilder);
+            return new Builder(name, innerBuilder, null);
         }
     }
 
@@ -183,6 +201,8 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         innerBuilder = innerMapper.toXContent(innerBuilder, params);
         innerBuilder.close();
         XContentParser parser = builder.contentType().xContent().createParser(innerBuilder.bytes());
+
+        //noinspection StatementWithEmptyBody
         while ((parser.nextToken() != XContentParser.Token.START_OBJECT)) {
             // consume tokens until start of object
         }
@@ -214,6 +234,20 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             throw new ElasticsearchParseException("invalid array");
         }
         token = parser.nextToken();
+
+        if (innerMapper == null) {
+            // new dynamic array
+            innerMapper = detectInnerMapper(context, parentMapper, simpleName(), parser);
+            if (innerMapper == null) {
+                throw new DynamicArrayFieldMapperException();
+            }
+            token = parser.currentToken();
+            if (token == XContentParser.Token.END_OBJECT) {
+                // skip empty object, otherwise DocumentParser.parseObject further down will continue
+                // parsing the outer array as if it is the inner object
+                token = parser.nextToken();
+            }
+        }
         boolean updatedMapping = false;
         while (token != XContentParser.Token.END_ARRAY) {
             Mapper update = null;
@@ -222,7 +256,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             if (innerMapper instanceof FieldMapper) {
                 update = ((FieldMapper) innerMapper).parse(context);
             } else if (innerMapper instanceof ObjectMapper) {
-                update = DocumentParser.parseObject(context, ((ObjectMapper) innerMapper), true);
+                update = DocumentParser.parseObject(context, ((ObjectMapper) innerMapper), false);
             }
             if (update != null) {
                 MapperUtils.merge(innerMapper, update);
@@ -231,6 +265,25 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             token = parser.nextToken();
         }
         return updatedMapping ? this : null;
+    }
+
+    private static Mapper detectInnerMapper(ParseContext parseContext, ObjectMapper parentMapper,
+                                            String fieldName, XContentParser parser) throws IOException {
+        XContentParser.Token token = parser.currentToken();
+
+        // can't use nulls to detect type
+        while (token == XContentParser.Token.VALUE_NULL) {
+            token = parser.nextToken();
+        }
+
+        if (token == XContentParser.Token.START_ARRAY) {
+            throw new ElasticsearchParseException("nested arrays are not supported");
+        } else if (token == XContentParser.Token.END_ARRAY) {
+            // array is empty or has only null values
+            return null;
+        }
+
+        return DocumentParser.mapperFromDynamicValue(parseContext, parentMapper, fieldName, token);
     }
 
 
