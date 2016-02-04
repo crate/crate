@@ -60,7 +60,6 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
-//import org.elasticsearch.monitor.network.NetworkService;
 import org.elasticsearch.node.service.NodeService;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
@@ -72,6 +71,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
@@ -87,8 +87,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         @Override
         protected void configure() {
             super.configure();
-            // TODO: FIX ME! networkService not existent anymore
-            //bind(NetworkService.class).toInstance(mock(NetworkService.class));
             bind(NodeService.class).toInstance(mock(NodeService.class));
         }
 
@@ -1671,8 +1669,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testExtractFunctionWithLiteral() throws Exception {
-        // TODO: FIX ME! $ not available
-        SelectAnalyzedStatement statement = null; //analyze("select extract(? from '2012-03-24') from users", $("day"));
+        SelectAnalyzedStatement statement = analyze("select extract(? from '2012-03-24') from users", $("day"));
         Symbol symbol = statement.relation().querySpec().outputs().get(0);
         assertThat(symbol, isLiteral(24));
     }
