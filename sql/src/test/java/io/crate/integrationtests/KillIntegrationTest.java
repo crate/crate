@@ -24,6 +24,9 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.exceptions.Exceptions;
+import io.crate.plugin.CrateCorePlugin;
+import io.crate.testing.plugin.CrateTestingPlugin;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
@@ -33,6 +36,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -44,6 +48,14 @@ import static org.hamcrest.Matchers.*;
 public class KillIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
+
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        return pluginList(
+                CrateCorePlugin.class,
+                CrateTestingPlugin.class
+        );
+    }
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

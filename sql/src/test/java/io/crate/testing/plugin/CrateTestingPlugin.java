@@ -22,8 +22,8 @@
 package io.crate.testing.plugin;
 
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.Plugin;
 import io.crate.testing.SleepScalarFunction;
+import org.elasticsearch.plugins.Plugin;
 
 public class CrateTestingPlugin extends Plugin {
 
@@ -40,5 +40,4 @@ public class CrateTestingPlugin extends Plugin {
     public void onModule(ScalarFunctionModule module) {
         module.register(new SleepScalarFunction());
     }
-
 }
