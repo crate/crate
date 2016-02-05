@@ -396,7 +396,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table singleshard");
 
         String uri = Paths.get(folder.getRoot().toURI()).resolve("testsingleshard.json").toUri().toString();
-        SQLResponse response = execute("copy singleshard (name, test['foo']) to ? with (format='json_object')", new Object[] { uri });
+        SQLResponse response = execute("copy singleshard (name, test['foo']) to ? with (format='json_object')", new Object[]{uri});
         assertThat(response.rowCount(), is(1L));
         List<String> lines = Files.readAllLines(
                 Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), UTF8);
@@ -441,6 +441,21 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
 
         assertThat(TestingHelpers.printedTable(response.rows()), is("2| Trillian\n"));
+    }
+
+    @Test
+    public void testCopyToWithGeneratedColumn() throws Exception {
+        execute("CREATE TABLE foo (\n" +
+                "day TIMESTAMP GENERATED ALWAYS AS date_trunc('day', timestamp),\n" +
+                "timestamp TIMESTAMP\n" +
+                ")\n" +
+                "PARTITIONED BY (day)");
+        ensureYellow();
+        execute("insert into foo ( timestamp) values (1454454000377)");
+        refresh();
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
+        SQLResponse response = execute("copy foo to DIRECTORY ?", new Object[]{uriTemplate});
+        assertThat(response.rowCount(), is(1L));
     }
 
     @Test

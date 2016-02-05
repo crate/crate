@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: exporting a table with a generated partitioned column using `copy to`
+   caused an Exception
+
 2016/01/22 0.54.4
 =================
 
