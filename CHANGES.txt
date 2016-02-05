@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: exporting a table with a generated partitioned column using `copy to`
+   caused an Exception
+
  - Implemented the EXPLAIN command for SELECT statements.
 
  - Added `routing_state` column to `sys.shards` table in order to fix the

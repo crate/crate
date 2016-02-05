@@ -164,12 +164,16 @@ public class CopyStatementAnalyzer {
             Reference sourceRef;
             if (tableRelation.tableInfo().isPartitioned() && partitions.isEmpty()) {
                 // table is partitioned, insert partitioned columns into the output
-                sourceRef = new Reference(tableRelation.tableInfo().getReferenceInfo(DocSysColumns.DOC));
                 overwrites = new HashMap<>();
                 for (ReferenceInfo referenceInfo : tableRelation.tableInfo().partitionedByColumns()) {
                     if (!(referenceInfo instanceof GeneratedReferenceInfo)) {
                         overwrites.put(referenceInfo.ident().columnIdent(), new Reference(referenceInfo));
                     }
+                }
+                if (overwrites.size() > 0) {
+                    sourceRef = new Reference(tableRelation.tableInfo().getReferenceInfo(DocSysColumns.DOC));
+                } else {
+                    sourceRef = new Reference(tableRelation.tableInfo().getReferenceInfo(DocSysColumns.RAW));
                 }
             } else {
                 sourceRef = new Reference(tableRelation.tableInfo().getReferenceInfo(DocSysColumns.RAW));
@@ -223,12 +227,13 @@ public class CopyStatementAnalyzer {
         } else if (whereClause.noMatch()) {
             return whereClause;
         } else {
-            if (!whereClause.partitions().isEmpty() && !partitions.isEmpty() && !whereClause.partitions().equals(partitions)) {
+            if (!whereClause.partitions().isEmpty() && !partitions.isEmpty() &&
+                !whereClause.partitions().equals(partitions)) {
                 throw new IllegalArgumentException("Given partition ident does not match partition evaluated from where clause");
             }
 
             return new WhereClause(whereClause.query(), whereClause.docKeys().orNull(),
-                            partitions.isEmpty() ? whereClause.partitions() : partitions);
+                    partitions.isEmpty() ? whereClause.partitions() : partitions);
         }
     }
 
@@ -263,7 +268,7 @@ public class CopyStatementAnalyzer {
         if (table.isPartitioned() && partition != null) {
             for (PartitionName partitionName : table.partitions()) {
                 if (partitionName.tableIdent().equals(table.ident())
-                        && partitionName.equals(partition)) {
+                    && partitionName.equals(partition)) {
                     return true;
                 }
             }
