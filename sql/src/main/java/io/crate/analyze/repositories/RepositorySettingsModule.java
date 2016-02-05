@@ -31,12 +31,32 @@ public class RepositorySettingsModule extends AbstractModule {
     private static final String FS = "fs";
     private static final String URL = "url";
     private static final String HDFS = "hdfs";
+    private static final String S3 = "s3";
 
     static final TypeSettings FS_SETTINGS = new TypeSettings(ImmutableSet.of("location"),  ImmutableSet.of("compress", "chunk_size"));
     static final TypeSettings URL_SETTINGS = new TypeSettings(ImmutableSet.of("url"), ImmutableSet.<String>of());
     static final TypeSettings HDFS_SETTINGS = new TypeSettings(
             ImmutableSet.<String>of(),
             ImmutableSet.of("uri", "user", "path", "load_defaults", "conf_location", "concurrent_streams", "compress", "chunk_size"));
+
+    static final TypeSettings S3_SETTINGS = new TypeSettings(ImmutableSet.<String>of(),
+            ImmutableSet.of(
+                    "access_key",
+                    "base_path",
+                    "bucket",
+                    "buffer_size",
+                    "canned_acl",
+                    "chunk_size",
+                    "compress",
+                    "concurrent_streams",
+                    "endpoint",
+                    "max_retries",
+                    "protocol",
+                    "region",
+                    "secret_key",
+                    "server_side_encryption"
+            ));
+
 
     private MapBinder<String, TypeSettings> typeSettingsBinder;
 
@@ -46,5 +66,6 @@ public class RepositorySettingsModule extends AbstractModule {
         typeSettingsBinder.addBinding(FS).toInstance(FS_SETTINGS);
         typeSettingsBinder.addBinding(URL).toInstance(URL_SETTINGS);
         typeSettingsBinder.addBinding(HDFS).toInstance(HDFS_SETTINGS);
+        typeSettingsBinder.addBinding(S3).toInstance(S3_SETTINGS);
     }
 }
