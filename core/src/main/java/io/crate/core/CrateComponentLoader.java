@@ -58,6 +58,7 @@ public class CrateComponentLoader {
         plugins = new ArrayList<>();
         MapBuilder<Plugin, List<OnModuleReference>> onModuleReferences = MapBuilder.newMapBuilder();
         for (CrateComponent crateComponent : crateComponents) {
+            logger.trace("Loading crateComponent: {}", crateComponent);
             Plugin plugin = crateComponent.createPlugin(settings);
             plugins.add(plugin);
             List<OnModuleReference> list = Lists.newArrayList();

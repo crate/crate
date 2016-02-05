@@ -32,14 +32,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeBuilder;
-import org.elasticsearch.node.internal.InternalSettingsPreparer;
+import org.elasticsearch.node.internal.CrateSettingsPreparer;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
@@ -80,7 +79,7 @@ public class NodeSettingsTest {
             .put("node.local", true);
 
         Terminal terminal = Terminal.DEFAULT;
-        Environment environment = InternalSettingsPreparer.prepareEnvironment(builder.build(), terminal);
+        Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal);
         node = NodeBuilder.nodeBuilder()
             .settings(environment.settings())
             .build();
