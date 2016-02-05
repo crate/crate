@@ -25,15 +25,14 @@ import io.crate.udc.service.UDCService;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-//import org.elasticsearch.plugins.AbstractPlugin;
+import org.elasticsearch.plugins.Plugin;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
-import static com.google.common.collect.Lists.newArrayList;
 
-// TODO: FIX ME!
-public class UDCPlugin { // extends AbstractPlugin {
+public class UDCPlugin extends Plugin {
 
     public static final String ENABLED_SETTING_NAME = "udc.enabled";
     public static final boolean ENABLED_DEFAULT_SETTING = true;
@@ -54,18 +53,6 @@ public class UDCPlugin { // extends AbstractPlugin {
         this.settings = settings;
     }
 
-    // TODO: FIX ME!
-    /*@Override
-    public Collection<Class<? extends LifecycleComponent>> services() {
-        if (!settings.getAsBoolean("node.client", false)
-                && settings.getAsBoolean(ENABLED_SETTING_NAME, ENABLED_DEFAULT_SETTING)) {
-            Collection<Class<? extends LifecycleComponent>> services = newArrayList();
-            services.add(UDCService.class);
-            return services;
-        }
-        return super.services();
-    }
-
     @Override
     public String name() {
         return "udc";
@@ -74,6 +61,16 @@ public class UDCPlugin { // extends AbstractPlugin {
     @Override
     public String description() {
         return "Crate plugin for Usage Data Collection (UDC)";
-    }*/
+    }
+
+    @Override
+    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
+        if (!settings.getAsBoolean("node.client", false)
+            && settings.getAsBoolean(ENABLED_SETTING_NAME, ENABLED_DEFAULT_SETTING)) {
+
+            return Collections.<Class<? extends LifecycleComponent>>singletonList(UDCService.class);
+        }
+        return super.nodeServices();
+    }
 
 }
