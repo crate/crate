@@ -11,8 +11,14 @@ dependencies {
 
     compile project(':es')
     compile project(path: ':es', configuration: 'testCompile')
-    compile project(':es').sourceSets.test.output
+}
 
+sourceSets {
+    main {
+        java {
+            srcDir '../es/upstream/core/src/test/java'
+        }
+    }
 }
 
 test {
