@@ -42,6 +42,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
@@ -162,6 +163,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
             ShardRouting shardRouting = mock(ShardRouting.class);
             when(indexShard.routingEntry()).thenReturn(shardRouting);
             when(shardRouting.primary()).thenReturn(true);
+            when(shardRouting.state()).thenReturn(ShardRoutingState.STARTED);
             when(shardRouting.relocatingNodeId()).thenReturn("node_X");
 
             TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
@@ -221,6 +223,13 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     @Test
     public void testState() throws Exception {
         ReferenceInfo refInfo = refInfo("sys.shards.state", DataTypes.STRING, RowGranularity.SHARD);
+        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
+        assertEquals(new BytesRef("STARTED"), shardExpression.value());
+    }
+
+    @Test
+    public void testRoutingState() throws Exception {
+        ReferenceInfo refInfo = refInfo("sys.shards.routing_state", DataTypes.STRING, RowGranularity.SHARD);
         ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("STARTED"), shardExpression.value());
     }

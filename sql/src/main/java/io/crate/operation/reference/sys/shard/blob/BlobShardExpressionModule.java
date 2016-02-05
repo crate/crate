@@ -53,6 +53,7 @@ public class BlobShardExpressionModule extends AbstractModule {
             binder.addBinding(SysShardsTableInfo.ReferenceIdents.SCHEMA_NAME).to(BlobShardSchemaNameExpression.class).asEagerSingleton();
             binder.addBinding(SysShardsTableInfo.ReferenceIdents.SIZE).to(BlobShardSizeExpression.class).asEagerSingleton();
             binder.addBinding(SysShardsTableInfo.ReferenceIdents.STATE).to(BlobShardStateExpression.class).asEagerSingleton();
+            binder.addBinding(SysShardsTableInfo.ReferenceIdents.ROUTING_STATE).to(BlobShardRoutingStateExpression.class).asEagerSingleton();
             binder.addBinding(SysShardsTableInfo.ReferenceIdents.TABLE_NAME).to(BlobShardTableNameExpression.class).asEagerSingleton();
             binder.addBinding(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT).to(BlobShardPartitionIdentExpression.class).asEagerSingleton();
             binder.addBinding(SysShardsTableInfo.ReferenceIdents.ORPHAN_PARTITION).to(BlobShardPartitionOrphanedExpression.class).asEagerSingleton();

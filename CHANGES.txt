@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added `routing_state` column to `sys.shards` table in order to fix the
+   underreplicated shards calculation in admin ui
+
  - Fix: exporting a table with a generated partitioned column using `copy to`
    caused an Exception
 

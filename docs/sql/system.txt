@@ -661,6 +661,22 @@ state
 |                      | UNASSIGNED                       |             |
 +----------------------+----------------------------------+-------------+
 
+routing_state
+-------------
+
++----------------------+----------------------------------+-------------+
+|     Column Name      |           Description            | Return Type |
++======================+==================================+=============+
+| ``routing_state``    | The current state of a shard     | ``String``  |
+|                      | as defined by the routing.       |             |
+|                      | Possible states of the shard     |             |
+|                      | routing are:                     |             |
+|                      | UNASSIGNED,                      |             |
+|                      | INITIALIZING,                    |             |
+|                      | STARTED,                         |             |
+|                      | RELOCATING                       |             |
++----------------------+----------------------------------+-------------+
+
 orphan_partition
 ----------------
 
@@ -757,14 +773,15 @@ For example, you can query shards like this::
   ...   num_docs as docs,
   ...   primary,
   ...   relocating_node as r_n,
+  ...   routing_state as r_state,
   ...   state,
   ...   orphan_partition as o_p
   ... from sys.shards where table_name = 'locations' and id = 1;
-  +--------+-----------+----+-----+------+---------+------+---------+-------+
-  | schema | t         | id | p_i | docs | primary | r_n  |  state  | o_p   |
-  +--------+-----------+----+-----+------+---------+------+---------+-------+
-  | doc    | locations |  1 |     |    6 | TRUE    | NULL | STARTED | FALSE |
-  +--------+-----------+----+-----+------+---------+------+---------+-------+
+  +--------+-----------+----+-----+------+---------+------+---------+---------+-------+
+  | schema | t         | id | p_i | docs | primary | r_n  | r_state |  state  | o_p   |
+  +--------+-----------+----+-----+------+---------+------+---------+---------+-------+
+  | doc    | locations |  1 |     |    6 | TRUE    | NULL | STARTED | STARTED | FALSE |
+  +--------+-----------+----+-----+------+---------+------+---------+---------+-------+
   SELECT 1 row in set (... sec)
 
 .. _jobs_operations_logs:
