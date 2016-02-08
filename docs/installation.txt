@@ -14,16 +14,11 @@ how to setup the unicast configuration.
 Java (JVM) version
 ==================
 
-Crate needs a working Java 7 virtual machine. We recommend
+Crate requires a working `Java 8`_ virtual machine. We recommend
 using `Oracle's Java`_ on OSX and OpenJDK_ on Linux Systems.
-Crate requires at least `Java 7`_ in order to run.
 The same JVM version must be used on all Crate nodes and clients.
 
-We recommend installing Java 7 update 55 or later or Java 8 update 20 or later.
-
-.. warning::
-
-    Previous versions of Java 7 can cause data corruption and data loss.
+We recommend installing `Java 8`_ update 20 or later.
 
 .. _install_targz:
 
@@ -98,10 +93,10 @@ additional packages if we see enough interest.
 
 
 .. _`Oracle's Java`: http://www.java.com/en/download/help/mac_install.xml
-.. _OpenJDK: http://openjdk.java.net/projects/jdk7/
+.. _OpenJDK: http://openjdk.java.net/projects/jdk8/
 .. _Download: https://crate.io/download/
 .. _Docker: https://www.docker.com/
 .. _`Docker Hub Registry`: https://registry.hub.docker.com/u/crate/crate/
 .. _`docker-crate`: https://github.com/crate/docker-crate/
 .. _`Multi Node Setup`: https://crate.io/blog/using-crate-in-multinode-setup/
-.. _`Java 7`: http://www.oracle.com/technetwork/java/javase/downloads/index.html
+.. _`Java 8`: http://www.oracle.com/technetwork/java/javase/downloads/index.html
