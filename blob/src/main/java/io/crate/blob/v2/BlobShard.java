@@ -27,7 +27,6 @@ import io.crate.blob.BlobEnvironment;
 import io.crate.blob.stats.BlobStats;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.settings.IndexSettingsService;
 import org.elasticsearch.index.shard.AbstractIndexShardComponent;
 import org.elasticsearch.index.shard.IndexShard;
@@ -73,7 +72,6 @@ public class BlobShard extends AbstractIndexShardComponent {
         final BlobStats stats = new BlobStats();
 
         stats.location(blobContainer().getBaseDirectory().getAbsolutePath());
-        stats.availableSpace(blobContainer().getBaseDirectory().getFreeSpace());
         try {
             blobContainer().walkFiles(null, new BlobContainer.FileVisitor() {
                 @Override
