@@ -102,7 +102,6 @@ public class BlobRecoveryTarget extends AbstractComponent {
         transportService.registerRequestHandler(Actions.FINALIZE_RECOVERY, BlobFinalizeRecoveryRequest.class, ThreadPool.Names.GENERIC, new FinalizeRecoveryRequestHandler());
     }
 
-    // TODO: FIX ME! check if BaseTransportRequestHandler can be really replaced by TransportRequestHandler
     class StartRecoveryRequestHandler implements TransportRequestHandler<BlobStartRecoveryRequest> {
         @Override
         public void messageReceived(BlobStartRecoveryRequest request, TransportChannel channel) throws Exception {
