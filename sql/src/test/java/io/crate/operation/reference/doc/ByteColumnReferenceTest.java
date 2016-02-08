@@ -43,7 +43,6 @@ public class ByteColumnReferenceTest extends DocLevelExpressionsTest {
         for (byte b = -10; b<10; b++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Byte.toString(b), Field.Store.NO));
-            // TODO: FIX ME! is indexName proper replacement of name()?
             doc.add(new IntField(fieldName().indexName(), b, Field.Store.NO));
             writer.addDocument(doc);
         }
