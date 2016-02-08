@@ -41,18 +41,6 @@ public class CrateCoreShardModule extends AbstractModule implements PreProcessMo
         crateComponentLoader = CrateComponentLoader.getInstance(settings);
     }
 
-    /* TODO: FIX ME! Remove this and merge it somehow somewhere.
-    @Override
-    public Iterable<? extends Module> spawnModules() {
-        List<Module> modules = Lists.newArrayList();
-        Collection<Class<? extends Module>> modulesClasses = crateComponentLoader.shardModules();
-        for (Class<? extends Module> moduleClass : modulesClasses) {
-            modules.add(createModule(moduleClass, settings));
-        }
-        modules.addAll(crateComponentLoader.shardModules(settings));
-        return modules;
-    }*/
-
     @Override
     public void processModule(Module module) {
         crateComponentLoader.processModule(module);

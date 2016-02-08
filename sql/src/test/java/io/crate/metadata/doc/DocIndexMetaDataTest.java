@@ -18,8 +18,9 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.*;
@@ -27,18 +28,19 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.indices.analysis.IndicesAnalysisService;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -84,14 +86,13 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                                            XContentBuilder builder,
                                            Settings settings,
                                            @Nullable AliasMetaData aliasMetaData) throws IOException {
-        byte[] data = builder.bytes().toBytes();
-        // TODO: FIX ME! convertToMap has different interface
-        /*Map<String, Object> mappingSource = XContentHelper.convertToMap(data, true).v2();
+        Map<String, Object> mappingSource = XContentHelper.convertToMap(builder.bytes(), true).v2();
         mappingSource = sortProperties(mappingSource);
 
         Settings.Builder settingsBuilder = Settings.builder()
                 .put("index.number_of_shards", 1)
                 .put("index.number_of_replicas", 0)
+                .put("index.version.created", Version.CURRENT)
                 .put(settings);
 
         IndexMetaData.Builder mdBuilder = IndexMetaData.builder(indexName)
@@ -100,8 +101,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         if (aliasMetaData != null) {
             mdBuilder.putAlias(aliasMetaData);
         }
-        return mdBuilder.build();*/
-        return null;
+        return mdBuilder.build();
     }
 
     private DocIndexMetaData newMeta(IndexMetaData metaData, String name) throws IOException {
@@ -853,27 +853,29 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
 
     private DocIndexMetaData getDocIndexMetaDataFromStatement(String stmt) throws IOException {
         Statement statement = SqlParser.createStatement(stmt);
-        ClusterService clusterService = mock(ClusterService.class);
-        ClusterState state = mock(ClusterState.class);
-        MetaData metaData = mock(MetaData.class);
-        when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
-        // TODO: FIX ME!
-        //when(metaData.concreteIndices(Mockito.any(IndicesOptions.class), Mockito.any(String[].class))).thenReturn(new String[0]);
-        when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
-        when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
-        when(state.metaData()).thenReturn(metaData);
-        // TODO: FIX ME!
-        //when(metaData.getSettings()).thenReturn(Settings.EMPTY);
-        when(clusterService.state()).thenReturn(state);
-        TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
-        // TODO: FIX ME!
-        /*CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
+
+        ClusterService clusterService = new NoopClusterService(ClusterState.builder(new ClusterName("testing")).build());
+
+        final TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
+        Provider<TransportPutIndexTemplateAction> indexTemplateActionProvider = new Provider<TransportPutIndexTemplateAction>() {
+            @Override
+            public TransportPutIndexTemplateAction get() {
+                return transportPutIndexTemplateAction;
+            }
+        };
+        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(
+                clusterService,
+                threadPool,
+                indexTemplateActionProvider,
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                functions);
+        CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
             new ReferenceInfos(
-                ImmutableMap.<String, SchemaInfo>of("doc",
-                    new DocSchemaInfo(clusterService, threadPool, transportPutIndexTemplateAction, functions)),
+                    ImmutableMap.<String, SchemaInfo>of("doc", docSchemaInfo),
                     clusterService,
+                    new IndexNameExpressionResolver(Settings.EMPTY),
                     threadPool,
-                    transportPutIndexTemplateAction,
+                    indexTemplateActionProvider,
                     functions),
             new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class)),
             mock(AnalysisMetaData.class)
@@ -885,6 +887,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         Settings.Builder settingsBuilder = Settings.builder()
                 .put("index.number_of_shards", 1)
                 .put("index.number_of_replicas", 0)
+                .put("index.version.created", Version.CURRENT)
                 .put(analyzedStatement.tableParameter().settings());
 
         IndexMetaData indexMetaData = IndexMetaData.builder(analyzedStatement.tableIdent().name())
@@ -892,8 +895,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                 .putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, analyzedStatement.mapping()))
                 .build();
 
-        return newMeta(indexMetaData, analyzedStatement.tableIdent().name());*/
-        return null;
+        return newMeta(indexMetaData, analyzedStatement.tableIdent().name());
     }
 
     @Test
