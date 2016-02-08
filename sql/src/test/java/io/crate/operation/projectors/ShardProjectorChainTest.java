@@ -75,7 +75,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.*;
 
-//import org.elasticsearch.search.highlight.HighlightModule;
 
 public class ShardProjectorChainTest extends CrateUnitTest {
 
@@ -96,8 +95,6 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 new ScalarFunctionModule(),
                 new OperatorModule(),
                 new AggregationImplModule(),
-                // TODO: FIX ME!
-                //new HighlightModule(),
                 new TestModule(),
                 new MetaDataModule());
         Injector injector = builder.createInjector();

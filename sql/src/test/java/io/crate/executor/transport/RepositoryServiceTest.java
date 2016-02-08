@@ -36,6 +36,7 @@ import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
@@ -101,34 +102,35 @@ public class RepositoryServiceTest extends CrateUnitTest {
         TransportActionProvider transportActionProvider = mock(TransportActionProvider.class);
 
         final ActionFilters actionFilters = mock(ActionFilters.class, Answers.RETURNS_MOCKS.get());
-        // TODO: FIX ME! requires IndexNameExpressionResolver
-        TransportDeleteRepositoryAction deleteRepositoryAction = null; /*new TransportDeleteRepositoryAction(
+        IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(Settings.EMPTY);
+        TransportDeleteRepositoryAction deleteRepositoryAction = new TransportDeleteRepositoryAction(
                 Settings.EMPTY,
                 mock(TransportService.class),
                 clusterService,
                 mock(RepositoriesService.class),
                 threadPool,
-                actionFilters) {
+                actionFilters,
+                indexNameExpressionResolver) {
             @Override
             protected void doExecute(DeleteRepositoryRequest request, ActionListener<DeleteRepositoryResponse> listener) {
                 listener.onResponse(mock(DeleteRepositoryResponse.class));
             }
-        };*/
+        };
         when(transportActionProvider.transportDeleteRepositoryAction()).thenReturn(deleteRepositoryAction);
 
-        // TODO: FIX ME! requires IndexNameExpressionResolver
-        TransportPutRepositoryAction putRepo = null; /* new TransportPutRepositoryAction(
+        TransportPutRepositoryAction putRepo = new TransportPutRepositoryAction(
                 Settings.EMPTY,
                 mock(TransportService.class),
                 clusterService,
                 mock(RepositoriesService.class),
                 threadPool,
-                actionFilters) {
+                actionFilters,
+                indexNameExpressionResolver) {
             @Override
             protected void doExecute(PutRepositoryRequest request, ActionListener<PutRepositoryResponse> listener) {
                 listener.onFailure(new RepositoryException(request.name(), "failure"));
             }
-        };*/
+        };
         when(transportActionProvider.transportPutRepositoryAction()).thenReturn(putRepo);
 
         RepositoryService repositoryService = new RepositoryService(clusterService, transportActionProvider);
