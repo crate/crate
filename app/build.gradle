@@ -282,7 +282,6 @@ distZip {
 
 ext {
     downloadDir = new File(buildDir, 'downloads')
-    plugin_crateadmin_version = '0.17.0'
     plugin_repository_hdfs_version = '2.1.1-1'
     crash_version = '0.15.0'
 }
@@ -349,47 +348,9 @@ jar {
     from fileTree(buildDir).matching{ include 'META-INF/services/*' }
 }
 
-def download (String url, String name){
-    downloadDir.mkdirs()
-    def dest = new File(downloadDir, name)
-    ant.get(
-            src: url,
-            verbose: true,
-            usetimestamp: true,
-            skipexisting: true,
-            dest: dest
-    )
-    return dest;
-}
-
-def extractTopfolder(File src, String trg){
-    copy {
-        includeEmptyDirs = false
-        FileTree ft
-        if(src.name.endsWith('.zip')) {
-            ft = zipTree(src)
-        }
-        if(src.name.endsWith('.tar.gz')) {
-            ft = tarTree(src)
-        }
-        from(ft) {
-            eachFile { details ->
-                details.path =
-                    details.path.substring(details.relativePath.segments[0].length())
-            }
-        }
-        into trg
-    }
-}
-
-task downloadPlugins << {
+task downloadPlugins (dependsOn: [':admin-ui:downloadPlugin']) << {
     def dest = download(
-            "https://cdn.crate.io/downloads/releases/crate-admin-${plugin_crateadmin_version}.tar.gz",
-            "crate-admin-${plugin_crateadmin_version}.tar.gz"
-    )
-    extractTopfolder(dest, 'plugins/crate-admin/_site')
-
-    dest = download(
+            downloadDir,
             "https://bintray.com/artifact/download/crate/crate/io/crate/crate-repository-hdfs/${plugin_repository_hdfs_version}/crate-repository-hdfs-${plugin_repository_hdfs_version}.jar",
             "crate-repository-hdfs-${plugin_repository_hdfs_version}.jar"
     )
@@ -400,12 +361,16 @@ task downloadPlugins << {
         into 'plugins/hdfs'
     }
 
+    copy {
+        from (project(':admin-ui').projectDir.path + '/build/crate-admin')
+        into 'plugins/crate-admin'
+    }
+
     // copy aws jar
     copy {
         from(project(':aws').tasks.jar.archivePath)
         into 'plugins/aws'
     }
-
     copy {
         from(project(':aws').projectDir.path + "/build/plugin-descriptor.properties")
         into 'plugins/aws'
@@ -421,8 +386,9 @@ downloadPlugins.dependsOn(':aws:jar')
 
 task downloadCrash << {
     def dest = download(
-         "https://cdn.crate.io/downloads/releases/crash_standalone_${crash_version}",
-         "crash_standalone"
+        downloadDir,
+        "https://cdn.crate.io/downloads/releases/crash_standalone_${crash_version}",
+        "crash_standalone"
     )
 }
 
