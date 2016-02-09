@@ -27,11 +27,11 @@ import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleObjectExpression;
+import io.crate.monitor.DummyExtendedNodeInfo;
+import io.crate.monitor.MonitorModule;
 import io.crate.operation.Input;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.*;
-import io.crate.monitor.DummyExtendedNodeInfo;
-import io.crate.monitor.StatsModule;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -82,7 +82,7 @@ import static org.mockito.Mockito.when;
 public class SysNodesExpressionsTest extends CrateUnitTest {
 
     private static final Settings NODE_SETTINGS = Settings.builder()
-            .put(StatsModule.EXTENDED_STATS_TYPE, "dummy")
+            .put(MonitorModule.NODE_INFO_EXTENDED_TYPE, "dummy")
             .build();
 
     private Injector injector;
@@ -220,12 +220,12 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        StatsModule statsModule = new StatsModule(NODE_SETTINGS);
-        statsModule.addExtendedStatsType("dummy", DummyExtendedNodeInfo.class);
+        MonitorModule monitorModule = new MonitorModule(NODE_SETTINGS);
+        monitorModule.addExtendedNodeInfoType("dummy", DummyExtendedNodeInfo.class);
 
         injector = new ModulesBuilder().add(
                 new TestModule(true),
-                statsModule,
+                monitorModule,
                 new SysNodeExpressionModule()
         ).createInjector();
         resolver = new NodeSysReferenceResolver(injector.getInstance(NodeSysExpression.class));

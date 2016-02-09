@@ -56,7 +56,7 @@ import io.crate.operation.reference.sys.shard.blob.BlobShardExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.service.SQLService;
-import io.crate.monitor.StatsModule;
+import io.crate.monitor.MonitorModule;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -129,7 +129,7 @@ public class SQLPlugin extends Plugin {
         modules.add(new MetaDataInformationModule());
         modules.add(new OperatorModule());
         modules.add(new PredicateModule());
-        modules.add(new StatsModule(settings));
+        modules.add(new MonitorModule(settings));
         modules.add(new SysClusterExpressionModule());
         modules.add(new SysNodeExpressionModule());
         modules.add(new AggregationImplModule());
