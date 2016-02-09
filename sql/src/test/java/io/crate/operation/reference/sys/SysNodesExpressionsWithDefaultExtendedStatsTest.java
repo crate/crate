@@ -24,9 +24,11 @@ package io.crate.operation.reference.sys;
 import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
+import io.crate.monitor.MonitorModule;
 import io.crate.operation.reference.NestedObjectExpression;
-import io.crate.operation.reference.sys.node.*;
-import io.crate.monitor.StatsModule;
+import io.crate.operation.reference.sys.node.NodeSysExpression;
+import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
+import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Injector;
@@ -41,7 +43,6 @@ import java.util.Map;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTest {
 
@@ -51,7 +52,7 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTe
     private void prepare(boolean isDataNode) throws Exception {
         injector = new ModulesBuilder().add(
                 new SysNodesExpressionsTest.TestModule(isDataNode),
-                new StatsModule(Settings.EMPTY),
+                new MonitorModule(Settings.EMPTY),
                 new SysNodeExpressionModule()
         ).createInjector();
         resolver = new NodeSysReferenceResolver(injector.getInstance(NodeSysExpression.class));

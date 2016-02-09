@@ -28,33 +28,33 @@ import org.elasticsearch.common.settings.Settings;
 import java.util.HashMap;
 import java.util.Map;
 
-public class StatsModule extends AbstractModule {
+public class MonitorModule extends AbstractModule {
 
-    public final static String EXTENDED_STATS_TYPE = "node.stats.extended.type";
-    public final static String EXTENDED_STATS_DEFAULT_TYPE = "none";
+    public final static String NODE_INFO_EXTENDED_TYPE = "node.info.extended.type";
+    public final static String NODE_INFO_EXTENDED_DEFAULT_TYPE = "none";
 
     private final Settings settings;
-    private final Map<String, Class<? extends ExtendedNodeInfo>> extendedStatsTypes = new HashMap<>();
+    private final Map<String, Class<? extends ExtendedNodeInfo>> extendedNodeInfoTypes = new HashMap<>();
 
-    public StatsModule(Settings settings) {
+    public MonitorModule(Settings settings) {
         this.settings = settings;
-        addExtendedStatsType("none", ZeroExtendedNodeInfo.class);
+        addExtendedNodeInfoType("none", ZeroExtendedNodeInfo.class);
     }
 
-    public void addExtendedStatsType(String type, Class<? extends ExtendedNodeInfo> clazz) {
-        if (extendedStatsTypes.put(type, clazz) != null) {
-            throw new IllegalArgumentException("Extended node stats type [" + type + "] is already registered");
+    public void addExtendedNodeInfoType(String type, Class<? extends ExtendedNodeInfo> clazz) {
+        if (extendedNodeInfoTypes.put(type, clazz) != null) {
+            throw new IllegalArgumentException("Extended node information type [" + type + "] is already registered");
         }
     }
 
     @Override
     protected void configure() {
-        String statsType = settings.get(EXTENDED_STATS_TYPE, EXTENDED_STATS_DEFAULT_TYPE);
-        Class<? extends ExtendedNodeInfo> statsClass = extendedStatsTypes.get(statsType);
-        if (statsClass == null) {
-            throw new IllegalArgumentException("Unknown extended node stats type [" + statsType + "]");
+        String extendedInfoType = settings.get(NODE_INFO_EXTENDED_TYPE, NODE_INFO_EXTENDED_DEFAULT_TYPE);
+        Class<? extends ExtendedNodeInfo> extendedInfoClass = extendedNodeInfoTypes.get(extendedInfoType);
+        if (extendedInfoClass == null) {
+            throw new IllegalArgumentException("Unknown extended node information type [" + extendedInfoType + "]");
         }
 
-        bind(ExtendedNodeInfo.class).to(statsClass).asEagerSingleton();
+        bind(ExtendedNodeInfo.class).to(extendedInfoClass).asEagerSingleton();
     }
 }
