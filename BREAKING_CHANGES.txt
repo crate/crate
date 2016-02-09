@@ -15,3 +15,13 @@ into CHANGES.txt
    parameter.
 
  - The `gateway.local.sync` setting has been renamed to `translog.sync_interval`
+
+
+## Other changes
+
+
+ - Removed internal migration code that ensured schema backward compatibility
+   to Crate versions <= 0.45.
+   This means a direct upgrade from a version that is lower than 0.45 is no
+   longer possible. Only upgrades from a version > 0.46 and <= 0.54 are
+   possible.
