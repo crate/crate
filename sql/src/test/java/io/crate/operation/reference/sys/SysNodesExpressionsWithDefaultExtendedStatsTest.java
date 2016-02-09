@@ -21,58 +21,27 @@
  */
 package io.crate.operation.reference.sys;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.*;
-import io.crate.stats.DummyExtendedNodeStats;
-import io.crate.stats.ExtendedNodeStats;
-import io.crate.stats.StatsModule;
+import io.crate.monitor.StatsModule;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.BoundTransportAddress;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.discovery.Discovery;
-import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.http.HttpInfo;
-import org.elasticsearch.monitor.jvm.JvmService;
-import org.elasticsearch.monitor.jvm.JvmStats;
-import org.elasticsearch.monitor.os.OsInfo;
-import org.elasticsearch.monitor.os.OsService;
-import org.elasticsearch.monitor.os.OsStats;
-import org.elasticsearch.monitor.process.ProcessStats;
-import org.elasticsearch.node.service.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.nio.file.Path;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTest {
 

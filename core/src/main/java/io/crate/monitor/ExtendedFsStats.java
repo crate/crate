@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.stats;
+package io.crate.monitor;
 
 import com.google.common.collect.Iterators;
 import org.apache.lucene.util.BytesRef;

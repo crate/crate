@@ -20,17 +20,19 @@
  * agreement.
  */
 
-package io.crate.stats;
+package io.crate.monitor;
 
-import org.elasticsearch.env.NodeEnvironment;
+import java.util.Map;
 
-public interface ExtendedNodeStats {
+public class ExtendedOsInfo {
 
-    ExtendedNetworkStats networkStats();
+    private final Map<String, Object> kernelData;
 
-    ExtendedFsStats fsStats(NodeEnvironment nodeEnvironment);
+    public ExtendedOsInfo(Map<String, Object> kernelData) {
+        this.kernelData = kernelData;
+    }
 
-    ExtendedOsStats osStats();
-
-    ExtendedProcessCpuStats processCpuStats();
+    public Map<String, Object> kernelData() {
+        return kernelData;
+    }
 }

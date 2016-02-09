@@ -22,7 +22,7 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import io.crate.stats.ExtendedNetworkStats;
+import io.crate.monitor.ExtendedNetworkStats;
 
 class NodeNetworkTCPExpression extends SysNodeObjectReference {
 

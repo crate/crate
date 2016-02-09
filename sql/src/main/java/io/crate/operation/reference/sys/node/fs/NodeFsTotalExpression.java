@@ -26,7 +26,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import io.crate.stats.ExtendedFsStats;
+import io.crate.monitor.ExtendedFsStats;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 

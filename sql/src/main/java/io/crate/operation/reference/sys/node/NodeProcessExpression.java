@@ -23,7 +23,7 @@ package io.crate.operation.reference.sys.node;
 
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import io.crate.stats.ExtendedProcessCpuStats;
+import io.crate.monitor.ExtendedProcessCpuStats;
 import org.elasticsearch.monitor.process.ProcessStats;
 
 public class NodeProcessExpression extends SysNodeObjectReference {

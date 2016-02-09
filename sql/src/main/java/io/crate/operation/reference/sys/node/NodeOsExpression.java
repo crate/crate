@@ -23,7 +23,7 @@ package io.crate.operation.reference.sys.node;
 
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import io.crate.stats.ExtendedOsStats;
+import io.crate.monitor.ExtendedOsStats;
 
 
 public class NodeOsExpression extends SysNodeObjectReference {
