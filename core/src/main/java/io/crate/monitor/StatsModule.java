@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.stats;
+package io.crate.monitor;
 
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.Settings;
@@ -34,14 +34,14 @@ public class StatsModule extends AbstractModule {
     public final static String EXTENDED_STATS_DEFAULT_TYPE = "none";
 
     private final Settings settings;
-    private final Map<String, Class<? extends ExtendedNodeStats>> extendedStatsTypes = new HashMap<>();
+    private final Map<String, Class<? extends ExtendedNodeInfo>> extendedStatsTypes = new HashMap<>();
 
     public StatsModule(Settings settings) {
         this.settings = settings;
-        addExtendedStatsType("none", ZeroExtendedNodeStats.class);
+        addExtendedStatsType("none", ZeroExtendedNodeInfo.class);
     }
 
-    public void addExtendedStatsType(String type, Class<? extends ExtendedNodeStats> clazz) {
+    public void addExtendedStatsType(String type, Class<? extends ExtendedNodeInfo> clazz) {
         if (extendedStatsTypes.put(type, clazz) != null) {
             throw new IllegalArgumentException("Extended node stats type [" + type + "] is already registered");
         }
@@ -50,11 +50,11 @@ public class StatsModule extends AbstractModule {
     @Override
     protected void configure() {
         String statsType = settings.get(EXTENDED_STATS_TYPE, EXTENDED_STATS_DEFAULT_TYPE);
-        Class<? extends ExtendedNodeStats> statsClass = extendedStatsTypes.get(statsType);
+        Class<? extends ExtendedNodeInfo> statsClass = extendedStatsTypes.get(statsType);
         if (statsClass == null) {
             throw new IllegalArgumentException("Unknown extended node stats type [" + statsType + "]");
         }
 
-        bind(ExtendedNodeStats.class).to(statsClass).asEagerSingleton();
+        bind(ExtendedNodeInfo.class).to(statsClass).asEagerSingleton();
     }
 }

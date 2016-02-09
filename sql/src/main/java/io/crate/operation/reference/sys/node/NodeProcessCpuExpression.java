@@ -22,7 +22,7 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import io.crate.stats.ExtendedProcessCpuStats;
+import io.crate.monitor.ExtendedProcessCpuStats;
 
 public class NodeProcessCpuExpression extends SysNodeObjectReference {
 

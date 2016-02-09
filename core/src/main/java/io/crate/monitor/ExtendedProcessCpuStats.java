@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.stats;
+package io.crate.monitor;
 
 import org.elasticsearch.common.unit.TimeValue;
 

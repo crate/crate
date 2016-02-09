@@ -56,7 +56,7 @@ import io.crate.operation.reference.sys.shard.blob.BlobShardExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.service.SQLService;
-import io.crate.stats.StatsModule;
+import io.crate.monitor.StatsModule;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;

@@ -25,7 +25,7 @@ import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
-import io.crate.stats.ExtendedNodeStats;
+import io.crate.monitor.ExtendedNodeInfo;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.Discovery;
@@ -45,7 +45,7 @@ public class NodeSysExpression extends NestedObjectExpression {
     private final NodeService nodeService;
     private final OsService osService;
     private final JvmService jvmService;
-    private final ExtendedNodeStats extendedNodeStats;
+    private final ExtendedNodeInfo extendedNodeInfo;
 
     private static final Collection EXPRESSIONS_WITH_OS_STATS = Arrays.asList(
             SysNodesTableInfo.SYS_COL_MEM,
@@ -61,13 +61,13 @@ public class NodeSysExpression extends NestedObjectExpression {
                              NodeEnvironment nodeEnvironment,
                              Discovery discovery,
                              ThreadPool threadPool,
-                             ExtendedNodeStats extendedNodeStats) {
+                             ExtendedNodeInfo extendedNodeInfo) {
         this.nodeService = nodeService;
         this.osService = osService;
         this.jvmService = jvmService;
-        this.extendedNodeStats = extendedNodeStats;
+        this.extendedNodeInfo = extendedNodeInfo;
         childImplementations.put(SysNodesTableInfo.SYS_COL_FS,
-                new NodeFsExpression(extendedNodeStats.fsStats(nodeEnvironment)));
+                new NodeFsExpression(extendedNodeInfo.fsStats(nodeEnvironment)));
         childImplementations.put(SysNodesTableInfo.SYS_COL_HOSTNAME,
                 new NodeHostnameExpression(clusterService));
         childImplementations.put(SysNodesTableInfo.SYS_COL_REST_URL,
@@ -93,20 +93,20 @@ public class NodeSysExpression extends NestedObjectExpression {
             if (SysNodesTableInfo.SYS_COL_MEM.equals(name)) {
                 return new NodeMemoryExpression(osStats);
             } else if (SysNodesTableInfo.SYS_COL_LOAD.equals(name)) {
-                return new NodeLoadExpression(extendedNodeStats.osStats());
+                return new NodeLoadExpression(extendedNodeInfo.osStats());
             } else if (SysNodesTableInfo.SYS_COL_OS.equals(name)) {
-                return new NodeOsExpression(extendedNodeStats.osStats());
+                return new NodeOsExpression(extendedNodeInfo.osStats());
             }
         } else if (SysNodesTableInfo.SYS_COL_PROCESS.equals(name)) {
             try {
-                return new NodeProcessExpression(nodeService.stats().getProcess(), extendedNodeStats.processCpuStats());
+                return new NodeProcessExpression(nodeService.stats().getProcess(), extendedNodeInfo.processCpuStats());
             } catch (IOException e) {
                 // This is a bug in ES method signature, IOException is never thrown
             }
         } else if (SysNodesTableInfo.SYS_COL_HEAP.equals(name)) {
             return new NodeHeapExpression(jvmService.stats());
         } else if (SysNodesTableInfo.SYS_COL_NETWORK.equals(name)) {
-            return new NodeNetworkExpression(extendedNodeStats.networkStats());
+            return new NodeNetworkExpression(extendedNodeInfo.networkStats());
         }
         return super.getChildImplementation(name);
     }

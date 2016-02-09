@@ -20,20 +20,29 @@
  * agreement.
  */
 
-package io.crate.stats;
+package io.crate.monitor;
 
 import org.elasticsearch.env.NodeEnvironment;
 
-public class ZeroExtendedNodeStats implements ExtendedNodeStats {
+import java.util.Collections;
+
+public class ZeroExtendedNodeInfo implements ExtendedNodeInfo {
 
     private static final ExtendedNetworkStats NETWORK_STATS = new ExtendedNetworkStats(new ExtendedNetworkStats.Tcp());
+    private static final ExtendedNetworkInfo NETWORK_INFO = new ExtendedNetworkInfo(ExtendedNetworkInfo.NA_INTERFACE);
     private static final ExtendedFsStats FS_STATS = new ExtendedFsStats(new ExtendedFsStats.Info());
     private static final ExtendedOsStats OS_STATS = new ExtendedOsStats(new ExtendedOsStats.Cpu());
+    private static final ExtendedOsInfo OS_INFO = new ExtendedOsInfo(Collections.<String, Object>emptyMap());
     private static final ExtendedProcessCpuStats PROCESS_CPU_STATS = new ExtendedProcessCpuStats();
 
     @Override
     public ExtendedNetworkStats networkStats() {
         return NETWORK_STATS;
+    }
+
+    @Override
+    public ExtendedNetworkInfo networkInfo() {
+        return NETWORK_INFO;
     }
 
     @Override
@@ -44,6 +53,11 @@ public class ZeroExtendedNodeStats implements ExtendedNodeStats {
     @Override
     public ExtendedOsStats osStats() {
         return OS_STATS;
+    }
+
+    @Override
+    public ExtendedOsInfo osInfo() {
+        return OS_INFO;
     }
 
     @Override
