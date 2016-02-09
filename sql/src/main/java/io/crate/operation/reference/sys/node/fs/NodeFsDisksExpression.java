@@ -24,7 +24,7 @@ package io.crate.operation.reference.sys.node.fs;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import io.crate.operation.reference.sys.SysObjectArrayReference;
-import io.crate.stats.ExtendedFsStats;
+import io.crate.monitor.ExtendedFsStats;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.ArrayList;

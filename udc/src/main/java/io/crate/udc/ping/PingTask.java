@@ -24,15 +24,13 @@ package io.crate.udc.ping;
 import com.google.common.base.Joiner;
 import io.crate.ClusterIdService;
 import io.crate.Version;
+import io.crate.monitor.ExtendedNodeInfo;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
-// import org.elasticsearch.monitor.network.NetworkInfo;
-import org.elasticsearch.node.service.NodeService;
-// import org.hyperic.sigar.OperatingSystem;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -47,7 +45,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-// TODO: FIX ME! sigar removal!
 public class PingTask extends TimerTask {
 
     public static final TimeValue HTTP_TIMEOUT = new TimeValue(5, TimeUnit.SECONDS);
@@ -56,7 +53,7 @@ public class PingTask extends TimerTask {
 
     private final ClusterService clusterService;
     private final ClusterIdService clusterIdService;
-    private final NodeService nodeService;
+    private final ExtendedNodeInfo extendedNodeInfo;
     private final String pingUrl;
 
     private AtomicLong successCounter = new AtomicLong(0);
@@ -64,25 +61,26 @@ public class PingTask extends TimerTask {
 
     public PingTask(ClusterService clusterService,
                     ClusterIdService clusterIdService,
-                    NodeService nodeService,
+                    ExtendedNodeInfo extendedNodeInfo,
                     String pingUrl) {
         this.clusterService = clusterService;
         this.clusterIdService = clusterIdService;
-        this.nodeService = nodeService;
+        this.extendedNodeInfo = extendedNodeInfo;
         this.pingUrl = pingUrl;
     }
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> getKernelData() {
-        // TODO: FIX ME!
-        return null; //OperatingSystem.getInstance().toMap();
+        return extendedNodeInfo.osInfo().kernelData();
     }
 
-    public @Nullable String getClusterId() {
+    public
+    @Nullable
+    String getClusterId() {
         // wait until clusterId is available (master has been elected)
         try {
             return clusterIdService.clusterId().get().value().toString();
-        } catch (InterruptedException|ExecutionException e) {
+        } catch (InterruptedException | ExecutionException e) {
             if (logger.isTraceEnabled()) {
                 logger.trace("Error getting cluster id", e);
             }
@@ -103,13 +101,8 @@ public class PingTask extends TimerTask {
 
     @Nullable
     public String getHardwareAddress() {
-        // TODO: FIX ME!
-        /*final NetworkInfo network = nodeService.info().getNetwork();
-        if (network == null) {
-            return null;
-        }
-        final String macAddress = network.getPrimaryInterface().getMacAddress();*/
-        return null; // (macAddress == null || macAddress.equals("")) ? null : macAddress.toLowerCase(Locale.ENGLISH);
+        String macAddress = extendedNodeInfo.networkInfo().primaryInterface().macAddress();
+        return (macAddress == null || macAddress.equals("")) ? null : macAddress.toLowerCase(Locale.ENGLISH);
     }
 
     public String getCrateVersion() {
@@ -159,9 +152,9 @@ public class PingTask extends TimerTask {
             if (logger.isDebugEnabled()) {
                 logger.debug("Sending UDC information to {}...", url);
             }
-            HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-            conn.setConnectTimeout((int)HTTP_TIMEOUT.millis());
-            conn.setReadTimeout((int)HTTP_TIMEOUT.millis());
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout((int) HTTP_TIMEOUT.millis());
+            conn.setReadTimeout((int) HTTP_TIMEOUT.millis());
 
             if (conn.getResponseCode() >= 300) {
                 throw new Exception(String.format(Locale.ENGLISH, "%s Responded with Code %d", url.getHost(), conn.getResponseCode()));

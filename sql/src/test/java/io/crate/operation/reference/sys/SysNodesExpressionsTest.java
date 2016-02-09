@@ -30,9 +30,8 @@ import io.crate.metadata.SimpleObjectExpression;
 import io.crate.operation.Input;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.*;
-import io.crate.stats.DummyExtendedNodeStats;
-import io.crate.stats.ExtendedNodeStats;
-import io.crate.stats.StatsModule;
+import io.crate.monitor.DummyExtendedNodeInfo;
+import io.crate.monitor.StatsModule;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -222,7 +221,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     @Before
     public void prepare() throws Exception {
         StatsModule statsModule = new StatsModule(NODE_SETTINGS);
-        statsModule.addExtendedStatsType("dummy", DummyExtendedNodeStats.class);
+        statsModule.addExtendedStatsType("dummy", DummyExtendedNodeInfo.class);
 
         injector = new ModulesBuilder().add(
                 new TestModule(true),

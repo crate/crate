@@ -32,8 +32,8 @@ import io.crate.operation.Input;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.operation.reference.sys.node.NodeLoadExpression;
-import io.crate.stats.DummyExtendedNodeStats;
-import io.crate.stats.ExtendedNodeStats;
+import io.crate.monitor.DummyExtendedNodeInfo;
+import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
@@ -122,8 +122,8 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
             bind(ClusterService.class).toInstance(clusterService);
             bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
 
-            ExtendedNodeStats extendedNodeStats = new DummyExtendedNodeStats();
-            NodeLoadExpression loadExpr = new NodeLoadExpression(extendedNodeStats.osStats());
+            ExtendedNodeInfo extendedNodeInfo = new DummyExtendedNodeInfo();
+            NodeLoadExpression loadExpr = new NodeLoadExpression(extendedNodeInfo.osStats());
 
             MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);

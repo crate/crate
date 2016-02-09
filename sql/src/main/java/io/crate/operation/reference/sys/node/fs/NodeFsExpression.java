@@ -23,7 +23,7 @@ package io.crate.operation.reference.sys.node.fs;
 
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
-import io.crate.stats.ExtendedFsStats;
+import io.crate.monitor.ExtendedFsStats;
 
 public class NodeFsExpression extends SysNodeObjectReference {
 

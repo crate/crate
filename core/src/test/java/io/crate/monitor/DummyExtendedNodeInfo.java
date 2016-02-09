@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.stats;
+package io.crate.monitor;
 
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.env.NodeEnvironment;
@@ -29,11 +29,12 @@ import org.mockito.stubbing.Answer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
 
-public class DummyExtendedNodeStats implements ExtendedNodeStats {
+public class DummyExtendedNodeInfo implements ExtendedNodeInfo {
 
     static List<Tuple<String, String>> FILE_SYSTEMS = Arrays.asList(
             Tuple.tuple("/dev/sda1", "/foo"),
@@ -51,6 +52,10 @@ public class DummyExtendedNodeStats implements ExtendedNodeStats {
         return new ExtendedNetworkStats(tcpStats);
     }
 
+    @Override
+    public ExtendedNetworkInfo networkInfo() {
+        return new ExtendedNetworkInfo(ExtendedNetworkInfo.NA_INTERFACE);
+    }
 
     @Override
     public ExtendedFsStats fsStats(NodeEnvironment nodeEnvironment) {
@@ -76,6 +81,11 @@ public class DummyExtendedNodeStats implements ExtendedNodeStats {
         osStats.uptime = 3600L;
         osStats.loadAverage = new double[]{1, 5, 15};
         return osStats;
+    }
+
+    @Override
+    public ExtendedOsInfo osInfo() {
+        return new ExtendedOsInfo(Collections.<String, Object>emptyMap());
     }
 
     @Override
