@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Upgraded Elasticsearch to 1.7.5
+
  - Added `routing_state` column to `sys.shards` table in order to fix the
    underreplicated shards calculation in admin ui
 
