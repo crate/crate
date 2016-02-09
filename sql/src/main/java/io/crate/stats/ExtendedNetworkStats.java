@@ -24,11 +24,8 @@ package io.crate.stats;
 
 public class ExtendedNetworkStats {
 
+    final Tcp tcp;
     long timestamp;
-    Tcp tcp = null;
-
-    public ExtendedNetworkStats() {
-    }
 
     public ExtendedNetworkStats(Tcp tcp) {
         this.tcp = tcp;

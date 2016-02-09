@@ -42,10 +42,9 @@ public class StatsModule extends AbstractModule {
     }
 
     public void addExtendedStatsType(String type, Class<? extends ExtendedNodeStats> clazz) {
-        if (extendedStatsTypes.containsKey(type)) {
+        if (extendedStatsTypes.put(type, clazz) != null) {
             throw new IllegalArgumentException("Extended node stats type [" + type + "] is already registered");
         }
-        extendedStatsTypes.put(type, clazz);
     }
 
     @Override

@@ -26,19 +26,20 @@ import org.elasticsearch.common.unit.TimeValue;
 
 public class ExtendedProcessCpuStats {
 
-    short percent = -1;
-    long sys = -1;
-    long user = -1;
-    long total = -1;
+    final short percent;
+    final TimeValue sys;
+    final TimeValue user;
+    final TimeValue total;
 
     public ExtendedProcessCpuStats() {
+        this((short) -1, -1L, -1L, -1L);
     }
 
     public ExtendedProcessCpuStats(short percent, long sys, long user, long total) {
         this.percent = percent;
-        this.sys = sys;
-        this.user = user;
-        this.total = total;
+        this.sys = new TimeValue(sys);
+        this.user = new TimeValue(user);
+        this.total = new TimeValue(total);
     }
 
     /**
@@ -56,7 +57,7 @@ public class ExtendedProcessCpuStats {
      * <p>Supported Platforms: All.
      */
     public TimeValue sys() {
-        return new TimeValue(sys);
+        return sys;
     }
 
     /**
@@ -65,7 +66,7 @@ public class ExtendedProcessCpuStats {
      * <p>Supported Platforms: All.
      */
     public TimeValue user() {
-        return new TimeValue(user);
+        return user;
     }
 
     /**
@@ -74,6 +75,6 @@ public class ExtendedProcessCpuStats {
      * Supported Platforms: All.
      */
     public TimeValue total() {
-        return new TimeValue(total);
+        return total;
     }
 }

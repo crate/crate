@@ -76,6 +76,7 @@ public class ExtendedFsStats implements Iterable<ExtendedFsStats.Info> {
             return path;
         }
 
+        @Nullable
         public BytesRef dev() {
             return dev;
         }
@@ -132,8 +133,8 @@ public class ExtendedFsStats implements Iterable<ExtendedFsStats.Info> {
 
     }
 
+    final Info[] infos;
     Info total;
-    Info[] infos;
 
     public ExtendedFsStats(Info total) {
         this.total = total;

@@ -28,10 +28,11 @@ import java.util.concurrent.TimeUnit;
 
 public class ExtendedOsStats {
 
+    final Cpu cpu;
+
     long timestamp;
     long uptime = -1;
     double[] loadAverage = new double[0];
-    Cpu cpu;
 
     public ExtendedOsStats(Cpu cpu) {
         this.cpu = cpu;
@@ -55,12 +56,13 @@ public class ExtendedOsStats {
 
     public static class Cpu {
 
-        short sys = -1;
-        short user = -1;
-        short idle = -1;
-        short stolen = -1;
+        final short sys;
+        final short user;
+        final short idle;
+        final short stolen;
 
         public Cpu() {
+            this((short) -1, (short) -1, (short) -1, (short) -1);
         }
 
         public Cpu(short sys, short user, short idle, short stolen) {
