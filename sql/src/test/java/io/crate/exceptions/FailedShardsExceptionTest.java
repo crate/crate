@@ -67,21 +67,17 @@ public class FailedShardsExceptionTest extends CrateUnitTest {
 
             @Override
             public void readFrom(StreamInput in) throws IOException {
-
             }
 
             @Override
             public void writeTo(StreamOutput out) throws IOException {
-
             }
 
-            // TODO: FIX ME! Maybe implement me?
             @Override
             public Throwable getCause() {
                 return null;
             }
 
-            // TODO: FIX ME! Maybe implement me?
             @Override
             public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
                 return null;
