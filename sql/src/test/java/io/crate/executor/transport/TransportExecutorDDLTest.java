@@ -42,9 +42,11 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
+import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
 import org.elasticsearch.cluster.settings.DynamicSettings;
+import org.elasticsearch.cluster.settings.Validator;
 import org.elasticsearch.common.inject.Key;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
@@ -92,9 +94,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     public void tearDown() throws Exception {
         super.tearDown();
         client().admin().cluster().prepareUpdateSettings()
-                // TODO: FIX ME! serPersistentSettingsToRemove and setTransientSettingsToRemove no available anymore
-                //.setPersistentSettingsToRemove(ImmutableSet.of("persistent.level"))
-                //.setTransientSettingsToRemove(ImmutableSet.of("persistent.level", "transient.uptime"))
+                .setPersistentSettingsToRemove(ImmutableSet.of("stats.enabled"))
+                .setTransientSettingsToRemove(ImmutableSet.of("stats.enabled", "bulk.request_timeout"))
                 .execute().actionGet();
     }
 
@@ -208,16 +209,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testClusterUpdateSettingsTask() throws Exception {
-        final String persistentSetting = "persistent.level";
-        final String transientSetting = "transient.uptime";
-
-        // allow our settings to be updated (at all nodes)
-        Key<DynamicSettings> dynamicSettingsKey = Key.get(DynamicSettings.class, ClusterDynamicSettings.class);
-        // TODO: FIX ME! addDynamicSettings not available anymore
-        /*for (DynamicSettings settings : internalCluster().getInstances(dynamicSettingsKey)) {
-            settings.addDynamicSetting(persistentSetting);
-            settings.addDynamicSetting(transientSetting);
-        }*/
+        final String persistentSetting = "stats.enabled";
+        final String transientSetting = "bulk.request_timeout";
 
         // Update persistent only
         Settings persistentSettings = Settings.builder()
@@ -233,21 +226,21 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         // Update transient only
         Settings transientSettings = Settings.builder()
-                .put(transientSetting, "123")
+                .put(transientSetting, "123s")
                 .build();
 
         node = new ESClusterUpdateSettingsNode(EMPTY_SETTINGS, transientSettings);
         objects = executePlanNode(node);
 
         assertThat(objects, contains(isRow(1L)));
-        assertEquals("123", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
+        assertEquals("123s", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
 
         // Update persistent & transient
         persistentSettings = Settings.builder()
                 .put(persistentSetting, "normal")
                 .build();
         transientSettings = Settings.builder()
-                .put(transientSetting, "243")
+                .put(transientSetting, "243s")
                 .build();
 
         node = new ESClusterUpdateSettingsNode(persistentSettings, transientSettings);
@@ -255,7 +248,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         assertThat(objects, contains(isRow(1L)));
         assertEquals("normal", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().persistentSettings().get(persistentSetting));
-        assertEquals("243", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
+        assertEquals("243s", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
     }
 
     private Bucket executePlanNode(PlanNode node) throws InterruptedException, java.util.concurrent.ExecutionException {
