@@ -21,40 +21,16 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.action.sql.SQLBulkRequest;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.Reference;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.operation.Paging;
-import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.LuceneDocCollectorProvider;
 import io.crate.testing.TestingHelpers;
-import io.crate.types.DataTypes;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.LongField;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.search.*;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.Version;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.After;
@@ -64,9 +40,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-import javax.annotation.Nullable;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.CancellationException;
 
@@ -460,143 +433,5 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(result), is(
                 "{\"continent\":\"America\",\"countryName\":\"USA\",\"population\":1000}| 1000\n" +
                 "{\"continent\":\"America\",\"countryName\":\"USA\",\"population\":1001}| 1001\n"));
-    }
-
-    private static void addDocToLucene(IndexWriter w, Long value) throws IOException {
-        Document doc = new Document();
-        if (value != null) {
-            doc.add(new LongField("value", value, Field.Store.NO));
-        } else {
-            // Create a placeholder field
-            doc.add(new StringField("null_value", "null", Field.Store.NO));
-        }
-        w.addDocument(doc);
-    }
-
-    private Directory createLuceneIndex() throws IOException {
-        File tmpDir = temporaryFolder.newFolder();
-        Directory index = FSDirectory.open(tmpDir);
-        StandardAnalyzer analyzer = new StandardAnalyzer();
-        IndexWriterConfig cfg = new IndexWriterConfig(Version.LATEST, analyzer);
-        IndexWriter w = new IndexWriter(index, cfg);
-        for (Long i = 0L; i < 4; i++) {
-            if ( i < 2) {
-                addDocToLucene(w, i + 1);
-            } else {
-                addDocToLucene(w, null);
-            }
-            w.commit();
-        }
-        w.close();
-        return index;
-    }
-
-    private TopFieldDocs search(IndexReader reader, Query query, Sort sort) throws IOException {
-        IndexSearcher searcher = new IndexSearcher(reader);
-
-        BooleanQuery searchQuery = new BooleanQuery();
-        searchQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
-        if (query != null) {
-            searchQuery.add(query, BooleanClause.Occur.MUST_NOT);
-        }
-        TopFieldDocs docs = searcher.search(searchQuery, 10, sort);
-        return docs;
-    }
-
-    private Long[] nextPageQuery(IndexReader reader, FieldDoc lastCollected, boolean reverseFlag, @Nullable Boolean nullFirst) throws IOException {
-        OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(new Reference(info)),
-                new boolean[]{reverseFlag},
-                new Boolean[]{nullFirst});
-
-        SortField sortField = new SortField("value", SortField.Type.LONG, reverseFlag);
-        Long missingValue = (Long)LuceneMissingValue.missingValue(orderBy, 0);
-        sortField.setMissingValue(missingValue);
-        Sort sort = new Sort(sortField);
-
-        Query nextPageQuery = OrderedDocCollector.nextPageQuery(lastCollected, orderBy, new Object[]{missingValue});
-        TopFieldDocs result = search(reader, nextPageQuery, sort);
-        Long results[] = new Long[result.scoreDocs.length];
-        for (int i = 0; i < result.scoreDocs.length; i++) {
-            Long value = (Long)((FieldDoc)result.scoreDocs[i]).fields[0];
-            results[i] = value.equals(missingValue) ? null : value;
-        }
-        return results;
-    }
-
-    private static ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(new TableIdent(null, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
-
-    // search after queries
-    @Test
-    public void testSearchAfterQueriesNullsLast() throws Exception {
-        Directory index = createLuceneIndex();
-        IndexReader reader = DirectoryReader.open(index);
-
-        // reverseOrdering = false, nulls First = false
-        // 1  2  null null
-        //    ^  (lastCollected = 2)
-
-        FieldDoc afterDoc = new FieldDoc(0, 0, new Object[]{2L});
-        Long[] result = nextPageQuery(reader, afterDoc, false, null);
-        assertThat(result, is(new Long[]{2L, null, null}));
-
-        // reverseOrdering = false, nulls First = false
-        // 1  2  null null
-        //       ^
-        afterDoc = new FieldDoc(0, 0, new Object[]{LuceneMissingValue.missingValue(false, null, SortField.Type.LONG)});
-        result = nextPageQuery(reader, afterDoc, false, null);
-        assertThat(result, is(new Long[]{null, null}));
-
-        // reverseOrdering = true, nulls First = false
-        // 2  1  null null
-        //    ^
-        afterDoc = new FieldDoc(0, 0, new Object[]{1L});
-        result = nextPageQuery(reader, afterDoc, true, null);
-        assertThat(result, is(new Long[]{null, null, 1L}));
-
-        // reverseOrdering = true, nulls First = false
-        // 2  1  null null
-        //       ^
-        afterDoc = new FieldDoc(0, 0, new Object[]{LuceneMissingValue.missingValue(true, null, SortField.Type.LONG)});
-        result = nextPageQuery(reader, afterDoc, true, null);
-        assertThat(result, is(new Long[]{null, null}));
-
-        reader.close();
-    }
-
-    @Test
-    public void testSearchAfterQueriesNullsFirst() throws Exception {
-        Directory index = createLuceneIndex();
-        IndexReader reader = DirectoryReader.open(index);
-
-        // reverseOrdering = false, nulls First = true
-        // null, null, 1, 2
-        //                ^  (lastCollected = 2L)
-
-        FieldDoc afterDoc = new FieldDoc(0, 0, new Object[]{2L});
-        Long[] result = nextPageQuery(reader, afterDoc, false, true);
-        assertThat(result, is(new Long[]{2L}));
-
-        // reverseOrdering = false, nulls First = true
-        // null, null, 1, 2
-        //       ^
-        afterDoc = new FieldDoc(0, 0, new Object[]{LuceneMissingValue.missingValue(false, true, SortField.Type.LONG)});
-        result = nextPageQuery(reader, afterDoc, false, true);
-        assertThat(result, is(new Long[]{null, null, 1L, 2L}));
-
-        // reverseOrdering = true, nulls First = true
-        // null, null, 2, 1
-        //                ^
-        afterDoc = new FieldDoc(0, 0, new Object[]{1L});
-        result = nextPageQuery(reader, afterDoc, true, true);
-        assertThat(result, is(new Long[]{1L}));
-
-        // reverseOrdering = true, nulls First = true
-        // null, null, 2, 1
-        //       ^
-        afterDoc = new FieldDoc(0, 0, new Object[]{LuceneMissingValue.missingValue(true, true, SortField.Type.LONG)});
-        result = nextPageQuery(reader, afterDoc, true, true);
-        assertThat(result, is(new Long[]{null, null, 2L, 1L}));
-
-        reader.close();
     }
 }
