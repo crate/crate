@@ -1,9 +1,13 @@
 buildscript {
     repositories {
         mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
     }
     dependencies {
         classpath 'de.thetaphi:forbiddenapis:2.0'
+        classpath "gradle.plugin.gradle-plugins:jartest:1.0.1"
     }
 }
 

@@ -2,6 +2,7 @@ apply plugin: 'me.champeau.gradle.jmh'
 apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'de.thetaphi.forbiddenapis'
+apply plugin: 'com.github.hauner.jarTest'
 
 archivesBaseName = 'crate-core'
 
