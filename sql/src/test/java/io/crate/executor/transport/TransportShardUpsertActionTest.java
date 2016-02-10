@@ -152,7 +152,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 shardId, request, new AtomicBoolean(false));
 
         assertThat(response.failures().size(), is(1));
-        assertThat(response.failures().get(0).message(), is("IndexNotFoundException[[characters] missing]"));
+        assertThat(response.failures().get(0).message(), is("IndexNotFoundException[no such index]"));
     }
 
     @Test

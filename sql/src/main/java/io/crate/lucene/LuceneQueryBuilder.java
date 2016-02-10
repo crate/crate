@@ -66,9 +66,6 @@ import org.apache.lucene.spatial.query.SpatialOperation;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.RegExp;
-import org.apache.xbean.finder.filter.Filters;
-import org.apache.lucene.util.automaton.RegExp;
-import org.apache.lucene.util.automaton.RegExp;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
@@ -80,9 +77,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.lucene.docset.MatchDocIdSet;
-import org.elasticsearch.common.lucene.search.MatchNoDocsFilter;
-import org.elasticsearch.common.lucene.docset.MatchDocIdSet;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
@@ -132,7 +126,7 @@ public class LuceneQueryBuilder {
         return ctx;
     }
 
-    private static Filter termsFilter(String columnName, Literal arrayLiteral) {
+    private static Query termsQuery(String columnName, Literal arrayLiteral) {
         Object values = arrayLiteral.value();
         Collection valueCollection;
         if (values instanceof Collection) {
@@ -142,9 +136,9 @@ public class LuceneQueryBuilder {
         }
         List<Term> terms = asTerms(columnName, valueCollection, TermBuilder.forType(arrayLiteral.valueType()));
         if (terms.isEmpty()) {
-            return new MatchNoDocsFilter();
+            return new MatchNoDocsQuery();
         }
-        return new TermsFilter(terms);
+        return new TermsQuery(terms);
     }
 
     private static List<Term> asTerms(String columnName, Collection values, TermBuilder termBuilder) {
@@ -313,7 +307,7 @@ public class LuceneQueryBuilder {
             @Override
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 String columnName = reference.ident().columnIdent().fqn();
-                return termQuery(columnName, arrayLiteral);
+                return termsQuery(columnName, arrayLiteral);
             }
         }
 
