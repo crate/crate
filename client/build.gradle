@@ -5,17 +5,41 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '1.2.3'
 }
 
+repositories {
+    jcenter()
+}
+
 archivesBaseName = "crate-client"
 
-evaluationDependsOn(':core')
-evaluationDependsOn(':sql')
+evaluationDependsOn(':app')
 
 configurations {
     all*.exclude group: 'org.elasticsearch'
 }
 
+def coreIncludes = ['io/crate/Streamer*',
+                    "io/crate/TimestampFormat*",
+                    "io/crate/core/collections/MapComparator*",
+                    "io/crate/core/collections/ForEach*",
+                    "io/crate/core/StringUtils*",
+                    "io/crate/geo/GeoJSONUtils*",
+                    "io/crate/types/**"]
+
+def sqlIncludes = ["io/crate/action/sql/SQL*"]
+
+task depClasses(type: Copy, dependsOn: [':core:compileJava', ':sql:compileJava']) {
+    duplicatesStrategy 'fail'
+    from(project(':core').sourceSets.main.output) {
+        include coreIncludes
+    }
+    from(project(':sql').sourceSets.main.output) {
+        include sqlIncludes
+    }
+    into file('build/deps/')
+}
+
 dependencies {
-    compile (project(':es')) {
+    compile(project(':es')) {
         exclude group: 'org.apache.lucene'
         exclude group: 'org.codehaus.groovy'
         exclude group: 'com.github.spullara.mustache.java'
@@ -25,26 +49,26 @@ dependencies {
         exclude group: 'commons-cli'
         exclude group: 'org.slf4j'
     }
-    // needed by ES Version class - keep up to date with es dependencies
+    // required by ES and Lucene Version classes - keep up to date with es dependencies
+    // The version module is required by the DiscoveryNode module
     compile 'org.apache.lucene:lucene-core:4.10.4'
     compile 'org.apache.lucene:lucene-analyzers-common:4.10.4'
 
-    compile 'com.google.code.findbugs:annotations:3.0.0'
-    compile files(project(':core').sourceSets.shared.output.classesDir)
-    compile files(project(':sql').sourceSets.shared.output.classesDir)
+    compile files(depClasses)
+    testCompile 'io.crate:crate-testing:0.3.1'
+    testCompile 'org.hamcrest:hamcrest-all:1.3'
 
-    testCompile project(':testing')
-    testCompile project(':core')
-    testCompile project(':sql')
 }
 
-processResources.dependsOn([':core:compileSharedJava', ':sql:compileSharedJava'])
-compileJava.dependsOn([':core:compileSharedJava', ':sql:compileSharedJava'])
-
+compileTestJava {
+    dependsOn ':app:distTar'
+}
 
 test {
+    systemProperty 'project_root', rootProject.projectDir
+    systemProperty 'project_build_dir', rootProject.buildDir
+    dependsOn ':app:distTar'
     testLogging.exceptionFormat = 'full'
-
     jacoco {
         excludes = [ "*Test*" ]
     }
@@ -54,25 +78,25 @@ shadowJar {
 
     baseName 'crate-client'
     classifier ''
-    duplicatesStrategy 'exclude'
+    duplicatesStrategy 'fail'
 
     exclude 'org/hyperic/**' // exclude sigar stuff
     exclude 'META-INF/**'
 
     // remember to update mapping in CrateClientClassLoader when changing this
-    relocate 'org.elasticsearch',     'io.crate.shade.org.elasticsearch'
-    relocate 'org.apache.lucene',     'io.crate.shade.org.apache.lucene'
-    relocate 'org.joda',              'io.crate.shade.org.joda'
+    relocate 'org.elasticsearch', 'io.crate.shade.org.elasticsearch'
+    relocate 'org.apache.lucene', 'io.crate.shade.org.apache.lucene'
+    relocate 'org.joda', 'io.crate.shade.org.joda'
     relocate 'org.tartarus.snowball', 'io.crate.shade.org.tartarus.snowball'
     relocate 'com.carrotsearch.hppc', 'io.crate.shade.com.carrotsearch.hppc'
     relocate 'com.fasterxml.jackson', 'io.crate.shade.com.fasterxml.jackson'
-    relocate 'com.google',            'io.crate.shade.com.google'
-    relocate 'com.ning.compress',     'io.crate.shade.com.ning.compress'
-    relocate 'org.jboss.netty',       'io.crate.shade.org.jboss.netty'
-    relocate 'org.apache.commons',    'io.crate.shade.org.apache.commons'
-    relocate 'jsr166e',               'io.crate.shade.jsr166e'
-    relocate 'com.spatial4j',         'io.crate.shade.com.spatial4j'
-    relocate 'com.vividsolutions',    'io.crate.shade.com.vividsolutions'
+    relocate 'com.google', 'io.crate.shade.com.google'
+    relocate 'com.ning.compress', 'io.crate.shade.com.ning.compress'
+    relocate 'org.jboss.netty', 'io.crate.shade.org.jboss.netty'
+    relocate 'org.apache.commons', 'io.crate.shade.org.apache.commons'
+    relocate 'jsr166e', 'io.crate.shade.jsr166e'
+    relocate 'com.spatial4j', 'io.crate.shade.com.spatial4j'
+    relocate 'com.vividsolutions', 'io.crate.shade.com.vividsolutions'
 
     doLast {
         manifest {
@@ -82,7 +106,8 @@ shadowJar {
     }
 }
 
-task buildJar(dependsOn: [':core:getVersion', ':core:compileSharedJava', ':sql:compileSharedJava', 'classes']) {
+
+task buildJar(dependsOn: [':core:getVersion', 'classes']) {
     doLast {
         ext.version = project(':core').getVersion.version
         project.version = ext.version
@@ -91,9 +116,17 @@ task buildJar(dependsOn: [':core:getVersion', ':core:compileSharedJava', ':sql:c
 }
 tasks.buildJar.mustRunAfter jar // otherwise jar task would override shadowJar artifact
 
+task sourceJar (type : Jar) {
+    classifier = 'sources'
+    from sourceSets.main.java
+    manifest {
+        attributes("Implementation-Title": "Crate.IO Java Client")
+    }
+}
+
 task myJavadocs(type: Javadoc, dependsOn: processResources) {
     classpath = configurations.compile
-    source = sourceSets.main.allJava + project(':core').sourceSets.shared.allJava + project(':sql').sourceSets.shared.allJava
+    source = sourceSets.main.java //compileJava.source
 }
 task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
     classifier = 'javadoc'
@@ -109,13 +142,6 @@ task buildJavadocJar (dependsOn: [':core:getVersion', myJavadocs] ) << {
     tasks.javadocJar.execute()
 }
 
-task sourceJar (type : Jar) {
-    classifier = 'sources'
-    from sourceSets.main.allSource + project(':core').sourceSets.shared.allSource + project(':sql').sourceSets.shared.allSource
-    manifest {
-        attributes("Implementation-Title": "Crate.IO Java Client")
-    }
-}
 
 task buildSourceJar (dependsOn: [':core:getVersion'] ) << {
     ext.version = project(':core').getVersion.version
@@ -148,7 +174,7 @@ install {
 project.ext.bintrayUsername = project.hasProperty('bintrayUsername') ? bintrayUsername : ""
 project.ext.bintrayPassword = project.hasProperty('bintrayPassword') ? bintrayPassword : ""
 
-uploadArchives.dependsOn([':core:compileSharedJava', ':sql:compileSharedJava', buildJavadocJar, buildSourceJar, buildJar, signJars])
+uploadArchives.dependsOn([install, signJars])
 uploadArchives {
     repositories{
         mavenDeployer {

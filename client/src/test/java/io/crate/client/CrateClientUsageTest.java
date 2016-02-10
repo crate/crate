@@ -23,20 +23,13 @@ package io.crate.client;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.*;
-import io.crate.plugin.CrateCorePlugin;
 import io.crate.types.DataType;
 import io.crate.types.IntegerType;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -44,46 +37,30 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.*;
 
-public class CrateClientUsageTest extends ElasticsearchIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class CrateClientUsageTest extends CrateClientIntegrationTest {
 
     private CrateClient client;
 
-    @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put("node.mode", "network")
-                .put("plugin.types", CrateCorePlugin.class.getName())
-                .build();
-    }
-
     @Before
     public void prepare() {
-        int port = ((InetSocketTransportAddress) internalCluster()
-                .getInstance(TransportService.class)
-                .boundAddress().boundAddress()).address().getPort();
-        client = new CrateClient("localhost:" + port);
+        client = new CrateClient(serverAddress());
     }
 
     @After
     public void tearDown() throws Exception {
         if (client != null) {
+            client.sql("drop table if exists test").actionGet();
             client.close();
             client = null;
         }
-        super.tearDown();
     }
 
     @Test
     public void testCreateTable() throws Exception {
         client.sql("create table test (id int) with (number_of_replicas=0)").actionGet();
-        ensureYellow();
+        ensureYellow(client);
         client.sql("insert into test (id) values (1)").actionGet();
-        refresh();
-
+        client.sql("refresh table test").actionGet();
         SQLResponse r = client.sql("select id from test").actionGet();
 
         assertEquals(1, r.rows().length);
@@ -118,9 +95,9 @@ public class CrateClientUsageTest extends ElasticsearchIntegrationTest {
     @Test
     public void testAsyncRequest() throws Throwable {
         client.sql("create table test (id int) with (number_of_replicas=0)").actionGet();
-        ensureYellow();
+        ensureYellow(client);
         client.sql("insert into test (id) values (1)").actionGet();
-        refresh();
+        client.sql("refresh table test").actionGet();
 
         // In practice use ActionListener onResponse and onFailure to create a Promise instead
         final SettableFuture<Boolean> future = SettableFuture.create();
@@ -161,9 +138,9 @@ public class CrateClientUsageTest extends ElasticsearchIntegrationTest {
     @Test
     public void testRequestWithTypes() throws Exception {
         client.sql("create table test (id int) with (number_of_replicas=0)").actionGet();
-        ensureYellow();
+        ensureYellow(client);
         client.sql("insert into test (id) values (1)").actionGet();
-        refresh();
+        client.sql("refresh table test").actionGet();
 
         SQLRequest request =  new SQLRequest("select id from test");
         request.includeTypesOnResponse(true);
@@ -187,7 +164,7 @@ public class CrateClientUsageTest extends ElasticsearchIntegrationTest {
     @Test
     public void testBulkSql() throws Exception {
         client.sql("create table test (a string, b int) with (number_of_replicas=0)").actionGet();
-        ensureGreen();
+        ensureGreen(client);
         client.sql("insert into test (a, b) values ('foo', 1)").actionGet();
         client.sql("refresh table test").actionGet();
 

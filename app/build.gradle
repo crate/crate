@@ -33,7 +33,6 @@ evaluationDependsOn(':sql')
 evaluationDependsOn(':sql-parser')
 evaluationDependsOn(':blob')
 evaluationDependsOn(':udc')
-evaluationDependsOn(':client')
 evaluationDependsOn(':dns-discovery')
 evaluationDependsOn(':aws')
 
@@ -44,7 +43,6 @@ dependencies {
     compile project(':admin-ui')
     compile project(':blob')
     compile project(':udc')
-    compile project(':client')
     compile project(':dns-discovery')
     compile project(':aws')
 
@@ -61,7 +59,6 @@ dependencies {
     compileNotTransitive project(':admin-ui')
     compileNotTransitive project(':blob')
     compileNotTransitive project(':udc')
-    compileNotTransitive project(':client')
     compileNotTransitive project(':dns-discovery')
 }
 
@@ -123,7 +120,12 @@ task dist {
 
 task myJavadocs(type: Javadoc, dependsOn: processResources) {
     classpath = configurations.compile
-    source = sourceSets.main.allJava + project(':core').sourceSets.main.allJava + project(':sql').sourceSets.main.allJava + project(':sql-parser').sourceSets.main.allJava + project(':blob').sourceSets.main.allJava + project(':udc').sourceSets.main.allJava + project(':client').sourceSets.main.allJava
+    source = sourceSets.main.allJava +
+            project(':core').sourceSets.main.allJava +
+            project(':sql').sourceSets.main.allJava +
+            project(':sql-parser').sourceSets.main.allJava +
+            project(':blob').sourceSets.main.allJava +
+            project(':udc').sourceSets.main.allJava
 }
 
 task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
@@ -147,8 +149,7 @@ task sourceJar (type : Jar) {
             project(':sql').sourceSets.main.allJava +
             project(':sql-parser').sourceSets.main.allJava +
             project(':blob').sourceSets.main.allJava +
-            project(':udc').sourceSets.main.allJava +
-            project(':client').sourceSets.main.allJava)
+            project(':udc').sourceSets.main.allJava)
     manifest {
         attributes("Implementation-Title": "Crate.IO")
     }

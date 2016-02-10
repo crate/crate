@@ -67,7 +67,7 @@ public class CrateClient {
     private static final ESLogger logger = Loggers.getLogger(CrateClient.class);
 
 
-    public CrateClient(Settings pSettings, boolean loadConfigSettings, String ... servers) throws
+    public CrateClient(Settings pSettings, String ... servers) throws
             ElasticsearchException {
 
         Settings settings = settingsBuilder()
@@ -84,13 +84,11 @@ public class CrateClient {
                 .put("threadpool.get.size", 1)
                 .put("threadpool.percolate.size", 1)
                 .build();
-        Tuple<Settings, Environment> tuple = InternalSettingsPreparer.prepareSettings(
-            settings, loadConfigSettings);
+        Tuple<Settings, Environment> tuple = InternalSettingsPreparer.prepareSettings(settings, false);
 
         // override classloader
         CrateClientClassLoader clientClassLoader = new CrateClientClassLoader(tuple.v1().getClassLoader());
         this.settings = ImmutableSettings.builder().put(tuple.v1()).classLoader(clientClassLoader).build();
-        Version version = Version.CURRENT;
 
         CompressorFactory.configure(this.settings);
 
@@ -98,7 +96,7 @@ public class CrateClient {
 
         ModulesBuilder modules = new ModulesBuilder();
         modules.add(new CrateClientModule());
-        modules.add(new Version.Module(version));
+        modules.add(new Version.Module(Version.CURRENT));
         modules.add(new ThreadPoolModule(threadPool));
 
         modules.add(new SettingsModule(this.settings));
@@ -120,11 +118,11 @@ public class CrateClient {
     }
 
     public CrateClient() {
-        this(ImmutableSettings.Builder.EMPTY_SETTINGS, true);
+        this(ImmutableSettings.Builder.EMPTY_SETTINGS);
     }
 
     public CrateClient(String... servers) {
-        this(ImmutableSettings.EMPTY, true, servers);
+        this(ImmutableSettings.EMPTY, servers);
     }
 
     @Nullable

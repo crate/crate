@@ -8,7 +8,6 @@ archivesBaseName = 'crate-sql'
 // we do not want to have elasticsearch here, since we provide it in :es
 configurations {
     all*.exclude group: 'org.elasticsearch'
-    sharedCompile.extendsFrom compile
     benchmarksCompile.extendsFrom testCompile
     benchmarksRuntime.extendsFrom testRuntime, benchmarksCompile
 }
@@ -75,12 +74,6 @@ sourceSets {
             srcDir 'src/benchmarks/java'
             compileClasspath += main.output + test.output + configurations.benchmarksCompile
             runtimeClasspath += main.output + test.output + configurations.benchmarksRuntime
-        }
-    }
-    shared {
-        java {
-            srcDir "src/main/java/"
-            include "io/crate/action/sql/SQL*"
         }
     }
 }
