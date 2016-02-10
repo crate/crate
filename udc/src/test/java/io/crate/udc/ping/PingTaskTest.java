@@ -25,8 +25,9 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.ClusterId;
 import io.crate.ClusterIdService;
 import io.crate.http.HttpTestServer;
-import io.crate.monitor.DummyExtendedNodeInfo;
+import io.crate.monitor.ExtendedNetworkInfo;
 import io.crate.monitor.ExtendedNodeInfo;
+import io.crate.monitor.ExtendedOsInfo;
 import io.crate.test.integration.CrateUnitTest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
@@ -37,6 +38,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,8 +47,6 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-//import org.elasticsearch.monitor.network.NetworkInfo;
 
 public class PingTaskTest extends CrateUnitTest {
 
@@ -75,7 +75,9 @@ public class PingTaskTest extends CrateUnitTest {
         when(clusterService.localNode()).thenReturn(discoveryNode);
         when(discoveryNode.isMasterNode()).thenReturn(true);
 
-        extendedNodeInfo = new DummyExtendedNodeInfo();
+        extendedNodeInfo = mock(ExtendedNodeInfo.class);
+        when(extendedNodeInfo.networkInfo()).thenReturn(new ExtendedNetworkInfo(ExtendedNetworkInfo.NA_INTERFACE));
+        when(extendedNodeInfo.osInfo()).thenReturn(new ExtendedOsInfo(Collections.<String, Object>emptyMap()));
     }
 
     @Test
