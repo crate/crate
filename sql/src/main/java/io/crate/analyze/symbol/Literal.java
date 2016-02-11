@@ -42,15 +42,8 @@ public class Literal<ReturnType>
         return new Literal<>(new SetType(itemType), Collections.unmodifiableSet(set));
     }
 
-    public static Literal implodeCollection(DataType itemType, List<Literal> literals) {
-       Object[] values = new Object[literals.size()];
-        for (int i = 0; i<literals.size(); i++) {
-            assert literals.get(i).valueType().equals(itemType) || literals.get(i).valueType() == DataTypes.UNDEFINED:
-                    String.format("Literal type: %s does not match item type: %s",
-                            literals.get(i).valueType(), itemType);
-            values[i] = literals.get(i).value();
-        }
-        return new Literal<>(new ArrayType(itemType), values);
+    private static String typeMismatchMsg(DataType itemType, Literal literal) {
+        return String.format(Locale.ENGLISH, "Literal type: %s does not match item type: %s", literal.valueType(), itemType);
     }
 
     public static Collection<Literal> explodeCollection(Literal collectionLiteral) {

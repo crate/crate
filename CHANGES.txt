@@ -7,6 +7,9 @@ Unreleased
 
  - Upgraded Elasticsearch to 1.7.5
 
+ - Fixed an issue that caused array-literals with null items to result in an
+   error.
+
  - Added `routing_state` column to `sys.shards` table in order to fix the
    underreplicated shards calculation in admin ui
 

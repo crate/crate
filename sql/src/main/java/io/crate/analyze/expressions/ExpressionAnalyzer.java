@@ -697,18 +697,28 @@ public class ExpressionAnalyzer {
                 return newLiteral(new ArrayType(UndefinedType.INSTANCE), new Object[0]);
             } else {
                 DataType innerType = null;
-                List<Literal> literals = new ArrayList<>(values.size());
+                Object[] innerValues = new Object[values.size()];
+                int idx = 0;
                 for (Expression e : values) {
                     Symbol arrayElement = process(e, context);
-                    if (innerType == null || (innerType == DataTypes.UNDEFINED && !arrayElement.valueType().equals(innerType))) {
-                        innerType = arrayElement.valueType();
-                    } else if (!arrayElement.valueType().equals(innerType)) {
+                    DataType currentType = arrayElement.valueType();
+                    if (innerType == null && currentType != DataTypes.UNDEFINED) {
+                        innerType = currentType;
+                    } else if (innerType != null && currentType != DataTypes.UNDEFINED && !currentType.equals(innerType)) {
                         throw new IllegalArgumentException(String.format(
                                 Locale.ENGLISH, "array element %s not of array item type %s", e, innerType));
                     }
-                    literals.add(Literal.convert(arrayElement, innerType));
+                    innerValues[idx] = ((Literal) arrayElement).value();
+                    idx++;
                 }
-                return Literal.implodeCollection(innerType, literals);
+                if (innerType == null) {
+                    innerType = DataTypes.UNDEFINED;
+                } else {
+                    for (int i = 0; i < innerValues.length; i++) {
+                        innerValues[i] = innerType.value(innerValues[i]);
+                    }
+                }
+                return Literal.newLiteral(new ArrayType(innerType), innerValues);
             }
         }
 
