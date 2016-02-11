@@ -71,6 +71,7 @@ import org.apache.lucene.spatial.query.SpatialOperation;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.RegExp;
+import org.apache.xbean.finder.filter.Filters;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
@@ -83,6 +84,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.docset.MatchDocIdSet;
+import org.elasticsearch.common.lucene.search.MatchNoDocsFilter;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.lucene.search.RegexpFilter;
 import org.elasticsearch.common.lucene.search.XConstantScoreQuery;
@@ -136,6 +138,35 @@ public class LuceneQueryBuilder {
         }
         return ctx;
     }
+
+    private static Filter termsFilter(String columnName, Literal arrayLiteral) {
+        Object values = arrayLiteral.value();
+        Collection valueCollection;
+        if (values instanceof Collection) {
+            valueCollection = (Collection) values;
+        } else {
+            valueCollection = Arrays.asList((Object[]) values);
+        }
+        List<Term> terms = asTerms(columnName, valueCollection, TermBuilder.forType(arrayLiteral.valueType()));
+        if (terms.isEmpty()) {
+            return new MatchNoDocsFilter();
+        }
+        return new TermsFilter(terms);
+    }
+
+    private static List<Term> asTerms(String columnName, Collection values, TermBuilder termBuilder) {
+        List<Term> terms = new ArrayList<>(values.size());
+        for (Object value : values) {
+            if (value == null) {
+                // skipping null values is okay because TermsFilter is only used for ANY
+                // and  x = ANY ([null]) shouldn't match even if X is null
+                continue;
+            }
+            terms.add(new Term(columnName, termBuilder.term(value)));
+        }
+        return terms;
+    }
+
 
     public static class Context {
         Query query;
@@ -279,23 +310,6 @@ public class LuceneQueryBuilder {
         }
 
         static class AnyEqQuery extends AbstractAnyQuery {
-
-            private TermsFilter termsFilter(String columnName, Literal arrayLiteral) {
-                TermsFilter termsFilter;
-                Object values = arrayLiteral.value();
-                if (values instanceof Collection) {
-                    termsFilter = new TermsFilter(
-                            columnName,
-                            getBytesRefs((Collection)values,
-                                    TermBuilder.forType(arrayLiteral.valueType())));
-                } else  {
-                    termsFilter = new TermsFilter(
-                            columnName,
-                            getBytesRefs((Object[])values,
-                                    TermBuilder.forType(arrayLiteral.valueType())));
-                }
-                return termsFilter;
-            }
 
             @Override
             protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
