@@ -1137,4 +1137,19 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 (InsertFromValuesAnalyzedStatement)analyze("INSERT INTO generated_nested_clustered_by (o) values ({serial_number=1})");
         assertThat(statement.routingValues(), contains(is("2")));
     }
+
+    @Test
+    public void testInsertArrayLiteralWithOneNullValue() throws Exception {
+        InsertFromValuesAnalyzedStatement stmt = analyze("insert into users (id, tags) values (1, ['foo', 'bar', null])");
+        assertThat(stmt.sourceMaps().get(0), is(new Object[] {1L, new Object[] { new BytesRef("foo"), new BytesRef("bar"), null}}));
+
+        stmt = analyze("insert into users (id, tags) values (1, [null, 'foo', 'bar'])");
+        assertThat(stmt.sourceMaps().get(0), is(new Object[] {1L, new Object[] { null, new BytesRef("foo"), new BytesRef("bar")}}));
+    }
+
+    @Test
+    public void testInsertArrayLiteralWithOnlyNullValues() throws Exception {
+        InsertFromValuesAnalyzedStatement stmt = analyze("insert into users (id, tags) values (1, [null, null])");
+        assertThat(stmt.sourceMaps().get(0), is(new Object[] {1L, new Object[] {null, null}}));
+    }
 }

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused array-literals with null items to result in an
+   error.
+
  - Fix: exporting a table with a generated partitioned column using `copy to`
    caused an Exception
 

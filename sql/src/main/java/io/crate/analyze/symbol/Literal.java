@@ -45,16 +45,6 @@ public class Literal<ReturnType>
         return String.format(Locale.ENGLISH, "Literal type: %s does not match item type: %s", literal.valueType(), itemType);
     }
 
-    public static Literal implodeCollection(DataType itemType, List<Literal> literals) {
-       Object[] values = new Object[literals.size()];
-        for (int i = 0; i<literals.size(); i++) {
-            assert literals.get(i).valueType().equals(itemType) || literals.get(i).valueType() == DataTypes.UNDEFINED:
-                    typeMismatchMsg(itemType, literals.get(i));
-            values[i] = literals.get(i).value();
-        }
-        return new Literal<>(new ArrayType(itemType), values);
-    }
-
     public static Collection<Literal> explodeCollection(Literal collectionLiteral) {
         Preconditions.checkArgument(DataTypes.isCollectionType(collectionLiteral.valueType()));
         Iterable values;
