@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a NullPointerException that occured if `= ANY ()` was used with a
+   literal array containing null values.
+
  - Fixed an issue that caused array-literals with null items to result in an
    error.
 

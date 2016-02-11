@@ -106,4 +106,17 @@ public class AnyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Byte)response.rows()[0][0], Is.is((byte) 2));
         assertThat((Byte)response.rows()[1][0], Is.is((byte) 1));
     }
+
+    @Test
+    public void testAnyOnArrayLiteralWithNullElements() throws Exception {
+        execute("create table t (s string)");
+        ensureYellow();
+        execute("insert into t (s) values ('foo'), (null)");
+        execute("refresh table t");
+        execute("select * from t where s = ANY (['foo', 'bar', null])");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("select * from t where s = ANY ([null])");
+        assertThat(response.rowCount(), is(0L));
+    }
 }
