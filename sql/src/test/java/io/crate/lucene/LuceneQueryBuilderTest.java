@@ -89,13 +89,14 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         searchContext = mock(SearchContext.class, Answers.RETURNS_MOCKS.get());
         MapperService mapperService = mock(MapperService.class);
 
+        indexCache = mock(IndexCache.class, Answers.RETURNS_MOCKS.get());
+
         // TODO: FIX ME!
 
         /* Mapper.BuilderContext context = new Mapper.BuilderContext(Settings.EMPTY, new ContentPath(1));
         GeoShapeFieldMapper shape = MapperBuilders.geoShapeField("shape").build(context);
         when(mapperService.smartNameFieldMapper(eq("shape"))).thenReturn(shape);
         when(searchContext.mapperService()).thenReturn(mapperService);
-        indexCache = mock(IndexCache.class, Answers.RETURNS_MOCKS.get());
         FilterCache filterCache = mock(FilterCache.class);
         when(indexCache.filter()).thenReturn(filterCache);
         when(filterCache.cache(Matchers.any(Filter.class))).thenAnswer(new Answer<Filter>() {
@@ -157,7 +158,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testWhereRefEqRef() throws Exception {
         Query query = convert("name = name");
-        assertThat(query, instanceOf(FilteredQuery.class));
+        assertThat(query, instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
     }
 
     @Test
@@ -170,15 +171,10 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testEqOnTwoArraysBecomesGenericFunctionQuery() throws Exception {
         Query query = convert("y_array = [10, 20, 30]");
-        assertThat(query, instanceOf(FilteredQuery.class));
-        FilteredQuery filteredQuery = (FilteredQuery) query;
-
-        assertThat(filteredQuery.getFilter(), instanceOf(BooleanFilter.class));
-        assertThat(filteredQuery.getQuery(), instanceOf(ConstantScoreQuery.class));
-
-        BooleanFilter filter = (BooleanFilter) filteredQuery.getFilter();
-        assertThat(filter.clauses().get(0).getFilter(), instanceOf(BooleanFilter.class)); // booleanFilter with terms filter
-        assertThat(filter.clauses().get(1).getFilter(), instanceOf(Filter.class)); // generic function filter
+        assertThat(query, instanceOf(BooleanQuery.class));
+        BooleanQuery booleanQuery = (BooleanQuery) query;
+        assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(TermsQuery.class));
+        assertThat(booleanQuery.clauses().get(1).getQuery(), instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
     }
 
     @Test
@@ -188,7 +184,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                 DataTypes.BOOLEAN,
                 createReference("x", longArray),
                 Literal.newLiteral(longArray, new Object[] { null, null, null }))));
-        assertThat(query, instanceOf(FilteredQuery.class));
+        assertThat(query, instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
     }
 
     @Test
@@ -200,7 +196,10 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                 DataTypes.BOOLEAN,
                 createReference("x", longArray),
                 Literal.newLiteral(longArray, values))));
-        assertThat(query, instanceOf(FilteredQuery.class));
+        assertThat(query, instanceOf(BooleanQuery.class));
+        BooleanQuery booleanQuery = (BooleanQuery) query;
+        assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(TermsQuery.class));
+        assertThat(booleanQuery.clauses().get(1).getQuery(), instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
     }
 
     @Test
@@ -211,14 +210,13 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     @Test
-    public void testWhereRefInSetLiteralIsConvertedToBooleanQuery() throws Exception {
+    public void testWhereRefInSetLiteralIsConvertedToTermsQuery() throws Exception {
         Query query = convert("x in (1, 3)");
-        assertThat(query, instanceOf(FilteredQuery.class));
-        assertThat(((FilteredQuery)query).getFilter(), instanceOf(TermsFilter.class));
+        assertThat(query, instanceOf(TermsQuery.class));
     }
 
     @Test
-    public void testWhereStringRefInSetLiteralIsConvertedToBooleanQuery() throws Exception {
+    public void testWhereStringRefInSetLiteralIsConvertedToTermsQuery() throws Exception {
         Query query = convert("name in ('foo', 'bar')");
         assertThat(query, instanceOf(TermsQuery.class));
     }
@@ -255,8 +253,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testAnyEqArrayLiteral() throws Exception {
         Query query = convert("d = any([-1.5, 0.0, 1.5])");
-        assertThat(query, instanceOf(FilteredQuery.class));
-        assertThat(((FilteredQuery)query).getFilter(), instanceOf(TermsFilter.class));
+        assertThat(query, instanceOf(TermsQuery.class));
     }
 
     @Test
@@ -300,36 +297,45 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     @Test
-    public void testAnyOnArrayLiteral() throws Exception {
+    public void testNeqAnyOnArrayLiteral() throws Exception {
         Query neqQuery = convert("name != any (['a', 'b', 'c'])");
-        assertThat(neqQuery, instanceOf(FilteredQuery.class));
-        assertThat(((FilteredQuery)neqQuery).getFilter(), instanceOf(BooleanFilter.class));
-        BooleanFilter filter = (BooleanFilter)((FilteredQuery) neqQuery).getFilter();
-        assertThat(filter.toString(), is("BooleanFilter(-BooleanFilter(+name:a +name:b +name:c))"));
+        assertThat(neqQuery, instanceOf(BooleanQuery.class));
 
+        BooleanClause booleanClause = ((BooleanQuery) neqQuery).clauses().get(1);
+        assertThat(booleanClause.getOccur(), is(BooleanClause.Occur.MUST_NOT));
+        assertThat(booleanClause.getQuery().toString(), is("+name:a +name:b +name:c"));
+    }
+
+    @Test
+    public void testLikeAnyOnArrayLiteral() throws Exception {
         Query likeQuery = convert("name like any (['a', 'b', 'c'])");
         assertThat(likeQuery, instanceOf(BooleanQuery.class));
-        BooleanQuery likeBQuery = (BooleanQuery)likeQuery;
+        BooleanQuery likeBQuery = (BooleanQuery) likeQuery;
         assertThat(likeBQuery.clauses().size(), is(3));
         for (int i = 0; i < 2; i++) {
             // like --> ConstantScoreQuery with regexp-filter
             Query filteredQuery = likeBQuery.clauses().get(i).getQuery();
             assertThat(filteredQuery, instanceOf(WildcardQuery.class));
         }
+    }
 
+    @Test
+    public void testNotLikeAnyOnArrayLiteral() throws Exception {
         Query notLikeQuery = convert("name not like any (['a', 'b', 'c'])");
         assertThat(notLikeQuery, instanceOf(BooleanQuery.class));
-        BooleanQuery notLikeBQuery = (BooleanQuery)notLikeQuery;
-        assertThat(notLikeBQuery.clauses(), hasSize(1));
-        BooleanClause clause = notLikeBQuery.clauses().get(0);
+        BooleanQuery notLikeBQuery = (BooleanQuery) notLikeQuery;
+        assertThat(notLikeBQuery.clauses(), hasSize(2));
+        BooleanClause clause = notLikeBQuery.clauses().get(1);
         assertThat(clause.getOccur(), is(BooleanClause.Occur.MUST_NOT));
-        assertThat(((BooleanQuery)clause.getQuery()).clauses(), hasSize(3));
-        for (BooleanClause innerClause : ((BooleanQuery)clause.getQuery()).clauses()) {
+        assertThat(((BooleanQuery) clause.getQuery()).clauses(), hasSize(3));
+        for (BooleanClause innerClause : ((BooleanQuery) clause.getQuery()).clauses()) {
             assertThat(innerClause.getOccur(), is(BooleanClause.Occur.MUST));
             assertThat(innerClause.getQuery(), instanceOf(WildcardQuery.class));
         }
+    }
 
-
+    @Test
+    public void testLessThanAnyOnArrayLiteral() throws Exception {
         Query ltQuery2 = convert("name < any (['a', 'b', 'c'])");
         assertThat(ltQuery2, instanceOf(BooleanQuery.class));
         BooleanQuery ltBQuery = (BooleanQuery)ltQuery2;
@@ -387,7 +393,6 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     public void testWithinFunctionWithShapeReference() throws Exception {
         // shape references cannot use the inverted index, so use generic function here
         Query eqWithinQuery = convert("within(point, shape)");
-        assertThat(eqWithinQuery, instanceOf(FilteredQuery.class));
-        assertThat(((FilteredQuery)eqWithinQuery).getFilter(), instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
+        assertThat(eqWithinQuery, instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
     }
 }

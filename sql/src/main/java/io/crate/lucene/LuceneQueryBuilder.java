@@ -127,6 +127,14 @@ public class LuceneQueryBuilder {
     }
 
     private static Query termsQuery(String columnName, Literal arrayLiteral) {
+        List<Term> terms = getTerms(columnName, arrayLiteral);
+        if (terms.isEmpty()) {
+            return new MatchNoDocsQuery();
+        }
+        return new TermsQuery(terms);
+    }
+
+    private static List<Term> getTerms(String columnName, Literal arrayLiteral) {
         Object values = arrayLiteral.value();
         Collection valueCollection;
         if (values instanceof Collection) {
@@ -134,11 +142,7 @@ public class LuceneQueryBuilder {
         } else {
             valueCollection = Arrays.asList((Object[]) values);
         }
-        List<Term> terms = asTerms(columnName, valueCollection, TermBuilder.forType(arrayLiteral.valueType()));
-        if (terms.isEmpty()) {
-            return new MatchNoDocsQuery();
-        }
-        return new TermsQuery(terms);
+        return asTerms(columnName, valueCollection, TermBuilder.forType(arrayLiteral.valueType()));
     }
 
     private static List<Term> asTerms(String columnName, Collection values, TermBuilder termBuilder) {
@@ -378,11 +382,11 @@ public class LuceneQueryBuilder {
 
         static class AnyLikeQuery extends AbstractAnyQuery {
 
-            private final LikeQuery likeQuery = new LikeQuery();
+            private static final LikeQuery LIKE_QUERY = new LikeQuery();
 
             @Override
             protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
-                return likeQuery.toQuery(arrayReference, literal.value(), context);
+                return LIKE_QUERY.toQuery(arrayReference, literal.value(), context);
             }
 
             @Override
@@ -391,7 +395,7 @@ public class LuceneQueryBuilder {
                 BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                 booleanQuery.setMinimumNumberShouldMatch(1);
                 for (Object value : toIterable(arrayLiteral.value())) {
-                    booleanQuery.add(likeQuery.toQuery(reference, value, context), BooleanClause.Occur.SHOULD);
+                    booleanQuery.add(LIKE_QUERY.toQuery(reference, value, context), BooleanClause.Occur.SHOULD);
                 }
                 return booleanQuery.build();
             }
@@ -475,50 +479,22 @@ public class LuceneQueryBuilder {
                 Literal literal = tuple.v2();
                 String columnName = reference.info().ident().columnIdent().fqn();
                 if (DataTypes.isCollectionType(reference.valueType()) && DataTypes.isCollectionType(literal.valueType())) {
-
-                    // create boolean filter with term filters to pre-filter the result before applying the functionQuery.
-                    BooleanQuery.Builder boolTermsQuery = new BooleanQuery.Builder();
-                    DataType type = literal.valueType();
-                    while (DataTypes.isCollectionType(type)) {
-                        type = ((CollectionType) type).innerType();
-                    }
-                    QueryBuilderHelper builder = QueryBuilderHelper.forType(type);
-                    Object value = literal.value();
-                    buildTermsQuery(boolTermsQuery, value, columnName, builder);
-
-                    BooleanQuery booleanQuery = boolTermsQuery.build();
-                    if (booleanQuery.clauses().isEmpty()) {
-                        // all values are null...
+                    List<Term> terms = getTerms(columnName, literal);
+                    if (terms.isEmpty()) {
                         return genericFunctionFilter(input, context);
                     }
+                    Query termsQuery = new TermsQuery(terms);
 
                     // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
                     // termsFilter is applied first
                     // afterwards the more expensive genericFunctionFilter
                     BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
-                    filterClauses.add(booleanQuery, BooleanClause.Occur.MUST);
+                    filterClauses.add(termsQuery, BooleanClause.Occur.MUST);
                     filterClauses.add(genericFunctionFilter(input, context), BooleanClause.Occur.MUST);
                     return filterClauses.build();
                 }
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
                 return builder.eq(columnName, tuple.v2().value());
-            }
-
-            private void buildTermsQuery(BooleanQuery.Builder booleanQueryBuilder,
-                                         Object value,
-                                         String columnName,
-                                         QueryBuilderHelper builder) {
-                if (value == null) {
-                    return;
-                }
-                if (value.getClass().isArray()) {
-                    Object[] array = (Object[]) value;
-                    for (Object o : array) {
-                        buildTermsQuery(booleanQueryBuilder, o, columnName, builder);
-                    }
-                } else {
-                    booleanQueryBuilder.add(builder.eq(columnName, value), BooleanClause.Occur.MUST);
-                }
             }
         }
 
