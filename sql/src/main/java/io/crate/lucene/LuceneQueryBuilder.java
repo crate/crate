@@ -25,7 +25,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.spatial4j.core.context.jts.JtsSpatialContext;
+import com.spatial4j.core.shape.Rectangle;
 import com.spatial4j.core.shape.Shape;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Geometry;
 import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
@@ -61,6 +65,7 @@ import org.apache.lucene.queries.TermsQuery;
 import org.apache.lucene.sandbox.queries.regex.JavaUtilRegexCapabilities;
 import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
+import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
 import org.apache.lucene.spatial.query.SpatialArgs;
 import org.apache.lucene.spatial.query.SpatialOperation;
 import org.apache.lucene.util.Bits;
@@ -87,6 +92,9 @@ import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.mapper.geo.GeoPointFieldMapper;
 import org.elasticsearch.index.mapper.geo.GeoShapeFieldMapper;
 import org.elasticsearch.index.query.RegexpFlag;
+import org.elasticsearch.index.search.geo.GeoDistanceRangeQuery;
+import org.elasticsearch.index.search.geo.GeoPolygonQuery;
+import org.elasticsearch.index.search.geo.InMemoryGeoBoundingBoxQuery;
 
 import java.io.IOException;
 import java.util.*;
@@ -430,12 +438,7 @@ public class LuceneQueryBuilder {
                 }
                 String field = tuple.v1().info().ident().columnIdent().fqn();
                 Literal literal = tuple.v2();
-                CollectionType dataType = ((CollectionType) literal.valueType());
-
-                Set values = (Set) literal.value();
-                DataType innerType = dataType.innerType();
-                BytesRef[] terms = getBytesRefs(values, TermBuilder.forType(innerType));
-                return new TermsQuery(field, terms);
+                return termsQuery(field, literal);
             }
         }
 
@@ -650,8 +653,27 @@ public class LuceneQueryBuilder {
 
                 ShapeRelation relation = ShapeRelation.getRelationByName(matchType);
                 assert relation != null : "invalid matchType: " + matchType;
+
+                PrefixTreeStrategy prefixTreeStrategy = geoShapeFieldType.defaultStrategy();
+                if (relation == ShapeRelation.DISJOINT) {
+                    /**
+                     * See {@link org.elasticsearch.index.query.GeoShapeQueryParser}:
+                     */
+                    // this strategy doesn't support disjoint anymore: but it did before, including creating lucene fieldcache (!)
+                    // in this case, execute disjoint as exists && !intersects
+
+                    BooleanQuery.Builder bool = new BooleanQuery.Builder();
+
+                    Query exists = new TermRangeQuery(fieldName, null, null, true, true);
+
+                    Filter intersects = prefixTreeStrategy.makeFilter(getArgs(shape, ShapeRelation.INTERSECTS));
+                    bool.add(exists, BooleanClause.Occur.MUST);
+                    bool.add(intersects, BooleanClause.Occur.MUST_NOT);
+                    return new ConstantScoreQuery(bool.build());
+                }
+
                 SpatialArgs spatialArgs = getArgs(shape, relation);
-                return geoShapeFieldType.defaultStrategy().makeQuery(spatialArgs);
+                return prefixTreeStrategy.makeQuery(spatialArgs);
             }
 
             private SpatialArgs getArgs(Shape shape, ShapeRelation relation) {
@@ -792,19 +814,17 @@ public class LuceneQueryBuilder {
                     // we have within('POINT(0 0)', shape_column)
                     return genericFunctionFilter(inner, context);
                 }
-                // TODO: FIX ME! goe not working yet due to smartMapper missing
-                /*GeoPointFieldMapper mapper = getGeoPointFieldMapper(
-                        innerPair.reference().info().ident().columnIdent().fqn(),
-                        context.mapperService
-                );
+                GeoPointFieldMapper.GeoPointFieldType geoPointFieldType = getGeoPointFieldType(
+                        innerPair.reference().ident().columnIdent().fqn(),
+                        context.mapperService);
+
                 Map<String, Object> geoJSON = (Map<String, Object>) innerPair.input().value();
                 Shape shape = GeoJSONUtils.map2Shape(geoJSON);
                 Geometry geometry = JtsSpatialContext.GEO.getGeometryFrom(shape);
-                IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(mapper);
-                Filter filter;
+                IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(geoPointFieldType);
                 if (geometry.isRectangle()) {
                     Rectangle boundingBox = shape.getBoundingBox();
-                    filter = new InMemoryGeoBoundingBoxFilter(
+                    return new InMemoryGeoBoundingBoxQuery(
                             new GeoPoint(boundingBox.getMaxY(), boundingBox.getMinX()),
                             new GeoPoint(boundingBox.getMinY(), boundingBox.getMaxX()),
                             fieldData
@@ -816,10 +836,8 @@ public class LuceneQueryBuilder {
                         Coordinate coordinate = coordinates[i];
                         points[i] = new GeoPoint(coordinate.y, coordinate.x);
                     }
-                    filter = new GeoPolygonFilter(fieldData, points);
+                    return new GeoPolygonQuery(fieldData, points);
                 }
-                return new FilteredQuery(Queries.newMatchAllQuery(), context.indexCache.filter().cache(filter));*/
-                return null;
             }
 
             @Override
@@ -858,8 +876,8 @@ public class LuceneQueryBuilder {
                 Double distance = DataTypes.DOUBLE.value(functionLiteralPair.input().value());
 
                 String fieldName = distanceRefLiteral.reference().info().ident().columnIdent().fqn();
-                MappedFieldType mapper = getGeoPointFieldType(fieldName, context.mapperService);
-                IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(mapper);
+                GeoPointFieldMapper.GeoPointFieldType geoPointFieldType = getGeoPointFieldType(fieldName, context.mapperService);
+                IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(geoPointFieldType);
 
                 Input geoPointInput = distanceRefLiteral.input();
                 Double[] pointValue = (Double[]) geoPointInput.value();
@@ -900,21 +918,16 @@ public class LuceneQueryBuilder {
                 }
                 GeoPoint geoPoint = new GeoPoint(lat, lon);
 
-                // TODO: FIX ME!
-                // GeoPointFieldMapper geoMapper = ((GeoPointFieldMapper) mapper);
-                /*Filter filter = new GeoDistanceRangeFilter(
+                return new GeoDistanceRangeQuery(
                         geoPoint,
                         from,
                         to,
                         includeLower,
                         includeUpper,
                         GEO_DISTANCE,
-                        geoMapper,
+                        geoPointFieldType,
                         fieldData,
-                        OPTIMIZE_BOX
-                );
-                return new FilteredQuery(Queries.newMatchAllQuery(), context.indexCache.filter().cache(filter));*/
-                return null;
+                        OPTIMIZE_BOX);
             }
         }
 
@@ -1296,27 +1309,5 @@ public class LuceneQueryBuilder {
         public Input input() {
             return input;
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static BytesRef[] getBytesRefs(Object[] values, TermBuilder termBuilder) {
-        BytesRef[] terms = new BytesRef[values.length];
-        int i = 0;
-        for (Object value : values) {
-            terms[i] = termBuilder.term(value);
-            i++;
-        }
-        return terms;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static BytesRef[] getBytesRefs(Collection values, TermBuilder termBuilder) {
-        BytesRef[] terms = new BytesRef[values.size()];
-        int i = 0;
-        for (Object value : values) {
-            terms[i] = termBuilder.term(value);
-            i++;
-        }
-        return terms;
     }
 }
