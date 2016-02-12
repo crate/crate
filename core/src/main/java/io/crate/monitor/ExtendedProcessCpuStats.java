@@ -26,10 +26,10 @@ import org.elasticsearch.common.unit.TimeValue;
 
 public class ExtendedProcessCpuStats {
 
-    final short percent;
-    final TimeValue sys;
-    final TimeValue user;
-    final TimeValue total;
+    private final short percent;
+    private final TimeValue sys;
+    private final TimeValue user;
+    private final TimeValue total;
 
     public ExtendedProcessCpuStats() {
         this((short) -1, -1L, -1L, -1L);

@@ -82,21 +82,21 @@ public class PluginLoaderTest extends ESIntegTestCase {
     @Test
     public void testLoadPluginWithAlreadyLoadedClass() throws Exception {
         // test that JarHell is used and plugin is not loaded because it contains an already loaded class
-        expectedException.expect(CauseMatcher.causeOfCause(IllegalStateException.class));
+        expectedException.expect(CauseMatcher.causeOfCause(RuntimeException.class));
         startNodeWithPlugins("/io/crate/plugin/plugin_with_already_loaded_class");
     }
 
     @Test
     public void testDuplicates() throws Exception {
         // test that node will die due to jarHell (same plugin jar loaded twice)
-        expectedException.expect(CauseMatcher.causeOfCause(IllegalStateException.class));
+        expectedException.expect(CauseMatcher.causeOfCause(RuntimeException.class));
         startNodeWithPlugins("/io/crate/plugin/duplicates");
     }
 
     @Test
     public void testInvalidPluginEmptyDirectory() throws Exception {
         // test that node will die because of an invalid plugin (in this case, just an empty directory)
-        expectedException.expect(CauseMatcher.causeOfCause(IllegalArgumentException.class));
+        expectedException.expect(CauseMatcher.causeOfCause(RuntimeException.class));
         startNodeWithPlugins("/io/crate/plugin/invalid");
     }
 

@@ -35,17 +35,17 @@ public class ExtendedFsStats implements Iterable<ExtendedFsStats.Info> {
 
     public static class Info {
 
-        BytesRef path;
+        private BytesRef path;
         @Nullable
-        BytesRef dev;
-        long total = -1;
-        long free = -1;
-        long available = -1;
-        long used = -1;
-        long diskReads = -1;
-        long diskWrites = -1;
-        long diskReadBytes = -1;
-        long diskWriteBytes = -1;
+        private BytesRef dev;
+        private long total = -1;
+        private long free = -1;
+        private long available = -1;
+        private long used = -1;
+        private long diskReads = -1;
+        private long diskWrites = -1;
+        private long diskReadBytes = -1;
+        private long diskWriteBytes = -1;
 
         public Info() {
         }
@@ -76,41 +76,81 @@ public class ExtendedFsStats implements Iterable<ExtendedFsStats.Info> {
             return path;
         }
 
+        public void path(String path) {
+            this.path = BytesRefs.toBytesRef(path);
+        }
+
         @Nullable
         public BytesRef dev() {
             return dev;
+        }
+
+        public void dev(@Nullable String dev) {
+            this.dev = BytesRefs.toBytesRef(dev);
         }
 
         public long total() {
             return total;
         }
 
+        public void total(long total) {
+            this.total = total;
+        }
+
         public long free() {
             return free;
+        }
+
+        public void free(long free) {
+            this.free = free;
         }
 
         public long available() {
             return available;
         }
 
+        public void available(long available) {
+            this.available = available;
+        }
+
         public long used() {
             return used;
+        }
+
+        public void used(long used) {
+            this.used = used;
         }
 
         public long diskReads() {
             return this.diskReads;
         }
 
+        public void diskReads(long diskReads) {
+            this.diskReads = diskReads;
+        }
+
         public long diskWrites() {
             return this.diskWrites;
+        }
+
+        public void diskWrites(long diskWrites) {
+            this.diskWrites = diskWrites;
         }
 
         public long diskReadSizeInBytes() {
             return diskReadBytes;
         }
 
+        public void diskReadSizeInBytes(long diskReadBytes) {
+            this.diskReadBytes = diskReadBytes;
+        }
+
         public long diskWriteSizeInBytes() {
             return diskWriteBytes;
+        }
+
+        public void diskWriteSizeInBytes(long diskWriteBytes) {
+            this.diskWriteBytes = diskWriteBytes;
         }
 
         public void add(Info info) {

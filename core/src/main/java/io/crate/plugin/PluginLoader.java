@@ -151,9 +151,10 @@ public class PluginLoader {
                 try {
                     checkJarHell(pluginURL);
                 } catch (Exception e) {
-                    String msg = "failed to load plugin " + pluginURL + " due to jar hell";
+                    String msg = String.format(Locale.ENGLISH,
+                            "failed to load plugin %s due to jar hell", pluginURL);
                     logger.error(msg, e);
-                    throw new IllegalStateException(msg, e);
+                    throw new RuntimeException(msg, e);
                 }
                 pluginUrls.add(pluginURL);
 
@@ -183,21 +184,23 @@ public class PluginLoader {
                             checkJarHell(libURL);
                             pluginUrls.add(libURL);
                         } catch (Exception e) {
-                            logger.warn(
-                                    "Library " + libURL + " of plugin " + pluginURL + " already loaded, will ignore");
+                            String msg = String.format(Locale.ENGLISH,
+                                    "Library %s of plugin %s already loaded", libURL, pluginURL);
+                            logger.error(msg, e);
+                            throw new RuntimeException(msg, e);
                         }
                     }
                 }
             } catch (MalformedURLException e) {
-                String msg = "failed to add plugin [" + plugin + "]";
+                String msg = String.format(Locale.ENGLISH, "failed to add plugin [%s]", plugin);
                 logger.error(msg, e);
-                throw new IllegalStateException(msg, e);
+                throw new RuntimeException(msg, e);
             }
             Collection<Class<? extends Plugin>> implementations = findImplementations(pluginUrls);
             if (implementations == null || implementations.isEmpty()) {
                 String msg = String.format(Locale.ENGLISH,
                         "Path [%s] does not contain a valid Crate or Elasticsearch plugin", plugin.getAbsolutePath());
-                IllegalArgumentException e = new IllegalArgumentException(msg);
+                RuntimeException e = new RuntimeException(msg);
                 logger.error(msg, e);
                 throw e;
             }
@@ -370,12 +373,6 @@ public class PluginLoader {
         final List<URL> loadedJars = new ArrayList<>(Arrays.asList(JarHell.parseClassPath()));
         loadedJars.addAll(jarsToLoad);
         loadedJars.add(url);
-        JarHell.checkJarHell(loadedJars.toArray(new URL[0]));
-    }
-
-    private void checkJarHell() throws Exception {
-        final List<URL> loadedJars = new ArrayList<>(Arrays.asList(JarHell.parseClassPath()));
-        loadedJars.addAll(jarsToLoad);
         JarHell.checkJarHell(loadedJars.toArray(new URL[0]));
     }
 
