@@ -27,7 +27,6 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.io.Closeable;
 import java.util.Collection;
-import java.util.Collections;
 
 /**
  * An extension point allowing to plug in custom functionality.
@@ -36,64 +35,92 @@ import java.util.Collections;
  * preferred to an empty one.
  * </p>
  */
-public abstract class Plugin {
+public interface Plugin {
 
     /**
      * The name of the plugin.
      */
-    public abstract String name();
+    String name();
 
     /**
      * The description of the plugin.
      */
-    public abstract String description();
+    String description();
 
     /**
-     * Node level modules (classes, will automatically be created).
+     * Node level modules.
      */
-    public Collection<Module> nodeModules() {
-        return Collections.emptyList();
-    }
+    Collection<Module> nodeModules();
+
+    /**
+     * @deprecated Use {@link #nodeModules()} instead
+     *
+     * Node level modules.
+     */
+    @Deprecated
+    Collection<Class<? extends Module>> modules();
+
+    /**
+     * @deprecated Use {@link #nodeModules()} instead
+     *
+     * Node level modules.
+     *
+     * @param settings The node level settings.
+     */
+    @Deprecated
+    Collection<Class<? extends Module>> modules(Settings settings);
 
     /**
      * Node level services that will be automatically started/stopped/closed.
      */
-    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
-        return Collections.emptyList();
-    }
+    Collection<Class<? extends LifecycleComponent>> nodeServices();
+
+    /**
+     * @deprecated Use {@link #nodeServices()} instead
+     */
+    @Deprecated
+    Collection<Class<? extends LifecycleComponent>> services();
+
+    /**
+     * @deprecated Use {@link #indexModules(Settings)} instead
+     */
+    @Deprecated
+    Collection<Class<? extends Module>> indexModules();
 
     /**
      * Per index modules.
      */
-    public Collection<Module> indexModules(Settings indexSettings) {
-        return Collections.emptyList();
-    }
+    Collection<? extends Module> indexModules(Settings settings);
 
     /**
      * Per index services that will be automatically closed.
      */
-    public Collection<Class<? extends Closeable>> indexServices() {
-        return Collections.emptyList();
-    }
+    Collection<Class<? extends Closeable>> indexServices();
+
+    /**
+     * @deprecated Use {@link #shardModules(Settings)} instead.
+     */
+    @Deprecated
+    Collection<Class<? extends Module>> shardModules();
 
     /**
      * Per index shard module.
      */
-    public Collection<Module> shardModules(Settings indexSettings) {
-        return Collections.emptyList();
-    }
+    Collection<? extends Module> shardModules(Settings settings);
 
     /**
      * Per index shard service that will be automatically closed.
      */
-    public Collection<Class<? extends Closeable>> shardServices() {
-        return Collections.emptyList();
-    }
+    Collection<Class<? extends Closeable>> shardServices();
+
+    /**
+     * Process a specific module. Note, its simpler to implement a custom <tt>onModule(AnyModule module)</tt>
+     * method, which will be automatically be called by the relevant type.
+     */
+    void processModule(Module module);
 
     /**
      * Additional node settings loaded by the plugin
      */
-    public Settings additionalSettings() {
-        return Settings.Builder.EMPTY_SETTINGS;
-    }
+    Settings additionalSettings();
 }

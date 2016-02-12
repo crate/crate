@@ -39,7 +39,6 @@ import java.util.List;
 
 import static org.elasticsearch.client.Requests.clusterHealthRequest;
 import static org.elasticsearch.common.settings.Settings.settingsBuilder;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, numClientNodes = 0)
@@ -52,7 +51,6 @@ public class PluginLoaderTest extends ESIntegTestCase {
 
     @Test
     public void testLoadPlugin() throws Exception {
-        // FIXME: fails because plugin in /io/crate/plugin/duplicates uses old Plugin API
         String node = startNodeWithPlugins("/io/crate/plugin/simple_plugin");
 
         PluginsService pluginsService = internalCluster().getInstance(PluginsService.class, node);
@@ -65,7 +63,7 @@ public class PluginLoaderTest extends ESIntegTestCase {
 
     @Test
     public void testLoadPluginWithAlreadyLoadedClass() throws Exception {
-        // test that JarHell is used and plugin is not loaded because it contains a already loaded class
+        // test that JarHell is used and plugin is not loaded because it contains an already loaded class
 
         String node = startNodeWithPlugins("/io/crate/plugin/plugin_with_already_loaded_class");
         PluginsService pluginsService = internalCluster().getInstance(PluginsService.class, node);
@@ -90,7 +88,6 @@ public class PluginLoaderTest extends ESIntegTestCase {
 
     @Test
     public void testDuplicates() throws Exception {
-        // FIXME: fails because plugin in /io/crate/plugin/duplicates uses old Plugin API
         String node = startNodeWithPlugins("/io/crate/plugin/duplicates");
         PluginsService pluginsService = internalCluster().getInstance(PluginsService.class, node);
 

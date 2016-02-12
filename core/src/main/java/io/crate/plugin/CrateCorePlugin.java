@@ -37,6 +37,7 @@ import org.elasticsearch.rest.RestModule;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.security.KeyStore;
@@ -92,6 +93,21 @@ public class CrateCorePlugin extends Plugin {
     }
 
     @Override
+    public Collection<Module> nodeModules() {
+        Collection<Module> modules = new ArrayList<>();
+        CrateCoreModule crateCoreModule = new CrateCoreModule(settings, crateComponentLoader, pluginLoader);
+        modules.add(crateCoreModule);
+        modules.addAll(crateComponentLoader.nodeModules());
+        modules.addAll(pluginLoader.nodeModules());
+        return modules;
+    }
+
+    @Override
+    public Collection<Class<? extends Closeable>> indexServices() {
+        return pluginLoader.indexServices();
+    }
+
+    @Override
     public Collection<Module> indexModules(Settings indexSettings) {
         Collection<Module> indexModules = Lists.newArrayList();
         indexModules.addAll(crateComponentLoader.indexModules(indexSettings));
@@ -100,13 +116,8 @@ public class CrateCorePlugin extends Plugin {
     }
 
     @Override
-    public Collection<Module> nodeModules() {
-        Collection<Module> modules = new ArrayList<>();
-        CrateCoreModule crateCoreModule = new CrateCoreModule(settings, crateComponentLoader, pluginLoader);
-        modules.add(crateCoreModule);
-        modules.addAll(crateComponentLoader.nodeModules());
-        modules.addAll(pluginLoader.nodeModules());
-        return modules;
+    public Collection<Class<? extends Closeable>> shardServices() {
+        return pluginLoader.shardServices();
     }
 
     @Override
