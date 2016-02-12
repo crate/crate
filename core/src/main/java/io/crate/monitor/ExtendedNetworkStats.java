@@ -24,8 +24,8 @@ package io.crate.monitor;
 
 public class ExtendedNetworkStats {
 
-    final Tcp tcp;
-    long timestamp;
+    private final Tcp tcp;
+    private long timestamp;
 
     public ExtendedNetworkStats(Tcp tcp) {
         this.tcp = tcp;
@@ -35,6 +35,10 @@ public class ExtendedNetworkStats {
         return timestamp;
     }
 
+    public void timestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
     public Tcp tcp() {
         return tcp;
     }
@@ -42,16 +46,41 @@ public class ExtendedNetworkStats {
 
     public static class Tcp {
 
-        long activeOpens;
-        long passiveOpens;
-        long attemptFails;
-        long estabResets;
-        long currEstab;
-        long inSegs;
-        long outSegs;
-        long retransSegs;
-        long inErrs;
-        long outRsts;
+        private long activeOpens;
+        private long passiveOpens;
+        private long attemptFails;
+        private long estabResets;
+        private long currEstab;
+        private long inSegs;
+        private long outSegs;
+        private long retransSegs;
+        private long inErrs;
+        private long outRsts;
+
+        public Tcp() {
+        }
+
+        public Tcp(long activeOpens,
+                   long passiveOpens,
+                   long attemptFails,
+                   long estabResets,
+                   long currEstab,
+                   long inSegs,
+                   long outSegs,
+                   long retransSegs,
+                   long inErrs,
+                   long outRsts) {
+            this.activeOpens = activeOpens;
+            this.passiveOpens = passiveOpens;
+            this.attemptFails = attemptFails;
+            this.estabResets = estabResets;
+            this.currEstab = currEstab;
+            this.inSegs = inSegs;
+            this.outSegs = outSegs;
+            this.retransSegs = retransSegs;
+            this.inErrs = inErrs;
+            this.outRsts = outRsts;
+        }
 
         public long activeOpens() {
             return activeOpens;

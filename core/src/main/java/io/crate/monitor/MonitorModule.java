@@ -23,6 +23,8 @@
 package io.crate.monitor;
 
 import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.HashMap;
@@ -32,6 +34,7 @@ public class MonitorModule extends AbstractModule {
 
     public final static String NODE_INFO_EXTENDED_TYPE = "node.info.extended.type";
     public final static String NODE_INFO_EXTENDED_DEFAULT_TYPE = "none";
+    private final static ESLogger LOGGER = Loggers.getLogger(MonitorModule.class);
 
     private final Settings settings;
     private final Map<String, Class<? extends ExtendedNodeInfo>> extendedNodeInfoTypes = new HashMap<>();
@@ -42,6 +45,7 @@ public class MonitorModule extends AbstractModule {
     }
 
     public void addExtendedNodeInfoType(String type, Class<? extends ExtendedNodeInfo> clazz) {
+        LOGGER.trace("Registering extended node information type: {}", type);
         if (extendedNodeInfoTypes.put(type, clazz) != null) {
             throw new IllegalArgumentException("Extended node information type [" + type + "] is already registered");
         }
@@ -50,6 +54,8 @@ public class MonitorModule extends AbstractModule {
     @Override
     protected void configure() {
         String extendedInfoType = settings.get(NODE_INFO_EXTENDED_TYPE, NODE_INFO_EXTENDED_DEFAULT_TYPE);
+        LOGGER.trace("Using extended node information type: {}", extendedInfoType);
+
         Class<? extends ExtendedNodeInfo> extendedInfoClass = extendedNodeInfoTypes.get(extendedInfoType);
         if (extendedInfoClass == null) {
             throw new IllegalArgumentException("Unknown extended node information type [" + extendedInfoType + "]");
