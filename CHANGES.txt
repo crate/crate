@@ -5,7 +5,6 @@ Changes for Crate
 Unreleased
 ==========
 
-
  - Create Table statements now validate that the PRIMARY KEY constraint doesn't
    contain columns with unsupported data types
 
@@ -91,6 +90,23 @@ Unreleased
      recovery percentage which is displayed per table.
      Previously it could show '100% recovery done' even if there were still
      unassigned shards.
+
+ - Updated crash to 0.16.0 which contains following changes:
+
+    - The order of the keys / columns of the ``json`` output format is now
+      deterministic and reflects the order of the columns in the executed query.
+
+    - `Ctrl-c` no longer results in a KeyboardInterrupt exception if invoked while
+      a query is being executed.
+
+    - Added initial auto-completion support for the internal ``\format`` and
+      ``\r`` commands.
+
+    - Added a new ``\r`` command which can be used to read and execute statements
+      from a file.
+
+    - Fixed an error that occurred under python 3 if one of the built-in commands
+      that require an argument were called without argument.
 
  - Fixed a NullPointerException that occured if `= ANY ()` was used with a
    literal array containing null values.
