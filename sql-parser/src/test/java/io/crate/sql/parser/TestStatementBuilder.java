@@ -291,6 +291,13 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testTableFunctions() throws Exception {
+        printStatement("select * from unnest([1, 2], ['Arthur', 'Marvin'])");
+        printStatement("select * from unnest(?, ?)");
+        printStatement("select * from open('/tmp/x')");
+    }
+
+    @Test
     public void testStatementSubscript() throws Exception {
         printStatement("select a['x'] from foo where a['x']['y']['z'] = 1");
         printStatement("select a['x'] from foo where a[1 + 2]['y'] = 1");
