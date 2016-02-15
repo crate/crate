@@ -21,7 +21,6 @@ public class Function extends Symbol implements Cloneable {
             return new Function();
         }
     };
-
     private List<Symbol> arguments;
     private FunctionInfo info;
 

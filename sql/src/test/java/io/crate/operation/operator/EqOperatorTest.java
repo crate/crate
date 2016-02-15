@@ -21,6 +21,7 @@ import org.junit.Test;
 import java.util.Arrays;
 
 import static io.crate.testing.TestingHelpers.createFunction;
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -32,7 +33,7 @@ public class EqOperatorTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        functions = new ModulesBuilder().add(new OperatorModule()).createInjector().getInstance(Functions.class);
+        functions = getFunctions();
     }
 
     private CmpOperator getOp(DataType dataType) {

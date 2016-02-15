@@ -23,15 +23,14 @@ package io.crate.operation.collect;
 
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.core.collections.TreeMapBuilder;
 import io.crate.jobs.ExecutionState;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.metadata.*;
 import io.crate.operation.collect.sources.CollectSourceResolver;
 import io.crate.operation.collect.sources.FileCollectSource;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
-import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
@@ -46,7 +45,10 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.FileWriter;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.contains;

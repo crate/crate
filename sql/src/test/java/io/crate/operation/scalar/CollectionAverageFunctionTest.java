@@ -37,6 +37,8 @@ import org.junit.Test;
 import java.util.HashSet;
 import java.util.Set;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
+
 public class CollectionAverageFunctionTest extends CrateUnitTest {
 
     final FunctionIdent ident = new FunctionIdent(CollectionAverageFunction.NAME,
@@ -44,12 +46,7 @@ public class CollectionAverageFunctionTest extends CrateUnitTest {
 
     @Test
     public void testLookup() throws Exception {
-        Injector injector = new ModulesBuilder().add(
-                new ScalarFunctionModule()
-        ).createInjector();
-
-        Functions functions = injector.getInstance(Functions.class);
-
+        Functions functions = getFunctions();
         assertEquals(ident, functions.get(ident).info().ident());
     }
 

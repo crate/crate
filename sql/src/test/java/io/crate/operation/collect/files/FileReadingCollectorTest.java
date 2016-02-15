@@ -38,6 +38,7 @@ import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
@@ -56,6 +57,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.zip.GZIPOutputStream;
 
@@ -102,7 +104,8 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     public void prepare() throws Exception {
         Functions functions = new Functions(
                 ImmutableMap.<FunctionIdent, FunctionImplementation>of(),
-                ImmutableMap.<String, DynamicFunctionResolver>of()
+                ImmutableMap.<String, DynamicFunctionResolver>of(),
+                Collections.<String, TableFunctionImplementation>emptyMap()
         );
         inputSymbolVisitor =
                 new FileCollectInputSymbolVisitor(functions, FileLineReferenceResolver.INSTANCE);

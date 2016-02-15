@@ -22,6 +22,8 @@
 package io.crate.metadata;
 
 import com.google.common.base.Joiner;
+import io.crate.analyze.symbol.Function;
+import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
@@ -32,12 +34,15 @@ public class Functions {
 
     private final Map<FunctionIdent, FunctionImplementation> functionImplementations;
     private final Map<String, DynamicFunctionResolver> functionResolvers;
+    private final Map<String, TableFunctionImplementation> tableFunctionImplementationMap;
 
     @Inject
     public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
-                     Map<String, DynamicFunctionResolver> functionResolvers) {
+                     Map<String, DynamicFunctionResolver> functionResolvers,
+                     Map<String, TableFunctionImplementation> tableFunctionImplementationMap) {
         this.functionImplementations = functionImplementations;
         this.functionResolvers = functionResolvers;
+        this.tableFunctionImplementationMap = tableFunctionImplementationMap;
     }
 
     /**
@@ -85,5 +90,16 @@ public class Functions {
             return dynamicResolver.getForTypes(ident.argumentTypes());
         }
         return null;
+    }
+
+    /**
+     * @throws UnsupportedOperationException if the function is unknown
+     */
+    public TableFunctionImplementation getTableFunctionSafe(String name) {
+        TableFunctionImplementation tableFunctionImplementation = tableFunctionImplementationMap.get(name);
+        if (tableFunctionImplementation == null) {
+            throw new UnsupportedOperationException("unknown table function: " + name);
+        }
+        return tableFunctionImplementation;
     }
 }

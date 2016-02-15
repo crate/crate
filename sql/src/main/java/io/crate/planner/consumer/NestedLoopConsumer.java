@@ -367,6 +367,11 @@ public class NestedLoopConsumer implements Consumer {
         }
 
         @Override
+        public QueriedRelation visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation, MultiSourceSelect.Source context) {
+            return new QueriedTable(tableFunctionRelation, context.querySpec());
+        }
+
+        @Override
         protected QueriedTableRelation visitAnalyzedRelation(AnalyzedRelation relation,
                                                              MultiSourceSelect.Source source) {
             throw new ValidationException("CROSS JOIN with sub queries is not supported");

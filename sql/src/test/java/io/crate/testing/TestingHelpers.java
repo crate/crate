@@ -38,6 +38,11 @@ import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.aggregation.impl.AggregationImplModule;
+import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.predicate.PredicateModule;
+import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.sql.Identifiers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -138,6 +143,7 @@ public class TestingHelpers {
         return new ModulesBuilder()
                 .add(new AggregationImplModule())
                 .add(new PredicateModule())
+                .add(new TableFunctionModule())
                 .add(new ScalarFunctionModule())
                 .add(new OperatorModule()).createInjector().getInstance(Functions.class);
     }

@@ -21,10 +21,7 @@
 
 package io.crate.planner.node;
 
-import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.node.dql.CountPhase;
-import io.crate.planner.node.dql.FileUriCollectPhase;
-import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -47,7 +44,8 @@ public interface ExecutionPhase extends Streamable {
         FILE_URI_COLLECT(FileUriCollectPhase.FACTORY),
         MERGE(MergePhase.FACTORY),
         FETCH(FetchPhase.FACTORY),
-        NESTED_LOOP(NestedLoopPhase.FACTORY);
+        NESTED_LOOP(NestedLoopPhase.FACTORY),
+        TABLE_FUNCTION_COLLECT(TableFunctionCollectPhase.FACTORY);
 
         private final ExecutionPhaseFactory factory;
 

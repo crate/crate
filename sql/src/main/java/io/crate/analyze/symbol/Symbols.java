@@ -67,6 +67,7 @@ public class Symbols {
         return streamers;
     }
 
+
     /**
      * returns true if the symbol contains the given columnIdent.
      * If symbol is a Function the function tree will be traversed

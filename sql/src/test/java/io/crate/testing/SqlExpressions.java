@@ -34,6 +34,7 @@ import io.crate.metadata.*;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.inject.Injector;
@@ -59,6 +60,7 @@ public class SqlExpressions {
         ModulesBuilder modulesBuilder = new ModulesBuilder()
                 .add(new OperatorModule())
                 .add(new ScalarFunctionModule())
+                .add(new TableFunctionModule())
                 .add(new PredicateModule());
         injector = modulesBuilder.createInjector();
         NestedReferenceResolver referenceResolver = new NestedReferenceResolver() {

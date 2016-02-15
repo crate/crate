@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
@@ -46,6 +47,7 @@ public class MetaDataModule extends AbstractModule {
     protected void bindFunctions() {
         functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
         MapBinder.newMapBinder(binder(), String.class, DynamicFunctionResolver.class);
+        MapBinder.newMapBinder(binder(), String.class, TableFunctionImplementation.class);
         bind(Functions.class).asEagerSingleton();
     }
 

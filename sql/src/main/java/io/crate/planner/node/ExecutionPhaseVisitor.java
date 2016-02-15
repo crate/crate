@@ -62,4 +62,7 @@ public class ExecutionPhaseVisitor<C, R> {
     public R visitFileUriCollectPhase(FileUriCollectPhase phase, C context) {
         return visitCollectPhase(phase, context);
     }
+    public R visitTableFunctionCollect(TableFunctionCollectPhase phase, C context) {
+        return visitCollectPhase(phase, context);
+    }
 }
