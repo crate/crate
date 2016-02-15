@@ -21,16 +21,7 @@ Synopsis
 
 where ``relation`` is::
 
-    table_reference | joined_relation
-
-where ``joined_relation`` is::
-
-    relation { , | CROSS JOIN } relation
-
-where ``table_reference`` is::
-
-    table_ident [[AS] table_alias]
-
+    table_reference | joined_relation | table_function
 
 Description
 ===========
@@ -110,7 +101,7 @@ The relation can be either a table reference or a joined relation.
 Table Reference
 ...............
 
-A table reference is a table ident with an optional table alias::
+A ``table_reference`` is a table ident with an optional table alias::
 
     table_ident [ [AS] table_alias ]
 
@@ -126,7 +117,8 @@ A table reference is a table ident with an optional table alias::
 Joined Relation
 ...............
 
-If more than one table references are listed the tables are joined, see :ref:`sql_dql_joins` ::
+A ``joined_relation`` is a relation which joins two relations together. See
+:ref:`sql_dql_joins` ::
 
     relation { , | join_type JOIN } relation [ ON join_condition ]
 
@@ -137,6 +129,26 @@ If more than one table references are listed the tables are joined, see :ref:`sq
                  considered a match. The join_condition is only applicable for
                  joins of type INNER and must have a returning value of type
                  ``boolean``.
+
+Table Function
+..............
+
+``table_function`` is a function that produces a set of rows and has columns.
+
+::
+
+    function_call
+
+
+:function_call: The call declaration of the function. Usually in the form of
+                `` function_name ( [ args ] )``.
+                
+                Depending on the function the parenthesis and arguments are
+                either optional or required.
+
+
+Available functions are documented in the :doc:`table functions
+</sql/table_functions>` section.
 
 
 WHERE Clause

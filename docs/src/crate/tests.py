@@ -387,6 +387,7 @@ def test_suite():
                'sql/aggregation.txt',
                'sql/arithmetic.txt',
                'sql/scalar.txt',
+               'sql/table_functions.txt',
                'sql/system.txt',
                'sql/queries.txt',
                'hello.txt'):

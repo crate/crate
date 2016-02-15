@@ -18,6 +18,7 @@ see :doc:`sql`. For general information about SQL please refer to
    data_types
    aggregation
    scalar
+   table_functions
    arithmetic
    occ
    partitioned_tables
