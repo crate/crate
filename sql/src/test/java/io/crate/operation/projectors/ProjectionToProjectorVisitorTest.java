@@ -67,6 +67,7 @@ import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
@@ -95,17 +96,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     public void prepare() {
         MockitoAnnotations.initMocks(this);
         NestedReferenceResolver referenceResolver = new GlobalReferenceResolver(new HashMap<ReferenceIdent, ReferenceImplementation>());
-        Injector injector = new ModulesBuilder()
-                .add(new AggregationImplModule())
-                .add(new AbstractModule() {
-                    @Override
-                    protected void configure() {
-                        bind(Client.class).toInstance(mock(Client.class));
-                    }
-                })
-                .add(new OperatorModule())
-                .createInjector();
-        functions = injector.getInstance(Functions.class);
+        functions = getFunctions();
         threadPool = new ThreadPool("testing");
         ImplementationSymbolVisitor symbolvisitor = new ImplementationSymbolVisitor(functions);
         visitor = new ProjectionToProjectorVisitor(

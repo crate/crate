@@ -21,12 +21,12 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
@@ -41,7 +41,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -295,6 +294,19 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                                                      List<Projection> projections) {
         TableInfo tableInfo = table.tableRelation().tableInfo();
         WhereClause where = table.querySpec().where();
+        if (table.tableRelation() instanceof TableFunctionRelation) {
+            TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) table.tableRelation();
+            return new TableFunctionCollectPhase(
+                    plannerContext.jobId(),
+                    plannerContext.nextExecutionPhaseId(),
+                    plannerContext.allocateRouting(tableInfo, where, null),
+                    tableFunctionRelation.functionName(),
+                    tableFunctionRelation.arguments(),
+                    projections,
+                    toCollect,
+                    where
+            );
+        }
         return new RoutedCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),

@@ -36,7 +36,6 @@ import io.crate.core.collections.BucketPage;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
-import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.TopN;
@@ -50,14 +49,10 @@ import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.collection.IsIterableContainingInOrder;
@@ -73,6 +68,7 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.mock;
@@ -90,17 +86,8 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
     @Before
     @SuppressWarnings("unchecked")
     public void prepare() {
-        Injector injector = new ModulesBuilder()
-                .add(new AggregationImplModule())
-                .add(new AbstractModule() {
-                    @Override
-                    protected void configure() {
-                        bind(Client.class).toInstance(mock(Client.class));
-                    }
-                })
-                .createInjector();
         threadPool = new ThreadPool("testing");
-        functions = injector.getInstance(Functions.class);
+        functions = getFunctions();
         referenceResolver = new GlobalReferenceResolver(
                 Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
 

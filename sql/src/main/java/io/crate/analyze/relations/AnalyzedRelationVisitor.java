@@ -79,4 +79,8 @@ public abstract class AnalyzedRelationVisitor<C, R> {
     public R visitExplain(ExplainAnalyzedStatement explainAnalyzedStatement, C context) {
         return visitAnalyzedRelation(explainAnalyzedStatement, context);
     }
+
+    public R visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation, C context) {
+        return visitAnalyzedRelation(tableFunctionRelation, context);
+    }
 }

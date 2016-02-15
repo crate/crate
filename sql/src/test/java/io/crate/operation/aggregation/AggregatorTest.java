@@ -28,21 +28,19 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
-import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.core.Is.is;
 
 public class AggregatorTest extends CrateUnitTest {
@@ -54,8 +52,7 @@ public class AggregatorTest extends CrateUnitTest {
 
     @Before
     public void setUpFunctions() {
-        Injector injector = new ModulesBuilder().add(new AggregationImplModule()).createInjector();
-        Functions functions = injector.getInstance(Functions.class);
+        Functions functions = getFunctions();
         FunctionIdent countAggIdent = new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.STRING));
         countImpl = (AggregationFunction) functions.get(countAggIdent);
     }

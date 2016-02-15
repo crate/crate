@@ -32,6 +32,7 @@ import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -45,6 +46,7 @@ import org.junit.Test;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -100,6 +102,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
     public void setupVisitor() {
         Injector injector = new ModulesBuilder().add(
                 new AggregationImplModule(),
+                new TableFunctionModule(),
                 new TestScalarFunctionModule()
         ).createInjector();
 

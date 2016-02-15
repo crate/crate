@@ -80,14 +80,6 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
         return withinFunction.normalizeSymbol(new Function(withinFunction.info(), arguments));
     }
 
-    @Before
-    public void prepare() throws Exception {
-        ModulesBuilder modules = new ModulesBuilder();
-        modules.add(new ScalarFunctionModule());
-        Injector injector = modules.createInjector();
-        functions = injector.getInstance(Functions.class);
-    }
-
     @Test
     public void testEvaluateWithNullArgs() throws Exception {
         assertNull(evaluate(Literal.newGeoPoint(null), Literal.newGeoShape("POINT (10 10)")));

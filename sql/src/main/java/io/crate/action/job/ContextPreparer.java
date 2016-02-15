@@ -55,10 +55,7 @@ import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.StreamerVisitor;
-import io.crate.planner.node.dql.CountPhase;
-import io.crate.planner.node.dql.FileUriCollectPhase;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.types.DataTypes;
@@ -412,7 +409,7 @@ public class ContextPreparer {
         }
 
         @Override
-        public ExecutionSubContext visitFileUriCollectPhase(FileUriCollectPhase phase, PreparerContext context) {
+        public ExecutionSubContext visitCollectPhase(CollectPhase phase, PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
             RowReceiver rowReceiver = context.getRowReceiver(phase, Paging.PAGE_SIZE);
             if (rowReceiver == null) {

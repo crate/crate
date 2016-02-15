@@ -32,6 +32,7 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.DropTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
@@ -130,6 +131,7 @@ public class PlannerTest extends CrateUnitTest {
         Injector injector = new ModulesBuilder()
                 .add(new AggregationImplModule())
                 .add(new ScalarFunctionModule())
+                .add(new TableFunctionModule())
                 .add(new PredicateModule())
                 .add(new OperatorModule())
                 .add(new RepositorySettingsModule())
@@ -2123,6 +2125,12 @@ public class PlannerTest extends CrateUnitTest {
             assertNotNull(map);
             assertThat(map.size(), greaterThan(0));
         }
+    }
 
+    @Test
+    public void testSelectFromUnnestResultsInTableFunctionPlan() throws Exception {
+        CollectAndMerge plan = plan("select * from unnest([1, 2], ['Arthur', 'Trillian'])");
+        assertNotNull(plan);
+        assertThat(plan.collectPhase().toCollect(), contains(isReference("col1"), isReference("col2")));
     }
 }

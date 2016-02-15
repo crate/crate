@@ -30,12 +30,12 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Test;
 
 import java.util.HashSet;
 import java.util.Set;
+
+import static io.crate.testing.TestingHelpers.getFunctions;
 
 public class CollectionCountFunctionTest extends CrateUnitTest {
 
@@ -44,12 +44,7 @@ public class CollectionCountFunctionTest extends CrateUnitTest {
 
     @Test
     public void testLookup() throws Exception {
-        Injector injector = new ModulesBuilder().add(
-                new ScalarFunctionModule()
-        ).createInjector();
-
-        Functions functions = injector.getInstance(Functions.class);
-
+        Functions functions = getFunctions();
         assertEquals(ident, functions.get(ident).info().ident());
     }
 

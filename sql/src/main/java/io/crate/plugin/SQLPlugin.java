@@ -55,6 +55,7 @@ import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
 import io.crate.operation.reference.sys.shard.blob.BlobShardExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.service.SQLService;
 import org.elasticsearch.action.ActionModule;
@@ -133,6 +134,7 @@ public class SQLPlugin extends AbstractPlugin {
         modules.add(SysNodeExpressionModule.class);
         modules.add(AggregationImplModule.class);
         modules.add(ScalarFunctionModule.class);
+        modules.add(TableFunctionModule.class);
         modules.add(BulkModule.class);
         modules.add(SysChecksModule.class);
         modules.add(RepositorySettingsModule.class);

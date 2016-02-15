@@ -43,6 +43,7 @@ import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.node.dql.TableFunctionCollectPhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -63,6 +64,7 @@ public class CollectSourceResolver {
     private final CollectSource singleRowSource;
     private final ClusterService clusterService;
     private final CollectPhaseVisitor visitor;
+    private final ProjectorSetupCollectSource tableFunctionSource;
 
     @Inject
     public CollectSourceResolver(ClusterService clusterService,
@@ -76,6 +78,7 @@ public class CollectSourceResolver {
                                  SysSchemaInfo sysSchemaInfo,
                                  ShardCollectSource shardCollectSource,
                                  FileCollectSource fileCollectSource,
+                                 TableFunctionCollectSource tableFunctionCollectSource,
                                  SingleRowSource singleRowSource,
                                  SystemCollectSource systemCollectSource) {
         this.clusterService = clusterService;
@@ -94,6 +97,7 @@ public class CollectSourceResolver {
         this.shardCollectSource = shardCollectSource;
         this.fileCollectSource = new ProjectorSetupCollectSource(fileCollectSource, projectorFactory);
         this.singleRowSource = new ProjectorSetupCollectSource(singleRowSource, projectorFactory);
+        this.tableFunctionSource = new ProjectorSetupCollectSource(tableFunctionCollectSource, projectorFactory);
 
         nodeDocCollectSources.put(SysClusterTableInfo.IDENT.fqn(), this.singleRowSource);
 
@@ -114,6 +118,11 @@ public class CollectSourceResolver {
         @Override
         public CollectSource visitFileUriCollectPhase(FileUriCollectPhase phase, Void context) {
             return fileCollectSource;
+        }
+
+        @Override
+        public CollectSource visitTableFunctionCollect(TableFunctionCollectPhase phase, Void context) {
+            return tableFunctionSource;
         }
 
         @Override

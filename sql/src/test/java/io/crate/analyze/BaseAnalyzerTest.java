@@ -33,6 +33,7 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.Input;
+import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
@@ -336,6 +337,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
     public void prepareModules() throws Exception {
         threadPool = newMockedThreadPool();
         ModulesBuilder builder = new ModulesBuilder();
+        builder.add(new TableFunctionModule());
         builder.add(new Module() {
             @Override
             public void configure(Binder binder) {

@@ -1885,4 +1885,30 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expectMessage("Cannot GROUP BY 'shape': invalid data type 'geo_shape'");
         analyze("select count(*) from users group by shape");
     }
+
+    @Test
+    public void testSelectStarFromUnnest() throws Exception {
+        SelectAnalyzedStatement stmt = analyze("select * from unnest([1, 2], ['Marvin', 'Trillian'])");
+        assertThat(stmt.relation().querySpec().outputs(), contains(isReference("col1"), isReference("col2")));
+    }
+
+    @Test
+    public void testSelectStarFromUnnestWithInvalidArguments() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("unnest expects arguments of type array. Got an argument of type 'long' at position 0 instead.");
+        analyze("select * from unnest(1, 'foo')");
+    }
+
+    @Test
+    public void testSelectStarFromUnnestWithNoArguments() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("unnest expects at least 1 argument of type array. Got 0");
+        analyze("select * from unnest()");
+    }
+
+    @Test
+    public void testSelectCol1FromUnnest() throws Exception {
+        SelectAnalyzedStatement stmt = analyze("select col1 from unnest([1, 2], ['Marvin', 'Trillian'])");
+        assertThat(stmt.relation().querySpec().outputs(), contains(isReference("col1")));
+    }
 }

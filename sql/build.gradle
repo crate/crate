@@ -1,5 +1,6 @@
 apply plugin: 'idea'
 apply plugin: 'java'
+apply plugin: 'groovy'
 apply plugin: 'de.thetaphi.forbiddenapis'
 apply plugin: 'maven'
 

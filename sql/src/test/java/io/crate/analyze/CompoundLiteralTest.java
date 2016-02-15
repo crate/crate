@@ -27,9 +27,13 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.FullQualifedNameFieldProvider;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
@@ -80,7 +84,8 @@ public class CompoundLiteralTest extends CrateUnitTest {
         analysisMetaData = new AnalysisMetaData(
                 new Functions(
                         Collections.<FunctionIdent, FunctionImplementation>emptyMap(),
-                        Collections.<String, DynamicFunctionResolver>emptyMap()),
+                        Collections.<String, DynamicFunctionResolver>emptyMap(),
+                        Collections.<String, TableFunctionImplementation>emptyMap()),
                 new ReferenceInfos(
                         Collections.<String, SchemaInfo>emptyMap(),
                         clusterService,
