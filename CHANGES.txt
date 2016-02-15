@@ -2,8 +2,8 @@
 Changes for Crate
 =================
 
-Unreleased
-==========
+2016/02/15 0.54.5
+=================
 
  - Updated admin ui to 0.17.1 which contains the following changes:
 
