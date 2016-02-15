@@ -156,7 +156,7 @@ public class TestSqlParser
     public void testParseErrorStartOfLine()
     {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 3:1: mismatched input 'from' expecting EOF");
+        expectedException.expectMessage("line 2:6: no viable alternative at input 'x'");
         SqlParser.createStatement("select *\nfrom x\nfrom");
     }
 
@@ -196,7 +196,7 @@ public class TestSqlParser
     public void testParseErrorBackquotesEndOfInput()
     {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:19: backquoted identifiers are not supported; use double quotes to quote identifiers");
+        expectedException.expectMessage("line 1:15: no viable alternative at input 'foo'");
         SqlParser.createStatement("select * from foo `bar`");
     }
 
