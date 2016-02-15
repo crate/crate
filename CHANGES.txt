@@ -5,6 +5,32 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated admin ui to 0.17.1 which contains the following changes:
+
+    - Fix: updated BlenderPro webfont
+      This fixes CSS glitches in Firefox 44 which misinterpreted height of webfont.
+
+    - Fix: Rename cluster check indicator on statusbar to ``Checks``.
+
+    - Fix: The recent update of the shard calculation for relocating shards caused
+      problems with partitioned tables showing incorrect table health.
+
+    - Fix: Reading an undefined property while cluster is offline caused
+      Javascript error.
+
+    - Improved display of recovery percentage in table view
+
+    - Fix: relocating shards where previously displayed as "underreplicated" shards
+      causing a yellow cluster state while relocating was in progress
+
+    - Fix: change in calculation of recovery percentage broke calculations for
+      partitioned tables causing table partitions not showing up
+
+    - Fix: now also include unassigned shards (as 0% recovered) in calculation of
+      recovery percentage which is displayed per table.
+      Previously it could show '100% recovery done' even if there were still
+      unassigned shards.
+
  - Updated crash to 0.16.0 which contains following changes:
 
     - The order of the keys / columns of the ``json`` output format is now
