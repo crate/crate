@@ -5,19 +5,7 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fixed a NullPointerException that occured if `= ANY ()` was used with a
-   literal array containing null values.
-
- - Fixed an issue that caused array-literals with null items to result in an
-   error.
-
- - Fix: exporting a table with a generated partitioned column using `copy to`
-   caused an Exception
-
  - Implemented the EXPLAIN command for SELECT statements.
-
- - Added `routing_state` column to `sys.shards` table in order to fix the
-   underreplicated shards calculation in admin ui
 
  - BREAKING CHANGE: Tables are not refreshed automatically anymore
    before and after a `DELETE-BY-QUERY` operation is applied.
@@ -30,6 +18,22 @@ Unreleased
  - Exposed setting the default schema via HTTP header.
 
  - added `lower`` and `upper`` string functions
+
+2016/02/15 0.54.5
+=================
+
+ - Fixed a NullPointerException that occured if `= ANY ()` was used with a
+   literal array containing null values.
+
+ - Fixed an issue that caused array-literals with null items to result in an
+   error.
+
+ - Added `routing_state` column to `sys.shards` table in order to fix the
+   underreplicated shards calculation in admin ui
+
+ - Fix: exporting a table with a generated partitioned column using `copy to`
+   caused an Exception
+
 
 2016/01/22 0.54.4
 =================
