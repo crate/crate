@@ -64,6 +64,7 @@ tokens {
     SIMPLE_CASE;
     SEARCHED_CASE;
     FUNCTION_CALL;
+    TABLE_FUNCTION;
     IDENT_EXPR;
     WINDOW;
     PARTITION_BY;
@@ -376,6 +377,7 @@ tableWithPartition
 
 table
     : qname -> ^(TABLE qname)
+    | ident '(' parameterOrLiteral? (',' parameterOrLiteral)* ')'   -> ^(TABLE_FUNCTION ident parameterOrLiteral*)
     ;
 
 repository

@@ -608,4 +608,8 @@ public abstract class AstVisitor<R, C>
     public R visitRestoreSnapshot(RestoreSnapshot node, C context) {
         return visitStatement(node, context);
     }
+
+    public R visitTableFunction(TableFunction node, C context) {
+        return visitQueryBody(node, context);
+    }
 }

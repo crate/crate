@@ -229,6 +229,22 @@ public final class SqlFormatter {
         }
 
         @Override
+        public Void visitTableFunction(TableFunction node, Integer context) {
+            builder.append(node.name());
+            builder.append("(");
+            Iterator<Expression> iterator = node.arguments().iterator();
+            while (iterator.hasNext()) {
+                Expression expression = iterator.next();
+                process(expression, context);
+                if (iterator.hasNext()) {
+                    builder.append(", ");
+                }
+            }
+            builder.append(")");
+            return null;
+        }
+
+        @Override
         protected Void visitTable(Table node, Integer indent)  {
             if (node.excludePartitions()) {
                 builder.append("ONLY ");
