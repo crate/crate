@@ -47,17 +47,21 @@ import java.util.Collection;
 
 public class CrateCorePlugin extends Plugin {
 
-    private final Settings settings;
     private final CrateComponentLoader crateComponentLoader;
     @VisibleForTesting
     final PluginLoader pluginLoader;
+    @VisibleForTesting
+    final Settings settings;
 
     private static final ESLogger LOGGER = Loggers.getLogger(CrateCorePlugin.class);
 
     public CrateCorePlugin(Settings settings) {
-        this.settings = settings;
-        crateComponentLoader = CrateComponentLoader.getInstance(settings);
         pluginLoader = new PluginLoader(settings);
+        this.settings = Settings.builder()
+                .put(pluginLoader.additionalSettings())
+                .put(settings)
+                .build();
+        crateComponentLoader = CrateComponentLoader.getInstance(this.settings);
 
         try {
             initializeTrustStore();
@@ -79,16 +83,16 @@ public class CrateCorePlugin extends Plugin {
     @Override
     public Settings additionalSettings() {
         Settings.Builder builder = Settings.builder();
+        builder.put(settings);
         builder.put(crateComponentLoader.additionalSettings());
-        builder.put(pluginLoader.additionalSettings());
         return builder.build();
     }
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> nodeServices() {
         Collection<Class<? extends LifecycleComponent>> services = Lists.newArrayList();
-        services.addAll(crateComponentLoader.nodeServices());
         services.addAll(pluginLoader.nodeServices());
+        services.addAll(crateComponentLoader.nodeServices());
         return services;
     }
 
@@ -97,8 +101,8 @@ public class CrateCorePlugin extends Plugin {
         Collection<Module> modules = new ArrayList<>();
         CrateCoreModule crateCoreModule = new CrateCoreModule(settings, crateComponentLoader, pluginLoader);
         modules.add(crateCoreModule);
-        modules.addAll(crateComponentLoader.nodeModules());
         modules.addAll(pluginLoader.nodeModules());
+        modules.addAll(crateComponentLoader.nodeModules());
         return modules;
     }
 
@@ -110,8 +114,8 @@ public class CrateCorePlugin extends Plugin {
     @Override
     public Collection<Module> indexModules(Settings indexSettings) {
         Collection<Module> indexModules = Lists.newArrayList();
-        indexModules.addAll(crateComponentLoader.indexModules(indexSettings));
         indexModules.addAll(pluginLoader.indexModules(indexSettings));
+        indexModules.addAll(crateComponentLoader.indexModules(indexSettings));
         return indexModules;
     }
 
@@ -124,10 +128,8 @@ public class CrateCorePlugin extends Plugin {
     public Collection<Module> shardModules(Settings indexSettings) {
         Collection<Module> modules = new ArrayList<>();
         if (!settings.getAsBoolean("node.client", false)) {
-            modules.addAll(crateComponentLoader.shardModules(indexSettings));
             modules.addAll(pluginLoader.shardModules(indexSettings));
-
-            crateComponentLoader.processModules(modules);
+            modules.addAll(crateComponentLoader.shardModules(indexSettings));
         }
         return modules;
     }
@@ -138,6 +140,7 @@ public class CrateCorePlugin extends Plugin {
 
     public void onModule(Module module) {
         crateComponentLoader.processModule(module);
+        pluginLoader.processModule(module);
     }
 
     /*

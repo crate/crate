@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Crate will now recognize settings defined by crate plugins.
+
  - BREAKING CHANGE: Crate will die now on all plugin loading errors
 
  - Fixed a NullPointerException that occured if `= ANY ()` was used with a

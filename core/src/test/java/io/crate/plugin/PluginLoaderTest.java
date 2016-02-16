@@ -69,6 +69,17 @@ public class PluginLoaderTest extends ESIntegTestCase {
     }
 
     @Test
+    public void testPluginWithCrateSettings() throws Exception {
+        String node = startNodeWithPlugins("/io/crate/plugin/plugin_with_crate_settings");
+
+        PluginsService pluginsService = internalCluster().getInstance(PluginsService.class, node);
+        CrateCorePlugin corePlugin = getCrateCorePlugin(pluginsService.plugins());
+        Settings settings = corePlugin.settings;
+
+        assertThat(settings.get("setting.for.crate"), is("foo"));
+    }
+
+    @Test
     public void testLoadPluginWithAlreadyLoadedClass() throws Exception {
         // test that JarHell is used and plugin is not loaded because it contains an already loaded class
         expectedException.expect(CauseMatcher.causeOfCause(IllegalStateException.class));
