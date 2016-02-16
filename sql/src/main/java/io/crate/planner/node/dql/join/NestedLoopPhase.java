@@ -28,8 +28,7 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
-import io.crate.planner.node.PlanNodeVisitor;
-import io.crate.planner.node.dql.AbstractDQLPlanPhase;
+import io.crate.planner.node.dql.AbstractProjectionsPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -42,7 +41,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
-public class NestedLoopPhase extends AbstractDQLPlanPhase implements UpstreamPhase {
+public class NestedLoopPhase extends AbstractProjectionsPhase implements UpstreamPhase {
 
     public static final ExecutionPhaseFactory<NestedLoopPhase> FACTORY = new ExecutionPhaseFactory<NestedLoopPhase>() {
         @Override
@@ -103,10 +102,6 @@ public class NestedLoopPhase extends AbstractDQLPlanPhase implements UpstreamPha
         return visitor.visitNestedLoopPhase(this, context);
     }
 
-    @Override
-    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitNestedLoopPhase(this, context);
-    }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {

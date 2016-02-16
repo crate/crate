@@ -38,7 +38,6 @@ import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
-import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -53,7 +52,7 @@ import java.util.UUID;
 /**
  * A plan node which collects data.
  */
-public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase {
+public class CollectPhase extends AbstractProjectionsPhase implements UpstreamPhase {
 
     public static final ExecutionPhaseFactory<CollectPhase> FACTORY = new ExecutionPhaseFactory<CollectPhase>() {
         @Override
@@ -204,11 +203,6 @@ public class CollectPhase extends AbstractDQLPlanPhase implements UpstreamPhase 
 
     public RowGranularity maxRowGranularity() {
         return maxRowGranularity;
-    }
-
-    @Override
-    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitCollectNode(this, context);
     }
 
     @Override

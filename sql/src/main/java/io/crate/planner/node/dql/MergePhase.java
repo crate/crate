@@ -32,7 +32,6 @@ import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
-import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -46,7 +45,7 @@ import java.util.*;
 /**
  * A plan node which merges results from upstreams
  */
-public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
+public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhase {
 
     public static final ExecutionPhaseFactory<MergePhase> FACTORY = new ExecutionPhaseFactory<MergePhase>() {
         @Override
@@ -193,10 +192,6 @@ public class MergePhase extends AbstractDQLPlanPhase implements UpstreamPhase {
         return nullsFirst;
     }
 
-    @Override
-    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitMergeNode(this, context);
-    }
 
     @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {

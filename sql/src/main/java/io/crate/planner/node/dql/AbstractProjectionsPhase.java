@@ -38,7 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public abstract class AbstractDQLPlanPhase implements DQLPlanNode, Streamable, ExecutionPhase {
+public abstract class AbstractProjectionsPhase implements Streamable, ExecutionPhase {
 
     private UUID jobId;
     private int executionPhaseId;
@@ -46,11 +46,11 @@ public abstract class AbstractDQLPlanPhase implements DQLPlanNode, Streamable, E
     protected List<Projection> projections = ImmutableList.of();
     protected List<DataType> outputTypes = ImmutableList.of();
 
-    public AbstractDQLPlanPhase() {
+    public AbstractProjectionsPhase() {
 
     }
 
-    protected AbstractDQLPlanPhase(UUID jobId, int executionPhaseId, String name, List<Projection> projections) {
+    protected AbstractProjectionsPhase(UUID jobId, int executionPhaseId, String name, List<Projection> projections) {
         this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
         this.name = name;
@@ -74,7 +74,6 @@ public abstract class AbstractDQLPlanPhase implements DQLPlanNode, Streamable, E
         return projections != null && projections.size() > 0;
     }
 
-    @Override
     public List<Projection> projections() {
         return projections;
     }
@@ -151,7 +150,7 @@ public abstract class AbstractDQLPlanPhase implements DQLPlanNode, Streamable, E
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        AbstractDQLPlanPhase node = (AbstractDQLPlanPhase) o;
+        AbstractProjectionsPhase node = (AbstractProjectionsPhase) o;
 
         return !(name != null ? !name.equals(node.name) : node.name != null);
 

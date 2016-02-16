@@ -490,9 +490,9 @@ public class PlannerTest extends CrateUnitTest {
         assertThat(topN.offset(), is(0));
 
         // local merge
-        DQLPlanNode dqlPlanNode = distributedGroupBy.localMergeNode();
-        assertThat(dqlPlanNode.projections().get(0), instanceOf(TopNProjection.class));
-        topN = (TopNProjection) dqlPlanNode.projections().get(0);
+        MergePhase mergePhase = distributedGroupBy.localMergeNode();
+        assertThat(mergePhase.projections().get(0), instanceOf(TopNProjection.class));
+        topN = (TopNProjection) mergePhase.projections().get(0);
         assertThat(topN.limit(), is(1));
         assertThat(topN.offset(), is(1));
         assertThat(topN.outputs().get(0), instanceOf(InputColumn.class));

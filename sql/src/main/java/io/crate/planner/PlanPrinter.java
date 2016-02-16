@@ -82,14 +82,6 @@ public class PlanPrinter {
             });
         }
 
-        @Nullable
-        public static ImmutableMap.Builder<String, Object> process(@Nullable ExecutionPhase node) {
-            if (node != null) {
-                return INSTANCE.process(node, null);
-            }
-            return null;
-        }
-
         private static ImmutableMap.Builder<String, Object> newBuilder() {
             return ImmutableMap.builder();
         }
@@ -113,7 +105,7 @@ public class PlanPrinter {
             return b.put("distribution", process(phase.distributionInfo()).build());
         }
 
-        private ImmutableMap.Builder<String, Object> dqlPlanNode(DQLPlanNode phase, ImmutableMap.Builder<String, Object> b) {
+        private ImmutableMap.Builder<String, Object> dqlPlanNode(AbstractProjectionsPhase phase, ImmutableMap.Builder<String, Object> b) {
             if (phase.hasProjections()) {
                 b.put("projections", projections(phase.projections()));
             }
@@ -129,7 +121,6 @@ public class PlanPrinter {
         public ImmutableMap.Builder<String, Object> visitCountPhase(CountPhase phase, Void context) {
             return upstreamPhase(phase, visitExecutionPhase(phase, context));
         }
-
 
         @Override
         public ImmutableMap.Builder<String, Object> visitFetchPhase(FetchPhase phase, Void context) {
