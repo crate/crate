@@ -134,9 +134,9 @@ Help & Contact
 ==============
 
 Do you have any questions? Or suggestions? We would be very happy
-to help you. So, feel free to to contact us on our Community on Slack_.
+to help you. So, feel free to to contact us on Slack_.
 
-.. _Slack: https://crate-community.slack.com/
+.. _Slack: https://crate.io/docs/support/slackin/
 
 Or for further information and official contact please
 visit `https://crate.io/ <https://crate.io/>`_.

@@ -15,10 +15,9 @@ documentation.
 For more information on how to do that please refer to the documentation
 section in the ``DEVELOP.rst``.
 
-If you have any questions don't hesitate to ask us in our Community on 
-Slack_.
+If you have any questions don't hesitate to ask us on Slack_.
 
-.. _Slack: https://crate-community.slack.com/
+.. _Slack: https://crate.io/docs/support/slackin/
 
 Reporting an issue
 ------------------

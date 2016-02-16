@@ -9,7 +9,7 @@
 # to configure Crate as you need or want it to behave.
 # Use this file to fine-tune your Crate cluster. If you have any questions
 # you are very welcome to conact us on our public Community on Slack
-# (https://crate-community.slack.com/).
+# (https://crate.io/docs/support/slackin/).
 
 # Any element in the configuration can be replaced with environment variables
 # by placing them in ${...} notation. For example:
