@@ -26,7 +26,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import io.crate.Plugin;
 import io.crate.core.CrateComponentLoader;
 import org.apache.xbean.finder.ResourceFinder;
@@ -41,15 +40,16 @@ import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.plugins.PluginInfo;
 
 import java.io.Closeable;
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
-import java.security.CodeSource;
 import java.util.*;
 
 import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
@@ -64,41 +64,21 @@ public class PluginLoader {
 
     @VisibleForTesting
     final List<Plugin> plugins;
-    private final Path pluginPath;
+    private final Path pluginsPath;
+    private final List<URL> jarsToLoad = new ArrayList<>();
 
     public PluginLoader(Settings settings) {
         this.settings = settings;
 
         String pluginFolder = settings.get("path.crate_plugins");
         if (pluginFolder == null) {
-            pluginPath = PathUtils.get(Strings.cleanPath(settings.get("path.home"))).resolve("plugins");
+            pluginsPath = PathUtils.get(Strings.cleanPath(settings.get("path.home"))).resolve("plugins");
         } else {
-            pluginPath = PathUtils.get(Strings.cleanPath(pluginFolder));
+            pluginsPath = PathUtils.get(Strings.cleanPath(pluginFolder));
         }
         logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
 
-        List<URL> pluginUrls = getPluginUrls();
-        URL[] urls = pluginUrls.toArray(new URL[pluginUrls.size()]);
-        ClassLoader loader = URLClassLoader.newInstance(urls, getClass().getClassLoader());
-
-        ResourceFinder finder = new ResourceFinder(RESOURCE_PATH, loader, urls);
-        Set<Class<? extends Plugin>> implementations = null;
-        try {
-            List<Class<? extends Plugin>> allImplementations = finder.findAllImplementations(Plugin.class);
-            implementations = removeAndLogDuplicates(allImplementations);
-        } catch (ClassCastException e) {
-            logger.error("plugin does implement io.crate.Plugin interface", e);
-        } catch (ClassNotFoundException e) {
-            logger.error("error while loading plugin, misconfigured plugin", e);
-        } catch (Throwable t) {
-            logger.error("error while loading plugins", t);
-        }
-
-        if (implementations == null) {
-            plugins = ImmutableList.of();
-            onModuleReferences = ImmutableMap.of();
-            return;
-        }
+        Collection<Class<? extends Plugin>> implementations = findImplementations();
 
         MapBuilder<Plugin, List<CrateComponentLoader.OnModuleReference>> onModuleReferences = MapBuilder.newMapBuilder();
         ImmutableList.Builder<Plugin> builder = ImmutableList.builder();
@@ -119,6 +99,7 @@ public class PluginLoader {
                 logger.error("error loading moduleReferences from plugin: " + plugin.name(), t);
                 continue;
             }
+
             builder.add(plugin);
         }
         plugins = builder.build();
@@ -134,36 +115,33 @@ public class PluginLoader {
         }
     }
 
-    private Set<Class<? extends Plugin>> removeAndLogDuplicates(List<Class<? extends Plugin>> allImplementations) {
-        Set<Class<? extends Plugin>> uniques = Sets.newHashSet();
-        for (Class<? extends Plugin> elem : allImplementations) {
-            if (uniques.contains(elem)) {
-                CodeSource codeSource = elem.getProtectionDomain().getCodeSource();
-                String pluginStr = (codeSource != null ? codeSource.getLocation().toString() : elem.getName());
-                logger.warn("Plugin [{}] already loaded. ignoring...", pluginStr);
-            }
-            uniques.add(elem);
-        }
-        return uniques;
-    }
-
-    @Nullable
-    private List<URL> getPluginUrls() {
-        if (!isAccessibleDirectory(pluginPath, logger)) {
+    private Collection<Class<? extends Plugin>> findImplementations() {
+        if (!isAccessibleDirectory(pluginsPath, logger)) {
             return Collections.emptyList();
         }
 
-        File[] plugins = pluginPath.toFile().listFiles();
+        File[] plugins = pluginsPath.toFile().listFiles();
         if (plugins == null) {
             return Collections.emptyList();
         }
 
-        List<URL> pluginUrls = new ArrayList<>();
+        Collection<Class<? extends Plugin>> allImplementations = new ArrayList<>();
         for (File plugin : plugins) {
             if (!plugin.canRead()) {
                 logger.debug("[{}] is not readable.", plugin.getAbsolutePath());
                 continue;
             }
+            // check if its an elasticsearch plugin
+            Path esDescriptorFile = plugin.toPath().resolve(PluginInfo.ES_PLUGIN_PROPERTIES);
+            try {
+                if (esDescriptorFile.toFile().exists()) {
+                    continue;
+                }
+            } catch (Exception e) {
+                // ignore
+            }
+
+            List<URL> pluginUrls = new ArrayList<>();
 
             logger.trace("--- adding plugin [{}]", plugin.getAbsolutePath());
 
@@ -173,49 +151,80 @@ public class PluginLoader {
                 try {
                     checkJarHell(pluginURL);
                 } catch (Exception e) {
-                    throw new IllegalStateException("failed to load plugin " + pluginURL + " due to jar hell", e);
+                    String msg = "failed to load plugin " + pluginURL + " due to jar hell";
+                    logger.error(msg, e);
+                    throw new IllegalStateException(msg, e);
                 }
-
                 pluginUrls.add(pluginURL);
-                if (plugin.isFile()) {
-                    continue;
-                }
 
-                // gather files to add
-                List<File> libFiles = Lists.newArrayList();
-                File[] pluginFiles = plugin.listFiles();
-                if (pluginFiles != null) {
-                    libFiles.addAll(Arrays.asList(pluginFiles));
-                }
-                File libLocation = new File(plugin, "lib");
-                if (libLocation.exists() && libLocation.isDirectory()) {
-                    File[] pluginLibFiles = libLocation.listFiles();
-                    if (pluginLibFiles != null) {
-                        libFiles.addAll(Arrays.asList(pluginLibFiles));
+                if (!plugin.isFile()) {
+                    // gather files to add
+                    List<File> libFiles = Lists.newArrayList();
+                    File[] pluginFiles = plugin.listFiles();
+                    if (pluginFiles != null) {
+                        libFiles.addAll(Arrays.asList(pluginFiles));
                     }
-                }
+                    File libLocation = new File(plugin, "lib");
+                    if (libLocation.exists() && libLocation.isDirectory()) {
+                        File[] pluginLibFiles = libLocation.listFiles();
+                        if (pluginLibFiles != null) {
+                            libFiles.addAll(Arrays.asList(pluginLibFiles));
+                        }
+                    }
 
-                // if there are jars in it, add it as well
-                for (File libFile : libFiles) {
-                    if (!(libFile.getName().endsWith(".jar") || libFile.getName().endsWith(".zip"))) {
-                        continue;
-                    }
-                    URL libURL = libFile.toURI().toURL();
-                    // jar-hell check the plugin lib against the parent classloader
-                    try {
-                        checkJarHell(libURL);
-                        pluginUrls.add(libURL);
-                    } catch (Exception e) {
-                        logger.warn("Library " + libURL + " of plugin " + pluginURL + " already loaded, will ignore");
+                    // if there are jars in it, add it as well
+                    for (File libFile : libFiles) {
+                        if (!(libFile.getName().endsWith(".jar") || libFile.getName().endsWith(".zip"))) {
+                            continue;
+                        }
+                        URL libURL = libFile.toURI().toURL();
+                        // jar-hell check the plugin lib against the parent classloader
+                        try {
+                            checkJarHell(libURL);
+                            pluginUrls.add(libURL);
+                        } catch (Exception e) {
+                            logger.warn(
+                                    "Library " + libURL + " of plugin " + pluginURL + " already loaded, will ignore");
+                        }
                     }
                 }
-            } catch (Throwable e) {
-                logger.warn("failed to add plugin [" + plugin + "]", e);
+            } catch (MalformedURLException e) {
+                String msg = "failed to add plugin [" + plugin + "]";
+                logger.error(msg, e);
+                throw new IllegalStateException(msg, e);
             }
+            Collection<Class<? extends Plugin>> implementations = findImplementations(pluginUrls);
+            if (implementations == null || implementations.isEmpty()) {
+                String msg = String.format(Locale.ENGLISH,
+                        "Path [%s] does not contain a valid Crate or Elasticsearch plugin", plugin.getAbsolutePath());
+                IllegalArgumentException e = new IllegalArgumentException(msg);
+                logger.error(msg, e);
+                throw e;
+            }
+            jarsToLoad.addAll(pluginUrls);
+            allImplementations.addAll(implementations);
         }
-        return pluginUrls;
+        return allImplementations;
     }
 
+    @Nullable
+    private Collection<Class<? extends Plugin>> findImplementations(Collection<URL> pluginUrls) {
+        URL[] urls = pluginUrls.toArray(new URL[pluginUrls.size()]);
+        ClassLoader loader = URLClassLoader.newInstance(urls, getClass().getClassLoader());
+
+        ResourceFinder finder = new ResourceFinder(RESOURCE_PATH, loader, urls);
+        try {
+            return finder.findAllImplementations(Plugin.class);
+        } catch (ClassCastException e) {
+            logger.error("plugin does not implement io.crate.Plugin interface", e);
+        } catch (ClassNotFoundException e) {
+            logger.error("error while loading plugin, misconfigured plugin", e);
+        } catch (Throwable t) {
+            logger.error("error while loading plugins", t);
+        }
+
+        return null;
+    }
 
     private Plugin loadPlugin(Class<? extends Plugin> pluginClass) {
         Constructor<? extends Plugin> constructor;
@@ -339,12 +348,6 @@ public class PluginLoader {
         return builder.build();
     }
 
-    public void processModules(Iterable<Module> modules) {
-        for (Module module : modules) {
-            processModule(module);
-        }
-    }
-
     public void processModule(Module module) {
         for (Plugin plugin : plugins) {
             // see if there are onModule references
@@ -365,7 +368,14 @@ public class PluginLoader {
 
     private void checkJarHell(URL url) throws Exception {
         final List<URL> loadedJars = new ArrayList<>(Arrays.asList(JarHell.parseClassPath()));
+        loadedJars.addAll(jarsToLoad);
         loadedJars.add(url);
+        JarHell.checkJarHell(loadedJars.toArray(new URL[0]));
+    }
+
+    private void checkJarHell() throws Exception {
+        final List<URL> loadedJars = new ArrayList<>(Arrays.asList(JarHell.parseClassPath()));
+        loadedJars.addAll(jarsToLoad);
         JarHell.checkJarHell(loadedJars.toArray(new URL[0]));
     }
 

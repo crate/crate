@@ -23,7 +23,7 @@ package io.crate.metadata.doc.array;
 
 import com.google.common.base.Joiner;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.testing.TestingHelpers;
+import io.crate.test.CauseMatcher;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
@@ -434,7 +434,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
         expectedException.expect(MapperParsingException.class);
         expectedException.expectMessage("failed to parse");
-        expectedException.expectCause(TestingHelpers.cause(ElasticsearchParseException.class, "nested arrays are not supported"));
+        expectedException.expectCause(CauseMatcher.cause(ElasticsearchParseException.class, "nested arrays are not supported"));
         // parse source with empty array
         mapper.parse(INDEX, TYPE, "abc", XContentFactory.jsonBuilder()
                 .startObject()

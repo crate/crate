@@ -21,6 +21,7 @@
 
 package io.crate.plugin;
 
+import io.crate.test.CauseMatcher;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
@@ -29,7 +30,9 @@ import org.elasticsearch.plugins.PluginInfo;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.File;
 import java.net.URISyntaxException;
@@ -39,10 +42,14 @@ import java.util.List;
 
 import static org.elasticsearch.client.Requests.clusterHealthRequest;
 import static org.elasticsearch.common.settings.Settings.settingsBuilder;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, numClientNodes = 0)
 public class PluginLoaderTest extends ESIntegTestCase {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
@@ -64,13 +71,22 @@ public class PluginLoaderTest extends ESIntegTestCase {
     @Test
     public void testLoadPluginWithAlreadyLoadedClass() throws Exception {
         // test that JarHell is used and plugin is not loaded because it contains an already loaded class
+        expectedException.expect(CauseMatcher.causeOfCause(IllegalStateException.class));
+        startNodeWithPlugins("/io/crate/plugin/plugin_with_already_loaded_class");
+    }
 
-        String node = startNodeWithPlugins("/io/crate/plugin/plugin_with_already_loaded_class");
-        PluginsService pluginsService = internalCluster().getInstance(PluginsService.class, node);
-        CrateCorePlugin corePlugin = getCrateCorePlugin(pluginsService.plugins());
+    @Test
+    public void testDuplicates() throws Exception {
+        // test that node will die due to jarHell (same plugin jar loaded twice)
+        expectedException.expect(CauseMatcher.causeOfCause(IllegalStateException.class));
+        startNodeWithPlugins("/io/crate/plugin/duplicates");
+    }
 
-        PluginLoader pluginLoader = corePlugin.pluginLoader;
-        assertThat(pluginLoader.plugins, Matchers.empty());
+    @Test
+    public void testInvalidPluginEmptyDirectory() throws Exception {
+        // test that node will die because of an invalid plugin (in this case, just an empty directory)
+        expectedException.expect(CauseMatcher.causeOfCause(IllegalArgumentException.class));
+        startNodeWithPlugins("/io/crate/plugin/invalid");
     }
 
 
@@ -84,17 +100,6 @@ public class PluginLoaderTest extends ESIntegTestCase {
         // We wait for a Green status
         client().admin().cluster().health(clusterHealthRequest().waitForGreenStatus()).actionGet();
         return internalCluster().getInstance(ClusterService.class, nodeName).state().nodes().localNode().name();
-    }
-
-    @Test
-    public void testDuplicates() throws Exception {
-        String node = startNodeWithPlugins("/io/crate/plugin/duplicates");
-        PluginsService pluginsService = internalCluster().getInstance(PluginsService.class, node);
-
-        CrateCorePlugin corePlugin = getCrateCorePlugin(pluginsService.plugins());
-
-        PluginLoader pluginLoader = corePlugin.pluginLoader;
-        assertThat(pluginLoader.plugins, Matchers.hasSize(1));
     }
 
     private CrateCorePlugin getCrateCorePlugin(List<Tuple<PluginInfo, Plugin>> pluginsService) {

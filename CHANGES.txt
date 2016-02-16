@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - BREAKING CHANGE: Crate will die now on all plugin loading errors
+
  - Fixed a NullPointerException that occured if `= ANY ()` was used with a
    literal array containing null values.
 
