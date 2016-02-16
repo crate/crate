@@ -27,6 +27,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.BlobShardFuture;
+import io.crate.action.ActionListeners;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
@@ -119,18 +120,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         final SettableFuture<Void> result = SettableFuture.create();
         transportUpdateSettingsActionProvider.get().execute(
                 new UpdateSettingsRequest(indexSettings, fullIndexName(tableName)),
-                new ActionListener<UpdateSettingsResponse>() {
-                    @Override
-                    public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
-                        result.set(null);
-                    }
-
-                    @Override
-                    public void onFailure(Throwable e) {
-                        result.setException(e);
-
-                    }
-                });
+                ActionListeners.<Void, UpdateSettingsResponse>futureSettingListener(result, null));
         return result;
     }
 
@@ -158,17 +148,8 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
 
     public ListenableFuture<Void> dropBlobTable(final String tableName) {
         final SettableFuture<Void> result = SettableFuture.create();
-        transportDeleteIndexActionProvider.get().execute(new DeleteIndexRequest(fullIndexName(tableName)), new ActionListener<DeleteIndexResponse>() {
-            @Override
-            public void onResponse(DeleteIndexResponse deleteIndexResponse) {
-                result.set(null);
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-                result.setException(e);
-            }
-        });
+        transportDeleteIndexActionProvider.get().execute(new DeleteIndexRequest(fullIndexName(tableName)),
+                ActionListeners.<Void, DeleteIndexResponse>futureSettingListener(result, null));
         return result;
     }
 

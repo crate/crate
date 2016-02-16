@@ -21,15 +21,14 @@
 
 package io.crate.action.sql;
 
-import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.base.Function;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.*;
-import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.*;
-import org.elasticsearch.action.ActionListener;
+import io.crate.action.ActionListeners;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -106,22 +105,14 @@ public class DDLStatementDispatcher {
             if (analysis.indexNames().isEmpty()) {
                 return Futures.immediateFuture(null);
             }
-            final SettableFuture<Long> future = SettableFuture.create();
             RefreshRequest request = new RefreshRequest(analysis.indexNames().toArray(
                     new String[analysis.indexNames().size()]));
             request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
-            transportActionProvider.transportRefreshAction().execute(request, new ActionListener<RefreshResponse>() {
-                @Override
-                public void onResponse(RefreshResponse refreshResponse) {
-                    future.set(null); // no row count
-                }
-
-                @Override
-                public void onFailure(Throwable e) {
-                    future.setException(e);
-                }
-            });
+            final SettableFuture<Long> future = SettableFuture.create();
+            transportActionProvider.transportRefreshAction().execute(
+                    request,
+                    ActionListeners.<Long, RefreshResponse>futureSettingListener(future, null));
             return future;
         }
 
@@ -176,18 +167,12 @@ public class DDLStatementDispatcher {
     }
 
     private ListenableFuture<Long> wrapRowCountFuture(ListenableFuture<?> wrappedFuture, final Long rowCount) {
-        final SettableFuture<Long> wrappingFuture = SettableFuture.create();
-        Futures.addCallback(wrappedFuture, new FutureCallback<Object>() {
+        return Futures.transform(wrappedFuture, new Function<Object, Long>() {
+            @Nullable
             @Override
-            public void onSuccess(@Nullable Object result) {
-                wrappingFuture.set(rowCount);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                wrappingFuture.setException(t);
+            public Long apply(@Nullable Object input) {
+                return rowCount;
             }
         });
-        return wrappingFuture;
     }
 }

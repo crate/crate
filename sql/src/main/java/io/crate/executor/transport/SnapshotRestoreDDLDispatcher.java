@@ -28,6 +28,7 @@ import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.exceptions.CreateSnapshotException;
+import io.crate.action.ActionListeners;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
@@ -147,17 +148,8 @@ public class SnapshotRestoreDDLDispatcher {
                 .waitForCompletion(waitForCompletion)
                 .includeGlobalState(false)
                 .includeAliases(true);
-        transportActionProvider.transportRestoreSnapshotAction().execute(request, new ActionListener<RestoreSnapshotResponse>() {
-            @Override
-            public void onResponse(RestoreSnapshotResponse restoreSnapshotResponse) {
-                resultFuture.set(1L);
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-                resultFuture.setException(e);
-            }
-        });
+        transportActionProvider.transportRestoreSnapshotAction().execute(request,
+                ActionListeners.<Long, RestoreSnapshotResponse>futureSettingListener(resultFuture, 1L));
         return resultFuture;
     }
 }

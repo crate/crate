@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
+import io.crate.action.ActionListeners;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
@@ -61,26 +62,7 @@ public class ESClusterUpdateSettingsTask extends JobTask {
         if (node.transientSettingsToRemove() != null) {
             request.transientSettingsToRemove(node.transientSettingsToRemove());
         }
-        listener = new ClusterUpdateSettingsResponseListener(result);
-    }
-
-    static class ClusterUpdateSettingsResponseListener implements ActionListener<ClusterUpdateSettingsResponse> {
-
-        private final SettableFuture<TaskResult> result;
-
-        public ClusterUpdateSettingsResponseListener(SettableFuture<TaskResult> result) {
-            this.result = result;
-        }
-
-        @Override
-        public void onResponse(ClusterUpdateSettingsResponse response) {
-            result.set(TaskResult.ONE_ROW);
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            result.setException(e);
-        }
+        listener = ActionListeners.futureSettingListener(result, TaskResult.ONE_ROW);
     }
 
     @Override

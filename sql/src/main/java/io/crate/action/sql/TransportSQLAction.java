@@ -29,10 +29,10 @@ import io.crate.core.collections.Row;
 import io.crate.executor.BytesRefUtils;
 import io.crate.executor.Executor;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.ResponseForwarder;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.Planner;
+import io.crate.action.ActionListeners;
 import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
@@ -135,7 +135,7 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
         public void messageReceived(SQLRequest request, final TransportChannel channel) throws Exception {
             // no need for a threaded listener
             request.listenerThreaded(false);
-            ActionListener<SQLResponse> listener = ResponseForwarder.forwardTo(channel);
+            ActionListener<SQLResponse> listener = ActionListeners.forwardTo(channel);
             execute(request, listener);
         }
 
