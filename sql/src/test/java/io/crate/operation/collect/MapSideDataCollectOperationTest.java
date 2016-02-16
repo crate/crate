@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.TreeMapBuilder;
@@ -38,10 +37,7 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.discovery.DiscoveryService;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,8 +48,7 @@ import java.io.FileWriter;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static io.crate.testing.TestingHelpers.createReference;
-import static io.crate.testing.TestingHelpers.isRow;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -67,26 +62,14 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
 
     @Test
     public void testFileUriCollect() throws Exception {
-        ClusterService clusterService = mock(ClusterService.class);
-        DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
-        when(discoveryNode.id()).thenReturn("dummyNodeId");
-        DiscoveryNodes discoveryNodes = mock(DiscoveryNodes.class);
-        when(discoveryNodes.localNodeId()).thenReturn("dummyNodeId");
-        ClusterState clusterState = mock(ClusterState.class);
-        when(clusterState.nodes()).thenReturn(discoveryNodes);
-        when(clusterService.state()).thenReturn(clusterState);
-        DiscoveryService discoveryService = mock(DiscoveryService.class);
-        when(discoveryService.localNode()).thenReturn(discoveryNode);
-        Functions functions = new Functions(
-                ImmutableMap.<FunctionIdent, FunctionImplementation>of(),
-                ImmutableMap.<String, DynamicFunctionResolver>of());
+        ClusterService clusterService = new NoopClusterService();
+        Functions functions = getFunctions();
         NestedReferenceResolver referenceResolver = new NestedReferenceResolver() {
             @Override
             public ReferenceImplementation getImplementation(ReferenceInfo referenceInfo) {
                 return null;
             }
         };
-
         CollectSourceResolver collectSourceResolver = mock(CollectSourceResolver.class);
         when(collectSourceResolver.getService(any(CollectPhase.class), anyString()))
                 .thenReturn(new FileCollectSource(functions, clusterService));
@@ -98,7 +81,6 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
                 collectSourceResolver,
                 mock(ThreadPool.class)
         );
-
         File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");
         try (FileWriter writer = new FileWriter(tmpFile)) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
@@ -107,7 +89,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
 
         Routing routing = new Routing(
                 TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-                .put("dummyNodeId", new TreeMap<String, List<Integer>>())
+                .put("noop_id", new TreeMap<String, List<Integer>>())
                 .map()
         );
         FileUriCollectPhase collectNode = new FileUriCollectPhase(
@@ -125,8 +107,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
                 null,
                 false
         );
-
-        String threadPoolName = JobCollectContext.threadPoolName(collectNode, "dummyNodeId");
+        String threadPoolName = JobCollectContext.threadPoolName(collectNode, "noop_id");
 
         CollectingRowReceiver cd = new CollectingRowReceiver();
         cd.prepare(mock(ExecutionState.class));
