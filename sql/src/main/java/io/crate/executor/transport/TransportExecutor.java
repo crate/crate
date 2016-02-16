@@ -127,7 +127,7 @@ public class TransportExecutor implements Executor {
     @Override
     public Job newJob(Plan plan) {
         List<? extends Task> tasks = planVisitor.process(plan, plan.jobId());
-        return new Job(plan.jobId(), tasks);
+        return new Job(tasks);
     }
 
     @Override

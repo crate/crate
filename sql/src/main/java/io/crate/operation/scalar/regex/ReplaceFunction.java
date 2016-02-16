@@ -61,10 +61,6 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Dynamic
         return info;
     }
 
-    public RegexMatcher regexMatcher() {
-        return regexMatcher;
-    }
-
     @Override
     public Symbol normalizeSymbol(Function symbol) {
         final int size = symbol.arguments().size();

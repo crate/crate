@@ -71,7 +71,6 @@ import org.apache.lucene.spatial.query.SpatialOperation;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.RegExp;
-import org.apache.xbean.finder.filter.Filters;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
@@ -1322,17 +1321,6 @@ public class LuceneQueryBuilder {
         public Input input() {
             return input;
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static BytesRef[] getBytesRefs(Object[] values, TermBuilder termBuilder) {
-        BytesRef[] terms = new BytesRef[values.length];
-        int i = 0;
-        for (Object value : values) {
-            terms[i] = termBuilder.term(value);
-            i++;
-        }
-        return terms;
     }
 
     @SuppressWarnings("unchecked")

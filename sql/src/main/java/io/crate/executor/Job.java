@@ -22,20 +22,13 @@
 package io.crate.executor;
 
 import java.util.List;
-import java.util.UUID;
 
 public class Job {
 
-    private final UUID id;
     private final List<? extends Task> tasks;
 
-    public Job(UUID id, List<? extends Task> tasks) {
-        this.id = id;
+    public Job(List<? extends Task> tasks) {
         this.tasks = tasks;
-    }
-
-    public UUID id() {
-        return id;
     }
 
     public List<? extends Task> tasks() {

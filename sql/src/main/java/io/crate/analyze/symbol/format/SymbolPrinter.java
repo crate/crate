@@ -73,7 +73,6 @@ public class SymbolPrinter {
 
     public enum Style {
         SIMPLE(SymbolPrinterContext.DEFAULT_MAX_DEPTH, SymbolPrinterContext.DEFAULT_FULL_QUALIFIED, SymbolPrinterContext.DEFAULT_FAIL_IF_MAX_DEPTH_REACHED),
-        DEFAULT(SymbolPrinterContext.DEFAULT_MAX_DEPTH, SymbolPrinterContext.DEFAULT_FULL_QUALIFIED, SymbolPrinterContext.DEFAULT_FAIL_IF_MAX_DEPTH_REACHED),
         PARSEABLE(100, true, true),
         FULL_QUALIFIED(SymbolPrinterContext.DEFAULT_MAX_DEPTH, true, false),
         PARSEABLE_NOT_QUALIFIED(100, false, true);

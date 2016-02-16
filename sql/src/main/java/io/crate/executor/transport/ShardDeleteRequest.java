@@ -44,11 +44,6 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
         super(shardId, routing, jobId);
     }
 
-    public ShardDeleteRequest add(int location, String id) {
-        add(location, new Item(id));
-        return this;
-    }
-
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
