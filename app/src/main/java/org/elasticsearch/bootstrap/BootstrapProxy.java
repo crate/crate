@@ -169,9 +169,6 @@ public class BootstrapProxy {
         // look for jar hell
         JarHell.checkJarHell();
 
-        // install SM after natives, shutdown hooks, etc.
-        setupSecurity(settings, environment);
-
         // We do not need to reload system properties here as we have already applied them in building the settings and
         // reloading could cause multiple prompts to the user for values if a system property was specified with a prompt
         // placeholder
@@ -180,7 +177,12 @@ public class BootstrapProxy {
                 .put(CrateSettingsPreparer.IGNORE_SYSTEM_PROPERTIES_SETTING, true)
                 .build();
 
-        node = new CrateNode(nodeSettings);
+        Environment crateEnvironment = CrateSettingsPreparer.prepareEnvironment(nodeSettings, null);
+
+        // install SM after natives, shutdown hooks, etc.
+        setupSecurity(settings, crateEnvironment);
+
+        node = new CrateNode(crateEnvironment);
     }
 
     /**
