@@ -36,19 +36,17 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.operator.OperatorModule;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -72,12 +70,8 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         dummySources = ImmutableMap.of(new QualifiedName("foo"), (AnalyzedRelation) new DummyRelation());
         context = new ExpressionAnalysisContext();
 
-        Injector injector = new ModulesBuilder()
-                .add(new OperatorModule())
-                .createInjector();
-
         analysisMetaData = new AnalysisMetaData(
-                injector.getInstance(Functions.class),
+                getFunctions(),
                 mock(ReferenceInfos.class),
                 new NestedReferenceResolver() {
                     @Override

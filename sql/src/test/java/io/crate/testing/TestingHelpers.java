@@ -34,10 +34,15 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.Sorted;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
+import io.crate.operation.aggregation.impl.AggregationImplModule;
+import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.predicate.PredicateModule;
+import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.sql.Identifiers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.*;
@@ -127,6 +132,14 @@ public class TestingHelpers {
 
     public static String mapToSortedString(Map<String, Object> map) {
         return MAP_JOINER.join(Sorted.sortRecursive(map));
+    }
+
+    public static Functions getFunctions() {
+        return new ModulesBuilder()
+                .add(new AggregationImplModule())
+                .add(new PredicateModule())
+                .add(new ScalarFunctionModule())
+                .add(new OperatorModule()).createInjector().getInstance(Functions.class);
     }
 
     /**

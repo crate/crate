@@ -8,14 +8,11 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
-import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.operator.OrOperator;
 import io.crate.operation.predicate.NotPredicate;
-import io.crate.operation.predicate.PredicateModule;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -23,6 +20,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
@@ -47,12 +45,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
 
         });
 
-        functions = new ModulesBuilder()
-                .add(new OperatorModule())
-                .add(new PredicateModule())
-                .createInjector()
-                .getInstance(Functions.class);
-
+        functions = getFunctions();
         referenceResolver = new GlobalReferenceResolver(referenceImplementationMap);
     }
 

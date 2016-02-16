@@ -56,6 +56,7 @@ import org.junit.Test;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -96,10 +97,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        ModulesBuilder builder = new ModulesBuilder();
-        builder.add(new ScalarFunctionModule());
-        Injector injector = builder.createInjector();
-        Functions functions = injector.getInstance(Functions.class);
+        Functions functions = getFunctions();
         bindGeneratedColumnTable(functions);
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
@@ -113,8 +111,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 mock(JobContextService.class),
                 mock(ShardStateAction.class),
                 functions,
-                mock(Schemas.class)
-                );
+                mock(Schemas.class));
     }
 
     private void bindGeneratedColumnTable(Functions functions) {

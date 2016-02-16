@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -55,8 +56,7 @@ public class GroupingProjectorTest extends CrateUnitTest {
         Aggregation countAggregation =
                 Aggregation.partialAggregation(countInfo, DataTypes.LONG, ImmutableList.<Symbol>of());
 
-        Functions functions = new ModulesBuilder()
-                .add(new AggregationImplModule()).createInjector().getInstance(Functions.class);
+        Functions functions = getFunctions();
 
         AggregationContext aggregationContext = new AggregationContext(
                 (AggregationFunction)functions.get(countInfo.ident()),
