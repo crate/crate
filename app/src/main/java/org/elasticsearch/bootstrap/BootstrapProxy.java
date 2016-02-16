@@ -53,9 +53,10 @@ import java.util.concurrent.CountDownLatch;
  *
  * This is a copy of {@link Bootstrap}
  *
- * With two patches:
+ * With following patches:
  *  - CrateNode instead of Node is build/started in order to load the CrateCorePlugin
  *  - CrateSettingsPreparer is used instead of InternalSettingsPreparer
+ *  - disabled security manager setup due to policy problems with plugins
  */
 public class BootstrapProxy {
 
@@ -169,9 +170,6 @@ public class BootstrapProxy {
         // look for jar hell
         JarHell.checkJarHell();
 
-        // install SM after natives, shutdown hooks, etc.
-        setupSecurity(settings, environment);
-
         // We do not need to reload system properties here as we have already applied them in building the settings and
         // reloading could cause multiple prompts to the user for values if a system property was specified with a prompt
         // placeholder
@@ -180,7 +178,15 @@ public class BootstrapProxy {
                 .put(CrateSettingsPreparer.IGNORE_SYSTEM_PROPERTIES_SETTING, true)
                 .build();
 
-        node = new CrateNode(nodeSettings);
+        Environment crateEnvironment = CrateSettingsPreparer.prepareEnvironment(nodeSettings, null);
+
+        /**
+         * DISABLED setup of security manager due to policy problems with plugins (e.g. SigarPlugin will not work)
+         */
+        // install SM after natives, shutdown hooks, etc.
+        //setupSecurity(settings, crateEnvironment);
+
+        node = new CrateNode(crateEnvironment);
     }
 
     /**

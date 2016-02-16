@@ -24,18 +24,16 @@ package io.crate.node;
 
 import io.crate.plugin.CrateCorePlugin;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.node.internal.CrateSettingsPreparer;
 import org.elasticsearch.plugins.Plugin;
 
 import java.util.Collections;
 
 public class CrateNode extends Node {
 
-    public CrateNode(Settings preparedSettings) {
-        super(CrateSettingsPreparer.prepareEnvironment(preparedSettings, null),
-                Version.CURRENT,
+    public CrateNode(Environment environment) {
+        super(environment, Version.CURRENT,
                 Collections.<Class<? extends Plugin>>singletonList(CrateCorePlugin.class));
     }
 }
