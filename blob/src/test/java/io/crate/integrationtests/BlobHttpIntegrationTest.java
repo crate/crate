@@ -25,8 +25,6 @@ package io.crate.integrationtests;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.plugin.CrateCorePlugin;
-import io.crate.rest.CrateRestFilter;
 import org.apache.http.Header;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.protocol.HttpClientContext;
@@ -38,13 +36,10 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,25 +49,12 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.core.Is.is;
 
-public class BlobHttpIntegrationTest extends ESIntegTestCase {
+public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
 
     protected InetSocketAddress address;
     protected InetSocketAddress address2;
 
     protected CloseableHttpClient httpClient = HttpClients.createDefault();
-
-    @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.settingsBuilder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put(CrateRestFilter.ES_API_ENABLED_SETTING, true)
-                .build();
-    }
-
-    @Override
-    protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return pluginList(CrateCorePlugin.class);
-    }
 
     @Before
     public void setup() throws ExecutionException, InterruptedException {
@@ -97,18 +79,18 @@ public class BlobHttpIntegrationTest extends ESIntegTestCase {
         ensureGreen();
     }
 
-    protected String blobUri(String digest){
+    protected String blobUri(String digest) {
         return blobUri("test", digest);
     }
 
-    protected String blobUri(String index, String digest){
+    protected String blobUri(String index, String digest) {
         return String.format(Locale.ENGLISH, "%s/%s", index, digest);
     }
 
     protected CloseableHttpResponse put(String uri, String body) throws IOException {
 
         HttpPut httpPut = new HttpPut(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
-        if(body != null){
+        if (body != null) {
             StringEntity bodyEntity = new StringEntity(body);
             httpPut.setEntity(bodyEntity);
         }
@@ -144,7 +126,8 @@ public class BlobHttpIntegrationTest extends ESIntegTestCase {
                             logger.warn(String.format(Locale.ENGLISH, "incorrect response %d -- length: %d expected: %d\n",
                                     indexerId, resultContent.length(), expected.length()));
                         }
-                        results.put(indexerId, (statusCode >= 200 && statusCode < 300 && expected.equals(resultContent)));
+                        results.put(indexerId, (statusCode >= 200 && statusCode < 300 &&
+                                                expected.equals(resultContent)));
                     } catch (Exception e) {
                         logger.warn("**** failed indexing thread {}", e, indexerId);
                     } finally {
@@ -165,8 +148,8 @@ public class BlobHttpIntegrationTest extends ESIntegTestCase {
 
     protected CloseableHttpResponse get(String uri, Header[] headers) throws IOException {
         HttpGet httpGet = new HttpGet(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
-        if(headers != null){
-           httpGet.setHeaders(headers);
+        if (headers != null) {
+            httpGet.setHeaders(headers);
         }
         return executeAndDefaultAssertions(httpGet);
     }
@@ -190,11 +173,11 @@ public class BlobHttpIntegrationTest extends ESIntegTestCase {
             HttpHead httpHead = new HttpHead(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
             response = httpClient.execute(httpHead, context);
             // get all redirection locations
-            if(context.getRedirectLocations() != null){
+            if (context.getRedirectLocations() != null) {
                 redirects = context.getRedirectLocations().size();
             }
         } finally {
-            if(response != null) {
+            if (response != null) {
                 response.close();
             }
         }
