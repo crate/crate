@@ -59,11 +59,6 @@ public class BlobPlugin extends Plugin {
         if (!settings.getAsBoolean("node.client", false)) {
             modules.add(new BlobModule());
             modules.add(new BlobIndicesModule());
-
-            // FIXME: find better way to include NettyHttpServerTransport
-            HttpServerModule httpServerModule = new HttpServerModule(settings);
-            httpServerModule.setHttpServerTransport(NettyHttpServerTransport.class, "crate");
-            modules.add(httpServerModule);
         }
         return modules;
     }
@@ -91,6 +86,10 @@ public class BlobPlugin extends Plugin {
         Collection<Module> modules = Lists.newArrayList();
         modules.add(new BlobShardModule(indexSettings));
         return modules;
+    }
+
+    public void onModule(HttpServerModule module){
+        module.setHttpServerTransport(NettyHttpServerTransport.class, "crate");
     }
 
     public void onModule(ActionModule module) {
