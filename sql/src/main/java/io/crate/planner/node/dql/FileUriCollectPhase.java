@@ -23,22 +23,22 @@ package io.crate.planner.node.dql;
 
 import com.google.common.base.MoreObjects;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RowGranularity;
 import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-public class FileUriCollectPhase extends CollectPhase {
+public class FileUriCollectPhase extends AbstractProjectionsPhase implements CollectPhase {
 
     public static final ExecutionPhaseFactory<FileUriCollectPhase> FACTORY = new ExecutionPhaseFactory<FileUriCollectPhase>() {
         @Override
@@ -46,33 +46,52 @@ public class FileUriCollectPhase extends CollectPhase {
             return new FileUriCollectPhase();
         }
     };
+
+    private Collection<String> executionNodes;
     private Symbol targetUri;
+    private List<Symbol> toCollect;
     private String compression;
     private Boolean sharedStorage;
+    private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
 
     private FileUriCollectPhase() {
         super();
     }
 
     public FileUriCollectPhase(UUID jobId,
-                               int executionNodeId,
+                               int phaseId,
                                String name,
-                               Routing routing,
-                               RowGranularity rowGranularity, Symbol targetUri,
+                               Collection<String> executionNodes,
+                               Symbol targetUri,
                                List<Symbol> toCollect,
                                List<Projection> projections,
                                String compression,
                                Boolean sharedStorage) {
-        super(jobId, executionNodeId, name, routing, rowGranularity, toCollect, projections,
-                WhereClause.MATCH_ALL,
-                DistributionInfo.DEFAULT_BROADCAST);
+        super(jobId, phaseId, name, projections);
+        this.executionNodes = executionNodes;
         this.targetUri = targetUri;
+        this.toCollect = toCollect;
         this.compression = compression;
         this.sharedStorage = sharedStorage;
+        outputTypes = extractOutputTypes(toCollect, projections);
     }
 
     public Symbol targetUri() {
         return targetUri;
+    }
+
+    @Override
+    public Collection<String> executionNodes() {
+        return executionNodes;
+    }
+
+    @Override
+    public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
+        return visitor.visitFileUriCollectPhase(this, context);
+    }
+
+    public List<Symbol> toCollect() {
+        return toCollect;
     }
 
     public FileReadingCollector.FileFormat fileFormat() {
@@ -84,7 +103,6 @@ public class FileUriCollectPhase extends CollectPhase {
         return Type.FILE_URI_COLLECT;
     }
 
-    @Override
     public FileUriCollectPhase normalize(EvaluatingNormalizer normalizer) {
         List<Symbol> normalizedToCollect = normalizer.normalize(toCollect());
         Symbol normalizedTargetUri = normalizer.normalize(targetUri);
@@ -96,8 +114,7 @@ public class FileUriCollectPhase extends CollectPhase {
                 jobId(),
                 executionPhaseId(),
                 name(),
-                routing(),
-                maxRowGranularity(),
+                executionNodes,
                 normalizedTargetUri,
                 normalizedToCollect,
                 projections(),
@@ -116,6 +133,19 @@ public class FileUriCollectPhase extends CollectPhase {
         compression = in.readOptionalString();
         sharedStorage = in.readOptionalBoolean();
         targetUri = Symbol.fromStream(in);
+
+        int numNodes = in.readVInt();
+        List<String> nodes = new ArrayList<>(numNodes);
+        for (int i = 0; i < numNodes; i++) {
+            nodes.add(in.readString());
+        }
+        this.executionNodes = nodes;
+
+        int numToCollect = in.readVInt();
+        toCollect = new ArrayList<>(numToCollect);
+        for (int i = 0; i < numToCollect; i++) {
+            toCollect.add(Symbol.fromStream(in));
+        }
     }
 
     @Override
@@ -124,6 +154,14 @@ public class FileUriCollectPhase extends CollectPhase {
         out.writeOptionalString(compression);
         out.writeOptionalBoolean(sharedStorage);
         Symbol.toStream(targetUri, out);
+        out.writeVInt(executionNodes.size());
+        for (String node : executionNodes) {
+            out.writeString(node);
+        }
+        out.writeVInt(toCollect.size());
+        for (Symbol symbol : toCollect) {
+            Symbol.toStream(symbol, out);
+        }
     }
 
     @Override
@@ -141,6 +179,16 @@ public class FileUriCollectPhase extends CollectPhase {
     @Nullable
     public Boolean sharedStorage() {
         return sharedStorage;
+    }
+
+    @Override
+    public DistributionInfo distributionInfo() {
+        return distributionInfo;
+    }
+
+    @Override
+    public void distributionInfo(DistributionInfo distributionInfo) {
+        this.distributionInfo = distributionInfo;
     }
 }
 

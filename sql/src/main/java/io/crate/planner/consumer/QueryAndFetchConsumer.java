@@ -40,7 +40,7 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -115,7 +115,7 @@ public class QueryAndFetchConsumer implements Consumer {
                                                      List<Symbol> outputSymbols){
             QuerySpec querySpec = table.querySpec();
 
-            CollectPhase collectPhase;
+            RoutedCollectPhase collectPhase;
             MergePhase mergeNode = null;
             Optional<OrderBy> orderBy = querySpec.orderBy();
             Planner.Context plannerContext = context.plannerContext();
@@ -163,7 +163,7 @@ public class QueryAndFetchConsumer implements Consumer {
                     projections = ImmutableList.<Projection>of(topNProjection);
                     nodePageSizeHint = limit + querySpec.offset();
                 }
-                collectPhase = CollectPhase.forQueriedTable(
+                collectPhase = RoutedCollectPhase.forQueriedTable(
                         plannerContext,
                         table,
                         toCollect,
@@ -201,7 +201,7 @@ public class QueryAndFetchConsumer implements Consumer {
                     }
                 }
             } else {
-                collectPhase = CollectPhase.forQueriedTable(
+                collectPhase = RoutedCollectPhase.forQueriedTable(
                         plannerContext,
                         table,
                         outputSymbols,

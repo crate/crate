@@ -42,7 +42,7 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
@@ -316,7 +316,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 null);
 
         WhereClause whereClause = new WhereClause(query);
-        CollectPhase collectPhase1 = new CollectPhase(
+        RoutedCollectPhase collectPhase1 = new RoutedCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "collect",
@@ -342,7 +342,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 Arrays.<Symbol>asList(femaleRef, Literal.newLiteral(true)));
 
         final WhereClause whereClause1 = new WhereClause(query2);
-        CollectPhase collectPhase2 = new CollectPhase(
+        RoutedCollectPhase collectPhase2 = new RoutedCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "collect",

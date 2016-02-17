@@ -55,9 +55,10 @@ import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.StreamerVisitor;
-import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.CountPhase;
+import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.types.DataTypes;
@@ -392,11 +393,28 @@ public class ContextPreparer {
         }
 
         @Override
-        public ExecutionSubContext visitCollectPhase(final CollectPhase phase, final PreparerContext context) {
+        public ExecutionSubContext visitRoutedCollectPhase(final RoutedCollectPhase phase, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
-
             RowReceiver rowReceiver = context.getRowReceiver(phase,
                     MoreObjects.firstNonNull(phase.nodePageSizeHint(), Paging.PAGE_SIZE));
+            if (rowReceiver == null) {
+                context.executionPhasesToProcess.add(phase);
+                return null;
+            }
+            return new JobCollectContext(
+                    phase,
+                    collectOperation,
+                    clusterService.state().nodes().localNodeId(),
+                    ramAccountingContext,
+                    rowReceiver,
+                    context.sharedShardContexts
+            );
+        }
+
+        @Override
+        public ExecutionSubContext visitFileUriCollectPhase(FileUriCollectPhase phase, PreparerContext context) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+            RowReceiver rowReceiver = context.getRowReceiver(phase, Paging.PAGE_SIZE);
             if (rowReceiver == null) {
                 context.executionPhasesToProcess.add(phase);
                 return null;
@@ -427,8 +445,8 @@ public class ContextPreparer {
                             if (input == null) {
                                 return null;
                             }
-                            if (input instanceof CollectPhase) {
-                                return ((CollectPhase) input).routing();
+                            if (input instanceof RoutedCollectPhase) {
+                                return ((RoutedCollectPhase) input).routing();
                             }
                             return null;
                         }

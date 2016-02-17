@@ -51,6 +51,8 @@ import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.FileUriCollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
@@ -107,13 +109,14 @@ public class ShardCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+        RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         NodeSysReferenceResolver referenceResolver = new NodeSysReferenceResolver(nodeSysExpression);
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         EvaluatingNormalizer nodeNormalizer = new EvaluatingNormalizer(functions,
                 RowGranularity.NODE,
                 referenceResolver);
-        CollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer);
+        RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer);
 
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
                 clusterService,
@@ -177,7 +180,7 @@ public class ShardCollectSource implements CollectSource {
         return shardCollectors;
     }
 
-    private CrateCollector createMultiShardScoreDocCollector(CollectPhase collectPhase,
+    private CrateCollector createMultiShardScoreDocCollector(RoutedCollectPhase collectPhase,
                                                              FlatProjectorChain flatProjectorChain,
                                                              JobCollectContext jobCollectContext,
                                                              String localNodeId) {
@@ -225,7 +228,7 @@ public class ShardCollectSource implements CollectSource {
     }
 
     private Collection<CrateCollector> getDocCollectors(JobCollectContext jobCollectContext,
-                                                        CollectPhase collectPhase,
+                                                        RoutedCollectPhase collectPhase,
                                                         ShardProjectorChain projectorChain,
                                                         Map<String, List<Integer>> indexShards) {
 
@@ -265,8 +268,8 @@ public class ShardCollectSource implements CollectSource {
         return crateCollectors;
     }
 
-    private CrateCollector getShardsCollector(CollectPhase collectPhase,
-                                              CollectPhase normalizedPhase,
+    private CrateCollector getShardsCollector(RoutedCollectPhase collectPhase,
+                                              RoutedCollectPhase normalizedPhase,
                                               ProjectorFactory projectorFactory,
                                               String localNodeId,
                                               ShardProjectorChain projectorChain) {

@@ -45,7 +45,7 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.ShardProjectorChain;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -135,7 +135,7 @@ public class ShardCollectService {
     }
 
     @Nullable
-    public Object[] getRowForShard(CollectPhase collectPhase) {
+    public Object[] getRowForShard(RoutedCollectPhase collectPhase) {
         assert collectPhase.maxRowGranularity() == RowGranularity.SHARD : "granularity must be SHARD";
 
         EvaluatingNormalizer shardNormalizer = new EvaluatingNormalizer(
@@ -166,11 +166,11 @@ public class ShardCollectService {
      * @return collector wrapping different collect implementations, call {@link io.crate.operation.collect.CrateCollector#doCollect()} )} to start
      * collecting with this collector
      */
-    public CrateCollector getDocCollector(CollectPhase collectPhase,
+    public CrateCollector getDocCollector(RoutedCollectPhase collectPhase,
                                           ShardProjectorChain projectorChain,
                                           JobCollectContext jobCollectContext) throws Exception {
         assert collectPhase.orderBy() == null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
-        CollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer);
+        RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
             RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
@@ -186,7 +186,7 @@ public class ShardCollectService {
         }
     }
 
-    private CrateCollector getBlobIndexCollector(CollectPhase collectNode, RowReceiver downstream) {
+    private CrateCollector getBlobIndexCollector(RoutedCollectPhase collectNode, RowReceiver downstream) {
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectNode);
         Input<Boolean> condition;
         if (collectNode.whereClause().hasQuery()) {
@@ -204,7 +204,7 @@ public class ShardCollectService {
     }
 
     private CrateCollector getLuceneIndexCollector(ThreadPool threadPool,
-                                                   final CollectPhase collectNode,
+                                                   final RoutedCollectPhase collectNode,
                                                    final ShardProjectorChain projectorChain,
                                                    final JobCollectContext jobCollectContext) throws Exception {
         SharedShardContext sharedShardContext = jobCollectContext.sharedShardContexts().getOrCreateContext(shardId);
@@ -241,7 +241,7 @@ public class ShardCollectService {
         }
     }
 
-    public OrderedDocCollector getOrderedCollector(CollectPhase collectPhase,
+    public OrderedDocCollector getOrderedCollector(RoutedCollectPhase collectPhase,
                                                 SharedShardContext sharedShardContext,
                                                 JobCollectContext jobCollectContext) {
         collectPhase = collectPhase.normalize(shardNormalizer);

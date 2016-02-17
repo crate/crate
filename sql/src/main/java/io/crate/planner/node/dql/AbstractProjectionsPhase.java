@@ -24,6 +24,8 @@ package io.crate.planner.node.dql;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.projection.Projection;
@@ -55,6 +57,15 @@ public abstract class AbstractProjectionsPhase implements Streamable, ExecutionP
         this.executionPhaseId = executionPhaseId;
         this.name = name;
         this.projections = projections;
+    }
+
+    protected static List<DataType> extractOutputTypes(List<Symbol> outputs, List<Projection> projections) {
+        Projection lastProjection = Iterables.getLast(projections, null);
+        if (lastProjection == null) {
+            return Symbols.extractTypes(outputs);
+        } else {
+            return Symbols.extractTypes(lastProjection.outputs());
+        }
     }
 
     public String name() {

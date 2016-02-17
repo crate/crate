@@ -39,8 +39,10 @@ import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -60,6 +62,7 @@ public class CollectSourceResolver {
     private final CollectSource fileCollectSource;
     private final CollectSource singleRowSource;
     private final ClusterService clusterService;
+    private final CollectPhaseVisitor visitor;
 
     @Inject
     public CollectSourceResolver(ClusterService clusterService,
@@ -103,47 +106,58 @@ public class CollectSourceResolver {
         for (TableInfo tableInfo : informationSchemaInfo) {
             nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);
         }
+
+        visitor = new CollectPhaseVisitor();
     }
 
-    public CollectSource getService(CollectPhase collectPhase) {
-        assert collectPhase.isRouted() : "collectPhase must contain a routing";
-        String localNodeId = clusterService.state().nodes().localNodeId();
-        Set<String> routingNodes = collectPhase.routing().nodes();
-        if (!routingNodes.contains(localNodeId)) {
-            throw new IllegalStateException("unsupported routing");
-        }
-
-        Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
-        if (collectPhase.routing().containsShards(localNodeId)) {
-            return shardCollectSource;
-        }
-        if (collectPhase instanceof FileUriCollectPhase) {
+    private class CollectPhaseVisitor extends ExecutionPhaseVisitor<Void, CollectSource> {
+        @Override
+        public CollectSource visitFileUriCollectPhase(FileUriCollectPhase phase, Void context) {
             return fileCollectSource;
         }
 
-        Map<String, List<Integer>> indexShards = locations.get(localNodeId);
-        if (indexShards == null) {
-            throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + collectPhase);
-        }
-        if (indexShards.size() == 0) {
-            // select * from sys.nodes
-            return singleRowSource;
-        }
+        @Override
+        public CollectSource visitRoutedCollectPhase(RoutedCollectPhase phase, Void context) {
+            assert phase.isRouted() : "collectPhase must contain a routing";
+            String localNodeId = clusterService.state().nodes().localNodeId();
+            Set<String> routingNodes = phase.routing().nodes();
+            if (!routingNodes.contains(localNodeId)) {
+                throw new IllegalStateException("unsupported routing");
+            }
 
-        String indexName = Iterables.getFirst(indexShards.keySet(), null);
-        if (indexName == null) {
-            throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + collectPhase);
+            Map<String, Map<String, List<Integer>>> locations = phase.routing().locations();
+            if (phase.routing().containsShards(localNodeId)) {
+                return shardCollectSource;
+            }
+
+            Map<String, List<Integer>> indexShards = locations.get(localNodeId);
+            if (indexShards == null) {
+                throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + phase);
+            }
+            if (indexShards.size() == 0) {
+                // select * from sys.nodes
+                return singleRowSource;
+            }
+
+            String indexName = Iterables.getFirst(indexShards.keySet(), null);
+            if (indexName == null) {
+                throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + phase);
+            }
+            if (phase.maxRowGranularity() == RowGranularity.DOC && PartitionName.isPartition(indexName)) {
+                // partitioned table without any shards; nothing to collect
+                return VOID_COLLECT_SERVICE;
+            }
+            assert indexShards.size() == 1 : "routing without shards that operates on non user-tables may only contain 1 index/table";
+            CollectSource collectSource = nodeDocCollectSources.get(indexName);
+            if (collectSource == null) {
+                throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + phase);
+            }
+            return collectSource;
         }
-        if (collectPhase.maxRowGranularity() == RowGranularity.DOC && PartitionName.isPartition(indexName)) {
-            // partitioned table without any shards; nothing to collect
-            return VOID_COLLECT_SERVICE;
-        }
-        assert indexShards.size() == 1 : "routing without shards that operates on non user-tables may only contain 1 index/table";
-        CollectSource collectSource = nodeDocCollectSources.get(indexName);
-        if (collectSource == null) {
-            throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + collectPhase);
-        }
-        return collectSource;
+    }
+
+    public CollectSource getService(CollectPhase collectPhase) {
+        return visitor.process(collectPhase, null);
     }
 
     static class VoidCollectSource implements CollectSource {

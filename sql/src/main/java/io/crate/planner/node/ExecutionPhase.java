@@ -21,7 +21,7 @@
 
 package io.crate.planner.node;
 
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
@@ -30,7 +30,6 @@ import io.crate.planner.node.fetch.FetchPhase;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.util.Collection;
-import java.util.UUID;
 
 public interface ExecutionPhase extends Streamable {
 
@@ -43,7 +42,7 @@ public interface ExecutionPhase extends Streamable {
     }
 
     enum Type {
-        COLLECT(CollectPhase.FACTORY),
+        COLLECT(RoutedCollectPhase.FACTORY),
         COUNT(CountPhase.FACTORY),
         FILE_URI_COLLECT(FileUriCollectPhase.FACTORY),
         MERGE(MergePhase.FACTORY),

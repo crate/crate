@@ -34,6 +34,7 @@ import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -56,16 +57,8 @@ public class FileCollectSource implements CollectSource {
 
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
-
-        if (collectPhase.whereClause().noMatch()){
-            return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
-        }
-
-        FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.extractImplementations(collectPhase.toCollect());
         FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) collectPhase;
-
-        // FileUriCollectPhase is only used in copy plans which never require ordering
-        assert fileUriCollectPhase.orderBy() == null : "FileReadingCollector doesn't support order by";
+        FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.extractImplementations(collectPhase.toCollect());
 
         String[] readers = fileUriCollectPhase.executionNodes().toArray(
                 new String[fileUriCollectPhase.executionNodes().size()]);

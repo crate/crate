@@ -28,7 +28,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import org.elasticsearch.search.internal.SearchContext;
@@ -56,7 +56,7 @@ import static org.powermock.api.mockito.PowerMockito.mock;
 public class JobCollectContextTest extends CrateUnitTest {
 
     private JobCollectContext jobCollectContext;
-    private CollectPhase collectPhase;
+    private RoutedCollectPhase collectPhase;
     private String localNodeId;
 
     private RamAccountingContext ramAccountingContext = mock(RamAccountingContext.class);
@@ -65,7 +65,7 @@ public class JobCollectContextTest extends CrateUnitTest {
     public void setUp() throws Exception {
         super.setUp();
         localNodeId = "dummyLocalNodeId";
-        collectPhase = Mockito.mock(CollectPhase.class);
+        collectPhase = Mockito.mock(RoutedCollectPhase.class);
         Routing routing = Mockito.mock(Routing.class);
         when(routing.containsShards(localNodeId)).thenReturn(true);
         when(collectPhase.routing()).thenReturn(routing);
@@ -147,7 +147,7 @@ public class JobCollectContextTest extends CrateUnitTest {
 
     @Test
     public void testThreadPoolNameForNonDocTables() throws Exception {
-        CollectPhase collectPhase = Mockito.mock(CollectPhase.class);
+        RoutedCollectPhase collectPhase = Mockito.mock(RoutedCollectPhase.class);
         Routing routing = Mockito.mock(Routing.class);
         when(collectPhase.routing()).thenReturn(routing);
         when(routing.containsShards(localNodeId)).thenReturn(false);

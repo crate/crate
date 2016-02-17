@@ -43,9 +43,9 @@ import io.crate.planner.consumer.SimpleSelect;
 import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.fetch.MultiSourceFetchPushDown;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.planner.projection.FetchProjection;
@@ -124,7 +124,7 @@ public class SelectStatementPlanner {
             assert plannedSubQuery != null : "consumingPlanner should have created a subPlan";
 
             CollectAndMerge qaf = (CollectAndMerge) plannedSubQuery;
-            CollectPhase collectPhase = qaf.collectPhase();
+            RoutedCollectPhase collectPhase = ((RoutedCollectPhase) qaf.collectPhase());
             if (collectPhase.nodePageSizeHint() == null) {
                 collectPhase.nodePageSizeHint(Constants.DEFAULT_SELECT_LIMIT + querySpec.offset());
             }

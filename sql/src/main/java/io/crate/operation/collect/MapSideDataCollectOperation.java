@@ -24,7 +24,6 @@ package io.crate.operation.collect;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.RowGranularity;
@@ -35,6 +34,7 @@ import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -97,12 +97,15 @@ public class MapSideDataCollectOperation {
 
     private CollectPhase normalize(CollectPhase collectPhase) {
         collectPhase = collectPhase.normalize(clusterNormalizer);
-        switch (collectPhase.maxRowGranularity()) {
-            case NODE:
-            case DOC:
-                EvaluatingNormalizer normalizer =
-                        new EvaluatingNormalizer(functions, RowGranularity.NODE, new NodeSysReferenceResolver(nodeSysExpression));
-                return collectPhase.normalize(normalizer);
+        if (collectPhase instanceof RoutedCollectPhase) {
+            RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase) collectPhase;
+            switch (routedCollectPhase.maxRowGranularity()) {
+                case NODE:
+                case DOC:
+                    EvaluatingNormalizer normalizer =
+                            new EvaluatingNormalizer(functions, RowGranularity.NODE, new NodeSysReferenceResolver(nodeSysExpression));
+                    return collectPhase.normalize(normalizer);
+            }
         }
         return collectPhase;
     }

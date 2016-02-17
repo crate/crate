@@ -41,7 +41,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergePhase;
@@ -108,7 +108,7 @@ public class DistributedGroupByConsumer implements Consumer {
 
             Planner.Context plannerContext = context.plannerContext();
             Routing routing = plannerContext.allocateRouting(tableInfo, querySpec.where(), null);
-            CollectPhase collectNode = new CollectPhase(
+            RoutedCollectPhase collectNode = new RoutedCollectPhase(
                     plannerContext.jobId(),
                     plannerContext.nextExecutionPhaseId(),
                     "distributing collect",

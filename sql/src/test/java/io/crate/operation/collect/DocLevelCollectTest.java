@@ -41,7 +41,7 @@ import io.crate.operation.NodeOperation;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhase;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -151,7 +151,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     @Test
     public void testCollectDocLevel() throws Throwable {
         List<Symbol> toCollect = Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference);
-        CollectPhase collectNode = getCollectNode(toCollect, WhereClause.MATCH_ALL);
+        RoutedCollectPhase collectNode = getCollectNode(toCollect, WhereClause.MATCH_ALL);
         Bucket result = collect(collectNode);
         assertThat(result, containsInAnyOrder(
                 isRow(2, "{\"id\":1,\"doc\":2}", "1"),
@@ -168,14 +168,14 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 op.info(),
                 Arrays.<Symbol>asList(testDocLevelReference, Literal.newLiteral(2)))
         );
-        CollectPhase collectNode = getCollectNode(toCollect, whereClause);
+        RoutedCollectPhase collectNode = getCollectNode(toCollect, whereClause);
 
         Bucket result = collect(collectNode);
         assertThat(result, contains(isRow(2)));
     }
 
-    private CollectPhase getCollectNode(List<Symbol> toCollect, Routing routing, WhereClause whereClause) {
-        return new CollectPhase(
+    private RoutedCollectPhase getCollectNode(List<Symbol> toCollect, Routing routing, WhereClause whereClause) {
+        return new RoutedCollectPhase(
                 UUID.randomUUID(),
                 0,
                 "docCollect",
@@ -188,7 +188,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         );
     }
 
-    private CollectPhase getCollectNode(List<Symbol> toCollect, WhereClause whereClause) {
+    private RoutedCollectPhase getCollectNode(List<Symbol> toCollect, WhereClause whereClause) {
         return getCollectNode(toCollect, routing(TEST_TABLE_NAME), whereClause);
     }
 
@@ -196,7 +196,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     public void testCollectWithPartitionedColumns() throws Throwable {
         Routing routing = docSchemaInfo.getTableInfo(PARTITIONED_TABLE_NAME).getRouting(WhereClause.MATCH_ALL, null);
         TableIdent tableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
-        CollectPhase collectNode = getCollectNode(
+        RoutedCollectPhase collectNode = getCollectNode(
                 Arrays.<Symbol>asList(
                         new Reference(new ReferenceInfo(new ReferenceIdent(tableIdent, "id"),
                                 RowGranularity.DOC,
@@ -219,7 +219,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         ));
     }
 
-    private Bucket collect(CollectPhase collectNode) throws Throwable {
+    private Bucket collect(RoutedCollectPhase collectNode) throws Throwable {
         ContextPreparer contextPreparer = internalCluster().getDataNodeInstance(ContextPreparer.class);
         JobContextService contextService = internalCluster().getDataNodeInstance(JobContextService.class);
         SharedShardContexts sharedShardContexts = new SharedShardContexts(internalCluster().getDataNodeInstance(IndicesService.class));

@@ -38,6 +38,7 @@ import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -209,16 +210,20 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
     }
 
     @VisibleForTesting
-    static String threadPoolName(CollectPhase collectPhase, String localNodeId) {
-        if (collectPhase.maxRowGranularity() == RowGranularity.DOC
-            && collectPhase.routing().containsShards(localNodeId)) {
-            // DOC table collectors
-            return ThreadPool.Names.SEARCH;
-        } else if (collectPhase.maxRowGranularity() == RowGranularity.NODE
-                || collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
-            // Node or Shard system table collector
-            return ThreadPool.Names.MANAGEMENT;
+    static String threadPoolName(CollectPhase phase, String localNodeId) {
+        if (phase instanceof RoutedCollectPhase) {
+            RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
+            if (collectPhase.maxRowGranularity() == RowGranularity.DOC
+                && collectPhase.routing().containsShards(localNodeId)) {
+                // DOC table collectors
+                return ThreadPool.Names.SEARCH;
+            } else if (collectPhase.maxRowGranularity() == RowGranularity.NODE
+                       || collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
+                // Node or Shard system table collector
+                return ThreadPool.Names.MANAGEMENT;
+            }
         }
+
         // Anything else like INFORMATION_SCHEMA tables or sys.cluster table collector
         return ThreadPool.Names.PERCOLATE;
     }

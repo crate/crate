@@ -30,7 +30,7 @@ import io.crate.metadata.*;
 import io.crate.operation.collect.sources.CollectSourceResolver;
 import io.crate.operation.collect.sources.FileCollectSource;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.test.integration.CrateUnitTest;
@@ -51,7 +51,6 @@ import java.util.*;
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -71,7 +70,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
             }
         };
         CollectSourceResolver collectSourceResolver = mock(CollectSourceResolver.class);
-        when(collectSourceResolver.getService(any(CollectPhase.class)))
+        when(collectSourceResolver.getService(any(RoutedCollectPhase.class)))
                 .thenReturn(new FileCollectSource(functions, clusterService));
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
                 functions,
@@ -86,17 +85,11 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
 
-        Routing routing = new Routing(
-                TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-                .put("noop_id", new TreeMap<String, List<Integer>>())
-                .map()
-        );
         FileUriCollectPhase collectNode = new FileUriCollectPhase(
                 UUID.randomUUID(),
                 0,
                 "test",
-                routing,
-                RowGranularity.DOC,
+                Collections.singletonList("noop_id"),
                 Literal.newLiteral(Paths.get(tmpFile.toURI()).toUri().toString()),
                 Arrays.<Symbol>asList(
                         createReference("name", DataTypes.STRING),

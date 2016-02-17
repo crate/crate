@@ -25,7 +25,7 @@ import com.google.common.collect.Ordering;
 import io.crate.analyze.OrderBy;
 import io.crate.core.collections.Row;
 import io.crate.planner.consumer.OrderByPositionVisitor;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -34,7 +34,7 @@ import java.util.List;
 
 public abstract class OrderingByPosition<T> extends Ordering<T> {
 
-    public static Ordering<Object[]> arrayOrdering(CollectPhase collectPhase) {
+    public static Ordering<Object[]> arrayOrdering(RoutedCollectPhase collectPhase) {
         OrderBy orderBy = collectPhase.orderBy();
         assert orderBy != null : "collectPhase must have an orderBy clause to generate an ordering";
         return arrayOrdering(

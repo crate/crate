@@ -46,7 +46,7 @@ import io.crate.planner.node.ddl.ESDeletePartitionNode;
 import io.crate.planner.node.dml.Delete;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.DeleteProjection;
 import io.crate.planner.projection.Projection;
@@ -125,7 +125,7 @@ public class DeleteStatementPlanner {
                 new InputColumn(0, DataTypes.STRING));
 
         Routing routing = plannerContext.allocateRouting(tableInfo, whereClause, Preference.PRIMARY.type());
-        CollectPhase collectPhase = new CollectPhase(
+        RoutedCollectPhase collectPhase = new RoutedCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "collect",

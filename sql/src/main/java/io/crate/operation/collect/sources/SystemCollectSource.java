@@ -45,6 +45,8 @@ import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.repositories.SysRepositories;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.FileUriCollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
@@ -90,7 +92,7 @@ public class SystemCollectSource implements CollectSource {
         this.discoveryService = discoveryService;
     }
 
-    public Iterable<Row> toRowsIterable(CollectPhase collectPhase, Iterable<?> iterable) {
+    public Iterable<Row> toRowsIterable(RoutedCollectPhase collectPhase, Iterable<?> iterable) {
         WhereClause whereClause = collectPhase.whereClause();
         if (whereClause.noMatch()){
             return Collections.emptyList();
@@ -125,7 +127,7 @@ public class SystemCollectSource implements CollectSource {
         return sortRows(Iterables.transform(rows, Row.MATERIALIZE), collectPhase);
     }
 
-    private static Iterable<Row> sortRows(Iterable<Object[]> rows, CollectPhase collectPhase) {
+    private static Iterable<Row> sortRows(Iterable<Object[]> rows, RoutedCollectPhase collectPhase) {
         ArrayList<Object[]> objects = Lists.newArrayList(rows);
         Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(collectPhase);
         Collections.sort(objects, ordering.reverse());
@@ -148,7 +150,8 @@ public class SystemCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+        RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         String table = Iterables.getOnlyElement(locations.get(discoveryService.localNode().id()).keySet());
         Supplier<Iterable<?>> iterableGetter = iterableGetters.get(table);

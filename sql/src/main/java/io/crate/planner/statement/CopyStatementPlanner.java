@@ -31,8 +31,10 @@ import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.core.collections.TreeMapBuilder;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReferenceInfo;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
@@ -167,8 +169,7 @@ public class CopyStatementPlanner {
                 context.jobId(),
                 context.nextExecutionPhaseId(),
                 "copyFrom",
-                generateRouting(allNodes, analysis.settings().getAsInt("num_readers", allNodes.getSize())),
-                table.rowGranularity(),
+                getExecutionNodes(allNodes, analysis.settings().getAsInt("num_readers", allNodes.getSize())),
                 analysis.uri(),
                 toCollect,
                 projections,
@@ -218,17 +219,17 @@ public class CopyStatementPlanner {
         return new CopyTo(context.jobId(), plannedSubQuery.plan(), mergePhase);
     }
 
-    private static Routing generateRouting(DiscoveryNodes allNodes, int maxNodes) {
+    private static Collection<String> getExecutionNodes(DiscoveryNodes allNodes, int maxNodes) {
         final AtomicInteger counter = new AtomicInteger(maxNodes);
-        final Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
+        final List<String> nodes = new ArrayList<>(allNodes.size());
         allNodes.dataNodes().keys().forEach(new ObjectProcedure<String>() {
             @Override
             public void apply(String value) {
                 if (counter.getAndDecrement() > 0) {
-                    locations.put(value, TreeMapBuilder.<String, List<Integer>>newMapBuilder().map());
+                    nodes.add(value);
                 }
             }
         });
-        return new Routing(locations);
+        return nodes;
     }
 }

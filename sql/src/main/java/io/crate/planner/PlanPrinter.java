@@ -113,7 +113,7 @@ public class PlanPrinter {
         }
 
         @Override
-        public ImmutableMap.Builder<String, Object> visitCollectPhase(CollectPhase phase, Void context) {
+        public ImmutableMap.Builder<String, Object> visitRoutedCollectPhase(RoutedCollectPhase phase, Void context) {
             return upstreamPhase(phase, visitExecutionPhase(phase, context));
         }
 

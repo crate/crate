@@ -36,7 +36,7 @@ import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.repositories.SysRepositories;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
@@ -71,7 +71,7 @@ public class SystemCollectSourceTest {
         Reference shardId = new Reference(new ReferenceInfo(
                 new ReferenceIdent(new TableIdent("sys", "shards"), "id"), RowGranularity.SHARD, DataTypes.INTEGER));
 
-        CollectPhase collectPhase = new CollectPhase(
+        RoutedCollectPhase collectPhase = new RoutedCollectPhase(
                 UUID.randomUUID(),
                 1,
                 "collect",

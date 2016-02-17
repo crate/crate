@@ -29,7 +29,7 @@ import io.crate.analyze.symbol.Value;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
@@ -44,13 +44,13 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
-public class CollectNodeTest extends CrateUnitTest {
+public class RoutedCollectPhaseTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
         ImmutableList<Symbol> toCollect = ImmutableList.<Symbol>of(new Value(DataTypes.STRING));
         UUID jobId = UUID.randomUUID();
-        CollectPhase cn = new CollectPhase(
+        RoutedCollectPhase cn = new RoutedCollectPhase(
                 jobId,
                 0,
                 "cn",
@@ -66,7 +66,7 @@ public class CollectNodeTest extends CrateUnitTest {
         cn.writeTo(out);
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        CollectPhase cn2 = CollectPhase.FACTORY.create();
+        RoutedCollectPhase cn2 = RoutedCollectPhase.FACTORY.create();
         cn2.readFrom(in);
         assertThat(cn, equalTo(cn2));
 

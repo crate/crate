@@ -31,7 +31,7 @@ import io.crate.operation.AbstractImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.doc.lucene.OrderByCollectorExpression;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.Nullable;
 
 import java.util.ArrayList;
@@ -70,7 +70,7 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
         this.referenceResolver = referenceResolver;
     }
 
-    public Context extractImplementations(CollectPhase node) {
+    public Context extractImplementations(RoutedCollectPhase node) {
         Context context = newContext();
         context.orderBy(node.orderBy());
         if (node.toCollect() != null) {

@@ -32,7 +32,7 @@ import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.IntegerType;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -123,7 +123,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
     @Test
     public void testFailureClosesAllSubContexts() throws Exception {
         String localNodeId = "localNodeId";
-        CollectPhase collectPhase = Mockito.mock(CollectPhase.class);
+        RoutedCollectPhase collectPhase = Mockito.mock(RoutedCollectPhase.class);
         Routing routing = Mockito.mock(Routing.class);
         when(routing.containsShards(localNodeId)).thenReturn(false);
         when(collectPhase.routing()).thenReturn(routing);

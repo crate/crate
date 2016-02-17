@@ -25,14 +25,14 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.operation.Paging;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 
 import javax.annotation.Nullable;
 
 public class SimpleSelect {
 
-    public static void enablePagingIfApplicable(CollectPhase collectPhase,
+    public static void enablePagingIfApplicable(RoutedCollectPhase collectPhase,
                                                 @Nullable MergePhase mergePhase,
                                                 @Nullable Integer limit,
                                                 int offset,
