@@ -39,6 +39,7 @@ public class TransportExecutorModule extends AbstractModule {
         bind(TransportKeepAliveAction.class).asEagerSingleton();
         bind(TransportDistributedResultAction.class).asEagerSingleton();
         bind(TransportShardUpsertAction.class).asEagerSingleton();
+        bind(TransportShardDeleteAction.class).asEagerSingleton();
         bind(TransportFetchNodeAction.class).asEagerSingleton();
         bind(TransportKillAllNodeAction.class).asEagerSingleton();
     }
