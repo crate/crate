@@ -4,6 +4,7 @@ Changes for Crate
 
 Unreleased
 ==========
+ - Implemented cluster check for installed java version 
 
  - removed wrong behaving CrateClient feature which allowed to load
    client settings from a configuration file.

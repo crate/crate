@@ -30,6 +30,7 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.reference.sys.check.checks.SysCheck.Severity;
 import io.crate.test.integration.CrateUnitTest;
+import org.apache.lucene.util.Constants;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -208,6 +209,22 @@ public class SysChecksTest extends CrateUnitTest {
         assertThat(recoveryAfterNodesCheck.id(), is(4));
         assertThat(recoveryAfterNodesCheck.severity(), is(Severity.MEDIUM));
         assertThat(recoveryAfterNodesCheck.validate(TimeValue.timeValueMinutes(4), 3, 3), is(false));
+    }
+
+    @Test
+    public void testJvmVersion() {
+
+        JvmVersionSysCheck jvmVersionSysCheck = new JvmVersionSysCheck();
+
+        assertThat(jvmVersionSysCheck.id(), is(6));
+        assertThat(jvmVersionSysCheck.severity(), is(Severity.MEDIUM));
+        assertThat(jvmVersionSysCheck.validateJavaVersion("javaVersion"), is(false));
+        assertThat(jvmVersionSysCheck.validateJavaVersion("XXX.XXXX"), is(false));
+        assertThat(jvmVersionSysCheck.validateJavaVersion("XXXX_XXXX"), is(false));
+        assertThat(jvmVersionSysCheck.validateJavaVersion("1.6.0_13"), is(false));
+        assertThat(jvmVersionSysCheck.validateJavaVersion("1.7.0_10"), is(false));
+        assertThat(jvmVersionSysCheck.validateJavaVersion("1.8.0_11"), is(false));
+        assertThat(jvmVersionSysCheck.validateJavaVersion("1.8.0_54"), is(true));
     }
 
     @SuppressWarnings("unchecked")
