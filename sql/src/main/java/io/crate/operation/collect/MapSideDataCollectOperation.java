@@ -35,13 +35,11 @@ import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Collection;
-import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -53,22 +51,19 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class MapSideDataCollectOperation {
 
     private final EvaluatingNormalizer clusterNormalizer;
-    private final ClusterService clusterService;
     private final CollectSourceResolver collectSourceResolver;
     private final Functions functions;
     private final NodeSysExpression nodeSysExpression;
     private final ThreadPool threadPool;
 
     @Inject
-    public MapSideDataCollectOperation(ClusterService clusterService,
-                                       Functions functions,
+    public MapSideDataCollectOperation(Functions functions,
                                        NestedReferenceResolver clusterReferenceResolver,
                                        NodeSysExpression nodeSysExpression,
                                        CollectSourceResolver collectSourceResolver,
                                        ThreadPool threadPool) {
         this.functions = functions;
         this.nodeSysExpression = nodeSysExpression;
-        this.clusterService = clusterService;
         this.collectSourceResolver = collectSourceResolver;
         this.threadPool = threadPool;
 
@@ -95,19 +90,9 @@ public class MapSideDataCollectOperation {
     public Collection<CrateCollector> createCollectors(CollectPhase collectPhase,
                                                        RowReceiver downstream,
                                                        final JobCollectContext jobCollectContext) {
-        assert collectPhase.isRouted(); // not routed collect is not handled here
-        assert collectPhase.jobId() != null : "no jobId present for collect operation";
-
-        String localNodeId = clusterService.state().nodes().localNodeId();
-        Set<String> routingNodes = collectPhase.routing().nodes();
-
-        if (!routingNodes.contains(localNodeId)) {
-            throw new UnhandledServerException("unsupported routing");
-        } else {
-            CollectSource service = collectSourceResolver.getService(collectPhase, localNodeId);
-            collectPhase = normalize(collectPhase);
-            return service.getCollectors(collectPhase, downstream, jobCollectContext);
-        }
+        CollectSource service = collectSourceResolver.getService(collectPhase);
+        collectPhase = normalize(collectPhase);
+        return service.getCollectors(collectPhase, downstream, jobCollectContext);
     }
 
     private CollectPhase normalize(CollectPhase collectPhase) {

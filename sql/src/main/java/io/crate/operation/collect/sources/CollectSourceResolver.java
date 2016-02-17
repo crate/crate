@@ -48,10 +48,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Singleton
 public class CollectSourceResolver {
@@ -62,6 +59,7 @@ public class CollectSourceResolver {
     private final ShardCollectSource shardCollectSource;
     private final CollectSource fileCollectSource;
     private final CollectSource singleRowSource;
+    private final ClusterService clusterService;
 
     @Inject
     public CollectSourceResolver(ClusterService clusterService,
@@ -77,6 +75,7 @@ public class CollectSourceResolver {
                                  FileCollectSource fileCollectSource,
                                  SingleRowSource singleRowSource,
                                  SystemCollectSource systemCollectSource) {
+        this.clusterService = clusterService;
 
         ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, clusterReferenceResolver);
@@ -106,7 +105,13 @@ public class CollectSourceResolver {
         }
     }
 
-    public CollectSource getService(CollectPhase collectPhase, String localNodeId) {
+    public CollectSource getService(CollectPhase collectPhase) {
+        assert collectPhase.isRouted() : "collectPhase must contain a routing";
+        String localNodeId = clusterService.state().nodes().localNodeId();
+        Set<String> routingNodes = collectPhase.routing().nodes();
+        if (!routingNodes.contains(localNodeId)) {
+            throw new IllegalStateException("unsupported routing");
+        }
 
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         if (collectPhase.routing().containsShards(localNodeId)) {

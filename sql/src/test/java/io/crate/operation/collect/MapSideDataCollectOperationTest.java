@@ -71,10 +71,9 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
             }
         };
         CollectSourceResolver collectSourceResolver = mock(CollectSourceResolver.class);
-        when(collectSourceResolver.getService(any(CollectPhase.class), anyString()))
+        when(collectSourceResolver.getService(any(CollectPhase.class)))
                 .thenReturn(new FileCollectSource(functions, clusterService));
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
-                clusterService,
                 functions,
                 referenceResolver,
                 mock(NodeSysExpression.class),
