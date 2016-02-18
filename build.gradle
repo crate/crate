@@ -13,15 +13,8 @@ plugins {
 
 
 allprojects {
-    apply plugin: 'idea'
     apply plugin: 'findbugs'
     apply plugin: 'jacoco'
-
-    project.ext {
-        isIdea = (System.getProperty("idea.active") != null
-                  || gradle.startParameter.taskNames.contains('idea')
-                  || gradle.startParameter.taskNames.contains('cleanIdea'))
-    }
 
     tasks.withType(JavaCompile) {
         sourceCompatibility = "1.7"
@@ -80,22 +73,36 @@ allprojects {
             }
         }
     }
+
 }
 
 
 // intellij configuration
 allprojects {
     apply plugin: 'idea'
-   if (isIdea) {
+
+    project.ext {
+        isIdea = (System.getProperty("idea.active") != null
+                || gradle.startParameter.taskNames.contains('idea')
+                || gradle.startParameter.taskNames.contains('cleanIdea')
+                || gradle.startParameter.taskNames.contains('cleanIdeaBuild'))
+    }
+
+    if (isIdea) {
        project.buildDir = file('build-idea')
-   }
-   idea {
+    }
+
+    idea {
        module {
            inheritOutputDirs = false
            outputDir = file('build-idea/classes/main')
            testOutputDir = file('build-idea/classes/test')
        }
-   }
+    }
+
+    task cleanIdeaBuild << {
+        tasks.clean.execute()
+    }
 }
 
 
