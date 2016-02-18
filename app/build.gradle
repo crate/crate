@@ -391,7 +391,9 @@ task downloadPlugins (dependsOn: [':admin-ui:downloadPlugin']) << {
 
 downloadPlugins.outputs.dir files(
     "$projectDir/plugins/crate-admin",
-    "$projectDir/plugins/hdfs"
+    "$projectDir/plugins/hdfs",
+    "$projectDir/plugins/aws",
+    "$projectDir/plugins/sigar"
 )
 downloadPlugins.dependsOn(':aws:jar', ':sigar:jar')
 
