@@ -103,26 +103,16 @@ public class DataTypes {
         .put(ObjectType.ID, OBJECT)
         .put(GeoPointType.ID, GEO_POINT)
         .put(GeoShapeType.ID, GEO_SHAPE)
-        .put(ArrayType.ID, new CollectionTypeFactory() {
+        .put(ArrayType.ID, new DataTypeFactory() {
             @Override
             public DataType<?> create() {
                 return new ArrayType();
             }
-
-            @Override
-            public DataType<?> create(DataType innerType) {
-                return new ArrayType(innerType);
-            }
         })
-        .put(SetType.ID, new CollectionTypeFactory() {
+        .put(SetType.ID, new DataTypeFactory() {
             @Override
             public DataType<?> create() {
                 return new SetType();
-            }
-
-            @Override
-            public DataType<?> create(DataType innerType) {
-                return new SetType(innerType);
             }
         }).map();
 
@@ -294,16 +284,6 @@ public class DataTypes {
             throw new IllegalArgumentException("Cannot find data type of mapping name " + name);
         }
         return dataType;
-    }
-
-    public static DataType ofJsonObject(Object type) {
-        if (type instanceof List) {
-            int idCollectionType = (Integer) ((List) type).get(0);
-            int idInnerType = (Integer) ((List) type).get(1);
-            return ((CollectionTypeFactory) TYPE_REGISTRY.get(idCollectionType)).create(ofJsonObject(idInnerType));
-        }
-        assert type instanceof Integer;
-        return TYPE_REGISTRY.get(type).create();
     }
 
     public static boolean isPrimitive(DataType type) {
