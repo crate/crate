@@ -21,21 +21,23 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
+import io.crate.metadata.table.ColumnRegistrar;
+import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collections;
 
 @Singleton
-public class SysOperationsTableInfo extends SysTableInfo {
+public class SysOperationsTableInfo extends StaticTableInfo {
 
-    public static final TableIdent IDENT = new TableIdent(SCHEMA, "operations");
+    public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "operations");
+    private final ClusterService clusterService;
 
     public static class Columns {
         public final static ColumnIdent ID = new ColumnIdent("id");
@@ -46,38 +48,30 @@ public class SysOperationsTableInfo extends SysTableInfo {
     }
 
     private final TableColumn nodesTableColumn;
-    private final Map<ColumnIdent, ReferenceInfo> infos;
-    private final Set<ReferenceInfo> columns;
 
     @Inject
     public SysOperationsTableInfo(ClusterService clusterService, SysNodesTableInfo sysNodesTableInfo) {
-        super(clusterService);
+        super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
+                        .register(Columns.ID, DataTypes.STRING)
+                        .register(Columns.JOB_ID, DataTypes.STRING)
+                        .register(Columns.NAME, DataTypes.STRING)
+                        .register(Columns.STARTED, DataTypes.TIMESTAMP)
+                        .register(Columns.USED_BYTES, DataTypes.LONG)
+                        .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT)),
+                Collections.<ColumnIdent>emptyList());
+        this.clusterService = clusterService;
         nodesTableColumn = sysNodesTableInfo.tableColumn();
-        ColumnRegistrar columnRegistrar = new ColumnRegistrar(IDENT, RowGranularity.DOC)
-            .register(Columns.ID, DataTypes.STRING)
-            .register(Columns.JOB_ID, DataTypes.STRING)
-            .register(Columns.NAME, DataTypes.STRING)
-            .register(Columns.STARTED, DataTypes.TIMESTAMP)
-            .register(Columns.USED_BYTES, DataTypes.LONG)
-            .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
-        infos = columnRegistrar.infos();
-        columns = columnRegistrar.columns();
     }
 
 
     @Nullable
     @Override
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        ReferenceInfo info = infos.get(columnIdent);
+        ReferenceInfo info = super.getReferenceInfo(columnIdent);
         if (info == null) {
             return nodesTableColumn.getReferenceInfo(this.ident(), columnIdent);
         }
         return info;
-    }
-
-    @Override
-    public Collection<ReferenceInfo> columns() {
-        return columns;
     }
 
     @Override
@@ -86,22 +80,7 @@ public class SysOperationsTableInfo extends SysTableInfo {
     }
 
     @Override
-    public TableIdent ident() {
-        return IDENT;
-    }
-
-    @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        return tableRouting(whereClause);
-    }
-
-    @Override
-    public List<ColumnIdent> primaryKey() {
-        return ImmutableList.of();
-    }
-
-    @Override
-    public Iterator<ReferenceInfo> iterator() {
-        return infos.values().iterator();
+        return Routing.forTableOnAllNodes(IDENT, clusterService.state().nodes());
     }
 }

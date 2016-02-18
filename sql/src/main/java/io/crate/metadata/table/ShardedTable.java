@@ -26,10 +26,9 @@ import org.apache.lucene.util.BytesRef;
 
 public interface ShardedTable {
 
-    public int numberOfShards();
+    int numberOfShards();
 
-    public BytesRef numberOfReplicas();
+    BytesRef numberOfReplicas();
 
-    public ColumnIdent clusteredBy();
-
+    ColumnIdent clusteredBy();
 }

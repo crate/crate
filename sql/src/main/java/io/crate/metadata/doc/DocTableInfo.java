@@ -32,9 +32,9 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.UnavailableShardsException;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.TableColumn;
-import io.crate.metadata.table.AbstractTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.ShardedTable;
+import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
@@ -54,7 +54,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 
-public class DocTableInfo extends AbstractTableInfo implements ShardedTable {
+public class DocTableInfo implements TableInfo, ShardedTable {
 
     private final TimeValue routingFetchTimeout;
 
@@ -140,7 +140,6 @@ public class DocTableInfo extends AbstractTableInfo implements ShardedTable {
         this.docColumn = new TableColumn(DocSysColumns.DOC, references);
     }
 
-    @Override
     @Nullable
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
         ReferenceInfo referenceInfo = references.get(columnIdent);
@@ -496,5 +495,10 @@ public class DocTableInfo extends AbstractTableInfo implements ShardedTable {
             reference.columnPolicy(ColumnPolicy.IGNORED);
         }
         return reference;
+    }
+
+    @Override
+    public String toString() {
+        return ident.fqn();
     }
 }

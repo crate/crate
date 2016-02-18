@@ -21,19 +21,25 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.ColumnRegistrar;
+import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collections;
 
 @Singleton
-public class SysOperationsLogTableInfo extends SysTableInfo {
+public class SysOperationsLogTableInfo extends StaticTableInfo {
+
+    private final ClusterService clusterService;
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
@@ -45,35 +51,19 @@ public class SysOperationsLogTableInfo extends SysTableInfo {
         public static final ColumnIdent ERROR = new ColumnIdent("error");
     }
 
-    public static final TableIdent IDENT = new TableIdent(SCHEMA, "operations_log");
-
-    private final Map<ColumnIdent, ReferenceInfo> columns_info;
-    private final Set<ReferenceInfo> columns;
+    public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "operations_log");
 
     @Inject
     protected SysOperationsLogTableInfo(ClusterService clusterService) {
-        super(clusterService);
-        ColumnRegistrar registrar = new ColumnRegistrar(IDENT, RowGranularity.DOC)
+        super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
             .register(Columns.ID, DataTypes.STRING)
             .register(Columns.JOB_ID, DataTypes.STRING)
             .register(Columns.NAME, DataTypes.STRING)
             .register(Columns.STARTED, DataTypes.TIMESTAMP)
             .register(Columns.ENDED, DataTypes.TIMESTAMP)
             .register(Columns.USED_BYTES, DataTypes.LONG)
-            .register(Columns.ERROR, DataTypes.STRING);
-        columns = registrar.columns();
-        columns_info = registrar.infos();
-    }
-
-    @Nullable
-    @Override
-    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        return columns_info.get(columnIdent);
-    }
-
-    @Override
-    public Collection<ReferenceInfo> columns() {
-        return columns;
+            .register(Columns.ERROR, DataTypes.STRING), Collections.<ColumnIdent>emptyList());
+        this.clusterService = clusterService;
     }
 
     @Override
@@ -88,16 +78,6 @@ public class SysOperationsLogTableInfo extends SysTableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        return tableRouting(whereClause);
-    }
-
-    @Override
-    public List<ColumnIdent> primaryKey() {
-        return ImmutableList.of();
-    }
-
-    @Override
-    public Iterator<ReferenceInfo> iterator() {
-        return columns_info.values().iterator();
+        return Routing.forTableOnAllNodes(IDENT, clusterService.state().nodes());
     }
 }

@@ -37,7 +37,7 @@ import java.util.Locale;
 
 public class ReferenceInfo implements Streamable {
 
-    public static Comparator<ReferenceInfo> COMPARE_BY_COLUMN_IDENT = new Comparator<ReferenceInfo>() {
+    public static final Comparator<ReferenceInfo> COMPARE_BY_COLUMN_IDENT = new Comparator<ReferenceInfo>() {
         @Override
         public int compare(ReferenceInfo o1, ReferenceInfo o2) {
             return o1.ident().columnIdent().compareTo(o2.ident().columnIdent());

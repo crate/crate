@@ -2,6 +2,9 @@ package io.crate.metadata;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
+import io.crate.core.collections.TreeMapBuilder;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -196,7 +199,7 @@ public class Routing implements Streamable {
             return false;
         }
         for (Map<String, List<Integer>> innerMap : locations.values()) {
-            if (!(innerMap instanceof TreeMap)) {
+            if (!innerMap.isEmpty() &&  !(innerMap instanceof TreeMap)) {
                 return false;
             }
         }
@@ -206,12 +209,21 @@ public class Routing implements Streamable {
     /**
      * Return a routing for the given table on the given node id.
      */
-    public static Routing forTableOnNode(TableIdent tableIdent, String nodeId) {
+    public static Routing forTableOnSingleNode(TableIdent tableIdent, String nodeId) {
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         Map<String, List<Integer>> tableLocation = new TreeMap<>();
         tableLocation.put(tableIdent.fqn(), null);
         locations.put(nodeId, tableLocation);
         return new Routing(locations);
+    }
+
+    public static Routing forTableOnAllNodes(TableIdent tableIdent, DiscoveryNodes nodes) {
+        TreeMapBuilder<String, Map<String, List<Integer>>> nodesMapBuilder = TreeMapBuilder.newMapBuilder();
+        Map<String, List<Integer>> tableMap = TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableIdent.fqn(), null).map();
+        for (DiscoveryNode node : nodes) {
+            nodesMapBuilder.put(node.id(), tableMap);
+        }
+        return new Routing(nodesMapBuilder.map());
     }
 
     @Override

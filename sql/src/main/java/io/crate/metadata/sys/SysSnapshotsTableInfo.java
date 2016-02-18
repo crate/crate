@@ -23,7 +23,12 @@ package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.ColumnRegistrar;
+import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
@@ -31,11 +36,14 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Iterator;
+import java.util.Locale;
+import java.util.Random;
 
-public class SysSnapshotsTableInfo extends SysTableInfo {
+public class SysSnapshotsTableInfo extends StaticTableInfo {
 
-    public static final TableIdent IDENT = new TableIdent(SCHEMA, "snapshots");
+    public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "snapshots");
+    private final ClusterService clusterService;
 
     public static class Columns {
         public static final ColumnIdent NAME = new ColumnIdent("name");
@@ -47,39 +55,22 @@ public class SysSnapshotsTableInfo extends SysTableInfo {
         public static final ColumnIdent STATE = new ColumnIdent("state");
     }
 
-
-
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.NAME, Columns.REPOSITORY);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
-
-    private final Set<ReferenceInfo> columns;
-    private final Map<ColumnIdent, ReferenceInfo> infos;
 
     private Random random = new Random();
 
     public SysSnapshotsTableInfo(ClusterService clusterService) {
-        super(clusterService);
-        ColumnRegistrar registrar = new ColumnRegistrar(IDENT, GRANULARITY)
-            .register(Columns.NAME, DataTypes.STRING)
-            .register(Columns.REPOSITORY, DataTypes.STRING)
-            .register(Columns.CONCRETE_INDICES, new ArrayType(DataTypes.STRING))
-            .register(Columns.STARTED, DataTypes.TIMESTAMP)
-            .register(Columns.FINISHED, DataTypes.TIMESTAMP)
-            .register(Columns.VERSION, DataTypes.STRING)
-            .register(Columns.STATE, DataTypes.STRING);
-        columns = registrar.columns();
-        infos = registrar.infos();
-    }
-
-    @Nullable
-    @Override
-    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        return infos.get(columnIdent);
-    }
-
-    @Override
-    public Collection<ReferenceInfo> columns() {
-        return columns;
+        super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
+                .register(Columns.NAME, DataTypes.STRING)
+                .register(Columns.REPOSITORY, DataTypes.STRING)
+                .register(Columns.CONCRETE_INDICES, new ArrayType(DataTypes.STRING))
+                .register(Columns.STARTED, DataTypes.TIMESTAMP)
+                .register(Columns.FINISHED, DataTypes.TIMESTAMP)
+                .register(Columns.VERSION, DataTypes.STRING)
+                .register(Columns.STATE, DataTypes.STRING),
+                PRIMARY_KEY);
+        this.clusterService = clusterService;
     }
 
     @Override
@@ -94,13 +85,9 @@ public class SysSnapshotsTableInfo extends SysTableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-        Map<String, List<Integer>> tableLocation = new TreeMap<>();
-        tableLocation.put(IDENT.fqn(), null);
         // route to random master or data node,
         // because RepositoriesService (and so snapshots info) is only available there
-        locations.put(randomMasterOrDataNode().id(), tableLocation);
-        return new Routing(locations);
+        return Routing.forTableOnSingleNode(IDENT, randomMasterOrDataNode().id());
     }
 
     private DiscoveryNode randomMasterOrDataNode() {
@@ -116,15 +103,5 @@ public class SysSnapshotsTableInfo extends SysTableInfo {
         }
         throw new AssertionError(String.format(Locale.ENGLISH,
                 "Cannot find a master or data node with given random index %d", randomIdx));
-    }
-
-    @Override
-    public List<ColumnIdent> primaryKey() {
-        return PRIMARY_KEY;
-    }
-
-    @Override
-    public Iterator<ReferenceInfo> iterator() {
-        return infos.values().iterator();
     }
 }

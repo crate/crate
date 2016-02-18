@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.metadata.sys;
+package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -32,15 +32,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-class ColumnRegistrar {
+public class ColumnRegistrar {
     private final ImmutableSortedMap.Builder<ColumnIdent, ReferenceInfo> infosBuilder;
     private final ImmutableSortedSet.Builder<ReferenceInfo> columnsBuilder;
 
     private final TableIdent tableIdent;
     private final RowGranularity rowGranularity;
 
-    ColumnRegistrar(TableIdent tableIdent,
-                    RowGranularity rowGranularity) {
+    public ColumnRegistrar(TableIdent tableIdent, RowGranularity rowGranularity) {
         this.tableIdent = tableIdent;
         this.rowGranularity = rowGranularity;
         this.infosBuilder = ImmutableSortedMap.naturalOrder();
