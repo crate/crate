@@ -66,7 +66,7 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
                                          TransportActionProvider transportActionProvider,
                                          BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                          List<ColumnIdent> primaryKeyIdents,
-                                         List<Symbol> primaryKeySymbols,
+                                         List<? extends Symbol> primaryKeySymbols,
                                          @Nullable Symbol routingSymbol,
                                          ColumnIdent clusteredByColumn,
                                          List<Reference> columnReferences,

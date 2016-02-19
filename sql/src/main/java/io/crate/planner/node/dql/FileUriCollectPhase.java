@@ -140,12 +140,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
             nodes.add(in.readString());
         }
         this.executionNodes = nodes;
-
-        int numToCollect = in.readVInt();
-        toCollect = new ArrayList<>(numToCollect);
-        for (int i = 0; i < numToCollect; i++) {
-            toCollect.add(Symbol.fromStream(in));
-        }
+        toCollect = Symbol.listFromStream(in);
     }
 
     @Override
@@ -158,10 +153,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         for (String node : executionNodes) {
             out.writeString(node);
         }
-        out.writeVInt(toCollect.size());
-        for (Symbol symbol : toCollect) {
-            Symbol.toStream(symbol, out);
-        }
+        Symbol.toStream(toCollect, out);
     }
 
     @Override

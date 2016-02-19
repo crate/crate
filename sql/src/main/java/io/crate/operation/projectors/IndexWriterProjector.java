@@ -71,7 +71,7 @@ public class IndexWriterProjector extends AbstractProjector {
                                 BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                 Reference rawSourceReference,
                                 List<ColumnIdent> primaryKeyIdents,
-                                List<Symbol> primaryKeySymbols,
+                                List<? extends Symbol> primaryKeySymbols,
                                 @Nullable Symbol routingSymbol,
                                 ColumnIdent clusteredByColumn,
                                 Input<?> sourceInput,

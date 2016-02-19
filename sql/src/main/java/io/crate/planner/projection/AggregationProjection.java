@@ -88,10 +88,7 @@ public class AggregationProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(aggregations.size());
-        for (Symbol symbol : aggregations) {
-            Symbol.toStream(symbol, out);
-        }
+        Symbol.toStream(aggregations, out);
     }
 
     @Override

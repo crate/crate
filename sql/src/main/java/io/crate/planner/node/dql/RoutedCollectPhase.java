@@ -23,13 +23,11 @@ package io.crate.planner.node.dql;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.TableInfo;
@@ -38,7 +36,6 @@ import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.projection.Projection;
-import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -211,16 +208,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
 
         distributionInfo = DistributionInfo.fromStream(in);
 
-        int numCols = in.readVInt();
-        if (numCols > 0) {
-            toCollect = new ArrayList<>(numCols);
-            for (int i = 0; i < numCols; i++) {
-                toCollect.add(Symbol.fromStream(in));
-            }
-        } else {
-            toCollect = ImmutableList.of();
-        }
-
+        toCollect = Symbol.listFromStream(in);
         maxRowGranularity = RowGranularity.fromStream(in);
 
         if (in.readBoolean()) {
@@ -245,12 +233,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
 
         distributionInfo.writeTo(out);
 
-        int numCols = toCollect.size();
-        out.writeVInt(numCols);
-        for (Symbol aToCollect : toCollect) {
-            Symbol.toStream(aToCollect, out);
-        }
-
+        Symbol.toStream(toCollect, out);
         RowGranularity.toStream(maxRowGranularity, out);
 
         if (routing != null) {

@@ -187,7 +187,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
                     node.reverseFlags(),
                     node.nullsFirst()
             );
-            topNProjection.outputs(genInputColumns(node.outputs().size()));
+            topNProjection.outputs(InputColumn.numInputs(node.outputs().size()));
             return FlatProjectorChain.withAttachedDownstream(
                     projectorFactory,
                     null,
@@ -200,13 +200,6 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         }
     }
 
-    private static List<Symbol> genInputColumns(int size) {
-        List<Symbol> inputColumns = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            inputColumns.add(new InputColumn(i));
-        }
-        return inputColumns;
-    }
 
     @Override
     public void pause() {

@@ -24,7 +24,10 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.core.collections.Row;
 import io.crate.metadata.ColumnIdent;
@@ -54,7 +57,7 @@ public class RowShardResolver {
 
 
     public RowShardResolver(List<ColumnIdent> pkColumns,
-                            List<Symbol> primaryKeySymbols,
+                            List<? extends Symbol> primaryKeySymbols,
                             @Nullable ColumnIdent clusteredByColumn,
                             @Nullable Symbol routingSymbol) {
 

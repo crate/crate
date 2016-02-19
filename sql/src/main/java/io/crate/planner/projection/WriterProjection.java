@@ -163,12 +163,7 @@ public class WriterProjection extends Projection {
                 outputNames.add(in.readString());
             }
         }
-        int numInputs = in.readVInt();
-        inputs = new ArrayList<>(numInputs);
-        for (int i = 0; i < numInputs; i++) {
-            inputs.add(Symbol.fromStream(in));
-        }
-
+        inputs = Symbol.listFromStream(in);
         int numOverwrites = in.readVInt();
         overwrites = new HashMap<>(numOverwrites);
         for (int i = 0; i < numOverwrites; i++) {
@@ -191,10 +186,7 @@ public class WriterProjection extends Projection {
         } else {
             out.writeVInt(0);
         }
-        out.writeVInt(inputs.size());
-        for (Symbol symbol : inputs) {
-            Symbol.toStream(symbol, out);
-        }
+        Symbol.toStream(inputs, out);
 
         out.writeVInt(overwrites.size());
         for (Map.Entry<ColumnIdent, Symbol> entry : overwrites.entrySet()) {

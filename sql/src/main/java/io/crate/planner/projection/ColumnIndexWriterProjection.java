@@ -148,11 +148,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         super.readFrom(in);
 
         if (in.readBoolean()) {
-            int length = in.readVInt();
-            columnSymbols = new ArrayList<>(length);
-            for (int i = 0; i < length; i++) {
-                columnSymbols.add(Symbol.fromStream(in));
-            }
+            columnSymbols = Symbol.listFromStream(in);
         }
         if (in.readBoolean()) {
             int length = in.readVInt();
@@ -179,10 +175,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             out.writeBoolean(false);
         } else {
             out.writeBoolean(true);
-            out.writeVInt(columnSymbols.size());
-            for (Symbol columnSymbol : columnSymbols) {
-                Symbol.toStream(columnSymbol, out);
-            }
+            Symbol.toStream(columnSymbols, out);
         }
         if (columnReferences == null) {
             out.writeBoolean(false);

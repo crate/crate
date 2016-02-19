@@ -109,7 +109,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
                                          int executionPhaseId,
                                          OrderBy orderBy,
                                          List<? extends Symbol> sourceSymbols,
-                                         @Nullable List<Symbol> orderBySymbolOverwrite,
+                                         @Nullable List<? extends Symbol> orderBySymbolOverwrite,
                                          List<Projection> projections,
                                          int numUpstreams,
                                          Collection<? extends DataType> inputTypes) {

@@ -35,19 +35,19 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.collections.Lists2;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Singleton
@@ -128,31 +128,14 @@ public class QueryAndFetchConsumer implements Consumer {
                  * orderByInputs:   [in(0), in(2)]              // for topN projection on shards/collectPhase AND handler
                  * finalOutputs:    [in(0), in(1)]              // for topN output on handler -> changes output to what should be returned.
                  */
-
                 List<Symbol> toCollect;
-                List<Symbol> orderByInputColumns = null;
                 if (orderBy.isPresent()) {
-                    List<Symbol> orderBySymbols = orderBy.get().orderBySymbols();
-                    toCollect = new ArrayList<>(outputSymbols.size() + orderBySymbols.size());
-                    toCollect.addAll(outputSymbols);
-                    // note: can only de-dup order by symbols due to non-deterministic functions like select random(), random()
-                    for (Symbol orderBySymbol : orderBySymbols) {
-                        if (!toCollect.contains(orderBySymbol)) {
-                            toCollect.add(orderBySymbol);
-                        }
-                    }
-                    orderByInputColumns = new ArrayList<>();
-                    for (Symbol symbol : orderBySymbols) {
-                        orderByInputColumns.add(new InputColumn(toCollect.indexOf(symbol), symbol.valueType()));
-                    }
+                    toCollect = Lists2.concatUnique(outputSymbols, orderBy.get().orderBySymbols());
                 } else {
-                    toCollect = new ArrayList<>(outputSymbols.size());
-                    toCollect.addAll(outputSymbols);
+                    toCollect = outputSymbols;
                 }
-
-                List<Symbol> allOutputs = toInputColumns(toCollect);
-                List<Symbol> finalOutputs = toInputColumns(outputSymbols);
-
+                List<Symbol> allOutputs = InputColumn.fromSymbols(toCollect);
+                List<Symbol> finalOutputs = InputColumn.fromSymbols(outputSymbols);
 
                 List<Projection> projections = ImmutableList.of();
                 Integer nodePageSizeHint = null;
@@ -193,7 +176,7 @@ public class QueryAndFetchConsumer implements Consumer {
                                 plannerContext.nextExecutionPhaseId(),
                                 orderBy.get(),
                                 allOutputs,
-                                orderByInputColumns,
+                                InputColumn.fromSymbols(orderBy.get().orderBySymbols(), toCollect),
                                 ImmutableList.<Projection>of(tnp),
                                 collectPhase.executionNodes().size(),
                                 collectPhase.outputTypes()
@@ -224,14 +207,6 @@ public class QueryAndFetchConsumer implements Consumer {
             SimpleSelect.enablePagingIfApplicable(
                     collectPhase, mergeNode, querySpec.limit().orNull(), querySpec.offset(), plannerContext.clusterService().localNode().id());
             return new CollectAndMerge(collectPhase, mergeNode);
-        }
-
-        private static List<Symbol> toInputColumns(List<Symbol> symbols) {
-            List<Symbol> inputColumns = new ArrayList<>(symbols.size());
-            for (int i = 0; i < symbols.size(); i++) {
-                inputColumns.add(new InputColumn(i, symbols.get(i).valueType()));
-            }
-            return inputColumns;
         }
     }
 }

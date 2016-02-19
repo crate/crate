@@ -29,7 +29,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -107,22 +106,15 @@ public class FilterProjection extends Projection {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        query = (Function)Function.fromStream(in);
-        int numOutputs = in.readVInt();
-        outputs = new ArrayList<>(numOutputs);
-        for (int i = 0; i < numOutputs; i++) {
-            outputs.add(Symbol.fromStream(in));
-        }
+        query = Function.fromStream(in);
+        outputs = Symbol.listFromStream(in);
         requiredGranularity = RowGranularity.fromStream(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         Function.toStream(query, out);
-        out.writeVInt(outputs.size());
-        for (Symbol symbol : outputs) {
-            Symbol.toStream(symbol, out);
-        }
+        Symbol.toStream(outputs, out);
         RowGranularity.toStream(requiredGranularity, out);
     }
 

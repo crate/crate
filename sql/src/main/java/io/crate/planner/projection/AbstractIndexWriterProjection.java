@@ -77,7 +77,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         Preconditions.checkArgument(bulkActions > 0, "\"bulk_size\" must be greater than 0.");
     }
 
-    public List<Symbol> ids() {
+    public List<? extends Symbol> ids() {
         return idSymbols;
     }
 
@@ -106,15 +106,8 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     protected void generateSymbols(int[] primaryKeyIndices,
                                    int[] partitionedByIndices,
                                    int clusteredByIdx) {
-        this.idSymbols = new ArrayList<>(primaryKeys.size());
-        for (int primaryKeyIndex : primaryKeyIndices) {
-            idSymbols.add(new InputColumn(primaryKeyIndex, null));
-        }
-
-        this.partitionedBySymbols = new ArrayList<>(partitionedByIndices.length);
-        for (int partitionByIndex : partitionedByIndices) {
-            partitionedBySymbols.add(new InputColumn(partitionByIndex, null));
-        }
+        this.idSymbols = InputColumn.fromIntArray(primaryKeyIndices);
+        this.partitionedBySymbols = InputColumn.fromIntArray(partitionedByIndices);
         if (clusteredByIdx >= 0) {
             clusteredBySymbol = new InputColumn(clusteredByIdx, null);
         }
@@ -147,11 +140,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         tableIdent = TableIdent.fromStream(in);
 
         partitionIdent = in.readOptionalString();
-        int numIdSymbols = in.readVInt();
-        idSymbols = new ArrayList<>(numIdSymbols);
-        for (int i = 0; i < numIdSymbols; i++) {
-            idSymbols.add(Symbol.fromStream(in));
-        }
+        idSymbols = Symbol.listFromStream(in);
 
         int numPks = in.readVInt();
         primaryKeys = new ArrayList<>(numPks);
@@ -159,11 +148,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
             primaryKeys.add(ColumnIdent.fromStream(in));
         }
 
-        int numPartitionedSymbols = in.readVInt();
-        partitionedBySymbols = new ArrayList<>(numPartitionedSymbols);
-        for (int i = 0; i < numPartitionedSymbols; i++) {
-            partitionedBySymbols.add(Symbol.fromStream(in));
-        }
+        partitionedBySymbols = Symbol.listFromStream(in);
         if (in.readBoolean()) {
             clusteredBySymbol = Symbol.fromStream(in);
         } else {
@@ -220,18 +205,12 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         tableIdent.writeTo(out);
         out.writeOptionalString(partitionIdent);
 
-        out.writeVInt(idSymbols.size());
-        for (Symbol idSymbol : idSymbols) {
-            Symbol.toStream(idSymbol, out);
-        }
+        Symbol.toStream(idSymbols, out);
         out.writeVInt(primaryKeys.size());
         for (ColumnIdent primaryKey : primaryKeys) {
             primaryKey.writeTo(out);
         }
-        out.writeVInt(partitionedBySymbols.size());
-        for (Symbol partitionedSymbol : partitionedBySymbols) {
-            Symbol.toStream(partitionedSymbol, out);
-        }
+        Symbol.toStream(partitionedBySymbols, out);
         if (clusteredBySymbol == null) {
             out.writeBoolean(false);
         } else {

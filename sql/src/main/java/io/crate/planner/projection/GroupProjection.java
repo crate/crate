@@ -96,12 +96,8 @@ public class GroupProjection extends Projection {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
+        keys = Symbol.listFromStream(in);
         int size = in.readVInt();
-        keys = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            keys.add(Symbol.fromStream(in));
-        }
-        size = in.readVInt();
         values = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             values.add((Aggregation) Symbol.fromStream(in));
@@ -111,15 +107,8 @@ public class GroupProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(keys.size());
-        for (Symbol symbol : keys) {
-            Symbol.toStream(symbol, out);
-        }
-
-        out.writeVInt(values.size());
-        for (Symbol symbol : values) {
-            Symbol.toStream(symbol, out);
-        }
+        Symbol.toStream(keys, out);
+        Symbol.toStream(values, out);
         RowGranularity.toStream(requiredGranularity, out);
     }
 
