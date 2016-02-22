@@ -96,7 +96,7 @@ public class PageDownstreamFactory {
             rowReceiver = projectorChain.firstProjector();
         }
 
-        PagingIterator<Row> pagingIterator;
+        PagingIterator<Void, Row> pagingIterator;
         if (mergeNode.sortedInputOutput() && mergeNode.numUpstreams() > 1) {
             pagingIterator = new SortedPagingIterator<>(
                     OrderingByPosition.rowOrdering(
@@ -108,7 +108,7 @@ public class PageDownstreamFactory {
             );
         } else {
             pagingIterator = requiresRepeatSupport ?
-                    PassThroughPagingIterator.<Row>repeatable() : PassThroughPagingIterator.<Row>oneShot();
+                    PassThroughPagingIterator.<Void, Row>repeatable() : PassThroughPagingIterator.<Void, Row>oneShot();
         }
         PageDownstream pageDownstream = new IteratorPageDownstream(rowReceiver, pagingIterator, executorOptional);
         return new Tuple<>(pageDownstream, projectorChain);

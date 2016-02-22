@@ -69,7 +69,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
     private PageDownstream pageDownstream(RowReceiver rowReceiver) {
         return new IteratorPageDownstream(
                     rowReceiver,
-                    PassThroughPagingIterator.<Row>repeatable(),
+                    PassThroughPagingIterator.<Void, Row>repeatable(),
                     Optional.<Executor>absent()
         );
     }

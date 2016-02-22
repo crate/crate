@@ -47,7 +47,7 @@ public class SortedPagingIteratorTest extends CrateUnitTest {
 
     @Test
     public void testTwoBucketsAndTwoPagesAreSortedCorrectly() throws Exception {
-        SortedPagingIterator<Row> pagingIterator = new SortedPagingIterator<>(ORDERING, randomBoolean());
+        SortedPagingIterator<Void, Row> pagingIterator = new SortedPagingIterator<>(ORDERING, randomBoolean());
 
         pagingIterator.merge(numberedBuckets(Arrays.<Bucket>asList(
                 new ArrayBucket(new Object[][] {
@@ -102,7 +102,7 @@ public class SortedPagingIteratorTest extends CrateUnitTest {
 
     @Test
     public void testReplayReplaysCorrectly() throws Exception {
-        SortedPagingIterator<Row> pagingIterator = new SortedPagingIterator<>(ORDERING, true);
+        SortedPagingIterator<Void, Row> pagingIterator = new SortedPagingIterator<>(ORDERING, true);
         pagingIterator.merge(numberedBuckets(Arrays.<Bucket>asList(
                 new ArrayBucket(new Object[][]{
                         new Object[]{"a"},
@@ -139,16 +139,13 @@ public class SortedPagingIteratorTest extends CrateUnitTest {
         assertThat(rows, is(replayedRows));
     }
 
-    private Iterable<? extends NumberedIterable<Row>> numberedBuckets(List<Bucket> buckets) {
-        return Iterables.transform(buckets, new Function<Bucket, NumberedIterable<Row>>() {
-
-            int number = -1;
+    private Iterable<? extends KeyIterable<Void, Row>> numberedBuckets(List<Bucket> buckets) {
+        return Iterables.transform(buckets, new Function<Bucket, KeyIterable<Void, Row>>() {
 
             @Nullable
             @Override
-            public NumberedIterable<Row> apply(Bucket input) {
-                number++;
-                return new NumberedIterable<>(number, input);
+            public KeyIterable<Void, Row> apply(Bucket input) {
+                return new KeyIterable<>(null, input);
             }
         });
     }

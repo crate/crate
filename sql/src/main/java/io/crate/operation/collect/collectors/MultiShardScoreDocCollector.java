@@ -22,7 +22,7 @@
 
 package io.crate.operation.collect.collectors;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.*;
@@ -30,7 +30,7 @@ import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.merge.NumberedIterable;
+import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.operation.merge.SortedPagingIterator;
@@ -41,6 +41,7 @@ import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -54,13 +55,13 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
 
     private static final int KEEP_ALIVE_AFTER_ROWS = 1_000_000;
     private final List<OrderedDocCollector> orderedDocCollectors;
-    private final IntObjectOpenHashMap<OrderedDocCollector> orderedCollectorsMap;
+    private final ObjectObjectOpenHashMap<ShardId, OrderedDocCollector> orderedCollectorsMap;
     private final RowReceiver rowReceiver;
-    private final PagingIterator<Row> pagingIterator;
+    private final PagingIterator<ShardId, Row> pagingIterator;
     private final TopRowUpstream topRowUpstream;
     private final ListeningExecutorService executor;
     private final ListeningExecutorService directExecutor;
-    private final FutureCallback<List<NumberedIterable<Row>>> futureCallback;
+    private final FutureCallback<List<KeyIterable<ShardId, Row>>> futureCallback;
     private final KeepAliveListener keepAliveListener;
     private final FlatProjectorChain flatProjectorChain;
     private final boolean singleShard;
@@ -97,14 +98,16 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
 
         boolean needsRepeat = rowReceiver.requirements().contains(Requirement.REPEAT);
         if (singleShard) {
-            pagingIterator = needsRepeat ? PassThroughPagingIterator.<Row>repeatable() : PassThroughPagingIterator.<Row>oneShot();
+            pagingIterator = needsRepeat ?
+                    PassThroughPagingIterator.<ShardId, Row>repeatable() :
+                    PassThroughPagingIterator.<ShardId, Row>oneShot();
             orderedCollectorsMap = null;
             futureCallback = null;
         } else {
             pagingIterator = new SortedPagingIterator<>(rowOrdering, needsRepeat);
-            futureCallback = new FutureCallback<List<NumberedIterable<Row>>>() {
+            futureCallback = new FutureCallback<List<KeyIterable<ShardId, Row>>>() {
                 @Override
-                public void onSuccess(@Nullable List<NumberedIterable<Row>> result) {
+                public void onSuccess(@Nullable List<KeyIterable<ShardId, Row>> result) {
                     assert result != null : "result must not be null";
 
                     pagingIterator.merge(result);
@@ -117,7 +120,7 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
                 }
             };
 
-            this.orderedCollectorsMap = new IntObjectOpenHashMap<>(orderedDocCollectors.size());
+            this.orderedCollectorsMap = new ObjectObjectOpenHashMap<>(orderedDocCollectors.size());
             for (OrderedDocCollector orderedDocCollector : orderedDocCollectors) {
                 this.orderedCollectorsMap.put(orderedDocCollector.shardId(), orderedDocCollector);
             }
@@ -135,7 +138,7 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
     }
 
     private void runThreaded() {
-        List<ListenableFuture<NumberedIterable<Row>>> futures = new ArrayList<>(orderedDocCollectors.size());
+        List<ListenableFuture<KeyIterable<ShardId, Row>>> futures = new ArrayList<>(orderedDocCollectors.size());
         for (OrderedDocCollector orderedDocCollector : orderedDocCollectors.subList(1, this.orderedDocCollectors.size())) {
             try {
                 futures.add(executor.submit(orderedDocCollector));
@@ -150,7 +153,7 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
     }
 
     private void runWithoutThreads(OrderedDocCollector orderedDocCollector) {
-        NumberedIterable<Row> rows;
+        KeyIterable<ShardId, Row> rows;
         try {
             rows = orderedDocCollector.call();
         } catch (Exception e) {
@@ -180,7 +183,7 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
                         if (singleShard) {
                             runWithoutThreads(orderedDocCollectors.get(0));
                         } else {
-                            int shardId = pagingIterator.exhaustedIterable();
+                            ShardId shardId = pagingIterator.exhaustedIterable();
                             LOGGER.trace("Iterator {} exhausted. Retrieving more data", shardId);
                             runWithoutThreads(orderedCollectorsMap.get(shardId));
                         }

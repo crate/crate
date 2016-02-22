@@ -24,22 +24,22 @@ package io.crate.operation.merge;
 
 import java.util.Iterator;
 
-public class NumberedIterable<T> implements Iterable<T> {
+public class KeyIterable<TKey, TRow> implements Iterable<TRow> {
 
-    private final int number;
-    private final Iterable<T> iterable;
+    private final TKey key;
+    private final Iterable<TRow> iterable;
 
-    public NumberedIterable(int number, Iterable<T> iterable) {
-        this.number = number;
+    public KeyIterable(TKey key, Iterable<TRow> iterable) {
+        this.key = key;
         this.iterable = iterable;
     }
 
     @Override
-    public Iterator<T> iterator() {
+    public Iterator<TRow> iterator() {
         return iterable.iterator();
     }
 
-    public int number() {
-        return number;
+    public TKey key() {
+        return key;
     }
 }

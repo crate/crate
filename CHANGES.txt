@@ -2,6 +2,13 @@
 Changes for Crate
 =================
 
+Unreleased
+==========
+
+ - Fixed an issue that could cause queries with ORDER BY on partitioned tables
+   to get stuck if multiple shards were on the same node and a single shard
+   couldn't produce the whole result
+
 2016/02/15 0.54.5
 =================
 

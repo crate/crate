@@ -23,12 +23,12 @@ package io.crate.operation.merge;
 
 import java.util.Iterator;
 
-public interface PagingIterator<T> extends Iterator<T> {
+public interface PagingIterator<TKey, TRow> extends Iterator<TRow> {
 
     /**
      * Add additional iterables to the PagingIterator. (E.g. due to a new Page that has arrived)
      */
-    void merge(Iterable<? extends NumberedIterable<T>> iterables);
+    void merge(Iterable<? extends KeyIterable<TKey, TRow>> iterables);
 
     /**
      * This is called if the last page has been received and merge has been called for the last time.
@@ -37,11 +37,11 @@ public interface PagingIterator<T> extends Iterator<T> {
      */
     void finish();
 
-    int exhaustedIterable();
+    TKey exhaustedIterable();
 
     /**
      * create an iterable to repeat the previous iteration
      * @return an iterable that will iterate through the already emitted items and emit them again in the same order as before
      */
-    Iterable<T> repeat();
+    Iterable<TRow> repeat();
 }

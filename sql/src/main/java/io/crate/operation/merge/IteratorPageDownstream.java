@@ -54,7 +54,7 @@ public class IteratorPageDownstream implements PageDownstream {
     private final RowReceiver rowReceiver;
     private final Executor executor;
     private final AtomicBoolean finished = new AtomicBoolean(false);
-    private final PagingIterator<Row> pagingIterator;
+    private final PagingIterator<Void, Row> pagingIterator;
     private final TopRowUpstream topRowUpstream;
 
     private volatile PageConsumeListener pausedListener;
@@ -62,7 +62,7 @@ public class IteratorPageDownstream implements PageDownstream {
     private boolean downstreamWantsMore = true;
 
     public IteratorPageDownstream(final RowReceiver rowReceiver,
-                                  final PagingIterator<Row> pagingIterator,
+                                  final PagingIterator<Void, Row> pagingIterator,
                                   Optional<Executor> executor) {
         this.pagingIterator = pagingIterator;
         this.executor = executor.or(MoreExecutors.directExecutor());
@@ -163,16 +163,13 @@ public class IteratorPageDownstream implements PageDownstream {
         }
     }
 
-    private Iterable<? extends NumberedIterable<Row>> numberedBuckets(List<Bucket> buckets) {
-        return Iterables.transform(buckets, new Function<Bucket, NumberedIterable<Row>>() {
-
-            int number = -1;
+    private Iterable<? extends KeyIterable<Void, Row>> numberedBuckets(List<Bucket> buckets) {
+        return Iterables.transform(buckets, new Function<Bucket, KeyIterable<Void, Row>>() {
 
             @Nullable
             @Override
-            public NumberedIterable<Row> apply(Bucket input) {
-                number++;
-                return new NumberedIterable<>(number, input);
+            public KeyIterable<Void, Row> apply(Bucket input) {
+                return new KeyIterable<>(null, input);
             }
         });
     }

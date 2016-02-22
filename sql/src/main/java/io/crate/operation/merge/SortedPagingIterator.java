@@ -31,9 +31,9 @@ import java.util.Collections;
  * {@link #hasNext()} might call next() on a backing iterator. So if one or more of the backing iterators contains shared
  * objects these should be consumed after a next() call and before the next hasNext() or next() call or they'll change.
  */
-public class SortedPagingIterator<T> implements PagingIterator<T> {
+public class SortedPagingIterator<TKey, TRow> implements PagingIterator<TKey, TRow> {
 
-    private final SortedMergeIterator<T> mergingIterator;
+    private final SortedMergeIterator<TKey, TRow> mergingIterator;
     private boolean ignoreLeastExhausted = false;
 
     /**
@@ -41,17 +41,17 @@ public class SortedPagingIterator<T> implements PagingIterator<T> {
      * @param needsRepeat if true additional internal state is kept in order to be able to repeat this iterator.
      *                    If this is false a call to {@link #repeat()} might result in an excaption, at best the behaviour is undefined.
      */
-    public SortedPagingIterator(Ordering<T> ordering, boolean needsRepeat) {
+    public SortedPagingIterator(Ordering<TRow> ordering, boolean needsRepeat) {
         if (needsRepeat) {
-            mergingIterator = new RecordingSortedMergeIterator<>(Collections.<NumberedIterable<T>>emptyList(), ordering);
+            mergingIterator = new RecordingSortedMergeIterator<>(Collections.<KeyIterable<TKey, TRow>>emptyList(), ordering);
         } else {
             // does not support repeat !!!
-            mergingIterator = new PlainSortedMergeIterator<>(Collections.<NumberedIterable<T>>emptyList(), ordering);
+            mergingIterator = new PlainSortedMergeIterator<>(Collections.<KeyIterable<TKey, TRow>>emptyList(), ordering);
         }
     }
 
     @Override
-    public void merge(Iterable<? extends NumberedIterable<T>> iterables) {
+    public void merge(Iterable<? extends KeyIterable<TKey, TRow>> iterables) {
         mergingIterator.merge(iterables);
     }
 
@@ -61,12 +61,12 @@ public class SortedPagingIterator<T> implements PagingIterator<T> {
     }
 
     @Override
-    public int exhaustedIterable() {
+    public TKey exhaustedIterable() {
         return mergingIterator.exhaustedIterable();
     }
 
     @Override
-    public Iterable<T> repeat() {
+    public Iterable<TRow> repeat() {
         return mergingIterator.repeat();
     }
 
@@ -76,7 +76,7 @@ public class SortedPagingIterator<T> implements PagingIterator<T> {
     }
 
     @Override
-    public T next() {
+    public TRow next() {
         return mergingIterator.next();
     }
 

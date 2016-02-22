@@ -29,12 +29,12 @@ import com.google.common.collect.Iterators;
 import java.util.Collections;
 import java.util.Iterator;
 
-public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implements PagingIterator<T> {
+public class PassThroughPagingIterator<TKey, TRow> extends ForwardingIterator<TRow> implements PagingIterator<TKey, TRow> {
 
-    private Iterator<T> iterator = Collections.emptyIterator();
-    private final ImmutableList.Builder<NumberedIterable<T>> iterables = ImmutableList.builder();
+    private Iterator<TRow> iterator = Collections.emptyIterator();
+    private final ImmutableList.Builder<KeyIterable<TKey, TRow>> iterables = ImmutableList.builder();
     private final boolean repeatable;
-    private Iterable<T> storedForRepeat = null;
+    private Iterable<TRow> storedForRepeat = null;
 
     private PassThroughPagingIterator(boolean repeatable) {
         this.repeatable = repeatable;
@@ -43,7 +43,7 @@ public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implemen
     /**
      * Create an iterator that is able to repeat over what has previously been iterated
      */
-    public static <T> PassThroughPagingIterator<T> repeatable() {
+    public static <TKey, TRow> PassThroughPagingIterator<TKey, TRow> repeatable() {
         return new PassThroughPagingIterator<>(true);
     }
 
@@ -51,18 +51,18 @@ public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implemen
      * Create an iterator that is not able to repeat.
      * Calling {@link #repeat()} with instances created by this method is discouraged.
      */
-    public static <T> PassThroughPagingIterator<T> oneShot() {
+    public static <TKey, TRow> PassThroughPagingIterator<TKey, TRow> oneShot() {
         return new PassThroughPagingIterator<>(false);
     }
 
     @Override
-    protected Iterator<T> delegate() {
+    protected Iterator<TRow> delegate() {
         return iterator;
     }
 
     @Override
-    public void merge(Iterable<? extends NumberedIterable<T>> iterables) {
-        Iterable<T> concat = Iterables.concat(iterables);
+    public void merge(Iterable<? extends KeyIterable<TKey, TRow>> iterables) {
+        Iterable<TRow> concat = Iterables.concat(iterables);
 
         if (repeatable) {
             this.iterables.addAll(iterables);
@@ -80,13 +80,13 @@ public class PassThroughPagingIterator<T> extends ForwardingIterator<T> implemen
     }
 
     @Override
-    public int exhaustedIterable() {
-        return -1;
+    public TKey exhaustedIterable() {
+        return null;
     }
 
     @Override
-    public Iterable<T> repeat() {
-        Iterable<T> repeatMe = storedForRepeat;
+    public Iterable<TRow> repeat() {
+        Iterable<TRow> repeatMe = storedForRepeat;
         if (repeatMe == null) {
             repeatMe = Iterables.concat(this.iterables.build());
             this.storedForRepeat = repeatMe;
