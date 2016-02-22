@@ -22,8 +22,8 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.operation.reference.sys.SysNodeObjectReference;
 import io.crate.monitor.ExtendedOsStats;
+import io.crate.operation.reference.sys.SysNodeObjectReference;
 
 
 public class NodeOsExpression extends SysNodeObjectReference {
@@ -43,7 +43,8 @@ public class NodeOsExpression extends SysNodeObjectReference {
         childImplementations.put(UPTIME, new OsExpression() {
             @Override
             public Long value() {
-                return extendedOsStats.uptime().millis();
+                long uptime = extendedOsStats.uptime().millis();
+                return uptime == -1000 ? -1 : uptime;
             }
         });
         childImplementations.put(TIMESTAMP, new OsExpression() {

@@ -42,10 +42,8 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         return builder.build();
     }
 
-    @Override
     @After
-    public void tearDown() throws Exception {
-        super.tearDown();
+    public void resetSettings() throws Exception {
         execute("reset global bulk.partition_creation_timeout, bulk.request_timeout");
     }
 

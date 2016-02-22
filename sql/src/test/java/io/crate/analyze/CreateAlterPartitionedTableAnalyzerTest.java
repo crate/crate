@@ -149,8 +149,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> oMapping = (Map<String, Object>)analysis.mappingProperties().get("o");
         assertThat(mapToSortedString(oMapping), is(
-                "doc_values=false, dynamic=true, index=not_analyzed, properties={"+
-                    "name={doc_values=false, index=no, store=false, type=string}}, store=false, type=object"));
+                "dynamic=true, properties={name={doc_values=false, index=no, store=false, type=string}}, type=object"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"), not(hasKey("date")));
 
         Map metaColumns = (Map) ((Map) analysis.mapping().get("_meta")).get("columns");

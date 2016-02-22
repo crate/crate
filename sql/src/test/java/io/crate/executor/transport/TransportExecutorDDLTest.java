@@ -42,12 +42,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
-import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
-import org.elasticsearch.cluster.settings.DynamicSettings;
-import org.elasticsearch.cluster.settings.Validator;
-import org.elasticsearch.common.inject.Key;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
@@ -89,10 +84,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         executor = internalCluster().getInstance(TransportExecutor.class);
     }
 
-    @Override
     @After
-    public void tearDown() throws Exception {
-        super.tearDown();
+    public void resetSettings() throws Exception {
         client().admin().cluster().prepareUpdateSettings()
                 .setPersistentSettingsToRemove(ImmutableSet.of("stats.enabled"))
                 .setTransientSettingsToRemove(ImmutableSet.of("stats.enabled", "bulk.request_timeout"))

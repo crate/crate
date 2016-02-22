@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
@@ -39,7 +40,6 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.search.SearchHit;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -52,6 +52,7 @@ import java.io.File;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
@@ -1502,8 +1503,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))')");
         assertThat(response.rowCount(), is(1L));
-        // TODO: FIX ME! $ is not available
-        /*execute("select * from t where within(p, ?)", $(ImmutableMap.of(
+        execute("select * from t where within(p, ?)", $(ImmutableMap.of(
                 "type", "Polygon",
                 "coordinates", new double[][][] {
                         {
@@ -1518,7 +1518,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
 
         execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 35, 5 5 ))') = false");
-        assertThat(response.rowCount(), is(0L));*/
+        assertThat(response.rowCount(), is(0L));
     }
 
     @Test

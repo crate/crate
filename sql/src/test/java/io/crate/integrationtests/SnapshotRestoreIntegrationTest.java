@@ -230,12 +230,13 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
     @Test
     public void testCreateSnapshotInURLRepoFails() throws Exception {
+        // URL Repositories are always marked as read_only
         execute("CREATE REPOSITORY uri_repo TYPE url WITH (url=?)",
                 new Object[]{ TEMPORARY_FOLDER.newFolder().toURI().toString() });
         waitNoPendingTasksOnAll();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("URL repository doesn't support this operation");
+        expectedException.expectMessage("[uri_repo] cannot create snapshot in a readonly repository");
         execute("CREATE SNAPSHOT uri_repo.my_snapshot ALL WITH (wait_for_completion=true)");
     }
 
@@ -336,6 +337,12 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         assertThat(TestingHelpers.printedTable(response.rows()), is("doc.my_table_1\ndoc.my_table_2\n"));
     }
 
+    /**
+     * Test to restore a concrete partitioned table.
+     *
+     * This requires a patch in ES in order to restore templates when concrete tables are passed as an restore argument:
+     * https://github.com/crate/elasticsearch/commit/3c14e74a3e50ea7d890f436db72ff18c2953ebc4
+     */
     @Test
     public void testRestoreOnlyOnePartitionedTable() throws Exception {
         createTable("my_parted_1", true);

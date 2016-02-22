@@ -168,6 +168,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         future.get();
     }
 
+    /**
+     * Test requires patch in ES 2.1 (https://github.com/crate/elasticsearch/commit/66564f88d21ad3d3be908dbe50974c448f7929d7)
+     * or ES 2.x (https://github.com/elastic/elasticsearch/pull/16767).
+     * Otherwise the rowCount returned from the copy from statement is ambiguous.
+     */
     @Test
     public void testCopyFromIntoPartitionedTable() throws Exception {
         execute("create table quotes (" +
