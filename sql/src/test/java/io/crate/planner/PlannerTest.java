@@ -2055,7 +2055,8 @@ public class PlannerTest extends CrateUnitTest {
     @Test
     public void testShardQueueSizeCalculation() throws Exception {
         CollectAndMerge plan = plan("select name from users order by name limit 100");
-        int shardQueueSize = ((RoutedCollectPhase) plan.collectPhase()).shardQueueSize(plan.collectPhase().executionNodes().iterator().next());
+        int shardQueueSize = ((RoutedCollectPhase) plan.collectPhase()).shardQueueSize(
+                plan.collectPhase().executionNodes().iterator().next());
         assertThat(shardQueueSize, is(75));
     }
 

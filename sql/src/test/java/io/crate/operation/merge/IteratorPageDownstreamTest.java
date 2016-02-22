@@ -24,12 +24,7 @@ package io.crate.operation.merge;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.core.collections.ArrayBucket;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.BucketPage;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
-import io.crate.core.collections.SingleRowBucket;
+import io.crate.core.collections.*;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.test.integration.CrateUnitTest;
@@ -47,9 +42,7 @@ import javax.annotation.Nonnull;
 import java.util.concurrent.Executor;
 
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 public class IteratorPageDownstreamTest extends CrateUnitTest {
 
@@ -66,7 +59,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
     };
 
     @Mock
-    PagingIterator<Row> mockedPagingIterator;
+    PagingIterator<Void, Row> mockedPagingIterator;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -79,11 +72,11 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         SettableFuture<Bucket> b1 = SettableFuture.create();
         SettableFuture<Bucket> b2 = SettableFuture.create();
         downstream.nextPage(new BucketPage(ImmutableList.of(b1, b2)), PAGE_CONSUME_LISTENER);
-        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends NumberedIterable<Row>>>any());
+        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends KeyIterable<Void, Row>>>any());
         b1.set(Bucket.EMPTY);
-        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends NumberedIterable<Row>>>any());
+        verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends KeyIterable<Void, Row>>>any());
         b2.set(Bucket.EMPTY);
-        verify(mockedPagingIterator, times(1)).merge(Mockito.<Iterable<? extends NumberedIterable<Row>>>any());
+        verify(mockedPagingIterator, times(1)).merge(Mockito.<Iterable<? extends KeyIterable<Void, Row>>>any());
     }
 
     @Test
@@ -99,7 +92,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
 
         CollectingRowReceiver rowReceiver = new FailingRowReceiver();
         IteratorPageDownstream downstream = new IteratorPageDownstream(
-                rowReceiver, PassThroughPagingIterator.<Row>oneShot(), Optional.<Executor>absent());
+                rowReceiver, PassThroughPagingIterator.<Void, Row>oneShot(), Optional.<Executor>absent());
 
         SettableFuture<Bucket> b1 = SettableFuture.create();
         downstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
@@ -139,7 +132,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withLimit(1);
         IteratorPageDownstream downstream = new IteratorPageDownstream(
                 rowReceiver,
-                PassThroughPagingIterator.<Row>oneShot(),
+                PassThroughPagingIterator.<Void, Row>oneShot(),
                 Optional.<Executor>absent()
         );
 
@@ -164,7 +157,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
 
          IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
                  rowReceiver,
-                 PassThroughPagingIterator.<Row>oneShot(),
+                 PassThroughPagingIterator.<Void, Row>oneShot(),
                  Optional.<Executor>of(new Executor() {
                      @Override
                      public void execute(@Nonnull Runnable command) {
@@ -193,7 +186,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
                 rowReceiver,
-                PassThroughPagingIterator.<Row>repeatable(),
+                PassThroughPagingIterator.<Void, Row>repeatable(),
                 Optional.<Executor>absent());
 
         SettableFuture<Bucket> b1 = SettableFuture.create();
@@ -229,7 +222,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(2);
         IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
                 rowReceiver,
-                PassThroughPagingIterator.<Row>repeatable(),
+                PassThroughPagingIterator.<Void, Row>repeatable(),
                 Optional.<Executor>absent());
 
         SettableFuture<Bucket> b1 = SettableFuture.create();
