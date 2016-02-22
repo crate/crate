@@ -83,7 +83,7 @@ public class CrateCorePlugin extends Plugin {
     @Override
     public Settings additionalSettings() {
         Settings.Builder builder = Settings.builder();
-        builder.put(settings);
+        builder.put(pluginLoader.additionalSettings());
         builder.put(crateComponentLoader.additionalSettings());
         return builder.build();
     }
