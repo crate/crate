@@ -20,25 +20,15 @@
  * agreement.
  */
 
-package io.crate.node;
+package io.crate;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.plugin.CrateCorePlugin;
-import org.elasticsearch.Version;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.plugin.discovery.multicast.MulticastDiscoveryPlugin;
-import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.bootstrap.JarHell;
+import org.junit.Test;
 
-import java.util.Collection;
+public class AppJarHellTest {
 
-public class CrateNode extends Node {
-
-    private static final Collection<Class<? extends Plugin>> CLASSPATH_PLUGINS = ImmutableList.of(
-            CrateCorePlugin.class,
-            MulticastDiscoveryPlugin.class);
-
-    public CrateNode(Environment environment) {
-        super(environment, Version.CURRENT, CLASSPATH_PLUGINS);
+    @Test
+    public void testInvoke() throws Exception {
+        JarHell.checkJarHell();
     }
 }

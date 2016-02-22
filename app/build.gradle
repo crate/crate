@@ -4,15 +4,10 @@ buildscript {
     repositories {
         jcenter()
     }
-
-    dependencies {
-        classpath 'eu.appsatori:gradle-fatjar-plugin:0.3'
-    }
 }
 
 apply plugin: 'distribution'
 apply plugin: 'java'
-apply plugin: 'eu.appsatori.fatjar'
 apply plugin: 'signing'
 apply plugin: 'maven'
 
@@ -44,12 +39,9 @@ dependencies {
     compile project(':blob')
     compile project(':udc')
     compile project(':dns-discovery')
+    compile project(':es-discovery-multicast')
 
-    testCompile ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.1.16') {
-        exclude group: 'junit', module: 'junit'
-    }
-    testCompile 'junit:junit:4.11'
-
+    testCompile project(':testing')
 
     compileNotTransitive project(':core')
     compileNotTransitive project(':es')
@@ -59,6 +51,7 @@ dependencies {
     compileNotTransitive project(':blob')
     compileNotTransitive project(':udc')
     compileNotTransitive project(':dns-discovery')
+    compileNotTransitive project(':es-discovery-multicast')
 }
 
 task release(dependsOn: 'distTar') << {
@@ -68,22 +61,6 @@ task release(dependsOn: 'distTar') << {
 task nightly(dependsOn: 'distTar') << {
     logger.info("nightly version: " + project(':core').getVersion.version);
 }
-
-
-fatJar {
-    dependsOn ':core:getVersion'
-    doFirst {
-        manifest.attributes 'Implementation-Version': project(':core').getVersion.version
-    }
-    manifest {
-        attributes 'Main-Class': 'io.crate.bootstrap.CrateF',
-        'Implementation-Title': 'Crate',
-        'Built-Date': new Date(),
-        'Built-JDK': System.getProperty('java.version'),
-        'Built-Gradle': gradle.gradleVersion
-    }
-}
-
 
 task writeBuildInfo (dependsOn: [':core:getVersion']) << {
     def hash = "git rev-parse HEAD".execute().in.text.trim()
@@ -306,6 +283,7 @@ distributions {
                 exclude 'sigar-*.jar'
                 exclude 'crate-*.jar'
                 exclude 'es.jar'
+                exclude 'es-*.jar'
             }
             into("lib") {
                 from jar
@@ -436,9 +414,7 @@ test {
 
 sourceSets {
     test {
-        resources {
-            srcDir 'src/test/java'
-        }
+        output.resourcesDir = null
     }
 }
 
