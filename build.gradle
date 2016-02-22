@@ -97,6 +97,7 @@ allprojects {
            inheritOutputDirs = false
            outputDir = file('build-idea/classes/main')
            testOutputDir = file('build-idea/classes/test')
+           excludeDirs += file('build')
        }
     }
 
