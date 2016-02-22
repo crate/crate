@@ -11,4 +11,5 @@ include 'es',
         'udc',
         'dns-discovery',
         'aws',
-        'sigar'
+        'sigar',
+        'es-discovery-multicast'
