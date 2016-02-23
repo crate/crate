@@ -108,7 +108,7 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
         String expected = "CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                           "   \"col1\" GEO_SHAPE INDEX USING QUADTREE WITH (\n" +
                           "      distance_error_pct = 0.25,\n" +
-                          "      tree_levels = 26\n" +
+                          "      precision = '1.0m'\n" +
                           "   )\n" +
                           ")\n" +
                           "CLUSTERED INTO 1 SHARDS\n" +
