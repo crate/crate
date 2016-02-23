@@ -22,7 +22,9 @@ before_install:
   - ulimit -u 65535
 
 script:
-  - ./gradlew -PtestForks=2 test itest -s
+  - ./gradlew -PtestForks=2 -s -x client:test test
+  - ./gradlew -s client:test
+  - ./gradlew -s itest
 
 after_success:
   - ./gradlew jacocoReport
