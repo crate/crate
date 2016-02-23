@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.analyze.UpdateStatementAnalyzer;
@@ -488,7 +487,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        waitForConcreteMappingsOnAll("test", Constants.DEFAULT_MAPPING_TYPE, "coolness.x");
+        waitForMappingUpdateOnAll("test", "coolness.x");
         execute("select coolness['y'], coolness['x'] from test");
         assertEquals(1, response.rowCount());
         assertEquals(new_map, response.rows()[0][0]);

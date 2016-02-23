@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Predicate;
-import io.crate.Constants;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
@@ -286,7 +285,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         execute("create table t1 (o object)");
         ensureYellow();
         execute("insert into t1 values ({a='abc'})");
-        waitForConcreteMappingsOnAll("t1", Constants.DEFAULT_MAPPING_TYPE, "o.a");
+        waitForMappingUpdateOnAll("t1", "o.a");
 
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Validation failed for o['a']: Invalid string");
