@@ -212,14 +212,15 @@ public class Routing implements Streamable {
     public static Routing forTableOnSingleNode(TableIdent tableIdent, String nodeId) {
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         Map<String, List<Integer>> tableLocation = new TreeMap<>();
-        tableLocation.put(tableIdent.fqn(), null);
+        tableLocation.put(tableIdent.fqn(), Collections.<Integer>emptyList());
         locations.put(nodeId, tableLocation);
         return new Routing(locations);
     }
 
     public static Routing forTableOnAllNodes(TableIdent tableIdent, DiscoveryNodes nodes) {
         TreeMapBuilder<String, Map<String, List<Integer>>> nodesMapBuilder = TreeMapBuilder.newMapBuilder();
-        Map<String, List<Integer>> tableMap = TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableIdent.fqn(), null).map();
+        Map<String, List<Integer>> tableMap = TreeMapBuilder.<String, List<Integer>>newMapBuilder()
+                .put(tableIdent.fqn(), Collections.<Integer>emptyList()).map();
         for (DiscoveryNode node : nodes) {
             nodesMapBuilder.put(node.id(), tableMap);
         }

@@ -495,4 +495,14 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("One Order by expression must not contain symbols from more than one table");
         execute("select x,y,z from t1,t2,t3 order by x+y");
     }
+
+    @Test
+    public void testJoinOnInformationSchema() throws Exception {
+        execute("create table t (id int, name string) with (number_of_replicas = 1)");
+        ensureYellow();
+        execute("insert into t (id, name) values (1, 'Marvin')");
+        execute("refresh table t");
+        execute("select * from t inner join information_schema.tables on t.id = tables.number_of_replicas");
+        assertThat(response.rowCount(), is(1L));
+    }
 }

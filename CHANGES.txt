@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a NPE that could occur if a system table was joined with a regular
+   user table.
+
  - Fixed an issue that could cause queries with ORDER BY on partitioned tables
    to get stuck if multiple shards were on the same node and a single shard
    couldn't produce the whole result

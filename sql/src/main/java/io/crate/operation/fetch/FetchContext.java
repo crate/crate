@@ -88,7 +88,9 @@ public class FetchContext extends AbstractExecutionSubContext {
             for (Map.Entry<String, List<Integer>> indexShardsEntry : indexShards.entrySet()) {
                 String index = indexShardsEntry.getKey();
                 Integer base = phase.bases().get(index);
-                assert base != null : "no readerId base found for " + index;
+                if (base == null) {
+                    continue;
+                }
                 TableIdent ident = index2TableIdent.get(index);
                 assert ident != null : "no tableIdent found for index " + index;
                 tableIdents.put(base, ident);

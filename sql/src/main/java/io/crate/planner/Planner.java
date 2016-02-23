@@ -115,7 +115,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 }
                 for (Map.Entry<String, Map<Integer, String>> entry : shardNodes.entrySet()) {
                     Integer base = bases.get(entry.getKey());
-                    assert base != null;
+                    if (base == null) {
+                        continue;
+                    }
                     for (Map.Entry<Integer, String> nodeEntries : entry.getValue().entrySet()) {
                         int readerId = base + nodeEntries.getKey();
                         IntSet readerIds = nodeReaders.get(nodeEntries.getValue());
@@ -209,17 +211,18 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 shardNodes = new HashMap<>();
             }
             for (Map.Entry<String, Map<String, List<Integer>>> location : locations.entrySet()) {
-                for (Map.Entry<String, List<Integer>> nodeRouting : location.getValue().entrySet()) {
-                    Map<Integer, String> shardsOnIndex = shardNodes.get(nodeRouting.getKey());
-                    tableIndices.put(tableIdent, nodeRouting.getKey());
+                for (Map.Entry<String, List<Integer>> indexEntry : location.getValue().entrySet()) {
+                    Map<Integer, String> shardsOnIndex = shardNodes.get(indexEntry.getKey());
+                    tableIndices.put(tableIdent, indexEntry.getKey());
+                    List<Integer> shards = indexEntry.getValue();
                     if (shardsOnIndex == null) {
-                        shardsOnIndex = new HashMap<>(nodeRouting.getValue().size());
-                        shardNodes.put(nodeRouting.getKey(), shardsOnIndex);
-                        for (Integer id : nodeRouting.getValue()) {
+                        shardsOnIndex = new HashMap<>(shards.size());
+                        shardNodes.put(indexEntry.getKey(), shardsOnIndex);
+                        for (Integer id : shards) {
                             shardsOnIndex.put(id, location.getKey());
                         }
                     } else {
-                        for (Integer id : nodeRouting.getValue()) {
+                        for (Integer id : shards) {
                             String allocatedNodeId = shardsOnIndex.get(id);
                             if (allocatedNodeId != null) {
                                 if (!allocatedNodeId.equals(location.getKey())) {

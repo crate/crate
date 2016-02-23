@@ -35,6 +35,9 @@ public class IndexBaseVisitor extends Routing.RoutingLocationVisitor {
 
     @Override
     public boolean visitIndex(String nodeId, String index, List<Integer> shardIds) {
+        if (shardIds.isEmpty()) {
+            return true;
+        }
         Integer currentMax = bases.get(index);
         Integer newMax = Collections.max(shardIds);
         if (currentMax == null || currentMax < newMax) {
