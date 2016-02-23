@@ -96,7 +96,7 @@ public class SysSnapshotsTableInfo extends SysTableInfo {
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         Map<String, List<Integer>> tableLocation = new TreeMap<>();
-        tableLocation.put(IDENT.fqn(), null);
+        tableLocation.put(IDENT.fqn(), Collections.<Integer>emptyList());
         // route to random master or data node,
         // because RepositoriesService (and so snapshots info) is only available there
         locations.put(randomMasterOrDataNode().id(), tableLocation);

@@ -29,6 +29,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -48,7 +49,7 @@ public abstract class SysTableInfo extends AbstractTableInfo {
         for (DiscoveryNode node : nodes) {
             builder.put(
                     node.id(),
-                    TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(ident().fqn(), null).map()
+                    TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(ident().fqn(), Collections.<Integer>emptyList()).map()
             );
         }
         return new Routing(builder.map());

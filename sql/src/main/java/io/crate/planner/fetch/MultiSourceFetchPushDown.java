@@ -75,6 +75,13 @@ public class MultiSourceFetchPushDown {
         for (Map.Entry<QualifiedName, MultiSourceSelect.Source> entry : statement.sources().entrySet()) {
             MultiSourceSelect.Source source = entry.getValue();
             if (!(source.relation() instanceof DocTableRelation)) {
+                int index = 0;
+                for (Symbol output : source.querySpec().outputs()) {
+                    RelationColumn rc = new RelationColumn(entry.getKey(), index++, output.valueType());
+                    mssOutputs.add(rc);
+                    mssOutputMap.put(output, rc);
+                    topLevelOutputMap.put(output, new InputColumn(mssOutputs.size() - 1, output.valueType()));
+                }
                 continue;
             }
 
