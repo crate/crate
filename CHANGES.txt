@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for the ``unnest`` table function
+
  - Fixed a NPE that could occur if a system table was joined with a regular
    user table.
 
