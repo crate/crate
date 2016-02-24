@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a NPE that occurred if a table was created using the ES API with a
+   mapping that uses ``copy_to`` but does not define ``_meta.indices``
+
  - Added support for the ``unnest`` table function
 
  - Fixed a NPE that could occur if a system table was joined with a regular
