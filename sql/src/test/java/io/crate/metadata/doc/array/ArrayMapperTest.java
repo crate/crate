@@ -270,7 +270,8 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
                 .bytes());
         assertThat(doc.dynamicMappingsUpdate() != null, is(true));
         assertThat(doc.docs().size(), is(1));
-        assertThat(doc.docs().get(0).getValues("array_field.new"), arrayContainingInAnyOrder("1"));
+        String[] values = doc.docs().get(0).getValues("array_field.new");
+        assertThat(values, arrayContainingInAnyOrder(is("T"), is("1")));
         String mappingSourceString = new CompressedXContent(mapper, XContentType.JSON, ToXContent.EMPTY_PARAMS).string();
         assertThat(
                 mappingSourceString,
