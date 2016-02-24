@@ -173,18 +173,12 @@ public class DocIndexMetaData {
     }
 
     private void addGeoReference(ColumnIdent column, @Nullable String tree, @Nullable Integer treeLevels, @Nullable Double distanceErrorPct) {
-        GeoReferenceInfo.Builder builder = new GeoReferenceInfo.Builder();
-        builder.ident(refIdent(column));
-        if (tree != null) {
-            builder.geoTree(tree);
-        }
-        if (treeLevels != null) {
-            builder.treeLevels(treeLevels);
-        }
-        if (distanceErrorPct != null) {
-            builder.distanceErrorPct(distanceErrorPct);
-        }
-        GeoReferenceInfo info = builder.build();
+        GeoReferenceInfo info = new GeoReferenceInfo(
+                refIdent(column),
+                tree,
+                treeLevels,
+                distanceErrorPct);
+
         columnsBuilder.add(info);
         referencesBuilder.put(column, info);
     }

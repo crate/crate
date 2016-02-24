@@ -21,10 +21,10 @@
 
 package io.crate.metadata;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -39,41 +39,7 @@ public class GeoReferenceInfo extends ReferenceInfo {
         }
     };
 
-    public static class Builder {
-
-        private ReferenceIdent ident;
-        private String tree = "geohash"; // reflects the default value
-        private @Nullable Integer treeLevels;
-        private @Nullable Double distanceErrorPct;
-
-
-        public Builder ident(ReferenceIdent ident) {
-            this.ident = ident;
-            return this;
-        }
-
-        public Builder treeLevels(Integer treeLevels) {
-            this.treeLevels = treeLevels;
-            return this;
-        }
-
-        public Builder distanceErrorPct(Double errorPct) {
-            this.distanceErrorPct = errorPct;
-            return this;
-        }
-
-        public Builder geoTree(String tree) {
-            this.tree = tree;
-            return this;
-        }
-
-        public GeoReferenceInfo build() {
-            Preconditions.checkNotNull(ident, "ident is null");
-            Preconditions.checkNotNull(tree, "tree is null");
-            return new GeoReferenceInfo(ident, tree, treeLevels, distanceErrorPct);
-        }
-
-    }
+    private static final String DEFAULT_TREE = "geohash";
 
     private String geoTree;
     private @Nullable Integer treeLevels;
@@ -83,11 +49,11 @@ public class GeoReferenceInfo extends ReferenceInfo {
     }
 
     public GeoReferenceInfo(ReferenceIdent ident,
-                            String tree,
+                            @Nullable String tree,
                             @Nullable Integer treeLevels,
                             @Nullable Double distanceErrorPct) {
         super(ident, RowGranularity.DOC, DataTypes.GEO_SHAPE);
-        this.geoTree = tree;
+        this.geoTree = MoreObjects.firstNonNull(tree, DEFAULT_TREE);
         this.treeLevels = treeLevels;
         this.distanceErrorPct = distanceErrorPct;
     }
