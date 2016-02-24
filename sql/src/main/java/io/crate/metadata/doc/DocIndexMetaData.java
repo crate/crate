@@ -318,7 +318,6 @@ public class DocIndexMetaData {
                 if (indicesMap.containsKey(newIdent.fqn())) {
                     IndexReferenceInfo.Builder builder = getOrCreateIndexBuilder(newIdent);
                     builder.indexType(columnIndexType)
-                            .ident(refIdent(newIdent))
                             .analyzer((String) columnProperties.get("analyzer"));
                 } else {
                     add(newIdent, columnDataType, columnIndexType);
@@ -342,7 +341,7 @@ public class DocIndexMetaData {
     private IndexReferenceInfo.Builder getOrCreateIndexBuilder(ColumnIdent ident) {
         IndexReferenceInfo.Builder builder = indicesBuilder.get(ident);
         if (builder == null) {
-            builder = new IndexReferenceInfo.Builder();
+            builder = new IndexReferenceInfo.Builder(refIdent(ident));
             indicesBuilder.put(ident, builder);
         }
         return builder;

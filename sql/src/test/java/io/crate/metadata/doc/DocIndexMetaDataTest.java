@@ -1258,6 +1258,31 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         assertThat(((GeneratedReferenceInfo) week).generatedExpression(), isFunction("date_trunc", isLiteral("week"), isReference("ts")));
         assertThat(((GeneratedReferenceInfo) week).referencedReferenceInfos(), contains(isReferenceInfo("ts")));
     }
+
+    @Test
+    public void testCopyToWithoutMetaIndices() throws Exception {
+        // regression test... this mapping used to cause an NPE
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject("properties")
+                    .startObject("description")
+                        .field("type", "string")
+                        .field("index", "not_analyzed")
+                        .array("copy_to", "description_ft")
+                    .endObject()
+                    .startObject("description_ft")
+                        .field("type", "string")
+                        .field("analyzer", "english")
+                    .endObject()
+                .endObject()
+                .endObject();
+
+        IndexMetaData metaData = getIndexMetaData("test1", builder, ImmutableSettings.EMPTY, null);
+        DocIndexMetaData md = newMeta(metaData, "test1");
+
+        assertThat(md.indices().size(), is(1));
+        assertThat(md.indices().keySet().iterator().next(), is(new ColumnIdent("description_ft")));
+    }
 }
 
 

@@ -40,6 +40,7 @@ import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -225,10 +226,12 @@ public class TestingTableInfo extends DocTableInfo {
         }
 
         public Builder addIndex(ColumnIdent columnIdent, ReferenceInfo.IndexType indexType) {
-            IndexReferenceInfo.Builder builder = new IndexReferenceInfo.Builder()
-                    .ident(new ReferenceIdent(ident, columnIdent))
-                    .indexType(indexType);
-            indexColumns.put(columnIdent, builder.build());
+            IndexReferenceInfo info = new IndexReferenceInfo(
+                    new ReferenceIdent(ident, columnIdent),
+                    indexType,
+                    Collections.<ReferenceInfo>emptyList(),
+                    null);
+            indexColumns.put(columnIdent, info);
             return this;
         }
 
