@@ -157,10 +157,11 @@ public class ValueNormalizerTest extends CrateUnitTest {
 
     @Test
     public void testNormalizePrimitiveLiteral() throws Exception {
-        ReferenceInfo info = new ReferenceInfo.Builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataTypes.BOOLEAN)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("bool")).build();
+        ReferenceInfo info = new ReferenceInfo(
+                new ReferenceIdent(TEST_TABLE_IDENT, new ColumnIdent("bool")),
+                RowGranularity.DOC,
+                DataTypes.BOOLEAN
+        );
         Literal<Boolean> trueLiteral = Literal.newLiteral(true);
 
         assertThat(valueNormalizer.normalizeInputForReference(trueLiteral, new Reference(info)),
@@ -175,10 +176,10 @@ public class ValueNormalizerTest extends CrateUnitTest {
 
     @Test
     public void testNormalizeScalar() throws Exception {
-        ReferenceInfo info = new ReferenceInfo.Builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataTypes.DOUBLE)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("double")).build();
+        ReferenceInfo info = new ReferenceInfo(
+                new ReferenceIdent(TEST_TABLE_IDENT, new ColumnIdent("double")),
+                RowGranularity.DOC,
+                DataTypes.DOUBLE);
         Function f = new Function(TEST_FUNCTION_INFO, Arrays.<Symbol>asList(Literal.newLiteral(-9.9)));
         assertThat(valueNormalizer.normalizeInputForReference(f, new Reference(info)), Matchers.<Symbol>is(Literal.newLiteral(9.9)));
     }

@@ -44,46 +44,6 @@ public class ReferenceInfo implements Streamable {
         }
     };
 
-    public static class Builder {
-        private ReferenceIdent ident;
-        private DataType type;
-        private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC; // reflects default value of objects
-        private RowGranularity granularity;
-        private IndexType indexType = IndexType.NOT_ANALYZED; // reflects default behaviour
-
-        public Builder type(DataType type) {
-            this.type = type;
-            return this;
-        }
-
-        public Builder granularity(RowGranularity rowGranularity) {
-            this.granularity = rowGranularity;
-            return this;
-        }
-
-        public Builder ident(ReferenceIdent ident) {
-            this.ident = ident;
-            return this;
-        }
-
-        public Builder ident(TableIdent table, ColumnIdent column) {
-            this.ident = new ReferenceIdent(table, column);
-            return this;
-        }
-
-        public Builder columnPolicy(ColumnPolicy columnPolicy) {
-            this.columnPolicy = columnPolicy;
-            return this;
-        }
-
-        public ReferenceInfo build() {
-            Preconditions.checkNotNull(ident, "ident is null");
-            Preconditions.checkNotNull(granularity, "granularity is null");
-            Preconditions.checkNotNull(type, "type is null");
-            return new ReferenceInfo(ident, granularity, type, columnPolicy, indexType);
-        }
-    }
-
     public enum IndexType {
         ANALYZED,
         NOT_ANALYZED,
