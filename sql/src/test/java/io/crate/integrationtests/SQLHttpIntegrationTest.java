@@ -40,6 +40,7 @@ import java.util.Locale;
 public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest {
 
     private HttpPost httpPost;
+    protected InetSocketAddress address;
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
@@ -53,7 +54,7 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
     @Before
     public void setup() {
         HttpServerTransport httpServerTransport = internalCluster().getInstance(HttpServerTransport.class);
-        InetSocketAddress address = ((InetSocketTransportAddress) httpServerTransport.boundAddress().publishAddress())
+        address = ((InetSocketTransportAddress) httpServerTransport.boundAddress().publishAddress())
                 .address();
         httpPost = new HttpPost(String.format(Locale.ENGLISH, "http://%s:%s/_sql?error_trace", address.getHostName(), address.getPort()));
     }

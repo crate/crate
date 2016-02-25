@@ -31,6 +31,7 @@ import io.crate.blob.v2.BlobIndices;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
 import io.crate.plugin.CrateCorePlugin;
+import io.crate.test.utils.Blobs;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
@@ -112,19 +113,8 @@ public class RecoveryTests extends ElasticsearchIntegrationTest {
         logger.addAppender(consoleAppender);
     }
 
-    private byte[] getDigest(String content) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-1");
-            digest.reset();
-            digest.update(content.getBytes());
-            return digest.digest();
-        } catch (NoSuchAlgorithmException e) {
-        }
-        return null;
-    }
-
     private String uploadFile(Client client, String content) {
-        byte[] digest = getDigest(content);
+        byte[] digest = Blobs.digest(content);
         String digestString = Hex.encodeHexString(digest);
         byte[] contentBytes = content.getBytes();
         logger.trace("Uploading {} digest {}", content, digestString);

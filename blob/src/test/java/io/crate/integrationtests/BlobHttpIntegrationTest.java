@@ -27,6 +27,7 @@ import com.google.common.collect.Iterables;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.rest.CrateRestFilter;
+import io.crate.test.utils.Blobs;
 import org.apache.http.Header;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.*;
@@ -104,8 +105,7 @@ public class BlobHttpIntegrationTest extends ElasticsearchIntegrationTest {
     }
 
     protected CloseableHttpResponse put(String uri, String body) throws IOException {
-
-        HttpPut httpPut = new HttpPut(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
+        HttpPut httpPut = new HttpPut(Blobs.url(address, uri));
         if(body != null){
             StringEntity bodyEntity = new StringEntity(body);
             httpPut.setEntity(bodyEntity);

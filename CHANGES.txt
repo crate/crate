@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for schemes supported by the used JVM's `URL` implementation
+   for ``COPY FROM``. These usually include``http``, ``https``, ``ftp`` and
+    ``jar``.
+
  - Conversion from (double) arrays to geo_point is now more lenient and allows
    integer values inside the array. This was done since some encoders tend to
    convert float/double values to integers.

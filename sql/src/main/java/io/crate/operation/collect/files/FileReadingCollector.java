@@ -123,9 +123,6 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
             if (this.fileUri.getScheme().equals("file") && !this.fileUri.getSchemeSpecificPart().startsWith("///")) {
                 throw new IllegalArgumentException("Invalid fileURI");
             }
-            if (!this.fileUri.getScheme().equals("file") && !this.fileUri.getScheme().equals("s3") ) {
-                throw new IllegalArgumentException("URI scheme is not supported");
-            }
         }
         this.downstream = downstream;
         downstream.setUpstream(this);
@@ -172,7 +169,7 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
         if (fileInputFactory != null) {
             return fileInputFactory.create();
         }
-        return null;
+        return new URLFileInput(fileUri);
     }
 
     @Override

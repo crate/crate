@@ -52,6 +52,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -64,6 +65,7 @@ import java.util.zip.GZIPOutputStream;
 import static io.crate.testing.TestingHelpers.createReference;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -196,9 +198,9 @@ public class FileReadingCollectorTest extends CrateUnitTest {
 
     @Test
     public void unsupportedURITest() throws Throwable {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("URI scheme is not supported");
-        getObjects("https://crate.io/docs/en/latest/sql/reference/copy_from.html");
+        expectedException.expectCause(isA(MalformedURLException.class));
+        expectedException.expectMessage("unknown protocol: invalid");
+        getObjects("invalid://crate.io/docs/en/latest/sql/reference/copy_from.html").result();
     }
 
     private void assertCorrectResult(Bucket rows) throws Throwable {

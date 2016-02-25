@@ -120,6 +120,19 @@ Using a s3 URI will set the ``shared`` option implicitly.
   connections are using the HTTPS protocol. Please make sure you update your
   firewall rules to allow outgoing connections on port ``443``.
 
+
+http, https and jar (Java URL protocols)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In addition to the schemes above, Crate supports all schemes supported by the
+`URL`_ implementation of the used JVM.
+These usually include ``http``, ``https``, ``ftp`` and ``jar``.
+Please refer to the documentation of the JVM vendor for an accurate list of
+supported protocols.
+
+
+These schemes *do not* support wildcard expansion.
+
 Parameters
 ==========
 
@@ -221,3 +234,5 @@ be overwritten.
 .. _GeoJSON: http://geojson.org/
 
 .. _WKT: http://en.wikipedia.org/wiki/Well-known_text
+
+.. _URL: http://docs.oracle.com/javase/8/docs/api/java/net/URL.html

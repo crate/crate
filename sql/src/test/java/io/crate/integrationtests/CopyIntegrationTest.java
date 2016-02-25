@@ -24,7 +24,11 @@ package io.crate.integrationtests;
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
+import io.crate.common.Hex;
+import io.crate.test.utils.Blobs;
 import io.crate.testing.TestingHelpers;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.StringEntity;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,7 +52,7 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, randomDynamicTemplates = false)
-public class CopyIntegrationTest extends SQLTransportIntegrationTest {
+public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
     private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
     private String nestedArrayCopyFilePath = getClass().getResource("/essetup/data/nested_array").getPath();
@@ -498,5 +502,23 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         response = execute("select count(*) from sys.shards where num_docs>0 and table_name='t'");
         assertThat((long) response.rows()[0][0], is(1L));
 
+    }
+
+    @Test
+    public void testCopyFromHttpUrl() throws Exception {
+        execute("create blob table blobs with (number_of_replicas = 0)");
+        execute("create table names (id int primary key, name string) with (number_of_replicas = 0)");
+        ensureYellow();
+
+        String content = "{\"id\": 1, \"name\":\"Marvin\"}";
+        String url = Blobs.url(address, "blobs", Hex.encodeHexString(Blobs.digest(content)));
+        HttpPut httpPut = new HttpPut(url);
+        httpPut.setEntity(new StringEntity(content));
+
+        httpClient.execute(httpPut);
+
+        execute("copy names from ?", $(url));
+        assertThat(response.rowCount(), is(1L));
+        assertThat(((String) execute("select name from names where id = 1").rows()[0][0]), is("Marvin"));
     }
 }
