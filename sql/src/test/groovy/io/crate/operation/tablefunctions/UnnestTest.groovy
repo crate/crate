@@ -27,25 +27,52 @@ import io.crate.analyze.symbol.Literal
 import io.crate.core.collections.Bucket
 import io.crate.testing.TestingHelpers
 import io.crate.types.ArrayType
-import io.crate.types.DataType
 import io.crate.types.DataTypes
+import org.junit.Before
 import org.junit.Test
 
 import static io.crate.analyze.symbol.Literal.newLiteral
 
 class UnnestTest extends RandomizedTest {
 
+    ArrayType longArray
+    ArrayType stringArray
+    Unnest unnest
+
+    @Before
+    public void setUp() throws Exception {
+        unnest = new Unnest();
+        stringArray = new ArrayType(DataTypes.STRING);
+        longArray = new ArrayType(DataTypes.LONG);
+    }
+
     @Test
     void testExecute() {
-        Unnest unnest = new Unnest();
-        DataType stringArray = new ArrayType(DataTypes.STRING);
-        DataType longArray = new ArrayType(DataTypes.LONG);
-
         Literal numbers = newLiteral(longArray, $(1L, 2L))
         Literal names = newLiteral(stringArray, $("Marvin", "Trillian"))
         Bucket bucket = unnest.execute([numbers, names])
 
         assert TestingHelpers.printedTable(bucket) == "1| Marvin\n" +
                 "2| Trillian\n"
+    }
+
+    @Test
+    public void testExecuteFirstArrayShorter() throws Exception {
+        Literal numbers = newLiteral(longArray, $(1L))
+        Literal names = newLiteral(stringArray, $("Marvin", "Trillian"))
+
+        Bucket bucket = unnest.execute([numbers, names])
+        def table = TestingHelpers.printedTable(bucket)
+        assert table == "1| Marvin\nNULL| Trillian\n"
+    }
+
+    @Test
+    public void testExecuteSecondArrayShorter() throws Exception {
+        Literal numbers = newLiteral(longArray, $(1L, 2L, 3L))
+        Literal names = newLiteral(stringArray, $("Marvin"))
+
+        Bucket bucket = unnest.execute([numbers, names])
+        def table = TestingHelpers.printedTable(bucket)
+        assert table == "1| Marvin\n2| NULL\n3| NULL\n"
     }
 }

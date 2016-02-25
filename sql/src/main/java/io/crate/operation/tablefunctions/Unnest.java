@@ -57,7 +57,7 @@ public class Unnest implements TableFunctionImplementation {
     public Bucket execute(Collection<? extends Input> arguments) {
         final List<Object[]> values = extractValues(arguments);
         final int numCols = arguments.size();
-        final int numRows = values.get(0).length;
+        final int numRows = maxLength(values);
 
         return new Bucket() {
             final Object[] cells = new Object[numCols];
@@ -86,7 +86,11 @@ public class Unnest implements TableFunctionImplementation {
                         }
                         for (int c = 0; c < numCols; c++) {
                             Object[] columnValues = values.get(c);
-                            cells[c] = columnValues[currentRow];
+                            if (columnValues.length > currentRow) {
+                                cells[c] = columnValues[currentRow];
+                            } else {
+                                cells[c] = null;
+                            }
                         }
                         currentRow++;
                         return row;
@@ -99,6 +103,16 @@ public class Unnest implements TableFunctionImplementation {
                 };
             }
         };
+    }
+
+    private static int maxLength(List<Object[]> values) {
+        int length = 0;
+        for (Object[] value : values) {
+            if (value.length > length) {
+                length = value.length;
+            }
+        }
+        return length;
     }
 
     private static List<Object[]> extractValues(Collection<? extends Input> arguments) {
