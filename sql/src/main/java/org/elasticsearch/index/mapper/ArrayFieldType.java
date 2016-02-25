@@ -47,8 +47,8 @@ class ArrayFieldType extends MappedFieldType {
         this.innerFieldType = ref.innerFieldType;
     }
 
-    public ArrayFieldType(FieldMapper.Builder innerBuilder) {
-        innerFieldType = innerBuilder.fieldType();
+    public ArrayFieldType(MappedFieldType innerFieldType) {
+        this.innerFieldType = innerFieldType;
     }
 
     @Override

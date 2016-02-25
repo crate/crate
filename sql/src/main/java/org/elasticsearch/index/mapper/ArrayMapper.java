@@ -95,11 +95,31 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
                 if (innerBuilder == null) {
                     return null;
                 }
-                return new ArrayMapper.Builder(name, innerBuilder).build(builderContext);
+                Mapper mapper = innerBuilder.build(builderContext);
+                DocumentParser.parseAndMergeUpdate(mapper, context);
+                MappedFieldType mappedFieldType = newArrayFieldType(innerBuilder);
+                return new ArrayMapper(
+                        name,
+                        mappedFieldType,
+                        mappedFieldType.clone(),
+                        context.indexSettings(),
+                        MultiFields.empty(),
+                        null,
+                        mapper);
             } catch (IOException e) {
                 throw Throwables.propagate(e);
             }
         }
+    }
+
+    private static MappedFieldType newArrayFieldType(Mapper.Builder innerBuilder) {
+        if (innerBuilder instanceof FieldMapper.Builder) {
+            return new ArrayFieldType(((FieldMapper.Builder) innerBuilder).fieldType());
+        }
+        if (innerBuilder instanceof ObjectMapper.Builder) {
+            return new ObjectArrayFieldType();
+        }
+        throw new IllegalArgumentException("expected a FieldMapper.Builder or ObjectMapper.Builder");
     }
 
     static class ObjectArrayFieldType extends MappedFieldType {
@@ -130,15 +150,6 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             this.innerBuilder = innerBuilder;
         }
 
-        private static MappedFieldType newArrayFieldType(Mapper.Builder innerBuilder) {
-            if (innerBuilder instanceof FieldMapper.Builder) {
-                return new ArrayFieldType(((FieldMapper.Builder) innerBuilder));
-            }
-            if (innerBuilder instanceof ObjectMapper.Builder) {
-                return new ObjectArrayFieldType();
-            }
-            throw new IllegalArgumentException("expected a FieldMapper.Builder or ObjectMapper.Builder");
-        }
 
         @Override
         public ArrayMapper build(BuilderContext context) {
@@ -225,7 +236,11 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
     }
 
     public void merge(Mapper mergeWith, MergeResult mergeResult) throws MergeMappingException {
-        innerMapper.merge(mergeWith, mergeResult);
+        if (mergeWith instanceof ArrayMapper) {
+            innerMapper.merge(((ArrayMapper) mergeWith).innerMapper, mergeResult);
+        } else {
+            innerMapper.merge(mergeWith, mergeResult);
+        }
     }
 
     public Iterator<Mapper> iterator() {
@@ -266,7 +281,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
     }
 
     private static Mapper.Builder<?, ?> detectInnerMapper(ParseContext parseContext,
-                                            String fieldName, XContentParser parser) throws IOException {
+                                                          String fieldName, XContentParser parser) throws IOException {
         XContentParser.Token token = parser.currentToken();
         if (token == XContentParser.Token.START_ARRAY) {
             token = parser.nextToken();
