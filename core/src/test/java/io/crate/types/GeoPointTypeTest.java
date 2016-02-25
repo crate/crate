@@ -60,4 +60,18 @@ public class GeoPointTypeTest extends CrateUnitTest {
         assertThat(value[0], is(10.0d));
         assertThat(value[1], is(20.2d));
     }
+
+    @Test
+    public void testConversionFromObjectArrayOfIntegers() throws Exception {
+        Double[] value = DataTypes.GEO_POINT.value(new Object[] { 1, 2 });
+        assertThat(value[0], is(1.0));
+        assertThat(value[1], is(2.0));
+    }
+
+    @Test
+    public void testConversionFromIntegerArray() throws Exception {
+        Double[] value = DataTypes.GEO_POINT.value(new Integer[] { 1, 2 });
+        assertThat(value[0], is(1.0));
+        assertThat(value[1], is(2.0));
+    }
 }

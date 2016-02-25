@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Conversion from (double) arrays to geo_point is now more lenient and allows
+   integer values inside the array. This was done since some encoders tend to
+   convert float/double values to integers.
+
  - Added support for the ``unnest`` table function
 
  - Implemented cluster check for installed java version 

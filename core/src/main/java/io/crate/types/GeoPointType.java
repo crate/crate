@@ -32,7 +32,6 @@ import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -64,6 +63,11 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
         if (value == null) {
             return null;
         }
+        if (value instanceof Double[]) {
+            Double[] doubles = (Double[]) value;
+            checkLengthIs2(doubles.length);
+            return doubles;
+        }
         if (value instanceof BytesRef) {
             return pointFromString(BytesRefs.toString(value));
         }
@@ -72,14 +76,19 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
         }
         if (value instanceof List)  {
             List values = (List) value;
-            Preconditions.checkArgument(values.size() == 2,
-                    "The value of a GeoPoint must be a double array with 2 items, not %s", values.size());
+            checkLengthIs2(values.size());
             return new Double[] { (Double) values.get(0), (Double) values.get(1) };
         }
         Object[] values = (Object[])value;
-        Preconditions.checkArgument(values.length == 2,
-                "The value of a GeoPoint must be a double array with 2 items, not %s", values.length);
-        return Arrays.copyOf(values, 2, Double[].class);
+        checkLengthIs2(values.length);
+        return new Double[]{
+                ((Number) values[0]).doubleValue(),
+                ((Number) values[1]).doubleValue()};
+    }
+
+    private static void checkLengthIs2(int actualLength) {
+        Preconditions.checkArgument(actualLength == 2,
+                "The value of a GeoPoint must be a double array with 2 items, not %s", actualLength);
     }
 
     private static Double[] pointFromString(String value) {
