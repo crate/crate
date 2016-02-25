@@ -26,4 +26,3 @@ Contents
    udc
    storage_consistency
    best_practice/index
-   integration/index

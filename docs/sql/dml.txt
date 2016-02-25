@@ -65,6 +65,7 @@ their value can be safely omitted. It is *generated* upon insert:
     CREATE OK (... sec)
 
 ::
+
     cr> insert into debit_card (owner, num_part1, num_part2) values
     ... ('Zaphod Beeblebrox', 1234, 5678);
     INSERT OK, 1 row affected (... sec)

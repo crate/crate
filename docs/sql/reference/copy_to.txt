@@ -75,7 +75,7 @@ WHERE Clause
 
 `WHERE` clauses follow the same syntax as used in `SELECT` statements allowing
 for partial exports that meet certain criteria. (see :ref:`sql_dql_where_clause`
- for more information).
+for more information).
 
 
 Output URI

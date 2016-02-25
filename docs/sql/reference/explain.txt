@@ -1,5 +1,4 @@
 .. highlight:: psql
-.. _sql_ref_refresh:
 
 =======
 EXPLAIN
