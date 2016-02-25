@@ -112,7 +112,7 @@ public class OrderedDocCollector implements Callable<KeyIterable<ShardId, Row>>,
      * </p>
      * On subsequent calls it will return more rows (max {@link #batchSize} or less.
      * These rows are always the rows that come after the last row of the previously returned rows
-     *
+     * <p/>
      * Basically, calling this function multiple times pages through the shard in batches.
      */
     @Override
@@ -188,8 +188,8 @@ public class OrderedDocCollector implements Callable<KeyIterable<ShardId, Row>>,
                 boolean nullsFirst = orderBy.nullsFirst()[i] == null ? false : orderBy.nullsFirst()[i];
                 value = value.equals(missingValues[i]) ? null : value;
                 if (nullsFirst && value == null) {
-                   // no filter needed
-                   continue;
+                    // no filter needed
+                    continue;
                 }
                 QueryBuilderHelper helper = QueryBuilderHelper.forType(order.valueType());
                 String columnName = ((Reference) order).info().ident().columnIdent().fqn();
@@ -198,6 +198,7 @@ public class OrderedDocCollector implements Callable<KeyIterable<ShardId, Row>>,
                 // nulls already gone, so they should be excluded
                 if (nullsFirst && value != null) {
                     BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
+                    booleanQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
                     if (orderBy.reverseFlags()[i]) {
                         booleanQuery.add(helper.rangeQuery(columnName, null, value, false, true), BooleanClause.Occur.MUST_NOT);
                     } else {
