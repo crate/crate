@@ -573,7 +573,7 @@ Array literals are given in brackets and may contain zero or more elements.
 
 Synopsis (literal brackets are given in single quotes)::
 
-    '[' [ element [ , ... ] ] ']'
+    '[' element [ , ... ] ']'
 
 Valid elements are literals and parameters.
 
