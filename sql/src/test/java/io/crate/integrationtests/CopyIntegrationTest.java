@@ -38,6 +38,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -505,20 +506,48 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromHttpUrl() throws Exception {
+    public void testCopyFromTwoHttpUrls() throws Exception {
         execute("create blob table blobs with (number_of_replicas = 0)");
         execute("create table names (id int primary key, name string) with (number_of_replicas = 0)");
         ensureYellow();
 
-        String content = "{\"id\": 1, \"name\":\"Marvin\"}";
+        String r1 = "{\"id\": 1, \"name\":\"Marvin\"}";
+        String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
+        String[] urls = { upload(r1), upload(r2) };
+
+        execute("copy names from ?", new Object[] { urls });
+        assertThat(response.rowCount(), is(2L));
+        execute("refresh table names");
+        execute("select name from names order by id");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("Marvin\nSlartibartfast\n"));
+    }
+
+    @Test
+    public void testCopyFromTwoUriMixedSchemaAndWildcardUse() throws Exception {
+        execute("create blob table blobs with (number_of_replicas = 0)");
+        execute("create table names (id int primary key, name string) with (number_of_replicas = 0)");
+
+        File tmpDir = newTempDir();
+        File file = new File(tmpDir, "names.json");
+        String r1 = "{\"id\": 1, \"name\": \"Arthur\"}";
+        String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
+
+        Files.write(file.toPath(), Collections.singletonList(r1), StandardCharsets.UTF_8);
+        String[] urls = { tmpDir.getAbsolutePath() + "/*.json", upload(r2) };
+
+        execute("copy names from ?", new Object[] { urls });
+        assertThat(response.rowCount(), is(2L));
+        execute("refresh table names");
+        execute("select name from names order by id");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("Arthur\nSlartibartfast\n"));
+    }
+
+    private String upload(String content) throws IOException {
         String url = Blobs.url(address, "blobs", Hex.encodeHexString(Blobs.digest(content)));
         HttpPut httpPut = new HttpPut(url);
         httpPut.setEntity(new StringEntity(content));
 
         httpClient.execute(httpPut);
-
-        execute("copy names from ?", $(url));
-        assertThat(response.rowCount(), is(1L));
-        assertThat(((String) execute("select name from names where id = 1").rows()[0][0]), is("Marvin"));
+        return url;
     }
 }

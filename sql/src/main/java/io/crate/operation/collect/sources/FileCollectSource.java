@@ -22,7 +22,8 @@
 package io.crate.operation.collect.sources;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.CopyFromAnalyzedStatement;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.metadata.Functions;
 import io.crate.operation.collect.CrateCollector;
@@ -34,13 +35,13 @@ import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
+import io.crate.types.CollectionType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
+import java.util.*;
 
 @Singleton
 public class FileCollectSource implements CollectSource {
@@ -64,8 +65,11 @@ public class FileCollectSource implements CollectSource {
         String[] readers = fileUriCollectPhase.executionNodes().toArray(
                 new String[fileUriCollectPhase.executionNodes().size()]);
         Arrays.sort(readers);
+
+        List<String> fileUris;
+        fileUris = targetUriToStringList(fileUriCollectPhase.targetUri());
         return ImmutableList.<CrateCollector>of(new FileReadingCollector(
-                ValueSymbolVisitor.STRING.process(fileUriCollectPhase.targetUri()),
+                fileUris,
                 context.topLevelInputs(),
                 context.expressions(),
                 downstream,
@@ -77,5 +81,17 @@ public class FileCollectSource implements CollectSource {
                 readers.length,
                 Arrays.binarySearch(readers, clusterService.state().nodes().localNodeId())
         ));
+    }
+
+    private static List<String> targetUriToStringList(Symbol targetUri) {
+        if (targetUri.valueType() == DataTypes.STRING) {
+            return Collections.singletonList(ValueSymbolVisitor.STRING.process(targetUri));
+        } else if (targetUri.valueType() instanceof CollectionType
+                   && ((CollectionType) targetUri.valueType()).innerType() == DataTypes.STRING) {
+            return ValueSymbolVisitor.STRING_LIST.process(targetUri);
+        }
+
+        // this case actually never happens because the check is already done in the analyzer
+        throw CopyFromAnalyzedStatement.raiseInvalidType(targetUri.valueType());
     }
 }

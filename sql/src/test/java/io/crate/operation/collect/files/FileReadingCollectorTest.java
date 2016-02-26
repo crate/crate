@@ -224,7 +224,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
         FileCollectInputSymbolVisitor.Context context =
                 inputSymbolVisitor.extractImplementations(createReference("_raw", DataTypes.STRING));
         FileReadingCollector collector = new FileReadingCollector(
-                fileUri,
+                Collections.singletonList(fileUri),
                 context.topLevelInputs(),
                 context.expressions(),
                 rowReceiver,

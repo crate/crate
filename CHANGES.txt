@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - The ``COPY FROM`` statement now also accepts an array of strings as URI.
+
  - Added support for schemes supported by the used JVM's `URL` implementation
    for ``COPY FROM``. These usually include``http``, ``https``, ``ftp`` and
     ``jar``.

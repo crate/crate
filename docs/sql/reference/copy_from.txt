@@ -51,7 +51,8 @@ For examples see: :ref:`importing_data`.
 URI
 ===
 
-The URI must be formatted according to the `URI Scheme`_.
+A string literal or array of string literals containing URIs.
+Each URI must be formatted according to the `URI Scheme`_.
 
 In case the scheme name is missing it is assumed that the value is a file-path
 instead and will be converted to an URI implicitly.
@@ -195,7 +196,11 @@ shared
 This option should be set if the URI points to a shared storage. It will
 prevent multiple nodes/readers from importing the same file.
 
-The default value depends on the used URI scheme.
+The default value depends on the scheme of each URI.
+
+If an array of URIs is passed to ``COPY FROM`` this option will overwrite the
+default for *all* URIs.
+
 
 num_readers
 ^^^^^^^^^^^

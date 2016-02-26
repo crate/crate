@@ -22,11 +22,14 @@
 package io.crate.analyze.symbol;
 
 import io.crate.analyze.symbol.format.SymbolFormatter;
+import io.crate.types.CollectionType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
 
@@ -68,6 +71,20 @@ public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
         @Override
         public String visitLiteral(Literal symbol, Void context) {
             return BytesRefs.toString(symbol.value());
+        }
+    };
+
+    public static final ValueSymbolVisitor<List<String>> STRING_LIST = new ValueSymbolVisitor<List<String>>() {
+        @Override
+        public List<String> visitLiteral(Literal symbol, Void context) {
+            assert symbol.valueType() instanceof CollectionType : "literal must be an array or set to get values as list";
+
+            Object[] objects = (Object[]) symbol.value();
+            List<String> strings = new ArrayList<>(objects.length);
+            for (Object object : objects) {
+                strings.add(BytesRefs.toString(object));
+            }
+            return strings;
         }
     };
 

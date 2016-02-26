@@ -43,6 +43,8 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
@@ -55,14 +57,11 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
     private static final ESLogger LOGGER = Loggers.getLogger(FileReadingCollector.class);
     public static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
     private final Map<String, FileInputFactory> fileInputFactories;
-    private final URI fileUri;
-    private final Predicate<URI> globPredicate;
     private final Boolean shared;
     private final int numReaders;
     private final int readerNumber;
     private final InputRow row;
     private final KeepAliveListener keepAliveListener;
-    private final URI preGlobUri;
     private final RowReceiver downstream;
     private final boolean compressed;
     private final List<LineCollectorExpression<?>> collectorExpressions;
@@ -74,6 +73,7 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
             return true;
         }
     };
+    private final List<UriWithGlob> fileUris;
     private volatile boolean killed;
 
     @Override
@@ -98,7 +98,7 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
         JSON
     }
 
-    public FileReadingCollector(String fileUri,
+    public FileReadingCollector(Collection<String> fileUris,
                                 List<Input<?>> inputs,
                                 List<LineCollectorExpression<?>> collectorExpressions,
                                 RowReceiver downstream,
@@ -110,18 +110,7 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
                                 int numReaders,
                                 int readerNumber) {
         this.keepAliveListener = keepAliveListener;
-        if (fileUri.startsWith("/")) {
-            // using Paths.get().toUri instead of new URI(...) as it also encodes umlauts and other special characters
-            this.fileUri = Paths.get(fileUri).toUri();
-        } else {
-            this.fileUri = URI.create(fileUri);
-            if (this.fileUri.getScheme() == null) {
-                throw new IllegalArgumentException("relative fileURIs are not allowed");
-            }
-            if (this.fileUri.getScheme().equals("file") && !this.fileUri.getSchemeSpecificPart().startsWith("///")) {
-                throw new IllegalArgumentException("Invalid fileURI");
-            }
-        }
+        this.fileUris = getUrisWithGlob(fileUris);
         this.downstream = downstream;
         downstream.setUpstream(this);
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
@@ -131,24 +120,56 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
         this.shared = shared;
         this.numReaders = numReaders;
         this.readerNumber = readerNumber;
-        Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(this.fileUri.toString());
-        if (!hasGlobMatcher.matches()) {
-            globPredicate = null;
-            preGlobUri = null;
+    }
+
+    private static class UriWithGlob {
+        final URI uri;
+        final URI preGlobUri;
+        @Nullable  final Predicate<URI> globPredicate;
+
+        public UriWithGlob(URI uri, URI preGlobUri, Predicate<URI> globPredicate) {
+            this.uri = uri;
+            this.preGlobUri = preGlobUri;
+            this.globPredicate = globPredicate;
+        }
+    }
+
+    private List<UriWithGlob> getUrisWithGlob(Collection<String> fileUris) {
+        List<UriWithGlob> uris = new ArrayList<>(fileUris.size());
+        for (String fileUri : fileUris) {
+            URI uri = toURI(fileUri);
+
+            URI preGlobUri = null;
+            Predicate<URI> globPredicate = null;
+            Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(uri.toString());
+            if (hasGlobMatcher.matches()) {
+                preGlobUri = URI.create(hasGlobMatcher.group(1));
+                globPredicate = new GlobPredicate(uri);
+            }
+
+            uris.add(new UriWithGlob(uri, preGlobUri, globPredicate));
+        }
+        return uris;
+    }
+
+    private static URI toURI(String fileUri) {
+        if (fileUri.startsWith("/")) {
+            // using Paths.get().toUri instead of new URI(...) as it also encodes umlauts and other special characters
+            return Paths.get(fileUri).toUri();
         } else {
-            this.preGlobUri = URI.create(hasGlobMatcher.group(1));
-            final Pattern globPattern = Pattern.compile(Globs.toUnixRegexPattern(this.fileUri.toString()));
-            globPredicate = new Predicate<URI>() {
-                @Override
-                public boolean apply(URI input) {
-                    return globPattern.matcher(input.toString()).matches();
-                }
-            };
+            URI uri = URI.create(fileUri);
+            if (uri.getScheme() == null) {
+                throw new IllegalArgumentException("relative fileURIs are not allowed");
+            }
+            if (uri.getScheme().equals("file") && !uri.getSchemeSpecificPart().startsWith("///")) {
+                throw new IllegalArgumentException("Invalid fileURI");
+            }
+            return uri;
         }
     }
 
     @Nullable
-    private FileInput getFileInput() throws IOException {
+    private FileInput getFileInput(URI fileUri) throws IOException {
         FileInputFactory fileInputFactory = fileInputFactories.get(fileUri.getScheme());
         if (fileInputFactory != null) {
             return fileInputFactory.create();
@@ -158,36 +179,33 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
 
     @Override
     public void doCollect() {
-        FileInput fileInput;
-        try {
-            fileInput = getFileInput();
-        } catch (IOException e) {
-            downstream.fail(e);
-            return;
-        }
-        if (fileInput == null) {
-            if (downstream != null) {
-                downstream.finish();
-            }
-            return;
-        }
-        Predicate<URI> uriPredicate = generateUriPredicate(fileInput);
-
         CollectorContext collectorContext = new CollectorContext();
         for (LineCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }
-        List<URI> uris;
 
-        try {
-            uris = getUris(fileInput, uriPredicate);
-            for (URI uri : uris) {
-                readLines(fileInput, collectorContext, uri, 0, 0);
+        for (UriWithGlob fileUri : fileUris) {
+            FileInput fileInput;
+            try {
+                fileInput = getFileInput(fileUri.uri);
+            } catch (IOException e) {
+                downstream.fail(e);
+                return;
             }
-            downstream.finish();
-        } catch (Throwable e) {
-            downstream.fail(e);
+
+            Predicate<URI> uriPredicate = generateUriPredicate(fileInput, fileUri.globPredicate);
+            List<URI> uris;
+            try {
+                uris = getUris(fileInput, fileUri.uri, fileUri.preGlobUri, uriPredicate);
+                for (URI uri : uris) {
+                    readLines(fileInput, collectorContext, uri, 0, 0);
+                }
+            } catch (Throwable e) {
+                downstream.fail(e);
+                return;
+            }
         }
+        downstream.finish();
     }
 
     @Override
@@ -258,7 +276,7 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
         return reader;
     }
 
-    private List<URI> getUris(FileInput fileInput, Predicate<URI> uriPredicate) throws IOException {
+    private static List<URI> getUris(FileInput fileInput, URI fileUri, URI preGlobUri, Predicate<URI> uriPredicate) throws IOException {
         List<URI> uris;
         if (preGlobUri != null) {
             uris = fileInput.listUris(preGlobUri, uriPredicate);
@@ -270,7 +288,7 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
         return uris;
     }
 
-    private Predicate<URI> generateUriPredicate(FileInput fileInput) {
+    private Predicate<URI> generateUriPredicate(FileInput fileInput, @Nullable Predicate<URI> globPredicate) {
         Predicate<URI> moduloPredicate;
         boolean sharedStorage = MoreObjects.firstNonNull(shared, fileInput.sharedStorageDefault());
         if (sharedStorage) {
@@ -294,4 +312,16 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
         return moduloPredicate;
     }
 
+    private static class GlobPredicate implements Predicate<URI> {
+        private final Pattern globPattern;
+
+        public GlobPredicate(URI fileUri) {
+            this.globPattern = Pattern.compile(Globs.toUnixRegexPattern(fileUri.toString()));
+        }
+
+        @Override
+        public boolean apply(@Nullable URI input) {
+            return input != null && globPattern.matcher(input.toString()).matches();
+        }
+    }
 }

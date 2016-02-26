@@ -44,6 +44,8 @@ import io.crate.metadata.settings.StringSetting;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.projection.WriterProjection;
 import io.crate.sql.tree.*;
+import io.crate.types.CollectionType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -118,6 +120,11 @@ public class CopyStatementAnalyzer {
         Context context = new Context(analysisMetaData, analysis.parameterContext(), tableRelation, true);
         Settings settings = processGenericProperties(node.genericProperties(), context);
         Symbol uri = context.processExpression(node.path());
+
+        if (!(uri.valueType() == DataTypes.STRING ||
+             uri.valueType() instanceof CollectionType && ((CollectionType) uri.valueType()).innerType() == DataTypes.STRING)) {
+            throw CopyFromAnalyzedStatement.raiseInvalidType(uri.valueType());
+        }
 
         return new CopyFromAnalyzedStatement(tableInfo, settings, uri, partitionIdent);
     }

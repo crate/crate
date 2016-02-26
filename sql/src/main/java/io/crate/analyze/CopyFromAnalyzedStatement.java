@@ -24,6 +24,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.types.DataType;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -55,5 +56,9 @@ public class CopyFromAnalyzedStatement extends AbstractCopyAnalyzedStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitCopyFromStatement(this, context);
+    }
+
+    public static IllegalArgumentException raiseInvalidType(DataType dataType) {
+        throw new IllegalArgumentException("fileUri must be of type STRING or STRING ARRAY. Got " + dataType);
     }
 }
