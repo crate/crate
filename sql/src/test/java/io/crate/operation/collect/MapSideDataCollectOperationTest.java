@@ -36,10 +36,6 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.discovery.DiscoveryService;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
@@ -76,15 +72,6 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
     public void testFileUriCollect() throws Exception {
         ClusterService clusterService = new NoopClusterService();
         Functions functions = getFunctions();
-        DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
-        when(discoveryNode.id()).thenReturn("dummyNodeId");
-        DiscoveryNodes discoveryNodes = mock(DiscoveryNodes.class);
-        when(discoveryNodes.localNodeId()).thenReturn("dummyNodeId");
-        ClusterState clusterState = mock(ClusterState.class);
-        when(clusterState.nodes()).thenReturn(discoveryNodes);
-        when(clusterService.state()).thenReturn(clusterState);
-        DiscoveryService discoveryService = mock(DiscoveryService.class);
-        when(discoveryService.localNode()).thenReturn(discoveryNode);
         NestedReferenceResolver referenceResolver = new NestedReferenceResolver() {
             @Override
             public ReferenceImplementation getImplementation(ReferenceInfo referenceInfo) {
