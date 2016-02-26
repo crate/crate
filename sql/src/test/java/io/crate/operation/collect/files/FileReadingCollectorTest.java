@@ -230,7 +230,9 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                 rowReceiver,
                 FileReadingCollector.FileFormat.JSON,
                 compression,
-                ImmutableMap.<String, FileInputFactory>of("s3", new FileInputFactory() {
+                ImmutableMap.of(
+                        LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory(),
+                        S3FileInputFactory.NAME, new FileInputFactory() {
                     @Override
                     public FileInput create() throws IOException {
                         return new S3FileInput(new S3ClientHelper() {

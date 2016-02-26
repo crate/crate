@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.jobs.ExecutionState;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.metadata.*;
+import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.sources.CollectSourceResolver;
 import io.crate.operation.collect.sources.FileCollectSource;
 import io.crate.operation.reference.sys.node.NodeSysExpression;
@@ -73,7 +74,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
         };
         CollectSourceResolver collectSourceResolver = mock(CollectSourceResolver.class);
         when(collectSourceResolver.getService(any(RoutedCollectPhase.class)))
-                .thenReturn(new FileCollectSource(functions, clusterService));
+                .thenReturn(new FileCollectSource(functions, clusterService, Collections.<String, FileInputFactory>emptyMap()));
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
                 functions,
                 referenceResolver,

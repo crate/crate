@@ -25,7 +25,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
@@ -44,7 +43,6 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
@@ -56,7 +54,7 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
 
     private static final ESLogger LOGGER = Loggers.getLogger(FileReadingCollector.class);
     public static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
-    private final Map<String, FileInputFactory> fileInputFactoryMap;
+    private final Map<String, FileInputFactory> fileInputFactories;
     private final URI fileUri;
     private final Predicate<URI> globPredicate;
     private final Boolean shared;
@@ -64,8 +62,8 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
     private final int readerNumber;
     private final InputRow row;
     private final KeepAliveListener keepAliveListener;
-    private URI preGlobUri;
-    private RowReceiver downstream;
+    private final URI preGlobUri;
+    private final RowReceiver downstream;
     private final boolean compressed;
     private final List<LineCollectorExpression<?>> collectorExpressions;
 
@@ -106,7 +104,7 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
                                 RowReceiver downstream,
                                 FileFormat format,
                                 String compression,
-                                Map<String, FileInputFactory> additionalFileInputFactories,
+                                Map<String, FileInputFactory> fileInputFactories,
                                 Boolean shared,
                                 KeepAliveListener keepAliveListener,
                                 int numReaders,
@@ -129,28 +127,14 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.row = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
-        this.fileInputFactoryMap = new HashMap<>(ImmutableMap.of(
-                "s3", new FileInputFactory() {
-                    @Override
-                    public FileInput create() throws IOException {
-                        return new S3FileInput();
-                    }
-                },
-                "file", new FileInputFactory() {
-
-                    @Override
-                    public FileInput create() throws IOException {
-                        return new LocalFsFileInput();
-                    }
-                }
-        ));
-        this.fileInputFactoryMap.putAll(additionalFileInputFactories);
+        this.fileInputFactories = fileInputFactories;
         this.shared = shared;
         this.numReaders = numReaders;
         this.readerNumber = readerNumber;
         Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(this.fileUri.toString());
         if (!hasGlobMatcher.matches()) {
             globPredicate = null;
+            preGlobUri = null;
         } else {
             this.preGlobUri = URI.create(hasGlobMatcher.group(1));
             final Pattern globPattern = Pattern.compile(Globs.toUnixRegexPattern(this.fileUri.toString()));
@@ -165,7 +149,7 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
 
     @Nullable
     private FileInput getFileInput() throws IOException {
-        FileInputFactory fileInputFactory = fileInputFactoryMap.get(fileUri.getScheme());
+        FileInputFactory fileInputFactory = fileInputFactories.get(fileUri.getScheme());
         if (fileInputFactory != null) {
             return fileInputFactory.create();
         }

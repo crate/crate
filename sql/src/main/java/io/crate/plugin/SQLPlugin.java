@@ -46,6 +46,7 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.collect.CollectOperationModule;
 import io.crate.operation.collect.CollectShardModule;
+import io.crate.operation.collect.files.FileCollectModule;
 import io.crate.operation.merge.MergeOperationModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
@@ -122,6 +123,7 @@ public class SQLPlugin extends AbstractPlugin {
         modules.add(TransportExecutorModule.class);
         modules.add(JobModule.class);
         modules.add(CollectOperationModule.class);
+        modules.add(FileCollectModule.class);
         modules.add(MergeOperationModule.class);
         modules.add(MetaDataModule.class);
         modules.add(MetaDataSysModule.class);
