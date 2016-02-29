@@ -7,7 +7,6 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
@@ -19,7 +18,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -274,6 +272,12 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         res = put(blobUri("da39a3ee5e6b4b0d3255bfef95601890afd80709"), "");
         assertEquals(res.getStatusLine().getStatusCode(), 409);
         assertEquals(res.getStatusLine().getReasonPhrase(), "Conflict");
+    }
+
+    @Test
+    public void testGetInvalidDigest() throws Exception {
+        CloseableHttpResponse resp = get(blobUri("invlaid"));
+        assertThat(resp.getStatusLine().getStatusCode(), is(404));
     }
 
     @Test

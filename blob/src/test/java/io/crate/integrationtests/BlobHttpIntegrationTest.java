@@ -29,7 +29,6 @@ import io.crate.plugin.CrateCorePlugin;
 import io.crate.rest.CrateRestFilter;
 import io.crate.test.utils.Blobs;
 import org.apache.http.Header;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.entity.StringEntity;

@@ -120,8 +120,8 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
 
             Matcher matcher = blobsMatcher.reset(uri);
             if (!matcher.matches()) {
-                reset();
                 simpleResponse(HttpResponseStatus.NOT_FOUND);
+                reset();
                 return;
             }
 

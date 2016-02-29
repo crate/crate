@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a NPE that occurred if a invalid formatted digest was used to request
+   a blob.
+
  - The ``COPY FROM`` statement now also accepts an array of strings as URI.
 
  - Added support for schemes supported by the used JVM's `URL` implementation
