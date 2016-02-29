@@ -1824,7 +1824,6 @@ public class CrateSettings {
     };
 
     public static final List<Setting<?, ?>> CRATE_SETTINGS = ImmutableList.<Setting<?, ?>>of(
-            GRACEFUL_STOP,
             STATS,
             BULK
     );
