@@ -716,7 +716,7 @@ public class TestStatementBuilder {
         println("");
 
         // TODO: support formatting all statement types
-        if (statement instanceof Query || statement instanceof CreateTable) {
+        if (statement instanceof Query || statement instanceof CreateTable || statement instanceof CopyFrom) {
             println(SqlFormatter.formatSql(statement));
             println("");
             assertFormattedSql(statement);

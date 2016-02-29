@@ -40,11 +40,6 @@ public final class TreeAssertions
 
     public static void assertFormattedSql(Node expected)
     {
-        // TODO: support formatting all statement types
-        if (!(expected instanceof Query || expected instanceof CreateTable)) {
-            return;
-        }
-
         String formatted = formatSql(expected);
 
         // verify round-trip of formatting already-formatted SQL

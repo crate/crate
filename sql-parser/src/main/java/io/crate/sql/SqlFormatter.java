@@ -57,6 +57,18 @@ public final class SqlFormatter {
             throw new UnsupportedOperationException("not yet implemented: " + node);
         }
 
+        @Override
+        public Void visitCopyFrom(CopyFrom node, Integer indent) {
+            append(indent, "COPY ");
+            process(node.table(), indent);
+            append(indent, " FROM ");
+            process(node.path(), indent);
+            if (node.genericProperties().isPresent()) {
+                append(indent, " ");
+                process(node.genericProperties().get(), indent);
+            }
+            return null;
+        }
 
         @Override
         public Void visitRefreshStatement(RefreshStatement node, Integer indent) {
@@ -579,8 +591,7 @@ public final class SqlFormatter {
         }
 
         private StringBuilder append(int indent, String value) {
-            return builder.append(indentString(indent))
-                    .append(value);
+            return builder.append(indentString(indent)).append(value);
         }
 
         private static String indentString(int indent)

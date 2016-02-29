@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Add support for ``COPY FROM`` to ``EXPLAIN``
+
  - Fixed a NPE that occurred if a invalid formatted digest was used to request
    a blob.
 

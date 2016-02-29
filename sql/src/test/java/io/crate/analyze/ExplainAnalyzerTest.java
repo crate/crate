@@ -29,6 +29,7 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -36,6 +37,7 @@ import org.junit.rules.ExpectedException;
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.isField;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -74,6 +76,13 @@ public class ExplainAnalyzerTest extends BaseAnalyzerTest {
         ExplainAnalyzedStatement stmt = analyze("explain select id from sys.cluster");
         assertNotNull(stmt.statement());
         assertThat(stmt.statement(), instanceOf(SelectAnalyzedStatement.class));
+    }
+
+    @Test
+    public void testExplainCopyFrom() throws Exception {
+        ExplainAnalyzedStatement stmt = analyze("explain copy users from '/tmp/*' WITH (shared=True)");
+        assertThat(stmt.statement(), instanceOf(CopyFromAnalyzedStatement.class));
+        assertThat(stmt.fields(), Matchers.contains(isField("EXPLAIN COPY \"users\" FROM '/tmp/*' WITH (\n   shared = true\n)")));
     }
 
     @Test

@@ -24,10 +24,7 @@ package io.crate.analyze;
 
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.AstVisitor;
-import io.crate.sql.tree.Explain;
-import io.crate.sql.tree.Node;
-import io.crate.sql.tree.Query;
+import io.crate.sql.tree.*;
 
 public class ExplainStatementAnalyzer {
 
@@ -47,10 +44,15 @@ public class ExplainStatementAnalyzer {
         return explainAnalyzedStatement;
     }
 
-    private static final AstVisitor CHECK_VISITOR = new AstVisitor<Void, Void>() {
+    private static final AstVisitor<Void, Void> CHECK_VISITOR = new AstVisitor<Void, Void>() {
 
         @Override
         protected Void visitQuery(Query node, Void context) {
+            return null;
+        }
+
+        @Override
+        public Void visitCopyFrom(CopyFrom node, Void context) {
             return null;
         }
 
