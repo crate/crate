@@ -133,34 +133,15 @@ public class CrateTableSettings {
         }
     };
 
-    public static final IntSetting TOTAL_SHARDS_PER_NODE = new IntSetting() {
-        @Override
-        public String name() {
-            return TableParameterInfo.TOTAL_SHARDS_PER_NODE;
-        }
+    public static final IntSetting TOTAL_SHARDS_PER_NODE = new IntSetting(TableParameterInfo.TOTAL_SHARDS_PER_NODE, -1, true);
 
-        @Override
-        public Integer defaultValue() {
-            return -1;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
-
-    public static final StringSetting ROUTING_ALLOCATION_ENABLE = new StringSetting(ImmutableSet.of(
-            "primaries",
-            "new_primaries",
-            "none",
-            "all"
-    )) {
-
-        @Override
-        public String name() {
-            return TableParameterInfo.ROUTING_ALLOCATION_ENABLE;
-        }
+    public static final StringSetting ROUTING_ALLOCATION_ENABLE = new StringSetting(TableParameterInfo.ROUTING_ALLOCATION_ENABLE,
+            ImmutableSet.of(
+                    "primaries",
+                    "new_primaries",
+                    "none",
+                    "all"
+            )) {
 
         @Override
         public String defaultValue() {
@@ -172,12 +153,7 @@ public class CrateTableSettings {
         }
     };
 
-    public static final StringSetting RECOVERY_INITIAL_SHARDS = new StringSetting() {
-
-        @Override
-        public String name() {
-            return TableParameterInfo.RECOVERY_INITIAL_SHARDS;
-        }
+    public static final StringSetting RECOVERY_INITIAL_SHARDS = new StringSetting(TableParameterInfo.RECOVERY_INITIAL_SHARDS) {
 
         @Override
         public String defaultValue() {
@@ -208,23 +184,7 @@ public class CrateTableSettings {
         }
     };
 
-
-    public static final IntSetting FLUSH_THRESHOLD_OPS = new IntSetting() {
-        @Override
-        public String name() {
-            return TableParameterInfo.FLUSH_THRESHOLD_OPS;
-        }
-
-        @Override
-        public Integer defaultValue() {
-            return Integer.MAX_VALUE;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
+    public static final IntSetting FLUSH_THRESHOLD_OPS = new IntSetting(TableParameterInfo.FLUSH_THRESHOLD_OPS, Integer.MAX_VALUE, true);
 
     public static final TimeSetting FLUSH_THRESHOLD_PERIOD = new TimeSetting() {
 

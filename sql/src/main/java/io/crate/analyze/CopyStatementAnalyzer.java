@@ -59,32 +59,19 @@ public class CopyStatementAnalyzer {
 
     private final AnalysisMetaData analysisMetaData;
 
-    private static final String COMPRESSION_SETTING = "compression";
-    private static final String OUTPUT_FORMAT_SETTING = "format";
-
-    private static final StringSetting COMPRESSION_SETTINGS = new StringSetting(ImmutableSet.of(
+    private static final StringSetting COMPRESSION_SETTINGS = new StringSetting("compression", ImmutableSet.of(
             "gzip"
     )) {
-        @Override
-        public String name() {
-            return COMPRESSION_SETTING;
-        }
-
         @Override
         public boolean isRuntime() {
             return true;
         }
     };
 
-    private static final StringSetting OUTPUT_FORMAT_SETTINGS = new StringSetting(ImmutableSet.of(
+    private static final StringSetting OUTPUT_FORMAT_SETTINGS = new StringSetting("format", ImmutableSet.of(
             "json_object",
             "json_array"
     )) {
-        @Override
-        public String name() {
-            return OUTPUT_FORMAT_SETTING;
-        }
-
         @Override
         public boolean isRuntime() {
             return true;
@@ -93,8 +80,8 @@ public class CopyStatementAnalyzer {
 
     private static final ImmutableMap<String, SettingsApplier> SETTINGS_APPLIERS =
             ImmutableMap.<String, SettingsApplier>builder()
-                    .put(COMPRESSION_SETTING, new SettingsAppliers.StringSettingsApplier(COMPRESSION_SETTINGS))
-                    .put(OUTPUT_FORMAT_SETTING, new SettingsAppliers.StringSettingsApplier(OUTPUT_FORMAT_SETTINGS))
+                    .put(COMPRESSION_SETTINGS.name(), new SettingsAppliers.StringSettingsApplier(COMPRESSION_SETTINGS))
+                    .put(OUTPUT_FORMAT_SETTINGS.name(), new SettingsAppliers.StringSettingsApplier(OUTPUT_FORMAT_SETTINGS))
                     .build();
 
     @Inject
@@ -144,8 +131,8 @@ public class CopyStatementAnalyzer {
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
                 node.genericProperties(), analysis.parameterContext(), SETTINGS_APPLIERS).build();
 
-        WriterProjection.CompressionType compressionType = settingAsEnum(WriterProjection.CompressionType.class, settings.get(COMPRESSION_SETTING));
-        WriterProjection.OutputFormat outputFormat = settingAsEnum(WriterProjection.OutputFormat.class, settings.get(OUTPUT_FORMAT_SETTING));
+        WriterProjection.CompressionType compressionType = settingAsEnum(WriterProjection.CompressionType.class, settings.get(COMPRESSION_SETTINGS.name()));
+        WriterProjection.OutputFormat outputFormat = settingAsEnum(WriterProjection.OutputFormat.class, settings.get(OUTPUT_FORMAT_SETTINGS.name()));
 
         Symbol uri = context.processExpression(node.targetUri());
         List<String> partitions = resolvePartitions(node, analysis, tableRelation);

@@ -32,14 +32,22 @@ import java.util.Set;
 
 public abstract class StringSetting extends Setting<String, String> {
 
-    protected Set<String> allowedValues;
+    private final String name;
+    protected final Set<String> allowedValues;
 
-    protected StringSetting(Set<String> allowedValues) {
+    protected StringSetting(String name, Set<String> allowedValues) {
+        this.name = name;
         this.allowedValues = allowedValues;
     }
 
-    protected StringSetting() {
+    protected StringSetting(String name) {
+        this.name = name;
         this.allowedValues = null;
+    }
+
+    @Override
+    public String name() {
+        return name;
     }
 
     @Override

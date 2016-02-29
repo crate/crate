@@ -29,12 +29,9 @@ public class CrateSettingsTest extends CrateUnitTest {
 
     @Test
     public void testStringSettingsValidation() throws Exception {
-        StringSetting stringSetting = new StringSetting(
+        StringSetting stringSetting = new StringSetting("foo_bar_setting",
                 Sets.newHashSet("foo", "bar", "foobar")
         ) {
-            @Override
-            public String name() { return "foo_bar_setting"; }
-
             @Override
             public String defaultValue() { return "foo"; }
 
@@ -52,12 +49,9 @@ public class CrateSettingsTest extends CrateUnitTest {
 
     @Test
     public void testStringSettingsEmptyValidation() throws Exception {
-        StringSetting stringSetting = new StringSetting(
+        StringSetting stringSetting = new StringSetting("foo_bar_setting",
                 Sets.newHashSet("")
         ) {
-            @Override
-            public String name() { return "foo_bar_setting"; }
-
             @Override
             public String defaultValue() { return "foo"; }
 

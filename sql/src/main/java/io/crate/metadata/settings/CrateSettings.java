@@ -78,16 +78,7 @@ public class CrateSettings {
         }
     };
 
-    public static final IntSetting STATS_JOBS_LOG_SIZE = new IntSetting() {
-        @Override
-        public String name() {
-            return "jobs_log_size";
-        }
-
-        @Override
-        public Integer defaultValue() {
-            return 10_000;
-        }
+    public static final IntSetting STATS_JOBS_LOG_SIZE = new IntSetting("jobs_log_size", 10_000, true) {
 
         @Override
         public Integer minValue() {
@@ -97,24 +88,10 @@ public class CrateSettings {
         @Override
         public Setting parent() {
             return STATS;
-        }
-
-        public boolean isRuntime() {
-            return true;
         }
     };
 
-    public static final IntSetting STATS_OPERATIONS_LOG_SIZE = new IntSetting() {
-        @Override
-        public String name() {
-            return "operations_log_size";
-        }
-
-        @Override
-        public Integer defaultValue() {
-            return 10_000;
-        }
-
+    public static final IntSetting STATS_OPERATIONS_LOG_SIZE = new IntSetting("operations_log_size", 10_000, true) {
         @Override
         public Integer minValue() {
             return 0;
@@ -123,10 +100,6 @@ public class CrateSettings {
         @Override
         public Setting parent() {
             return STATS;
-        }
-
-        public boolean isRuntime() {
-            return true;
         }
     };
 
@@ -172,12 +145,9 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting GRACEFUL_STOP_MIN_AVAILABILITY = new StringSetting(
+    public static final StringSetting GRACEFUL_STOP_MIN_AVAILABILITY = new StringSetting("min_availability",
             Sets.newHashSet("full", "primaries", "none")
     ) {
-        @Override
-        public String name() { return "min_availability"; }
-
         @Override
         public String defaultValue() { return "primaries"; }
 
@@ -297,25 +267,10 @@ public class CrateSettings {
         }
     };
 
-    public static final IntSetting DISCOVERY_ZEN_MIN_MASTER_NODES = new IntSetting() {
-        @Override
-        public String name() {
-            return "minimum_master_nodes";
-        }
-
-        @Override
-        public Integer defaultValue() {
-            return 1;
-        }
-
+    public static final IntSetting DISCOVERY_ZEN_MIN_MASTER_NODES = new IntSetting("minimum_master_nodes", 1, true) {
         @Override
         public Setting parent() {
             return DISCOVERY_ZEN;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
         }
     };
 
@@ -414,11 +369,9 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting ROUTING_ALLOCATION_ENABLE = new StringSetting(
+    public static final StringSetting ROUTING_ALLOCATION_ENABLE = new StringSetting("enable",
             Sets.newHashSet("none", "primaries", "all", "new_primaries")
     ) {
-        @Override
-        public String name() { return "enable"; }
 
         @Override
         public String defaultValue() { return "all"; }
@@ -434,12 +387,9 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting ROUTING_ALLOCATION_ALLOW_REBALANCE = new StringSetting(
+    public static final StringSetting ROUTING_ALLOCATION_ALLOW_REBALANCE = new StringSetting("allow_rebalance",
             Sets.newHashSet("always", "indices_primary_active", "indices_all_active")
     ) {
-        @Override
-        public String name() { return "allow_rebalance"; }
-
         @Override
         public String defaultValue() { return "indices_all_active"; }
 
@@ -454,57 +404,28 @@ public class CrateSettings {
         }
     };
 
-    public static final IntSetting ROUTING_ALLOCATION_CLUSTER_CONCURRENT_REBALANCE = new IntSetting() {
-        @Override
-        public String name() { return "cluster_concurrent_rebalance"; }
-
-        @Override
-        public Integer defaultValue() { return 2; }
-
+    public static final IntSetting ROUTING_ALLOCATION_CLUSTER_CONCURRENT_REBALANCE =
+            new IntSetting("cluster_concurrent_rebalance", 2, true) {
         @Override
         public Setting parent() {
             return ROUTING_ALLOCATION;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
         }
     };
 
-    public static final IntSetting ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES = new IntSetting() {
-        @Override
-        public String name() { return "node_initial_primaries_recoveries"; }
-
-        @Override
-        public Integer defaultValue() { return 4; }
+    public static final IntSetting ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES =
+            new IntSetting("node_initial_primaries_recoveries", 4, true) {
 
         @Override
         public Setting parent() {
             return ROUTING_ALLOCATION;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
         }
     };
 
-    public static final IntSetting ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES = new IntSetting() {
-        @Override
-        public String name() { return "node_concurrent_recoveries"; }
-
-        @Override
-        public Integer defaultValue() { return 2; }
-
+    public static final IntSetting ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES =
+            new IntSetting("node_concurrent_recoveries", 2, true) {
         @Override
         public Setting parent() {
             return ROUTING_ALLOCATION;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
         }
     };
 
@@ -533,9 +454,7 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting ROUTING_ALLOCATION_INCLUDE_IP = new StringSetting() {
-        @Override
-        public String name() { return "_ip"; }
+    public static final StringSetting ROUTING_ALLOCATION_INCLUDE_IP = new StringSetting("_ip") {
 
         @Override
         public Setting parent() {
@@ -548,10 +467,7 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting ROUTING_ALLOCATION_INCLUDE_ID = new StringSetting() {
-        @Override
-        public String name() { return "_id"; }
-
+    public static final StringSetting ROUTING_ALLOCATION_INCLUDE_ID = new StringSetting("_id") {
         @Override
         public Setting parent() {
             return ROUTING_ALLOCATION_INCLUDE;
@@ -563,10 +479,7 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting ROUTING_ALLOCATION_INCLUDE_HOST = new StringSetting() {
-        @Override
-        public String name() { return "_host"; }
-
+    public static final StringSetting ROUTING_ALLOCATION_INCLUDE_HOST = new StringSetting("_host") {
         @Override
         public Setting parent() {
             return ROUTING_ALLOCATION_INCLUDE;
@@ -578,10 +491,7 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting ROUTING_ALLOCATION_INCLUDE_NAME = new StringSetting() {
-        @Override
-        public String name() { return "_name"; }
-
+    public static final StringSetting ROUTING_ALLOCATION_INCLUDE_NAME = new StringSetting("_name") {
         @Override
         public Setting parent() {
             return ROUTING_ALLOCATION_INCLUDE;
@@ -618,9 +528,19 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting ROUTING_ALLOCATION_EXCLUDE_IP = new StringSetting() {
+    public static final StringSetting ROUTING_ALLOCATION_EXCLUDE_IP = new StringSetting("_ip") {
         @Override
-        public String name() { return "_ip"; }
+        public Setting parent() {
+            return ROUTING_ALLOCATION_EXCLUDE;
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
+    };
+
+    public static final StringSetting ROUTING_ALLOCATION_EXCLUDE_ID = new StringSetting("_id") {
 
         @Override
         public Setting parent() {
@@ -633,24 +553,7 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting ROUTING_ALLOCATION_EXCLUDE_ID = new StringSetting() {
-        @Override
-        public String name() { return "_id"; }
-
-        @Override
-        public Setting parent() {
-            return ROUTING_ALLOCATION_EXCLUDE;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
-
-    public static final StringSetting ROUTING_ALLOCATION_EXCLUDE_HOST = new StringSetting() {
-        @Override
-        public String name() { return "_host"; }
+    public static final StringSetting ROUTING_ALLOCATION_EXCLUDE_HOST = new StringSetting("_host") {
 
         @Override
         public Setting parent() {
@@ -664,10 +567,7 @@ public class CrateSettings {
     };
 
 
-    public static final StringSetting ROUTING_ALLOCATION_EXCLUDE_NAME = new StringSetting() {
-        @Override
-        public String name() { return "_name"; }
-
+    public static final StringSetting ROUTING_ALLOCATION_EXCLUDE_NAME = new StringSetting("_name") {
         @Override
         public Setting parent() {
             return ROUTING_ALLOCATION_EXCLUDE;
@@ -704,9 +604,7 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting ROUTING_ALLOCATION_REQUIRE_IP = new StringSetting() {
-        @Override
-        public String name() { return "_ip"; }
+    public static final StringSetting ROUTING_ALLOCATION_REQUIRE_IP = new StringSetting("_ip") {
 
         @Override
         public Setting parent() {
@@ -719,9 +617,7 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting ROUTING_ALLOCATION_REQUIRE_ID = new StringSetting() {
-        @Override
-        public String name() { return "_id"; }
+    public static final StringSetting ROUTING_ALLOCATION_REQUIRE_ID = new StringSetting("_id") {
 
         @Override
         public Setting parent() {
@@ -734,9 +630,7 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting ROUTING_ALLOCATION_REQUIRE_HOST = new StringSetting() {
-        @Override
-        public String name() { return "_host"; }
+    public static final StringSetting ROUTING_ALLOCATION_REQUIRE_HOST = new StringSetting("_host") {
 
         @Override
         public Setting parent() {
@@ -749,9 +643,7 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting ROUTING_ALLOCATION_REQUIRE_NAME = new StringSetting() {
-        @Override
-        public String name() { return "_name"; }
+    public static final StringSetting ROUTING_ALLOCATION_REQUIRE_NAME = new StringSetting("_name") {
 
         @Override
         public Setting parent() {
@@ -925,9 +817,7 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting ROUTING_ALLOCATION_DISK_WATERMARK_LOW = new StringSetting() {
-        @Override
-        public String name() { return "low"; }
+    public static final StringSetting ROUTING_ALLOCATION_DISK_WATERMARK_LOW = new StringSetting("low") {
 
         @Override
         public String defaultValue() { return "85%"; }
@@ -943,9 +833,7 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting ROUTING_ALLOCATION_DISK_WATERMARK_HIGH = new StringSetting() {
-        @Override
-        public String name() { return "high"; }
+    public static final StringSetting ROUTING_ALLOCATION_DISK_WATERMARK_HIGH = new StringSetting("high") {
 
         @Override
         public String defaultValue() { return "90%"; }
@@ -1010,21 +898,10 @@ public class CrateSettings {
         }
     };
 
-    public static final IntSetting INDICES_RECOVERY_CONCURRENT_STREAMS = new IntSetting() {
-        @Override
-        public String name() { return "concurrent_streams"; }
-
-        @Override
-        public Integer defaultValue() { return 3; }
-
+    public static final IntSetting INDICES_RECOVERY_CONCURRENT_STREAMS = new IntSetting("concurrent_streams", 3, true) {
         @Override
         public Setting parent() {
             return INDICES_RECOVERY;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
         }
     };
 
@@ -1046,21 +923,10 @@ public class CrateSettings {
         }
     };
 
-    public static final IntSetting INDICES_RECOVERY_TRANSLOG_OPS = new IntSetting() {
-        @Override
-        public String name() { return "translog_ops"; }
-
-        @Override
-        public Integer defaultValue() { return 1000; }
-
+    public static final IntSetting INDICES_RECOVERY_TRANSLOG_OPS = new IntSetting("translog_ops", 1000, true) {
         @Override
         public Setting parent() {
             return INDICES_RECOVERY;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
         }
     };
 
@@ -1251,11 +1117,9 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting INDICES_STORE_THROTTLE_TYPE = new StringSetting(
+    public static final StringSetting INDICES_STORE_THROTTLE_TYPE = new StringSetting("type",
             Sets.newHashSet("all", "merge", "none")
     ) {
-        @Override
-        public String name() { return "type"; }
 
         @Override
         public String defaultValue() { return "merge"; }
@@ -1332,9 +1196,7 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting INDICES_FIELDDATA_BREAKER_LIMIT = new StringSetting() {
-        @Override
-        public String name() { return "limit"; }
+    public static final StringSetting INDICES_FIELDDATA_BREAKER_LIMIT = new StringSetting("limit") {
 
         @Override
         public String defaultValue() { return "60%"; }
@@ -1414,9 +1276,7 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting INDICES_BREAKER_QUERY_LIMIT = new StringSetting() {
-        @Override
-        public String name() { return "limit"; }
+    public static final StringSetting INDICES_BREAKER_QUERY_LIMIT = new StringSetting("limit") {
 
         @Override
         public String defaultValue() { return CrateCircuitBreakerService.DEFAULT_QUERY_CIRCUIT_BREAKER_LIMIT; }
@@ -1473,9 +1333,7 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting INDICES_BREAKER_REQUEST_LIMIT = new StringSetting() {
-        @Override
-        public String name() { return "limit"; }
+    public static final StringSetting INDICES_BREAKER_REQUEST_LIMIT = new StringSetting("limit") {
 
         @Override
         public String defaultValue() { return "40%"; }
@@ -1652,47 +1510,19 @@ public class CrateSettings {
         }
     };
 
-    public static final IntSetting GATEWAY_RECOVERY_AFTER_NODES = new IntSetting() {
-        @Override
-        public String name() {
-            return "recover_after_nodes";
-        }
-
-        @Override
-        public Integer defaultValue() {
-            return -1;
-        }
+    public static final IntSetting GATEWAY_RECOVERY_AFTER_NODES = new IntSetting("recover_after_nodes", -1, false) {
 
         @Override
         public Setting parent() {
             return GATEWAY;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return false;
         }
     };
 
-    public static final IntSetting GATEWAY_EXPECTED_NODES = new IntSetting() {
-        @Override
-        public String name() {
-            return "expected_nodes";
-        }
-
-        @Override
-        public Integer defaultValue() {
-            return -1;
-        }
+    public static final IntSetting GATEWAY_EXPECTED_NODES = new IntSetting("expected_nodes", -1, false) {
 
         @Override
         public Setting parent() {
             return GATEWAY;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return false;
         }
     };
 
@@ -1801,11 +1631,7 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting UDC_URL = new StringSetting() {
-        @Override
-        public String name() {
-            return "url";
-        }
+    public static final StringSetting UDC_URL = new StringSetting("url") {
 
         @Override
         public String defaultValue() {
