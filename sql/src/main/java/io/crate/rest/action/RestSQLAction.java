@@ -53,7 +53,7 @@ public class RestSQLAction extends BaseRestHandler {
     public void handleRequest(final RestRequest request, final RestChannel channel, Client client) throws Exception {
         if (!request.hasContent()) {
             channel.sendResponse(new CrateThrowableRestResponse(channel,
-                    new SQLActionException("missing request body", 4000, RestStatus.BAD_REQUEST, null)));
+                    new SQLActionException("missing request body", 4000, RestStatus.BAD_REQUEST)));
             return;
         }
 
@@ -65,7 +65,7 @@ public class RestSQLAction extends BaseRestHandler {
             StringWriter stackTrace = new StringWriter();
             e.printStackTrace(new PrintWriter(stackTrace));
             channel.sendResponse(new CrateThrowableRestResponse(channel,
-                    new SQLActionException(e.getMessage(), 4000, RestStatus.BAD_REQUEST, stackTrace.toString())));
+                    new SQLActionException(e.getMessage(), 4000, RestStatus.BAD_REQUEST, e.getStackTrace())));
             return;
         }
 
@@ -74,7 +74,7 @@ public class RestSQLAction extends BaseRestHandler {
         if(args != null && args.length > 0 && bulkArgs != null && bulkArgs.length > 0){
             channel.sendResponse(new CrateThrowableRestResponse(channel,
                     new SQLActionException("request body contains args and bulk_args. It's forbidden to provide both",
-                            4000, RestStatus.BAD_REQUEST, null)));
+                            4000, RestStatus.BAD_REQUEST)));
             return;
         }
         if (bulkArgs != null && bulkArgs.length > 0) {
