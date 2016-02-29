@@ -141,7 +141,8 @@ public class CopyStatementAnalyzer {
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 
         Context context = new Context(analysisMetaData, analysis.parameterContext(), tableRelation, false);
-        Settings settings = processCopyToProperties(node.genericProperties(), analysis.parameterContext());
+        Settings settings = GenericPropertiesConverter.settingsFromProperties(
+                node.genericProperties(), analysis.parameterContext(), SETTINGS_APPLIERS).build();
 
         WriterProjection.CompressionType compressionType = settingAsEnum(WriterProjection.CompressionType.class, settings.get(COMPRESSION_SETTING));
         WriterProjection.OutputFormat outputFormat = settingAsEnum(WriterProjection.OutputFormat.class, settings.get(OUTPUT_FORMAT_SETTING));
@@ -198,11 +199,10 @@ public class CopyStatementAnalyzer {
     }
 
     private static <E extends Enum<E>> E settingAsEnum(Class<E> settingsEnum, String settingValue) {
-        E setting = null;
-        if (settingValue != null) {
-            setting = Enum.valueOf(settingsEnum, settingValue.toUpperCase(Locale.ENGLISH));
+        if (settingValue == null || settingValue.isEmpty()) {
+            return null;
         }
-        return setting;
+        return Enum.valueOf(settingsEnum, settingValue.toUpperCase(Locale.ENGLISH));
     }
 
     private List<String> resolvePartitions(CopyTo node, Analysis analysis, DocTableRelation tableRelation) {
@@ -252,23 +252,6 @@ public class CopyStatementAnalyzer {
                     context.expressionAnalysisContext);
         }
         return ImmutableSettings.EMPTY;
-    }
-
-    private Settings processCopyToProperties(Optional<GenericProperties> genericProperties, ParameterContext parameterContext) {
-        ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
-
-        if (genericProperties.isPresent()) {
-            for (Map.Entry<String, Expression> setting : genericProperties.get().properties().entrySet()) {
-                SettingsApplier settingsApplier = SETTINGS_APPLIERS.get(setting.getKey());
-                if (settingsApplier == null) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Unknown setting '%s'", setting.getKey()));
-                }
-
-                settingsApplier.apply(settingsBuilder, parameterContext.parameters(), setting.getValue());
-            }
-        }
-
-        return settingsBuilder.build();
     }
 
     private boolean partitionExists(DocTableInfo table, @Nullable PartitionName partition) {

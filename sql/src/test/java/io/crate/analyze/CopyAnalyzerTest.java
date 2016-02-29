@@ -178,8 +178,8 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopyToFileWithUnknownParams() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Unknown setting 'foo'");
-        CopyToAnalyzedStatement analysis = analyze("copy users to '/blah.txt' with (foo='gzip')");
+        expectedException.expectMessage("setting 'foo' not supported");
+        analyze("copy users to '/blah.txt' with (foo='gzip')");
     }
 
     @Test
