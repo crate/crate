@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.*;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.*;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.client.transport.TransportClientNodesService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -48,9 +47,9 @@ public class InternalCrateClient {
 
         MapBuilder<Action, TransportActionNodeProxy> actionsBuilder = new MapBuilder<>();
         actionsBuilder.put(SQLAction.INSTANCE,
-                           new TransportActionNodeProxy<>(settings, SQLAction.INSTANCE, transportService))
-                      .put(SQLBulkAction.INSTANCE,
-                           new TransportActionNodeProxy<>(settings, SQLBulkAction.INSTANCE, transportService));
+                new TransportActionNodeProxy<>(settings, SQLAction.INSTANCE, transportService))
+                .put(SQLBulkAction.INSTANCE,
+                        new TransportActionNodeProxy<>(settings, SQLBulkAction.INSTANCE, transportService));
         this.actions = actionsBuilder.immutableMap();
     }
 
@@ -62,10 +61,10 @@ public class InternalCrateClient {
         return execute(SQLBulkAction.INSTANCE, bulkRequest);
     }
 
-    protected <Request extends ActionRequest, Response extends ActionResponse,
+    protected <Request extends ActionRequest, Response extends SQLBaseResponse,
             RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> ActionFuture<Response> execute(final Action<Request,
             Response, RequestBuilder> action, final Request request) {
-        PlainActionFuture<Response> actionFuture = PlainActionFuture.newFuture();
+        CrateClientActionFuture<Response> actionFuture = new CrateClientActionFuture<>();
         execute(action, request, actionFuture);
         return actionFuture;
     }
@@ -80,17 +79,17 @@ public class InternalCrateClient {
 
     protected <Request extends ActionRequest, Response extends ActionResponse,
             RequestBuilder extends ActionRequestBuilder<Request, Response,
-                    RequestBuilder> > void execute(final Action<Request,
+                    RequestBuilder>> void execute(final Action<Request,
             Response, RequestBuilder> action, final Request request, final ActionListener<Response> listener) {
         final TransportActionNodeProxy<Request, Response> proxy = actions.get(action);
         nodesService.execute(
-            new TransportClientNodesService.NodeListenerCallback<Response>() {
-                @Override
-                public void doWithNode(DiscoveryNode node, ActionListener<Response> listener) throws
-                        ElasticsearchException {
-                    proxy.execute(node, request, listener);
-                }
-            }, listener);
+                new TransportClientNodesService.NodeListenerCallback<Response>() {
+                    @Override
+                    public void doWithNode(DiscoveryNode node, ActionListener<Response> listener) throws
+                            ElasticsearchException {
+                        proxy.execute(node, request, listener);
+                    }
+                }, listener);
     }
 
     public void addTransportAddress(TransportAddress transportAddress) {

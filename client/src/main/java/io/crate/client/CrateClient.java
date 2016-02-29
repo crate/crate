@@ -31,8 +31,6 @@ import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterNameModule;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.compress.CompressorFactory;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.logging.ESLogger;
@@ -41,9 +39,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.env.Environment;
 import org.elasticsearch.indices.breaker.CircuitBreakerModule;
-import org.elasticsearch.node.internal.InternalSettingsPreparer;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolModule;
 import org.elasticsearch.transport.TransportModule;
@@ -66,11 +62,10 @@ public class CrateClient {
 
     private static final ESLogger logger = Loggers.getLogger(CrateClient.class);
 
-
     public CrateClient(Settings pSettings, String ... servers) throws
             ElasticsearchException {
 
-        Settings settings = settingsBuilder()
+        Settings.Builder builder = settingsBuilder()
                 .put(pSettings)
                 .put("network.server", false)
                 .put("node.client", true)
@@ -82,18 +77,15 @@ public class CrateClient {
                 .put("threadpool.index.size", 1)
                 .put("threadpool.bulk.size", 1)
                 .put("threadpool.get.size", 1)
-                .put("threadpool.percolate.size", 1)
-                .build();
+                .put("threadpool.percolate.size", 1);
+
         //Tuple<Settings, Environment> tuple = InternalSettingsPreparer.prepareSettings(settings, false);
 
-        this.settings = settings;
+        if (builder.get("name") == null){
+            builder.put("name", "crate_client");
+        }
 
-
-        // FIXME: check if we need to overrid classloader
-        //CrateClientClassLoader clientClassLoader = new CrateClientClassLoader(tuple.v1().getClassLoader());
-        //this.settings = settingsBuilder().put(tuple.v1()).classLoader(clientClassLoader).build();
-
-        //CompressorFactory.configure(this.settings);
+        this.settings = builder.build();
 
         threadPool = new ThreadPool(this.settings);
 

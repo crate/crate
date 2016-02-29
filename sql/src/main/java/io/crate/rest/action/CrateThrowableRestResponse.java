@@ -29,6 +29,8 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.*;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
 import static org.elasticsearch.ExceptionsHelper.detailedMessage;
 
@@ -70,7 +72,9 @@ public class CrateThrowableRestResponse extends RestResponse {
 
         if (t != null && channel.request().paramAsBoolean("error_trace", false)
                 && sqlActionException != null) {
-            builder.field("error_trace", sqlActionException.stackTrace());
+            StringWriter stackTrace = new StringWriter();
+            sqlActionException.printStackTrace(new PrintWriter(stackTrace));
+            builder.field("error_trace", stackTrace.toString());
         }
         builder.endObject();
         return builder;

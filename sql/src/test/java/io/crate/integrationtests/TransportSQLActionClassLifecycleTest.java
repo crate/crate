@@ -531,7 +531,7 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
             executor.exec("set global persistent stats.operations_log_size=-1024");
             fail("expected SQLActionException, none was thrown");
         } catch (SQLActionException e) {
-            assertThat(e.getMessage(), is("Invalid value for argument 'stats.operations_log_size'"));
+            assertThat(e.getMessage(), containsString("Invalid value for argument 'stats.operations_log_size'"));
 
             SQLResponse response = executor.exec("select settings['stats']['operations_log_size'] from sys.cluster");
             assertThat(response.rowCount(), is(1L));

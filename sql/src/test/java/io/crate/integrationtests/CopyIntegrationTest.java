@@ -472,7 +472,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void testCopyToDirectoryPath() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(startsWith("Failed to open output: 'Output path is a directory: "));
+        expectedException.expectMessage(containsString("Failed to open output: 'Output path is a directory: "));
         execute("create table characters (" +
                 " race string," +
                 " gender string," +
