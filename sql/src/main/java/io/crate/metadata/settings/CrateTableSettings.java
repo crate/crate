@@ -30,91 +30,15 @@ import org.elasticsearch.common.unit.TimeValue;
 
 public class CrateTableSettings {
 
-    public static final BoolSetting READ_ONLY = new BoolSetting() {
+    public static final BoolSetting READ_ONLY = new BoolSetting(TableParameterInfo.READ_ONLY, false, true);
 
-        @Override
-        public String name() {
-            return TableParameterInfo.READ_ONLY;
-        }
+    public static final BoolSetting BLOCKS_READ = new BoolSetting(TableParameterInfo.BLOCKS_READ, false, true);
 
-        @Override
-        public Boolean defaultValue() {
-            return false;
-        }
+    public static final BoolSetting BLOCKS_WRITE = new BoolSetting(TableParameterInfo.BLOCKS_WRITE, false, true);
 
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
+    public static final BoolSetting BLOCKS_METADATA = new BoolSetting(TableParameterInfo.BLOCKS_METADATA, false, true);
 
-    public static final BoolSetting BLOCKS_READ = new BoolSetting() {
-        @Override
-        public String name() {
-            return TableParameterInfo.BLOCKS_READ;
-        }
-
-        @Override
-        public Boolean defaultValue() {
-            return false;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
-
-    public static final BoolSetting BLOCKS_WRITE = new BoolSetting() {
-        @Override
-        public String name() {
-            return TableParameterInfo.BLOCKS_WRITE;
-        }
-
-        @Override
-        public Boolean defaultValue() {
-            return false;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
-
-    public static final BoolSetting BLOCKS_METADATA = new BoolSetting() {
-        @Override
-        public String name() {
-            return TableParameterInfo.BLOCKS_METADATA;
-        }
-
-        @Override
-        public Boolean defaultValue() {
-            return false;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
-
-    public static final BoolSetting FLUSH_DISABLE = new BoolSetting() {
-        @Override
-        public String name() {
-            return TableParameterInfo.FLUSH_DISABLE;
-        }
-
-        @Override
-        public Boolean defaultValue() {
-            return false;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
+    public static final BoolSetting FLUSH_DISABLE = new BoolSetting(TableParameterInfo.FLUSH_DISABLE, false, true);
 
     public static final TimeSetting TRANSLOG_INTERVAL = new TimeSetting() {
         @Override
@@ -204,22 +128,7 @@ public class CrateTableSettings {
         }
     };
 
-    public static final BoolSetting WARMER_ENABLED = new BoolSetting() {
-        @Override
-        public String name() {
-            return TableParameterInfo.WARMER_ENABLED;
-        }
-
-        @Override
-        public Boolean defaultValue() {
-            return true;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
+    public static final BoolSetting WARMER_ENABLED = new BoolSetting(TableParameterInfo.WARMER_ENABLED, true, true);
 
     public static final TimeSetting GATEWAY_LOCAL_SYNC = new TimeSetting() {
         @Override

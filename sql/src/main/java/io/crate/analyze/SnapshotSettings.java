@@ -26,37 +26,7 @@ import io.crate.metadata.settings.BoolSetting;
 
 public class SnapshotSettings {
 
-    public static final BoolSetting IGNORE_UNAVAILABLE = new BoolSetting() {
-        @Override
-        public String name() {
-            return "ignore_unavailable";
-        }
+    public static final BoolSetting IGNORE_UNAVAILABLE = new BoolSetting("ignore_unavailable", false, false);
 
-        @Override
-        public Boolean defaultValue() {
-            return Boolean.FALSE;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return false;
-        }
-    };
-
-    public static final BoolSetting WAIT_FOR_COMPLETION = new BoolSetting() {
-        @Override
-        public String name() {
-            return "wait_for_completion";
-        }
-
-        @Override
-        public Boolean defaultValue() {
-            return Boolean.FALSE;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return false;
-        }
-    };
+    public static final BoolSetting WAIT_FOR_COMPLETION = new BoolSetting("wait_for_completion", false, false);
 }

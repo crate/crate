@@ -57,24 +57,11 @@ public class CrateSettings {
         }
     };
 
-    public static final BoolSetting STATS_ENABLED = new BoolSetting() {
-        @Override
-        public String name() {
-            return "enabled";
-        }
-
-        @Override
-        public Boolean defaultValue() {
-            return false;
-        }
+    public static final BoolSetting STATS_ENABLED = new BoolSetting("enabled", false, true) {
 
         @Override
         public Setting parent() {
             return STATS;
-        }
-
-        public boolean isRuntime() {
-            return true;
         }
     };
 
@@ -162,23 +149,10 @@ public class CrateSettings {
         }
     };
 
-    public static final BoolSetting GRACEFUL_STOP_REALLOCATE = new BoolSetting() {
-        @Override
-        public String name() { return "reallocate"; }
-
-        @Override
-        public Boolean defaultValue() {
-            return true;
-        }
-
+    public static final BoolSetting GRACEFUL_STOP_REALLOCATE = new BoolSetting("reallocate", true, true) {
         @Override
         public Setting parent() {
             return GRACEFUL_STOP;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
         }
     };
 
@@ -204,25 +178,11 @@ public class CrateSettings {
         }
     };
 
-    public static final BoolSetting GRACEFUL_STOP_FORCE = new BoolSetting() {
-        @Override
-        public String name() {
-            return "force";
-        }
-
-        @Override
-        public Boolean defaultValue() {
-            return false;
-        }
+    public static final BoolSetting GRACEFUL_STOP_FORCE = new BoolSetting("force", false, true) {
 
         @Override
         public Setting parent() {
             return GRACEFUL_STOP;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
         }
     };
 
@@ -776,21 +736,12 @@ public class CrateSettings {
         }
     };
 
-    public static final BoolSetting ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED = new BoolSetting() {
-        @Override
-        public String name() { return "threshold_enabled"; }
-
-        @Override
-        public Boolean defaultValue() { return true; }
+    public static final BoolSetting ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED =
+            new BoolSetting("threshold_enabled", true, true) {
 
         @Override
         public Setting parent() {
             return ROUTING_ALLOCATION_DISK;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
         }
     };
 
@@ -948,21 +899,11 @@ public class CrateSettings {
         }
     };
 
-    public static final BoolSetting INDICES_RECOVERY_COMPRESS = new BoolSetting() {
-        @Override
-        public String name() { return "compress"; }
-
-        @Override
-        public Boolean defaultValue() { return true; }
+    public static final BoolSetting INDICES_RECOVERY_COMPRESS = new BoolSetting("compress", true, true) {
 
         @Override
         public Setting parent() {
             return INDICES_RECOVERY;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
         }
     };
 
@@ -1565,25 +1506,10 @@ public class CrateSettings {
         }
     };
 
-    public static final BoolSetting UDC_ENABLED = new BoolSetting() {
-        @Override
-        public String name() {
-            return "enabled";
-        }
-
-        @Override
-        public Boolean defaultValue() {
-            return true;
-        }
-
+    public static final BoolSetting UDC_ENABLED = new BoolSetting("enabled", true, false) {
         @Override
         public Setting parent() {
             return UDC;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return false;
         }
     };
 
