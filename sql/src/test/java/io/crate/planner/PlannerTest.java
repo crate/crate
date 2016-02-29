@@ -3,36 +3,19 @@ package io.crate.planner;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.crate.Constants;
-import io.crate.analyze.Analyzer;
-import io.crate.analyze.BaseAnalyzerTest;
-import io.crate.analyze.ParameterContext;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.analyze.symbol.*;
-import io.crate.core.collections.TreeMapBuilder;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.*;
-import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.sys.SysSchemaInfo;
-import io.crate.metadata.table.ColumnPolicy;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.EqOperator;
-import io.crate.operation.operator.OperatorModule;
-import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.projectors.TopN;
-import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.DropTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
@@ -43,66 +26,22 @@ import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.projection.*;
-import io.crate.sql.parser.SqlParser;
-import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.*;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.test.cluster.NoopClusterService;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @SuppressWarnings("ConstantConditions")
-public class PlannerTest extends CrateUnitTest {
-
-    private Analyzer analyzer;
-    private Planner planner;
-
-    private static Routing shardRouting(String tableName) {
-        return new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-                .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(1, 2)).map())
-                .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(3, 4)).map())
-                .map());
-    }
-
-
-    private static final Routing PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.parted.04232chj", Arrays.asList(1, 2)).map())
-            .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
-            .map());
-
-    private static final Routing CLUSTERED_PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g",  Arrays.asList(1, 2)).map())
-            .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g",  Arrays.asList(3)).map())
-            .map());
+public class PlannerTest extends AbstractPlannerTest {
 
 
     private static final List<String> EXPLAIN_TEST_STATEMENTS =  ImmutableList.of(
@@ -115,201 +54,8 @@ public class PlannerTest extends CrateUnitTest {
     );
 
 
-
-    private ClusterService clusterService;
-
     private final static String LOCAL_NODE_ID = "noop_id";
-    private ThreadPool threadPool;
 
-    @Mock
-    private SchemaInfo schemaInfo;
-
-    @Before
-    public void prepare() throws Exception {
-        threadPool = TestingHelpers.newMockedThreadPool();
-        Injector injector = new ModulesBuilder()
-                .add(new AggregationImplModule())
-                .add(new ScalarFunctionModule())
-                .add(new TableFunctionModule())
-                .add(new PredicateModule())
-                .add(new OperatorModule())
-                .add(new RepositorySettingsModule())
-                .add(new TestModule())
-                .createInjector();
-        analyzer = injector.getInstance(Analyzer.class);
-        planner = injector.getInstance(Planner.class);
-
-        bindGeneratedColumnTable(injector.getInstance(Functions.class));
-    }
-
-    @After
-    public void after() throws Exception {
-        threadPool.shutdown();
-        threadPool.awaitTermination(1, TimeUnit.SECONDS);
-    }
-
-    private void bindGeneratedColumnTable(Functions functions) {
-        TableIdent generatedPartitionedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted_generated");
-        TableInfo generatedPartitionedTableInfo = new TestingTableInfo.Builder(
-                generatedPartitionedTableIdent, PARTED_ROUTING)
-                .add("ts", DataTypes.TIMESTAMP, null)
-                .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true)
-                .addPartitions(
-                        new PartitionName("parted_generated", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                        new PartitionName("parted_generated", Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
-                .build(functions);
-        when(schemaInfo.getTableInfo(generatedPartitionedTableIdent.name()))
-                .thenReturn(generatedPartitionedTableInfo);
-    }
-
-
-    class TestModule extends MetaDataModule {
-
-        @Override
-        protected void configure() {
-            bind(RepositoryService.class).toInstance(mock(RepositoryService.class));
-            bind(TableStatsService.class).toInstance(mock(TableStatsService.class));
-            bind(ThreadPool.class).toInstance(threadPool);
-            clusterService = new NoopClusterService();
-            FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
-            bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
-            bind(ClusterService.class).toInstance(clusterService);
-            bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
-            super.configure();
-        }
-
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            TableIdent userTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users");
-            TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, shardRouting("users"))
-                    .add("name", DataTypes.STRING, null)
-                    .add("id", DataTypes.LONG, null)
-                    .add("date", DataTypes.TIMESTAMP, null)
-                    .add("text", DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED)
-                    .add("no_index", DataTypes.STRING, null, ReferenceInfo.IndexType.NO)
-                    .addPrimaryKey("id")
-                    .clusteredBy("id")
-                    .build();
-            TableIdent charactersTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "characters");
-            TableInfo charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, shardRouting("characters"))
-                    .add("name", DataTypes.STRING, null)
-                    .add("id", DataTypes.STRING, null)
-                    .addPrimaryKey("id")
-                    .clusteredBy("id")
-                    .build();
-            TableIdent partedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted");
-            TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, PARTED_ROUTING)
-                    .add("name", DataTypes.STRING, null)
-                    .add("id", DataTypes.STRING, null)
-                    .add("date", DataTypes.TIMESTAMP, null, true)
-                    .addPartitions(
-                            new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).asIndexName(), // TODO: invalid partition: null not valid as part of primary key
-                            new PartitionName("parted", Arrays.asList(new BytesRef("0"))).asIndexName(),
-                            new PartitionName("parted", Arrays.asList(new BytesRef("123"))).asIndexName()
-                    )
-                    .addPrimaryKey("id")
-                    .addPrimaryKey("date")
-                    .clusteredBy("id")
-                    .build();
-            TableIdent emptyPartedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "empty_parted");
-            TableInfo emptyPartedTableInfo = TestingTableInfo.builder(partedTableIdent, shardRouting("empty_parted"))
-                    .add("name", DataTypes.STRING, null)
-                    .add("id", DataTypes.STRING, null)
-                    .add("date", DataTypes.TIMESTAMP, null, true)
-                    .addPrimaryKey("id")
-                    .addPrimaryKey("date")
-                    .clusteredBy("id")
-                    .build();
-            TableIdent multiplePartitionedTableIdent= new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "multi_parted");
-            TableInfo multiplePartitionedTableInfo = new TestingTableInfo.Builder(
-                    multiplePartitionedTableIdent, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
-                    .add("id", DataTypes.INTEGER, null)
-                    .add("date", DataTypes.TIMESTAMP, null, true)
-                    .add("num", DataTypes.LONG, null)
-                    .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
-                    .add("obj", DataTypes.STRING, Arrays.asList("name"), true)
-                            // add 3 partitions/simulate already done inserts
-                    .addPartitions(
-                            new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395874800000"), new BytesRef("0"))).asIndexName(),
-                            new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).asIndexName(),
-                            new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).asIndexName())
-                    .build();
-            TableIdent clusteredByPartitionedIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "clustered_parted");
-            TableInfo clusteredByPartitionedTableInfo = new TestingTableInfo.Builder(
-                    multiplePartitionedTableIdent, CLUSTERED_PARTED_ROUTING)
-                    .add("id", DataTypes.INTEGER, null)
-                    .add("date", DataTypes.TIMESTAMP, null, true)
-                    .add("city", DataTypes.STRING, null)
-                    .clusteredBy("city")
-                    .addPartitions(
-                            new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                            new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
-                    .build();
-            when(schemaInfo.getTableInfo(charactersTableIdent.name())).thenReturn(charactersTableInfo);
-            when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
-            when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
-            when(schemaInfo.getTableInfo(emptyPartedTableIdent.name())).thenReturn(emptyPartedTableInfo);
-            when(schemaInfo.getTableInfo(multiplePartitionedTableIdent.name())).thenReturn(multiplePartitionedTableInfo);
-            when(schemaInfo.getTableInfo(clusteredByPartitionedIdent.name())).thenReturn(clusteredByPartitionedTableInfo);
-            when(schemaInfo.getTableInfo(BaseAnalyzerTest.IGNORED_NESTED_TABLE_IDENT.name())).thenReturn(BaseAnalyzerTest.IGNORED_NESTED_TABLE_INFO);
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
-            schemaBinder.addBinding(SysSchemaInfo.NAME).toInstance(mockSysSchemaInfo());
-            schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(mockBlobSchemaInfo());
-        }
-
-        private SchemaInfo mockBlobSchemaInfo(){
-            BlobSchemaInfo blobSchemaInfo = mock(BlobSchemaInfo.class);
-            BlobTableInfo tableInfo = mock(BlobTableInfo.class);
-            when(blobSchemaInfo.getTableInfo("screenshots")).thenReturn(tableInfo);
-            return blobSchemaInfo;
-        }
-
-        private SchemaInfo mockSysSchemaInfo() {
-            DiscoveryNodes.Builder nodeBuilder = DiscoveryNodes.builder();
-            nodeBuilder.put(new DiscoveryNode("nodeOne", null, Version.CURRENT));
-            nodeBuilder.put(new DiscoveryNode("nodeTwo", null, Version.CURRENT));
-
-            List<ShardRouting> routings = ImmutableList.<ShardRouting>builder()
-                    .add(new ImmutableShardRouting("parted", 1, "nodeOne", true, ShardRoutingState.STARTED, 0L))
-                    .add(new ImmutableShardRouting("parted", 2, "nodeTwo", true, ShardRoutingState.STARTED, 0L))
-                    .build();
-            ArrayList<ShardIterator> set = new ArrayList<>();
-            for (ShardRouting shardRouting : routings) {
-                set.add(shardRouting.shardsIt());
-            }
-
-            ClusterService clusterService = mock(ClusterService.class);
-            ClusterState clusterState = mock(ClusterState.class);
-            when(clusterService.localNode()).thenReturn(new DiscoveryNode("foo", null, Version.CURRENT));
-            when(clusterService.state()).thenReturn(clusterState);
-            when(clusterState.nodes()).thenReturn(nodeBuilder.build());
-            MetaData metaData = mock(MetaData.class);
-            String[] concreteIndices = new String[]{"parted"};
-            when(metaData.concreteAllIndices()).thenReturn(concreteIndices);
-            when(clusterState.metaData()).thenReturn(metaData);
-            when(clusterState.getMetaData()).thenReturn(metaData);
-
-
-            RoutingTable routingTable = mock(RoutingTable.class);
-            when(clusterState.routingTable()).thenReturn(routingTable);
-            when(clusterState.getRoutingTable()).thenReturn(routingTable);
-            when(routingTable.allAssignedShardsGrouped(eq(concreteIndices), anyBoolean(), anyBoolean()))
-                    .thenReturn(new GroupShardsIterator(set));
-            return new SysSchemaInfo(clusterService);
-        }
-    }
-
-    private <T extends Plan> T plan(String statement) {
-        //noinspection unchecked: for testing this is fine
-        return (T)planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
-    }
-
-    private Plan plan(String statement, Object[][] bulkArgs) {
-        return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
-    }
 
     @Test
     public void testGroupByWithAggregationStringLiteralArguments() {
@@ -1068,41 +814,6 @@ public class PlannerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testCopyFromPlan() throws Exception {
-        CollectAndMerge plan = plan("copy users from '/path/to/file.extension'");
-        assertThat(plan.collectPhase(), instanceOf(FileUriCollectPhase.class));
-
-        FileUriCollectPhase collectPhase = (FileUriCollectPhase)plan.collectPhase();
-        assertThat((BytesRef) ((Literal) collectPhase.targetUri()).value(),
-                is(new BytesRef("/path/to/file.extension")));
-    }
-
-    @Test
-    public void testCopyFromNumReadersSetting() throws Exception {
-        CollectAndMerge plan = plan("copy users from '/path/to/file.extension' with (num_readers=1)");
-        assertThat(plan.collectPhase(), instanceOf(FileUriCollectPhase.class));
-        FileUriCollectPhase collectPhase = (FileUriCollectPhase) plan.collectPhase();
-        assertThat(collectPhase.executionNodes().size(), is(1));
-    }
-
-    @Test
-    public void testCopyFromPlanWithParameters() throws Exception {
-        CollectAndMerge plan = plan("copy users from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)");
-        assertThat(plan.collectPhase(), instanceOf(FileUriCollectPhase.class));
-        FileUriCollectPhase collectPhase = (FileUriCollectPhase)plan.collectPhase();
-        SourceIndexWriterProjection indexWriterProjection = (SourceIndexWriterProjection) collectPhase.projections().get(0);
-        assertThat(indexWriterProjection.bulkActions(), is(30));
-        assertThat(collectPhase.compression(), is("gzip"));
-        assertThat(collectPhase.sharedStorage(), is(true));
-
-        // verify defaults:
-        plan = plan("copy users from '/path/to/file.ext'");
-        collectPhase = (FileUriCollectPhase)plan.collectPhase();
-        assertNull(collectPhase.compression());
-        assertNull(collectPhase.sharedStorage());
-    }
-
-    @Test
     public void testCopyToWithColumnsReferenceRewrite() throws Exception {
         CopyTo plan = plan("copy users (name) to '/file.ext'");
         CollectAndMerge innerPlan = (CollectAndMerge) plan.innerPlan();
@@ -1111,11 +822,6 @@ public class PlannerTest extends CrateUnitTest {
 
         assertThat(nameRef.info().ident().columnIdent().name(), is(DocSysColumns.DOC.name()));
         assertThat(nameRef.info().ident().columnIdent().path().get(0), is("name"));
-    }
-
-    @Test (expected = IllegalArgumentException.class)
-    public void testCopyFromPlanWithInvalidParameters() throws Exception {
-        plan("copy users from '/path/to/file.ext' with (bulk_size=-28)");
     }
 
     @Test
