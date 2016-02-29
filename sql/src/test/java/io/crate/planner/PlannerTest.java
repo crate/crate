@@ -53,14 +53,13 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.*;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
@@ -119,7 +118,7 @@ public class PlannerTest extends CrateUnitTest {
 
     private ClusterService clusterService;
 
-    private final static String LOCAL_NODE_ID = "foo";
+    private final static String LOCAL_NODE_ID = "noop_id";
     private ThreadPool threadPool;
 
     @Mock
@@ -171,24 +170,7 @@ public class PlannerTest extends CrateUnitTest {
             bind(RepositoryService.class).toInstance(mock(RepositoryService.class));
             bind(TableStatsService.class).toInstance(mock(TableStatsService.class));
             bind(ThreadPool.class).toInstance(threadPool);
-            clusterService = mock(ClusterService.class);
-            DiscoveryNode localNode = mock(DiscoveryNode.class);
-            when(localNode.id()).thenReturn(LOCAL_NODE_ID);
-            when(clusterService.localNode()).thenReturn(localNode);
-            ClusterState clusterState = mock(ClusterState.class);
-            MetaData metaData = mock(MetaData.class);
-            when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
-            when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
-            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
-            when(clusterState.metaData()).thenReturn(metaData);
-            DiscoveryNodes nodes = mock(DiscoveryNodes.class);
-            DiscoveryNode node = mock(DiscoveryNode.class);
-            when(clusterService.state()).thenReturn(clusterState);
-            when(clusterState.nodes()).thenReturn(nodes);
-            ImmutableOpenMap<String, DiscoveryNode> dataNodes =
-                    ImmutableOpenMap.<String, DiscoveryNode>builder().fPut("foo", node).build();
-            when(nodes.dataNodes()).thenReturn(dataNodes);
-            when(nodes.localNodeId()).thenReturn(LOCAL_NODE_ID);
+            clusterService = new NoopClusterService();
             FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
             bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
             bind(ClusterService.class).toInstance(clusterService);
