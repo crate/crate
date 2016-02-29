@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Optional;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
@@ -30,6 +31,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class GenericPropertiesConverter {
@@ -60,5 +62,28 @@ public class GenericPropertiesConverter {
             genericPropertyToSetting(builder, entry.getKey(), entry.getValue(), parameterContext);
         }
         return builder.build();
+    }
+
+    public static ImmutableSettings.Builder settingsFromProperties(Optional<GenericProperties> properties,
+                                                                   ParameterContext parameterContext,
+                                                                   Map<String, ? extends SettingsApplier> settingAppliers) {
+        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        setDefaults(settingAppliers, builder);
+        if (properties.isPresent()) {
+            for (Map.Entry<String, Expression> entry : properties.get().properties().entrySet()) {
+                SettingsApplier settingsApplier = settingAppliers.get(entry.getKey());
+                if (settingsApplier == null) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", entry.getKey()));
+                }
+                settingsApplier.apply(builder, parameterContext.parameters(), entry.getValue());
+            }
+        }
+        return builder;
+    }
+
+    private static void setDefaults(Map<String, ? extends SettingsApplier> settingAppliers, ImmutableSettings.Builder builder) {
+        for (Map.Entry<String, ? extends SettingsApplier> entry : settingAppliers.entrySet()) {
+            builder.put(entry.getValue().getDefault());
+        }
     }
 }
