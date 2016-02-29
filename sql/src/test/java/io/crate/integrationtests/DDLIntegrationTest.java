@@ -43,8 +43,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(randomDynamicTemplates = false)
@@ -465,7 +464,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             assertTrue("did not fail for existing column o", false);
         } catch (SQLActionException e) {
             // column o exists already
-            assertThat(e.getMessage(), is("The table doc.t already has a column named o"));
+            assertThat(e.getMessage(), containsString("The table doc.t already has a column named o"));
         }
         execute("select * from information_schema.columns where " +
                 "table_name = 't' and schema_name='doc'" +
