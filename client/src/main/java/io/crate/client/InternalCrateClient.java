@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.*;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.*;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.client.transport.TransportClientNodesService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -62,10 +61,10 @@ public class InternalCrateClient {
         return execute(SQLBulkAction.INSTANCE, bulkRequest);
     }
 
-    protected <Request extends ActionRequest, Response extends ActionResponse,
+    protected <Request extends ActionRequest, Response extends SQLBaseResponse,
             RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> ActionFuture<Response> execute(final Action<Request,
             Response, RequestBuilder> action, final Request request) {
-        PlainActionFuture<Response> actionFuture = PlainActionFuture.newFuture();
+        CrateClientActionFuture<Response> actionFuture = CrateClientActionFuture.newFuture();
         execute(action, request, actionFuture);
         return actionFuture;
     }

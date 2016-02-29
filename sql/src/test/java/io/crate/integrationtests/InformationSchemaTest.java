@@ -830,7 +830,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                     "(3, 'content6')");
 
         } catch (SQLActionException e) {
-            assertThat(e.getMessage(), is("blocked by: [FORBIDDEN/8/index write (api)];"));
+            assertThat(e.getMessage(), containsString("blocked by: [FORBIDDEN/8/index write (api)];"));
         }
         refresh();
         execute("select * from my_table");
