@@ -30,7 +30,6 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.reference.sys.check.checks.SysCheck.Severity;
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.lucene.util.Constants;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -47,13 +46,13 @@ import static org.mockito.Mockito.when;
 
 public class SysChecksTest extends CrateUnitTest {
 
-    private static ClusterService clusterService = mock(ClusterService.class);
-    private static ClusterState clusterState = mock(ClusterState.class);
-    private static DiscoveryNodes discoveryNodes = mock(DiscoveryNodes.class);
-    private static NestedReferenceResolver referenceResolver = mock(NestedReferenceResolver.class);
-    private static Iterator docSchemaInfoItr = mock(Iterator.class);
-    private static SchemaInfo docSchemaInfo = mock(DocSchemaInfo.class);
-    private static DocTableInfo docTableInfo = mock(DocTableInfo.class);
+    private final ClusterService clusterService = mock(ClusterService.class);
+    private final ClusterState clusterState = mock(ClusterState.class);
+    private final DiscoveryNodes discoveryNodes = mock(DiscoveryNodes.class);
+    private final NestedReferenceResolver referenceResolver = mock(NestedReferenceResolver.class);
+    private final Iterator docSchemaInfoItr = mock(Iterator.class);
+    private final SchemaInfo docSchemaInfo = mock(DocSchemaInfo.class);
+    private final DocTableInfo docTableInfo = mock(DocTableInfo.class);
 
     @Test
     public void testMaxMasterNodesCheckWithEmptySetting() {
