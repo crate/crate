@@ -304,4 +304,26 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         Object[] files = $(1, 2, 3);
         analyze("copy users from ?", new Object[] { files });
     }
+
+    @Test
+    public void testStringAsNodeFiltersArgument() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid parameter passed to node_filters. " +
+                                        "Expected an object with name or id keys and string values. Got 'invalid'");
+        analyze("copy users from '/' with (node_filters='invalid')");
+    }
+
+    @Test
+    public void testObjectWithWrongKeyAsNodeFiltersArgument() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid node_filters arguments: [dummy]");
+        analyze("copy users from '/' with (node_filters={dummy='invalid'})");
+    }
+
+    @Test
+    public void testObjectWithInvalidValueTypeAsNodeFiltersArgument() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("node_filters argument 'name' must be a String, not 20 (Long)");
+        analyze("copy users from '/' with (node_filters={name=20})");
+    }
 }

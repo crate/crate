@@ -21,12 +21,15 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.copy.NodeFilters;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.QueriedDocTable;
@@ -46,6 +49,7 @@ import io.crate.planner.projection.WriterProjection;
 import io.crate.sql.tree.*;
 import io.crate.types.CollectionType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -105,7 +109,15 @@ public class CopyStatementAnalyzer {
         }
 
         Context context = new Context(analysisMetaData, analysis.parameterContext(), tableRelation, true);
-        Settings settings = processGenericProperties(node.genericProperties(), context);
+        Predicate<DiscoveryNode> nodeFilters = Predicates.alwaysTrue();
+        Settings settings = ImmutableSettings.EMPTY;
+        if (node.genericProperties().isPresent()) {
+            // copy map as items are removed. The GenericProperties map is cached in the query cache and removing
+            // items would cause subsequent queries that hit the cache to have different genericProperties
+            Map<String, Expression> properties = new HashMap<>(node.genericProperties().get().properties());
+            nodeFilters = discoveryNodePredicate(analysis.parameterContext().parameters(), properties.remove(NodeFilters.NAME));
+            settings = settingsFromProperties(properties, context.expressionAnalyzer, context.expressionAnalysisContext);
+        }
         Symbol uri = context.processExpression(node.path());
 
         if (!(uri.valueType() == DataTypes.STRING ||
@@ -113,7 +125,21 @@ public class CopyStatementAnalyzer {
             throw CopyFromAnalyzedStatement.raiseInvalidType(uri.valueType());
         }
 
-        return new CopyFromAnalyzedStatement(tableInfo, settings, uri, partitionIdent);
+        return new CopyFromAnalyzedStatement(tableInfo, settings, uri, partitionIdent, nodeFilters);
+    }
+
+    private static Predicate<DiscoveryNode> discoveryNodePredicate(Object[] parameters, @Nullable Expression nodeFiltersExpression) {
+        if (nodeFiltersExpression == null) {
+            return Predicates.alwaysTrue();
+        }
+        Object nodeFiltersObj = ExpressionToObjectVisitor.convert(nodeFiltersExpression, parameters);
+        try {
+            return NodeFilters.fromMap((Map) nodeFiltersObj);
+        } catch (ClassCastException e) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Invalid parameter passed to %s. Expected an object with name or id keys and string values. Got '%s'",
+                    NodeFilters.NAME, nodeFiltersObj));
+        }
     }
 
     public CopyToAnalyzedStatement convertCopyTo(CopyTo node, Analysis analysis) {
@@ -231,16 +257,6 @@ public class CopyStatementAnalyzer {
         }
     }
 
-    private Settings processGenericProperties(Optional<GenericProperties> genericProperties, Context context) {
-        if (genericProperties.isPresent()) {
-            return settingsFromProperties(
-                    genericProperties.get(),
-                    context.expressionAnalyzer,
-                    context.expressionAnalysisContext);
-        }
-        return ImmutableSettings.EMPTY;
-    }
-
     private boolean partitionExists(DocTableInfo table, @Nullable PartitionName partition) {
         if (table.isPartitioned() && partition != null) {
             for (PartitionName partitionName : table.partitions()) {
@@ -253,11 +269,11 @@ public class CopyStatementAnalyzer {
         return false;
     }
 
-    private Settings settingsFromProperties(GenericProperties properties,
+    private Settings settingsFromProperties(Map<String, Expression> properties,
                                             ExpressionAnalyzer expressionAnalyzer,
                                             ExpressionAnalysisContext expressionAnalysisContext) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
-        for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
+        for (Map.Entry<String, Expression> entry : properties.entrySet()) {
             String key = entry.getKey();
             Expression expression = entry.getValue();
             if (expression instanceof ArrayLiteral) {

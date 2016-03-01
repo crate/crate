@@ -23,6 +23,7 @@
 package io.crate.planner.statement;
 
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.CopyFromAnalyzedStatement;
@@ -51,6 +52,7 @@ import io.crate.planner.projection.WriterProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -169,7 +171,7 @@ public class CopyStatementPlanner {
                 context.jobId(),
                 context.nextExecutionPhaseId(),
                 "copyFrom",
-                getExecutionNodes(allNodes, analysis.settings().getAsInt("num_readers", allNodes.getSize())),
+                getExecutionNodes(allNodes, analysis.settings().getAsInt("num_readers", allNodes.getSize()), analysis.nodePredicate()),
                 analysis.uri(),
                 toCollect,
                 projections,
@@ -219,14 +221,16 @@ public class CopyStatementPlanner {
         return new CopyTo(context.jobId(), plannedSubQuery.plan(), mergePhase);
     }
 
-    private static Collection<String> getExecutionNodes(DiscoveryNodes allNodes, int maxNodes) {
+    private static Collection<String> getExecutionNodes(DiscoveryNodes allNodes,
+                                                        int maxNodes,
+                                                        final Predicate<DiscoveryNode> nodeFilters) {
         final AtomicInteger counter = new AtomicInteger(maxNodes);
         final List<String> nodes = new ArrayList<>(allNodes.size());
-        allNodes.dataNodes().keys().forEach(new ObjectProcedure<String>() {
+        allNodes.dataNodes().values().forEach(new ObjectProcedure<DiscoveryNode>() {
             @Override
-            public void apply(String value) {
-                if (counter.getAndDecrement() > 0) {
-                    nodes.add(value);
+            public void apply(DiscoveryNode value) {
+                if (nodeFilters.apply(value) && counter.getAndDecrement() > 0) {
+                    nodes.add(value.id());
                 }
             }
         });

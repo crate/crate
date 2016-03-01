@@ -69,4 +69,10 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
     public void testCopyFromPlanWithInvalidParameters() throws Exception {
         plan("copy users from '/path/to/file.ext' with (bulk_size=-28)");
     }
+
+    @Test
+    public void testNodeFiltersNoMatch() throws Exception {
+        CollectAndMerge cm = plan("copy users from '/path' with (node_filters={name='foobar'})");
+        assert cm.collectPhase().executionNodes() == []
+    }
 }

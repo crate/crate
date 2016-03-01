@@ -202,6 +202,33 @@ If an array of URIs is passed to ``COPY FROM`` this option will overwrite the
 default for *all* URIs.
 
 
+node_filters
+^^^^^^^^^^^^
+
+A filter that can be used to control which nodes should be used to execute the
+*read* operations.
+
+It's an object in the form of::
+
+    {
+        name = '<node_name_regex>',
+        id = '<node_id_regex>'
+    }
+
+Only one of the keys is required.
+The ``name`` regular expression is applied on the ``name`` of all execution
+nodes. The ``id`` regex is applied on the ``node id``.
+
+If both keys are set *both* regular
+expressions have to match for a node to be included.
+
+If ``shared`` is set to false this option has to be used with caution as it
+might cause nodes to be excluded that are the only ones with access to the
+files which should be read.
+
+A dry run to verify which nodes match the filter can be executed using the
+:doc:`EXPLAIN <explain>` statement.
+
 num_readers
 ^^^^^^^^^^^
 

@@ -22,9 +22,11 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Predicate;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataType;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -34,14 +36,17 @@ public class CopyFromAnalyzedStatement extends AbstractCopyAnalyzedStatement {
     private final DocTableInfo table;
     @Nullable
     private final String partitionIdent;
+    private final Predicate<DiscoveryNode> nodePredicate;
 
     public CopyFromAnalyzedStatement(DocTableInfo table,
                                      Settings settings,
                                      Symbol uri,
-                                     @Nullable String partitionIdent) {
+                                     @Nullable String partitionIdent,
+                                     Predicate<DiscoveryNode> nodePredicate) {
         super(settings, uri);
         this.table = table;
         this.partitionIdent = partitionIdent;
+        this.nodePredicate = nodePredicate;
     }
 
     public DocTableInfo table() {
@@ -60,5 +65,9 @@ public class CopyFromAnalyzedStatement extends AbstractCopyAnalyzedStatement {
 
     public static IllegalArgumentException raiseInvalidType(DataType dataType) {
         throw new IllegalArgumentException("fileUri must be of type STRING or STRING ARRAY. Got " + dataType);
+    }
+
+    public Predicate<DiscoveryNode> nodePredicate() {
+        return nodePredicate;
     }
 }
