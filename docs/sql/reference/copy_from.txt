@@ -212,6 +212,10 @@ node only once to do the import.
 
 Must be an integer that is greater than 0.
 
+If ``shared`` is set to false this option has to be used with caution. It might
+exclude the wrong nodes, causing COPY FROM to read no files or only a subset of
+the files.
+
 compression
 ^^^^^^^^^^^
 
