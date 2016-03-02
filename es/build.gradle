@@ -36,7 +36,7 @@ dependencies {
     compile 'net.java.dev.jna:jna:4.1.0'
     compile 'org.antlr:antlr-runtime:3.5'
     compile 'org.apache.commons:commons-lang3:3.3.2'
-    compile 'org.codehaus.groovy:groovy-all:2.4.0'
+    compile 'org.codehaus.groovy:groovy-all:2.4.4'
     compile 'org.joda:joda-convert:1.2'
     compile 'org.ow2.asm:asm-commons:4.1'
     compile 'org.ow2.asm:asm:4.1'
