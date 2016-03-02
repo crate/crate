@@ -85,12 +85,7 @@ public class PartitionName {
             int size = in.readVInt();
             List<BytesRef> values = new ArrayList<>(size);
             for (int i = 0; i < size; i++) {
-                BytesRef value = StringType.INSTANCE.streamer().readValueFrom(in);
-                if (value == null) {
-                    values.add(null);
-                } else {
-                    values.add(value);
-                }
+                values.add(StringType.INSTANCE.streamer().readValueFrom(in));
             }
             return values;
         } catch (IOException e) {
