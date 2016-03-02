@@ -55,12 +55,12 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.repositories.RepositoryMissingException;
@@ -73,8 +73,6 @@ import org.elasticsearch.transport.NodeDisconnectedException;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -371,10 +369,6 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
         int errorCode = 5000;
         RestStatus restStatus = RestStatus.INTERNAL_SERVER_ERROR;
-        String message = e.getMessage();
-        StringWriter stackTrace = new StringWriter();
-        e.printStackTrace(new PrintWriter(stackTrace));
-
         if (e instanceof CrateException) {
             CrateException crateException = (CrateException) e;
             if (e instanceof ValidationException) {
@@ -397,11 +391,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             restStatus = RestStatus.BAD_REQUEST;
         }
 
-        if (logger.isTraceEnabled()) {
-            message = stackTrace.toString();
-        }
-
-        if (message == null) {
+        String message;
+        if (e.getMessage() == null) {
             if (e instanceof CrateException && e.getCause() != null) {
                 e = e.getCause();   // use cause because it contains a more meaningful error in most cases
             }
@@ -411,8 +402,10 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             } else {
                 message = "Error in " + e.getClass().getSimpleName();
             }
+        } else {
+            message = e.toString();
         }
-        return new SQLActionException(message, errorCode, restStatus, stackTrace.toString());
+        return new SQLActionException(message, errorCode, restStatus, e.getStackTrace());
     }
 
     public void enable() {

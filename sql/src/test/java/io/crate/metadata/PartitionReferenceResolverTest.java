@@ -28,7 +28,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -59,7 +59,7 @@ public class PartitionReferenceResolverTest extends CrateUnitTest {
                 referenceResolver.getImplementation(refInfo);
                 fail("no assertion error thrown");
             } catch (AssertionError e) {
-                assertThat(e.getMessage(), is("granularity < PARTITION should have been resolved already"));
+                assertThat(e.getMessage(), containsString("granularity < PARTITION should have been resolved already"));
             }
         } else {
             referenceResolver.getImplementation(refInfo);

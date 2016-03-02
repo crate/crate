@@ -423,7 +423,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                     ")");
             fail("Reusing existing tokenizer worked");
         } catch (SQLActionException e) {
-            assertThat(e.getMessage(), is("Non-existing tokenizer 'a9tok'"));
+            assertThat(e.getMessage(), containsString("Non-existing tokenizer 'a9tok'"));
         }
         /*
          * NOT SUPPORTED UNTIL A CONSISTENT SOLUTION IS FOUND
