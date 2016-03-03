@@ -25,6 +25,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import io.crate.exceptions.JobKilledException;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
@@ -229,7 +230,7 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
         try (BufferedReader reader = createReader(inputStream)) {
             while ((line = reader.readLine()) != null) {
                 if (killed) {
-                    throw new CancellationException();
+                    throw new CancellationException(JobKilledException.MESSAGE);
                 }
 
                 keepAliveCount++;
