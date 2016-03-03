@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Create Table statements now validate that the PRIMARY KEY constraint doesn't
+   contain columns with unsupported data types
+
  - Fixed an issue that could cause INSERT INTO with an INNER JOIN in the
    sub-query to fail.
 
