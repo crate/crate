@@ -21,7 +21,6 @@
 
 package io.crate.bootstrap;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.elasticsearch.bootstrap.BootstrapProxy;
 import org.elasticsearch.bootstrap.StartupErrorProxy;
 
@@ -44,8 +43,9 @@ public class CrateF {
 
     public static void main(String[] args) {
         System.setProperty("es.foreground", "yes");
-        String[] startArgs = {"start"};
-        startArgs = ArrayUtils.addAll(startArgs, args);
+        String[] startArgs = new String[args.length + 1];
+        startArgs[0] = "start";
+        System.arraycopy(args, 0, startArgs, 1, args.length);
         try {
             BootstrapProxy.init(startArgs);
         } catch (Throwable t) {
