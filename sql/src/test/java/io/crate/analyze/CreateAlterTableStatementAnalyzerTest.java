@@ -873,4 +873,25 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expectMessage("Column unknown_col unknown");
         analyze("create table foo (ts timestamp, day as date_trunc('day', ts), date_string as cast(unknown_col as string))");
     }
+
+    @Test
+    public void testCreateTableWithObjectAsPrimaryKey() throws Exception {
+        expectedException.expectMessage("Cannot use columns of type \"object\" as primary key");
+        expectedException.expect(UnsupportedOperationException.class);
+        analyze("create table t (obj object as (x int) primary key)");
+    }
+
+    @Test
+    public void testCreateTableWithGeoPointAsPrimaryKey() throws Exception {
+        expectedException.expectMessage("Cannot use columns of type \"geo_point\" as primary key");
+        expectedException.expect(UnsupportedOperationException.class);
+        analyze("create table t (c geo_point primary key)");
+    }
+
+    @Test
+    public void testCreateTableWithGeoShapeAsPrimaryKey() throws Exception {
+        expectedException.expectMessage("Cannot use columns of type \"geo_shape\" as primary key");
+        expectedException.expect(UnsupportedOperationException.class);
+        analyze("create table t (c geo_shape primary key)");
+    }
 }

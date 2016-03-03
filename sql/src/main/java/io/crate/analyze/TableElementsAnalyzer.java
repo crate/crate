@@ -36,8 +36,7 @@ import java.util.Locale;
 
 public class TableElementsAnalyzer {
 
-
-    private final static InnerTableElementsAnalyzer analyzer = new InnerTableElementsAnalyzer();
+    private final static InnerTableElementsAnalyzer ANALYZER = new InnerTableElementsAnalyzer();
 
     public static AnalyzedTableElements analyze(List<TableElement> tableElements,
                                                 ParameterContext parameterContext,
@@ -46,7 +45,7 @@ public class TableElementsAnalyzer {
         for (TableElement tableElement : tableElements) {
             ColumnDefinitionContext ctx = new ColumnDefinitionContext(
                     null, parameterContext, fulltextAnalyzerResolver, analyzedTableElements);
-            analyzer.process(tableElement, ctx);
+            ANALYZER.process(tableElement, ctx);
             if (ctx.analyzedColumnDefinition.ident() != null) {
                 analyzedTableElements.add(ctx.analyzedColumnDefinition);
             }

@@ -25,9 +25,11 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.sql.tree.Expression;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
@@ -55,6 +57,12 @@ public class AnalyzedColumnDefinition {
     private boolean isIndex = false;
     private ArrayList<String> copyToTargets;
     private boolean isParentColumn;
+
+    private final static Set<String> UNSUPPORTED_PK_TYPES = Sets.newHashSet(
+            DataTypes.OBJECT.getName(),
+            DataTypes.GEO_POINT.getName(),
+            DataTypes.GEO_SHAPE.getName()
+    );
 
     @Nullable
     private String formattedGeneratedExpression;
@@ -175,12 +183,22 @@ public class AnalyzedColumnDefinition {
                             ident.sqlFqn()
                     ));
         }
-        if (isPrimaryKey() && collectionType != null) {
-            throw new UnsupportedOperationException(
-                    String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", collectionType));
+        if (isPrimaryKey()) {
+            ensureTypeCanBeUsedAsKey();
         }
         for (AnalyzedColumnDefinition child : children) {
             child.validate();
+        }
+    }
+
+    private void ensureTypeCanBeUsedAsKey() {
+        if (collectionType != null) {
+            throw new UnsupportedOperationException(
+                    String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", collectionType));
+        }
+        if (UNSUPPORTED_PK_TYPES.contains(dataType)) {
+            throw new UnsupportedOperationException(
+                    String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", dataType));
         }
     }
 

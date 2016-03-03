@@ -241,6 +241,9 @@ Or using a alternate syntax::
     ... );
     CREATE OK (... sec)
 
+.. note::
+
+    Not all column types can be used as PRIMARY KEY. See :ref:`primary_key_constraint`.
 
 .. _sql_ddl_sharding:
 

@@ -150,6 +150,13 @@ PRIMARY KEY Constraint
 The PRIMARY KEY constraint specifies that a column or columns of a
 table can contain only unique (non-duplicate), non-null values.
 
+Using columns of type ``object``, ``geo_point``, ``geo_shape`` or ``array`` as
+PRIMARY KEY is not supported.
+
+
+To use a whole ``object`` as PRIMARY KEY each column within the ``object`` can
+be declared as PRIMARY KEY instead.
+
 
 .. _index-constraint:
 
