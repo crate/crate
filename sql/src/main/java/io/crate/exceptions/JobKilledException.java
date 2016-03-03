@@ -23,8 +23,10 @@ package io.crate.exceptions;
 
 public class JobKilledException extends RuntimeException implements CrateException {
 
+    public static final String MESSAGE = "Job killed";
+
     public JobKilledException() {
-        super("Job killed");
+        super(MESSAGE);
     }
 
     @Override

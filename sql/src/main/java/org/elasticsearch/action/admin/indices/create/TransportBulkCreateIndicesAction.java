@@ -28,6 +28,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import io.crate.exceptions.JobKilledException;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.KillAllListener;
 import org.apache.lucene.util.CollectionUtil;
@@ -239,7 +240,7 @@ public class TransportBulkCreateIndicesAction
 
         if (timeStart <= lastKillAllEvent) {
             unlockIndices(locked);
-            responseListener.onFailure(new CancellationException());
+            responseListener.onFailure(new CancellationException(JobKilledException.MESSAGE));
             return;
         }
         if (!locked.isEmpty()) {
@@ -260,7 +261,7 @@ public class TransportBulkCreateIndicesAction
                 public void run() {
                     try {
                         if (timeStart < lastKillAllEvent) {
-                            stateUpdateListener.onFailure(new CancellationException());
+                            stateUpdateListener.onFailure(new CancellationException(JobKilledException.MESSAGE));
                             return;
                         }
                         long elapsed = System.nanoTime() - timeStart;
@@ -660,7 +661,7 @@ public class TransportBulkCreateIndicesAction
         synchronized (pendingLock) {
             PendingOperation pendingOperation;
             while ( (pendingOperation = pendingOperations.poll()) != null) {
-                pendingOperation.responseListener.onFailure(new CancellationException());
+                pendingOperation.responseListener.onFailure(new CancellationException(JobKilledException.MESSAGE));
             }
         }
     }
@@ -672,7 +673,7 @@ public class TransportBulkCreateIndicesAction
             while (it.hasNext()) {
                 PendingOperation pendingOperation = it.next();
                 if (pendingOperation.request.jobId().equals(jobId)) {
-                    pendingOperation.responseListener.onFailure(new CancellationException());
+                    pendingOperation.responseListener.onFailure(new CancellationException(JobKilledException.MESSAGE));
                     it.remove();
                 }
             }

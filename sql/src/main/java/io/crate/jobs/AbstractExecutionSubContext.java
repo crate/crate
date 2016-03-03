@@ -22,6 +22,7 @@
 
 package io.crate.jobs;
 
+import io.crate.exceptions.JobKilledException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -117,7 +118,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     final public void kill(@Nullable Throwable t) {
         if (future.firstClose()) {
             if (t == null) {
-                t = new CancellationException();
+                t = new CancellationException(JobKilledException.MESSAGE);
             }
             LOGGER.trace("killing {}: {}", this, id);
             try {
