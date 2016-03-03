@@ -22,6 +22,7 @@
 
 package io.crate.executor.transport;
 
+import io.crate.exceptions.JobKilledException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportActions;
@@ -86,7 +87,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
             int location = request.itemIndices().get(i);
             ShardDeleteRequest.Item item = request.items().get(i);
             if (killed.get()) {
-                throw new CancellationException();
+                throw new CancellationException(JobKilledException.MESSAGE);
             }
             try {
                 boolean found = shardDeleteOperationOnPrimary(request, item, indexShard);
@@ -127,7 +128,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
         IndexShard indexShard = indexService.shardSafe(shardId.id());
         for (ShardDeleteRequest.Item item : request.items()) {
             if (killed.get()) {
-                throw new CancellationException();
+                throw new CancellationException(JobKilledException.MESSAGE);
             }
             try {
                 Engine.Delete delete = indexShard.prepareDelete(request.type(), item.id(), item.version(), item.versionType(), Engine.Operation.Origin.REPLICA);
