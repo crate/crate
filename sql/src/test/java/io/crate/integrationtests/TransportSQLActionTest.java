@@ -41,6 +41,7 @@ import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -56,6 +57,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
+@ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);

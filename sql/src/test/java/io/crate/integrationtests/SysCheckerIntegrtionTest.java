@@ -24,12 +24,14 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLResponse;
 import io.crate.operation.reference.sys.check.checks.SysCheck.Severity;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
+@ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SysCheckerIntegrtionTest extends SQLTransportIntegrationTest {
 
     @Test
