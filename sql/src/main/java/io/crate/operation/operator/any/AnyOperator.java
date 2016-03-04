@@ -23,8 +23,6 @@ package io.crate.operation.operator.any;
 
 import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.MapComparator;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
@@ -67,33 +65,6 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
     @Override
     public FunctionInfo info() {
         return functionInfo;
-    }
-
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        assert (symbol != null);
-        assert (symbol.arguments().size() == 2);
-
-        if (containsNullLiteral(symbol.arguments())) {
-            return Literal.NULL;
-        }
-
-        if (anyNonLiterals(symbol.arguments())) {
-            return symbol;
-        }
-
-        Literal collLiteral = (Literal) symbol.arguments().get(1);
-        Object leftValue = ((Literal) symbol.arguments().get(0)).value();
-        if (!DataTypes.isCollectionType(collLiteral.valueType())) {
-            throw new IllegalArgumentException("invalid array expression");
-        }
-        Iterable<?> collectionIterable = collectionValueToIterable(collLiteral.value());
-        Boolean result = doEvaluate(leftValue, collectionIterable);
-        if (result == null) {
-            return Literal.NULL;
-        } else {
-            return Literal.newLiteral(result);
-        }
     }
 
     @SuppressWarnings("unchecked")
