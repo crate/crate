@@ -29,7 +29,6 @@ evaluationDependsOn(':sql-parser')
 evaluationDependsOn(':blob')
 evaluationDependsOn(':udc')
 evaluationDependsOn(':dns-discovery')
-evaluationDependsOn(':aws')
 
 dependencies {
     compile project(':core')
@@ -40,6 +39,7 @@ dependencies {
     compile project(':udc')
     compile project(':dns-discovery')
     compile project(':es-discovery-multicast')
+    compile project(':es-cloud-aws')
 
     testCompile project(':testing')
 
@@ -153,7 +153,7 @@ install {
         mavenInstaller {
             pom.whenConfigured {
                 pom -> pom.dependencies.clear()
-                project.parent.subprojects.findAll{ it.name != 'app' && it.name != 'aws' }.each {
+                project.parent.subprojects.findAll{ it.name != 'app'}.each {
                     if (it.hasProperty('install')) {
                         pom.dependencies.addAll(it.install.repositories.mavenInstaller.pom.getEffectivePom().dependencies.findAll { it.groupId != 'io.crate'})
                     }
@@ -198,7 +198,7 @@ uploadArchives {
             }
             pom.whenConfigured {
                 pom -> pom.dependencies.clear()
-                project.parent.subprojects.findAll{ it.name != 'app' && it.name != 'aws' && it.name != 'sigar' }.each {
+                project.parent.subprojects.findAll{ it.name != 'app' && it.name != 'sigar' }.each {
                     if (it.hasProperty('install')) {
                         pom.dependencies.addAll(it.install.repositories.mavenInstaller.pom.getEffectivePom().dependencies.findAll { it.groupId != 'io.crate'})
                     }
@@ -266,7 +266,7 @@ ext {
 
 def rootDir = project.parent.projectDir
 
-def libs = project.configurations.runtime + project(':aws').configurations.runtime
+def libs = project.configurations.runtime
 
 distributions {
     main {
@@ -347,16 +347,6 @@ task downloadPlugins (dependsOn: [':admin-ui:downloadPlugin']) << {
         into 'plugins/crate-admin'
     }
 
-    // copy aws jar
-    copy {
-        from(project(':aws').tasks.jar.archivePath)
-        into 'plugins/aws'
-    }
-    copy {
-        from(project(':aws').projectDir.path + "/build/plugin-descriptor.properties")
-        into 'plugins/aws'
-    }
-
     // copy sigar jar
     copy {
         from(project(':sigar').tasks.jar.archivePath)
@@ -371,10 +361,9 @@ task downloadPlugins (dependsOn: [':admin-ui:downloadPlugin']) << {
 downloadPlugins.outputs.dir files(
     "$projectDir/plugins/crate-admin",
     "$projectDir/plugins/hdfs",
-    "$projectDir/plugins/aws",
     "$projectDir/plugins/sigar"
 )
-downloadPlugins.dependsOn(':aws:jar', ':sigar:jar')
+downloadPlugins.dependsOn(':sigar:jar')
 
 task downloadCrash << {
     def dest = download(
