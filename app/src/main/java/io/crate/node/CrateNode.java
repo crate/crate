@@ -27,6 +27,7 @@ import io.crate.plugin.CrateCorePlugin;
 import org.elasticsearch.Version;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
+import org.elasticsearch.plugin.cloud.aws.CloudAwsPlugin;
 import org.elasticsearch.plugin.discovery.multicast.MulticastDiscoveryPlugin;
 import org.elasticsearch.plugins.Plugin;
 
@@ -36,7 +37,8 @@ public class CrateNode extends Node {
 
     private static final Collection<Class<? extends Plugin>> CLASSPATH_PLUGINS = ImmutableList.of(
             CrateCorePlugin.class,
-            MulticastDiscoveryPlugin.class);
+            MulticastDiscoveryPlugin.class,
+            CloudAwsPlugin.class);
 
     public CrateNode(Environment environment) {
         super(environment, Version.CURRENT, CLASSPATH_PLUGINS);

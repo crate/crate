@@ -1,0 +1,39 @@
+apply plugin: 'idea'
+apply plugin: 'java'
+apply plugin: 'maven'
+
+dependencies {
+    compile project(':es')
+    compile 'com.amazonaws:aws-java-sdk-ec2:1.10.33'
+    compile 'com.amazonaws:aws-java-sdk-s3:1.10.33'
+    testCompile project(':testing')
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+
+
+def pluginDir = project(":es").file('upstream/plugins/cloud-aws')
+
+sourceSets {
+    main {
+        java {
+            srcDir "$pluginDir/src/main/java"
+        }
+        output.resourcesDir = null
+    }
+    test {
+        output.resourcesDir = null
+        output.classesDir = null
+    }
+}
+
+idea {
+    module {
+        contentRoot = pluginDir
+        excludeDirs += files('build','src/test')
+    }
+}

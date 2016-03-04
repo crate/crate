@@ -184,7 +184,7 @@ public class CompoundLiteralTest extends CrateUnitTest {
     @Test
     public void testObjectLiteralWithFunction() throws Exception {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:4: no viable alternative at input 'format'");
+        expectedException.expectMessage("line 1:4: mismatched input 'format' expecting '{'");
         analyzeExpression("{a=format('%s.', 'dot')}");
     }
 
