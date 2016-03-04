@@ -37,7 +37,7 @@ import io.crate.types.DataTypes;
 
 import java.util.*;
 
-public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Object> {
+public abstract class AnyOperator extends Operator<Object> {
 
     public static final String OPERATOR_PREFIX = "any_";
 

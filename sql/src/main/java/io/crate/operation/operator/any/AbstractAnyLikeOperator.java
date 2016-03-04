@@ -24,7 +24,7 @@ package io.crate.operation.operator.any;
 import io.crate.metadata.FunctionInfo;
 import org.apache.lucene.util.BytesRef;
 
-public abstract class AbstractAnyLikeOperator<T extends AbstractAnyLikeOperator<?>> extends AnyOperator<T> {
+public abstract class AbstractAnyLikeOperator extends AnyOperator {
 
     @Override
     protected boolean compare(int comparisonResult) {

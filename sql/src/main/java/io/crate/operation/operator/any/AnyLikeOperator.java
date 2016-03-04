@@ -30,7 +30,7 @@ import io.crate.operation.operator.OperatorModule;
 import java.util.regex.Pattern;
 
 
-public class AnyLikeOperator extends AbstractAnyLikeOperator<AnyLikeOperator> {
+public class AnyLikeOperator extends AbstractAnyLikeOperator {
 
     public static final String NAME = AnyOperator.OPERATOR_PREFIX + "like";
 

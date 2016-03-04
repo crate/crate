@@ -27,7 +27,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.sql.tree.ComparisonExpression;
 
-public class AnyEqOperator extends AnyOperator<AnyEqOperator> {
+public class AnyEqOperator extends AnyOperator {
 
     public static final String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.EQUAL.getValue();
 
