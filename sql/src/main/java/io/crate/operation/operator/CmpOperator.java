@@ -35,31 +35,6 @@ public abstract class CmpOperator extends Operator<Object> {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public Symbol normalizeSymbol(Function symbol) {
-        assert (symbol != null);
-        assert (symbol.arguments().size() == 2);
-
-        Symbol left = symbol.arguments().get(0);
-        Symbol right = symbol.arguments().get(1);
-
-        if (containsNullLiteral(symbol.arguments())) {
-            return Literal.NULL;
-        }
-
-        if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
-            // must be true due to the function registration (argument DataType signature)
-            if (compare(((Literal) left).compareTo((Literal) right))){
-                return Literal.BOOLEAN_TRUE;
-            } else {
-                return Literal.BOOLEAN_FALSE;
-            }
-        }
-
-        return symbol;
-    }
-
-    @Override
     public Boolean evaluate(Input<Object>... args) {
         assert (args != null);
         assert (args.length == 2);

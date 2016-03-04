@@ -92,17 +92,6 @@ public class EqOperator extends CmpOperator {
             }
             return Arrays.deepEquals(left, right);
         }
-
-        @Override
-        public Symbol normalizeSymbol(Function symbol) {
-            Symbol left = symbol.arguments().get(0);
-            Symbol right = symbol.arguments().get(1);
-
-            if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
-                return Literal.newLiteral(evaluate(new Input[] {(Input)left, (Input)right}));
-            }
-            return symbol;
-        }
     }
 
     static class EqOperatorResolver implements DynamicFunctionResolver {
