@@ -517,13 +517,13 @@ public class ExpressionAnalyzer {
                 throw new UnsupportedFeatureException("ALL is not supported");
             }
 
-            Symbol rightSymbol = process(node.getRight(), context);
+            Symbol arraySymbol = process(node.getRight(), context);
             Symbol leftSymbol = process(node.getLeft(), context);
-            DataType rightType = rightSymbol.valueType();
+            DataType rightType = arraySymbol.valueType();
 
             if (!DataTypes.isCollectionType(rightType)) {
                 throw new IllegalArgumentException(
-                        SymbolFormatter.format("invalid array expression: '%s'", rightSymbol));
+                        SymbolFormatter.format("invalid array expression: '%s'", arraySymbol));
             }
             DataType rightInnerType = ((CollectionType) rightType).innerType();
             if (rightInnerType.equals(DataTypes.OBJECT)) {
@@ -533,8 +533,8 @@ public class ExpressionAnalyzer {
             // always try to convert literal to reference type
             if (!rightInnerType.equals(leftSymbol.valueType())) {
                 if (rightInnerType.isConvertableTo(leftSymbol.valueType())) {
-                    if (rightSymbol.symbolType().isValueSymbol()) {
-                        rightSymbol = Literal.convert(rightSymbol, new ArrayType(leftSymbol.valueType()));
+                    if (arraySymbol.symbolType().isValueSymbol()) {
+                        arraySymbol = Literal.convert(arraySymbol, new ArrayType(leftSymbol.valueType()));
                     } else {
                         leftSymbol = normalizeInputForType(leftSymbol, rightInnerType);
                     }
@@ -548,9 +548,9 @@ public class ExpressionAnalyzer {
             ComparisonExpression.Type operationType = node.getType();
             String operatorName;
             operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
-            FunctionIdent functionIdent = new FunctionIdent(operatorName, Arrays.asList(leftSymbol.valueType(), rightSymbol.valueType()));
+            FunctionIdent functionIdent = new FunctionIdent(operatorName, Arrays.asList(leftSymbol.valueType(), arraySymbol.valueType()));
             FunctionInfo functionInfo = getFunctionInfo(functionIdent);
-            return context.allocateFunction(functionInfo, Arrays.asList(leftSymbol, rightSymbol));
+            return context.allocateFunction(functionInfo, Arrays.asList(leftSymbol, arraySymbol));
         }
 
         @Override

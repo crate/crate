@@ -21,29 +21,34 @@
 
 package io.crate.sql.tree;
 
+/**
+ * <pre>
+ *      expression cmpOp quantifier ( arrayExpression )
+ * </pre>
+ *
+ * E.g.
+ * <pre>
+ *      x = ANY ([1, 2, 3])
+ * </pre>
+ *
+ * Use {@link #getLeft()} to access expression.
+ * Use {@link #getRight()} to access arrayExpression
+ */
 public class ArrayComparisonExpression extends ComparisonExpression implements ArrayComparison {
 
     private final Quantifier quantifier;
 
-    public ArrayComparisonExpression(Type type, Quantifier quantifier,
-                                     Expression left, Expression right) {
-        super(type, left, right);
+    public ArrayComparisonExpression(Type type,
+                                     Quantifier quantifier,
+                                     Expression expression,
+                                     Expression arrayExpression) {
+        super(type, expression, arrayExpression);
         this.quantifier = quantifier;
     }
 
     @Override
     public Quantifier quantifier() {
         return quantifier;
-    }
-
-    @Override
-    public Expression left() {
-        return getLeft();
-    }
-
-    @Override
-    public Expression right() {
-        return getRight();
     }
 
     @Override

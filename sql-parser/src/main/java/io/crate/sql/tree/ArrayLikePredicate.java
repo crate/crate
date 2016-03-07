@@ -39,33 +39,23 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
     /**
      *
      * @param quantifier quantifier of comparison operation
-     * @param value array/set expression to apply the like operation on
+     * @param arrayExpression array/set expression to apply the like operation on
      * @param pattern the like pattern used
      * @param escape the escape value
      * @param inverse if true, inverse the operation for every single comparison
      */
     public ArrayLikePredicate(Quantifier quantifier,
-                              Expression value,
+                              Expression arrayExpression,
                               Expression pattern,
                               Expression escape,
                               boolean inverse) {
-        super(pattern, value, escape);
+        super(pattern, arrayExpression, escape);
         this.quantifier = quantifier;
         this.inverse = inverse;
     }
 
     public Quantifier quantifier() {
         return quantifier;
-    }
-
-    @Override
-    public Expression left() {
-        return getPattern();
-    }
-
-    @Override
-    public Expression right() {
-        return getValue();
     }
 
     public boolean inverse() {
