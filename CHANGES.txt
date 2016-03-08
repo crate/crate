@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Querying system tables could fail if connected to a client
+   node and cluster contains another client node.
+
  - Create Table statements now validate that the PRIMARY KEY constraint doesn't
    contain columns with unsupported data types
 
