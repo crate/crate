@@ -128,12 +128,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return Settings.builder().put("number_of_replicas", 0).build();
     }
 
-    // TODO: FIX ME! Not needed anymore?
-    //@Override
-    public void waitForConcreteMappingsOnAll(String index, String type, String... fieldNames) throws Exception {
-        waitForMappingUpdateOnAll(index, fieldNames);
-    }
-
     @After
     public void assertNoJobExecutionContextAreLeftOpen() throws Exception {
         final Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");

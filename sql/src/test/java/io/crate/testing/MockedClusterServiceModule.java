@@ -45,8 +45,7 @@ public class MockedClusterServiceModule extends AbstractModule {
         ClusterService clusterService = mock(ClusterService.class);
         ClusterState state = mock(ClusterState.class);
         MetaData metaData = mock(MetaData.class);
-        // TODO: FIX ME!
-        //when(metaData.getSettings()).thenReturn(Settings.EMPTY);
+        when(metaData.settings()).thenReturn(Settings.EMPTY);
         when(metaData.persistentSettings()).thenReturn(Settings.EMPTY);
         when(metaData.transientSettings()).thenReturn(Settings.EMPTY);
         when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
@@ -59,8 +58,6 @@ public class MockedClusterServiceModule extends AbstractModule {
         OsService osService = mock(OsService.class);
         OsStats osStats = mock(OsStats.class);
         when(osService.stats()).thenReturn(osStats);
-        // TODO: FIX ME!
-        //when(osStats.getLoadAverage()).thenReturn(new double[]{1, 5, 15});
         bind(OsService.class).toInstance(osService);
         Discovery discovery = mock(Discovery.class);
         bind(Discovery.class).toInstance(discovery);
