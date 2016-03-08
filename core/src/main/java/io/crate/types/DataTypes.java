@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.Streamer;
-import io.crate.TimestampFormat;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -167,10 +166,6 @@ public class DataTypes {
         type.writeTo(out);
     }
 
-    public static DataType<?> guessType(Object value) {
-        return guessType(value, true);
-    }
-
     private static final Map<Class<?>, DataType> POJO_TYPE_MAPPING = ImmutableMap.<Class<?>, DataType>builder()
             .put(Double.class, DOUBLE)
             .put(Float.class, FLOAT)
@@ -185,28 +180,20 @@ public class DataTypes {
             .put(Character.class, STRING)
             .build();
 
-    public static DataType<?> guessType(Object value, boolean strict) {
+    public static DataType<?> guessType(Object value) {
         if (value == null) {
             return UNDEFINED;
         } else if (value instanceof Map) {
             return OBJECT;
         } else if (value instanceof List) {
-            return valueFromList((List)value, strict);
+            return valueFromList((List)value);
         } else if (value.getClass().isArray()) {
-            return valueFromList(Arrays.asList((Object[]) value), strict);
-        } else if (!strict && (value instanceof BytesRef || value instanceof String)) {
-            // special treatment for timestamp strings
-            if (TimestampFormat.isDateFormat((
-                    value instanceof BytesRef ? ((BytesRef) value).utf8ToString() : (String) value))) {
-                return TIMESTAMP;
-            } else {
-                return STRING;
-            }
+            return valueFromList(Arrays.asList((Object[]) value));
         }
         return POJO_TYPE_MAPPING.get(value.getClass());
     }
 
-    private static DataType valueFromList(List<Object> value, boolean strict) {
+    private static DataType valueFromList(List<Object> value) {
         List<DataType> innerTypes = new ArrayList<>(value.size());
         if (value.isEmpty()) {
             return new ArrayType(UNDEFINED);
@@ -217,7 +204,7 @@ public class DataTypes {
             if (o == null) {
                 continue;
             }
-            current = guessType(o, strict);
+            current = guessType(o);
             if (previous != null && !current.equals(previous)) {
                 throw new IllegalArgumentException("Mixed dataTypes inside a list are not supported");
             }

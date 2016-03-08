@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed timestamp type guessing within objects and within the PARTITION
+   clause of the RESTORE SNAPSHOT statement.
+
  - Made equality operator for ``object`` types work correctly for different
    inner numeric values.
 
