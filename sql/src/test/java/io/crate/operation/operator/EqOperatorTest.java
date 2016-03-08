@@ -35,14 +35,14 @@ public class EqOperatorTest extends CrateUnitTest {
         functions = new ModulesBuilder().add(new OperatorModule()).createInjector().getInstance(Functions.class);
     }
 
-    private CmpOperator getOp(DataType dataType) {
-        return (CmpOperator) functions.get(
+    private Operator getOp(DataType dataType) {
+        return (Operator) functions.get(
                 new FunctionIdent(EqOperator.NAME, ImmutableList.of(dataType, dataType)));
     }
 
     @Test
     public void testNormalizeSymbol() {
-        CmpOperator op = getOp(DataTypes.INTEGER);
+        Operator<Boolean> op = getOp(DataTypes.INTEGER);
 
         Function function = new Function(
                 op.info(), Arrays.<Symbol>asList(Literal.newLiteral(2), Literal.newLiteral(2)));
@@ -54,7 +54,7 @@ public class EqOperatorTest extends CrateUnitTest {
     @Test
     public void testEqArrayLeftSideIsNull_RightSideNull() throws Exception {
         ArrayType intIntArray = new ArrayType(new ArrayType(DataTypes.INTEGER));
-        CmpOperator op = getOp(intIntArray);
+        Operator<Boolean> op = getOp(intIntArray);
         Object[][] values = new Object[][] {
                 new Object[] { 1, 1},
                 new Object[] { 10 }
@@ -76,7 +76,7 @@ public class EqOperatorTest extends CrateUnitTest {
     @Test
     public void testNormalizeEvalNestedIntArrayIsTrueIfEquals() throws Exception {
         ArrayType intIntArray = new ArrayType(new ArrayType(DataTypes.INTEGER));
-        CmpOperator op = getOp(intIntArray);
+        Operator<Boolean> op = getOp(intIntArray);
 
         Object[][] left = new Object[][] {
                 new Object[] { 1, 1},
@@ -97,7 +97,7 @@ public class EqOperatorTest extends CrateUnitTest {
     @Test
     public void testNormalizeEvalNestedIntArrayIsFalseIfNotEquals() throws Exception {
         ArrayType intIntArray = new ArrayType(new ArrayType(DataTypes.INTEGER));
-        CmpOperator op = getOp(intIntArray);
+        Operator<Boolean> op = getOp(intIntArray);
 
         Object[][] left = new Object[][] {
                 new Object[] { 1 },
@@ -118,7 +118,7 @@ public class EqOperatorTest extends CrateUnitTest {
     @Test
     public void testNormalizeAndEvalTwoEqualArraysShouldReturnTrueLiteral() throws Exception {
         ArrayType intArray = new ArrayType(DataTypes.INTEGER);
-        CmpOperator op = getOp(intArray);
+        Operator<Boolean> op = getOp(intArray);
 
         Object[] left = new Object[] { 1, 1, 10 };
         Object[] right = new Object[] { 1, 1, 10 };
@@ -133,7 +133,7 @@ public class EqOperatorTest extends CrateUnitTest {
     @Test
     public void testNormalizeAndEvalTwoNotEqualArraysShouldReturnFalse() throws Exception {
         ArrayType intArray = new ArrayType(DataTypes.INTEGER);
-        CmpOperator op = getOp(intArray);
+        Operator<Boolean> op = getOp(intArray);
 
         Object[] left = new Object[] { 1, 1, 10 };
         Object[] right = new Object[] { 1, 10 };
@@ -148,7 +148,7 @@ public class EqOperatorTest extends CrateUnitTest {
     @Test
     public void testNormalizeAndEvalTwoArraysWithSameLengthButDifferentValuesShouldReturnFalse() throws Exception {
         ArrayType intArray = new ArrayType(DataTypes.INTEGER);
-        CmpOperator op = getOp(intArray);
+        Operator<Boolean> op = getOp(intArray);
 
         Object[] left = new Object[] { 1, 1, 10 };
         Object[] right = new Object[] { 1, 2, 10 };
@@ -162,7 +162,7 @@ public class EqOperatorTest extends CrateUnitTest {
 
     @Test
     public void testNormalizeSymbolWithNullLiteral() {
-        CmpOperator op = getOp(DataTypes.INTEGER);
+        Operator<Boolean> op = getOp(DataTypes.INTEGER);
         Function function = new Function(
                 op.info(), Arrays.<Symbol>asList(Literal.NULL, Literal.NULL));
         Literal result = (Literal)op.normalizeSymbol(function);
@@ -172,7 +172,7 @@ public class EqOperatorTest extends CrateUnitTest {
 
     @Test
     public void testNormalizeSymbolWithOneNullLiteral() {
-        CmpOperator op = getOp(DataTypes.INTEGER);
+        Operator<Boolean> op = getOp(DataTypes.INTEGER);
         Function function = new Function(
                 op.info(), Arrays.<Symbol>asList(Literal.newLiteral(2), Literal.NULL));
         Literal result = (Literal)op.normalizeSymbol(function);
@@ -182,7 +182,7 @@ public class EqOperatorTest extends CrateUnitTest {
 
     @Test
     public void testNormalizeSymbolNeq() {
-        CmpOperator op = getOp(DataTypes.INTEGER);
+        Operator<Boolean> op = getOp(DataTypes.INTEGER);
 
         Function function = new Function(
                 op.info(), Arrays.<Symbol>asList(Literal.newLiteral(2), Literal.newLiteral(4)));
@@ -193,7 +193,7 @@ public class EqOperatorTest extends CrateUnitTest {
 
     @Test
     public void testNormalizeSymbolNonLiteral() {
-        CmpOperator op = getOp(DataTypes.INTEGER);
+        Operator<Boolean> op = getOp(DataTypes.INTEGER);
         Function f1 = new Function(
                 new FunctionInfo(
                         new FunctionIdent("dummy_function", Arrays.<DataType>asList(DataTypes.INTEGER)),
@@ -220,7 +220,7 @@ public class EqOperatorTest extends CrateUnitTest {
     }
 
     private Boolean eq(DataType type, Object left, Object right) {
-        CmpOperator op = getOp(type);
+        Operator<Boolean> op = getOp(type);
         return op.evaluate(new Input[] {new ObjectInput(left),new ObjectInput(right) });
     }
 

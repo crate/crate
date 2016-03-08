@@ -135,4 +135,15 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         assertThat(response.rowCount(), is(1L));
 
     }
+
+    @Test
+    public void testObjectEq() throws Exception {
+        execute("create table t (o object as (x int, y long))");
+        ensureYellow();
+
+        execute("insert into t (o) values ({x=10, y=20})");
+        execute("refresh table t");
+
+        assertThat(execute("select * from t where o = {x=10, y=20}").rowCount(), is(1L));
+    }
 }
