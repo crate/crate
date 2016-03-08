@@ -5,31 +5,6 @@ Changes for Crate
 Unreleased
 ==========
 
- - Updated crate-admin to 0.17.1 which contains following changes:
-
-   - Fix: updated BlenderPro webfont
-     This fixes CSS glitches in Firefox 44 which misinterpreted height of webfont.
-
-   - Fix: The recent update of the shard calculation for relocating shards caused
-     problems with partitioned tables showing incorrect table health.
-
-   - Fix: Reading an undefined property while cluster is offline caused
-     Javascript error.
-
-   - Fix: Rename cluster check indicator on statusbar to ``Checks``.
-
-   - Improved display of recovery percentage in table view
-
-   - Fix: relocating shards where previously displayed as "underreplicated" shards
-     causing a yellow cluster state while relocating was in progress
-
-   - Fix: change in calculation of recovery percentage broke calculations for
-     partitioned tables causing table partitions not showing up
-
-   - Fix: now also include unassigned shards (as 0% recovered) in calculation of
-     recovery percentage which is displayed per table.
-     Previously it could show '100% recovery done' even if there were still
-     unassigned shards.
 
  - Create Table statements now validate that the PRIMARY KEY constraint doesn't
    contain columns with unsupported data types
@@ -90,6 +65,32 @@ Unreleased
 
 2016/02/15 0.54.5
 =================
+
+ - Updated crate-admin to 0.17.1 which contains following changes:
+
+   - Fix: updated BlenderPro webfont
+     This fixes CSS glitches in Firefox 44 which misinterpreted height of webfont.
+
+   - Fix: The recent update of the shard calculation for relocating shards caused
+     problems with partitioned tables showing incorrect table health.
+
+   - Fix: Reading an undefined property while cluster is offline caused
+     Javascript error.
+
+   - Fix: Rename cluster check indicator on statusbar to ``Checks``.
+
+   - Improved display of recovery percentage in table view
+
+   - Fix: relocating shards where previously displayed as "underreplicated" shards
+     causing a yellow cluster state while relocating was in progress
+
+   - Fix: change in calculation of recovery percentage broke calculations for
+     partitioned tables causing table partitions not showing up
+
+   - Fix: now also include unassigned shards (as 0% recovered) in calculation of
+     recovery percentage which is displayed per table.
+     Previously it could show '100% recovery done' even if there were still
+     unassigned shards.
 
  - Fixed a NullPointerException that occured if `= ANY ()` was used with a
    literal array containing null values.
