@@ -147,7 +147,7 @@ public class ValueNormalizer {
                 if (dynamicReference == null) {
                     throw new ColumnUnknownException(nestedIdent.sqlFqn());
                 }
-                DataType type = DataTypes.guessType(entry.getValue(), false);
+                DataType type = DataTypes.guessType(entry.getValue());
                 if (type == null) {
                     throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(), "Invalid value");
                 }

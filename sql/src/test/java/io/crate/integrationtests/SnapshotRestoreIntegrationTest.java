@@ -301,7 +301,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         execute("drop table my_parted_table");
         waitNoPendingTasksOnAll();
-        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_parted_table PARTITION (date='1970-01-01') with (" +
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_parted_table PARTITION (date=0) with (" +
                 "ignore_unavailable=false, " +
                 "wait_for_completion=true)");
 

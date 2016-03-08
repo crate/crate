@@ -80,8 +80,8 @@ public class DataTypeTest extends CrateUnitTest {
     @Test
     public void testForValueWithTimestampArrayAsString() {
         String[] strings = {"2013-09-10T21:51:43", "2013-11-10T21:51:43"};
-        DataType dataType = DataTypes.guessType(strings, false);
-        assertEquals(dataType, new ArrayType(DataTypes.TIMESTAMP));
+        DataType dataType = DataTypes.guessType(strings);
+        assertEquals(dataType, new ArrayType(DataTypes.STRING));
     }
 
     @Test

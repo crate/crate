@@ -192,7 +192,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
         map.put("false", true);
         Literal<Map<String, Object>> normalized = (Literal)valueNormalizer.normalizeInputForReference(
                 Literal.newLiteral(map), new Reference(objInfo));
-        assertThat((Long) normalized.value().get("time"), is(1392508801000l));
+        assertThat((String) normalized.value().get("time"), is("2014-02-16T00:00:01"));
         assertThat((Boolean)normalized.value().get("false"), is(true));
     }
 
@@ -296,7 +296,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
         Literal<Map<String, Object>> literal = (Literal)valueNormalizer.normalizeInputForReference(
                 Literal.newLiteral(map),
                 new Reference(objInfo));
-        assertThat((Long) literal.value().get("time"), is(0l));
+        assertThat((String) literal.value().get("time"), is("1970-01-01T00:00:00"));
     }
 
     @Test

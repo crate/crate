@@ -311,7 +311,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute("select id, new_col from t1 where id=0");
         @SuppressWarnings("unchecked")
         Map<String, Object> mapped = (Map<String, Object>)response.rows()[0][1];
-        assertEquals(0, mapped.get("a_date"));
+        assertEquals("1970-01-01", mapped.get("a_date"));
         assertEquals(127, mapped.get("an_int"));
         assertEquals(0x7fffffffffffffffL, mapped.get("a_long"));
         assertEquals(true, mapped.get("a_boolean"));
@@ -333,7 +333,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         Map<String, Object> selectedObject = (Map<String, Object>)response.rows()[0][0];
 
         assertThat((String)selectedObject.get("new_col"), is("a string"));
-        assertEquals(0, selectedObject.get("another_new_col"));
+        assertEquals("1970-01-01T00:00:00", selectedObject.get("another_new_col"));
     }
 
     @Test

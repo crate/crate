@@ -80,7 +80,7 @@ public class ParameterContext {
     }
 
     private static DataType guessTypeSafe(Object value) throws IllegalArgumentException {
-        DataType guessedType = DataTypes.guessType(value, true);
+        DataType guessedType = DataTypes.guessType(value);
         if (guessedType == null) {
             throw new IllegalArgumentException(String.format(
                     "Got an argument \"%s\" that couldn't be recognized", value));
