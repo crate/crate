@@ -471,6 +471,32 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testParseNullOnObjectArray() throws Exception {
+        String mapping = XContentFactory.jsonBuilder()
+                .startObject().startObject("type").startObject("properties")
+                .startObject("array_field")
+                .field("type", ArrayMapper.CONTENT_TYPE)
+                    .startObject(ArrayMapper.INNER)
+                        .field("type", "object")
+                        .startObject("properties")
+                        .endObject()
+                    .endObject()
+                .endObject()
+                .endObject().endObject().endObject()
+                .string();
+        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
+        ParsedDocument parsedDoc = mapper.parse(INDEX, TYPE, "abc", XContentFactory.jsonBuilder()
+                .startObject()
+                .nullField("array_field")
+                .endObject()
+                .bytes());
+        assertThat(parsedDoc.docs().size(), is(1));
+        assertThat(parsedDoc.docs().get(0).getField("array_field"), is(nullValue()));
+
+
+    }
+
+    @Test
     public void testParseDynamicEmptyArray() throws Exception {
         String mapping = XContentFactory.jsonBuilder()
                 .startObject().startObject("type").startObject("properties")
