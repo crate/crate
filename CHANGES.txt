@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Made equality operator for ``object`` types work correctly for different
+   inner numeric values.
+
  - Fix: Querying system tables could fail if connected to a client
    node and cluster contains another client node.
 

@@ -23,8 +23,7 @@ package io.crate.operation.operator;
 
 import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.core.collections.MapComparator;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -35,6 +34,7 @@ import io.crate.types.DataTypes;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class EqOperator extends CmpOperator {
 
@@ -94,14 +94,45 @@ public class EqOperator extends CmpOperator {
         }
     }
 
+    private static class ObjectEqOperator extends Operator<Object> {
+
+        private final FunctionInfo info;
+
+        protected ObjectEqOperator(FunctionInfo info) {
+            this.info = info;
+        }
+
+        @Override
+        @SafeVarargs
+        public final Boolean evaluate(Input<Object>... args) {
+            Object left = args[0].value();
+            Object right = args[1].value();
+            if (left == null || right == null) {
+                return null;
+            }
+            return MapComparator.compareMaps(((Map) left), ((Map) right)) == 0;
+        }
+
+        @Override
+        public FunctionInfo info() {
+            return info;
+        }
+    }
+
     static class EqOperatorResolver implements DynamicFunctionResolver {
 
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(dataTypes.size() == 2);
+            Preconditions.checkArgument(dataTypes.size() == 2, "EqOperator must have 2 arguments");
+            DataType leftType = dataTypes.get(0);
+            DataType rightType = dataTypes.get(1);
+
             FunctionInfo info = new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.BOOLEAN);
-            if (DataTypes.isCollectionType(dataTypes.get(0)) && DataTypes.isCollectionType(dataTypes.get(1))) {
+            if (DataTypes.isCollectionType(leftType) && DataTypes.isCollectionType(rightType)) {
                 return new ArrayEqOperator(info);
+            }
+            if (leftType.equals(DataTypes.OBJECT) && rightType.equals(DataTypes.OBJECT)) {
+                return new ObjectEqOperator(info);
             }
             return new EqOperator(info);
         }
