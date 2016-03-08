@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Querying system tables could fail if connected to a client
+   node and cluster contains another client node.
+
  - Upgraded the included groovy dependency from 2.4.0 to 2.4.4 for security
    fixes
 
