@@ -253,24 +253,15 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         XContentParser parser = context.parser();
         XContentParser.Token token = parser.currentToken();
         if (token == XContentParser.Token.VALUE_NULL) {
-            ((FieldMapper) innerMapper).parse(context);
-            return null;
+            return parseInner(context);
         } else if  (token != XContentParser.Token.START_ARRAY) {
             throw new ElasticsearchParseException("invalid array");
         }
         token = parser.nextToken();
         boolean updatedMapping = false;
         while (token != XContentParser.Token.END_ARRAY) {
-            Mapper update = null;
-
             // we only get here for non-empty arrays
-            if (innerMapper instanceof FieldMapper) {
-                update = ((FieldMapper) innerMapper).parse(context);
-            } else if (innerMapper instanceof ObjectMapper) {
-                context.path().add(simpleName());
-                update = DocumentParser.parseObject(context, ((ObjectMapper) innerMapper), false);
-                context.path().remove();;
-            }
+            Mapper update = parseInner(context);
             if (update != null) {
                 MapperUtils.merge(innerMapper, update);
                 updatedMapping = true;
@@ -278,6 +269,19 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             token = parser.nextToken();
         }
         return updatedMapping ? this : null;
+    }
+
+    private Mapper parseInner(ParseContext context) throws IOException {
+        Mapper update;
+        if (innerMapper instanceof FieldMapper) {
+            update = ((FieldMapper) innerMapper).parse(context);
+        } else {
+            assert innerMapper instanceof ObjectMapper : "innerMapper must be a FieldMapper or an ObjectMapper";
+            context.path().add(simpleName());
+            update = DocumentParser.parseObject(context, ((ObjectMapper) innerMapper), false);
+            context.path().remove();;
+        }
+        return update;
     }
 
     private static Mapper.Builder<?, ?> detectInnerMapper(ParseContext parseContext,
