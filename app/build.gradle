@@ -52,6 +52,8 @@ dependencies {
     compileNotTransitive project(':udc')
     compileNotTransitive project(':dns-discovery')
     compileNotTransitive project(':es-discovery-multicast')
+    compileNotTransitive project(':es-cloud-aws')
+
 }
 
 task release(dependsOn: 'distTar') << {
