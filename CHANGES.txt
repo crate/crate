@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Clarified error messages on unsupported join operations
+
  - Removed timestamp type guessing within objects and within the PARTITION
    clause of the RESTORE SNAPSHOT statement.
 

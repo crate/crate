@@ -302,17 +302,14 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testCrossJoinWithGroupBy() throws Exception {
         expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("GROUP BY on CROSS JOIN is not supported");
+        expectedException.expectMessage("GROUP BY on JOINS is not supported");
         plan("select u1.name, count(*) from users u1, users u2 group by u1.name");
     }
 
     @Test
     public void testAggregationOnCrossJoin() throws Exception {
         expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("AGGREGATIONS on CROSS JOIN is not supported");
-        // TODO: once fetch is supported for cross joins, reset query to:
-        // select min(u1.name) from users u1, users u2
-
+        expectedException.expectMessage("AGGREGATIONS on JOINS is not supported");
         plan("select min(u1.name) from users u1, users u2");
     }
 
