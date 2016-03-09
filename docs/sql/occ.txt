@@ -80,8 +80,8 @@ Known Limitations
    declared as a primary key and results in an error::
 
     cr> delete from locations where name = 'Aldebaran' and "_version" = 3;
-    SQLActionException[_version is not allowed in delete queries
-                       without specifying a primary key]
+    SQLActionException[UnsupportedFeatureException: _version is not allowed in 
+    delete queries without specifying a primary key]
 
 .. note::
 
