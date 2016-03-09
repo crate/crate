@@ -856,23 +856,9 @@ public class CrateSettings {
         }
     };
 
-    public static final ByteSizeSetting INDICES_RECOVERY_FILE_CHUNK_SIZE = new ByteSizeSetting() {
-        @Override
-        public String name() { return "file_chunk_size"; }
+    public static final ByteSizeSetting INDICES_RECOVERY_FILE_CHUNK_SIZE = new ByteSizeSetting(
+            "file_chunk_size", new ByteSizeValue(512, ByteSizeUnit.KB), true, INDICES_RECOVERY);
 
-        @Override
-        public ByteSizeValue defaultValue() { return new ByteSizeValue(512, ByteSizeUnit.KB); }
-
-        @Override
-        public Setting parent() {
-            return INDICES_RECOVERY;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
 
     public static final IntSetting INDICES_RECOVERY_TRANSLOG_OPS = new IntSetting("translog_ops", 1000, true) {
         @Override
@@ -881,23 +867,9 @@ public class CrateSettings {
         }
     };
 
-    public static final ByteSizeSetting INDICES_RECOVERY_TRANSLOG_SIZE = new ByteSizeSetting() {
-        @Override
-        public String name() { return "translog_size"; }
+    public static final ByteSizeSetting INDICES_RECOVERY_TRANSLOG_SIZE = new ByteSizeSetting(
+            "translog_size", new ByteSizeValue(512, ByteSizeUnit.KB), true, INDICES_RECOVERY);
 
-        @Override
-        public ByteSizeValue defaultValue() { return new ByteSizeValue(512, ByteSizeUnit.KB); }
-
-        @Override
-        public Setting parent() {
-            return INDICES_RECOVERY;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
 
     public static final BoolSetting INDICES_RECOVERY_COMPRESS = new BoolSetting("compress", true, true) {
 
@@ -907,23 +879,8 @@ public class CrateSettings {
         }
     };
 
-    public static final ByteSizeSetting INDICES_RECOVERY_MAX_BYTES_PER_SEC = new ByteSizeSetting() {
-        @Override
-        public String name() { return "max_bytes_per_sec"; }
-
-        @Override
-        public ByteSizeValue defaultValue() { return new ByteSizeValue(40, ByteSizeUnit.MB); }
-
-        @Override
-        public Setting parent() {
-            return INDICES_RECOVERY;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
+    public static final ByteSizeSetting INDICES_RECOVERY_MAX_BYTES_PER_SEC = new ByteSizeSetting(
+            "max_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB), true, INDICES_RECOVERY);
 
     public static final TimeSetting INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC = new TimeSetting() {
         @Override
@@ -1076,23 +1033,8 @@ public class CrateSettings {
         }
     };
 
-    public static final ByteSizeSetting INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC = new ByteSizeSetting() {
-        @Override
-        public String name() { return "max_bytes_per_sec"; }
-
-        @Override
-        public ByteSizeValue defaultValue() { return new ByteSizeValue(20, ByteSizeUnit.MB); }
-
-        @Override
-        public Setting parent() {
-            return INDICES_STORE_THROTTLE;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
+    public static final ByteSizeSetting INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC = new ByteSizeSetting(
+            "max_bytes_per_sec", new ByteSizeValue(20, ByteSizeUnit.MB), true, INDICES_STORE_THROTTLE);
 
     public static final NestedSetting INDICES_FIELDDATA = new NestedSetting() {
         @Override

@@ -91,22 +91,8 @@ public class CrateTableSettings {
     };
 
 
-    public static final ByteSizeSetting FLUSH_THRESHOLD_SIZE = new ByteSizeSetting() {
-        @Override
-        public String name() {
-            return TableParameterInfo.FLUSH_THRESHOLD_SIZE;
-        }
-
-        @Override
-        public ByteSizeValue defaultValue() {
-            return new ByteSizeValue(200, ByteSizeUnit.MB);
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
+    public static final ByteSizeSetting FLUSH_THRESHOLD_SIZE = new ByteSizeSetting(
+            TableParameterInfo.FLUSH_THRESHOLD_SIZE, new ByteSizeValue(200, ByteSizeUnit.MB), true);
 
     public static final IntSetting FLUSH_THRESHOLD_OPS = new IntSetting(TableParameterInfo.FLUSH_THRESHOLD_OPS, Integer.MAX_VALUE, true);
 
