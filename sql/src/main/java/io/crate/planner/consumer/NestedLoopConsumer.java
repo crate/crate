@@ -374,7 +374,7 @@ public class NestedLoopConsumer implements Consumer {
         @Override
         protected QueriedTableRelation visitAnalyzedRelation(AnalyzedRelation relation,
                                                              MultiSourceSelect.Source source) {
-            throw new ValidationException("CROSS JOIN with sub queries is not supported");
+            throw new ValidationException("JOIN with sub queries is not supported");
         }
     }
 
