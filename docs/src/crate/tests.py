@@ -98,8 +98,6 @@ empty_layer = ConnectingCrateLayer(
     port=CRATE_HTTP_PORT,
     transport_port=CRATE_TRANSPORT_PORT,
     settings={
-        'gateway.type': 'none',
-        'index.store.type': 'memory',
         'cluster.routing.schedule': '30ms',
     }
 )
