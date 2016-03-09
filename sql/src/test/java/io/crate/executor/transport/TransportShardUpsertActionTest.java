@@ -32,18 +32,18 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -57,10 +57,17 @@ import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TransportShardUpsertActionTest extends CrateUnitTest {
 
     private DocTableInfo generatedColumnTableInfo;
+
+    private final static TableIdent TABLE_IDENT = new TableIdent(null, "characters");
+    private final static String PARTITION_INDEX = new PartitionName(TABLE_IDENT, Arrays.asList(new BytesRef("1395874800000"))).asIndexName();
+    private final static Reference ID_REF = new Reference(
+            new ReferenceInfo(new ReferenceIdent(TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.SHORT));
+
 
     static class TestingTransportShardUpsertAction extends TransportShardUpsertAction {
 
@@ -69,24 +76,24 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                                                  ClusterService clusterService,
                                                  TransportService transportService,
                                                  ActionFilters actionFilters,
-                                                 TransportIndexAction indexAction,
+                                                 MappingUpdatedAction mappingUpdatedAction,
                                                  IndicesService indicesService,
                                                  JobContextService jobContextService,
                                                  ShardStateAction shardStateAction,
                                                  Functions functions,
                                                  Schemas schemas) {
             super(settings, threadPool, clusterService, transportService, actionFilters,
-                    jobContextService, indexAction, indicesService, shardStateAction, functions, schemas);
+                    jobContextService, mappingUpdatedAction, indicesService, shardStateAction, functions, schemas);
         }
 
         @Override
-        protected IndexResponse indexItem(DocTableInfo tableInfo,
+        protected boolean indexItem(DocTableInfo tableInfo,
                                           ShardUpsertRequest request,
                                           ShardUpsertRequest.Item item,
-                                          ShardId shardId,
+                                          IndexShard indexShard,
                                           boolean tryInsertFirst,
                                           int retryCount) throws ElasticsearchException {
-            throw new IndexMissingException(new Index(request.index()));
+            throw new DocumentAlreadyExistsException(new ShardId(request.index(), request.shardId()), request.type(), item.id());
         }
     }
 
@@ -97,14 +104,22 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         Functions functions = getFunctions();
         bindGeneratedColumnTable(functions);
 
+        IndicesService indicesService = mock(IndicesService.class);
+        IndexService indexService = mock(IndexService.class);
+        when(indicesService.indexServiceSafe(TABLE_IDENT.indexName())).thenReturn(indexService);
+        when(indicesService.indexServiceSafe(PARTITION_INDEX)).thenReturn(indexService);
+        IndexShard indexShard = mock(IndexShard.class);
+        when(indexService.shardSafe(0)).thenReturn(indexShard);
+
+
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
                 ImmutableSettings.EMPTY,
                 mock(ThreadPool.class),
                 mock(ClusterService.class),
                 mock(TransportService.class),
                 mock(ActionFilters.class),
-                mock(TransportIndexAction.class),
-                mock(IndicesService.class),
+                mock(MappingUpdatedAction.class),
+                indicesService,
                 mock(JobContextService.class),
                 mock(ShardStateAction.class),
                 functions,
@@ -125,21 +140,31 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
     }
 
     @Test
-    public void testIndexMissingExceptionWhileProcessingItemsResultsInFailure() throws Exception {
-        TableIdent charactersIdent = new TableIdent(null, "characters");
-        final Reference idRef = new Reference(new ReferenceInfo(
-                new ReferenceIdent(charactersIdent, "id"), RowGranularity.DOC, DataTypes.SHORT));
-
-        ShardId shardId = new ShardId("characters", 0);
+    public void testExceptionWhileProcessingItemsNotContinueOnError() throws Exception {
+        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), 0);
         final ShardUpsertRequest request = new ShardUpsertRequest(
-                shardId, null, new Reference[]{idRef}, null, UUID.randomUUID());
+                shardId, null, new Reference[]{ID_REF}, null, UUID.randomUUID());
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
+
+        ShardResponse shardResponse = transportShardUpsertAction.processRequestItems(
+                shardId, request, new AtomicBoolean(false));
+
+        assertThat(shardResponse.failure(), instanceOf(DocumentAlreadyExistsException.class));
+    }
+
+    @Test
+    public void testExceptionWhileProcessingItemsContinueOnError() throws Exception {
+        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), 0);
+        final ShardUpsertRequest request = new ShardUpsertRequest(
+                shardId, null, new Reference[]{ID_REF}, null, UUID.randomUUID());
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
+        request.continueOnError(true);
 
         ShardResponse response = transportShardUpsertAction.processRequestItems(
                 shardId, request, new AtomicBoolean(false));
 
         assertThat(response.failures().size(), is(1));
-        assertThat(response.failures().get(0).message(), is("IndexMissingException[[characters] missing]"));
+        assertThat(response.failures().get(0).message(), is("DocumentAlreadyExistsException[["+TABLE_IDENT.indexName()+"][0] [default][1]: document already exists]"));
     }
 
     @Test
@@ -237,11 +262,10 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
 
     @Test
     public void testBuildMapFromSource() throws Exception {
-        TableIdent charactersIdent = new TableIdent(null, "characters");
         Reference tsRef = new Reference(new ReferenceInfo(
-                new ReferenceIdent(charactersIdent, "ts"), RowGranularity.DOC, DataTypes.TIMESTAMP));
+                new ReferenceIdent(TABLE_IDENT, "ts"), RowGranularity.DOC, DataTypes.TIMESTAMP));
         Reference nameRef = new Reference(new ReferenceInfo(
-                new ReferenceIdent(charactersIdent, "user", Arrays.asList("name")), RowGranularity.DOC, DataTypes.TIMESTAMP));
+                new ReferenceIdent(TABLE_IDENT, "user", Arrays.asList("name")), RowGranularity.DOC, DataTypes.TIMESTAMP));
 
 
         Reference[] insertColumns = new Reference[]{tsRef, nameRef};
@@ -254,9 +278,8 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
 
     @Test
     public void testBuildMapFromRawSource() throws Exception {
-        TableIdent charactersIdent = new TableIdent(null, "characters");
         Reference rawRef = new Reference(new ReferenceInfo(
-                new ReferenceIdent(charactersIdent, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING));
+                new ReferenceIdent(TABLE_IDENT, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING));
 
         BytesRef bytesRef = XContentFactory.jsonBuilder().startObject()
                 .field("ts", 1448274317000L)

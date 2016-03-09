@@ -91,6 +91,13 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    @After
+    @Override
+    public void tearDown() throws Exception {
+        execute("RESET GLOBAL stats.enabled");
+        super.tearDown();
+    }
+
     @Test
     public void testCopyFromIntoPartitionedTableWithPARTITIONKeyword() throws Exception {
         execute("create table quotes (" +
@@ -274,7 +281,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertTrue(clusterService().state().metaData().aliases().containsKey("parted"));
 
         String partitionName = new PartitionName("parted",
-                Arrays.asList(new BytesRef(String.valueOf(13959981214861L)))
+                Collections.singletonList(new BytesRef(String.valueOf(13959981214861L)))
         ).asIndexName();
         MetaData metaData = client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData();
@@ -294,7 +301,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
     private void validateInsertPartitionedTable() {
         String partitionName = new PartitionName("parted",
-                Arrays.asList(new BytesRef(String.valueOf(13959981214861L)))
+                Collections.singletonList(new BytesRef(String.valueOf(13959981214861L)))
         ).asIndexName();
         assertTrue(internalCluster().clusterService().state().metaData().hasIndex(partitionName));
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
@@ -305,7 +312,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 is(1L)
         );
 
-        partitionName = new PartitionName("parted", Arrays.asList(new BytesRef(String.valueOf(0L)))).asIndexName();
+        partitionName = new PartitionName("parted", Collections.singletonList(new BytesRef(String.valueOf(0L)))).asIndexName();
         assertTrue(internalCluster().clusterService().state().metaData().hasIndex(partitionName));
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData().indices().get(partitionName).aliases().get("parted"));
@@ -1305,8 +1312,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("1-all"));
 
         List<String> partitions = ImmutableList.of(
-                new PartitionName("quotes", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                new PartitionName("quotes", Arrays.asList(new BytesRef("1395961200000"))).asIndexName()
+                new PartitionName("quotes", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName(),
+                new PartitionName("quotes", Collections.singletonList(new BytesRef("1395961200000"))).asIndexName()
         );
         Thread.sleep(1000);
         GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
@@ -1370,8 +1377,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
 
         List<String> partitions = ImmutableList.of(
-                new PartitionName("quotes", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                new PartitionName("quotes", Arrays.asList(new BytesRef("1395961200000"))).asIndexName()
+                new PartitionName("quotes", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName(),
+                new PartitionName("quotes", Collections.singletonList(new BytesRef("1395961200000"))).asIndexName()
         );
         Thread.sleep(1000);
         GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
@@ -1403,8 +1410,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("alter table quotes partition (date=1395874800000) set (number_of_replicas=1)");
         ensureYellow();
         List<String> partitions = ImmutableList.of(
-                new PartitionName("quotes", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                new PartitionName("quotes", Arrays.asList(new BytesRef("1395961200000"))).asIndexName()
+                new PartitionName("quotes", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName(),
+                new PartitionName("quotes", Collections.singletonList(new BytesRef("1395961200000"))).asIndexName()
         );
 
         GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
@@ -1596,13 +1603,13 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("refresh table dynamic_table");
         ensureGreen();
         MappingMetaData partitionMetaData = clusterService().state().metaData().indices()
-                .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("10.0"))).asIndexName())
+                .get(new PartitionName("dynamic_table", Collections.singletonList(new BytesRef("10.0"))).asIndexName())
                 .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("_meta")), Matchers.is("{partitioned_by=[[score, double]]}"));
         execute("alter table dynamic_table set (column_policy= 'dynamic')");
         waitNoPendingTasksOnAll();
         partitionMetaData = clusterService().state().metaData().indices()
-                .get(new PartitionName("dynamic_table", Arrays.asList(new BytesRef("10.0"))).asIndexName())
+                .get(new PartitionName("dynamic_table", Collections.singletonList(new BytesRef("10.0"))).asIndexName())
                 .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("_meta")), Matchers.is("{partitioned_by=[[score, double]]}"));
     }
@@ -1753,6 +1760,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(3));
 
         execute("alter table quotes set (number_of_shards=6)");
+        ensureGreen();
 
         templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
@@ -1804,8 +1812,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
 
         List<String> partitions = ImmutableList.of(
-                new PartitionName("quotes", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                new PartitionName("quotes", Arrays.asList(new BytesRef("1395961200000"))).asIndexName()
+                new PartitionName("quotes", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName(),
+                new PartitionName("quotes", Collections.singletonList(new BytesRef("1395961200000"))).asIndexName()
         );
         Thread.sleep(1000);
         GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
@@ -2106,10 +2114,121 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(((String) response.rows()[0][0]), is("{\"v\":\"Marvin\"}"));
     }
 
-    @After
-    @Override
-    public void tearDown() throws Exception {
-        execute("RESET GLOBAL stats.enabled");
-        super.tearDown();
+    @Test
+    public void testDeletePartitionWhileInsertingData() throws Exception {
+        execute("create table parted (id int, name string) " +
+                "partitioned by (id) " +
+                "with (number_of_replicas = 0)");
+        ensureYellow();
+
+        int numberOfDocs = 1000;
+        final Object[][] bulkArgs = new Object[numberOfDocs][];
+        for (int i = 0; i < numberOfDocs; i++) {
+            bulkArgs[i] = new Object[]{i % 2, randomAsciiOfLength(10)};
+        }
+
+        // partition to delete
+        final int idToDelete = 1;
+
+        final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
+        final CountDownLatch inserts = new CountDownLatch(1);
+        Thread insertThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    for (Object[] args : bulkArgs) {
+                        execute("insert into parted (id, name) values (?, ?)", args);
+                    }
+                } catch (Exception t) {
+                    exceptionRef.set(t);
+                } finally {
+                    inserts.countDown();
+                }
+            }
+        });
+
+        final CountDownLatch deletes = new CountDownLatch(1);
+        Thread deleteThread = deletePartitionThread(deletes, "parted", idToDelete);
+
+        insertThread.start();
+        deleteThread.start();
+        deletes.await(2, TimeUnit.SECONDS);
+        inserts.await(2, TimeUnit.SECONDS);
+
+        Exception exception = exceptionRef.get();
+        if (exception != null) {
+            throw exception;
+        }
+    }
+
+    @Test
+    public void testDeletePartitionWhileBulkInsertingData() throws Exception {
+        execute("create table parted (id int, name string) " +
+                "partitioned by (id) " +
+                "with (number_of_replicas = 0)");
+        ensureYellow();
+
+        int numberOfDocs = 1000;
+        final Object[][] bulkArgs = new Object[numberOfDocs][];
+        for (int i = 0; i < numberOfDocs; i++) {
+            bulkArgs[i] = new Object[]{i % 2, randomAsciiOfLength(10)};
+        }
+
+        // partition to delete
+        final int idToDelete = 1;
+
+        final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
+        final CountDownLatch inserts = new CountDownLatch(1);
+        Thread insertThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    execute("insert into parted (id, name) values (?, ?)", bulkArgs);
+                } catch (Exception t) {
+                    exceptionRef.set(t);
+                } finally {
+                    inserts.countDown();
+                }
+            }
+        });
+
+        final CountDownLatch deletes = new CountDownLatch(1);
+        Thread deleteThread = deletePartitionThread(deletes, "parted", idToDelete);
+
+        insertThread.start();
+        deleteThread.start();
+        deletes.await(2, TimeUnit.SECONDS);
+        inserts.await(2, TimeUnit.SECONDS);
+
+        Exception exception = exceptionRef.get();
+        if (exception != null) {
+            throw exception;
+        }
+    }
+
+    private Thread deletePartitionThread(final CountDownLatch latch, final String tableName, final int idToDelete) {
+        return new Thread(new Runnable() {
+            @Override
+            public void run() {
+                boolean deleted = false;
+                while (!deleted) {
+                    try {
+                        String partitionName = new PartitionName(tableName,
+                                Collections.singletonList(new BytesRef(String.valueOf(idToDelete)))
+                        ).asIndexName();
+                        MetaData metaData = client().admin().cluster().prepareState().execute().actionGet()
+                                .getState().metaData();
+                        if (metaData.indices().get(partitionName) != null) {
+                            execute("delete from " + tableName + " where id = ?", new Object[]{idToDelete});
+                            deleted = true;
+                        }
+                    } catch (Throwable t) {
+                        // ignore (mostly partition index does not exists yet)
+                    }
+                }
+                latch.countDown();
+            }
+        });
+
     }
 }

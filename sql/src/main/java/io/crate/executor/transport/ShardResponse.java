@@ -24,11 +24,18 @@ package io.crate.executor.transport;
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.MoreObjects;
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.common.Classes;
+import org.elasticsearch.common.io.ThrowableObjectInputStream;
+import org.elasticsearch.common.io.ThrowableObjectOutputStream;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.transport.NotSerializableTransportException;
+import org.elasticsearch.transport.TransportSerializationException;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.NotSerializableException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -96,6 +103,8 @@ public class ShardResponse extends ActionResponse {
 
     private IntArrayList locations = new IntArrayList();
     private List<Failure> failures = new ArrayList<>();
+    @Nullable
+    private Throwable failure;
 
     public ShardResponse() {
     }
@@ -118,6 +127,35 @@ public class ShardResponse extends ActionResponse {
         return failures;
     }
 
+    public void failure(@Nullable Throwable throwable) {
+        this.failure = throwable;
+    }
+
+    public Throwable failure() {
+        return failure;
+    }
+
+    private void writeException(StreamOutput stream) throws IOException {
+        try {
+            ThrowableObjectOutputStream too = new ThrowableObjectOutputStream(stream);
+            too.writeObject(failure);
+            too.close();
+        } catch (NotSerializableException e) {
+            NotSerializableTransportException tx = new NotSerializableTransportException(failure);
+            ThrowableObjectOutputStream too = new ThrowableObjectOutputStream(stream);
+            too.writeObject(tx);
+            too.close();
+        }
+    }
+
+    private void readException(StreamInput in) throws IOException {
+        try {
+            ThrowableObjectInputStream ois = new ThrowableObjectInputStream(in, Classes.getDefaultClassLoader());
+            failure = (Exception) ois.readObject();
+        } catch (Throwable e) {
+            failure = new TransportSerializationException("Failed to deserialize exception from stream", e);
+        }
+    }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
@@ -133,6 +171,9 @@ public class ShardResponse extends ActionResponse {
                 failures.add(null);
             }
         }
+        if (in.readBoolean()) {
+            readException(in);
+        }
     }
 
     @Override
@@ -147,6 +188,12 @@ public class ShardResponse extends ActionResponse {
                 out.writeBoolean(true);
                 failures.get(i).writeTo(out);
             }
+        }
+        if (failure != null) {
+            out.writeBoolean(true);
+            writeException(out);
+        } else {
+            out.writeBoolean(false);
         }
     }
 

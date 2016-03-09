@@ -28,11 +28,14 @@ import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.doc.DocSysColumns;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
@@ -217,6 +220,10 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     public static class Item extends ShardRequest.Item {
 
         private long version = Versions.MATCH_ANY;
+        private VersionType versionType = VersionType.INTERNAL;
+        private IndexRequest.OpType opType = IndexRequest.OpType.INDEX;
+        @Nullable
+        private BytesReference source;
 
         /**
          * List of symbols used on update if document exist
@@ -259,6 +266,35 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             return version;
         }
 
+        public void version(long version) {
+            this.version = version;
+        }
+
+        public VersionType versionType() {
+            return versionType;
+        }
+
+        public void versionType(VersionType versionType) {
+            this.versionType = versionType;
+        }
+
+        public IndexRequest.OpType opType() {
+            return opType;
+        }
+
+        public void opType(IndexRequest.OpType opType) {
+            this.opType = opType;
+        }
+
+        @Nullable
+        public BytesReference source() {
+            return source;
+        }
+
+        public void source(BytesReference source) {
+            this.source = source;
+        }
+
         public int retryOnConflict() {
             return version == Versions.MATCH_ANY ? Constants.UPDATE_RETRY_ON_CONFLICT : 0;
         }
@@ -277,17 +313,21 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
+            if (!super.equals(o)) return false;
             Item item = (Item) o;
             return version == item.version &&
-                   Objects.equal(id, item.id) &&
-                   Arrays.deepEquals(updateAssignments, item.updateAssignments) &&
-                   Arrays.deepEquals(insertValues, item.insertValues) &&
+                   versionType == item.versionType &&
+                   opType == item.opType &&
+                   Objects.equal(source, item.source) &&
+                   Arrays.equals(updateAssignments, item.updateAssignments) &&
+                   Arrays.equals(insertValues, item.insertValues) &&
                    Arrays.equals(insertValuesStreamer, item.insertValuesStreamer);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(id, version, updateAssignments, insertValues, insertValuesStreamer);
+            return Objects.hashCode(super.hashCode(), version, versionType, opType, source, updateAssignments,
+                    insertValues, insertValuesStreamer);
         }
 
         static Item readItem(StreamInput in, @Nullable Streamer[] streamers) throws IOException {
@@ -316,6 +356,11 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             }
 
             version = Versions.readVersion(in);
+            versionType = VersionType.fromValue(in.readByte());
+            opType = IndexRequest.OpType.fromId(in.readByte());
+            if (in.readBoolean()) {
+                source = in.readBytesReference();
+            }
         }
 
         @Override
@@ -340,6 +385,13 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             }
 
             Versions.writeVersion(version, out);
+            out.writeByte(versionType.getValue());
+            out.writeByte(opType.id());
+            boolean sourceAvailable = source != null;
+            out.writeBoolean(sourceAvailable);
+            if (sourceAvailable) {
+                out.writeBytesReference(source);
+            }
         }
     }
 

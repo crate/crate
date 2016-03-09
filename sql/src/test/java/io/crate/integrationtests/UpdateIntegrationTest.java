@@ -576,6 +576,28 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testMultiUpdateWithVersionAndConflict() throws Exception {
+        execute("create table test (id int primary key, c int) " +
+                "with (number_of_replicas=1)");
+        ensureYellow();
+        execute("insert into test (id, c) values (1, 1), (2, 1)");
+        refresh();
+
+        // update 2nd row in order to increase version
+        execute("update test set c = 2 where id = 2");
+        refresh();
+
+        // now update both rows, 2nd will result in conflict, but 1st one was successful and must be replicated
+        execute("update test set c = 3 where (id = 1 and _version = 1) or (id = 2 and _version = 1)");
+        assertThat(response.rowCount(), is(1L));
+
+        refresh();
+        execute("select _version from test order by id");
+        assertThat((Long) response.rows()[0][0], is(2L));
+        assertThat((Long) response.rows()[1][0], is(2L));
+    }
+
+    @Test
     public void testUpdateVersionOrOperator() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(UpdateStatementAnalyzer.VERSION_SEARCH_EX_MSG);
@@ -584,7 +606,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("insert into test (id, c) values (1, 1)");
         execute("refresh table test");
-        execute("update test set c = 4 where _version = 2 or _version=1"); // this one works
+        execute("update test set c = 4 where _version = 2 or _version=1");
     }
 
     @Test
@@ -619,6 +641,11 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         for (SQLBulkResponse.Result result : bulkResp.results()) {
             assertThat(result.rowCount(), is(1L));
         }
+        refresh();
+
+        // document was changed 4 times (including initial creation), so version must be 4
+        execute("select _version from test where b = 1");
+        assertThat((Long) response.rows()[0][0], is(4L));
     }
 
     @Test

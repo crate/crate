@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.collect.MapBuilder;

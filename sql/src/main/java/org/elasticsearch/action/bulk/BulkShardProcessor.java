@@ -34,6 +34,7 @@ import io.crate.Constants;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardResponse;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.settings.CrateSettings;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
@@ -93,6 +94,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
     private final AtomicInteger pendingNewIndexRequests = new AtomicInteger(0);
     private final Map<String, List<PendingRequest>> requestsForNewIndices = new HashMap<>();
     private final Set<String> indicesCreated = new HashSet<>();
+    private final Set<String> indicesDeleted = new HashSet<>();
 
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
@@ -140,6 +142,11 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
     public boolean add(String indexName, Request.Item item, @Nullable String routing) {
         assert item != null : "request item must not be null";
+        if (indicesDeleted.contains(indexName)) {
+            trace("index already deleted, will ignore item");
+            return true;
+        }
+
         pending.incrementAndGet();
         Throwable throwable = failure.get();
         if (throwable != null) {
@@ -301,9 +308,21 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                         return;
                     }
                     trace("applying pending requests for created indices...");
-                    for (final PendingRequest pendingRequest : pendings) {
+                    Iterator<PendingRequest> it = pendings.iterator();
+                    while (it.hasNext()) {
+                        PendingRequest pendingRequest = it.next();
                         // add pending requests for created indices
                         ShardId shardId = shardId(pendingRequest.indexName, pendingRequest.item.id(), pendingRequest.routing);
+                        if (shardId == null) {
+                            // seems like index is deleted meanwhile, mark item as failed and remove pending
+                            indicesDeleted.add(pendingRequest.indexName);
+                            it.remove();
+                            synchronized (responsesLock) {
+                                responses.set(globalCounter.getAndIncrement(), false);
+                            }
+                            setResultIfDone(1);
+                            continue;
+                        }
                         partitionRequestByShard(shardId, pendingRequest.item, pendingRequest.routing);
                     }
                     trace("added %d pending requests, lets see if we can execute them", pendings.size());
@@ -392,6 +411,10 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
     private void processResponse(ShardResponse response) {
         trace("process response");
+        if (response.failure() != null) {
+            setFailure(response.failure());
+            return;
+        }
         for (int i = 0; i < response.itemIndices().size(); i++) {
             int location = response.itemIndices().get(i);
             ShardResponse.Failure failure = response.failures().get(i);
@@ -410,6 +433,26 @@ public class BulkShardProcessor<Request extends ShardRequest> {
     private void processFailure(Throwable e, final ShardId shardId, final Request request, com.google.common.base.Optional<BulkRetryCoordinator> retryCoordinator) {
         trace("execute failure");
         e = Exceptions.unwrap(e);
+
+        // index missing exception on a partition should never bubble, mark all items as failed instead
+        if (e instanceof IndexMissingException && PartitionName.isPartition(request.index())) {
+            indicesDeleted.add(request.index());
+            int size = request.itemIndices().size();
+            for (int i = 0; i < request.itemIndices().size(); i++) {
+                int location = request.itemIndices().get(i);
+                synchronized (responsesLock) {
+                    responses.set(location, false);
+                }
+            }
+            setResultIfDone(size);
+
+            if (retryCoordinator.isPresent()) {
+                // release failed retry
+                retryCoordinator.get().retryLock().releaseWriteLock();
+            }
+            return;
+        }
+
         final BulkRetryCoordinator coordinator;
         if (retryCoordinator.isPresent()) {
             coordinator = retryCoordinator.get();
@@ -450,7 +493,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
     private void trace(String message, Object ... args) {
         if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("SymbolBasedBulkShardProcessor: pending: {}; {}",
+            LOGGER.trace("BulkShardProcessor: pending: {}; {}",
                     pending.get(),
                     String.format(Locale.ENGLISH, message, args));
         }
