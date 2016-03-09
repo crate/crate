@@ -391,8 +391,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             restStatus = RestStatus.BAD_REQUEST;
         }
 
-        String message;
-        if (e.getMessage() == null) {
+        String message = e.getMessage();
+        if (message == null) {
             if (e instanceof CrateException && e.getCause() != null) {
                 e = e.getCause();   // use cause because it contains a more meaningful error in most cases
             }
@@ -403,7 +403,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                 message = "Error in " + e.getClass().getSimpleName();
             }
         } else {
-            message = e.toString();
+            message = e.getClass().getSimpleName() + ": " + message;
         }
         return new SQLActionException(message, errorCode, restStatus, e.getStackTrace());
     }
