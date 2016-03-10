@@ -4,7 +4,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import io.crate.exceptions.ConversionException;
 import io.crate.operation.Input;
-import io.crate.types.*;
+import io.crate.types.ArrayType;
+import io.crate.types.CollectionType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -31,19 +34,6 @@ public class Literal<ReturnType>
             return new Literal();
         }
     };
-
-    public static Literal implodeCollection(DataType itemType, Set<Literal> literals) {
-        Set<Object> set = new HashSet<>(literals.size(), 1.0F);
-        for (Literal literal : literals) {
-            assert literal.valueType() == itemType : typeMismatchMsg(itemType, literal);
-            set.add(literal.value());
-        }
-        return new Literal<>(new SetType(itemType), Collections.unmodifiableSet(set));
-    }
-
-    private static String typeMismatchMsg(DataType itemType, Literal literal) {
-        return String.format(Locale.ENGLISH, "Literal type: %s does not match item type: %s", literal.valueType(), itemType);
-    }
 
     public static Collection<Literal> explodeCollection(Literal collectionLiteral) {
         Preconditions.checkArgument(DataTypes.isCollectionType(collectionLiteral.valueType()));

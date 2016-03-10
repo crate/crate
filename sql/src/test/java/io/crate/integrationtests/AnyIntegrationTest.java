@@ -119,4 +119,14 @@ public class AnyIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from t where s = ANY ([null])");
         assertThat(response.rowCount(), is(0L));
     }
+
+    @Test
+    public void testArrayReferenceOfDifferentTypeSoThatCastIsRequired() throws Exception {
+        execute("create table t (x array(short))");
+        ensureYellow();
+
+        execute("insert into t (x) values ([1, 2, 3, 4])");
+        execute("refresh table t");
+        execute("select * from t where 4 < ANY (x) ");
+    }
 }

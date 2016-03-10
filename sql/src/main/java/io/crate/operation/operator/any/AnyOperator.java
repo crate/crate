@@ -37,6 +37,8 @@ import io.crate.types.DataTypes;
 
 import java.util.*;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 public abstract class AnyOperator extends Operator<Object> {
 
     public static final String OPERATOR_PREFIX = "any_";
@@ -133,11 +135,10 @@ public abstract class AnyOperator extends Operator<Object> {
 
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(
-                    dataTypes.size() == 2 &&
-                            DataTypes.isCollectionType(dataTypes.get(1)) &&
-                            ((CollectionType)dataTypes.get(1)).innerType().equals(dataTypes.get(0))
-            );
+            checkArgument(dataTypes.size() == 2, "ANY operator requires exactly 2 arguments");
+            checkArgument(DataTypes.isCollectionType(dataTypes.get(1)), "The second argument to ANY must be an array or set");
+            checkArgument(((CollectionType) dataTypes.get(1)).innerType().equals(dataTypes.get(0)),
+                    "The inner type of the array/set passed to ANY must match its left expression");
             return newInstance(new FunctionInfo(new FunctionIdent(name(), dataTypes), BooleanType.INSTANCE));
         }
     }

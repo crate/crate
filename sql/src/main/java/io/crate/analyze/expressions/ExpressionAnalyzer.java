@@ -92,7 +92,7 @@ public class ExpressionAnalyzer {
     private final FieldProvider<?> fieldProvider;
     private final Functions functions;
     private final ParameterContext parameterContext;
-    protected InnerExpressionAnalyzer innerAnalyzer;
+    private final InnerExpressionAnalyzer innerAnalyzer;
     private boolean forWrite = false;
 
     private static final Pattern SUBSCRIPT_SPLIT_PATTERN = Pattern.compile("^([^\\.\\[]+)(\\.*)([^\\[]*)(\\['.*'\\])");
@@ -161,26 +161,6 @@ public class ExpressionAnalyzer {
     private FunctionInfo getFunctionInfo(FunctionIdent ident) {
         return functions.getSafe(ident).info();
     }
-
-
-
-
-    /**
-     * normalize and validate the given value according to the given {@link io.crate.types.DataType}
-     *
-     * @param inputValue any {@link io.crate.analyze.symbol.Symbol} that evaluates to a Literal or Parameter
-     * @param dataType   the type to convert this input to
-     * @return a {@link io.crate.analyze.symbol.Literal} of type <code>dataType</code>
-     */
-    public Literal normalizeInputForType(Symbol inputValue, DataType dataType) {
-        try {
-            return Literal.convert(normalizer.normalize(inputValue), dataType);
-        } catch (ConversionException e) {
-            throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid value of type '%s'", inputValue.symbolType().name()));
-        }
-    }
-
 
     protected Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
         List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
@@ -340,71 +320,52 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitInPredicate(InPredicate node, ExpressionAnalysisContext context) {
+            /**
+             * convert where x IN (values)
+             *
+             * where values = a list of expressions
+             *
+             * into
+             *
+             *      x = ANY([1, 2, 3])
+             *
+             * if all expressions are literals
+             * otherwise into
+             *
+             *      x = 1 or x = 2 or x = 3 ...
+             */
 
             Symbol left = process(node.getValue(), context);
+            DataType targetType = left.valueType();
 
-            DataType leftType = left.valueType();
-            if (leftType.equals(DataTypes.UNDEFINED)) {
+            if (targetType.equals(DataTypes.UNDEFINED)) {
                 // dynamic or null values cannot be queried, in scalar use-cases (system tables)
                 // we currently have no dynamics
                 return Literal.NULL;
             }
 
             List<Expression> expressions = ((InListExpression) node.getValueList()).getValues();
+            List<Symbol> symbols = new ArrayList<>(expressions.size());
 
-            boolean useAny = true;
-            Set<Literal> literals = new HashSet<>(expressions.size());
+            boolean allLiterals = true;
             for (Expression expression : expressions) {
-                Symbol arrayElement = process(expression, context);
-                Literal literal;
-                if (arrayElement instanceof Literal) {
-                    literal = (Literal) arrayElement;
-                } else {
-                    Symbol normalized = normalize(arrayElement);
-                    if (normalized instanceof Literal) {
-                        literal = (Literal)normalized;
-                    } else {
-                        useAny = false;
-                        break;
-                    }
-                }
-                try {
-                    literals.add(Literal.convert(literal, leftType));
-                } catch (Throwable e) {
-                    throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH, "invalid IN LIST value %s. expected type '%s'",
-                                    SymbolPrinter.INSTANCE.printSimple(literal),
-                                    leftType.getName()));
-                }
+                Symbol symbol = normalize(process(expression, context));
+                allLiterals = allLiterals & symbol.symbolType().isValueSymbol();
+                symbols.add(symbol);
             }
-            if (useAny){
+
+            if (allLiterals){
+                Set<Object> values = new HashSet<>(symbols.size());
+                Symbols.addValuesToCollection(values, targetType, symbols);
                 return context.allocateFunction(
-                        new FunctionInfo(
-                                new FunctionIdent(AnyEqOperator.NAME, Arrays.asList(leftType, new SetType(leftType))),
-                                DataTypes.BOOLEAN
-                        ),
-                        Arrays.asList(left, Literal.implodeCollection(leftType, literals))
-                );
+                        AnyEqOperator.createInfo(targetType),
+                        Arrays.asList(left,Literal.newLiteral(new SetType(targetType), values)));
             }
 
             Set<Function> comparisons = new HashSet<>(expressions.size());
-            FunctionInfo eqInfo = new FunctionInfo(
-                    new FunctionIdent(EqOperator.NAME, Arrays.asList(leftType, leftType)),
-                    DataTypes.BOOLEAN);
-            for (Expression expression : ((InListExpression) node.getValueList()).getValues()) {
-                Symbol right = expression.accept(this, context);
-                if (!right.valueType().equals(leftType)) {
-                    if (right.valueType().isConvertableTo(leftType)) {
-                        right = context.allocateFunction(CastFunctionResolver
-                                .functionInfo(right.valueType(), leftType, false), Arrays.asList(right));
-                    } else {
-                        throw new IllegalArgumentException(
-                                String.format(Locale.ENGLISH, "invalid IN LIST value %s. expected type '%s'",
-                                        SymbolPrinter.INSTANCE.printSimple(right),
-                                        leftType.getName()));
-                    }
-                }
-                comparisons.add(context.allocateFunction(eqInfo, Arrays.asList(left, right)));
+            FunctionInfo eqInfo = EqOperator.createInfo(targetType);
+            for (Symbol symbol : symbols) {
+                comparisons.add(context.allocateFunction(eqInfo, Arrays.asList(left, castIfNeededOrFail(symbol, targetType))));
             }
 
             if (comparisons.size() == 1) {
@@ -517,8 +478,8 @@ public class ExpressionAnalyzer {
                 throw new UnsupportedFeatureException("ALL is not supported");
             }
 
-            Symbol arraySymbol = process(node.getRight(), context);
-            Symbol leftSymbol = process(node.getLeft(), context);
+            Symbol arraySymbol = normalize(process(node.getRight(), context));
+            Symbol leftSymbol = normalize(process(node.getLeft(), context));
             DataType rightType = arraySymbol.valueType();
 
             if (!DataTypes.isCollectionType(rightType)) {
@@ -530,19 +491,10 @@ public class ExpressionAnalyzer {
                 throw new IllegalArgumentException("ANY on object arrays is not supported");
             }
 
-            // always try to convert literal to reference type
-            if (!rightInnerType.equals(leftSymbol.valueType())) {
-                if (rightInnerType.isConvertableTo(leftSymbol.valueType())) {
-                    if (arraySymbol.symbolType().isValueSymbol()) {
-                        arraySymbol = Literal.convert(arraySymbol, new ArrayType(leftSymbol.valueType()));
-                    } else {
-                        leftSymbol = normalizeInputForType(leftSymbol, rightInnerType);
-                    }
-                } else {
-                    throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH,
-                                    "array expression of invalid type array(%s)", rightInnerType));
-                }
+            if (arraySymbol.symbolType().isValueSymbol()) {
+                arraySymbol = castIfNeededOrFail(arraySymbol, new ArrayType(leftSymbol.valueType()));
+            } else {
+                leftSymbol = castIfNeededOrFail(leftSymbol, rightInnerType);
             }
 
             ComparisonExpression.Type operationType = node.getType();
@@ -558,31 +510,15 @@ public class ExpressionAnalyzer {
             if (node.getEscape() != null) {
                 throw new UnsupportedOperationException("ESCAPE is not supported.");
             }
-            Symbol rightSymbol = process(node.getValue(), context);
-            Symbol leftSymbol = process(node.getPattern(), context);
+            Symbol rightSymbol = normalize(process(node.getValue(), context));
+            Symbol leftSymbol = normalize(process(node.getPattern(), context));
             DataType rightType = rightSymbol.valueType();
 
             if (!DataTypes.isCollectionType(rightType)) {
                 throw new IllegalArgumentException(
                         SymbolFormatter.format("invalid array expression: '%s'", rightSymbol));
             }
-            DataType rightInnerType = ((CollectionType) rightType).innerType();
-
-            // always try to convert literal to reference type
-            if (rightInnerType.id() != StringType.ID) {
-                if (rightInnerType.isConvertableTo(DataTypes.STRING)) {
-                    if (rightSymbol.symbolType().isValueSymbol()) {
-                        rightSymbol = Literal.convert(rightSymbol, new ArrayType(DataTypes.STRING));
-                    } else {
-                        leftSymbol = normalizeInputForType(leftSymbol, DataTypes.STRING);
-                    }
-                } else {
-                    throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH,
-                                    "array expression of invalid type array(%s)", rightInnerType));
-                }
-            }
-
+            rightSymbol = castIfNeededOrFail(rightSymbol, new ArrayType(DataTypes.STRING));
             String operatorName = node.inverse() ? AnyNotLikeOperator.NAME : AnyLikeOperator.NAME;
 
             FunctionIdent functionIdent = new FunctionIdent(operatorName, Arrays.asList(leftSymbol.valueType(), rightSymbol.valueType()));

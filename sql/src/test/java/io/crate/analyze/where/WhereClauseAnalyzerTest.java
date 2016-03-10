@@ -27,7 +27,6 @@ import io.crate.analyze.*;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.core.collections.TreeMapBuilder;
-import io.crate.exceptions.ConversionException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -655,8 +654,8 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testAnyInvalidArrayType() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast ['foo', 'bar', 'baz'] to type boolean_array");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("['foo', 'bar', 'baz'] cannot be cast to type boolean_array");
         analyzeSelectWhere("select * from users_multi_pk where awesome = any(['foo', 'bar', 'baz'])");
     }
 

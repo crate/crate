@@ -28,6 +28,7 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -529,8 +530,10 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertTrue(analysis.relation().querySpec().where().noMatch());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWhereInSelectDifferentDataTypeValueUncompatibleDataTypes() throws Exception {
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast 'foo' to type long");
         analyze("select 'found' from users where 1 in (1, 'foo', 2)");
     }
 

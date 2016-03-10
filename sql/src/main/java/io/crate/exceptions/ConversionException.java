@@ -30,7 +30,7 @@ import java.util.Locale;
 
 public class ConversionException extends RuntimeException {
 
-    private static String ERROR_MESSAGE = "cannot cast %s to type %s";
+    private final static String ERROR_MESSAGE = "cannot cast %s to type %s";
 
     private String message;
 
