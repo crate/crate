@@ -52,11 +52,13 @@ public class JvmVersionSysCheck extends AbstractSysCheck {
         try {
             final StringTokenizer st = new StringTokenizer(javaVersion, "_");
             String javaSpecVersion = st.nextToken();
-            javaUpdate = Integer.parseInt(st.nextToken());
 
-            final StringTokenizer st2 = new StringTokenizer(javaSpecVersion, ".");
-            st2.nextToken();
-            javaMajorVersion = Integer.parseInt(st2.nextToken());
+            final StringTokenizer st2 = new StringTokenizer(st.nextToken(), "-");
+            javaUpdate = Integer.parseInt(st2.nextToken());
+
+            final StringTokenizer st3 = new StringTokenizer(javaSpecVersion, ".");
+            st3.nextToken();
+            javaMajorVersion = Integer.parseInt(st3.nextToken());
         } catch (Exception ex) {
             return false;
         }

@@ -224,6 +224,7 @@ public class SysChecksTest extends CrateUnitTest {
         assertThat(jvmVersionSysCheck.validateJavaVersion("1.7.0_10"), is(false));
         assertThat(jvmVersionSysCheck.validateJavaVersion("1.8.0_11"), is(false));
         assertThat(jvmVersionSysCheck.validateJavaVersion("1.8.0_54"), is(true));
+        assertThat(jvmVersionSysCheck.validateJavaVersion("1.8.0_72-internal"), is(true));
     }
 
     @SuppressWarnings("unchecked")
