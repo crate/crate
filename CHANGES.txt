@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/03/11 0.54.7
+=================
+
  - Clarified error messages on unsupported join operations
 
  - Removed timestamp type guessing within objects and within the PARTITION
