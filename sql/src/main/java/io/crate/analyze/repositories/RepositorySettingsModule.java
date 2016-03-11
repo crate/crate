@@ -22,9 +22,22 @@
 
 package io.crate.analyze.repositories;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.SettingsApplier;
+import io.crate.analyze.SettingsAppliers;
+import io.crate.metadata.settings.BoolSetting;
+import io.crate.metadata.settings.ByteSizeSetting;
+import io.crate.metadata.settings.IntSetting;
+import io.crate.metadata.settings.StringSetting;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.GenericProperty;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
+
+import java.util.Collections;
+import java.util.Map;
 
 public class RepositorySettingsModule extends AbstractModule {
 
@@ -32,11 +45,46 @@ public class RepositorySettingsModule extends AbstractModule {
     private static final String URL = "url";
     private static final String HDFS = "hdfs";
 
-    static final TypeSettings FS_SETTINGS = new TypeSettings(ImmutableSet.of("location"),  ImmutableSet.of("compress", "chunk_size"));
-    static final TypeSettings URL_SETTINGS = new TypeSettings(ImmutableSet.of("url"), ImmutableSet.<String>of());
+    static final TypeSettings FS_SETTINGS = new TypeSettings(
+            ImmutableMap.<String, SettingsApplier>of("location", new SettingsAppliers.StringSettingsApplier(new StringSetting("location", true))),
+            ImmutableMap.<String, SettingsApplier>of(
+                    "compress", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("compress", true, true)),
+                    "chunk_size", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("chunk_size", null, true))
+            ));
+
+    static final TypeSettings URL_SETTINGS = new TypeSettings(
+            ImmutableMap.<String, SettingsApplier>of("url", new SettingsAppliers.StringSettingsApplier(new StringSetting("url", true))),
+            Collections.<String, SettingsApplier>emptyMap());
+
+
     static final TypeSettings HDFS_SETTINGS = new TypeSettings(
-            ImmutableSet.<String>of(),
-            ImmutableSet.of("uri", "user", "path", "load_defaults", "conf_location", "concurrent_streams", "compress", "chunk_size"));
+            Collections.<String, SettingsApplier>emptyMap(),
+            ImmutableMap.<String, SettingsApplier>builder()
+                    .put("uri", new SettingsAppliers.StringSettingsApplier(new StringSetting("uri", true)))
+                    .put("user", new SettingsAppliers.StringSettingsApplier(new StringSetting("user", true)))
+                    .put("path", new SettingsAppliers.StringSettingsApplier(new StringSetting("path", true)))
+                    .put("load_defaults", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("load_defaults", true, true)))
+                    .put("conf_location", new SettingsAppliers.StringSettingsApplier(new StringSetting("conf_location", true)))
+                    .put("concurrent_streams", new SettingsAppliers.IntSettingsApplier(new IntSetting("concurrent_streams", 5, true)))
+                    .put("compress", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("compress", true, true)))
+                    .put("chunk_size", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("chunk_size", null, true)))
+            .build()) {
+        @Override
+        public Optional<GenericProperties> preProcess(Optional<GenericProperties> genericProperties) {
+            if (!genericProperties.isPresent()) {
+                return genericProperties;
+            }
+            GenericProperties newProperties = new GenericProperties();
+            GenericProperties properties = genericProperties.get();
+            for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
+                String key = entry.getKey();
+                if (!key.startsWith("conf.")) {
+                    newProperties.add(new GenericProperty(key, entry.getValue()));
+                }
+            }
+            return Optional.of(newProperties);
+        }
+    };
 
     private MapBinder<String, TypeSettings> typeSettingsBinder;
 

@@ -22,25 +22,45 @@
 
 package io.crate.analyze.repositories;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.SettingsApplier;
+import io.crate.analyze.SettingsAppliers;
+import io.crate.metadata.settings.ByteSizeSetting;
+import io.crate.sql.tree.GenericProperties;
 
-import java.util.Set;
+import java.util.Map;
 
 public class TypeSettings {
-    private static final Set<String> GENERIC = ImmutableSet.of("max_restore_bytes_per_sec", "max_snapshot_bytes_per_sec");
-    private final Set<String> required;
-    private final Set<String> all;
+    private static final Map<String, ? extends SettingsApplier> GENERIC = ImmutableMap.<String, SettingsApplier>builder()
+            .put("max_restore_bytes_per_sec", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("max_restore_bytes_per_sec", null, true)))
+            .put("max_snapshot_bytes_per_sec", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("max_snapshot_bytes_per_sec", null, true)))
+            .build();
 
-    public TypeSettings(Set<String> required, Set<String> optional) {
+    private final Map<String, ? extends SettingsApplier> required;
+    private final Map<String, ? extends SettingsApplier> all;
+
+    public TypeSettings(Map<String, ? extends SettingsApplier> required, Map<String, ? extends SettingsApplier> optional) {
         this.required = required;
-        this.all = ImmutableSet.<String>builder().addAll(required).addAll(optional).addAll(GENERIC).build();
+        this.all = ImmutableMap.<String, SettingsApplier>builder().putAll(required).putAll(optional).putAll(GENERIC).build();
     }
 
-    public Set<String> required() {
+    public Map<String, ? extends SettingsApplier> required() {
         return required;
     }
 
-    public Set<String> all() {
+    public Map<String, ? extends SettingsApplier> all() {
         return all;
+    }
+
+    /**
+     * preProcess genericProperties. This can be used to remove dynamic properties that shouldn't be validated
+     * <p>
+     * Note that this must not modify the supplied instance.
+     * (Otherwise this would mess up Statement caching)
+     * </p>
+     */
+    public Optional<GenericProperties> preProcess(Optional<GenericProperties> genericProperties) {
+        return genericProperties;
     }
 }

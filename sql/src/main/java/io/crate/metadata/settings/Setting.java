@@ -60,7 +60,7 @@ public abstract class Setting<T, E> {
      * Return a list of setting names up to the uppers parent which will be used
      * e.g. to compute the full-qualified setting name
      */
-    public List<String> chain() {
+    private List<String> chain() {
         Setting parentSetting = parent();
         if (parentSetting == null) { return ImmutableList.of(name()); }
         ImmutableList.Builder<String> builder = ImmutableList.builder();

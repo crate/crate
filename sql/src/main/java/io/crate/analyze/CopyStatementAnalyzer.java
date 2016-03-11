@@ -63,24 +63,11 @@ public class CopyStatementAnalyzer {
 
     private final AnalysisMetaData analysisMetaData;
 
-    private static final StringSetting COMPRESSION_SETTINGS = new StringSetting("compression", ImmutableSet.of(
-            "gzip"
-    )) {
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
+    private static final StringSetting COMPRESSION_SETTINGS =
+            new StringSetting("compression", ImmutableSet.of("gzip"), true);
 
-    private static final StringSetting OUTPUT_FORMAT_SETTINGS = new StringSetting("format", ImmutableSet.of(
-            "json_object",
-            "json_array"
-    )) {
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
+    private static final StringSetting OUTPUT_FORMAT_SETTINGS =
+            new StringSetting("format", ImmutableSet.of("json_object", "json_array"), true);
 
     private static final ImmutableMap<String, SettingsApplier> SETTINGS_APPLIERS =
             ImmutableMap.<String, SettingsApplier>builder()

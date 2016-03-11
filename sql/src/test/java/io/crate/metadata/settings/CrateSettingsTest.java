@@ -29,17 +29,8 @@ public class CrateSettingsTest extends CrateUnitTest {
 
     @Test
     public void testStringSettingsValidation() throws Exception {
-        StringSetting stringSetting = new StringSetting("foo_bar_setting",
-                Sets.newHashSet("foo", "bar", "foobar")
-        ) {
-            @Override
-            public String defaultValue() { return "foo"; }
-
-            @Override
-            public boolean isRuntime() {
-                return false;
-            }
-        };
+        StringSetting stringSetting =
+                new StringSetting("foo_bar_setting", Sets.newHashSet("foo", "bar", "foobar"), false, "foo", null);
 
         String validation = stringSetting.validate("foo");
         assertEquals(validation, null);
@@ -49,18 +40,7 @@ public class CrateSettingsTest extends CrateUnitTest {
 
     @Test
     public void testStringSettingsEmptyValidation() throws Exception {
-        StringSetting stringSetting = new StringSetting("foo_bar_setting",
-                Sets.newHashSet("")
-        ) {
-            @Override
-            public String defaultValue() { return "foo"; }
-
-            @Override
-            public boolean isRuntime() {
-                return false;
-            }
-
-        };
+        StringSetting stringSetting = new StringSetting("foo_bar_setting", Sets.newHashSet(""), false, "foo", null);
 
         String validation = stringSetting.validate("foo");
         assertEquals(validation, "'foo' is not an allowed value. Allowed values are: ");

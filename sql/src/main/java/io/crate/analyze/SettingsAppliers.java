@@ -85,7 +85,7 @@ public class SettingsAppliers {
         protected final Setting setting;
 
         public NumberSettingsApplier(Setting setting) {
-            super(setting.settingName(),
+            super(setting.settingName(), setting.defaultValue() == null ? ImmutableSettings.EMPTY :
                     ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
             this.setting = setting;
         }
@@ -241,7 +241,7 @@ public class SettingsAppliers {
         private final ByteSizeSetting setting;
 
         public ByteSizeSettingsApplier(ByteSizeSetting setting) {
-            super(setting.settingName(),
+            super(setting.settingName(), setting.defaultValue() == null ? ImmutableSettings.EMPTY :
                     ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
             this.setting = setting;
         }
@@ -298,7 +298,7 @@ public class SettingsAppliers {
         private final StringSetting setting;
 
         public StringSettingsApplier(StringSetting setting) {
-            super(setting.settingName(),
+            super(setting.settingName(), setting.defaultValue() == null ? ImmutableSettings.EMPTY :
                     ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
             this.setting = setting;
         }
