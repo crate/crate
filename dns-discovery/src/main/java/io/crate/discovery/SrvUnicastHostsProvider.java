@@ -1,28 +1,27 @@
 /*
- * Copyright (c) 2015 Grant Rodgers
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
  *
- *     Permission is hereby granted, free of charge, to any person obtaining
- *     a copy of this software and associated documentation files (the "Software"),
- *     to deal in the Software without restriction, including without limitation
- *     the rights to use, copy, modify, merge, publish, distribute, sublicense,
- *     and/or sell copies of the Software, and to permit persons to whom the Software
- *     is furnished to do so, subject to the following conditions:
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *     The above copyright notice and this permission notice shall be included in
- *     all copies or substantial portions of the Software.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
- *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- *     IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- *     CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- *     TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
- *     OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
-package org.elasticsearch.discovery.srv;
+package io.crate.discovery;
 
-import com.google.common.collect.Lists;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Nullable;
@@ -36,6 +35,8 @@ import org.elasticsearch.transport.TransportService;
 import org.xbill.DNS.*;
 
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -92,10 +93,9 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
 
     @Override
     public List<DiscoveryNode> buildDynamicNodes() {
-        List<DiscoveryNode> discoNodes = Lists.newArrayList();
         if (query == null) {
             logger.error("DNS query must not be null. Please set '{}'", DISCOVERY_SRV_QUERY);
-            return discoNodes;
+            return Collections.emptyList();
         }
         try {
             Record[] records = lookupRecords();
@@ -103,14 +103,15 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
             if (records == null || records.length == 0) {
                 logger.debug("No nodes found");
             } else {
-                discoNodes = parseRecords(records);
+                List<DiscoveryNode> discoNodes = parseRecords(records);
+                logger.info("Using dynamic discovery nodes {}", discoNodes);
+                return discoNodes;
             }
         } catch (TextParseException e) {
             logger.error("Unable to parse DNS query '{}'", query);
             logger.error("DNS lookup exception:", e);
         }
-        logger.info("Using dynamic discovery nodes {}", discoNodes);
-        return discoNodes;
+        return Collections.emptyList();
     }
 
     protected Record[] lookupRecords() throws TextParseException {
@@ -122,7 +123,7 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
     }
 
     protected List<DiscoveryNode> parseRecords(Record[] records) {
-        List<DiscoveryNode> discoNodes = Lists.newArrayList();
+        List<DiscoveryNode> discoNodes = new ArrayList<>(records.length);
         for (Record record : records) {
             SRVRecord srv = (SRVRecord) record;
 
@@ -131,10 +132,11 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
             String address = hostname + ":" + port;
 
             try {
-                // TODO: FIX ME!
-                TransportAddress[] addresses = null; // transportService.addressesFromString(address);
-                logger.trace("adding {}, transport_address {}", address, addresses[0]);
-                discoNodes.add(new DiscoveryNode("#srv-" + address, addresses[0], version.minimumCompatibilityVersion()));
+                TransportAddress[] addresses = transportService.addressesFromString(address, 1);
+                for (TransportAddress transportAddress : addresses) {
+                    logger.trace("adding {}, transport_address {}", address, transportAddress);
+                    discoNodes.add(new DiscoveryNode("#srv-" + address, transportAddress, version.minimumCompatibilityVersion()));
+                }
             } catch (Exception e) {
                 logger.warn("failed to add {}, address {}", e, address);
             }

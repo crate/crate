@@ -1,25 +1,26 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
-package org.elasticsearch.discovery.srv;
+package io.crate.discovery;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.Locale;
 
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -58,12 +60,11 @@ public class SrvUnicastHostsProviderTest {
     @Before
     public void mockTransportService() throws Exception {
         transportService = mock(TransportService.class);
-        // TODO: FIX ME! addressFromString changed interface
-        /*for (int i = 0; i < 4; i++) {
-            when(transportService.addressesFromString(eq(String.format(Locale.ENGLISH, "crate%d.internal:44300", i + 1)))).thenReturn(new TransportAddress[]{
-                    new LocalTransportAddress(String.format(Locale.ENGLISH, "crate%d.internal", i+1))
+        for (int i = 0; i < 4; i++) {
+            when(transportService.addressesFromString(eq(String.format(Locale.ENGLISH, "crate%d.internal:44300", i + 1)), anyInt())).thenReturn(new TransportAddress[]{
+                    new LocalTransportAddress(String.format(Locale.ENGLISH, "crate%d.internal", i + 1))
             });
-        }*/
+        }
     }
 
     @Test

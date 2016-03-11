@@ -24,6 +24,7 @@ package io.crate.node;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.plugin.CrateCorePlugin;
+import io.crate.plugin.SrvPlugin;
 import org.elasticsearch.Version;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
@@ -38,6 +39,7 @@ public class CrateNode extends Node {
     private static final Collection<Class<? extends Plugin>> CLASSPATH_PLUGINS = ImmutableList.of(
             CrateCorePlugin.class,
             MulticastDiscoveryPlugin.class,
+            SrvPlugin.class,
             CloudAwsPlugin.class);
 
     public CrateNode(Environment environment) {
