@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
@@ -119,7 +120,7 @@ public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
                                                              "concurrent_streams=4," +
                                                              "chunk_size=12," +
                                                              "compress=true," +
-                                                             "server_side_encryption='only for pussies'," +
+                                                             "server_side_encryption=false," +
                                                              "buffer_size=128," +
                                                              "max_retries=2," +
                                                              "canned_acl=false)");
@@ -142,7 +143,7 @@ public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
                    "protocol:arp," +
                    "region:us-north-42," +
                    "secret_key:0xCAFEE," +
-                   "server_side_encryption:only for pussies"));
+                   "server_side_encryption:false"));
     }
 
     @Test
@@ -150,13 +151,14 @@ public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
         CreateRepositoryAnalyzedStatement analysis = analyze("CREATE REPOSITORY foo TYPE s3");
         assertThat(analysis.repositoryName(), is("foo"));
         assertThat(analysis.repositoryType(), is("s3"));
-        assertThat(analysis.settings().getAsMap().isEmpty(), is(true));
+        // two settings are there because those have default values
+        assertThat(analysis.settings().getAsMap().keySet(), containsInAnyOrder("compress", "server_side_encryption"));
     }
 
     @Test
     public void testCreateS3RepoWithWrongSettings() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid parameters specified: [wrong]");
+        expectedException.expectMessage("setting 'wrong' not supported");
         analyze("CREATE REPOSITORY foo TYPE s3 WITH (wrong=true)");
     }
 }
