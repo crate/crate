@@ -5,22 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
- - Clarified error messages on unsupported join operations
-
- - Removed timestamp type guessing within objects and within the PARTITION
-   clause of the RESTORE SNAPSHOT statement.
-
- - Made equality operator for ``object`` types work correctly for different
-   inner numeric values.
-
- - Fix: Querying system tables could fail if connected to a client
-   node and cluster contains another client node.
-
  - Create Table statements now validate that the PRIMARY KEY constraint doesn't
    contain columns with unsupported data types
-
- - Upgraded the included groovy dependency from 2.4.0 to 2.4.4 for security
-   fixes
 
  - Added a ``node_filters`` option to ``COPY FROM``
 
@@ -34,10 +20,6 @@ Unreleased
  - Added support for schemes supported by the used JVM's `URL` implementation
    for ``COPY FROM``. These usually include``http``, ``https``, ``ftp`` and
     ``jar``.
-
- - Conversion from (double) arrays to geo_point is now more lenient and allows
-   integer values inside the array. This was done since some encoders tend to
-   convert float/double values to integers.
 
  - Added support for the ``unnest`` table function
 
@@ -59,6 +41,27 @@ Unreleased
  - Exposed setting the default schema via HTTP header.
 
  - added `lower`` and `upper`` string functions
+
+2016/03/11 0.54.7
+=================
+
+ - Clarified error messages on unsupported join operations
+
+ - Removed timestamp type guessing within objects and within the PARTITION
+   clause of the RESTORE SNAPSHOT statement.
+
+ - Made equality operator for ``object`` types work correctly for different
+   inner numeric values.
+
+ - Fix: Querying system tables could fail if connected to a client
+   node and cluster contains another client node.
+
+ - Upgraded the included groovy dependency from 2.4.0 to 2.4.4 for security
+   fixes
+
+ - Conversion from (double) arrays to geo_point is now more lenient and allows
+   integer values inside the array. This was done since some encoders tend to
+   convert float/double values to integers.
 
 2016/02/25 0.54.6
 =================
