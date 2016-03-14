@@ -40,7 +40,7 @@ import java.util.BitSet;
 
 public class PageDownstreamContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(PageDownstreamContext.class);
+    private final static ESLogger LOGGER = Loggers.getLogger(PageDownstreamContext.class);
 
     private final Object lock = new Object();
     private String name;
@@ -63,7 +63,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
                                  RamAccountingContext ramAccountingContext,
                                  int numBuckets,
                                  @Nullable FlatProjectorChain projectorChain) {
-        super(id);
+        super(id, LOGGER);
         this.name = name;
         this.pageDownstream = pageDownstream;
         this.streamer = streamer;
@@ -100,14 +100,14 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
             listeners.add(pageResultListener);
         }
         synchronized (lock) {
-            LOGGER.trace("setBucket: {}", bucketIdx);
+            logger.trace("setBucket: {}", bucketIdx);
             if (allFuturesSet.get(bucketIdx)) {
                 pageDownstream.fail(new IllegalStateException("May not set the same bucket of a page more than once"));
                 return;
             }
 
             if (pageEmpty()) {
-                LOGGER.trace("calling nextPage");
+                logger.trace("calling nextPage");
                 pageDownstream.nextPage(new BucketPage(bucketFutures), new ResultListenerBridgingConsumeListener());
             }
             setExhaustedUpstreams();
@@ -127,18 +127,18 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         // can't trigger failure on pageDownstream immediately as it would remove the context which the other
         // upstreams still require
         synchronized (lock) {
-            LOGGER.trace("failure: bucket: {} {}", bucketIdx, throwable);
+            logger.trace("failure: bucket: {} {}", bucketIdx, throwable);
             if (allFuturesSet.get(bucketIdx)) {
                 pageDownstream.fail(new IllegalStateException("May not set the same bucket %d of a page more than once"));
                 return;
             }
             if (pageEmpty()) {
-                LOGGER.trace("calling nextPage");
+                logger.trace("calling nextPage");
                 pageDownstream.nextPage(new BucketPage(bucketFutures), new ResultListenerBridgingConsumeListener());
             }
             setExhaustedUpstreams();
 
-            LOGGER.trace("failure: {}", bucketIdx);
+            logger.trace("failure: {}", bucketIdx);
             exhausted.set(bucketIdx);
             bucketFutures.get(bucketIdx).setException(throwable);
             allFuturesSet.set(bucketIdx);
@@ -221,9 +221,9 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         @Override
         public void needMore() {
             boolean allExhausted = allExhausted();
-            LOGGER.trace("allExhausted: {}", allExhausted);
+            logger.trace("allExhausted: {}", allExhausted);
             synchronized (listeners) {
-                LOGGER.trace("calling needMore on all listeners({})", listeners.size());
+                logger.trace("calling needMore on all listeners({})", listeners.size());
                 for (PageResultListener listener : listeners) {
                     if (allExhausted) {
                         listener.needMore(false);
@@ -241,7 +241,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         @Override
         public void finish() {
             synchronized (listeners) {
-                LOGGER.trace("calling finish() on all listeners({})", listeners.size());
+                logger.trace("calling finish() on all listeners({})", listeners.size());
                 for (PageResultListener listener : listeners) {
                     listener.needMore(false);
                 }

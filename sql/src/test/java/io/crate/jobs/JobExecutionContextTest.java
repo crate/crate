@@ -35,6 +35,8 @@ import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.IntegerType;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -195,9 +197,10 @@ public class JobExecutionContextTest extends CrateUnitTest {
 
     private static class SlowKillExecutionSubContext extends AbstractExecutionSubContext {
 
+        private static final ESLogger LOGGER = Loggers.getLogger(SlowKillExecutionSubContext.class);
 
         public SlowKillExecutionSubContext() {
-            super(1);
+            super(1, LOGGER);
         }
 
         @Override

@@ -23,8 +23,8 @@ package io.crate.jobs;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardResponse;
+import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import org.elasticsearch.ExceptionsHelper;
@@ -41,7 +41,7 @@ import javax.annotation.Nullable;
 
 public class UpsertByIdContext extends AbstractExecutionSubContext {
 
-    private static final ESLogger logger = Loggers.getLogger(ExecutionSubContext.class);
+    private final static ESLogger LOGGER = Loggers.getLogger(UpsertByIdContext.class);
 
     private final ShardUpsertRequest request;
     private final UpsertByIdNode.Item item;
@@ -53,7 +53,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                              UpsertByIdNode.Item item,
                              SettableFuture<TaskResult> futureResult,
                              BulkRequestExecutor transportShardUpsertActionDelegate) {
-        super(id);
+        super(id, LOGGER);
         this.request = request;
         this.item = item;
         this.futureResult = futureResult;

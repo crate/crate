@@ -39,6 +39,8 @@ import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.StopWatch;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
@@ -48,6 +50,8 @@ import java.util.Collection;
 import java.util.Locale;
 
 public class JobCollectContext extends AbstractExecutionSubContext implements ExecutionState {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
 
     private final CollectPhase collectPhase;
     private final MapSideDataCollectOperation collectOperation;
@@ -68,7 +72,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
                              RamAccountingContext queryPhaseRamAccountingContext,
                              final RowReceiver rowReceiver,
                              SharedShardContexts sharedShardContexts) {
-        super(collectPhase.executionPhaseId());
+        super(collectPhase.executionPhaseId(), LOGGER);
         this.collectPhase = collectPhase;
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
@@ -169,7 +173,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
         if (collectors.isEmpty()) {
             rowReceiver.finish();
         } else {
-            if (LOGGER.isTraceEnabled()) {
+            if (logger.isTraceEnabled()) {
                 measureCollectTime();
             }
             collectOperation.launchCollectors(collectors, threadPoolName);
@@ -183,7 +187,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
             @Override
             public void run() {
                 stopWatch.stop();
-                LOGGER.trace("Collectors finished: {}", stopWatch.shortSummary());
+                logger.trace("Collectors finished: {}", stopWatch.shortSummary());
             }
         }, MoreExecutors.directExecutor());
     }

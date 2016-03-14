@@ -30,6 +30,8 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.After;
 import org.junit.Before;
@@ -238,12 +240,14 @@ public class JobContextServiceTest extends CrateUnitTest {
 
     protected static class DummySubContext extends AbstractExecutionSubContext {
 
+        private static final ESLogger LOGGER = Loggers.getLogger(DummySubContext.class);
+
         public DummySubContext() {
-            super(1);
+            this(1);
         }
 
         public DummySubContext(int id) {
-            super(id);
+            super(id, LOGGER);
         }
 
         @Override

@@ -32,6 +32,8 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.node.fetch.FetchPhase;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.ShardId;
@@ -42,6 +44,8 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 public class FetchContext extends AbstractExecutionSubContext {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(FetchContext.class);
 
     private final IntObjectOpenHashMap<Engine.Searcher> searchers = new IntObjectOpenHashMap<>();
     private final IntObjectOpenHashMap<SharedShardContext> shardContexts = new IntObjectOpenHashMap<>();
@@ -56,7 +60,7 @@ public class FetchContext extends AbstractExecutionSubContext {
                         String localNodeId,
                         SharedShardContexts sharedShardContexts,
                         Iterable<? extends Routing> routingIterable) {
-        super(phase.executionPhaseId());
+        super(phase.executionPhaseId(), LOGGER);
         this.phase = phase;
         this.localNodeId = localNodeId;
         this.sharedShardContexts = sharedShardContexts;

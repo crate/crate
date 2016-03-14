@@ -26,6 +26,8 @@ import com.google.common.util.concurrent.Futures;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.operation.projectors.*;
 import io.crate.planner.projection.Projection;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -33,6 +35,8 @@ import java.util.List;
 import java.util.UUID;
 
 public class ProjectorChainContext extends AbstractExecutionSubContext {
+
+    private final static ESLogger LOGGER = Loggers.getLogger(ProjectorChainContext.class);
 
     private final String name;
     private final RowReceiver rowReceiver;
@@ -45,7 +49,7 @@ public class ProjectorChainContext extends AbstractExecutionSubContext {
                                  List<Projection> projections,
                                  RowReceiver rowReceiver,
                                  RamAccountingContext ramAccountingContext) {
-        super(id);
+        super(id, LOGGER);
         this.name = name;
         ListenableRowReceiver listenableRowReceiver = RowReceivers.listenableRowReceiver(rowReceiver);
         Futures.addCallback(listenableRowReceiver.finishFuture(), new FutureCallback<Void>() {

@@ -27,6 +27,8 @@ import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -34,6 +36,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class NestedLoopContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext, ExecutionState {
+
+    private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopContext.class);
 
     private final AtomicInteger activeSubContexts = new AtomicInteger(0);
     private final NestedLoopPhase nestedLoopPhase;
@@ -54,7 +58,7 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
                              NestedLoopOperation nestedLoopOperation,
                              @Nullable PageDownstreamContext leftPageDownstreamContext,
                              @Nullable PageDownstreamContext rightPageDownstreamContext) {
-        super(phase.executionPhaseId());
+        super(phase.executionPhaseId(), LOGGER);
 
         nestedLoopPhase = phase;
         this.flatProjectorChain = flatProjectorChain;

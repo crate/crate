@@ -23,7 +23,6 @@
 package io.crate.jobs;
 
 import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -31,15 +30,15 @@ import java.util.concurrent.CancellationException;
 
 public abstract class AbstractExecutionSubContext implements ExecutionSubContext, ExecutionState {
 
-    protected static final ESLogger LOGGER = Loggers.getLogger(AbstractExecutionSubContext.class);
-
+    protected final ESLogger logger;
     protected final SubExecutionContextFuture future = new SubExecutionContextFuture();
     private final int id;
 
     private volatile boolean isKilled = false;
 
-    protected AbstractExecutionSubContext(int id) {
+    protected AbstractExecutionSubContext(int id, ESLogger logger) {
         this.id = id;
+        this.logger = logger;
     }
 
     public int id() {
@@ -52,7 +51,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     @Override
     final public void prepare() {
         if (!future.closed()) {
-            LOGGER.trace("preparing {}: {}", this, id);
+            logger.trace("preparing {}: {}", this, id);
             try {
                 innerPrepare();
             } catch (Throwable t) {
@@ -67,7 +66,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     @Override
     final public void start() {
         if (!future.closed()) {
-            LOGGER.trace("starting {}: {}", this, id);
+            logger.trace("starting {}: {}", this, id);
             try {
                 innerStart();
             } catch (Throwable t) {
@@ -81,14 +80,14 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
 
     protected boolean close(@Nullable Throwable t) {
         if (future.firstClose()) {
-            LOGGER.trace("closing {}: {}", this, id);
+            logger.trace("closing {}: {}", this, id);
             try {
                 innerClose(t);
             } catch (Throwable t2) {
                 if (t == null) {
                     t = t2;
                 } else {
-                    LOGGER.warn("closing due to exception, but closing also throws exception", t2);
+                    logger.warn("closing due to exception, but closing also throws exception", t2);
                 }
             } finally {
                 cleanup();
@@ -113,11 +112,11 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
             if (t == null) {
                 t = new CancellationException();
             }
-            LOGGER.trace("killing {}: {}", this, id);
+            logger.trace("killing {}: {}", this, id);
             try {
                 innerKill(t);
             } catch (Throwable t2) {
-                LOGGER.warn("killing due to exception, but killing also throws exception", t2);
+                logger.warn("killing due to exception, but killing also throws exception", t2);
             } finally {
                 cleanup();
             }
