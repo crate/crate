@@ -66,10 +66,9 @@ public class CrateClientIntegrationTest extends Assert {
 
     @ClassRule
     public static final CrateTestCluster testCluster = CrateTestCluster.fromFile(tarBallPath)
-            .workingDir(System.getProperty("project_build_dir") + "/crate-testing").numberOfNodes(1).build();
+            .workingDir(Paths.get(System.getProperty("project_build_dir"), "crate-testing")).numberOfNodes(1).build();
 
     protected String serverAddress() {
-
         CrateTestServer server = testCluster.randomServer();
         return server.crateHost() + ':' + server.transportPort();
     }

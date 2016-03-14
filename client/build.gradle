@@ -55,7 +55,7 @@ dependencies {
     compile 'org.apache.lucene:lucene-analyzers-common:4.10.4'
 
     compile files(depClasses)
-    testCompile 'io.crate:crate-testing:0.4.0'
+    testCompile 'io.crate:crate-testing:0.4.1'
     testCompile 'org.hamcrest:hamcrest-all:1.3'
 
 }
