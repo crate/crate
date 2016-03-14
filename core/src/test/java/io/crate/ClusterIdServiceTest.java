@@ -23,18 +23,25 @@ package io.crate;
 
 import io.crate.plugin.CrateCorePlugin;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import java.util.Collection;
 
-@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.TEST, numDataNodes = 0)
-public class ClusterIdServiceTest extends ElasticsearchIntegrationTest  {
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;
+
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
+public class ClusterIdServiceTest extends ESIntegTestCase {
+
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        return pluginList(CrateCorePlugin.class);
+    }
 
     @Test
     public void testClusterIdGeneration() throws Exception {
         Settings localSettings = settingsBuilder()
-                .put("plugin.types", CrateCorePlugin.class.getName())
                 .put("discovery.type", "local").build();
         String node_0 = internalCluster().startNode(localSettings);
 
@@ -45,7 +52,6 @@ public class ClusterIdServiceTest extends ElasticsearchIntegrationTest  {
     @Test
     public void testClusterIdTransient() throws Exception {
         Settings localSettings = settingsBuilder()
-                .put("plugin.types", CrateCorePlugin.class.getName())
                 .put("discovery.type", "local").build();
         String node_0 = internalCluster().startNode(localSettings);
 
@@ -64,16 +70,13 @@ public class ClusterIdServiceTest extends ElasticsearchIntegrationTest  {
 
     @Test
     public void testClusterIdDistribution() throws Exception {
-        Settings localSettings = settingsBuilder()
-                .put("plugin.types", CrateCorePlugin.class.getName())
-                .put("discovery.type", "zen").build();
-        String node_0 = internalCluster().startNode(localSettings);
+        String node_0 = internalCluster().startNode();
 
         ClusterIdService clusterIdServiceNode0 = internalCluster().getInstance(ClusterIdService.class, node_0);
         ClusterId clusterId = clusterIdServiceNode0.clusterId().get();
         assertNotNull(clusterId);
 
-        String node_1 = internalCluster().startNode(localSettings);
+        String node_1 = internalCluster().startNode();
 
         ClusterIdService clusterIdServiceNode1 = internalCluster().getInstance(ClusterIdService.class, node_1);
         assertNotNull(clusterIdServiceNode1.clusterId().get());
@@ -84,7 +87,7 @@ public class ClusterIdServiceTest extends ElasticsearchIntegrationTest  {
 
         assertEquals(clusterId, clusterIdServiceNode1.clusterId().get());
 
-        String node_2 = internalCluster().startNode(localSettings);
+        String node_2 = internalCluster().startNode();
         ClusterIdService clusterIdServiceNode2 = internalCluster().getInstance(ClusterIdService.class, node_2);
         assertEquals(clusterId, clusterIdServiceNode2.clusterId().get());
     }

@@ -25,18 +25,18 @@ import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
+import io.crate.monitor.ExtendedNodeInfo;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.jvm.JvmService;
-import org.elasticsearch.monitor.network.NetworkService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
-import org.elasticsearch.monitor.sigar.SigarService;
 import org.elasticsearch.node.service.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -45,7 +45,7 @@ public class NodeSysExpression extends NestedObjectExpression {
     private final NodeService nodeService;
     private final OsService osService;
     private final JvmService jvmService;
-    private final NetworkService networkService;
+    private final ExtendedNodeInfo extendedNodeInfo;
 
     private static final Collection EXPRESSIONS_WITH_OS_STATS = Arrays.asList(
             SysNodesTableInfo.SYS_COL_MEM,
@@ -55,20 +55,19 @@ public class NodeSysExpression extends NestedObjectExpression {
 
     @Inject
     public NodeSysExpression(ClusterService clusterService,
-                             SigarService sigarService,
                              OsService osService,
                              NodeService nodeService,
                              JvmService jvmService,
-                             NetworkService networkService,
                              NodeEnvironment nodeEnvironment,
                              Discovery discovery,
-                             ThreadPool threadPool) {
+                             ThreadPool threadPool,
+                             ExtendedNodeInfo extendedNodeInfo) {
         this.nodeService = nodeService;
         this.osService = osService;
         this.jvmService = jvmService;
-        this.networkService = networkService;
+        this.extendedNodeInfo = extendedNodeInfo;
         childImplementations.put(SysNodesTableInfo.SYS_COL_FS,
-                new NodeFsExpression(sigarService, nodeEnvironment));
+                new NodeFsExpression(extendedNodeInfo.fsStats(nodeEnvironment)));
         childImplementations.put(SysNodesTableInfo.SYS_COL_HOSTNAME,
                 new NodeHostnameExpression(clusterService));
         childImplementations.put(SysNodesTableInfo.SYS_COL_REST_URL,
@@ -94,17 +93,20 @@ public class NodeSysExpression extends NestedObjectExpression {
             if (SysNodesTableInfo.SYS_COL_MEM.equals(name)) {
                 return new NodeMemoryExpression(osStats);
             } else if (SysNodesTableInfo.SYS_COL_LOAD.equals(name)) {
-                return new NodeLoadExpression(osStats);
+                return new NodeLoadExpression(extendedNodeInfo.osStats());
             } else if (SysNodesTableInfo.SYS_COL_OS.equals(name)) {
-                return new NodeOsExpression(osStats);
+                return new NodeOsExpression(extendedNodeInfo.osStats());
             }
         } else if (SysNodesTableInfo.SYS_COL_PROCESS.equals(name)) {
-            return new NodeProcessExpression(nodeService.info().getProcess(),
-                    nodeService.stats().getProcess());
+            try {
+                return new NodeProcessExpression(nodeService.stats().getProcess(), extendedNodeInfo.processCpuStats());
+            } catch (IOException e) {
+                // This is a bug in ES method signature, IOException is never thrown
+            }
         } else if (SysNodesTableInfo.SYS_COL_HEAP.equals(name)) {
             return new NodeHeapExpression(jvmService.stats());
         } else if (SysNodesTableInfo.SYS_COL_NETWORK.equals(name)) {
-            return new NodeNetworkExpression(networkService.stats());
+            return new NodeNetworkExpression(extendedNodeInfo.networkStats());
         }
         return super.getChildImplementation(name);
     }

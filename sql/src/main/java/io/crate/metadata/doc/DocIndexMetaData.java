@@ -104,10 +104,10 @@ public class DocIndexMetaData {
         this.ident = ident;
         this.metaData = metaData;
         this.isAlias = !metaData.getIndex().equals(ident.indexName());
-        this.numberOfShards = metaData.numberOfShards();
+        this.numberOfShards = metaData.getNumberOfShards();
         Settings settings = metaData.getSettings();
         this.numberOfReplicas = NumberOfReplicas.fromSettings(settings);
-        this.aliases = ImmutableSet.copyOf(metaData.aliases().keys().toArray(String.class));
+        this.aliases = ImmutableSet.copyOf(metaData.getAliases().keys().toArray(String.class));
         this.defaultMappingMetaData = this.metaData.mappingOrDefault(Constants.DEFAULT_MAPPING_TYPE);
         if (defaultMappingMetaData == null) {
             this.defaultMappingMap = ImmutableMap.of();
@@ -136,7 +136,7 @@ public class DocIndexMetaData {
             return defaultValue;
         }
         //noinspection unchecked
-        return (T)o;
+        return (T) o;
     }
 
     private void addPartitioned(ColumnIdent column, DataType type) {
@@ -172,13 +172,17 @@ public class DocIndexMetaData {
         }
     }
 
-    private void addGeoReference(ColumnIdent column, @Nullable String tree, @Nullable Integer treeLevels, @Nullable Double distanceErrorPct) {
+    private void addGeoReference(ColumnIdent column,
+                                 @Nullable String tree,
+                                 @Nullable String precision,
+                                 @Nullable Integer treeLevels,
+                                 @Nullable Double distanceErrorPct) {
         GeoReferenceInfo info = new GeoReferenceInfo(
                 refIdent(column),
                 tree,
+                precision,
                 treeLevels,
                 distanceErrorPct);
-
         columnsBuilder.add(info);
         referencesBuilder.put(column, info);
     }
@@ -188,10 +192,10 @@ public class DocIndexMetaData {
     }
 
     private GeneratedReferenceInfo newGeneratedColumnInfo(ColumnIdent column,
-                                                 DataType type,
-                                                 ColumnPolicy columnPolicy,
-                                                 ReferenceInfo.IndexType indexType,
-                                                 String generatedExpression) {
+                                                          DataType type,
+                                                          ColumnPolicy columnPolicy,
+                                                          ReferenceInfo.IndexType indexType,
+                                                          String generatedExpression) {
         return new GeneratedReferenceInfo(
                 refIdent(column), granularity(column), type, columnPolicy, indexType, generatedExpression);
     }
@@ -247,7 +251,7 @@ public class DocIndexMetaData {
             } else if (indexType.equals(ReferenceInfo.IndexType.NO.toString())) {
                 return ReferenceInfo.IndexType.NO;
             } else if (indexType.equals(ReferenceInfo.IndexType.ANALYZED.toString())
-                    && analyzerName != null && !analyzerName.equals("keyword")) {
+                       && analyzerName != null && !analyzerName.equals("keyword")) {
                 return ReferenceInfo.IndexType.ANALYZED;
             }
         } // default indexType is analyzed so need to check analyzerName if indexType is null
@@ -281,13 +285,14 @@ public class DocIndexMetaData {
             columnProperties = furtherColumnProperties(columnProperties);
             ReferenceInfo.IndexType columnIndexType = getColumnIndexType(columnProperties);
             if (columnDataType == DataTypes.GEO_SHAPE) {
-                String geoTree = (String)columnProperties.get("tree");
-                Integer treeLevels = (Integer)columnProperties.get("tree_levels");
-                Double distanceErrorPct = (Double)columnProperties.get("distance_error_pct");
-                addGeoReference(newIdent, geoTree, treeLevels, distanceErrorPct);
+                String geoTree = (String) columnProperties.get("tree");
+                String precision = (String) columnProperties.get("precision");
+                Integer treeLevels = (Integer) columnProperties.get("tree_levels");
+                Double distanceErrorPct = (Double) columnProperties.get("distance_error_pct");
+                addGeoReference(newIdent, geoTree, precision, treeLevels, distanceErrorPct);
             } else if (columnDataType == DataTypes.OBJECT
-                    || (columnDataType.id() == ArrayType.ID
-                    && ((ArrayType) columnDataType).innerType() == DataTypes.OBJECT)) {
+                       || (columnDataType.id() == ArrayType.ID
+                           && ((ArrayType) columnDataType).innerType() == DataTypes.OBJECT)) {
                 ColumnPolicy columnPolicy =
                         ColumnPolicy.of(columnProperties.get("dynamic"));
                 add(newIdent, columnDataType, columnPolicy, ReferenceInfo.IndexType.NO, false);
@@ -407,7 +412,7 @@ public class DocIndexMetaData {
         }
     }
 
-    private ColumnIdent getCustomRoutingCol(){
+    private ColumnIdent getCustomRoutingCol() {
         if (defaultMappingMetaData != null) {
             Map<String, Object> metaMap = getNested(defaultMappingMap, "_meta");
             if (metaMap != null) {
@@ -422,7 +427,7 @@ public class DocIndexMetaData {
 
     private ColumnIdent getRoutingCol() {
         ColumnIdent col = getCustomRoutingCol();
-        if (col != null){
+        if (col != null) {
             return col;
         }
         if (primaryKey.size() == 1) {
@@ -533,17 +538,17 @@ public class DocIndexMetaData {
                 // this is older, update template and return other
                 // settings in template are always authoritative for table information about
                 // number_of_shards and number_of_replicas
-                updateTemplate(other, transportPutIndexTemplateAction, this.metaData.settings());
+                updateTemplate(other, transportPutIndexTemplateAction, this.metaData.getSettings());
                 // merge the new mapping with the template settings
                 return new DocIndexMetaData(
                         functions,
-                        IndexMetaData.builder(other.metaData).settings(this.metaData.settings()).build(),
+                        IndexMetaData.builder(other.metaData).settings(this.metaData.getSettings()).build(),
                         other.ident).build();
             } else if (references().size() == other.references().size() &&
-                    !references().keySet().equals(other.references().keySet())) {
+                       !references().keySet().equals(other.references().keySet())) {
                 XContentHelper.update(defaultMappingMap, other.defaultMappingMap, false);
                 // update the template with new information
-                updateTemplate(this, transportPutIndexTemplateAction, this.metaData.settings());
+                updateTemplate(this, transportPutIndexTemplateAction, this.metaData.getSettings());
                 return this;
             }
             // other is older, just return this
@@ -572,7 +577,7 @@ public class DocIndexMetaData {
      * @return the name of the underlying index even if this table is referenced by alias
      */
     public String concreteIndexName() {
-        return metaData.index();
+        return metaData.getIndex();
     }
 
     public boolean isAlias() {
@@ -615,7 +620,7 @@ public class DocIndexMetaData {
             ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
             columnProperties = furtherColumnProperties(columnProperties);
             if (columnDataType == DataTypes.OBJECT
-                    || (columnDataType.id() == ArrayType.ID
+                || (columnDataType.id() == ArrayType.ID
                     && ((ArrayType) columnDataType).innerType() == DataTypes.OBJECT)) {
                 if (columnProperties.get("properties") != null) {
                     builder.putAll(getAnalyzers(newIdent, (Map<String, Object>) columnProperties.get("properties")));

@@ -28,6 +28,10 @@ Unreleased
  - removed wrong behaving CrateClient feature which allowed to load
    client settings from a configuration file.
 
+ - Crate will now recognize settings defined by crate plugins.
+
+ - BREAKING CHANGE: Crate will die now on all plugin loading errors
+
  - Implemented the EXPLAIN command for SELECT statements.
 
  - BREAKING CHANGE: Tables are not refreshed automatically anymore

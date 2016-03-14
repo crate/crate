@@ -22,7 +22,7 @@
 package io.crate.operation.scalar;
 
 import com.carrotsearch.hppc.CharObjectMap;
-import com.carrotsearch.hppc.CharObjectOpenHashMap;
+import com.carrotsearch.hppc.CharObjectHashMap;
 import com.google.common.base.Charsets;
 import org.apache.lucene.util.BytesRef;
 import org.joda.time.DateTime;
@@ -51,7 +51,7 @@ public class TimestampFormatter {
 
 
     private final static Locale LOCALE = Locale.ENGLISH;
-    private final static CharObjectMap<FormatTimestampPartFunction> PART_FORMATTERS = new CharObjectOpenHashMap<>();
+    private final static CharObjectMap<FormatTimestampPartFunction> PART_FORMATTERS = new CharObjectHashMap<>();
     private static void addFormatter(char character, FormatTimestampPartFunction fun) {
         PART_FORMATTERS.put(character, fun);
     }

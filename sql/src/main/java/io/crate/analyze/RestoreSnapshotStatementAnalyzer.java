@@ -36,10 +36,10 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.common.Preconditions;
+import com.google.common.base.Preconditions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
 
@@ -71,7 +71,7 @@ public class RestoreSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnaly
         repositoryService.failIfRepositoryDoesNotExist(repositoryName);
 
         // validate and extract settings
-        ImmutableSettings.Builder builder = GenericPropertiesConverter.settingsFromProperties(
+        Settings.Builder builder = GenericPropertiesConverter.settingsFromProperties(
                 node.properties(), analysis.parameterContext(), SETTINGS);
 
         if (node.tableList().isPresent()) {

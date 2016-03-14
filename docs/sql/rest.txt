@@ -246,7 +246,7 @@ appropriate exception::
     ... }'
     {
       "error" : {
-        "message" : "SQLActionException[FROM clause is missing.]",
+        "message" : "SQLActionException[SQLParseException: FROM clause is missing.]",
         "code" : 4000
       }
     }
@@ -259,7 +259,7 @@ GET parameter can be specified to return the stack trace::
     ... }'
     {
       "error" : {
-        "message" : "SQLActionException[FROM clause is missing.]",
+        "message" : "SQLActionException[SQLParseException: FROM clause is missing.]",
         "code" : 4000
       },
       "error_trace" : "..."

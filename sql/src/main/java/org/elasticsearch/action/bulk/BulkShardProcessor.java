@@ -41,13 +41,14 @@ import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -65,8 +66,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public class BulkShardProcessor<Request extends ShardRequest> {
 
     public static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
-    public static final AutoCreateIndex AUTO_CREATE_INDEX = new AutoCreateIndex(ImmutableSettings.builder()
-            .put("action.auto_create_index", true).build());
 
     private final boolean autoCreateIndices;
     private final Predicate<String> shouldAutocreateIndexPredicate;
@@ -103,6 +102,8 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
     public BulkShardProcessor(ClusterService clusterService,
                               TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
+                              IndexNameExpressionResolver indexNameExpressionResolver,
+                              final Settings settings,
                               BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                               final boolean autoCreateIndices,
                               int bulkSize,
@@ -118,12 +119,12 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
 
         if (autoCreateIndices) {
+            final AutoCreateIndex autoCreateIndex = new AutoCreateIndex(settings, indexNameExpressionResolver);
             shouldAutocreateIndexPredicate = new Predicate<String>() {
                 @Override
                 public boolean apply(@Nullable String input) {
                     assert input != null;
-                    return AUTO_CREATE_INDEX.shouldAutoCreate(input,
-                            BulkShardProcessor.this.clusterService.state());
+                    return autoCreateIndex.shouldAutoCreate(input, BulkShardProcessor.this.clusterService.state());
                 }
             };
         } else {
@@ -200,7 +201,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                     id,
                     routing
             ).shardId();
-        } catch (IndexMissingException e) {
+        } catch (IndexNotFoundException e) {
             if (!autoCreateIndices) {
                 throw e;
             }

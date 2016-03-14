@@ -37,8 +37,9 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -73,7 +74,7 @@ public class TableStatsServiceTest extends CrateUnitTest  {
         final AtomicInteger numRequests = new AtomicInteger(0);
         final TransportSQLAction transportSQLAction = new TransportSQLAction(
                 mock(ClusterService.class),
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 threadPool,
                 mock(Analyzer.class),
                 mock(Planner.class),
@@ -81,6 +82,7 @@ public class TableStatsServiceTest extends CrateUnitTest  {
                 mock(TransportService.class),
                 mock(StatsTables.class),
                 new ActionFilters(ImmutableSet.<ActionFilter>of()),
+                mock(IndexNameExpressionResolver.class),
                 mock(TransportKillJobsNodeAction.class)
         ) {
             @Override
@@ -104,7 +106,7 @@ public class TableStatsServiceTest extends CrateUnitTest  {
         };
 
         TableStatsService statsService = new TableStatsService(
-                ImmutableSettings.EMPTY, threadPool, TimeValue.timeValueMillis(100), new Provider<TransportSQLAction>() {
+                Settings.EMPTY, threadPool, TimeValue.timeValueMillis(100), new Provider<TransportSQLAction>() {
             @Override
             public TransportSQLAction get() {
                 return transportSQLAction;

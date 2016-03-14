@@ -51,15 +51,16 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.IndexShardMissingException;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
-import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.repositories.RepositoryMissingException;
@@ -72,8 +73,6 @@ import org.elasticsearch.transport.NodeDisconnectedException;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -117,8 +116,9 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                                   Provider<Executor> executorProvider,
                                   StatsTables statsTables,
                                   ActionFilters actionFilters,
+                                  IndexNameExpressionResolver indexNameExpressionResolver,
                                   TransportKillJobsNodeAction transportKillJobsNodeAction) {
-        super(settings, actionName, threadPool, actionFilters);
+        super(settings, actionName, threadPool, actionFilters, indexNameExpressionResolver);
         this.clusterService = clusterService;
         this.analyzer = analyzer;
         this.planner = planner;
@@ -259,7 +259,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                         if (unwrappedException instanceof CancellationException) {
                             message = KILLED_MESSAGE;
                             logger.debug("KILLED: [{}]", request.stmt());
-                        } else if ((unwrappedException instanceof IndexShardMissingException || unwrappedException instanceof IllegalIndexShardStateException)
+                        } else if ((unwrappedException instanceof ShardNotFoundException || unwrappedException instanceof IllegalIndexShardStateException)
                                 && attempt <= MAX_SHARD_MISSING_RETRIES) {
                             logger.debug("FAILED ({}/{} attempts) - Retry: [{}]", attempt, MAX_SHARD_MISSING_RETRIES,  request.stmt());
 
@@ -327,19 +327,19 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             return new DuplicateKeyException(
                     "A document with the same primary key exists already", e);
         } else if (e instanceof IndexAlreadyExistsException) {
-            return new TableAlreadyExistsException(((IndexAlreadyExistsException) e).index().name(), e);
+            return new TableAlreadyExistsException(((IndexAlreadyExistsException) e).getIndex(), e);
         } else if ((e instanceof InvalidIndexNameException)) {
             if (e.getMessage().contains("already exists as alias")) {
                 // treat an alias like a table as aliases are not officially supported
-                return new TableAlreadyExistsException(((InvalidIndexNameException) e).index().getName(),
+                return new TableAlreadyExistsException(((InvalidIndexNameException) e).getIndex(),
                         e);
             }
-            return new InvalidTableNameException(((InvalidIndexNameException) e).index().getName(), e);
+            return new InvalidTableNameException(((InvalidIndexNameException) e).getIndex(), e);
         } else if (e instanceof InvalidIndexTemplateException) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(((InvalidIndexTemplateException) e).name());
             return new InvalidTableNameException(partitionName.tableIdent().fqn(), e);
-        } else if (e instanceof IndexMissingException) {
-            return new TableUnknownException(((IndexMissingException) e).index().name(), e);
+        } else if (e instanceof IndexNotFoundException) {
+            return new TableUnknownException(((IndexNotFoundException) e).getIndex(), e);
         } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
             return new CircuitBreakingException(e.getMessage());
         } else if (e instanceof CancellationException) {
@@ -369,10 +369,6 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
         int errorCode = 5000;
         RestStatus restStatus = RestStatus.INTERNAL_SERVER_ERROR;
-        String message = e.getMessage();
-        StringWriter stackTrace = new StringWriter();
-        e.printStackTrace(new PrintWriter(stackTrace));
-
         if (e instanceof CrateException) {
             CrateException crateException = (CrateException) e;
             if (e instanceof ValidationException) {
@@ -395,10 +391,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             restStatus = RestStatus.BAD_REQUEST;
         }
 
-        if (logger.isTraceEnabled()) {
-            message = stackTrace.toString();
-        }
-
+        String message = e.getMessage();
         if (message == null) {
             if (e instanceof CrateException && e.getCause() != null) {
                 e = e.getCause();   // use cause because it contains a more meaningful error in most cases
@@ -409,8 +402,10 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             } else {
                 message = "Error in " + e.getClass().getSimpleName();
             }
+        } else {
+            message = e.getClass().getSimpleName() + ": " + message;
         }
-        return new SQLActionException(message, errorCode, restStatus, stackTrace.toString());
+        return new SQLActionException(message, errorCode, restStatus, e.getStackTrace());
     }
 
     public void enable() {

@@ -31,6 +31,8 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 
@@ -66,7 +68,7 @@ public class BlobEnvironment {
      */
     public File indexLocation(Index index) {
         if (blobsPath == null) {
-            return nodeEnvironment.indexLocations(index)[0];
+            return nodeEnvironment.indexPaths(index)[0].toFile();
         }
         return indexLocation(index, blobsPath);
     }
@@ -75,7 +77,7 @@ public class BlobEnvironment {
      * Return the index location according to the given base path
      */
     public File indexLocation(Index index, File path) {
-        File indexLocation = nodeEnvironment.indexLocations(index)[0];
+        File indexLocation = nodeEnvironment.indexPaths(index)[0].toFile();
         String dataPath = nodeEnvironment.nodeDataPaths()[0].toString();
         String indexLocationSuffix = indexLocation.getAbsolutePath().substring(dataPath.length());
         return new File(path, indexLocationSuffix);
@@ -86,7 +88,7 @@ public class BlobEnvironment {
      */
     public File shardLocation(ShardId shardId) {
         if (blobsPath == null) {
-            return new File(nodeEnvironment.shardLocations(shardId)[0], BLOBS_SUB_PATH);
+            return new File(nodeEnvironment.availableShardPaths(shardId)[0].toFile(), BLOBS_SUB_PATH);
         }
         return shardLocation(shardId, blobsPath);
     }
@@ -96,7 +98,7 @@ public class BlobEnvironment {
      *
      */
     public File shardLocation(ShardId shardId, File path) {
-        Path shardLocation = nodeEnvironment.shardPaths(shardId)[0];
+        Path shardLocation = nodeEnvironment.availableShardPaths(shardId)[0];
         Path dataPath = nodeEnvironment.nodeDataPaths()[0];
         String shardLocationSuffix = shardLocation.toAbsolutePath().toString().substring(dataPath.toString().length());
         return new File(new File(path, shardLocationSuffix), BLOBS_SUB_PATH);
@@ -116,7 +118,9 @@ public class BlobEnvironment {
                         String.format(Locale.ENGLISH, "blobs path '%s' is not writable", blobsPath.getAbsolutePath()));
             }
         } else {
-            if(!FileSystemUtils.mkdirs(blobsPath)) {
+            try {
+                Files.createDirectories(blobsPath.toPath());
+            } catch (IOException e) {
                 throw new SettingsException(
                         String.format(Locale.ENGLISH, "blobs path '%s' could not be created", blobsPath.getAbsolutePath()));
             }

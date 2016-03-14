@@ -23,9 +23,9 @@
 package io.crate.executor.transport;
 
 import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.IntOpenHashSet;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntHashSet;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -39,8 +39,8 @@ public class NodeFetchRequestTest {
     @Test
     public void testStreaming() throws Exception {
 
-        IntObjectOpenHashMap<IntContainer> toFetch = new IntObjectOpenHashMap<>();
-        IntOpenHashSet docIds = new IntOpenHashSet(3);
+        IntObjectHashMap<IntContainer> toFetch = new IntObjectHashMap<>();
+        IntHashSet docIds = new IntHashSet(3);
         toFetch.put(1, docIds);
 
         NodeFetchRequest orig = new NodeFetchRequest(UUID.randomUUID(), 1, toFetch);
@@ -48,7 +48,7 @@ public class NodeFetchRequestTest {
         BytesStreamOutput out = new BytesStreamOutput();
         orig.writeTo(out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
 
         NodeFetchRequest streamed = new NodeFetchRequest();
         streamed.readFrom(in);

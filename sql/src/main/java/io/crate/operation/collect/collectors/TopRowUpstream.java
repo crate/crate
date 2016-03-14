@@ -24,6 +24,7 @@ package io.crate.operation.collect.collectors;
 
 import com.google.common.base.Throwables;
 import io.crate.core.collections.Row;
+import io.crate.exceptions.JobKilledException;
 import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 import org.elasticsearch.common.logging.ESLogger;
@@ -62,7 +63,7 @@ public class TopRowUpstream implements RowUpstream, ExecutionState {
     public void kill(@Nullable Throwable throwable) {
         killed = true;
         if (throwable == null) {
-            throwable = new CancellationException();
+            throwable = new CancellationException(JobKilledException.MESSAGE);
         }
         killedThrowable = throwable;
         if (paused.compareAndSet(true, false)) {

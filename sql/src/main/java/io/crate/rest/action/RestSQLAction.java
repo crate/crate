@@ -41,7 +41,6 @@ import java.util.Locale;
 public class RestSQLAction extends BaseRestHandler {
 
     private static final String REQUEST_HEADER_USER = "User";
-    private static final String SCHEMA_HEADER = "Default-Schema";
 
     @Inject
     public RestSQLAction(Settings settings, Client client, RestController controller) {
@@ -54,7 +53,7 @@ public class RestSQLAction extends BaseRestHandler {
     public void handleRequest(final RestRequest request, final RestChannel channel, Client client) throws Exception {
         if (!request.hasContent()) {
             channel.sendResponse(new CrateThrowableRestResponse(channel,
-                    new SQLActionException("missing request body", 4000, RestStatus.BAD_REQUEST, null)));
+                    new SQLActionException("missing request body", 4000, RestStatus.BAD_REQUEST)));
             return;
         }
 
@@ -66,7 +65,7 @@ public class RestSQLAction extends BaseRestHandler {
             StringWriter stackTrace = new StringWriter();
             e.printStackTrace(new PrintWriter(stackTrace));
             channel.sendResponse(new CrateThrowableRestResponse(channel,
-                    new SQLActionException(e.getMessage(), 4000, RestStatus.BAD_REQUEST, stackTrace.toString())));
+                    new SQLActionException(e.getMessage(), 4000, RestStatus.BAD_REQUEST, e.getStackTrace())));
             return;
         }
 
@@ -75,7 +74,7 @@ public class RestSQLAction extends BaseRestHandler {
         if(args != null && args.length > 0 && bulkArgs != null && bulkArgs.length > 0){
             channel.sendResponse(new CrateThrowableRestResponse(channel,
                     new SQLActionException("request body contains args and bulk_args. It's forbidden to provide both",
-                            4000, RestStatus.BAD_REQUEST, null)));
+                            4000, RestStatus.BAD_REQUEST)));
             return;
         }
         if (bulkArgs != null && bulkArgs.length > 0) {
@@ -104,22 +103,20 @@ public class RestSQLAction extends BaseRestHandler {
     }
 
     private void executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request, final RestChannel channel, Client client) {
-        final SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client);
+        final SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client, SQLAction.INSTANCE);
         requestBuilder.stmt(context.stmt());
         requestBuilder.args(context.args());
         requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
         addFlags(requestBuilder, request);
-        requestBuilder.setSchema(request.header(SCHEMA_HEADER));
         requestBuilder.execute(RestSQLAction.<SQLResponse>newListener(request, channel));
     }
 
     private void executeBulkRequest(SQLXContentSourceContext context, RestRequest request, RestChannel channel, Client client) {
-        final SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client);
+        final SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client, SQLBulkAction.INSTANCE);
         requestBuilder.stmt(context.stmt());
         requestBuilder.bulkArgs(context.bulkArgs());
         requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
         addFlags(requestBuilder, request);
-        requestBuilder.setSchema(request.header(SCHEMA_HEADER));
         requestBuilder.execute(RestSQLAction.<SQLBulkResponse>newListener(request, channel));
     }
 

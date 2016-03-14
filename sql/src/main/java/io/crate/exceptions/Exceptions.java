@@ -23,6 +23,7 @@ package io.crate.exceptions;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.transport.RemoteTransportException;
 
@@ -36,9 +37,9 @@ public class Exceptions {
         int counter = 0;
         Throwable result = t;
         while (result instanceof RemoteTransportException ||
-                result instanceof UncheckedExecutionException ||
-                result instanceof UncategorizedExecutionException ||
-                result instanceof ExecutionException) {
+               result instanceof UncheckedExecutionException ||
+               result instanceof UncategorizedExecutionException ||
+               result instanceof ExecutionException) {
             Throwable cause = result.getCause();
             if (cause == null) {
                 return result;

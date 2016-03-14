@@ -545,7 +545,7 @@ predicate returns [Expression value]
     | ^(IS_NOT_NULL expr)                 { $value = new IsNotNullPredicate($expr.value); }
     | ^(IN v=expr list=expr)              { $value = new InPredicate($v.value, $list.value); }
     | ^(EXISTS q=query)                   { $value = new ExistsPredicate($q.value); }
-    | ^(MATCH l=matchPredicateIdentList queryTerm=expr ident? genericProperties?) { $value = new MatchPredicate(l.value, $queryTerm.value, $ident.value, $genericProperties.value); }
+    | ^(MATCH l=matchPredicateIdentList queryTerm=expr ident? genericProperties?) { $value = new MatchPredicate($l.value, $queryTerm.value, $ident.value, $genericProperties.value); }
     ;
 
 matchPredicateIdentList returns [List<MatchPredicateColumnIdent> value = new ArrayList<>()]

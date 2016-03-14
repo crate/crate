@@ -31,31 +31,27 @@ import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterNameModule;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.compress.CompressorFactory;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.env.Environment;
 import org.elasticsearch.indices.breaker.CircuitBreakerModule;
-import org.elasticsearch.node.internal.InternalSettingsPreparer;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolModule;
 import org.elasticsearch.transport.TransportModule;
 import org.elasticsearch.transport.TransportService;
 
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 public class CrateClient {
 
@@ -66,11 +62,10 @@ public class CrateClient {
 
     private static final ESLogger logger = Loggers.getLogger(CrateClient.class);
 
-
     public CrateClient(Settings pSettings, String ... servers) throws
             ElasticsearchException {
 
-        Settings settings = settingsBuilder()
+        Settings.Builder builder = settingsBuilder()
                 .put(pSettings)
                 .put("network.server", false)
                 .put("node.client", true)
@@ -82,15 +77,15 @@ public class CrateClient {
                 .put("threadpool.index.size", 1)
                 .put("threadpool.bulk.size", 1)
                 .put("threadpool.get.size", 1)
-                .put("threadpool.percolate.size", 1)
-                .build();
-        Tuple<Settings, Environment> tuple = InternalSettingsPreparer.prepareSettings(settings, false);
+                .put("threadpool.percolate.size", 1);
 
-        // override classloader
-        CrateClientClassLoader clientClassLoader = new CrateClientClassLoader(tuple.v1().getClassLoader());
-        this.settings = ImmutableSettings.builder().put(tuple.v1()).classLoader(clientClassLoader).build();
+        //Tuple<Settings, Environment> tuple = InternalSettingsPreparer.prepareSettings(settings, false);
 
-        CompressorFactory.configure(this.settings);
+        if (builder.get("name") == null){
+            builder.put("name", "crate_client");
+        }
+
+        this.settings = builder.build();
 
         threadPool = new ThreadPool(this.settings);
 
@@ -118,11 +113,11 @@ public class CrateClient {
     }
 
     public CrateClient() {
-        this(ImmutableSettings.Builder.EMPTY_SETTINGS);
+        this(Settings.Builder.EMPTY_SETTINGS);
     }
 
     public CrateClient(String... servers) {
-        this(ImmutableSettings.EMPTY, servers);
+        this(Settings.Builder.EMPTY_SETTINGS, servers);
     }
 
     @Nullable
@@ -136,7 +131,8 @@ public class CrateClient {
         }
 
         if (uri.getHost() != null) {
-            return new InetSocketTransportAddress(uri.getHost(), uri.getPort() > -1 ? uri.getPort() : 4300);
+            return new InetSocketTransportAddress(
+                    new InetSocketAddress(uri.getHost(), uri.getPort() > -1 ? uri.getPort() : 4300));
         }
         return null;
     }
