@@ -35,9 +35,13 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class KeepAliveTimersTest extends CrateUnitTest {
 
@@ -60,14 +64,7 @@ public class KeepAliveTimersTest extends CrateUnitTest {
                 return System.currentTimeMillis();
             }
         });
-        when(threadPool.scheduleWithFixedDelay(any(Runnable.class), any(TimeValue.class))).thenAnswer(new Answer<ScheduledFuture<?>>() {
-            @Override
-            public ScheduledFuture<?> answer(InvocationOnMock invocation) throws Throwable {
-                Runnable runnable = (Runnable)invocation.getArguments()[0];
-                TimeValue interval = (TimeValue)invocation.getArguments()[1];
-                return scheduledExecutorService.scheduleWithFixedDelay(runnable, interval.getMillis(), interval.getMillis(), TimeUnit.MILLISECONDS);
-            }
-        });
+        when(threadPool.scheduler()).thenReturn(scheduledExecutorService);
         transportKeepAliveAction = mock(TransportKeepAliveAction.class);
         keepAliveTimers = new KeepAliveTimers(threadPool, TEST_DELAY, transportKeepAliveAction);
     }

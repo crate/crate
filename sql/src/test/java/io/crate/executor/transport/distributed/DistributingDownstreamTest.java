@@ -80,15 +80,7 @@ public class DistributingDownstreamTest extends CrateUnitTest {
                 return System.currentTimeMillis();
             }
         }).when(threadPool).estimatedTimeInMillis();
-        when(threadPool.scheduleWithFixedDelay(any(Runnable.class), any(TimeValue.class))).thenAnswer(new Answer<ScheduledFuture<?>>() {
-            @Override
-            public ScheduledFuture<?> answer(InvocationOnMock invocation) throws Throwable {
-
-                Runnable runnable = (Runnable)invocation.getArguments()[0];
-                TimeValue interval = (TimeValue)invocation.getArguments()[1];
-                return scheduledExecutorService.scheduleWithFixedDelay(runnable, interval.millis(), interval.millis(), TimeUnit.MILLISECONDS);
-            }
-        });
+        when(threadPool.scheduler()).thenReturn(scheduledExecutorService);
     }
 
     @Override

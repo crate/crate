@@ -35,6 +35,7 @@ import org.elasticsearch.transport.TransportResponse;
 
 import java.util.UUID;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -129,20 +130,24 @@ public class KeepAliveTimers {
             LOGGER.trace("starting ResettableTimer with delay of {}", this.delay);
             final long started = threadPool.estimatedTimeInMillis();
             lastReset.set(started);
-            futureHolder.set(threadPool.scheduleWithFixedDelay(new Runnable() {
+            futureHolder.set(threadPool.scheduler().scheduleWithFixedDelay(new Runnable() {
                 @Override
                 public void run() {
                     long notAccessed = threadPool.estimatedTimeInMillis() - lastReset.get();
                     if (notAccessed >= delay.millis()){
                         // execute action only when delay expired since last reset
                         LOGGER.trace("not accessed in {}ms, running keep alive runnable", notAccessed);
-                        runnable.run();
+                        try {
+                            runnable.run();
+                        } catch (Throwable t) {
+                            LOGGER.warn("Failed to run {}", t, runnable.toString());
+                            throw t; // don't repeat running the runnable if it failed once
+                        }
                     } else {
                         LOGGER.trace("not accessed in {}ms. will only execute keep alive runnable after {}ms", notAccessed, delay.millis());
                     }
-
                 }
-            }, delay));
+            }, delay.millis(), delay.millis(), TimeUnit.MILLISECONDS));
         }
 
         public void reset() {
