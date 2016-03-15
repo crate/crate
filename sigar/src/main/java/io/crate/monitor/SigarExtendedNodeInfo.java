@@ -142,10 +142,10 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
         try {
             CpuPerc cpuPerc = sigar.getCpuPerc();
             cpu = new ExtendedOsStats.Cpu(
-                    (short) (cpuPerc.getSys() * 100),
-                    (short) (cpuPerc.getUser() * 100),
-                    (short) (cpuPerc.getIdle() * 100),
-                    (short) (cpuPerc.getStolen() * 100)
+                    (short) Math.round(cpuPerc.getSys() * 100),
+                    (short) Math.round(cpuPerc.getUser() * 100),
+                    (short) Math.round(cpuPerc.getIdle() * 100),
+                    (short) Math.round(cpuPerc.getStolen() * 100)
             );
         } catch (SigarException e) {
             // ignore
@@ -182,7 +182,7 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
         try {
             ProcCpu cpu = sigar.getProcCpu(sigar.getPid());
             return new ExtendedProcessCpuStats(
-                    (short) (cpu.getPercent() * 100),
+                    (short) Math.round(cpu.getPercent() * 100),
                     cpu.getSys(),
                     cpu.getUser(),
                     cpu.getTotal()
