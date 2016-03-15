@@ -28,7 +28,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
-import io.crate.jobs.KeepAliveListener;
 import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
@@ -68,7 +67,6 @@ public class MultiShardScoreDocCollectorTest {
 
         MultiShardScoreDocCollector docCollector = new MultiShardScoreDocCollector(
                 collectors,
-                mock(KeepAliveListener.class),
                 rowOrdering,
                 projectorChain,
                 executor

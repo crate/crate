@@ -22,7 +22,6 @@
 package io.crate.jobs;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -33,7 +32,6 @@ import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.Callback;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -43,7 +41,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class JobExecutionContext implements KeepAliveListener {
+public class JobExecutionContext {
 
     private static final ESLogger LOGGER = Loggers.getLogger(JobExecutionContext.class);
 
@@ -54,37 +52,18 @@ public class JobExecutionContext implements KeepAliveListener {
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final ArrayList<SubExecutionContextFuture> futures;
     private final ListenableFuture<List<SubExecutionContextFuture.State>> chainedFuture;
-    private ThreadPool threadPool;
     private StatsTables statsTables;
     private volatile Throwable failure;
     private volatile Callback<JobExecutionContext> closeCallback;
-    private volatile long lastAccessTime;
-
-    @Override
-    public void keepAlive() {
-        this.lastAccessTime = threadPool.estimatedTimeInMillis();
-    }
-
-    /**
-     * only triggers keepAlive internally if no {@linkplain ExecutionSubContext.SubContextMode#ACTIVE}
-     * subcontexts are available.
-     */
-    public void externalKeepAlive() {
-        if (!Iterables.any(subContexts.values(), ExecutionSubContext.IS_ACTIVE_PREDICATE)) {
-            keepAlive();
-        }
-    }
 
     public static class Builder {
 
         private final UUID jobId;
-        private final ThreadPool threadPool;
         private final StatsTables statsTables;
         private final LinkedHashMap<Integer, ExecutionSubContext> subContexts = new LinkedHashMap<>();
 
-        Builder(UUID jobId, ThreadPool threadPool, StatsTables statsTables) {
+        Builder(UUID jobId, StatsTables statsTables) {
             this.jobId = jobId;
-            this.threadPool = threadPool;
             this.statsTables = statsTables;
         }
 
@@ -105,20 +84,17 @@ public class JobExecutionContext implements KeepAliveListener {
         }
 
         public JobExecutionContext build() {
-            return new JobExecutionContext(jobId, threadPool, statsTables, subContexts);
+            return new JobExecutionContext(jobId, statsTables, subContexts);
         }
     }
 
 
     private JobExecutionContext(UUID jobId,
-                                ThreadPool threadPool,
                                 StatsTables statsTables,
                                 LinkedHashMap<Integer, ExecutionSubContext> subContexts) {
         orderedContextIds = Lists.newArrayList(subContexts.keySet());
         this.jobId = jobId;
-        this.threadPool = threadPool;
         this.statsTables = statsTables;
-        lastAccessTime = threadPool.estimatedTimeInMillis();
 
         this.futures = new ArrayList<>(subContexts.size());
         for (Map.Entry<Integer, ExecutionSubContext> entry : subContexts.entrySet()) {
@@ -135,7 +111,6 @@ public class JobExecutionContext implements KeepAliveListener {
     private void addContext(int subContextId, ExecutionSubContext subContext) {
         if (subContexts.put(subContextId, subContext) == null) {
             int currentSubContextSize = numSubContexts.incrementAndGet();
-            subContext.keepAliveListener(this);
             SubExecutionContextFuture future = subContext.future();
             future.addCallback(new RemoveSubContextCallback(subContextId));
             futures.add(future);
@@ -179,7 +154,6 @@ public class JobExecutionContext implements KeepAliveListener {
 
     @Nullable
     public <T extends ExecutionSubContext> T getSubContextOrNull(int executionNodeId) {
-        lastAccessTime = threadPool.estimatedTimeInMillis();
         //noinspection unchecked
         return (T) subContexts.get(executionNodeId);
     }
@@ -190,10 +164,6 @@ public class JobExecutionContext implements KeepAliveListener {
             throw new ContextMissingException(ContextMissingException.ContextType.SUB_CONTEXT, jobId, executionNodeId);
         }
         return subContext;
-    }
-
-    public long lastAccessTime() {
-        return this.lastAccessTime;
     }
 
     public long kill() {
@@ -215,7 +185,7 @@ public class JobExecutionContext implements KeepAliveListener {
         try {
             chainedFuture.get();
             int currentNumSubContexts = numSubContexts.get();
-            assert currentNumSubContexts == 0: "unexpected subcontexts there: " +  currentNumSubContexts;
+            assert currentNumSubContexts == 0: "unexpected subContexts there: " +  currentNumSubContexts;
         } catch (Exception e) {
             throw Throwables.propagate(e);
         }
@@ -276,7 +246,6 @@ public class JobExecutionContext implements KeepAliveListener {
 
         @Override
         public void onSuccess(@Nullable SubExecutionContextFuture.State state) {
-            keepAlive();
             assert state != null;
             statsTables.operationFinished(id, null, state.bytesUsed());
             remove();

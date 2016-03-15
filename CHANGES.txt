@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed the ``jobs.keep_alive_timeout`` setting and all related logic.
+   This means it is no longer possible to enable automatic job termination.
+
  - Create Table statements now validate that the PRIMARY KEY constraint doesn't
    contain columns with unsupported data types
 

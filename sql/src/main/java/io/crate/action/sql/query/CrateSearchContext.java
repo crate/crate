@@ -63,8 +63,7 @@ public class CrateSearchContext extends DefaultSearchContext {
                               PageCacheRecycler pageCacheRecycler,
                               BigArrays bigArrays,
                               Counter timeEstimateCounter,
-                              Optional<Scroll> scroll,
-                              long keepAlive) {
+                              Optional<Scroll> scroll) {
         super(id, new CrateSearchShardRequest(nowInMillis, scroll, indexShard),
                 shardTarget, engineSearcher, indexService,
                 indexShard, scriptService, cacheRecycler, pageCacheRecycler,
@@ -72,7 +71,6 @@ public class CrateSearchContext extends DefaultSearchContext {
         if (scroll.isPresent()) {
             scroll(scroll.get());
         }
-        keepAlive(keepAlive);
         this.engineSearcher = engineSearcher;
     }
 

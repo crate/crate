@@ -36,16 +36,10 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     protected final SubExecutionContextFuture future = new SubExecutionContextFuture();
     private final int id;
 
-    protected KeepAliveListener keepAliveListener;
     private volatile boolean isKilled = false;
 
     protected AbstractExecutionSubContext(int id) {
         this.id = id;
-    }
-
-    @Override
-    public void keepAliveListener(KeepAliveListener listener) {
-        keepAliveListener = listener;
     }
 
     public int id() {
@@ -149,13 +143,5 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
      */
     protected void cleanup() {
 
-    }
-
-    /**
-     * by default is PASSIVE, as it does not trigger keep alive on execution context itself
-     */
-    @Override
-    public SubContextMode subContextMode() {
-        return SubContextMode.PASSIVE;
     }
 }

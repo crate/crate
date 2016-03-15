@@ -32,7 +32,6 @@ import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.jobs.ExecutionState;
-import io.crate.jobs.KeepAliveListener;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
@@ -190,23 +189,8 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
         return queryPhaseRamAccountingContext;
     }
 
-    public KeepAliveListener keepAliveListener() {
-        return keepAliveListener;
-    }
-
     public SharedShardContexts sharedShardContexts() {
         return sharedShardContexts;
-    }
-
-
-    /**
-     * active by default, because as long its operation is running
-     * it is keeping the local execution context alive itself
-     * and does not need external keep alives.
-     */
-    @Override
-    public SubContextMode subContextMode() {
-        return SubContextMode.ACTIVE;
     }
 
     @VisibleForTesting

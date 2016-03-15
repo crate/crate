@@ -135,7 +135,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 "having avg(income) > 100 " +
                 "order by department desc nulls first " +
                 "limit 10", null, true);
-        runJobContextReapers();
+        clearActiveJobContexts();
     }
 
     @Test

@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.TreeMapBuilder;
-import io.crate.jobs.KeepAliveTimers;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.NodeOperation;
@@ -34,8 +33,8 @@ import io.crate.operation.Paging;
 import io.crate.operation.projectors.InternalRowDownstreamFactory;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
@@ -57,8 +56,7 @@ public class InternalRowDownstreamFactoryTest extends CrateUnitTest {
     public void before() {
         rowDownstreamFactory = new InternalRowDownstreamFactory(
                 new NoopClusterService(),
-                mock(TransportDistributedResultAction.class),
-                mock(KeepAliveTimers.class)
+                mock(TransportDistributedResultAction.class)
         );
     }
 

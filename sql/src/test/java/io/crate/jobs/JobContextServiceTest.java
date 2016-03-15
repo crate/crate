@@ -31,13 +31,9 @@ import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
@@ -46,40 +42,25 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class JobContextServiceTest extends CrateUnitTest {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
             new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
 
-    private final ThreadPool testThreadPool = new ThreadPool(getClass().getSimpleName());
     private JobContextService jobContextService;
-
-    private static final TimeValue TEST_KEEP_ALIVE = TimeValue.timeValueSeconds(30);
-    private static final TimeValue TEST_REAPER_INTERVAL = TimeValue.timeValueSeconds(10);
 
 
     @Before
     public void prepare() throws Exception {
-        jobContextService  = new JobContextService(
-                ImmutableSettings.EMPTY,
-                testThreadPool,
-                mock(StatsTables.class),
-                new LocalReaper(testThreadPool),
-                TEST_KEEP_ALIVE,
-                TEST_REAPER_INTERVAL
-        );
+        jobContextService  = new JobContextService(ImmutableSettings.EMPTY, mock(StatsTables.class));
     }
 
     @After
     public void cleanUp() throws Exception {
         jobContextService.close();
-        testThreadPool.shutdownNow();
     }
 
     @Test
@@ -120,31 +101,6 @@ public class JobContextServiceTest extends CrateUnitTest {
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID());
         jobContextService.createContext(builder);
-    }
-
-    @Test
-    public void testAccessTimeOfContext() throws Exception {
-        ThreadPool threadPool = mock(ThreadPool.class);
-        when(threadPool.estimatedTimeInMillis()).thenAnswer(new Answer<Long>() {
-            @Override
-            public Long answer(InvocationOnMock invocation) throws Throwable {
-                return System.currentTimeMillis();
-            }
-        });
-        JobContextService jobContextService = new JobContextService(
-                ImmutableSettings.EMPTY,
-                threadPool,
-                mock(StatsTables.class),
-                new LocalReaper(threadPool),
-                TEST_KEEP_ALIVE,
-                TEST_REAPER_INTERVAL
-        );
-
-        JobExecutionContext ctx1 = getJobExecutionContextWithOneActiveSubContext(jobContextService);
-        long firstAccessTime = ctx1.lastAccessTime();
-        Thread.sleep(1);
-        ctx1.getSubContextOrNull(1);
-        assertThat(ctx1.lastAccessTime(), greaterThan(firstAccessTime));
     }
 
     @Test
@@ -213,12 +169,6 @@ public class JobContextServiceTest extends CrateUnitTest {
     }
 
 
-    private int numContexts(JobContextService ctx) throws Exception {
-        Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
-        activeContexts.setAccessible(true);
-        return ((Map) activeContexts.get(ctx)).size();
-    }
-
     private int numContexts(JobExecutionContext ctx) throws Exception {
         Field subContexts = JobExecutionContext.class.getDeclaredField("subContexts");
         subContexts.setAccessible(true);
@@ -284,32 +234,6 @@ public class JobContextServiceTest extends CrateUnitTest {
                 new PageDownstreamContext(1, "dummy", mock(PageDownstream.class), new Streamer[0], RAM_ACCOUNTING_CONTEXT, 1, mock(FlatProjectorChain.class));
         builder1.addSubContext(pageDownstreamContext);
         return jobContextService.createContext(builder1);
-    }
-
-    @Test
-    public void testKeepAliveExpiration() throws Exception {
-        JobContextService jobContextService1 = new JobContextService(
-                ImmutableSettings.EMPTY,
-                testThreadPool,
-                mock(StatsTables.class),
-                new LocalReaper(testThreadPool),
-                timeValueMillis(1),
-                timeValueMillis(5));
-
-        final AbstractExecutionSubContextTest.TestingExecutionSubContext executionSubContext = new AbstractExecutionSubContextTest.TestingExecutionSubContext();
-
-        JobExecutionContext.Builder builder = jobContextService1.newBuilder(UUID.randomUUID());
-        builder.addSubContext(executionSubContext);
-        jobContextService1.createContext(builder);
-
-        assertThat(numContexts(jobContextService1), is(1));
-        Thread.sleep(300);
-
-        assertTrue(executionSubContext.isKilled());
-        assertThat(numContexts(jobContextService1), is(0));
-
-        // close service, stop reaper thread
-        jobContextService1.close();
     }
 
     protected static class DummySubContext extends AbstractExecutionSubContext {

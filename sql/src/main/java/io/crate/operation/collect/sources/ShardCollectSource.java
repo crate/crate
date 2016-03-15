@@ -51,7 +51,6 @@ import io.crate.operation.reference.sys.node.NodeSysExpression;
 import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
@@ -216,7 +215,6 @@ public class ShardCollectSource implements CollectSource {
         assert orderBy != null;
         return new MultiShardScoreDocCollector(
                 orderedDocCollectors,
-                jobCollectContext.keepAliveListener(),
                 OrderingByPosition.rowOrdering(
                         OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
                         orderBy.reverseFlags(),

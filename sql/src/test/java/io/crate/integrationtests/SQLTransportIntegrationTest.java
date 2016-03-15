@@ -40,7 +40,6 @@ import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.jobs.LocalReaper;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -78,10 +77,7 @@ import org.junit.After;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -192,16 +188,20 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         }
     }
 
-    public void runJobContextReapers() throws Exception {
+    public void clearActiveJobContexts() throws Exception {
 
-        LocalReaper reaper = internalCluster().getInstance(LocalReaper.class);
         Field activeContextsField = JobContextService.class.getDeclaredField("activeContexts");
         activeContextsField.setAccessible(true);
 
         for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
             @SuppressWarnings("unchecked")
             Collection<JobExecutionContext> activeContexts = ((ConcurrentMap<UUID, JobExecutionContext>)activeContextsField.get(jobContextService)).values();
-            reaper.killHangingJobs(TimeValue.timeValueSeconds(-1), activeContexts);
+            Iterator<JobExecutionContext> it = activeContexts.iterator();
+            while (it.hasNext()) {
+                JobExecutionContext ctx = it.next();
+                ctx.kill();
+                it.remove();
+            }
         }
     }
 

@@ -28,7 +28,6 @@ import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.*;
 import io.crate.core.collections.Row;
 import io.crate.jobs.ExecutionState;
-import io.crate.jobs.KeepAliveListener;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.merge.PagingIterator;
@@ -53,7 +52,6 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
 
     private static final ESLogger LOGGER = Loggers.getLogger(MultiShardScoreDocCollector.class);
 
-    private static final int KEEP_ALIVE_AFTER_ROWS = 1_000_000;
     private final List<OrderedDocCollector> orderedDocCollectors;
     private final ObjectObjectOpenHashMap<ShardId, OrderedDocCollector> orderedCollectorsMap;
     private final RowReceiver rowReceiver;
@@ -62,20 +60,16 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
     private final ListeningExecutorService executor;
     private final ListeningExecutorService directExecutor;
     private final FutureCallback<List<KeyIterable<ShardId, Row>>> futureCallback;
-    private final KeepAliveListener keepAliveListener;
     private final FlatProjectorChain flatProjectorChain;
     private final boolean singleShard;
 
-    private long rowCount = 0;
 
     public MultiShardScoreDocCollector(final List<OrderedDocCollector> orderedDocCollectors,
-                                       KeepAliveListener keepAliveListener,
                                        Ordering<Row> rowOrdering,
                                        FlatProjectorChain flatProjectorChain,
                                        ListeningExecutorService executor) {
         this.flatProjectorChain = flatProjectorChain;
         assert orderedDocCollectors.size() > 0 : "must have at least one shardContext";
-        this.keepAliveListener = keepAliveListener;
         this.directExecutor = MoreExecutors.newDirectExecutorService();
         this.executor = executor;
         this.topRowUpstream = new TopRowUpstream(executor, new Runnable() {
@@ -200,11 +194,6 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
             topRowUpstream.throwIfKilled();
 
             Row row = pagingIterator.next();
-            rowCount++;
-
-            if (rowCount % KEEP_ALIVE_AFTER_ROWS == 0) {
-                keepAliveListener.keepAlive();
-            }
 
             boolean wantMore = rowReceiver.setNextRow(row);
             if (!wantMore) {

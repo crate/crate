@@ -24,7 +24,6 @@ package io.crate.operation.collect;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.jobs.ExecutionState;
-import io.crate.jobs.KeepAliveListener;
 import io.crate.metadata.*;
 import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.sources.CollectSourceResolver;
@@ -107,8 +106,6 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
         CollectingRowReceiver cd = new CollectingRowReceiver();
         cd.prepare(mock(ExecutionState.class));
         JobCollectContext jobCollectContext = mock(JobCollectContext.class);
-        KeepAliveListener keepAliveListener = mock(KeepAliveListener.class);
-        when(jobCollectContext.keepAliveListener()).thenReturn(keepAliveListener);
         Collection<CrateCollector> collectors = collectOperation.createCollectors(collectNode, cd, jobCollectContext);
         collectOperation.launchCollectors(collectors, threadPoolName);
         assertThat(cd.result(), contains(

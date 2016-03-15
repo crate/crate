@@ -33,7 +33,6 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.external.S3ClientHelper;
 import io.crate.jobs.ExecutionState;
-import io.crate.jobs.KeepAliveListener;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -257,11 +256,6 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                     }
                 }),
                 false,
-                new KeepAliveListener() {
-                    @Override
-                    public void keepAlive() {
-                    }
-                },
                 1,
                 0
         );

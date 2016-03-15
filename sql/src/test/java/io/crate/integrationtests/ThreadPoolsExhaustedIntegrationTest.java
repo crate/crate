@@ -72,7 +72,7 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
          * if there is a rejection exception somewhere the query execution is aborted *before*
          * all contexts are created. We'll leave it up to the context reaper to remove dangling contexts
          */
-        runJobContextReapers();
+        clearActiveJobContexts();
     }
 
     private void bulkInsert(int docCount) {

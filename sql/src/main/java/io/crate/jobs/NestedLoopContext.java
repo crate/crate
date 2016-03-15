@@ -88,10 +88,6 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
     }
 
     @Override
-    public void keepAliveListener(KeepAliveListener listener) {
-    }
-
-    @Override
     protected void innerPrepare() {
         flatProjectorChain.prepare(this);
     }

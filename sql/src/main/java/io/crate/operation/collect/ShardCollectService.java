@@ -227,7 +227,6 @@ public class ShardCollectService {
             return new CrateDocCollector(
                     searchContext,
                     executor,
-                    jobCollectContext.keepAliveListener(),
                     jobCollectContext.queryPhaseRamAccountingContext(),
                     projectorChain.newShardDownstreamProjector(projectorVisitor),
                     docCtx.topLevelInputs(),

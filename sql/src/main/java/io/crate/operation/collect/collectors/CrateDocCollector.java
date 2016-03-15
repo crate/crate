@@ -26,7 +26,6 @@ import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
-import io.crate.jobs.KeepAliveListener;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectionFinishedEarlyException;
@@ -68,7 +67,6 @@ public class CrateDocCollector implements CrateCollector {
 
     public CrateDocCollector(final CrateSearchContext searchContext,
                              Executor executor,
-                             KeepAliveListener keepAliveListener,
                              RamAccountingContext ramAccountingContext,
                              RowReceiver rowReceiver,
                              List<Input<?>> inputs,
@@ -105,7 +103,6 @@ public class CrateDocCollector implements CrateCollector {
         );
         rowReceiver.setUpstream(upstreamState);
         Collector collector = new LuceneDocCollector(
-                keepAliveListener,
                 ramAccountingContext,
                 upstreamState,
                 rowReceiver,
@@ -241,23 +238,17 @@ public class CrateDocCollector implements CrateCollector {
 
     static class LuceneDocCollector extends Collector {
 
-        private static final int KEEP_ALIVE_AFTER_ROWS = 1_000_000;
-        private final KeepAliveListener keepAliveListener;
         private final RamAccountingContext ramAccountingContext;
         private final TopRowUpstream topRowUpstream;
         private final RowReceiver rowReceiver;
         private final Row inputRow;
         private final Collection<? extends LuceneCollectorExpression<?>> expressions;
 
-        private int rowCount;
-
-        public LuceneDocCollector(KeepAliveListener keepAliveListener,
-                                  RamAccountingContext ramAccountingContext,
+        public LuceneDocCollector(RamAccountingContext ramAccountingContext,
                                   TopRowUpstream topRowUpstream,
                                   RowReceiver rowReceiver,
                                   Row inputRow,
                                   Collection<? extends LuceneCollectorExpression<?>> expressions) {
-            this.keepAliveListener = keepAliveListener;
             this.ramAccountingContext = ramAccountingContext;
             this.topRowUpstream = topRowUpstream;
             this.rowReceiver = rowReceiver;
@@ -277,10 +268,6 @@ public class CrateDocCollector implements CrateCollector {
             topRowUpstream.throwIfKilled();
             checkCircuitBreaker();
 
-            rowCount++;
-            if (rowCount % KEEP_ALIVE_AFTER_ROWS == 0) {
-                keepAliveListener.keepAlive();
-            }
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.setNextDocId(doc);
             }
@@ -304,9 +291,6 @@ public class CrateDocCollector implements CrateCollector {
 
         @Override
         public void setNextReader(AtomicReaderContext context) throws IOException {
-            // trigger keep-alive here as well
-            // in case we have a long running query without actual matches
-            keepAliveListener.keepAlive();
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.setNextReader(context);
             }
