@@ -28,6 +28,7 @@ import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,6 +46,7 @@ public class KeepAliveTimersTest extends CrateUnitTest {
     private ThreadPool threadPool;
     private ScheduledExecutorService scheduledExecutorService;
     private TransportKeepAliveAction transportKeepAliveAction;
+    private KeepAliveTimers keepAliveTimers;
 
     @Before
     public void prepare() throws Exception {
@@ -67,11 +69,23 @@ public class KeepAliveTimersTest extends CrateUnitTest {
             }
         });
         transportKeepAliveAction = mock(TransportKeepAliveAction.class);
+        keepAliveTimers = new KeepAliveTimers(threadPool, TEST_DELAY, transportKeepAliveAction);
     }
 
     @After
     public void cleanup() throws Exception {
         scheduledExecutorService.shutdownNow();
+    }
+
+    @Test
+    public void testKeepAliveTimerIsDisabledIfkeepAliveTimeIsZero() throws Exception {
+        KeepAliveTimers.ResettableTimer timer = keepAliveTimers.forRunnable(new Runnable() {
+            @Override
+            public void run() {
+
+            }
+        }, TimeValue.timeValueMillis(0));
+        assertThat(timer, Matchers.instanceOf(KeepAliveTimers.NoopResettableTimer.class));
     }
 
     @Test
@@ -111,7 +125,6 @@ public class KeepAliveTimersTest extends CrateUnitTest {
     }
 
     private Tuple<SettableFuture<Void>, KeepAliveTimers.ResettableTimer> getTimer(TimeValue timerDelay) {
-        KeepAliveTimers keepAliveTimers = new KeepAliveTimers(threadPool, TEST_DELAY, transportKeepAliveAction);
         final SettableFuture<Void> future = SettableFuture.create();
         final KeepAliveTimers.ResettableTimer timer = keepAliveTimers.forRunnable(new Runnable() {
             @Override

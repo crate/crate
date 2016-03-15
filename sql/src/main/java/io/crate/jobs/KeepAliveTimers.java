@@ -76,12 +76,15 @@ public class KeepAliveTimers {
     }
 
     public ResettableTimer forRunnable(Runnable runnable) {
-        TimeValue delay = TimeValue.timeValueMillis(Math.max(1, maxKeepAliveTime.millis() / 3));
+        TimeValue delay = TimeValue.timeValueMillis(maxKeepAliveTime.millis() / 3);
         return forRunnable(runnable, delay);
     }
 
     public ResettableTimer forRunnable(Runnable runnable, TimeValue delay) {
-        return new ResettableTimer(threadPool, runnable, delay);
+        if (delay.millis() == 0L) {
+            return new NoopResettableTimer();
+        }
+        return new DefaultResettableTimer(threadPool, runnable, delay);
     }
 
 
@@ -102,14 +105,21 @@ public class KeepAliveTimers {
      *
      * t+300 -> 150 ms since last reset -> "hello world"
      */
-    public static class ResettableTimer {
+    public interface ResettableTimer {
+        void start();
+        void reset();
+        void cancel();
+    }
+
+    public static class DefaultResettableTimer implements ResettableTimer {
+
         private final Runnable runnable;
         private final TimeValue delay;
         private final AtomicReference<ScheduledFuture<?>> futureHolder = new AtomicReference<>();
         private final AtomicLong lastReset = new AtomicLong(-1L);
         private final ThreadPool threadPool;
 
-        public ResettableTimer(ThreadPool threadPool, Runnable runnable, TimeValue delay) {
+        public DefaultResettableTimer(ThreadPool threadPool, Runnable runnable, TimeValue delay) {
             this.threadPool = threadPool;
             this.runnable = runnable;
             this.delay = delay;
@@ -144,6 +154,24 @@ public class KeepAliveTimers {
             if (future != null) {
                 future.cancel(true);
             }
+        }
+    }
+
+    static class NoopResettableTimer implements ResettableTimer {
+
+        @Override
+        public void start() {
+
+        }
+
+        @Override
+        public void reset() {
+
+        }
+
+        @Override
+        public void cancel() {
+
         }
     }
 }
