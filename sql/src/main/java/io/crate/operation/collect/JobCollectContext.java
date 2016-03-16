@@ -43,6 +43,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
 
@@ -150,9 +151,11 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
     @Override
     public String toString() {
         return "JobCollectContext{" +
-                "searchContexts=" + searchContexts +
-                ", closed=" + future.closed() +
-                '}';
+               "sharedContexts=" + sharedShardContexts +
+               ", rowReceiver=" + rowReceiver +
+               ", searchContexts=" + Arrays.toString(searchContexts.keys) +
+               ", closed=" + future.closed() +
+               '}';
     }
 
     @Override

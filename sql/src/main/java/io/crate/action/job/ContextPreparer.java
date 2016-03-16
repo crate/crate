@@ -21,14 +21,16 @@
 
 package io.crate.action.job;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntCollection;
+import com.carrotsearch.hppc.IntOpenHashSet;
+import com.carrotsearch.hppc.LongObjectOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Lists;
+import com.google.common.collect.*;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
@@ -55,19 +57,18 @@ import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.StreamerVisitor;
-import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.node.dql.CountPhase;
-import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -75,9 +76,7 @@ import java.util.*;
 import java.util.concurrent.Executor;
 
 @Singleton
-public class ContextPreparer {
-
-    private static final ESLogger LOGGER = Loggers.getLogger(ContextPreparer.class);
+public class ContextPreparer extends AbstractComponent {
 
     private final MapSideDataCollectOperation collectOperation;
     private ClusterService clusterService;
@@ -89,13 +88,15 @@ public class ContextPreparer {
     private final InnerPreparer innerPreparer;
 
     @Inject
-    public ContextPreparer(MapSideDataCollectOperation collectOperation,
+    public ContextPreparer(Settings settings,
+                           MapSideDataCollectOperation collectOperation,
                            ClusterService clusterService,
                            CrateCircuitBreakerService breakerService,
                            CountOperation countOperation,
                            ThreadPool threadPool,
                            PageDownstreamFactory pageDownstreamFactory,
                            RowDownstreamFactory rowDownstreamFactory) {
+        super(settings);
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
@@ -110,24 +111,14 @@ public class ContextPreparer {
                                                           Iterable<? extends NodeOperation> nodeOperations,
                                                           JobExecutionContext.Builder contextBuilder,
                                                           SharedShardContexts sharedShardContexts) {
-        PreparerContext preparerContext = new PreparerContext(jobId, rowDownstreamFactory, nodeOperations,
-                sharedShardContexts);
-        List<ListenableFuture<Bucket>> directResponseFutures = new ArrayList<>();
-        processDownstreamExecutionPhaseIds(nodeOperations, preparerContext);
+        PreparerContext preparerContext = initContext(jobId, nodeOperations, contextBuilder, sharedShardContexts);
+        logger.trace("prepareOnRemote: nodeOperations={}, targetSourceMap={}", nodeOperations, preparerContext.opCtx.targetToSourceMap);
 
-        List<NodeOperation> reversedNodeOperations = Lists.reverse(Lists.newArrayList(nodeOperations));
-        for (NodeOperation nodeOperation : reversedNodeOperations) {
-            if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
-                Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
-                SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers);
-                directResponseFutures.add(bucketBuilder.result());
-                preparerContext.registerRowReceiverForUpstreamPhase(nodeOperation.executionPhase(), bucketBuilder);
-            }
-            processExecutionPhase(nodeOperation.executionPhase(), preparerContext, contextBuilder);
+        for (IntCursor cursor : preparerContext.opCtx.findLeafs()) {
+            contextBuilder.addAllSubContexts(prepareSourceOperations(cursor.value, preparerContext));
         }
-        postPrepare(contextBuilder, preparerContext);
-
-        return directResponseFutures;
+        assert preparerContext.opCtx.allContextsBuilt() : "some nodeOperations haven't been processed";
+        return preparerContext.directResponseFutures;
     }
 
     public List<ExecutionSubContext> prepareOnHandler(UUID jobId,
@@ -135,182 +126,279 @@ public class ContextPreparer {
                                                       JobExecutionContext.Builder contextBuilder,
                                                       List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
                                                       @Nullable SharedShardContexts sharedShardContexts) {
-        ContextPreparer.PreparerContext preparerContext = new PreparerContext(jobId, rowDownstreamFactory,
-                nodeOperations, sharedShardContexts);
-        processDownstreamExecutionPhaseIds(nodeOperations, preparerContext);
+        PreparerContext preparerContext = initContext(jobId, nodeOperations, contextBuilder, sharedShardContexts);
+        logger.trace("prepareOnHandler: nodeOperations={}, handlerPhases={}, targetSourceMap={}",
+                nodeOperations, handlerPhases, preparerContext.opCtx.targetToSourceMap);
 
-
-        // register handler phase row receiver
-        // and build handler context, must be done first because it's downstream is already known
-        // and it is needed as a row receiver by others
         List<ExecutionSubContext> handlerContexts = new ArrayList<>(handlerPhases.size());
+        IntOpenHashSet leafs = new IntOpenHashSet();
         for (Tuple<ExecutionPhase, RowReceiver> handlerPhase : handlerPhases) {
-            ExecutionPhase handlerExecutionPhase = handlerPhase.v1();
-            preparerContext.registerRowReceiverForUpstreamPhase(handlerExecutionPhase, handlerPhase.v2());
-            ExecutionSubContext finalLocalMergeContext = innerPreparer.process(handlerExecutionPhase, preparerContext);
-            if (finalLocalMergeContext != null) {
-                contextBuilder.addSubContext(finalLocalMergeContext);
-                handlerContexts.add(finalLocalMergeContext);
+            ExecutionPhase phase = handlerPhase.v1();
+            preparerContext.registerRowReceiver(phase.executionPhaseId(), handlerPhase.v2());
+            ExecutionSubContext subContext = createContext(phase, preparerContext);
+            if (subContext != null) {
+                contextBuilder.addSubContext(subContext);
+                handlerContexts.add(subContext);
             }
+            leafs.add(phase.executionPhaseId());
         }
-        List<NodeOperation> reversedNodeOperations = Lists.reverse(Lists.newArrayList(nodeOperations));
-        for (NodeOperation nodeOperation : reversedNodeOperations) {
-            processExecutionPhase(nodeOperation.executionPhase(), preparerContext, contextBuilder);
+        leafs.addAll(preparerContext.opCtx.findLeafs());
+        for (IntCursor cursor : leafs) {
+            contextBuilder.addAllSubContexts(prepareSourceOperations(cursor.value, preparerContext));
         }
-        postPrepare(contextBuilder, preparerContext);
+        assert preparerContext.opCtx.allContextsBuilt() : "some nodeOperations haven't been processed";
         return handlerContexts;
     }
 
+    private ExecutionSubContext createContext(ExecutionPhase phase, PreparerContext preparerContext) {
+        try {
+            return innerPreparer.process(phase, preparerContext);
+        } catch (Throwable t) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Couldn't create executionContexts from\n" +
+                    "NodeOperations: %s\n" +
+                    "target-sources: %s", preparerContext.opCtx.nodeOperationMap, preparerContext.opCtx.targetToSourceMap), t);
+        }
+    }
+
+    private PreparerContext initContext(UUID jobId,
+                                        Iterable<? extends NodeOperation> nodeOperations,
+                                        JobExecutionContext.Builder contextBuilder,
+                                        @Nullable SharedShardContexts sharedShardContexts) {
+        ContextPreparer.PreparerContext preparerContext = new PreparerContext(
+                jobId, logger, rowDownstreamFactory, nodeOperations, sharedShardContexts);
+
+        for (NodeOperation nodeOperation : nodeOperations) {
+            // context for nodeOperations without dependencies can be built immediately (e.g. FetchPhase)
+            if (nodeOperation.downstreamExecutionPhaseId() == NodeOperation.NO_DOWNSTREAM) {
+                contextBuilder.addSubContext(createContext(nodeOperation.executionPhase(), preparerContext));
+                preparerContext.opCtx.builtContexts.set(nodeOperation.executionPhase().executionPhaseId());
+            }
+            if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
+                Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
+                SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers);
+                preparerContext.directResponseFutures.add(bucketBuilder.result());
+                preparerContext.registerRowReceiver(nodeOperation.downstreamExecutionPhaseId(), bucketBuilder);
+            }
+        }
+        return preparerContext;
+    }
 
     /**
-     * Build all contexts which could not build in first iteration due to missing downstreams
+     * recursively build all contexts that depend on startPhaseId (excl. startPhaseId)
+     *
+     * {@link PreparerContext#opCtx#targetToSourceMap} will be used to traverse the nodeOperations
      */
-    private void postPrepare(JobExecutionContext.Builder contextBuilder,
-                             PreparerContext preparerContext) {
+    private Collection<ExecutionSubContext> prepareSourceOperations(int startPhaseId, PreparerContext preparerContext) {
+        Collection<Integer> sourcePhaseIds = preparerContext.opCtx.targetToSourceMap.get(startPhaseId);
+        if (sourcePhaseIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<ExecutionSubContext> subContexts = new ArrayList<>();
+        for (Integer sourcePhaseId : sourcePhaseIds) {
+            NodeOperation nodeOperation = preparerContext.opCtx.nodeOperationMap.get(sourcePhaseId);
 
+            ExecutionSubContext subContext = createContext(nodeOperation.executionPhase(), preparerContext);
+            preparerContext.opCtx.builtContexts.set(nodeOperation.executionPhase().executionPhaseId());
+            assert subContext != null : "subContext must not be null";
+            subContexts.add(subContext);
+        }
+        for (Integer sourcePhaseId : sourcePhaseIds) {
+            subContexts.addAll(prepareSourceOperations(sourcePhaseId, preparerContext));
+        }
+        return subContexts;
+    }
+
+    static class NodeOperationCtx {
 
         /**
-         * infinite loop protection
-         * if a phase has its upstream on the same node it might need to be processes 2 times
-         * (the first time it might be skipped if the upstream hasn't been processed yet)
+         * a map from target phase to source phase
+         * <p/>
+         * For example with NodeOperations as the following:
+         * <p/>
+         * NodeOp {0, target=1}
+         * NodeOp {1, target=2}
+         * (handlerMergePhase (2))
+         * <p/>
+         * This map contains
+         * <p/>
+         * 1 -> 0
+         * 2 -> 1
+         * <p/>
+         * This map is used in {@link #prepareSourceOperations(int, PreparerContext)} to process to NodeOperations in the
+         * correct order (last ones in the data flow first - this is done so that the RowReceivers are always registered)
+         * <p/>
+         * (In the example above, NodeOp 0 might depend on the context/RowReceiver of NodeOp 1 being built first.)
          */
-        int reProcessLimit = preparerContext.executionPhasesToProcess.size() * 2;
-        for (int i = 0; i < reProcessLimit && !preparerContext.executionPhasesToProcess.isEmpty(); i++) {
-            List<ExecutionPhase> executionPhasesToProcess = Lists.newArrayList(preparerContext.executionPhasesToProcess);
-            preparerContext.executionPhasesToProcess.clear();
-            for (ExecutionPhase executionPhase : executionPhasesToProcess) {
-                processExecutionPhase(executionPhase, preparerContext, contextBuilder);
+        private final Multimap<Integer, Integer> targetToSourceMap;
+        private final ImmutableMap<Integer, ? extends NodeOperation> nodeOperationMap;
+        private final BitSet builtContexts;
+
+        public NodeOperationCtx(Iterable<? extends NodeOperation> nodeOperations) {
+            targetToSourceMap = createTargetToSourceMap(nodeOperations);
+            nodeOperationMap = Maps.uniqueIndex(nodeOperations, new Function<NodeOperation, Integer>() {
+                @Nullable
+                @Override
+                public Integer apply(@Nullable NodeOperation input) {
+                    return input == null ? null : input.executionPhase().executionPhaseId();
+                }
+            });
+            builtContexts = new BitSet(nodeOperationMap.size());
+        }
+
+        static Multimap<Integer, Integer> createTargetToSourceMap(Iterable<? extends NodeOperation> nodeOperations) {
+            HashMultimap<Integer, Integer> targetToSource = HashMultimap.create();
+            for (NodeOperation nodeOperation : nodeOperations) {
+                if (nodeOperation.downstreamExecutionPhaseId() == NodeOperation.NO_DOWNSTREAM) {
+                    continue;
+                }
+                targetToSource.put(nodeOperation.downstreamExecutionPhaseId(), nodeOperation.executionPhase().executionPhaseId());
             }
+            return targetToSource;
         }
-        if (!preparerContext.executionPhasesToProcess.isEmpty()) {
-            throw new IllegalStateException("Aborted context preparation as an infinite loop was detected");
-        }
-    }
 
-    private void processExecutionPhase(ExecutionPhase executionPhase,
-                                       PreparerContext preparerContext,
-                                       JobExecutionContext.Builder contextBuilder) {
-        ExecutionSubContext subContext = innerPreparer.process(executionPhase, preparerContext);
-        if (subContext != null) {
-            contextBuilder.addSubContext(subContext);
-        }
-    }
-
-    private void processDownstreamExecutionPhaseIds(Iterable<? extends NodeOperation> nodeOperations,
-                                                    PreparerContext context) {
-        for (NodeOperation nodeOperation : nodeOperations) {
-            boolean val = false;
-            ExecutionPhase phase = nodeOperation.executionPhase();
-            if (phase instanceof UpstreamPhase) {
-                val = isSameNodeUpstreamDistributionType((UpstreamPhase) phase);
+        /**
+         * find all phases that don't have any downstreams.
+         *
+         * This is usually only one phase (the handlerPhase, but there might be more in case of bulk operations)
+         */
+        private static IntCollection findLeafs(Multimap<Integer, Integer> targetToSourceMap) {
+            IntArrayList leafs = new IntArrayList();
+            for (Integer targetPhaseId : targetToSourceMap.keySet()) {
+                if (!targetToSourceMap.containsValue(targetPhaseId)) {
+                    leafs.add(targetPhaseId);
+                }
             }
-            context.setPhaseHasSameNodeUpstream(
-                    nodeOperation.downstreamExecutionPhaseId(),
-                    nodeOperation.downstreamExecutionPhaseInputId(),
-                    val);
-            context.setNodeOperation(nodeOperation.executionPhase().executionPhaseId(), nodeOperation);
+            return leafs;
         }
-    }
 
-    private boolean isSameNodeUpstreamDistributionType(UpstreamPhase phase) {
-        return phase.distributionInfo().distributionType() == DistributionType.SAME_NODE;
+        public boolean upstreamsAreOnSameNode(int phaseId) {
+            Collection<Integer> sourcePhases = targetToSourceMap.get(phaseId);
+            if (sourcePhases.isEmpty()) {
+                return false;
+            }
+            boolean sameNode = true;
+            for (Integer sourcePhase : sourcePhases) {
+                NodeOperation nodeOperation = nodeOperationMap.get(sourcePhase);
+                if (nodeOperation == null) {
+                    return false;
+                }
+                ExecutionPhase executionPhase = nodeOperation.executionPhase();
+                sameNode = sameNode & executionPhase instanceof UpstreamPhase &&
+                           (((UpstreamPhase) executionPhase).distributionInfo().distributionType() == DistributionType.SAME_NODE);
+            }
+            return sameNode;
+        }
+
+        public Iterable<? extends IntCursor> findLeafs() {
+            return findLeafs(targetToSourceMap);
+        }
+
+        public boolean allContextsBuilt() {
+            return builtContexts.cardinality() == nodeOperationMap.size();
+        }
     }
 
     private static class PreparerContext {
 
         private final UUID jobId;
         private final RowDownstreamFactory rowDownstreamFactory;
-        private final Map<Tuple<Integer, Byte>, Boolean> phaseHasSameNodeUpstream = new HashMap<>();
-        private final IntObjectOpenHashMap<NodeOperation> phaseIdToNodeOperations = new IntObjectOpenHashMap<>();
-        private final IntObjectOpenHashMap<RowReceiver> phaseIdToRowReceivers = new IntObjectOpenHashMap<>();
-        private final List<ExecutionPhase> executionPhasesToProcess = new ArrayList<>();
-        private final Iterable<? extends NodeOperation> nodeOperations;
+
+        /**
+         * from toKey(phaseId, inputId) to RowReceiver.
+         */
+        private final LongObjectOpenHashMap<RowReceiver> phaseIdToRowReceivers = new LongObjectOpenHashMap<>();
 
         @Nullable
         private final SharedShardContexts sharedShardContexts;
 
+        private final List<ListenableFuture<Bucket>> directResponseFutures = new ArrayList<>();
+        private final NodeOperationCtx opCtx;
+        private final ESLogger logger;
+
         public PreparerContext(UUID jobId,
+                               ESLogger logger,
                                RowDownstreamFactory rowDownstreamFactory,
                                Iterable<? extends NodeOperation> nodeOperations,
                                @Nullable SharedShardContexts sharedShardContexts) {
+            this.logger = logger;
+            this.opCtx = new NodeOperationCtx(nodeOperations);
             this.jobId = jobId;
             this.rowDownstreamFactory = rowDownstreamFactory;
-            this.nodeOperations = nodeOperations;
             this.sharedShardContexts = sharedShardContexts;
         }
 
-        public boolean getPhaseHasSameNodeUpstream(int executionPhaseId, byte inputId) {
-            Tuple<Integer, Byte> key = new Tuple<>(executionPhaseId, inputId);
-            Boolean res = phaseHasSameNodeUpstream.get(key);
-            if (res == null) {
-                return false;
-            }
-            return res;
-        }
-
-        public void setPhaseHasSameNodeUpstream(int executionPhaseId, byte inputId, boolean val) {
-            Tuple<Integer, Byte> key = new Tuple<>(executionPhaseId, inputId);
-            phaseHasSameNodeUpstream.put(key, val);
-        }
-
-        public NodeOperation getNodeOperation(int executionPhaseId) {
-            NodeOperation nodeOperation = phaseIdToNodeOperations.get(executionPhaseId);
+        /**
+         * Retrieve the rowReceiver of the downstream of phase
+         */
+        RowReceiver getRowReceiver(UpstreamPhase phase, int pageSize) {
+            NodeOperation nodeOperation = opCtx.nodeOperationMap.get(phase.executionPhaseId());
             if (nodeOperation == null) {
-                throw new IllegalStateException(String.format(Locale.ENGLISH,
-                        "NodeOperation with phaseId %d not found, must be registered first", executionPhaseId));
+                return handlerPhaseRowReceiver(phase.executionPhaseId());
             }
-            return nodeOperation;
-        }
 
-        public void setNodeOperation(int executionPhaseId, NodeOperation nodeOperation) {
-            phaseIdToNodeOperations.put(executionPhaseId, nodeOperation);
-        }
-
-        /**
-         * Register a {@link RowReceiver} for an {@link UpstreamPhase}
-         */
-        public void registerRowReceiverForUpstreamPhase(ExecutionPhase executionPhase, RowReceiver rowReceiver) {
-            assert executionPhase instanceof UpstreamPhase : "Given ExecutionPhase is not a UpstreamPhase";
-            phaseIdToRowReceivers.put(executionPhase.executionPhaseId(), rowReceiver);
-        }
-
-        /**
-         * Register a {@link RowReceiver} of a downstream {@link ExecutionPhase}
-         */
-        public void registerRowReceiver(int downstreamExecutionPhaseId,
-                                        byte downstreamExecutionPhaseInputId,
-                                        RowReceiver rowReceiver) {
-            for (IntObjectCursor<NodeOperation> cursor : phaseIdToNodeOperations) {
-                NodeOperation nodeOperation = cursor.value;
-                if (nodeOperation.downstreamExecutionPhaseId() == downstreamExecutionPhaseId
-                        && nodeOperation.downstreamExecutionPhaseInputId() == downstreamExecutionPhaseInputId) {
-                    registerRowReceiverForUpstreamPhase(nodeOperation.executionPhase(), rowReceiver);
-                }
-            }
-        }
-
-        @Nullable
-        public RowReceiver getRowReceiver(UpstreamPhase upstreamPhase, int pageSize) {
-            if (upstreamPhase.distributionInfo().distributionType() == DistributionType.SAME_NODE) {
-                LOGGER.trace("Phase uses SAME_NODE downstream: {}", upstreamPhase);
-                return phaseIdToRowReceivers.get(upstreamPhase.executionPhaseId());
-            }
-            NodeOperation nodeOperation = getNodeOperation(upstreamPhase.executionPhaseId());
+            RowReceiver targetRowReceiver = phaseIdToRowReceivers.get(
+                    toKey(nodeOperation.downstreamExecutionPhaseId(), nodeOperation.downstreamExecutionPhaseInputId()));
             if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
-                LOGGER.trace("Phase uses DIRECT_RESPONSE downstream: {}", upstreamPhase);
-                return phaseIdToRowReceivers.get(upstreamPhase.executionPhaseId());
+                traceGetRowReceiver(phase, "DIRECT_RESPONSE", nodeOperation, targetRowReceiver);
+                return safeReceiver(targetRowReceiver, nodeOperation);
             }
-            LOGGER.trace("Phase uses DISTRIBUTED downstream: {}", upstreamPhase);
-            return rowDownstreamFactory.createDownstream(
-                    nodeOperation,
-                    upstreamPhase.distributionInfo(),
-                    jobId,
-                    pageSize);
-
+            switch (phase.distributionInfo().distributionType()) {
+                case SAME_NODE:
+                    traceGetRowReceiver(phase, "SAME_NODE", nodeOperation, targetRowReceiver);
+                    return safeReceiver(targetRowReceiver, nodeOperation);
+                case BROADCAST:
+                case MODULO:
+                    RowReceiver downstream = rowDownstreamFactory.createDownstream(
+                            nodeOperation, phase.distributionInfo(), jobId, pageSize);
+                    traceGetRowReceiver(
+                            phase, phase.distributionInfo().distributionType().toString(), nodeOperation, downstream);
+                    return downstream;
+                default:
+                    throw new AssertionError("unhandled distributionType: " + phase.distributionInfo().distributionType());
+            }
         }
 
-        public Iterable<? extends NodeOperation> nodeOperations() {
-            return nodeOperations;
+        private void traceGetRowReceiver(UpstreamPhase phase,
+                                         String distributionTypeName,
+                                         NodeOperation nodeOperation,
+                                         RowReceiver targetRowReceiver) {
+            logger.trace("action=getRowReceiver, distributionType={}, phase={}, targetRowReceiver={}, target={}/{},",
+                    distributionTypeName,
+                    phase.executionPhaseId(),
+                    targetRowReceiver,
+                    nodeOperation.downstreamExecutionPhaseId(),
+                    nodeOperation.downstreamExecutionPhaseInputId()
+            );
+        }
+
+        private RowReceiver safeReceiver(RowReceiver targetRowReceiver, NodeOperation nodeOperation) {
+            if (targetRowReceiver == null) {
+                String msg =  String.format(Locale.ENGLISH,
+                        "targetRowReceiver %d/%d must be on the same node as phase %d, but it is null",
+                        nodeOperation.downstreamExecutionPhaseId(),
+                        nodeOperation.downstreamExecutionPhaseInputId(),
+                        nodeOperation.executionPhase().executionPhaseId());
+                throw new IllegalStateException(msg);
+            }
+            return targetRowReceiver;
+        }
+
+        /**
+         * The rowReceiver for handlerPhases got passed into {@link #prepareOnHandler(UUID, Iterable, JobExecutionContext.Builder, List, SharedShardContexts)}
+         * and is registered there.
+         *
+         * Retrieve it
+         */
+        private RowReceiver handlerPhaseRowReceiver(int phaseId) {
+            RowReceiver rowReceiver = phaseIdToRowReceivers.get(toKey(phaseId, (byte) 0));
+            logger.trace("Using rowReceiver {} for phase {}, this is a leaf/handlerPhase", rowReceiver, phaseId);
+            assert rowReceiver != null : "No rowReceiver for handlerPhase " + phaseId;
+            return rowReceiver;
+        }
+
+        public void registerRowReceiver(int phaseId, RowReceiver rowReceiver) {
+            phaseIdToRowReceivers.put(toKey(phaseId, (byte) 0), rowReceiver);
         }
     }
 
@@ -326,11 +414,6 @@ public class ContextPreparer {
             }
 
             RowReceiver rowReceiver = context.getRowReceiver(phase, 0);
-            if (rowReceiver == null) {
-                context.executionPhasesToProcess.add(phase);
-                return null;
-            }
-
             return new CountContext(
                     phase.executionPhaseId(),
                     countOperation,
@@ -344,14 +427,10 @@ public class ContextPreparer {
         public ExecutionSubContext visitMergePhase(final MergePhase phase, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
 
-            boolean upstreamOnSameNode = context.getPhaseHasSameNodeUpstream(phase.executionPhaseId(), (byte) 0);
+            boolean upstreamOnSameNode = context.opCtx.upstreamsAreOnSameNode(phase.executionPhaseId());
 
             int pageSize = Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.executionNodes().size());
             RowReceiver rowReceiver = context.getRowReceiver(phase, pageSize);
-            if (rowReceiver == null) {
-                context.executionPhasesToProcess.add(phase);
-                return null;
-            }
 
             if (upstreamOnSameNode) {
                 if (!phase.projections().isEmpty()) {
@@ -363,11 +442,11 @@ public class ContextPreparer {
                             phase.projections(),
                             rowReceiver,
                             ramAccountingContext);
-                    context.registerRowReceiver(phase.executionPhaseId(), (byte) 0, projectorChainContext.rowReceiver());
+                    context.registerRowReceiver(phase.executionPhaseId(), projectorChainContext.rowReceiver());
                     return projectorChainContext;
                 }
 
-                context.registerRowReceiver(phase.executionPhaseId(), (byte) 0, rowReceiver);
+                context.registerRowReceiver(phase.executionPhaseId(), rowReceiver);
                 return null;
             }
 
@@ -394,13 +473,8 @@ public class ContextPreparer {
         @Override
         public ExecutionSubContext visitCollectPhase(final CollectPhase phase, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
-
             RowReceiver rowReceiver = context.getRowReceiver(phase,
                     MoreObjects.firstNonNull(phase.nodePageSizeHint(), Paging.PAGE_SIZE));
-            if (rowReceiver == null) {
-                context.executionPhasesToProcess.add(phase);
-                return null;
-            }
             return new JobCollectContext(
                     phase,
                     collectOperation,
@@ -413,7 +487,7 @@ public class ContextPreparer {
 
         @Override
         public ExecutionSubContext visitFetchPhase(final FetchPhase phase, final PreparerContext context) {
-            final FluentIterable<Routing> routings = FluentIterable.from(context.nodeOperations())
+            final FluentIterable<Routing> routings = FluentIterable.from(context.opCtx.nodeOperationMap.values())
                     .transform(new Function<NodeOperation, ExecutionPhase>() {
                 @Nullable
                 @Override
@@ -446,10 +520,6 @@ public class ContextPreparer {
         public ExecutionSubContext visitNestedLoopPhase(NestedLoopPhase phase, PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
             RowReceiver downstreamRowReceiver = context.getRowReceiver(phase, Paging.PAGE_SIZE);
-            if (downstreamRowReceiver == null) {
-                context.executionPhasesToProcess.add(phase);
-                return null;
-            }
 
             FlatProjectorChain flatProjectorChain;
             if (!phase.projections().isEmpty()) {
@@ -494,13 +564,10 @@ public class ContextPreparer {
                                                                          @Nullable MergePhase mergePhase,
                                                                          RowReceiver rowReceiver,
                                                                          RamAccountingContext ramAccountingContext) {
-            boolean upstreamOnSameNode = ctx.getPhaseHasSameNodeUpstream(nlPhaseId, inputId);
-            if (upstreamOnSameNode) {
-                assert mergePhase == null : "if upstream is on same node the phase must be null";
-                ctx.registerRowReceiver(nlPhaseId, inputId, rowReceiver);
+            if (mergePhase == null) {
+                ctx.phaseIdToRowReceivers.put(toKey(nlPhaseId, inputId), rowReceiver);
                 return null;
             }
-            assert mergePhase != null : "if upstream isn't on the same node, there must be a mergePhase";
             Tuple<PageDownstream, FlatProjectorChain> pageDownstreamWithChain = pageDownstreamFactory.createMergeNodePageDownstream(
                     mergePhase,
                     rowReceiver,
@@ -518,5 +585,10 @@ public class ContextPreparer {
                     pageDownstreamWithChain.v2()
             );
         }
+    }
+
+    private static long toKey(int phaseId, byte inputId) {
+        long l = (long) phaseId;
+        return (l << 32) | (inputId & 0xffffffffL);
     }
 }

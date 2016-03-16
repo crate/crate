@@ -88,6 +88,12 @@ public class JobExecutionContext implements KeepAliveListener {
             this.statsTables = statsTables;
         }
 
+        public void addAllSubContexts(Iterable<? extends ExecutionSubContext> subContexts) {
+            for (ExecutionSubContext subContext : subContexts) {
+                addSubContext(subContext);
+            }
+        }
+
         public void addSubContext(ExecutionSubContext subContext) {
             ExecutionSubContext existingSubContext = subContexts.put(subContext.id(), subContext);
             if (existingSubContext != null) {

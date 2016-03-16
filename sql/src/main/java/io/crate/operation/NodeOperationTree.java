@@ -68,4 +68,12 @@ public class NodeOperationTree {
     public ExecutionPhase leaf() {
         return leaf;
     }
+
+    @Override
+    public String toString() {
+        return "NodeOperationTree{" +
+               "nodeOperations=" + nodeOperations +
+               ", leaf=" + leaf +
+               '}';
+    }
 }

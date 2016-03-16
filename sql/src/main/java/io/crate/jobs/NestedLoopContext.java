@@ -157,6 +157,17 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
         return rightPageDownstreamContext;
     }
 
+    @Override
+    public String toString() {
+        return "NestedLoopContext{" +
+               "id=" + id() +
+               ", activeSubContexts=" + activeSubContexts +
+               ", leftCtx=" + leftPageDownstreamContext +
+               ", rightCtx=" + rightPageDownstreamContext +
+               ", closed=" + future.closed() +
+               '}';
+    }
+
     private class RemoveContextCallback implements FutureCallback<Object> {
 
         public RemoveContextCallback() {

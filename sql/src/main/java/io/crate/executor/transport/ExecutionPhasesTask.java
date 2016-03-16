@@ -160,7 +160,7 @@ public class ExecutionPhasesTask extends JobTask {
         if (hasDirectResponse) {
             for (ExecutionSubContext executionSubContext : localContextAndStartOperation) {
                 assert executionSubContext != null && executionSubContext instanceof DownstreamExecutionSubContext
-                        : "Need DownstreamExecutionSubContext for DIRECT_RESPONSE remote jobs";
+                        : "Need DownstreamExecutionSubContext for DIRECT_RESPONSE remote jobs. Got " + executionSubContext;
                 pageDownstreamContexts.add(((DownstreamExecutionSubContext) executionSubContext).pageDownstreamContext((byte) 0));
             }
         }

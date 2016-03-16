@@ -177,7 +177,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     private CollectPhase getCollectNode(List<Symbol> toCollect, Routing routing, WhereClause whereClause) {
         return new CollectPhase(
                 UUID.randomUUID(),
-                0,
+                1,
                 "docCollect",
                 routing,
                 RowGranularity.DOC,

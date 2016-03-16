@@ -72,7 +72,6 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertFromCrossJoin() throws Exception {
         createColorsAndSizes();
-
         execute("create table target (color string, size string)");
         ensureYellow();
 
@@ -85,6 +84,24 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                 "green| large\n" +
                 "red| large\n" +
                 "blue| small\n"));
+    }
+
+    @Test
+    public void testInsertFromInnerJoin() throws Exception {
+        execute("create table t1 (x int)");
+        execute("create table t2 (y int)");
+        execute("create table target (x int, y int)");
+        ensureYellow();
+
+        execute("insert into t1 (x) values (1), (2)");
+        execute("insert into t2 (y) values (2), (3)");
+        execute("refresh table t1, t2");
+
+        execute("insert into target (x, y) (select t1.x, t2.y from t1 inner join t2 on t1.x = t2.y)");
+        execute("refresh table target");
+
+        execute("select x, y from target order by x, y");
+        assertThat(printedTable(response.rows()), is("2| 2\n"));
     }
 
     @Test

@@ -47,7 +47,10 @@ import io.crate.planner.IterablePlan;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
+import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.*;
@@ -59,6 +62,8 @@ import io.crate.planner.node.management.KillPlan;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -67,6 +72,8 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 public class TransportExecutor implements Executor {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(TransportExecutor.class);
 
     private final Functions functions;
     private final TaskCollectingVisitor planVisitor;
@@ -195,6 +202,7 @@ public class TransportExecutor implements Executor {
         private ExecutionPhasesTask executionPhasesTask(Plan plan, Job job, ExecutionPhasesTask.OperationType operationType) {
             List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(
                     plan, clusterService.localNode().id());
+            LOGGER.debug("Created NodeOperationTrees from Plan: {}", nodeOperationTrees);
             return new ExecutionPhasesTask(
                     job.id(),
                     clusterService,
@@ -464,11 +472,23 @@ public class TransportExecutor implements Executor {
                     previousPhase = currentBranch.phases.lastElement();
                 }
                 if (setDownstreamNodes) {
+                    assert saneConfiguration(executionPhase, previousPhase.executionNodes()) : String.format(Locale.ENGLISH,
+                            "NodeOperation with %s and %s as downstreams cannot work",
+                            ExecutionPhases.debugPrint(executionPhase), previousPhase.executionNodes());
+
                     nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, currentBranch.inputId, localNodeId));
                 } else {
                     nodeOperations.add(NodeOperation.withoutDownstream(executionPhase));
                 }
                 currentBranch.phases.add(executionPhase);
+            }
+
+            private boolean saneConfiguration(ExecutionPhase executionPhase, Collection<String> downstreamNodes) {
+                if (executionPhase instanceof UpstreamPhase && ((UpstreamPhase) executionPhase).distributionInfo().distributionType() ==
+                                                               DistributionType.SAME_NODE) {
+                    return downstreamNodes.isEmpty() || downstreamNodes.equals(executionPhase.executionNodes());
+                }
+                return true;
             }
 
             public void branch(byte inputId) {

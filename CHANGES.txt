@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could cause INSERT INTO with an INNER JOIN in the
+   sub-query to fail.
+
  - Avoid running KeepAliveTimers every ms if ``jobs.keep_alive_timeout`` is set
    to zero
 

@@ -58,7 +58,8 @@ public class InternalRowDownstreamFactory implements RowDownstreamFactory {
                                         UUID jobId,
                                         int pageSize) {
         Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
-        assert !ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes());
+        assert !ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())
+                : "trying to build a DistributingDownstream but nodeOperation has a directResponse downstream";
         assert nodeOperation.downstreamNodes().size() > 0 : "must have at least one downstream";
 
         // TODO: set bucketIdx properly
