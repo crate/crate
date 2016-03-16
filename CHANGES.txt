@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could cause INSERT INTO with an INNER JOIN in the
+   sub-query to fail.
+
  - Removed the ``jobs.keep_alive_timeout`` setting and all related logic.
    This means it is no longer possible to enable automatic job termination.
 

@@ -198,6 +198,17 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         return name;
     }
 
+    @Override
+    public String toString() {
+        return "PageDownstreamContext{" +
+               "id=" + id() +
+               ", numBuckets=" + numBuckets +
+               ", allFuturesSet=" + allFuturesSet +
+               ", exhausted=" + exhausted +
+               ", closed=" + future.closed() +
+               '}';
+    }
+
     @Nullable
     @Override
     public PageDownstreamContext pageDownstreamContext(byte inputId) {

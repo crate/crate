@@ -21,6 +21,7 @@
 
 package io.crate.planner.node;
 
+import io.crate.planner.distribution.UpstreamPhase;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -48,5 +49,22 @@ public class ExecutionPhases {
             }
         }
         return false;
+    }
+
+    public static String debugPrint(ExecutionPhase phase) {
+        StringBuilder sb = new StringBuilder("phase{id=");
+        sb.append(phase.executionPhaseId());
+        sb.append("/");
+        sb.append(phase.name());
+        sb.append(", ");
+        sb.append("nodes=");
+        sb.append(phase.executionNodes());
+        if (phase instanceof UpstreamPhase) {
+            UpstreamPhase uPhase = (UpstreamPhase) phase;
+            sb.append(", dist=");
+            sb.append(uPhase.distributionInfo().distributionType());
+        }
+        sb.append("}");
+        return sb.toString();
     }
 }

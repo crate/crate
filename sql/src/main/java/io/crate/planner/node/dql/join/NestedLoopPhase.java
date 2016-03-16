@@ -53,7 +53,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
     private Collection<String> executionNodes;
     private MergePhase leftMergePhase;
     private MergePhase rightMergePhase;
-    private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_SAME_NODE;
+    private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
 
     public NestedLoopPhase() {}
 

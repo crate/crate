@@ -172,8 +172,9 @@ public class NestedLoopConsumer implements Consumer {
                     right = tmpRelation;
                 }
             }
-            Set<String> localExecutionNodes = ImmutableSet.of(clusterService.localNode().id());
-            Collection<String> nlExecutionNodes = localExecutionNodes;
+            Set<String> handlerNodes = ImmutableSet.of(clusterService.localNode().id());
+            Collection<String> nlExecutionNodes = handlerNodes;
+            isDistributed = isDistributed && leftPlan.resultPhase().executionNodes().size() > 1;
 
             MergePhase leftMerge = null;
             MergePhase rightMerge = null;
@@ -251,13 +252,10 @@ public class NestedLoopConsumer implements Consumer {
                     rightMerge,
                     nlExecutionNodes
             );
-            if (isDistributed) {
-                nl.distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
-            }
             MergePhase localMergePhase = null;
             // TODO: build local merge phases somewhere else for any subplan
             if (isDistributed && context.isRoot()) {
-                localMergePhase = mergePhase(context, localExecutionNodes, nl, orderByBeforeSplit, postNLOutputs, true);
+                localMergePhase = mergePhase(context, handlerNodes, nl, orderByBeforeSplit, postNLOutputs, true);
                 assert localMergePhase != null : "local merge phase must not be null";
                 TopNProjection finalTopN = ProjectionBuilder.topNProjection(
                         postNLOutputs,
