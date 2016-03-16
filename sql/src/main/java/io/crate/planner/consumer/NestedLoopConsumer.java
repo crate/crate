@@ -251,7 +251,7 @@ public class NestedLoopConsumer implements Consumer {
                     rightMerge,
                     nlExecutionNodes
             );
-            if (isDistributed) {
+            if (isDistributed && !(nlExecutionNodes.size() == 1 && nlExecutionNodes.equals(rightPlan.resultPhase().executionNodes()))) {
                 nl.distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             }
             MergePhase localMergePhase = null;
