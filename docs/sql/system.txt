@@ -1076,8 +1076,8 @@ repositories (see :ref:`snapshot-restore`).
 +----------------------+----------------------------------+-------------------+
 | ``state``            | The current state of the         | ``String``        |
 |                      | snapshot. One of:                |                   |
-|                      | ``IN_PROGRESS``, ``SUCCESS`` or  |                   |
-|                      | ``FAILED``.                      |                   |
+|                      | ``IN_PROGRESS``, ``SUCCESS``,    |                   |
+|                      | ``PARTIAL``, or ``FAILED``.      |                   |
 +----------------------+----------------------------------+-------------------+
 | ``version``          | The Crate version this snapshot  | ``String``        |
 |                      | was created with.                |                   |
@@ -1099,6 +1099,14 @@ The mapping follows the following pattern:
 +-----------------------------------------+------------------------------------------+
 | ``my_schema.parted_table`` (value=null) | ``my_schema..partitioned.my_table.0400`` |
 +-----------------------------------------+------------------------------------------+
+
+.. note::
+
+    Snapshot/Restore is very similar to replication and operates on a per-shard basis.
+    Hence, the state indicates whether all (``SUCCESS``), some (``PARTIAL``),
+    or no shards(``FAILED``) have been backed up. In case of a ``PARTIAL`` state
+    some primaries became unavailable and *another snapshot should be created*!
+
 
 
 .. Hidden: create snapshots
