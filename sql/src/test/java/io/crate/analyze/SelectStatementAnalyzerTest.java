@@ -1885,4 +1885,18 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expectMessage("Cannot GROUP BY 'shape': invalid data type 'geo_shape'");
         analyze("select count(*) from users group by shape");
     }
+
+
+    @Test
+    public void testCollectSetCanBeUsedInHaving() throws Exception {
+        SelectAnalyzedStatement stmt = analyze(
+                "select collect_set(recovery['size']['percent']), schema_name, table_name " +
+                "from sys.shards " +
+                "group by 2, 3 " +
+                "having collect_set(recovery['size']['percent']) != [100.0] " +
+                "order by 2, 3");
+        assertThat(stmt.relation().querySpec().having().isPresent(), is(true));
+        assertThat(stmt.relation().querySpec().having().get().query(),
+                isSQL("(NOT (collect_set(sys.shards.recovery['size']['percent']) = [100.0]))"));
+    }
 }

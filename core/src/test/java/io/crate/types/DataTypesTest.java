@@ -27,11 +27,10 @@ import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 public class DataTypesTest extends CrateUnitTest {
@@ -67,6 +66,25 @@ public class DataTypesTest extends CrateUnitTest {
         assertEquals((Byte)(byte)123, DataTypes.BYTE.value(longValue));
         assertEquals((Long)123L, DataTypes.TIMESTAMP.value(longValue));
         assertEquals(new BytesRef("123"), DataTypes.STRING.value(longValue));
+    }
+
+    @Test
+    public void testConvertArrayToSet() throws Exception {
+        ArrayType longArray = new ArrayType(DataTypes.LONG);
+        SetType longSet = new SetType(DataTypes.LONG);
+
+        assertThat(longArray.isConvertableTo(longSet), is(true));
+        assertThat(longSet.value(new Object[] { 1L, 2L}), is((Set) Sets.newHashSet(1L, 2L)));
+        assertThat(longSet.value(Arrays.asList(1L, 2L)), is((Set) Sets.newHashSet(1L, 2L)));
+    }
+
+    @Test
+    public void testConvertSetToArray() throws Exception {
+        ArrayType longArray = new ArrayType(DataTypes.LONG);
+        SetType longSet = new SetType(DataTypes.LONG);
+
+        assertThat(longSet.isConvertableTo(longArray), is(true));
+        assertThat(longArray.value(Sets.newHashSet(1L, 2L)), is(new Object[] { 1L, 2L}));
     }
 
     private static Map<String, Object> testMap = new HashMap<String, Object>(){{
