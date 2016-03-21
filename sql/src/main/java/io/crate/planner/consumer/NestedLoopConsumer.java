@@ -174,7 +174,6 @@ public class NestedLoopConsumer implements Consumer {
             }
             Set<String> handlerNodes = ImmutableSet.of(clusterService.localNode().id());
             Collection<String> nlExecutionNodes = handlerNodes;
-            isDistributed = isDistributed && leftPlan.resultPhase().executionNodes().size() > 1;
 
             MergePhase leftMerge = null;
             MergePhase rightMerge = null;
