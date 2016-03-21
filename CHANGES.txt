@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for set to array and array to set conversions
+
  - Improved the error message of insert into target/source column size
    miss-match
 

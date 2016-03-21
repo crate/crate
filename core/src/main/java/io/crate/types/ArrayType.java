@@ -26,6 +26,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 public class ArrayType extends DataType implements CollectionType, Streamer<Object[]> {
@@ -66,8 +67,8 @@ public class ArrayType extends DataType implements CollectionType, Streamer<Obje
             return null;
         }
         Object[] result;
-        if (value instanceof List) {
-            List values = (List)value;
+        if (value instanceof Collection) {
+            Collection values = (Collection)value;
             result = new Object[values.size()];
             int idx = 0;
             for (Object o : values) {
@@ -87,8 +88,8 @@ public class ArrayType extends DataType implements CollectionType, Streamer<Obje
     @Override
     public boolean isConvertableTo(DataType other) {
         return other.id() == UndefinedType.ID ||
-                ((other instanceof ArrayType)
-                && this.innerType.isConvertableTo(((ArrayType) other).innerType));
+                ((other instanceof CollectionType)
+                && this.innerType.isConvertableTo(((CollectionType) other).innerType()));
     }
 
     @Override

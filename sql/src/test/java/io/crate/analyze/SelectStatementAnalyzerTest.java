@@ -1914,4 +1914,17 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement stmt = analyze("select col1 from unnest([1, 2], ['Marvin', 'Trillian'])");
         assertThat(stmt.relation().querySpec().outputs(), contains(isReference("col1")));
     }
+
+    @Test
+    public void testCollectSetCanBeUsedInHaving() throws Exception {
+        SelectAnalyzedStatement stmt = analyze(
+                "select collect_set(recovery['size']['percent']), schema_name, table_name " +
+                "from sys.shards " +
+                "group by 2, 3 " +
+                "having collect_set(recovery['size']['percent']) != [100.0] " +
+                "order by 2, 3");
+        assertThat(stmt.relation().querySpec().having().isPresent(), is(true));
+        assertThat(stmt.relation().querySpec().having().get().query(),
+                isSQL("(NOT (collect_set(sys.shards.recovery['size']['percent']) = [100.0]))"));
+    }
 }
