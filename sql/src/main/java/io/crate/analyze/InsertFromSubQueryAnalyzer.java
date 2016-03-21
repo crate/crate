@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -28,7 +30,9 @@ import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
+import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.GeneratedReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
@@ -118,9 +122,13 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
      * validate that result columns from subquery match explicit insert columns
      * or complete table schema
      */
-    private void validateMatchingColumns(InsertFromSubQueryAnalyzedStatement context, QuerySpec querySpec) {
+    private void validateMatchingColumns(InsertFromSubQueryAnalyzedStatement context,
+                                         QuerySpec querySpec) {
         if (context.columns().size() != querySpec.outputs().size()) {
-            throw new IllegalArgumentException("Number of columns in insert statement and subquery differ");
+            Joiner commaJoiner = Joiner.on(", ");
+            throw new IllegalArgumentException(String.format("Number of target columns (%s) of insert statement doesn't match number of source columns (%s)",
+                    commaJoiner.join(Iterables.transform(context.columns(), Reference.TO_COLUMN_NAME)),
+                    commaJoiner.join(Iterables.transform(querySpec.outputs(), SymbolPrinter.FUNCTION))));
         }
 
         int failedCastPosition = querySpec.castOutputs(Iterators.transform(context.columns().iterator(), Symbols.TYPES_FUNCTION));

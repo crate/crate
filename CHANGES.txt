@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved the error message of insert into target/source column size
+   miss-match
+
  - Create Table statements now validate that the PRIMARY KEY constraint doesn't
    contain columns with unsupported data types
 
