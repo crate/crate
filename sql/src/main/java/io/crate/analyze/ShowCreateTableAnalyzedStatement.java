@@ -60,4 +60,9 @@ public class ShowCreateTableAnalyzedStatement extends AbstractShowAnalyzedStatem
     public List<Field> fields() {
         return fields;
     }
+
+    @Override
+    public boolean isWriteOperation() {
+        return false;
+    }
 }

@@ -47,4 +47,9 @@ public class DeleteAnalyzedStatement implements AnalyzedStatement {
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitDeleteStatement(this, context);
     }
+
+    @Override
+    public boolean isWriteOperation() {
+        return true;
+    }
 }

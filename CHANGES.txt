@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Nodes can be configured now to allow only SQL statemens resulting
+   in read operations using new setting ``node.sql.read_only`.
+
  - Improved bulk insert/update and copy-from performance when replicas
    are configured.
 

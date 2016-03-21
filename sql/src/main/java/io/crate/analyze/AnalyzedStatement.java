@@ -24,4 +24,14 @@ package io.crate.analyze;
 public interface AnalyzedStatement {
 
     <C, R> R accept(AnalyzedStatementVisitor<C,R> analyzedStatementVisitor, C context);
+
+    /**
+     * Defines whether an operation changes the cluster in any way (write).
+     *
+     * <p>
+     * NOTE: Read only statements with possible writing child statements (like e.g. select using update subquery)
+     * must take care about child's write behaviour while returning here.
+     * </p>
+     */
+    boolean isWriteOperation();
 }

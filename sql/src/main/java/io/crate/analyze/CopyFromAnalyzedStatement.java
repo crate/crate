@@ -70,4 +70,9 @@ public class CopyFromAnalyzedStatement extends AbstractCopyAnalyzedStatement {
     public Predicate<DiscoveryNode> nodePredicate() {
         return nodePredicate;
     }
+
+    @Override
+    public boolean isWriteOperation() {
+        return true;
+    }
 }

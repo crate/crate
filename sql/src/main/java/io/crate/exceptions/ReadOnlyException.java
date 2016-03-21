@@ -20,29 +20,18 @@
  * agreement.
  */
 
-package io.crate.analyze;
+package io.crate.exceptions;
 
-import java.util.Set;
+public class ReadOnlyException extends ForbiddenException {
 
-public class ResetAnalyzedStatement implements AnalyzedStatement {
+    private static final String MESSAGE = "Only read operations are allowed on this node";
 
-    private final Set<String> settingsToRemove;
-
-    public ResetAnalyzedStatement(Set<String> settingsToRemove) {
-        this.settingsToRemove = settingsToRemove;
+    public ReadOnlyException() {
+        super(MESSAGE);
     }
 
     @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitResetAnalyzedStatement(this, context);
-    }
-
-    public Set<String> settingsToRemove() {
-        return settingsToRemove;
-    }
-
-    @Override
-    public boolean isWriteOperation() {
-        return true;
+    public int errorCode() {
+        return 1;
     }
 }

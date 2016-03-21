@@ -105,4 +105,9 @@ public class UpdateAnalyzedStatement implements AnalyzedRelation, AnalyzedStatem
     public List<Field> fields() {
         return ImmutableList.of();
     }
+
+    @Override
+    public boolean isWriteOperation() {
+        return true;
+    }
 }
