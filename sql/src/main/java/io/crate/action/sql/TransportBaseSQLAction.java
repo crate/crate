@@ -83,6 +83,8 @@ import java.util.concurrent.CancellationException;
 public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TResponse extends SQLBaseResponse>
         extends TransportAction<TRequest, TResponse> {
 
+    public static final String NODE_READ_ONLY_SETTING = "node.sql.read_only";
+
     private static final String KILLED_MESSAGE = "KILLED";
     private static final DataType[] EMPTY_TYPES = new DataType[0];
     private static final String[] EMPTY_NAMES = new String[0];
@@ -203,6 +205,9 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         try {
             Statement statement = statementCache.get(request.stmt());
             Analysis analysis = analyzer.analyze(statement, getParamContext(request));
+            if (analysis.analyzedStatement().isWriteOperation() && settings.getAsBoolean(NODE_READ_ONLY_SETTING, false)) {
+                throw new ReadOnlyException();
+            }
             processAnalysis(analysis, request, listener, attempt, jobId);
         } catch (Throwable e) {
             logger.debug("Error executing SQLRequest", e);
@@ -378,6 +383,9 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             if (e instanceof ValidationException) {
                 errorCode = 4000 + crateException.errorCode();
                 restStatus = RestStatus.BAD_REQUEST;
+            } else if (e instanceof ForbiddenException) {
+                errorCode = 4030 + crateException.errorCode();
+                restStatus = RestStatus.FORBIDDEN;
             } else if (e instanceof ResourceUnknownException) {
                 errorCode = 4040 + crateException.errorCode();
                 restStatus = RestStatus.NOT_FOUND;

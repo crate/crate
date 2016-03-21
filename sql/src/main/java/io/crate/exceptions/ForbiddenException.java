@@ -20,29 +20,15 @@
  * agreement.
  */
 
-package io.crate.analyze;
+package io.crate.exceptions;
 
-import java.util.Set;
+public abstract class ForbiddenException extends RuntimeException implements CrateException {
 
-public class ResetAnalyzedStatement implements AnalyzedStatement {
-
-    private final Set<String> settingsToRemove;
-
-    public ResetAnalyzedStatement(Set<String> settingsToRemove) {
-        this.settingsToRemove = settingsToRemove;
+    public ForbiddenException(String s) {
+        super(s);
     }
 
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitResetAnalyzedStatement(this, context);
-    }
-
-    public Set<String> settingsToRemove() {
-        return settingsToRemove;
-    }
-
-    @Override
-    public boolean isWriteOperation() {
-        return true;
+    public ForbiddenException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

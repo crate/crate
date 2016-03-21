@@ -45,4 +45,9 @@ public class KillAnalyzedStatement implements AnalyzedStatement {
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitKillAnalyzedStatement(this, context);
     }
+
+    @Override
+    public boolean isWriteOperation() {
+        return true;
+    }
 }

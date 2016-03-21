@@ -37,7 +37,6 @@ import io.crate.planner.projection.WriterProjection;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
-import javax.print.attribute.standard.Compression;
 import java.util.List;
 import java.util.Map;
 
@@ -128,5 +127,10 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement imple
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitCopyToAnalyzedStatement(this, context);
+    }
+
+    @Override
+    public boolean isWriteOperation() {
+        return false;
     }
 }

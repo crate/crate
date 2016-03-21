@@ -735,6 +735,11 @@
 
 ###################################### SQL ####################################
 
+# Defines whether SQL statements resulting in modification operations are
+# allowed on this node.
+#
+# node.sql.read_only: false
+
 # A SQL DML operation over a huge amount of rows (such as INSERT FROM SUBQUERY,
 # UPDATE or COPY FROM) can take an enormous amount of time and resources
 # of your cluster. To execute such queries more failsafe even with

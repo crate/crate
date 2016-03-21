@@ -74,4 +74,8 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
         return fields;
     }
 
+    @Override
+    public boolean isWriteOperation() {
+        return false;
+    }
 }

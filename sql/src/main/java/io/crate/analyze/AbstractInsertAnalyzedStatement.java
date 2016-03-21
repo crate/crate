@@ -138,4 +138,9 @@ public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStateme
         }
         return new Reference(referenceInfo);
     }
+
+    @Override
+    public boolean isWriteOperation() {
+        return true;
+    }
 }

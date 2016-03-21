@@ -305,6 +305,16 @@ Nodes that do not contain *data* and are not eligible as *master* are called
    node:
      client: true
 
+Read-only node
+--------------
+
+**node.sql.read_only**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  If set to ``true``, the node will only allow SQL statements which
+  are resulting in read operations.
+
 .. _conf_hosts:
 
 Hosts
