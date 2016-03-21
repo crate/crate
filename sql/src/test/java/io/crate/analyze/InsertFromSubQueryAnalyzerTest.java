@@ -27,10 +27,14 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.Functions;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
@@ -39,10 +43,13 @@ import io.crate.operation.scalar.SubstrFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
 import java.util.Arrays;
 import java.util.List;
@@ -51,19 +58,33 @@ import java.util.Map;
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
+    @Mock
+    private static SchemaInfo schemaInfo;
+
     static class TestMetaDataModule extends MetaDataModule {
+
         @Override
         protected void bindSchemas() {
             super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
+    }
+
+    @Before
+    public void initGeneratedColumnTable() throws Exception {
+        TableIdent usersGeneratedIdent = new TableIdent(null, "users_generated");
+        DocTableInfo usersGenerated = new TestingTableInfo.Builder(usersGeneratedIdent, SHARD_ROUTING)
+                .add("id", DataTypes.LONG)
+                .add("firstname", DataTypes.STRING)
+                .add("lastname", DataTypes.STRING)
+                .addGeneratedColumn("name", DataTypes.STRING, "firstname || ' ' || lastname", false)
+                .addPrimaryKey("id").build(injector.getInstance(Functions.class));
+        when(schemaInfo.getTableInfo(usersGeneratedIdent.name())).thenReturn(usersGenerated);
     }
 
     @Override
@@ -100,14 +121,14 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testFromQueryWithoutColumns() throws Exception {
-        InsertFromSubQueryAnalyzedStatement analysis = (InsertFromSubQueryAnalyzedStatement)
+        InsertFromSubQueryAnalyzedStatement analysis =
                 analyze("insert into users (select * from users where name = 'Trillian')");
         assertCompatibleColumns(analysis);
     }
 
     @Test
     public void testFromQueryWithSubQueryColumns() throws Exception {
-        InsertFromSubQueryAnalyzedStatement analysis = (InsertFromSubQueryAnalyzedStatement)
+        InsertFromSubQueryAnalyzedStatement analysis =
                 analyze("insert into users (" +
                         "  select id, other_id, name, text, no_index, details, " +
                         "      awesome, counters, friends, tags, bytes, shorts, shape, ints, floats " +
@@ -141,7 +162,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testFromQueryWithInsertColumns() throws Exception {
-        InsertFromSubQueryAnalyzedStatement analysis = (InsertFromSubQueryAnalyzedStatement)
+        InsertFromSubQueryAnalyzedStatement analysis =
             analyze("insert into users (id, name, details) (" +
                     "  select id, name, details from users " +
                     "  where name = 'Trillian'" +
@@ -160,7 +181,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testFromQueryWithConvertableInsertColumns() throws Exception {
-        InsertFromSubQueryAnalyzedStatement analysis = (InsertFromSubQueryAnalyzedStatement)
+        InsertFromSubQueryAnalyzedStatement analysis =
             analyze("insert into users (id, name) (" +
                 "  select id, other_id from users " +
                 "  where name = 'Trillian'" +
@@ -170,7 +191,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testFromQueryWithFunctionSubQuery() throws Exception {
-        InsertFromSubQueryAnalyzedStatement analysis = (InsertFromSubQueryAnalyzedStatement)
+        InsertFromSubQueryAnalyzedStatement analysis =
             analyze("insert into users (id) (" +
                 "  select count(*) from users " +
                 "  where name = 'Trillian'" +
@@ -180,7 +201,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testImplicitTypeCasting() throws Exception {
-        InsertFromSubQueryAnalyzedStatement statement = (InsertFromSubQueryAnalyzedStatement)
+        InsertFromSubQueryAnalyzedStatement statement =
                 analyze("insert into users (id, name, shape) (" +
                         "  select id, other_id, name from users " +
                         "  where name = 'Trillian'" +
@@ -197,7 +218,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testFromQueryWithOnDuplicateKey() throws Exception {
-        InsertFromSubQueryAnalyzedStatement statement = (InsertFromSubQueryAnalyzedStatement)
+        InsertFromSubQueryAnalyzedStatement statement =
                 analyze("insert into users (id, name) (select id, name from users) " +
                         "on duplicate key update name = 'Arthur'");
 
@@ -211,7 +232,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testFromQueryWithOnDuplicateKeyParameter() throws Exception {
-        InsertFromSubQueryAnalyzedStatement statement = (InsertFromSubQueryAnalyzedStatement)
+        InsertFromSubQueryAnalyzedStatement statement =
                 analyze("insert into users (id, name) (select id, name from users) " +
                         "on duplicate key update name = ?",
                         new Object[]{ "Arthur" });
@@ -226,7 +247,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testFromQueryWithOnDuplicateKeyValues() throws Exception {
-        InsertFromSubQueryAnalyzedStatement statement = (InsertFromSubQueryAnalyzedStatement)
+        InsertFromSubQueryAnalyzedStatement statement =
                 analyze("insert into users (id, name) (select id, name from users) " +
                         "on duplicate key update name = substr(values (name), 1, 1)");
 
@@ -256,5 +277,17 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Primary key is required but is missing from the insert statement");
         analyze("insert into users (name) (select name from users)");
+    }
+
+    @Test
+    public void testTargetColumnsMustMatchSourceColumnsEvenWithGeneratedColumns() throws Exception {
+        /**
+         * We want the copy case (insert into target (select * from source)) to work so there is no special logic
+         * to exclude generated columns from the target
+         */
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Number of target columns (id, firstname, lastname, name) " +
+                                        "of insert statement doesn't match number of source columns (id, firstname, lastname)");
+        analyze("insert into users_generated (select id, firstname, lastname from users_generated)");
     }
 }

@@ -159,26 +159,27 @@ public class QuerySpec {
      */
     public int castOutputs(Iterator<DataType> types) {
         int i = 0;
-        while (types.hasNext()) {
+        ListIterator<Symbol> outputsIt = outputs.listIterator();
+        while (types.hasNext() && outputsIt.hasNext()) {
             DataType targetType = types.next();
-            if (targetType != null) {
-                Symbol output = outputs.get(i);
-                DataType sourceType = output.valueType();
-                if (!sourceType.equals(targetType)) {
-                    if (sourceType.isConvertableTo(targetType)) {
-                        Function castFunction = new Function(
-                                CastFunctionResolver.functionInfo(sourceType, targetType, false),
-                                Arrays.asList(output));
-                        if (groupBy().isPresent()) {
-                            Collections.replaceAll(groupBy().get(), output, castFunction);
-                        }
-                        if (orderBy().isPresent()) {
-                            Collections.replaceAll(orderBy().get().orderBySymbols(), output, castFunction);
-                        }
-                        outputs.set(i, castFunction);
-                    } else if (!targetType.equals(DataTypes.UNDEFINED)) {
-                        return i;
+            assert targetType != null : "targetType must not be null";
+
+            Symbol output = outputsIt.next();
+            DataType sourceType = output.valueType();
+            if (!sourceType.equals(targetType)) {
+                if (sourceType.isConvertableTo(targetType)) {
+                    Function castFunction = new Function(
+                            CastFunctionResolver.functionInfo(sourceType, targetType, false),
+                            Arrays.asList(output));
+                    if (groupBy().isPresent()) {
+                        Collections.replaceAll(groupBy().get(), output, castFunction);
                     }
+                    if (orderBy().isPresent()) {
+                        Collections.replaceAll(orderBy().get().orderBySymbols(), output, castFunction);
+                    }
+                    outputsIt.set(castFunction);
+                } else if (!targetType.equals(DataTypes.UNDEFINED)) {
+                    return i;
                 }
             }
             i++;

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved the error message of insert into target/source column size
+   miss-match
+
  - Fixed an issue that could cause INSERT INTO with an INNER JOIN in the
    sub-query to fail.
 

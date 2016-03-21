@@ -22,8 +22,10 @@
 
 package io.crate.analyze.symbol.format;
 
+import com.google.common.base.*;
 import io.crate.analyze.relations.RelationPrinter;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Function;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -68,6 +70,14 @@ public class SymbolPrinter {
         public String operator(Function function) {
             assert function.info().ident().name().startsWith("op_");
             return function.info().ident().name().substring(3).toUpperCase(Locale.ENGLISH);
+        }
+    };
+
+    public static final com.google.common.base.Function<? super Symbol, String> FUNCTION = new com.google.common.base.Function<Symbol, String>() {
+        @Nullable
+        @Override
+        public String apply(@Nullable Symbol input) {
+            return input == null ? null : INSTANCE.printSimple(input);
         }
     };
 
