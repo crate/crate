@@ -251,8 +251,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             return shardIndexOperation(request, item, version, indexShard);
         } catch (WriteFailureException w) {
             Throwable t = w.getCause();
-            if (t instanceof VersionConflictEngineException
-                && retryCount < item.retryOnConflict()) {
+            if (t instanceof VersionConflictEngineException && item.retryOnConflict()) {
+                if (logger.isTraceEnabled()) {
+                    logger.trace("[{}] VersionConflict, retrying operation for document id {}, retry count: {}",
+                            indexShard.shardId(), item.id(), retryCount);
+                }
                 return indexItem(tableInfo, request, item, indexShard, false, retryCount + 1);
             } else if (tryInsertFirst && item.updateAssignments() != null
                        && t instanceof DocumentAlreadyExistsException) {

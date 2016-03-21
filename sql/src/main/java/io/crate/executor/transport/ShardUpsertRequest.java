@@ -22,7 +22,6 @@
 package io.crate.executor.transport;
 
 import com.google.common.base.Objects;
-import io.crate.Constants;
 import io.crate.Streamer;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
@@ -295,8 +294,8 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             this.source = source;
         }
 
-        public int retryOnConflict() {
-            return version == Versions.MATCH_ANY ? Constants.UPDATE_RETRY_ON_CONFLICT : 0;
+        public boolean retryOnConflict() {
+            return version == Versions.MATCH_ANY;
         }
 
         @Nullable
