@@ -265,7 +265,7 @@ public class NestedLoopConsumer implements Consumer {
                 );
                 localMergePhase.addProjection(finalTopN);
             }
-            return new NestedLoop(nl, leftPlan, rightPlan, localMergePhase);
+            return new NestedLoop(nl, leftPlan, rightPlan, localMergePhase, handlerNodes);
         }
 
         private void addOutputsAndSymbolMap(Iterable<? extends Symbol> outputs,
