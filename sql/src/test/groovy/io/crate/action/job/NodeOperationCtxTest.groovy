@@ -25,13 +25,10 @@ package io.crate.action.job
 import com.carrotsearch.hppc.IntArrayList
 import io.crate.operation.NodeOperation
 import io.crate.planner.distribution.DistributionInfo
-import io.crate.test.integration.CrateUnitTest
 import io.crate.testing.StubPhases
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.ExpectedException
 
-class NodeOperationCtxTest extends CrateUnitTest {
+class NodeOperationCtxTest {
 
     @Test
     void testFindLeafs() {
@@ -52,14 +49,13 @@ class NodeOperationCtxTest extends CrateUnitTest {
     @Test
     void testFindLeafWithNodeOperationsThatHaveNoLeaf() {
         def p1 = StubPhases.newPhase(0, "n1");
-        def opCtx = new ContextPreparer.NodeOperationCtx([
-                NodeOperation.withDownstream(p1, p1, (byte)0, "n1")])
+        def opCtx = new ContextPreparer.NodeOperationCtx([NodeOperation.withDownstream(p1, p1, (byte)0, "n1")])
 
         opCtx.findLeafs().size() == 0;
     }
 
     @Test
-    public void testIsUpstreamOnSameNodeWithSameNodeOptimization() throws Exception {
+    void testIsUpstreamOnSameNodeWithSameNodeOptimization() throws Exception {
         def p1 = StubPhases.newUpstreamPhase(0, DistributionInfo.DEFAULT_BROADCAST, "n1")
         def p2 = StubPhases.newPhase(1, "n1")
         def opCtx = new ContextPreparer.NodeOperationCtx([NodeOperation.withDownstream(p1, p2, (byte)0, "n2")])
@@ -69,7 +65,7 @@ class NodeOperationCtxTest extends CrateUnitTest {
     }
 
     @Test
-    public void testIsUpstreamOnSameNodeWithUpstreamOnOtherNode() throws Exception {
+    void testIsUpstreamOnSameNodeWithUpstreamOnOtherNode() throws Exception {
         def p1 = StubPhases.newUpstreamPhase(0, DistributionInfo.DEFAULT_BROADCAST, "n2")
         def p2 = StubPhases.newPhase(1, "n1")
         def opCtx = new ContextPreparer.NodeOperationCtx([NodeOperation.withDownstream(p1, p2, (byte)0, "n1")])
@@ -78,7 +74,7 @@ class NodeOperationCtxTest extends CrateUnitTest {
     }
 
     @Test
-    public void testIsUpstreamOnSameNodeWithTwoUpstreamsThatAreOnTheSameNode() throws Exception {
+    void testIsUpstreamOnSameNodeWithTwoUpstreamsThatAreOnTheSameNode() throws Exception {
         def p1 = StubPhases.newUpstreamPhase(0, DistributionInfo.DEFAULT_SAME_NODE, "n2")
         def p2 = StubPhases.newUpstreamPhase(2, DistributionInfo.DEFAULT_SAME_NODE, "n2")
         def p3 = StubPhases.newPhase(3, "n2")
