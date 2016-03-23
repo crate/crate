@@ -92,6 +92,7 @@ public class ESQueryBuilderTest extends CrateUnitTest {
                 .add("location", DataTypes.GEO_POINT)
                 .add("shape_col", DataTypes.GEO_SHAPE)
                 .add("short_ref", DataTypes.SHORT)
+                .add("ts", DataTypes.TIMESTAMP)
                 .add("is_paranoid", DataTypes.BOOLEAN)
                 .build();
         TableRelation usersTr = new TableRelation(users);
@@ -595,5 +596,10 @@ public class ESQueryBuilderTest extends CrateUnitTest {
         "{\"query\":" +
         "{\"geo_shape\":{\"shape_col\":{\"shape\":{\"type\":\"Polygon\",\"coordinates\":" +
         "[[[30.0,10.0],[40.0,40.0],[20.0,40.0],[10.0,20.0],[30.0,10.0]]]},\"relation\":\"within\"}}}}");
+    }
+
+    @Test
+    public void testEqOnTimestampResultsInRangeQuery() throws Exception {
+        xcontentAssert("ts = 1458717495000", "{\"query\":{\"range\":{\"ts\":{\"gte\":1458717495000,\"lte\":1458717495000}}}}");
     }
 }

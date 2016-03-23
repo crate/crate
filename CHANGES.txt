@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused `timestamp_column = <exact_value>` not to match
+   in DELETE queries
+
  - Added support for set to array and array to set conversions
 
  - Improved the error message of insert into target/source column size

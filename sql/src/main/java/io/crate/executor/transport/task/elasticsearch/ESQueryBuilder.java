@@ -24,6 +24,7 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.spatial4j.core.context.jts.JtsSpatialContext;
 import com.vividsolutions.jts.geom.Coordinate;
@@ -45,6 +46,7 @@ import io.crate.operation.scalar.elasticsearch.script.NumericScalarSearchScript;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.operation.scalar.regex.RegexMatcher;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
@@ -208,7 +210,7 @@ public class ESQueryBuilder {
             public abstract boolean convert(T function, Context context) throws IOException;
 
             @Nullable
-            protected Tuple<String, Object> getTuple(Symbol ref, Symbol valueSymbol) {
+            protected Tuple<Reference, Object> getTuple(Symbol ref, Symbol valueSymbol) {
                 if (ref.symbolType() == SymbolType.FUNCTION || valueSymbol.symbolType() == SymbolType.FUNCTION) {
                     return null;
                 }
@@ -228,7 +230,7 @@ public class ESQueryBuilder {
                     assert valueSymbol.symbolType().isValueSymbol();
                     value = ((Literal) valueSymbol).value();
                 }
-                return new Tuple<>(((Reference) ref).info().ident().columnIdent().fqn(), value);
+                return new Tuple<>((Reference) ref, value);
             }
         }
 
@@ -515,7 +517,7 @@ public class ESQueryBuilder {
         static abstract class CmpConverter extends Converter<Function> {
 
             @Nullable
-            protected Tuple<String, Object> prepare(Function function) {
+            protected Tuple<Reference, Object> prepare(Function function) {
                 Preconditions.checkArgument(function.arguments().size() == 2, "invalid number of arguments");
 
                 Symbol left = function.arguments().get(0);
@@ -526,7 +528,7 @@ public class ESQueryBuilder {
 
             @Override
             public boolean convert(Function function, Context context) throws IOException {
-                Tuple<String, Object> tuple = prepare(function);
+                Tuple<Reference, Object> tuple = prepare(function);
                 if (tuple == null) {
                     return false;
                 }
@@ -537,13 +539,29 @@ public class ESQueryBuilder {
              * build ES query from extracted columnName and value
              * @throws IOException
              */
-            public abstract boolean buildESQuery(String columnName, Object value, Context context) throws IOException;
+            public abstract boolean buildESQuery(Reference ref, Object value, Context context) throws IOException;
         }
 
         static class EqConverter extends CmpConverter {
+
+            final static Set<DataType> RANGE_TYPES = ImmutableSet.<DataType>builder()
+                    .add(DataTypes.TIMESTAMP)
+                    .build();
+
+
             @Override
-            public boolean buildESQuery(String columnName, Object value, Context context) throws IOException {
-                context.builder.startObject("term").field(columnName, value).endObject();
+            public boolean buildESQuery(Reference ref, Object value, Context context) throws IOException {
+                String fqn = ref.ident().columnIdent().fqn();
+                if (RANGE_TYPES.contains(ref.valueType())) {
+                    context.builder.startObject("range")
+                            .startObject(fqn)
+                            .field("gte", value)
+                            .field("lte", value)
+                            .endObject()
+                            .endObject();
+                } else {
+                    context.builder.startObject("term").field(fqn, value).endObject();
+                }
                 return true;
             }
         }
@@ -598,11 +616,11 @@ public class ESQueryBuilder {
 
             @Override
             public boolean convertArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
-                Tuple<String, Object> tuple = getTuple(arrayReference, literal);
+                Tuple<Reference, Object> tuple = getTuple(arrayReference, literal);
                 if (tuple == null) {
                     return false;
                 }
-                context.builder.startObject("term").field(tuple.v1(), tuple.v2()).endObject();
+                context.builder.startObject("term").field(tuple.v1().ident().columnIdent().fqn(), tuple.v2()).endObject();
                 return true;
             }
 
@@ -628,23 +646,24 @@ public class ESQueryBuilder {
             @Override
             public boolean convertArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
                 // 1 != ANY (array_col) --> gt 1 or lt 1
-                Tuple<String, Object> tuple = getTuple(arrayReference, literal);
+                Tuple<Reference, Object> tuple = getTuple(arrayReference, literal);
                 if (tuple == null) {
                     return false;
                 }
+                String columnName = tuple.v1().ident().columnIdent().fqn();
                 context.builder.startObject("bool")
                         .field("minimum_should_match", 1)
                         .startArray("should")
                             .startObject()
                                 .startObject("range")
-                                    .startObject(tuple.v1())
+                                    .startObject(columnName)
                                         .field("lt", tuple.v2())
                                     .endObject()
                                 .endObject()
                             .endObject()
                             .startObject()
                                 .startObject("range")
-                                    .startObject(tuple.v1())
+                                    .startObject(columnName)
                                         .field("gt", tuple.v2())
                                     .endObject()
                                 .endObject()
@@ -682,10 +701,10 @@ public class ESQueryBuilder {
         static class LikeConverter extends CmpConverter {
 
             @Override
-            public boolean buildESQuery(String columnName, Object value, Context context) throws IOException {
+            public boolean buildESQuery(Reference ref, Object value, Context context) throws IOException {
                 String like = value.toString();
                 like = LuceneQueryBuilder.convertSqlLikeToLuceneWildcard(like);
-                context.builder.startObject("wildcard").field(columnName, like).endObject();
+                context.builder.startObject("wildcard").field(ref.ident().columnIdent().fqn(), like).endObject();
                 return true;
             }
         }
@@ -696,12 +715,7 @@ public class ESQueryBuilder {
 
             @Override
             public boolean convertArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
-                Tuple<String, Object> tuple = getTuple(arrayReference, literal);
-                if (tuple == null) {
-                    return false;
-                }
-                likeConverter.buildESQuery(arrayReference.ident().columnIdent().fqn(),
-                        BytesRefs.toString(literal.value()), context);
+                likeConverter.buildESQuery(arrayReference, BytesRefs.toString(literal.value()), context);
                 return true;
             }
 
@@ -709,11 +723,10 @@ public class ESQueryBuilder {
             public boolean convertArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 // col like ANY (['a', 'b']) --> or(like(col, 'a'), like(col, 'b'))
                 context.builder.startObject("bool").field("minimum_should_match", 1).startArray("should");
-                String columnName = reference.ident().columnIdent().fqn();
 
                 for (Object value : toIterable(arrayLiteral.value())) {
                     context.builder.startObject();
-                    likeConverter.buildESQuery(columnName, value, context);
+                    likeConverter.buildESQuery(reference, value, context);
                     context.builder.endObject();
                 }
                 context.builder.endArray().endObject();
@@ -747,10 +760,9 @@ public class ESQueryBuilder {
                 // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
                 context.builder.startObject("bool").startObject("must_not")
                         .startObject("bool").startArray("must");
-                String columnName = reference.ident().columnIdent().fqn();
                 for (Object value : toIterable(arrayLiteral.value())) {
                     context.builder.startObject();
-                    likeConverter.buildESQuery(columnName, value, context);
+                    likeConverter.buildESQuery(reference, value, context);
                     context.builder.endObject();
                 }
                 context.builder.endArray().endObject()
@@ -805,9 +817,9 @@ public class ESQueryBuilder {
             }
 
             @Override
-            public boolean buildESQuery(String columnName, Object value, Context context) throws IOException {
+            public boolean buildESQuery(Reference ref, Object value, Context context) throws IOException {
                 context.builder.startObject("range")
-                        .startObject(columnName).field(operator, value).endObject()
+                        .startObject(ref.ident().columnIdent().fqn()).field(operator, value).endObject()
                         .endObject();
                 return true;
             }
@@ -826,7 +838,7 @@ public class ESQueryBuilder {
             @Override
             public boolean convertArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
                 // 1 < ANY (array_col) --> {range: { array_col: { lt: 1}}}
-                Tuple<String, Object> tuple = getTuple(arrayReference, literal);
+                Tuple<Reference, Object> tuple = getTuple(arrayReference, literal);
                 if (tuple == null) {
                     return false;
                 }
@@ -837,10 +849,9 @@ public class ESQueryBuilder {
             public boolean convertArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 // col < ANY ([1,2,3]) --> or (<(col, 1), <(col, 2), <(col,3))
                 context.builder.startObject("bool").field("minimum_should_match", 1).startArray("should");
-                String columnName = reference.ident().columnIdent().fqn();
                 for (Object value : toIterable(arrayLiteral.value())) {
                     context.builder.startObject();
-                    inverseRangeConverter.buildESQuery(columnName, value, context);
+                    inverseRangeConverter.buildESQuery(reference, value, context);
                     context.builder.endObject();
                 }
                 context.builder.endArray().endObject();
@@ -851,14 +862,14 @@ public class ESQueryBuilder {
         static class RegexpMatchConverter extends CmpConverter {
 
             @Override
-            public boolean buildESQuery(String columnName, Object value, Context context) throws IOException {
+            public boolean buildESQuery(Reference ref, Object value, Context context) throws IOException {
                 Preconditions.checkArgument(
                         value == null || value instanceof String,
                         "Can only use ~ with patterns of type string");
                 Preconditions.checkArgument(
                         !RegexMatcher.isPcrePattern((String) value),
                         "Using ~ with PCRE regular expressions currently not supported for this type of query");
-                context.builder.startObject("regexp").startObject(columnName)
+                context.builder.startObject("regexp").startObject(ref.ident().columnIdent().fqn())
                         .field("value", value)
                         .field("flags", "ALL")
                         .endObject()

@@ -33,6 +33,8 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.executor.TaskResult;
 import io.crate.planner.Plan;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -2036,6 +2038,32 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.cols(), is(arrayContaining("\"")));
         assertThat((String)response.rows()[0][0], is("'"));
     }
-}
 
+    @Test
+    public void testDeleteWithEqOnTimestamp() throws Exception {
+        execute("create table t (ts timestamp)");
+        ensureYellow();
+        execute("insert into t (ts) values (1458717495000)");
+        execute("refresh table t");
+
+        execute("delete from t where ts = 1458717495000");
+        execute("refresh table t");
+        assertThat(execute("select * from t").rowCount(), is(0L));
+    }
+
+    @Test
+    public void testDeleteWithEqOnNumericType() throws Exception {
+        List<DataType> numericTypes = new ArrayList<>(DataTypes.NUMERIC_PRIMITIVE_TYPES);
+        Collections.shuffle(numericTypes, getRandom());
+
+        execute(String.format("create table t (x %s)", numericTypes.get(0).getName()));
+        ensureYellow();
+        execute("insert into t (x) values (10)");
+        execute("refresh table t");
+
+        execute("delete from t where x = 10");
+        execute("refresh table t");
+        assertThat(execute("select * from t").rowCount(), is(0L));
+    }
+}
 
