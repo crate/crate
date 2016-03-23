@@ -274,6 +274,8 @@ public class JarHell {
                 if (clazz.startsWith("org.apache.log4j")) {
                     return; // go figure, jar hell for what should be System.out.println...
                 }
+                if (clazz.equals("org.elasticsearch.node.internal.InternalSettingsPreparer"))
+                    return; // duplicate class in Crate which includes crate specific settings
                 if (clazz.equals("org.joda.time.base.BaseDateTime")) {
                     return; // apparently this is intentional... clean this up
                 }
