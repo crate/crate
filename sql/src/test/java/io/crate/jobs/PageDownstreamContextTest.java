@@ -32,6 +32,7 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.common.logging.Loggers;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -63,7 +64,8 @@ public class PageDownstreamContextTest extends CrateUnitTest {
             }
         }).when(pageDownstream).fail((Throwable)notNull());
 
-        PageDownstreamContext ctx = new PageDownstreamContext(1, "dummy", pageDownstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
+        PageDownstreamContext ctx = new PageDownstreamContext(Loggers.getLogger(PageDownstreamContext.class), "n1",
+                1, "dummy", pageDownstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
@@ -71,14 +73,15 @@ public class PageDownstreamContextTest extends CrateUnitTest {
 
         Throwable t = ref.get();
         assertThat(t, instanceOf(IllegalStateException.class));
-        assertThat(t.getMessage(), is("May not set the same bucket of a page more than once"));
+        assertThat(t.getMessage(), is("Same bucket of a page set more than once. node=n1 method=setBucket phaseId=1 bucket=1"));
     }
 
     @Test
     public void testKillCallsDownstream() throws Exception {
         PageDownstream downstream = mock(PageDownstream.class);
 
-        PageDownstreamContext ctx = new PageDownstreamContext(1, "dummy", downstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
+        PageDownstreamContext ctx = new PageDownstreamContext(Loggers.getLogger(PageDownstreamContext.class), "n1",
+                1, "dummy", downstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
         final AtomicReference<Throwable> throwable = new AtomicReference<>();
 
         ctx.future().addCallback(new FutureCallback<SubExecutionContextFuture.State>() {

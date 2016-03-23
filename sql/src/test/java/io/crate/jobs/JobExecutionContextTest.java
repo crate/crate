@@ -125,6 +125,8 @@ public class JobExecutionContextTest extends CrateUnitTest {
                 mock(RowReceiver.class),
                 mock(SharedShardContexts.class));
         PageDownstreamContext pageDownstreamContext = spy(new PageDownstreamContext(
+                Loggers.getLogger(PageDownstreamContext.class),
+                "n1",
                 2, "dummy",
                 mock(PageDownstream.class),
                 new Streamer[]{IntegerType.INSTANCE.streamer()},

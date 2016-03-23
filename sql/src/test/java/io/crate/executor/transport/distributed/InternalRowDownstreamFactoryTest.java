@@ -39,6 +39,7 @@ import io.crate.planner.projection.Projection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,6 +56,7 @@ public class InternalRowDownstreamFactoryTest extends CrateUnitTest {
     @Before
     public void before() {
         rowDownstreamFactory = new InternalRowDownstreamFactory(
+                ImmutableSettings.EMPTY,
                 new NoopClusterService(),
                 mock(TransportDistributedResultAction.class)
         );

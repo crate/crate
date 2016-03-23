@@ -43,9 +43,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class DistributingDownstream implements RowReceiver {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(DistributingDownstream.class);
-
     private static final ActionListener<DistributedResultResponse> NO_OP_ACTION_LISTENER = new ActionListener<DistributedResultResponse>() {
+
+        private final ESLogger LOGGER = Loggers.getLogger(DistributingDownstream.class);
+
         @Override
         public void onResponse(DistributedResultResponse distributedResultResponse) {
         }
@@ -59,6 +60,7 @@ public class DistributingDownstream implements RowReceiver {
     @VisibleForTesting
     final MultiBucketBuilder multiBucketBuilder;
 
+    private final ESLogger logger;
     private final UUID jobId;
     private final int targetExecutionPhaseId;
     private final byte inputId;
@@ -77,7 +79,8 @@ public class DistributingDownstream implements RowReceiver {
     private volatile boolean gatherMoreRows = true;
     private boolean hasUpstreamFinished = false;
 
-    public DistributingDownstream(UUID jobId,
+    public DistributingDownstream(ESLogger logger,
+                                  UUID jobId,
                                   MultiBucketBuilder multiBucketBuilder,
                                   int targetExecutionPhaseId,
                                   byte inputId,
@@ -86,6 +89,7 @@ public class DistributingDownstream implements RowReceiver {
                                   TransportDistributedResultAction transportDistributedResultAction,
                                   Streamer<?>[] streamers,
                                   int pageSize) {
+        this.logger = logger;
         this.jobId = jobId;
         this.multiBucketBuilder = multiBucketBuilder;
         this.targetExecutionPhaseId = targetExecutionPhaseId;
@@ -110,16 +114,22 @@ public class DistributingDownstream implements RowReceiver {
         synchronized (lock) {
             if (multiBucketBuilder.size() >= pageSize) {
                 if (requestsPending.get() > 0) {
-                    LOGGER.trace("page is full and requests are pending.. pausing upstream");
+                    traceLog("page is full and requests are pending");
                     pause();
                 } else {
-                    LOGGER.trace("page is full. Sending request");
+                    traceLog("page is full - sending request");
                     multiBucketBuilder.build(buckets);
                     sendRequests(false);
                 }
             }
         }
         return gatherMoreRows;
+    }
+
+    private void traceLog(String msg) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("{}. targetPhase={}/{} bucket={}", msg, targetExecutionPhaseId, inputId, bucketIdx);
+        }
     }
 
     private void sendRequests(boolean isLast) {
@@ -167,14 +177,14 @@ public class DistributingDownstream implements RowReceiver {
         final Throwable throwable = failure.get();
         if (throwable == null) {
             if (requestsPending.get() == 0) {
-                LOGGER.trace("all upstreams finished. Sending last requests");
+                traceLog("all upstreams finished. Sending last requests");
                 multiBucketBuilder.build(buckets);
                 sendRequests(true);
-            } else if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("all upstreams finished. Doing nothing since there are pending requests");
+            } else if (logger.isTraceEnabled()) {
+                traceLog("all upstreams finished. Doing nothing since there are pending requests");
             }
         } else if (!(throwable instanceof CancellationException)) { // no need to forward kill - downstream will receive it too
-            LOGGER.trace("all upstreams finished; forwarding failure");
+            traceLog("all upstreams finished; forwarding failure");
             for (Downstream downstream : downstreams) {
                 downstream.forwardFailure(throwable);
             }
@@ -188,19 +198,24 @@ public class DistributingDownstream implements RowReceiver {
 
     private class Downstream implements ActionListener<DistributedResultResponse> {
 
-        private final String node;
+        private final String targetNode;
         private boolean finished = false;
 
 
-        public Downstream(String node) {
-            this.node = node;
+        public Downstream(String targetNode) {
+            this.targetNode = targetNode;
         }
 
+        private void traceLog(String msg) {
+            if (logger.isTraceEnabled()) {
+                logger.trace("{} targetNode={} targetPhase={}/{} bucket={}", msg, targetNode, targetExecutionPhaseId, inputId, bucketIdx);
+            }
+        }
 
         public void forwardFailure(Throwable throwable) {
-            LOGGER.trace("Sending failure to {}", node);
+            traceLog("Forwarding failure");
             transportDistributedResultAction.pushResult(
-                    node,
+                    targetNode,
                     new DistributedResultRequest(jobId, targetExecutionPhaseId, inputId, bucketIdx, streamers, throwable),
                     NO_OP_ACTION_LISTENER
             );
@@ -211,9 +226,9 @@ public class DistributingDownstream implements RowReceiver {
                 requestsPending.decrementAndGet();
                 return;
             }
-            LOGGER.trace("Sending request to {}", node);
+            traceLog("Sending result");
             transportDistributedResultAction.pushResult(
-                    node,
+                    targetNode,
                     new DistributedResultRequest(jobId, targetExecutionPhaseId, inputId, bucketIdx, streamers, bucket, isLast),
                     this
             );
@@ -234,8 +249,10 @@ public class DistributingDownstream implements RowReceiver {
             finished = !needMore;
             final int numPending = requestsPending.decrementAndGet();
 
-            LOGGER.trace("Received response from downstream: {}; requires more: {}, other pending requests: {}, finished: {}",
-                    node, needMore, numPending, hasUpstreamFinished);
+            if (logger.isTraceEnabled()) {
+                logger.trace("Received response fromNode={} phase={}/{} bucket={} requiresMore={} pendingRequests={} finished={}",
+                        targetNode, targetExecutionPhaseId, inputId, bucketIdx, needMore, numPending, hasUpstreamFinished);
+            }
             if (numPending > 0) {
                 return;
             }

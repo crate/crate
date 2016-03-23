@@ -71,6 +71,7 @@ import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -82,6 +83,7 @@ import java.util.concurrent.Executor;
 public class ContextPreparer extends AbstractComponent {
 
     private final MapSideDataCollectOperation collectOperation;
+    private final ESLogger pageDownstreamContextLogger;
     private ClusterService clusterService;
     private CountOperation countOperation;
     private final ThreadPool threadPool;
@@ -100,6 +102,7 @@ public class ContextPreparer extends AbstractComponent {
                            PageDownstreamFactory pageDownstreamFactory,
                            RowDownstreamFactory rowDownstreamFactory) {
         super(settings);
+        pageDownstreamContextLogger = Loggers.getLogger(PageDownstreamContext.class, settings);
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
@@ -464,6 +467,8 @@ public class ContextPreparer extends AbstractComponent {
 
 
             return new PageDownstreamContext(
+                    pageDownstreamContextLogger,
+                    nodeName(),
                     phase.executionPhaseId(),
                     phase.name(),
                     pageDownstreamProjectorChain.v1(),
@@ -594,6 +599,8 @@ public class ContextPreparer extends AbstractComponent {
                     Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
             );
             return new PageDownstreamContext(
+                    pageDownstreamContextLogger,
+                    nodeName(),
                     mergePhase.executionPhaseId(),
                     mergePhase.name(),
                     pageDownstreamWithChain.v1(),

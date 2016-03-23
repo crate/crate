@@ -29,24 +29,32 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.StreamerVisitor;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.UUID;
 
 @Singleton
-public class InternalRowDownstreamFactory implements RowDownstreamFactory {
+public class InternalRowDownstreamFactory extends AbstractComponent implements RowDownstreamFactory {
 
     private final ClusterService clusterService;
     private final TransportDistributedResultAction transportDistributedResultAction;
+    private final ESLogger distributingDownstreamLogger;
 
     @Inject
-    public InternalRowDownstreamFactory(ClusterService clusterService,
+    public InternalRowDownstreamFactory(Settings settings,
+                                        ClusterService clusterService,
                                         TransportDistributedResultAction transportDistributedResultAction) {
+        super(settings);
         this.clusterService = clusterService;
         this.transportDistributedResultAction = transportDistributedResultAction;
+        distributingDownstreamLogger = Loggers.getLogger(DistributingDownstream.class, settings);
     }
 
     public RowReceiver createDownstream(NodeOperation nodeOperation,
@@ -81,6 +89,7 @@ public class InternalRowDownstreamFactory implements RowDownstreamFactory {
         }
 
         return new DistributingDownstream(
+                distributingDownstreamLogger,
                 jobId,
                 multiBucketBuilder,
                 nodeOperation.downstreamExecutionPhaseId(),
@@ -91,6 +100,5 @@ public class InternalRowDownstreamFactory implements RowDownstreamFactory {
                 streamers,
                 pageSize
         );
-
     }
 }

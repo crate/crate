@@ -32,7 +32,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
 
     protected final ESLogger logger;
     protected final SubExecutionContextFuture future = new SubExecutionContextFuture();
-    private final int id;
+    protected final int id;
 
     private volatile boolean isKilled = false;
 
@@ -51,7 +51,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     @Override
     final public void prepare() {
         if (!future.closed()) {
-            logger.trace("preparing {}: {}", this, id);
+            logger.trace("preparing id={} ctx={}", id, this);
             try {
                 innerPrepare();
             } catch (Throwable t) {
@@ -66,7 +66,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     @Override
     final public void start() {
         if (!future.closed()) {
-            logger.trace("starting {}: {}", this, id);
+            logger.trace("starting id={} ctx={}", id, this);
             try {
                 innerStart();
             } catch (Throwable t) {
@@ -80,7 +80,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
 
     protected boolean close(@Nullable Throwable t) {
         if (future.firstClose()) {
-            logger.trace("closing {}: {}", this, id);
+            logger.trace("closing id={} ctx={}", id, this);
             try {
                 innerClose(t);
             } catch (Throwable t2) {
@@ -112,7 +112,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
             if (t == null) {
                 t = new CancellationException();
             }
-            logger.trace("killing {}: {}", this, id);
+            logger.trace("killing id={} ctx={} cause={}", id, this, t);
             try {
                 innerKill(t);
             } catch (Throwable t2) {

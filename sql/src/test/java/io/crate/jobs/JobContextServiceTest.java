@@ -233,7 +233,8 @@ public class JobContextServiceTest extends CrateUnitTest {
     private JobExecutionContext getJobExecutionContextWithOneActiveSubContext(JobContextService jobContextService) {
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(UUID.randomUUID());
         PageDownstreamContext pageDownstreamContext =
-                new PageDownstreamContext(1, "dummy", mock(PageDownstream.class), new Streamer[0], RAM_ACCOUNTING_CONTEXT, 1, mock(FlatProjectorChain.class));
+                new PageDownstreamContext(Loggers.getLogger(PageDownstreamContext.class), "n1",
+                        1, "dummy", mock(PageDownstream.class), new Streamer[0], RAM_ACCOUNTING_CONTEXT, 1, mock(FlatProjectorChain.class));
         builder1.addSubContext(pageDownstreamContext);
         return jobContextService.createContext(builder1);
     }

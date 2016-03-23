@@ -30,11 +30,13 @@ import io.crate.core.collections.Row1;
 import io.crate.executor.transport.Transports;
 import io.crate.jobs.ExecutionState;
 import io.crate.jobs.JobContextService;
+import io.crate.jobs.PageDownstreamContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.RowSender;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -109,6 +111,7 @@ public class DistributingDownstreamTest extends CrateUnitTest {
         Streamer[] streamers = new Streamer[] {DataTypes.STRING.streamer() };
         int pageSize = 10;
         final DistributingDownstream distributingDownstream = new DistributingDownstream(
+                Loggers.getLogger(PageDownstreamContext.class),
                 UUID.randomUUID(),
                 new BroadcastingBucketBuilder(streamers, 1),
                 1,
@@ -163,6 +166,7 @@ public class DistributingDownstreamTest extends CrateUnitTest {
         };
 
         DistributingDownstream dd = new DistributingDownstream(
+                Loggers.getLogger(DistributingDownstream.class),
                 UUID.randomUUID(),
                 new BroadcastingBucketBuilder(streamers, 2),
                 1,
