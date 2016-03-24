@@ -176,14 +176,17 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
 
                     // prevent other tests from failing:
                     for (JobExecutionContext jobExecutionContext : contexts.values()) {
-                        jobExecutionContext.kill();
+                        try {
+                            jobExecutionContext.kill();
+                        } catch (Throwable t) {
+                            LOGGER.error("Error killing {} in assertNoJobExecutionContextAreLeftOpen", t, jobExecutionContext);
+                        }
                     }
                     contexts.clear();
                 } catch (IllegalAccessException ex) {
                     throw Throwables.propagate(e);
                 }
             }
-            printStackDump(LOGGER);
             throw new AssertionError(errorMessageBuilder.toString(), e);
         }
     }
