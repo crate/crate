@@ -30,6 +30,7 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
 import io.crate.planner.Plan;
+import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
@@ -2114,8 +2115,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(((String) response.rows()[0][0]), is("{\"v\":\"Marvin\"}"));
     }
 
-    @Test
-    public void testDeletePartitionWhileInsertingData() throws Exception {
+    private void deletePartitionWhileInsertingData(final boolean useBulk) throws Exception {
         execute("create table parted (id int, name string) " +
                 "partitioned by (id) " +
                 "with (number_of_replicas = 0)");
@@ -2131,104 +2131,73 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         final int idToDelete = 1;
 
         final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
-        final CountDownLatch inserts = new CountDownLatch(1);
+        final CountDownLatch insertLatch = new CountDownLatch(1);
+        final String insertStmt = "insert into parted (id, name) values (?, ?)";
         Thread insertThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    for (Object[] args : bulkArgs) {
-                        execute("insert into parted (id, name) values (?, ?)", args);
+                    if (useBulk) {
+                        execute(insertStmt, bulkArgs);
+                    } else {
+                        for (Object[] args : bulkArgs) {
+                            execute(insertStmt, args);
+                        }
                     }
                 } catch (Exception t) {
                     exceptionRef.set(t);
                 } finally {
-                    inserts.countDown();
+                    insertLatch.countDown();
                 }
             }
         });
 
-        final CountDownLatch deletes = new CountDownLatch(1);
-        Thread deleteThread = deletePartitionThread(deletes, "parted", idToDelete);
-
-        insertThread.start();
-        deleteThread.start();
-        deletes.await(2, TimeUnit.SECONDS);
-        inserts.await(2, TimeUnit.SECONDS);
-
-        Exception exception = exceptionRef.get();
-        if (exception != null) {
-            throw exception;
-        }
-    }
-
-    @Test
-    public void testDeletePartitionWhileBulkInsertingData() throws Exception {
-        execute("create table parted (id int, name string) " +
-                "partitioned by (id) " +
-                "with (number_of_replicas = 0)");
-        ensureYellow();
-
-        int numberOfDocs = 1000;
-        final Object[][] bulkArgs = new Object[numberOfDocs][];
-        for (int i = 0; i < numberOfDocs; i++) {
-            bulkArgs[i] = new Object[]{i % 2, randomAsciiOfLength(10)};
-        }
-
-        // partition to delete
-        final int idToDelete = 1;
-
-        final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
-        final CountDownLatch inserts = new CountDownLatch(1);
-        Thread insertThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    execute("insert into parted (id, name) values (?, ?)", bulkArgs);
-                } catch (Exception t) {
-                    exceptionRef.set(t);
-                } finally {
-                    inserts.countDown();
-                }
-            }
-        });
-
-        final CountDownLatch deletes = new CountDownLatch(1);
-        Thread deleteThread = deletePartitionThread(deletes, "parted", idToDelete);
-
-        insertThread.start();
-        deleteThread.start();
-        deletes.await(2, TimeUnit.SECONDS);
-        inserts.await(2, TimeUnit.SECONDS);
-
-        Exception exception = exceptionRef.get();
-        if (exception != null) {
-            throw exception;
-        }
-    }
-
-    private Thread deletePartitionThread(final CountDownLatch latch, final String tableName, final int idToDelete) {
-        return new Thread(new Runnable() {
+        final CountDownLatch deleteLatch = new CountDownLatch(1);
+        final String partitionName = new PartitionName("parted",
+                Collections.singletonList(new BytesRef(String.valueOf(idToDelete)))
+        ).asIndexName();
+        final Object[] deleteArgs = new Object[]{idToDelete};
+        Thread deleteThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 boolean deleted = false;
                 while (!deleted) {
                     try {
-                        String partitionName = new PartitionName(tableName,
-                                Collections.singletonList(new BytesRef(String.valueOf(idToDelete)))
-                        ).asIndexName();
                         MetaData metaData = client().admin().cluster().prepareState().execute().actionGet()
                                 .getState().metaData();
                         if (metaData.indices().get(partitionName) != null) {
-                            execute("delete from " + tableName + " where id = ?", new Object[]{idToDelete});
+                            execute("delete from parted where id = ?", deleteArgs);
                             deleted = true;
                         }
                     } catch (Throwable t) {
                         // ignore (mostly partition index does not exists yet)
                     }
                 }
-                latch.countDown();
+                deleteLatch.countDown();
             }
         });
 
+        insertThread.start();
+        deleteThread.start();
+        deleteLatch.await(SQLTransportExecutor.REQUEST_TIMEOUT.getSeconds() + 1, TimeUnit.SECONDS);
+        insertLatch.await(SQLTransportExecutor.REQUEST_TIMEOUT.getSeconds() + 1, TimeUnit.SECONDS);
+
+        Exception exception = exceptionRef.get();
+        if (exception != null) {
+            throw exception;
+        }
+
+        insertThread.join();
+        deleteThread.join();
+    }
+
+    @Test
+    public void testDeletePartitionWhileInsertingData() throws Exception {
+        deletePartitionWhileInsertingData(false);
+    }
+
+    @Test
+    public void testDeletePartitionWhileBulkInsertingData() throws Exception {
+        deletePartitionWhileInsertingData(true);
     }
 }
