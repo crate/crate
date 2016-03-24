@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed issue that caused certain operations not showing up at all
+   in operations_log while other marked as finished even before they actually
+   finished
+
  - Fixed an issue that caused `timestamp_column = <exact_value>` not to match
    in DELETE queries
 

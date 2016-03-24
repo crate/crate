@@ -117,7 +117,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
 
         future.close(new IllegalStateException("dummy"));
 
-        verify(statsTables).operationFinished(anyInt(), eq("dummy"), anyLong());
+        verify(statsTables).operationFinished(anyInt(), any(UUID.class), eq("dummy"), anyLong());
     }
 
     @Test

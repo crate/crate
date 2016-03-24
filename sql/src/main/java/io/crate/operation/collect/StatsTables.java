@@ -30,6 +30,7 @@ import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
 import jsr166e.LongAdder;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -59,7 +60,7 @@ public class StatsTables {
     private final static BlockingQueue<JobContextLog> NOOP_JOBS_LOG = NoopQueue.instance();
 
     protected final Map<UUID, JobContext> jobsTable = new ConcurrentHashMap<>();
-    protected final Map<Integer, OperationContext> operationsTable = new ConcurrentHashMap<>();
+    protected final Map<Tuple<Integer, UUID>, OperationContext> operationsTable = new ConcurrentHashMap<>();
     protected final AtomicReference<BlockingQueue<JobContextLog>> jobsLog = new AtomicReference<>(NOOP_JOBS_LOG);
     protected final AtomicReference<BlockingQueue<OperationContextLog>> operationsLog = new AtomicReference<>(NOOP_OPERATIONS_LOG);
 
@@ -121,6 +122,13 @@ public class StatsTables {
     }
 
     /**
+     * Generate a unique ID for an operation based on jobId and operationId.
+     */
+    private static Tuple<Integer, UUID> uniqueOperationId(int operationId, UUID jobId) {
+        return Tuple.tuple(operationId, jobId);
+    }
+
+    /**
      * Track a job. If the job has finished {@link #jobFinished(java.util.UUID, String)}
      * must be called.
      *
@@ -153,16 +161,16 @@ public class StatsTables {
     public void operationStarted(int operationId, UUID jobId, String name) {
         if (isEnabled()) {
             operationsTable.put(
-                    operationId,
+                    uniqueOperationId(operationId, jobId),
                     new OperationContext(operationId, jobId, name, System.currentTimeMillis()));
         }
     }
 
-    public void operationFinished(@Nullable Integer operationId, @Nullable String errorMessage, long usedBytes) {
-        if (operationId == null || !isEnabled()) {
+    public void operationFinished(@Nullable Integer operationId, @Nullable UUID jobId, @Nullable String errorMessage, long usedBytes) {
+        if (operationId == null || jobId == null | !isEnabled()) {
             return;
         }
-        OperationContext operationContext = operationsTable.remove(operationId);
+        OperationContext operationContext = operationsTable.remove(uniqueOperationId(operationId, jobId));
         if (operationContext == null) {
             // this might be the case if the stats were disabled when the operation started but have
             // been enabled before the finish

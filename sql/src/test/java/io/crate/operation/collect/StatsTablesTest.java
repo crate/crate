@@ -36,6 +36,7 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
 
 import static org.hamcrest.core.Is.is;
 
@@ -99,5 +100,29 @@ public class StatsTablesTest extends CrateUnitTest {
                 .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 1).build());
 
         assertThat(stats.operationsLog.get().size(), is(1));
+    }
+
+    @Test
+    public void testUniqueOperationIdsInOperationsTable() throws Exception {
+        NodeSettingsService nodeSettingsService = new NodeSettingsService(ImmutableSettings.EMPTY);
+        Settings settings = ImmutableSettings.builder()
+                .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
+        StatsTables stats = new StatsTables(settings, nodeSettingsService);
+
+        OperationContext ctxA = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L);
+        stats.operationStarted(ctxA.id, ctxA.jobId, ctxA.name);
+
+        OperationContext ctxB = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L);
+        stats.operationStarted(ctxB.id, ctxB.jobId, ctxB.name);
+
+        stats.operationFinished(ctxB.id, ctxB.jobId, null, -1);
+
+        BlockingQueue<OperationContextLog> queue = stats.operationsLog.get();
+        assertTrue(queue.contains(new OperationContextLog(ctxB, null)));
+        assertFalse(queue.contains(new OperationContextLog(ctxA, null)));
+
+        stats.operationFinished(ctxA.id, ctxA.jobId, null, -1);
+        assertTrue(queue.contains(new OperationContextLog(ctxA, null)));
+
     }
 }

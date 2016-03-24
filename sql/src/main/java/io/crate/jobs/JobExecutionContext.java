@@ -284,14 +284,14 @@ public class JobExecutionContext implements KeepAliveListener {
         public void onSuccess(@Nullable SubExecutionContextFuture.State state) {
             keepAlive();
             assert state != null;
-            statsTables.operationFinished(id, null, state.bytesUsed());
+            statsTables.operationFinished(id, jobId, null, state.bytesUsed());
             remove();
         }
 
         @Override
         public void onFailure(@Nonnull Throwable t) {
             failure = t;
-            statsTables.operationFinished(id, Exceptions.messageOf(t), -1);
+            statsTables.operationFinished(id, jobId, Exceptions.messageOf(t), -1);
             if (remove() == RemoveSubContextPosition.LAST){
                 return;
             }
