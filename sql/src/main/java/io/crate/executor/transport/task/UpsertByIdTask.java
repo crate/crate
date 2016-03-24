@@ -31,6 +31,7 @@ import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.jobs.*;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import org.elasticsearch.ExceptionsHelper;
@@ -47,6 +48,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
+import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -138,14 +140,23 @@ public class UpsertByIdTask extends JobTask {
     }
 
     private void executeUpsertRequest(final UpsertByIdNode.Item item, final SettableFuture futureResult) {
-        ShardId shardId = clusterService.operationRouting().indexShards(
-                clusterService.state(),
-                item.index(),
-                Constants.DEFAULT_MAPPING_TYPE,
-                item.id(),
-                item.routing()
-        ).shardId();
-
+        ShardId shardId;
+        try {
+            shardId = clusterService.operationRouting().indexShards(
+                    clusterService.state(),
+                    item.index(),
+                    Constants.DEFAULT_MAPPING_TYPE,
+                    item.id(),
+                    item.routing()
+            ).shardId();
+        } catch (IndexMissingException e) {
+            if (PartitionName.isPartition(item.index())) {
+                // partition was deleted while insert was already running
+                futureResult.set(TaskResult.ZERO);
+                return;
+            }
+            throw e;
+        }
         ShardUpsertRequest upsertRequest = new ShardUpsertRequest(
                 shardId, node.updateColumns(), node.insertColumns(), item.routing(), jobId());
         upsertRequest.continueOnError(false);

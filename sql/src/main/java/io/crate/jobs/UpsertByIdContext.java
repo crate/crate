@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.metadata.PartitionName;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -33,6 +34,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -94,6 +96,9 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                         && (e instanceof DocumentMissingException
                         || e instanceof VersionConflictEngineException)) {
                     // on updates, set affected row to 0 if document is not found or version conflicted
+                    futureResult.set(TaskResult.ZERO);
+                } else if (e instanceof IndexMissingException && PartitionName.isPartition(request.index())) {
+                    // partition was deleted while inserting
                     futureResult.set(TaskResult.ZERO);
                 } else {
                     futureResult.setException(e);

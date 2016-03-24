@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed error handling of concurrent update/insert and delete
+   statements on partitioned tables.
+
  - Improved the error message of ON DUPLICATE KEY statements that attempt to
    update null objects using a subscript notation.
 

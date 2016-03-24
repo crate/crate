@@ -77,6 +77,7 @@ import org.elasticsearch.index.mapper.internal.RoutingFieldMapper;
 import org.elasticsearch.index.mapper.internal.TTLFieldMapper;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -220,7 +221,8 @@ public class TransportShardUpsertAction
                         0);
                 shardUpsertResponse.add(location);
             } catch (Throwable t) {
-                if (!TransportActions.isShardNotAvailableException(t) && !request.continueOnError()) {
+                if ((!TransportActions.isShardNotAvailableException(t) && !request.continueOnError())
+                        || (t instanceof IndexMissingException && PartitionName.isPartition(request.index()))) {
                     throw t;
                 } else {
                     logger.debug("{} failed to execute upsert for [{}]/[{}]",
