@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed issue that caused certain operations not showing up at all
+   in operations_log while other marked as finished even before they actually
+   finished
+
  - Nodes can be configured now to allow only SQL statemens resulting
    in read operations using new setting ``node.sql.read_only`.
 

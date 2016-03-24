@@ -135,7 +135,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                 public void onFailure(Throwable t) {
                     fetchContext.kill(t);
                     fetchResponse.onFailure(t);
-                    statsTables.operationFinished(request.fetchPhaseId(), Exceptions.messageOf(t),
+                    statsTables.operationFinished(request.fetchPhaseId(), request.jobId(), Exceptions.messageOf(t),
                             ramAccountingContext.totalBytes());
                 }
 
@@ -147,7 +147,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                     NodeFetchResponse response = NodeFetchResponse.forSending(fetched);
                     fetchContext.close();
                     fetchResponse.onResponse(response);
-                    statsTables.operationFinished(request.fetchPhaseId(), null,
+                    statsTables.operationFinished(request.fetchPhaseId(), request.jobId(), null,
                             ramAccountingContext.totalBytes());
                 }
 
@@ -158,7 +158,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
             });
         } catch (Throwable t) {
             fetchResponse.onFailure(t);
-            statsTables.operationFinished(request.fetchPhaseId(), Exceptions.messageOf(t),
+            statsTables.operationFinished(request.fetchPhaseId(), request.jobId(), Exceptions.messageOf(t),
                     ramAccountingContext.totalBytes());
             ramAccountingContext.close();
         }
