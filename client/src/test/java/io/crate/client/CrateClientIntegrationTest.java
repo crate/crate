@@ -35,7 +35,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 
-public class CrateClientIntegrationTest extends Assert {
+public abstract class CrateClientIntegrationTest extends Assert {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -56,7 +56,8 @@ public class CrateClientIntegrationTest extends Assert {
             }
         };
         try {
-            Files.walkFileTree(Paths.get(System.getProperty("project_root") + "/app/build/distributions/"), matcherVisitor);
+            Files.walkFileTree(Paths.get(
+                    System.getProperty("project_root") + "/app/build/distributions/"), matcherVisitor);
         } catch (IOException e) {
             Throwables.propagate(e);
         }
@@ -73,14 +74,14 @@ public class CrateClientIntegrationTest extends Assert {
         return server.crateHost() + ':' + server.transportPort();
     }
 
-    private void waitForZeroCount(CrateClient client, String stmt){
+    private void waitForZeroCount(CrateClient client, String stmt) {
         for (int i = 1; i < 10; i++) {
-            SQLResponse r = client.sql("select count(*) from sys.shards where primary=true and state<>'STARTED'").actionGet();
+            SQLResponse r = client.sql(stmt).actionGet();
             if (((Long) r.rows()[0][0]) == 0L) {
                 return;
             }
             try {
-                Thread.sleep(i*100);
+                Thread.sleep(i * 100);
             } catch (InterruptedException e) {
                 Throwables.propagate(e);
             }
@@ -88,12 +89,12 @@ public class CrateClientIntegrationTest extends Assert {
         throw new RuntimeException("waiting for zero result timed out");
     }
 
-    protected void ensureYellow(CrateClient client){
-        waitForZeroCount(client, "select count(*) from sys.shards where primary=true and state <> 'STARTED'");
+    protected void ensureYellow(CrateClient client) {
+        waitForZeroCount(client, "select count(*) from sys.shards where \"primary\" = true and state <> 'STARTED'");
     }
 
-    protected void ensureGreen(CrateClient client){
-        waitForZeroCount(client, "select count(*) from sys.shards state <> 'STARTED'");
+    protected void ensureGreen(CrateClient client) {
+        waitForZeroCount(client, "select count(*) from sys.shards where state <> 'STARTED'");
     }
 
 
