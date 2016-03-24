@@ -41,7 +41,6 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
@@ -60,7 +59,6 @@ import java.util.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
 public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -74,10 +72,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public ExpectedException expectedException = ExpectedException.none();
 
     @After
-    @Override
-    public void tearDown() throws Exception {
+    public void resetSettings() throws Exception {
         execute("RESET GLOBAL stats.enabled");
-        super.tearDown();
     }
 
     @Test
@@ -1197,7 +1193,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    public void testAlterPartitionTable() throws Exception {
+    public void testAlterNumberOfReplicas() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
         ensureYellow();
@@ -1207,9 +1203,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
         assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
-        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(3));
 
         execute("alter table quotes set (number_of_replicas=0)");
         ensureYellow();
@@ -1217,9 +1211,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
         templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1), is(0));
         assertThat(templateSettings.getAsBoolean(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, true), is(false));
-        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(3));
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L,
@@ -1230,6 +1223,21 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         refresh();
 
         assertTrue(clusterService().state().metaData().aliases().containsKey("quotes"));
+
+        List<String> partitions = ImmutableList.of(
+                new PartitionName("quotes", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName(),
+                new PartitionName("quotes", Collections.singletonList(new BytesRef("1395961200000"))).asIndexName()
+        );
+
+        GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
+                partitions.get(0), partitions.get(1)
+        ).execute().get();
+
+        for (String index : partitions) {
+            Settings partitionSetting = settingsResponse.getIndexToSettings().get(index);
+            assertThat(partitionSetting.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1), is(0));
+            assertThat(partitionSetting.getAsBoolean(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, true), is(false));
+        }
 
         execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'quotes'");
         assertEquals("0", response.rows()[0][0]);
@@ -1244,21 +1252,13 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
         templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1), is(0));
-        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(3));
         assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("1-all"));
 
-        List<String> partitions = ImmutableList.of(
-                new PartitionName("quotes", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName(),
-                new PartitionName("quotes", Collections.singletonList(new BytesRef("1395961200000"))).asIndexName()
-        );
-        Thread.sleep(1000);
-        GetSettingsResponse settingsResponse = client().admin().indices().prepareGetSettings(
+        settingsResponse = client().admin().indices().prepareGetSettings(
                 partitions.get(0), partitions.get(1)
         ).execute().get();
 
         for (String index : partitions) {
-            assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("1"));
             assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("1-all"));
         }
     }
@@ -1692,8 +1692,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
-        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
         assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(3));
 
         execute("alter table quotes set (number_of_shards=6)");
@@ -1702,8 +1700,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
         templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
-        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
         assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(6));
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?)",
@@ -1744,9 +1740,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         templatesResponse = client().admin().indices()
                 .prepareGetTemplates(templateName).execute().actionGet();
         templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
         assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(2));
-        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
 
         List<String> partitions = ImmutableList.of(
                 new PartitionName("quotes", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName(),
@@ -1759,14 +1753,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         String index = partitions.get(0);
         assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_NUMBER_OF_SHARDS), is("6"));
-        assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("1"));
-        assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
 
         index = partitions.get(1);
         assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_NUMBER_OF_SHARDS), is("2"));
-        assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("1"));
-        assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
-
     }
 
     @Test
