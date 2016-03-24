@@ -242,7 +242,7 @@ public class CrateDocCollector implements CrateCollector {
         private final TopRowUpstream topRowUpstream;
         private final RowReceiver rowReceiver;
         private final Row inputRow;
-        private final Collection<? extends LuceneCollectorExpression<?>> expressions;
+        private final LuceneCollectorExpression[] expressions;
 
         public LuceneDocCollector(RamAccountingContext ramAccountingContext,
                                   TopRowUpstream topRowUpstream,
@@ -253,7 +253,7 @@ public class CrateDocCollector implements CrateCollector {
             this.topRowUpstream = topRowUpstream;
             this.rowReceiver = rowReceiver;
             this.inputRow = inputRow;
-            this.expressions = expressions;
+            this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
         }
 
         @Override
