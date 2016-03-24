@@ -22,7 +22,10 @@
 package io.crate.client;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.action.sql.*;
+import io.crate.action.sql.SQLActionException;
+import io.crate.action.sql.SQLBulkResponse;
+import io.crate.action.sql.SQLRequest;
+import io.crate.action.sql.SQLResponse;
 import io.crate.types.DataType;
 import io.crate.types.IntegerType;
 import org.elasticsearch.action.ActionListener;
@@ -39,8 +42,6 @@ import static org.hamcrest.Matchers.*;
 
 public class CrateClientUsageTest extends CrateClientIntegrationTest {
 
-    private CrateClient client;
-
     @Before
     public void prepare() {
         client = new CrateClient(serverAddress());
@@ -49,7 +50,7 @@ public class CrateClientUsageTest extends CrateClientIntegrationTest {
     @After
     public void tearDown() throws Exception {
         if (client != null) {
-            client.sql("drop table if exists test").actionGet();
+            execute("drop table if exists test");
             client.close();
             client = null;
         }
@@ -57,11 +58,11 @@ public class CrateClientUsageTest extends CrateClientIntegrationTest {
 
     @Test
     public void testCreateTable() throws Exception {
-        client.sql("create table test (id int) with (number_of_replicas=0)").actionGet();
-        ensureYellow(client);
-        client.sql("insert into test (id) values (1)").actionGet();
-        client.sql("refresh table test").actionGet();
-        SQLResponse r = client.sql("select id from test").actionGet();
+        execute("create table test (id int) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into test (id) values (1)");
+        execute("refresh table test");
+        SQLResponse r = execute("select id from test");
 
         assertEquals(1, r.rows().length);
         assertEquals("id", r.cols()[0]);
@@ -74,30 +75,30 @@ public class CrateClientUsageTest extends CrateClientIntegrationTest {
     public void testTryCreateTransportFor() throws Exception {
 
         // These host/port combination should work
-        assertThat(client.tryCreateTransportFor("localhost:1234"), instanceOf(InetSocketTransportAddress.class));
-        assertThat(client.tryCreateTransportFor("1.2.3.4:1234"), instanceOf(InetSocketTransportAddress.class));
-        assertThat(client.tryCreateTransportFor("www.example.com:1234"), instanceOf(InetSocketTransportAddress.class));
-        assertThat(client.tryCreateTransportFor("www.example.com"), instanceOf(InetSocketTransportAddress.class));
-        assertThat(client.tryCreateTransportFor("http://example.com:4321"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client().tryCreateTransportFor("localhost:1234"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client().tryCreateTransportFor("1.2.3.4:1234"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client().tryCreateTransportFor("www.example.com:1234"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client().tryCreateTransportFor("www.example.com"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client().tryCreateTransportFor("http://example.com:4321"), instanceOf(InetSocketTransportAddress.class));
 
 
         // IPV6 - should not throw exceptions
-        assertThat(client.tryCreateTransportFor("[2001:4860:4860::8888]"), instanceOf(InetSocketTransportAddress.class));
-        assertThat(client.tryCreateTransportFor("[::1]:1234"), instanceOf(InetSocketTransportAddress.class));
-        assertThat(client.tryCreateTransportFor("[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80"), instanceOf(InetSocketTransportAddress.class));
-        assertThat(client.tryCreateTransportFor("[1080::8:800:200C:417A]"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client().tryCreateTransportFor("[2001:4860:4860::8888]"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client().tryCreateTransportFor("[::1]:1234"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client().tryCreateTransportFor("[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client().tryCreateTransportFor("[1080::8:800:200C:417A]"), instanceOf(InetSocketTransportAddress.class));
 
         // no brackets = no IPv6 literal
-        assertNull(client.tryCreateTransportFor("1080::8:800:200C:417A"));
+        assertNull(client().tryCreateTransportFor("1080::8:800:200C:417A"));
     }
 
 
     @Test
     public void testAsyncRequest() throws Throwable {
-        client.sql("create table test (id int) with (number_of_replicas=0)").actionGet();
-        ensureYellow(client);
-        client.sql("insert into test (id) values (1)").actionGet();
-        client.sql("refresh table test").actionGet();
+        execute("create table test (id int) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into test (id) values (1)");
+        execute("refresh table test");
 
         // In practice use ActionListener onResponse and onFailure to create a Promise instead
         final SettableFuture<Boolean> future = SettableFuture.create();
@@ -128,7 +129,7 @@ public class CrateClientUsageTest extends CrateClientIntegrationTest {
         client.sql("select id from test", listener);
 
         // this will block until timeout is thrown if listener is not called
-        assertThat(future.get(5L, TimeUnit.SECONDS), is(true));
+        assertThat(future.get(SQL_REQUEST_TIMEOUT.getSeconds(), TimeUnit.SECONDS), is(true));
         Throwable error = assertionError.get();
         if (error != null) {
             throw error;
@@ -137,14 +138,14 @@ public class CrateClientUsageTest extends CrateClientIntegrationTest {
 
     @Test
     public void testRequestWithTypes() throws Exception {
-        client.sql("create table test (id int) with (number_of_replicas=0)").actionGet();
-        ensureYellow(client);
-        client.sql("insert into test (id) values (1)").actionGet();
-        client.sql("refresh table test").actionGet();
+        execute("create table test (id int) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into test (id) values (1)");
+        execute("refresh table test");
 
         SQLRequest request =  new SQLRequest("select id from test");
         request.includeTypesOnResponse(true);
-        SQLResponse r = client.sql(request).actionGet();
+        SQLResponse r = execute(request);
 
         assertEquals(1, r.rows().length);
         assertEquals("id", r.cols()[0]);
@@ -155,23 +156,20 @@ public class CrateClientUsageTest extends CrateClientIntegrationTest {
 
     @Test
     public void testSetSerialization() throws Exception {
-        SQLResponse r = client.sql("select constraint_name " +
-                "from information_schema.table_constraints").actionGet();
+        SQLResponse r = execute("select constraint_name from information_schema.table_constraints");
         assertTrue(r.rows()[0][0] instanceof Object[]);
         assertThat(((Object[]) r.rows()[0][0])[0], instanceOf(String.class));
     }
 
     @Test
     public void testBulkSql() throws Exception {
-        client.sql("create table test (a string, b int) with (number_of_replicas=0)").actionGet();
-        ensureGreen(client);
-        client.sql("insert into test (a, b) values ('foo', 1)").actionGet();
-        client.sql("refresh table test").actionGet();
+        execute("create table test (a string, b int) with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into test (a, b) values ('foo', 1)");
+        execute("refresh table test");
 
-        SQLBulkRequest bulkRequest = new SQLBulkRequest(
-                "update test set a = ? where b = ?",
+        SQLBulkResponse bulkResponse = execute("update test set a = ? where b = ?",
                 new Object[][]{new Object[]{"bar", 1}, new Object[]{"baz", 1}});
-        SQLBulkResponse bulkResponse = client.bulkSql(bulkRequest).actionGet();
         assertThat(bulkResponse.results().length, is(2));
         for (SQLBulkResponse.Result result : bulkResponse.results()) {
             assertThat(result.rowCount(), is(1L));
@@ -181,7 +179,7 @@ public class CrateClientUsageTest extends CrateClientIntegrationTest {
 
     @Test
     public void testClusterSettingsSerialization() throws Exception {
-        SQLResponse r = client.sql("select settings from sys.cluster").actionGet();
+        SQLResponse r = execute("select settings from sys.cluster");
         assertThat(r.rowCount(), is(1L));
         assertTrue(r.rows()[0][0] instanceof Map);
     }
@@ -190,6 +188,6 @@ public class CrateClientUsageTest extends CrateClientIntegrationTest {
     public void testException() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("line 1:1: no viable alternative at input 'error'");
-        client.sql("error").actionGet();
+        execute("error");
     }
 }

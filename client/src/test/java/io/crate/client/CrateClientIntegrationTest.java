@@ -22,10 +22,15 @@
 
 package io.crate.client;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Throwables;
+import io.crate.action.sql.SQLBulkRequest;
+import io.crate.action.sql.SQLBulkResponse;
+import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.testing.CrateTestCluster;
 import io.crate.testing.CrateTestServer;
+import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -34,8 +39,13 @@ import org.junit.rules.ExpectedException;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.concurrent.TimeUnit;
 
 public abstract class CrateClientIntegrationTest extends Assert {
+
+    private static final String SQL_REQUEST_TIMEOUT_ENV = "CRATE_TESTS_SQL_REQUEST_TIMEOUT";
+    protected static final TimeValue SQL_REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
+            MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT_ENV), "5")), TimeUnit.SECONDS);
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -64,6 +74,8 @@ public abstract class CrateClientIntegrationTest extends Assert {
         assert tarBallPath != null;
     }
 
+    protected CrateClient client;
+
 
     @ClassRule
     public static final CrateTestCluster testCluster = CrateTestCluster.fromFile(tarBallPath)
@@ -74,9 +86,14 @@ public abstract class CrateClientIntegrationTest extends Assert {
         return server.crateHost() + ':' + server.transportPort();
     }
 
-    private void waitForZeroCount(CrateClient client, String stmt) {
+    protected CrateClient client() {
+        assert client != null : "client not set";
+        return client;
+    }
+
+    private void waitForZeroCount(String stmt) {
         for (int i = 1; i < 10; i++) {
-            SQLResponse r = client.sql(stmt).actionGet();
+            SQLResponse r = client().sql(stmt).actionGet(5, TimeUnit.SECONDS);
             if (((Long) r.rows()[0][0]) == 0L) {
                 return;
             }
@@ -89,13 +106,23 @@ public abstract class CrateClientIntegrationTest extends Assert {
         throw new RuntimeException("waiting for zero result timed out");
     }
 
-    protected void ensureYellow(CrateClient client) {
-        waitForZeroCount(client, "select count(*) from sys.shards where \"primary\" = true and state <> 'STARTED'");
+    protected void ensureYellow() {
+        waitForZeroCount("select count(*) from sys.shards where \"primary\" = true and state <> 'STARTED'");
     }
 
-    protected void ensureGreen(CrateClient client) {
-        waitForZeroCount(client, "select count(*) from sys.shards where state <> 'STARTED'");
+    protected void ensureGreen() {
+        waitForZeroCount("select count(*) from sys.shards where state <> 'STARTED'");
     }
 
+    protected SQLResponse execute(String stmt) {
+        return client().sql(stmt).actionGet(SQL_REQUEST_TIMEOUT.getSeconds(), TimeUnit.SECONDS);
+    }
 
+    protected SQLResponse execute(SQLRequest request) {
+        return client().sql(request).actionGet(SQL_REQUEST_TIMEOUT.getSeconds(), TimeUnit.SECONDS);
+    }
+
+    protected SQLBulkResponse execute(String stmt, Object[][] bulkArgs) {
+        return client().bulkSql(new SQLBulkRequest(stmt, bulkArgs)).actionGet(SQL_REQUEST_TIMEOUT.getSeconds(), TimeUnit.SECONDS);
+    }
 }
