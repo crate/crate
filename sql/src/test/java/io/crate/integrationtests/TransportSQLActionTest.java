@@ -1868,6 +1868,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectFrom_Doc() throws Exception {
         execute("create table t (name string) with (number_of_replicas = 0)");
+        ensureYellow();
         execute("insert into t (name) values ('Marvin')");
         execute("refresh table t");
 
