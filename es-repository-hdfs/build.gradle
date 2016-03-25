@@ -1,0 +1,163 @@
+plugins {
+    id "de.undercouch.download" version "2.1.0"
+}
+
+description = 'Elasticsearch HDFS Repository'
+
+apply plugin: 'idea'
+apply plugin: 'java'
+apply plugin: 'maven'
+
+configurations {
+    hadoop1
+    hadoop2
+}
+
+import de.undercouch.gradle.tasks.download.Download
+
+dependencies {
+    compile("org.apache.hadoop:hadoop-core:$hadoop12Version")
+    compile(project(":es"))
+
+    hadoop1("org.apache.hadoop:hadoop-core:$hadoop12Version") {
+        exclude module: "commons-cli"
+        exclude group: "com.sun.jersey"
+        exclude group: "org.mortbay.jetty"
+        exclude group: "tomcat"
+        exclude module: "commons-el"
+        exclude module: "hsqldb"
+        exclude group: "org.eclipse.jdt"
+        exclude module: "commons-beanutils"
+        exclude module: "commons-beanutils-core"
+        exclude module: "junit"
+    }
+
+    hadoop2("org.apache.hadoop:hadoop-client:$hadoop2Version") {
+        exclude module: "commons-cli"
+        exclude group: "com.sun.jersey"
+        exclude group: "com.sun.jersey.contribs"
+        exclude group: "com.sun.jersey.jersey-test-framework"
+        exclude module: "guice"
+        exclude group: "org.mortbay.jetty"
+        exclude group: "tomcat"
+        exclude module: "commons-el"
+        exclude module: "hsqldb"
+        exclude group: "org.eclipse.jdt"
+        exclude module: "commons-beanutils"
+        exclude module: "commons-beanutils-core"
+        exclude module: "javax.servlet"
+        exclude module: "guava"
+        exclude module: "junit"
+    }
+
+    hadoop2("org.apache.hadoop:hadoop-hdfs:$hadoop2Version") {
+        exclude module: "guava"
+        exclude module: "log4j"
+        exclude module: "junit"
+    }
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'commons-httpclient:commons-httpclient:3.0.1'
+        force 'joda-time:joda-time:2.8'
+        force "commons-cli:commons-cli:1.2"
+        eachDependency { details ->
+            // for slf4j use each dependency since there are so many variants
+            if (details.requested.name.contains("slf4j-")) {
+                details.useVersion "1.7.6"
+            }
+            if (details.requested.name.equals("servlet-api")) {
+                details.useTarget group: "org.eclipse.jetty.orbit", name: "javax.servlet", version: "3.0.0.v201112011016"
+            }
+
+        }
+      }
+}
+
+task downloadUpstreamSources (type: Download) {
+    def upstreamCommit = '5c912c932497a87fb49d06426270e1c7c96797d1'
+    src "https://github.com/elastic/elasticsearch-hadoop/archive/${upstreamCommit}.zip"
+    dest file("${buildDir}/downloads/elasticsearch-hadoop-${upstreamCommit}.zip")
+    overwrite false
+}
+
+task extractUpstreamSources(type: Copy) {
+    dependsOn downloadUpstreamSources
+    from (zipTree(downloadUpstreamSources.dest)) {
+        include '*/repository-hdfs/src/main/**'
+        include '*/repository-hdfs/plugin-descriptor.properties'
+    }
+    eachFile {details ->
+        details.path = details.path.replaceFirst(
+            'elasticsearch-hadoop-.{40}/repository-hdfs/', '')
+    }
+    into 'upstream'
+    includeEmptyDirs false
+}
+
+extractUpstreamSources.doLast {
+    // this directory is created in order to have an emptry directory in the resulting zip
+    mkdir("upstream/hadoop-libs")
+}
+
+clean {
+    delete extractUpstreamSources.outputs
+}
+
+idea {
+    module {
+        //and hint to mark some of existing source dirs as generated sources
+        generatedSourceDirs += file('src/main/java')
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir "upstream/src/main/java"
+        }
+        output.resourcesDir = null
+    }
+    test {
+        output.resourcesDir = null
+        output.classesDir = null
+    }
+}
+
+
+compileJava {
+    sourceCompatibility = 1.7
+    targetCompatibility = 1.7
+}
+
+jar {
+    manifest.attributes['Implementation-Title'] = 'elasticsearch-repository-hdfs'
+    include "org/elasticsearch/plugin/hadoop/hdfs/*"
+}
+
+task hadoopLinkedJar(type: Jar, dependsOn:jar) {
+    appendix "internal"
+    from sourceSets.main.output.classesDir
+    // exclude plugin
+    exclude "org/elasticsearch/plugin/hadoop/hdfs/*"
+}
+
+task distZip(type: Zip, dependsOn: [hadoopLinkedJar, jar]) {
+    from ("upstream") {
+        include "plugin-descriptor.properties"
+        include "hadoop-libs"
+        expand (version: project.version, esVersion: versions.elasticsearch,
+                jmvCompatibility: project.targetCompatibility,
+                description: project.description,
+                name: project.name)
+    }
+    from jar.archivePath
+    into ("internal-libs") {
+        from hadoopLinkedJar.archivePath
+    }
+    includeEmptyDirs = true
+}
+
+compileJava.dependsOn extractUpstreamSources
+ideaModule.dependsOn extractUpstreamSources

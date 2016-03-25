@@ -12,4 +12,5 @@ include 'es',
         'dns-discovery',
         'sigar',
         'es-cloud-aws',
-        'es-discovery-multicast'
+        'es-discovery-multicast',
+        'es-repository-hdfs'

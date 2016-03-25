@@ -262,7 +262,6 @@ distZip {
 ext {
     downloadDir = new File(buildDir, 'downloads')
     plugin_crateadmin_version = '0.17.1'
-    plugin_repository_hdfs_version = '2.1.1-1'
     crash_version = '0.16.0'
 }
 
@@ -331,17 +330,12 @@ jar {
     from fileTree(buildDir).matching{ include 'META-INF/services/*' }
 }
 
-task downloadPlugins (dependsOn: [':admin-ui:downloadPlugin']) << {
-    def dest = download(
-            downloadDir,
-            "https://bintray.com/artifact/download/crate/crate/io/crate/crate-repository-hdfs/${plugin_repository_hdfs_version}/crate-repository-hdfs-${plugin_repository_hdfs_version}.jar",
-            "crate-repository-hdfs-${plugin_repository_hdfs_version}.jar"
-    )
-    def hdfsLib = new File(project.projectDir, 'plugins/hdfs/lib')
-    hdfsLib.mkdirs()
+task downloadPlugins (
+    dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip']) << {
+
     copy {
-        from dest
-        into 'plugins/hdfs'
+        from(zipTree(project(':es-repository-hdfs').tasks.distZip.archivePath))
+        into 'plugins/elasticsearch-repository-hdfs'
     }
 
     copy {
@@ -360,12 +354,9 @@ task downloadPlugins (dependsOn: [':admin-ui:downloadPlugin']) << {
     }
 }
 
-downloadPlugins.outputs.dir files(
-    "$projectDir/plugins/crate-admin",
-    "$projectDir/plugins/hdfs",
-    "$projectDir/plugins/sigar"
-)
-downloadPlugins.dependsOn(':sigar:jar')
+downloadPlugins.outputs.file files('plugins')
+
+
 
 task downloadCrash << {
     def dest = download(
