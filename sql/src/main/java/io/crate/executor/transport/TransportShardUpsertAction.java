@@ -553,17 +553,17 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     @SuppressWarnings("unchecked")
     static void updateSourceByPaths(@Nonnull Map<String, Object> source, @Nonnull Map<String, Object> changes) {
         for (Map.Entry<String, Object> changesEntry : changes.entrySet()) {
-            if (changesEntry.getKey().contains(".")) {
+            String key = changesEntry.getKey();
+            int dotIndex = key.indexOf(".");
+            if (dotIndex > -1) {
                 // sub-path detected, dive recursive to the wanted tree element
-                List<String> path = Splitter.on(".").splitToList(changesEntry.getKey());
-                String currentKey = path.get(0);
+                String currentKey = key.substring(0, dotIndex);
                 if (!source.containsKey(currentKey)) {
                     // insert parent tree element
                     source.put(currentKey, new HashMap<String, Object>());
                 }
                 Map<String, Object> subChanges = new HashMap<>();
-                subChanges.put(Joiner.on(".").join(path.subList(1, path.size())),
-                        changesEntry.getValue());
+                subChanges.put(key.substring(dotIndex + 1, key.length()), changesEntry.getValue());
 
                 Map<String, Object> innerSource = (Map<String, Object>) source.get(currentKey);
                 if (innerSource == null) {
@@ -573,7 +573,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 updateSourceByPaths(innerSource, subChanges);
             } else {
                 // overwrite or insert the field
-                source.put(changesEntry.getKey(), changesEntry.getValue());
+                source.put(key, changesEntry.getValue());
             }
         }
     }
