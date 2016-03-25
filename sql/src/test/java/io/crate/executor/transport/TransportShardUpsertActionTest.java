@@ -307,4 +307,30 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         }
 
     }
+
+    @Test
+    public void testUpdateSourceByPathsUpdateNullObject() throws Exception {
+        Map<String, Object> source = new HashMap<>();
+        source.put("o", null);
+
+        Map<String, Object> changes = new HashMap<>();
+        changes.put("o.o", 5);
+
+        expectedException.expect(NullPointerException.class);
+        expectedException.expectMessage("Object o is null, cannot write {o=5} onto it");
+        TransportShardUpsertAction.updateSourceByPaths(source, changes);
+    }
+
+    @Test
+    public void testUpdateSourceByPathsUpdateNullObjectNested() throws Exception {
+        Map<String, Object> source = new HashMap<>();
+        source.put("o", null);
+
+        Map<String, Object> changes = new HashMap<>();
+        changes.put("o.x.y", 5);
+
+        expectedException.expect(NullPointerException.class);
+        expectedException.expectMessage("Object o is null, cannot write {x.y=5} onto it");
+        TransportShardUpsertAction.updateSourceByPaths(source, changes);
+    }
 }
