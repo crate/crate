@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved the error message of ON DUPLICATE KEY statements that attempt to
+   update null objects using a subscript notation.
+
  - Fixed issue that caused certain operations not showing up at all
    in operations_log while other marked as finished even before they actually
    finished

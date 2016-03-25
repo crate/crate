@@ -985,4 +985,15 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("select _raw from dyn_ts where id = 0");
         assertThat((String) response.rows()[0][0], is("{\"id\":0,\"ts\":\"2015-01-01\"}"));
     }
+
+    @Test
+    public void testInsertIntoUpdateOnNullObjectColumnWithSubscript() throws Exception {
+        execute("create table t (id integer primary key, i integer, o object)");
+        ensureYellow();
+        execute("insert into t (id, i, o) values(1, 1, null)");
+        execute("refresh table t");
+
+        expectedException.expectMessage("Object o is null, cannot write {x=5} onto it");
+        execute("insert into t (id, i, o) values(1, 1, null) ON DUPLICATE KEY UPDATE o['x'] = 5");
+    }
 }

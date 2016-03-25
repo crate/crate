@@ -82,6 +82,7 @@ import org.elasticsearch.search.fetch.source.FetchSourceContext;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
@@ -478,7 +479,7 @@ public class TransportShardUpsertAction
      * TODO: detect NOOP
      */
     @SuppressWarnings("unchecked")
-    private void updateSourceByPaths(Map<String, Object> source, Map<String, Object> changes) {
+    static void updateSourceByPaths(@Nonnull Map<String, Object> source, @Nonnull Map<String, Object> changes) {
         for (Map.Entry<String, Object> changesEntry : changes.entrySet()) {
             if (changesEntry.getKey().contains(".")) {
                 // sub-path detected, dive recursive to the wanted tree element
@@ -491,7 +492,13 @@ public class TransportShardUpsertAction
                 Map<String, Object> subChanges = new HashMap<>();
                 subChanges.put(Joiner.on(".").join(path.subList(1, path.size())),
                         changesEntry.getValue());
-                updateSourceByPaths((Map<String, Object>) source.get(currentKey), subChanges);
+
+                Map<String, Object> innerSource = (Map<String, Object>) source.get(currentKey);
+                if (innerSource == null) {
+                    throw new NullPointerException(String.format(Locale.ENGLISH,
+                            "Object %s is null, cannot write %s onto it", currentKey, subChanges));
+                }
+                updateSourceByPaths(innerSource, subChanges);
             } else {
                 // overwrite or insert the field
                 source.put(changesEntry.getKey(), changesEntry.getValue());
