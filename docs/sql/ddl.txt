@@ -729,10 +729,8 @@ This analyzer will use the char-filters and token-filters from
 Analyzer Reference
 ------------------
 
-.. toctree::
-  :maxdepth: 2
-
-  analyzer
+See the reference documentation of the :ref:`builtin-analyzer` to get detailed
+information on the available analyzers.
 
 
 .. _sql_ddl_system_columns:
