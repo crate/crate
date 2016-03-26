@@ -68,25 +68,4 @@ public class RegexpMatchOperator extends Operator<BytesRef> {
     public FunctionInfo info() {
         return INFO;
     }
-
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        assert (symbol != null);
-        assert symbol.arguments().size() == 2;
-
-        if (anyNonLiterals(symbol.arguments())) {
-            return symbol;
-        }
-
-        if (containsNullLiteral(symbol.arguments())) {
-            return Literal.NULL;
-        }
-
-        return Literal.newLiteral(
-                evaluate(
-                        (Literal) symbol.arguments().get(0),
-                        (Literal) symbol.arguments().get(1)
-                )
-        );
-    }
 }
