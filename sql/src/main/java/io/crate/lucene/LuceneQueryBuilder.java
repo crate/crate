@@ -762,7 +762,7 @@ public class LuceneQueryBuilder {
 
                 if (value instanceof BytesRef) {
                     BytesRef pattern = ((BytesRef) value);
-                    if (isPcrePattern(pattern)) {
+                    if (isPcrePattern(pattern.utf8ToString())) {
                         return new RegexQuery(new Term(fieldName, pattern));
                     } else {
                         return toLuceneRegexpQuery(fieldName, pattern, context);

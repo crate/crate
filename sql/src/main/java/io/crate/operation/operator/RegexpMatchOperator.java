@@ -21,9 +21,6 @@
 
 package io.crate.operation.operator;
 
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.types.DataTypes;
@@ -55,10 +52,11 @@ public class RegexpMatchOperator extends Operator<BytesRef> {
         if (pattern == null) {
             return null;
         }
-        if (isPcrePattern(pattern)) {
-            return source.utf8ToString().matches(pattern.utf8ToString());
+        String sPattern = pattern.utf8ToString();
+        if (isPcrePattern(sPattern)) {
+            return source.utf8ToString().matches(sPattern);
         } else {
-            RegExp regexp = new RegExp(pattern.utf8ToString());
+            RegExp regexp = new RegExp(sPattern);
             ByteRunAutomaton regexpRunAutomaton = new ByteRunAutomaton(regexp.toAutomaton());
             return regexpRunAutomaton.run(source.bytes, source.offset, source.length);
         }
