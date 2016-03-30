@@ -63,14 +63,15 @@ Parameters
 ==========
 
 :table_ident: The identifier (optionally schema-qualified) of an
-    existing table.
+  existing table.
 
 :column_ident: The name of a column or field in the table pointed to
-   by table_ident.
+  by table_ident.
 
 :expression: An expression or value to assign to the corresponding column.
-   Within a ``ON DUPLICATE KEY UPDATE`` clause the expression may also refer
-   to an expression from VALUES by using ``VALUES ( column_ident )``
+  Within a ``ON DUPLICATE KEY UPDATE`` clause the expression may also refer
+  to an expression from VALUES by using ``VALUES ( column_ident )``
 
-:query: A query (SELECT statement) that supplies the rows to be
-        inserted. Refer to the ``SELECT`` statement for a description of the syntax.
+:query: A query (SELECT statement) that supplies the rows to be inserted.
+  Refer to the ``SELECT`` statement for a description of the syntax.
+  The ``SELECT`` statement must be surrounded by parenthesis.
