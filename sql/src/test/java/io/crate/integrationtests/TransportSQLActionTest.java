@@ -376,6 +376,17 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testDeleteWhereFunctionLeftSide() throws Exception {
+        execute("create table test (x integer) with (number_of_replicas=0)");
+        execute("insert into test values (5)");
+        refresh();
+        execute("delete from test where 8 + 5 > x");
+        refresh();
+        execute("select * from test");
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
     public void testDeleteWhereIsNull() throws Exception {
         execute("create table test (id integer, name string) with (number_of_replicas=0)");
         execute("insert into test (id, name) values (1, 'foo')"); // name exists

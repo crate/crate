@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused delete queries to fail if they contain
+   a expression on the left side of a comparison, e.g. 2 + 1 > x
+
  - Fix: ``path.conf`` setting was ignored when set as command line argument
 
  - Fixed error handling of concurrent update/insert and delete
