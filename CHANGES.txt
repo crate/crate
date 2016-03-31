@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: ``path.conf`` setting was ignored when set as command line argument
+
  - Fixed error handling of concurrent update/insert and delete
    statements on partitioned tables.
 
