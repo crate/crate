@@ -45,8 +45,6 @@ import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilde
  */
 public class InternalSettingsPreparer {
 
-    static final List<String> ALLOWED_SUFFIXES = ImmutableList.of(".yml", ".yaml", ".json", ".properties");
-
     public static final String SECRET_PROMPT_VALUE = "${prompt.secret}";
     public static final String TEXT_PROMPT_VALUE = "${prompt.text}";
     public static final String IGNORE_SYSTEM_PROPERTIES_SETTING = "config.ignore_system_properties";
@@ -108,12 +106,10 @@ public class InternalSettingsPreparer {
                 }
             }
             if (loadFromEnv) {
-                for (String allowedSuffix : ALLOWED_SUFFIXES) {
-                    try {
-                        settingsBuilder.loadFromUrl(environment.resolveConfig("elasticsearch" + allowedSuffix));
-                    } catch (FailedToResolveConfigException e) {
-                        // ignore
-                    }
+                try {
+                    settingsBuilder.loadFromUrl(environment.resolveConfig("crate.yml"));
+                } catch (FailedToResolveConfigException e) {
+                    // ignore
                 }
             }
         }

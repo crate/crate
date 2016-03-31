@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: ``path.conf`` setting was ignored when set as command line argument
+
  - Improved the error message of ON DUPLICATE KEY statements that attempt to
    update null objects using a subscript notation.
 
