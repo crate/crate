@@ -66,6 +66,7 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
         if (value instanceof Double[]) {
             Double[] doubles = (Double[]) value;
             checkLengthIs2(doubles.length);
+            validate(doubles);
             return doubles;
         }
         if (value instanceof BytesRef) {
@@ -77,13 +78,30 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
         if (value instanceof List)  {
             List values = (List) value;
             checkLengthIs2(values.size());
-            return new Double[] { (Double) values.get(0), (Double) values.get(1) };
+            Double[] geoPoint = new Double[] { (Double) values.get(0), (Double) values.get(1) };
+            validate(geoPoint);
+            return geoPoint;
         }
-        Object[] values = (Object[])value;
+        Object[] values = (Object[]) value;
         checkLengthIs2(values.length);
-        return new Double[]{
+        Double[] geoPoint = new Double[] {
                 ((Number) values[0]).doubleValue(),
                 ((Number) values[1]).doubleValue()};
+        validate(geoPoint);
+        return geoPoint;
+    }
+
+    private void validate(Double[] doubles) {
+        if (!isValid(doubles)) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Failed to validate geo point [lon=%f, lat=%f], not a valid location.",
+                    doubles[0], doubles[1]));
+        }
+    }
+
+    private static boolean isValid(Double[] geoPoint) {
+        assert geoPoint.length == 2 : "Geo point array must contain 2 Double values.";
+        return (geoPoint[0] >= -180.0d && geoPoint[0] <= 180.0d) && (geoPoint[1] >= -90.0d && geoPoint[1] <= 90.0d);
     }
 
     private static void checkLengthIs2(int actualLength) {

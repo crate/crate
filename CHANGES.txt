@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved validation of geo point data type; now it is not possible any more
+   to insert invalid latitude or longitude in array literals.
+
  - Fix: ``path.conf`` setting was ignored when set as command line argument
 
  - Improved the error message of ON DUPLICATE KEY statements that attempt to
