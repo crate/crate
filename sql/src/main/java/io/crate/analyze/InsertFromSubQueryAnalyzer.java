@@ -80,8 +80,10 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
         this.relationAnalyzer = relationAnalyzer;
     }
 
-    @Override
-    public AbstractInsertAnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, Analysis analysis) {
+
+    public AnalyzedStatement analyze(InsertFromSubquery node, Analysis analysis) {
+        analysis.expectsAffectedRows(true);
+
         DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);

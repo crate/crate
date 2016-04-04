@@ -28,14 +28,12 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReferenceInfo;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Insert;
-import io.crate.sql.tree.Node;
 
 import java.util.ArrayList;
 import java.util.Locale;
 
-public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<AbstractInsertAnalyzedStatement, Analysis> {
+public abstract class AbstractInsertAnalyzer {
 
     protected final AnalysisMetaData analysisMetaData;
 
@@ -165,10 +163,5 @@ public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<Abs
         Reference columnReference = context.allocateUniqueReference(ident);
         context.columns().add(columnReference);
         return columnReference;
-    }
-
-    public AnalyzedStatement analyze(Node node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
-        return super.process(node, analysis);
     }
 }
