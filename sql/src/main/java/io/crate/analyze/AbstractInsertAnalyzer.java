@@ -23,18 +23,18 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import io.crate.Constants;
-import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.symbol.Reference;
 import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.metadata.*;
-import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReferenceInfo;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.sql.tree.Insert;
-import io.crate.sql.tree.Node;
 
 import java.util.ArrayList;
 import java.util.Locale;
 
-public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<AbstractInsertAnalyzedStatement, Analysis> {
+public abstract class AbstractInsertAnalyzer {
 
     protected final AnalysisMetaData analysisMetaData;
 
@@ -164,10 +164,5 @@ public abstract class AbstractInsertAnalyzer extends DefaultTraversalVisitor<Abs
         Reference columnReference = context.allocateUniqueReference(ident);
         context.columns().add(columnReference);
         return columnReference;
-    }
-
-    public AnalyzedStatement analyze(Node node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
-        return super.process(node, analysis);
     }
 }
