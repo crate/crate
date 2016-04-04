@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused INSERT-FROM-QUERY statements to fail if the
+   target table contained a generated column as primary key
+
  - Improved validation of geo point data type; now it is not possible any more
    to insert invalid latitude or longitude in array literals.
 

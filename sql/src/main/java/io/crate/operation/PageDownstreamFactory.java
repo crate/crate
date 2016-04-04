@@ -66,6 +66,7 @@ public class PageDownstreamFactory {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.DOC, referenceResolver);
         this.projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
+                functions,
                 threadPool,
                 settings,
                 transportActionProvider,

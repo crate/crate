@@ -101,6 +101,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         ImplementationSymbolVisitor symbolvisitor = new ImplementationSymbolVisitor(functions);
         visitor = new ProjectionToProjectorVisitor(
                 mock(ClusterService.class),
+                functions,
                 threadPool,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),

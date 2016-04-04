@@ -104,6 +104,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
                 new NoopClusterService(),
+                functions,
                 threadPool,
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class),

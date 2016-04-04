@@ -275,7 +275,7 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testMissingPrimaryKey() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Primary key is required but is missing from the insert statement");
+        expectedException.expectMessage("Column \"id\" is required but is missing from the insert statement");
         analyze("insert into users (name) (select name from users)");
     }
 
