@@ -126,6 +126,7 @@ public class ShardCollectService {
         );
         this.projectorVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
+                functions,
                 threadPool,
                 settings,
                 transportActionProvider,

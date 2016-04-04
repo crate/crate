@@ -35,6 +35,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -73,6 +74,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
 
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
+                TestingHelpers.getFunctions(),
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class),
                 Suppliers.ofInstance("foo"),
@@ -111,6 +113,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
+                TestingHelpers.getFunctions(),
                 ImmutableSettings.EMPTY,
                 mock(TransportActionProvider.class),
                 Suppliers.ofInstance("foo"),

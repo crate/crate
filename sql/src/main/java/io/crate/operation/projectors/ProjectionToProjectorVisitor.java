@@ -28,6 +28,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
@@ -48,6 +49,7 @@ public class ProjectionToProjectorVisitor
         extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
 
     private final ClusterService clusterService;
+    private final Functions functions;
     private ThreadPool threadPool;
     private final Settings settings;
     private final TransportActionProvider transportActionProvider;
@@ -59,6 +61,7 @@ public class ProjectionToProjectorVisitor
     private final ShardId shardId;
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        Functions functions,
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
@@ -67,6 +70,7 @@ public class ProjectionToProjectorVisitor
                                         EvaluatingNormalizer normalizer,
                                         @Nullable ShardId shardId) {
         this.clusterService = clusterService;
+        this.functions = functions;
         this.threadPool = threadPool;
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
@@ -77,13 +81,14 @@ public class ProjectionToProjectorVisitor
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        Functions functions,
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                         ImplementationSymbolVisitor symbolVisitor,
                                         EvaluatingNormalizer normalizer) {
-        this(clusterService, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor, normalizer, null);
+        this(clusterService, functions, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor, normalizer, null);
     }
 
     @Override
@@ -228,6 +233,7 @@ public class ProjectionToProjectorVisitor
                 IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         return new IndexWriterProjector(
                 clusterService,
+                functions,
                 clusterService.state().metaData().settings(),
                 transportActionProvider,
                 indexNameResolver,
@@ -261,6 +267,7 @@ public class ProjectionToProjectorVisitor
         }
         return new ColumnIndexWriterProjector(
                 clusterService,
+                functions,
                 clusterService.state().metaData().settings(),
                 IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
                 transportActionProvider,

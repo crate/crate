@@ -21,8 +21,11 @@
 
 package io.crate.analyze.symbol;
 
-import com.google.common.base.*;
 import com.google.common.base.Function;
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.types.DataType;
@@ -38,6 +41,14 @@ public class Reference extends Symbol {
         @Override
         public Reference newInstance() {
             return new Reference();
+        }
+    };
+
+    public static final com.google.common.base.Function<Reference, ColumnIdent> TO_COLUMN_IDENT = new Function<Reference, ColumnIdent>() {
+        @Nullable
+        @Override
+        public ColumnIdent apply(@Nullable Reference input) {
+            return input == null ? null : input.ident().columnIdent();
         }
     };
 

@@ -42,6 +42,7 @@ public class GeneratedReferenceInfo extends ReferenceInfo {
         }
     };
 
+
     private String formattedGeneratedExpression;
     private Symbol generatedExpression;
     private List<ReferenceInfo> referencedReferenceInfos;

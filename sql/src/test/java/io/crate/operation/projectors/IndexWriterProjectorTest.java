@@ -70,6 +70,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
         IndexWriterProjector writerProjector = new IndexWriterProjector(
                 internalCluster().getInstance(ClusterService.class),
+                internalCluster().getInstance(Functions.class),
                 ImmutableSettings.EMPTY,
                 internalCluster().getInstance(TransportActionProvider.class),
                 IndexNameResolver.forTable(new TableIdent(null, "bulk_import")),
