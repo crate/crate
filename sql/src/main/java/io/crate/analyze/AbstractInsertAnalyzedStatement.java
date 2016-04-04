@@ -31,19 +31,21 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocTableInfo;
 
-import javax.annotation.Nullable;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * holding analysis results for any insert statement variant
  */
 public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStatement {
 
-    private List<Reference> columns;
+    protected List<Reference> columns;
     private IntSet primaryKeyColumnIndices = new IntOpenHashSet();
     private IntSet partitionedByColumnsIndices = new IntOpenHashSet();
     private int routingColumnIndex = -1;
-    private DocTableInfo tableInfo;
+    protected DocTableInfo tableInfo;
 
     private final Set<ReferenceInfo> allocatedReferences = new HashSet<>();
 
@@ -63,15 +65,6 @@ public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStateme
         this.columns = columns;
     }
 
-    public boolean containsReferenceInfo(ReferenceInfo referenceInfo) {
-        for (Reference reference : columns) {
-            if (reference.info().equals(referenceInfo)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public IntSet primaryKeyColumnIndices() {
         return primaryKeyColumnIndices;
     }
@@ -80,14 +73,6 @@ public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStateme
         this.primaryKeyColumnIndices.add(primaryKeyColumnIdx);
     }
 
-    protected List<String> partitionedByColumnNames() {
-        assert tableInfo != null;
-        List<String> names = new ArrayList<>(tableInfo.partitionedByColumns().size());
-        for (ReferenceInfo info : tableInfo.partitionedByColumns()) {
-            names.add(info.ident().columnIdent().fqn());
-        }
-        return names;
-    }
 
     public void routingColumnIndex(int routingColumnIndex) {
         this.routingColumnIndex = routingColumnIndex;
@@ -95,14 +80,6 @@ public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStateme
 
     public int routingColumnIndex() {
         return routingColumnIndex;
-    }
-
-    /**
-     *
-     * @return routing column if it is used in insert statement
-     */
-    public @Nullable ColumnIdent routingColumn() {
-        return tableInfo.clusteredBy();
     }
 
     public DocTableInfo tableInfo() {

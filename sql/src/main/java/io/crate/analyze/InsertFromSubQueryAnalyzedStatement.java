@@ -29,6 +29,7 @@ import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocTableInfo;
 
 import javax.annotation.Nullable;
@@ -87,4 +88,12 @@ public class InsertFromSubQueryAnalyzedStatement extends AbstractInsertAnalyzedS
         return onDuplicateKeyAssignments;
     }
 
+    public boolean containsReferenceInfo(ReferenceInfo referenceInfo) {
+        for (Reference reference : columns) {
+            if (reference.info().equals(referenceInfo)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
