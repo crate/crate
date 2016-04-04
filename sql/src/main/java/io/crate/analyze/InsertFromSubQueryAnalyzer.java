@@ -32,7 +32,6 @@ import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.GeneratedReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
@@ -107,12 +106,12 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
         validateMatchingColumns(insertStatement, source.querySpec());
 
         if (!node.onDuplicateKeyAssignments().isEmpty()) {
-            processUpdateAssignments(
+            insertStatement.onDuplicateKeyAssignments(processUpdateAssignments(
                     tableRelation,
-                    insertStatement,
-                    analysis,
+                    insertStatement.columns(),
+                    analysis.parameterContext(),
                     fieldProvider,
-                    node.onDuplicateKeyAssignments());
+                    node.onDuplicateKeyAssignments()));
         }
 
         return insertStatement;
@@ -145,21 +144,21 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
         }
     }
 
-    private void processUpdateAssignments(DocTableRelation tableRelation,
-                                          InsertFromSubQueryAnalyzedStatement statement,
-                                          Analysis analysis,
-                                          FieldProvider fieldProvider,
-                                          List<Assignment> assignments) {
+    private Map<Reference, Symbol> processUpdateAssignments(DocTableRelation tableRelation,
+                                                            List<Reference> targetColumns,
+                                                            ParameterContext parameterContext,
+                                                            FieldProvider fieldProvider,
+                                                            List<Assignment> assignments) {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData, analysis.parameterContext(), fieldProvider, tableRelation);
+                analysisMetaData, parameterContext, fieldProvider, tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas(), new EvaluatingNormalizer(
                 analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver(), tableRelation, false));
 
-        ValuesResolver valuesResolver = new ValuesResolver(tableRelation, statement.columns());
+        ValuesResolver valuesResolver = new ValuesResolver(tableRelation, targetColumns);
         ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
-                analysisMetaData, analysis.parameterContext(), fieldProvider, valuesResolver);
+                analysisMetaData, parameterContext, fieldProvider, valuesResolver);
 
         Map<Reference, Symbol> updateAssignments = new HashMap<>(assignments.size());
         for (Assignment assignment : assignments) {
@@ -176,6 +175,6 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
             updateAssignments.put(columnName, assignmentExpression);
         }
 
-        statement.onDuplicateKeyAssignments(updateAssignments);
+        return updateAssignments;
     }
 }
