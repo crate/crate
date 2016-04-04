@@ -29,6 +29,8 @@ sourceSets {
     }
 }
 
+test.enabled = false
+
 idea {
     module {
         contentRoot = pluginDir
