@@ -103,7 +103,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
         int maxInsertValues = Math.max(numInsertColumns, source.fields().size());
         handleInsertColumns(node, maxInsertValues, insertStatement);
 
-        validateMatchingColumns(insertStatement, source.querySpec());
+        validateColumnsAndAddCastsIfNecessary(insertStatement.columns(), source.querySpec());
 
         if (!node.onDuplicateKeyAssignments().isEmpty()) {
             insertStatement.onDuplicateKeyAssignments(processUpdateAssignments(
@@ -121,19 +121,19 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
      * validate that result columns from subquery match explicit insert columns
      * or complete table schema
      */
-    private void validateMatchingColumns(InsertFromSubQueryAnalyzedStatement context,
-                                         QuerySpec querySpec) {
-        if (context.columns().size() != querySpec.outputs().size()) {
+    private static void validateColumnsAndAddCastsIfNecessary(List<Reference> targetColumns,
+                                                              QuerySpec querySpec) {
+        if (targetColumns.size() != querySpec.outputs().size()) {
             Joiner commaJoiner = Joiner.on(", ");
             throw new IllegalArgumentException(String.format("Number of target columns (%s) of insert statement doesn't match number of source columns (%s)",
-                    commaJoiner.join(Iterables.transform(context.columns(), Reference.TO_COLUMN_NAME)),
+                    commaJoiner.join(Iterables.transform(targetColumns, Reference.TO_COLUMN_NAME)),
                     commaJoiner.join(Iterables.transform(querySpec.outputs(), SymbolPrinter.FUNCTION))));
         }
 
-        int failedCastPosition = querySpec.castOutputs(Iterators.transform(context.columns().iterator(), Symbols.TYPES_FUNCTION));
+        int failedCastPosition = querySpec.castOutputs(Iterators.transform(targetColumns.iterator(), Symbols.TYPES_FUNCTION));
         if (failedCastPosition >= 0) {
             Symbol failedSource = querySpec.outputs().get(failedCastPosition);
-            Reference failedTarget = context.columns().get(failedCastPosition);
+            Reference failedTarget = targetColumns.get(failedCastPosition);
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Type of subquery column %s (%s) does not match is not convertable to the type of table column %s (%s)",
                     failedSource,
