@@ -82,6 +82,15 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
         return partitionMaps.get(partitionMaps.size()-1);
     }
 
+    private List<String> partitionedByColumnNames() {
+        assert tableInfo != null;
+        List<String> names = new ArrayList<>(tableInfo.partitionedByColumns().size());
+        for (ReferenceInfo info : tableInfo.partitionedByColumns()) {
+            names.add(info.ident().columnIdent().fqn());
+        }
+        return names;
+    }
+
     public List<String> generatePartitions() {
         List<String> partitionValues = new ArrayList<>(partitionMaps.size());
         for (Map<String, String> map : partitionMaps) {

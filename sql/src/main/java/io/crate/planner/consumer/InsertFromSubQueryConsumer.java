@@ -73,7 +73,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
                     statement.onDuplicateKeyAssignments(),
                     statement.primaryKeyColumnIndices(),
                     statement.partitionedByIndices(),
-                    statement.routingColumn(),
+                    statement.tableInfo().clusteredBy(),
                     statement.routingColumnIndex(),
                     ImmutableSettings.EMPTY,
                     statement.tableInfo().isPartitioned()
