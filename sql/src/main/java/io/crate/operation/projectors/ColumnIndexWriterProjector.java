@@ -31,6 +31,7 @@ import io.crate.core.collections.Row;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
@@ -61,6 +62,7 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
 
 
     protected ColumnIndexWriterProjector(ClusterService clusterService,
+                                         Functions functions,
                                          Settings settings,
                                          Supplier<String> indexNameResolver,
                                          TransportActionProvider transportActionProvider,
@@ -78,7 +80,7 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
                                          UUID jobId) {
         this.indexNameResolver = indexNameResolver;
         this.collectExpressions = collectExpressions;
-        rowShardResolver = new RowShardResolver(primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
+        rowShardResolver = new RowShardResolver(functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         assert columnReferences.size() == insertInputs.size();
 
         String[] updateColumnNames;

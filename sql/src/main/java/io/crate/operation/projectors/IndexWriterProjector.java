@@ -30,6 +30,7 @@ import io.crate.core.collections.Row;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
@@ -65,6 +66,7 @@ public class IndexWriterProjector extends AbstractProjector {
     private final AtomicBoolean failed = new AtomicBoolean(false);
 
     public IndexWriterProjector(ClusterService clusterService,
+                                Functions functions,
                                 Settings settings,
                                 TransportActionProvider transportActionProvider,
                                 Supplier<String> indexNameResolver,
@@ -92,7 +94,7 @@ public class IndexWriterProjector extends AbstractProjector {
             this.sourceInput =
                     new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
         }
-        rowShardResolver = new RowShardResolver(primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
+        rowShardResolver = new RowShardResolver(functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
                 CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
                 overwriteDuplicates,

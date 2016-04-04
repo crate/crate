@@ -24,10 +24,12 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
-import io.crate.analyze.symbol.*;
-import io.crate.analyze.symbol.format.SymbolFormatter;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.operation.BaseImplementationSymbolVisitor;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.Inputs;
@@ -42,8 +44,6 @@ import java.util.List;
 @NotThreadSafe
 public class RowShardResolver {
 
-    private static final Visitor VISITOR = new Visitor();
-
     private final com.google.common.base.Function<List<BytesRef>, String> idFunction;
     private final ImplementationSymbolVisitor.Context visitorContext;
     private final List<Input<?>> primaryKeyInputs;
@@ -53,17 +53,18 @@ public class RowShardResolver {
     private String routing;
 
 
-    public RowShardResolver(List<ColumnIdent> pkColumns,
-                            List<Symbol> primaryKeySymbols,
+    public RowShardResolver(Functions functions,
+                            List<ColumnIdent> pkColumns,
+                            List<? extends Symbol> primaryKeySymbols,
                             @Nullable ColumnIdent clusteredByColumn,
                             @Nullable Symbol routingSymbol) {
-
+        Visitor visitor = new Visitor(functions);
         idFunction = Id.compile(pkColumns, clusteredByColumn);
         visitorContext = new ImplementationSymbolVisitor.Context();
-        routingInput = routingSymbol == null ? null : VISITOR.process(routingSymbol, visitorContext);
+        routingInput = routingSymbol == null ? null : visitor.process(routingSymbol, visitorContext);
         primaryKeyInputs = new ArrayList<>(primaryKeySymbols.size());
         for (Symbol primaryKeySymbol : primaryKeySymbols) {
-            primaryKeyInputs.add(VISITOR.process(primaryKeySymbol, visitorContext));
+            primaryKeyInputs.add(visitor.process(primaryKeySymbol, visitorContext));
         }
     }
 
@@ -102,21 +103,15 @@ public class RowShardResolver {
         return routing;
     }
 
-    static class Visitor extends SymbolVisitor<ImplementationSymbolVisitor.Context, Input<?>> {
+    static class Visitor extends BaseImplementationSymbolVisitor<ImplementationSymbolVisitor.Context> {
 
-        @Override
-        protected Input<?> visitSymbol(Symbol symbol, ImplementationSymbolVisitor.Context context) {
-            throw new AssertionError(SymbolFormatter.format("Symbol %s not supported", symbol));
+        public Visitor(Functions functions) {
+            super(functions);
         }
 
         @Override
         public Input<?> visitInputColumn(InputColumn inputColumn, ImplementationSymbolVisitor.Context context) {
             return context.collectExpressionFor(inputColumn);
-        }
-
-        @Override
-        public Input<?> visitLiteral(Literal symbol, ImplementationSymbolVisitor.Context context) {
-            return symbol;
         }
     }
 }

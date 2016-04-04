@@ -23,7 +23,6 @@ package io.crate.planner.projection;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Value;
 import io.crate.metadata.ColumnIdent;
@@ -97,27 +96,6 @@ public abstract class AbstractIndexWriterProjection extends Projection {
 
     public boolean autoCreateIndices() {
         return autoCreateIndices;
-    }
-
-    /**
-     * generate Symbols needed for projection
-
-     */
-    protected void generateSymbols(int[] primaryKeyIndices,
-                                   int[] partitionedByIndices,
-                                   int clusteredByIdx) {
-        this.idSymbols = new ArrayList<>(primaryKeys.size());
-        for (int primaryKeyIndex : primaryKeyIndices) {
-            idSymbols.add(new InputColumn(primaryKeyIndex, null));
-        }
-
-        this.partitionedBySymbols = new ArrayList<>(partitionedByIndices.length);
-        for (int partitionByIndex : partitionedByIndices) {
-            partitionedBySymbols.add(new InputColumn(partitionByIndex, null));
-        }
-        if (clusteredByIdx >= 0) {
-            clusteredBySymbol = new InputColumn(clusteredByIdx, null);
-        }
     }
 
     public List<ColumnIdent> primaryKeys() {

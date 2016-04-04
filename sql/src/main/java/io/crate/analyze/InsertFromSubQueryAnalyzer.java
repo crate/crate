@@ -31,7 +31,10 @@ import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
@@ -40,22 +43,21 @@ import io.crate.sql.tree.InsertFromSubquery;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 @Singleton
-public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
+class InsertFromSubQueryAnalyzer {
 
+    private final AnalysisMetaData analysisMetaData;
     private final RelationAnalyzer relationAnalyzer;
+
 
     private static class ValuesResolver implements ValuesAwareExpressionAnalyzer.ValuesResolver {
 
         private final DocTableRelation targetTableRelation;
         private final List<Reference> targetColumns;
 
-        public ValuesResolver(DocTableRelation targetTableRelation, List<Reference> targetColumns) {
+        ValuesResolver(DocTableRelation targetTableRelation, List<Reference> targetColumns) {
             this.targetTableRelation = targetTableRelation;
             this.targetColumns = targetColumns;
         }
@@ -76,7 +78,7 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
 
     @Inject
     protected InsertFromSubQueryAnalyzer(AnalysisMetaData analysisMetaData, RelationAnalyzer relationAnalyzer) {
-        super(analysisMetaData);
+        this.analysisMetaData = analysisMetaData;
         this.relationAnalyzer = relationAnalyzer;
     }
 
@@ -91,8 +93,6 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
 
         QueriedRelation source = (QueriedRelation) relationAnalyzer.analyze(node.subQuery(), analysis);
-        InsertFromSubQueryAnalyzedStatement insertStatement =
-                new InsertFromSubQueryAnalyzedStatement(source, tableInfo);
 
         // We forbid using limit/offset or order by until we've implemented ES paging support (aka 'scroll')
         // TODO: move this to the consumer
@@ -101,22 +101,65 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
                     "supported on insert using a sub-query");
         }
 
-        int numInsertColumns = node.columns().size() == 0 ? tableInfo.columns().size() : node.columns().size();
-        int maxInsertValues = Math.max(numInsertColumns, source.fields().size());
-        handleInsertColumns(node, maxInsertValues, insertStatement);
+        List<Reference> targetColumns = new ArrayList<>(resolveTargetColumns(node.columns(), tableInfo, source.fields().size()));
+        validateColumnsAndAddCastsIfNecessary(targetColumns, source.querySpec());
 
-        validateColumnsAndAddCastsIfNecessary(insertStatement.columns(), source.querySpec());
-
+        Map<Reference, Symbol> onDuplicateKeyAssignments = null;
         if (!node.onDuplicateKeyAssignments().isEmpty()) {
-            insertStatement.onDuplicateKeyAssignments(processUpdateAssignments(
+            onDuplicateKeyAssignments = processUpdateAssignments(
                     tableRelation,
-                    insertStatement.columns(),
+                    targetColumns,
                     analysis.parameterContext(),
                     fieldProvider,
-                    node.onDuplicateKeyAssignments()));
+                    node.onDuplicateKeyAssignments());
         }
 
-        return insertStatement;
+        return new InsertFromSubQueryAnalyzedStatement(
+                source,
+                tableInfo,
+                targetColumns,
+                onDuplicateKeyAssignments);
+    }
+
+    private static Collection<Reference> resolveTargetColumns(Collection<String> targetColumnNames,
+                                                              DocTableInfo targetTable,
+                                                              int numSourceColumns) {
+        if (targetColumnNames.isEmpty()) {
+            return targetColumnsFromTargetTable(targetTable, numSourceColumns);
+        }
+        LinkedHashSet<Reference> columns = new LinkedHashSet<>(targetColumnNames.size());
+        for (String targetColumnName : targetColumnNames) {
+            ColumnIdent columnIdent = new ColumnIdent(targetColumnName);
+            ReferenceInfo referenceInfo = targetTable.getReferenceInfo(columnIdent);
+            Reference targetReference;
+            if (referenceInfo == null) {
+                DynamicReference reference = targetTable.getDynamic(columnIdent, true);
+                if (reference == null) {
+                    throw new ColumnUnknownException(targetColumnName);
+                }
+                targetReference = reference;
+            } else {
+                targetReference = new Reference(referenceInfo);
+            }
+            if (!columns.add(targetReference)) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", targetColumnName));
+            }
+        }
+        return columns;
+    }
+
+
+    private static Collection<Reference> targetColumnsFromTargetTable(DocTableInfo targetTable, int numSourceColumns) {
+        List<Reference> columns = new ArrayList<>(targetTable.columns().size());
+        int idx = 0;
+        for (ReferenceInfo referenceInfo : targetTable.columns()) {
+            if (idx > numSourceColumns) {
+                break;
+            }
+            columns.add(new Reference(referenceInfo));
+            idx++;
+        }
+        return columns;
     }
 
     /**

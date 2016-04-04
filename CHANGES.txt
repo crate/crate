@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused INSERT-FROM-QUERY statements to fail if the
+   target table contained a generated column as primary key
+
  - Fixed an issue that caused delete queries to fail if they contain
    a expression on the left side of a comparison, e.g. 2 + 1 > x
 

@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -31,6 +32,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Comparator;
 
@@ -82,6 +84,14 @@ public class ReferenceInfo implements Streamable {
             return new ReferenceInfo(ident, granularity, type, columnPolicy, indexType);
         }
     }
+
+    public static final Function<? super ReferenceInfo, ColumnIdent> TO_COLUMN_IDENT = new Function<ReferenceInfo, ColumnIdent>() {
+        @Nullable
+        @Override
+        public ColumnIdent apply(@Nullable ReferenceInfo input) {
+            return input == null ? null : input.ident.columnIdent();
+        }
+    };
 
     public enum IndexType {
         ANALYZED,

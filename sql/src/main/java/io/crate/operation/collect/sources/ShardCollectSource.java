@@ -117,6 +117,7 @@ public class ShardCollectSource implements CollectSource {
 
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
                 clusterService,
+                functions,
                 threadPool,
                 settings,
                 transportActionProvider,
