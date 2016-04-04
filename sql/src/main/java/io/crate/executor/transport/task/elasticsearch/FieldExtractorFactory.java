@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.base.Function;
 import io.crate.analyze.symbol.Reference;
 
 /**
@@ -32,6 +33,6 @@ import io.crate.analyze.symbol.Reference;
  */
 public interface FieldExtractorFactory<T, C extends SymbolToFieldExtractor.Context> {
 
-    public FieldExtractor<T> build(Reference reference, C context);
+    Function<T, Object> build(Reference reference, C context);
 
 }

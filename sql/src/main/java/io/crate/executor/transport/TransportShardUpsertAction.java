@@ -23,13 +23,13 @@ package io.crate.executor.transport;
 
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import io.crate.Constants;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
-import io.crate.executor.transport.task.elasticsearch.FieldExtractor;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
 import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.jobs.JobContextService;
@@ -312,7 +312,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
              * the data might be returned in the wrong format (date as string instead of long)
              */
             String columnPath = request.updateColumns()[i];
-            Object value = SYMBOL_TO_FIELD_EXTRACTOR.convert(item.updateAssignments()[i], ctx).extract(getResult);
+            Object value = SYMBOL_TO_FIELD_EXTRACTOR.convert(item.updateAssignments()[i], ctx).apply(getResult);
             ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(ColumnIdent.fromPath(columnPath));
             if (referenceInfo instanceof GeneratedReferenceInfo) {
                 updatedGeneratedColumns.put(columnPath, value);
@@ -512,8 +512,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     ||
                     generatedExpressionEvaluationNeeded(referenceInfo.referencedReferenceInfos(), updatedColumns.keySet())) {
                     // at least one referenced column was updated, need to evaluate expression and update column
-                    FieldExtractor<GetResult> extractor = SYMBOL_TO_FIELD_EXTRACTOR.convert(referenceInfo.generatedExpression(), ctx);
-                    Object value = extractor.extract(getResult);
+                    Function<GetResult, Object> extractor = SYMBOL_TO_FIELD_EXTRACTOR.convert(referenceInfo.generatedExpression(), ctx);
+                    Object value = extractor.apply(getResult);
                     if (givenValue == null) {
                         // add column & value
                         updatedColumns.put(referenceInfo.ident().columnIdent().fqn(), value);
@@ -622,12 +622,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
     }
 
-    static class GetResultFieldExtractorFactory implements FieldExtractorFactory<GetResult, SymbolToFieldExtractor.Context> {
+    private static class GetResultFieldExtractorFactory implements FieldExtractorFactory<GetResult, SymbolToFieldExtractor.Context> {
         @Override
-        public FieldExtractor<GetResult> build(final Reference reference, SymbolToFieldExtractor.Context context) {
-            return new FieldExtractor<GetResult>() {
+        public Function<GetResult, Object> build(final Reference reference, SymbolToFieldExtractor.Context context) {
+            return new Function<GetResult, Object>() {
                 @Override
-                public Object extract(GetResult getResult) {
+                public Object apply(GetResult getResult) {
                     if (getResult == null) {
                         return null;
                     }

@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -90,7 +91,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         results.add(result);
 
         GetResponseContext ctx = new GetResponseContext(functions, node);
-        List<FieldExtractor<GetResponse>> extractors = getFieldExtractors(node, ctx);
+        List<Function<GetResponse, Object>> extractors = getFieldExtractors(node, ctx);
         FetchSourceContext fsc = getFetchSourceContext(ctx.references());
         if (node.docKeys().size() > 1) {
             request = prepareMultiGetRequest(node, fsc);
@@ -124,8 +125,8 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         return new FetchSourceContext(false);
     }
 
-    private static List<FieldExtractor<GetResponse>> getFieldExtractors(ESGetNode node, GetResponseContext ctx) {
-        List<FieldExtractor<GetResponse>> extractors = new ArrayList<>(node.outputs().size() + node.sortSymbols().size());
+    private static List<Function<GetResponse, Object>> getFieldExtractors(ESGetNode node, GetResponseContext ctx) {
+        List<Function<GetResponse, Object>> extractors = new ArrayList<>(node.outputs().size() + node.sortSymbols().size());
         for (Symbol symbol : node.outputs()) {
             extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
         }
@@ -221,11 +222,11 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
 
     static class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
 
-        private final List<FieldExtractor<GetResponse>> fieldExtractors;
+        private final List<Function<GetResponse, Object>> fieldExtractors;
         private final RowReceiver downstream;
 
 
-        public MultiGetResponseListener(List<FieldExtractor<GetResponse>> extractors,
+        public MultiGetResponseListener(List<Function<GetResponse, Object>> extractors,
                                         RowReceiver rowDownstreamHandle) {
             downstream = rowDownstreamHandle;
             this.fieldExtractors = extractors;
@@ -263,7 +264,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         private final FieldExtractorRow<GetResponse> row;
         private final SettableFuture<TaskResult> result;
 
-        public GetResponseListener(SettableFuture<TaskResult> result, List<FieldExtractor<GetResponse>> extractors) {
+        public GetResponseListener(SettableFuture<TaskResult> result, List<Function<GetResponse, Object>> extractors) {
             this.result = result;
             row = new FieldExtractorRow<>(extractors);
             bucket = Buckets.of(row);
@@ -317,36 +318,36 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
     static class GetResponseFieldExtractorFactory implements FieldExtractorFactory<GetResponse, GetResponseContext> {
 
         @Override
-        public FieldExtractor<GetResponse> build(final Reference reference, final GetResponseContext context) {
+        public Function<GetResponse, Object> build(final Reference reference, final GetResponseContext context) {
             final String field = reference.info().ident().columnIdent().fqn();
 
             if (field.startsWith("_")) {
                 switch (field) {
                     case "_version":
-                        return new FieldExtractor<GetResponse>() {
+                        return new Function<GetResponse, Object>() {
                             @Override
-                            public Object extract(GetResponse response) {
+                            public Object apply(GetResponse response) {
                                 return response.getVersion();
                             }
                         };
                     case "_id":
-                        return new FieldExtractor<GetResponse>() {
+                        return new Function<GetResponse, Object>() {
                             @Override
-                            public Object extract(GetResponse response) {
+                            public Object apply(GetResponse response) {
                                 return response.getId();
                             }
                         };
                     case "_raw":
-                        return new FieldExtractor<GetResponse>() {
+                        return new Function<GetResponse, Object>() {
                             @Override
-                            public Object extract(GetResponse response) {
+                            public Object apply(GetResponse response) {
                                 return response.getSourceAsBytesRef().toBytesRef();
                             }
                         };
                     case "_doc":
-                        return new FieldExtractor<GetResponse>() {
+                        return new Function<GetResponse, Object>() {
                             @Override
-                            public Object extract(GetResponse response) {
+                            public Object apply(GetResponse response) {
                                 return response.getSource();
                             }
                         };
@@ -355,17 +356,17 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
                     && context.node.tableInfo().partitionedBy().contains(reference.ident().columnIdent())) {
                 final int pos = context.node.tableInfo().primaryKey().indexOf(reference.ident().columnIdent());
                 if (pos >= 0) {
-                    return new FieldExtractor<GetResponse>() {
+                    return new Function<GetResponse, Object>() {
                         @Override
-                        public Object extract(GetResponse response) {
+                        public Object apply(GetResponse response) {
                             return ValueSymbolVisitor.VALUE.process(context.ids2Keys.get(response.getId()).values().get(pos));
                         }
                     };
                 }
             }
-            return new FieldExtractor<GetResponse>() {
+            return new Function<GetResponse, Object>() {
                 @Override
-                public Object extract(GetResponse response) {
+                public Object apply(GetResponse response) {
                     Map<String, Object> sourceAsMap = response.getSourceAsMap();
                     assert sourceAsMap != null;
                     return reference.valueType().value(XContentMapValues.extractValue(field, sourceAsMap));

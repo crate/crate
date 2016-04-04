@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.base.Function;
 import io.crate.metadata.ColumnIdent;
 import io.crate.types.DataType;
 import org.elasticsearch.search.SearchHit;
@@ -30,11 +31,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public abstract class ESFieldExtractor implements FieldExtractor<SearchHit> {
+public abstract class ESFieldExtractor implements Function<SearchHit, Object> {
 
     private static final Object NOT_FOUND = new Object();
-
-    public abstract Object extract(SearchHit hit);
 
     public static class Source extends ESFieldExtractor {
 
@@ -47,7 +46,7 @@ public abstract class ESFieldExtractor implements FieldExtractor<SearchHit> {
         }
 
         @Override
-        public Object extract(SearchHit hit) {
+        public Object apply(SearchHit hit) {
             return toValue(hit.getSource());
         }
 
@@ -57,7 +56,7 @@ public abstract class ESFieldExtractor implements FieldExtractor<SearchHit> {
             }
             if (c instanceof List) {
                 List l = (List) c;
-                ArrayList children = new ArrayList(l.size());
+                List<Object> children = new ArrayList<>(l.size());
                 for (Object child : l) {
                     Object sub = down(child, idx);
                     if (sub != NOT_FOUND) {
