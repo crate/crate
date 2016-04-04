@@ -105,10 +105,7 @@ public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStateme
      * @return routing column if it is used in insert statement
      */
     public @Nullable ColumnIdent routingColumn() {
-        if (routingColumnIndex < 0) { return null; }
-        else {
-            return tableInfo.clusteredBy();
-        }
+        return tableInfo.clusteredBy();
     }
 
     public DocTableInfo tableInfo() {
