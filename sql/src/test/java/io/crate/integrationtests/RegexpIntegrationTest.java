@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLActionException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -70,6 +71,21 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(5L));
         execute("select i from regex_test where regexp_replace(s, 'is', 'was') is null");
         assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testInvalidPatternSyntax() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Dangling meta character '+' near index 0\n" +
+                                        "+1234567890\n" +
+                                        "^");
+        execute("create table phone (phone string) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into phone (phone) values (?)", new Object[][] {
+                new Object[]{"+1234567890"}
+        });
+        refresh();
+        execute("select * from phone where phone ~* '+1234567890'");
     }
 
     /**
