@@ -335,12 +335,12 @@ Anyway let's do it here for demonstration purpose::
 
     cr> select name, _score
     ... from locations where match(name_description_ft, 'time')
-    ... and _score >= 0.8;
+    ... and _score >= 0.8 order by _score;
     +-----------+------------+
     | name      |     _score |
     +-----------+------------+
-    | Altair    | 0.88735807 |
     | Bartledan | 0.8679331  |
+    | Altair    | 0.88735807 |
     +-----------+------------+
     SELECT 2 rows in set (... sec)
 
