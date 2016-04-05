@@ -34,9 +34,8 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
+import java.nio.file.Path;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
@@ -81,7 +80,8 @@ public class SigarExtendedNodeInfoTest extends CrateUnitTest {
     public void testFsStats() throws Exception {
         NodeEnvironment nodeEnvironment = mock(NodeEnvironment.class);
         when(nodeEnvironment.hasNodeFile()).thenReturn(true);
-        NodeEnvironment.NodePath[] dataLocations = new NodeEnvironment.NodePath[]{new NodeEnvironment.NodePath(new File("/tmp").toPath(), mock(Environment.class))};
+        Path tempDir = createTempDir();
+        NodeEnvironment.NodePath[] dataLocations = new NodeEnvironment.NodePath[]{new NodeEnvironment.NodePath(tempDir, mock(Environment.class))};
         when(nodeEnvironment.nodePaths()).thenReturn(dataLocations);
 
         ExtendedFsStats stats = extendedNodeInfo.fsStats(nodeEnvironment);
@@ -93,10 +93,6 @@ public class SigarExtendedNodeInfoTest extends CrateUnitTest {
         assertThat(info.free(), greaterThan(-1L));
         assertThat(info.available(), greaterThan(-1L));
         assertThat(info.used(), greaterThan(-1L));
-        assertThat(info.diskReads(), greaterThan(-1L));
-        assertThat(info.diskWrites(), greaterThan(-1L));
-        assertThat(info.diskReadSizeInBytes(), greaterThan(-1L));
-        assertThat(info.diskWriteSizeInBytes(), greaterThan(-1L));
     }
 
     @Test
