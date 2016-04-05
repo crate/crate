@@ -25,6 +25,8 @@ task getVersion(dependsOn: [':core:getVersion']) {
     }
 }
 
+sourceSets.test.output.resourcesDir = null
+
 jar {
     doLast {
         manifest {

@@ -93,10 +93,6 @@ public class SigarExtendedNodeInfoTest extends CrateUnitTest {
         assertThat(info.free(), greaterThan(-1L));
         assertThat(info.available(), greaterThan(-1L));
         assertThat(info.used(), greaterThan(-1L));
-        assertThat(info.diskReads(), greaterThan(-1L));
-        assertThat(info.diskWrites(), greaterThan(-1L));
-        assertThat(info.diskReadSizeInBytes(), greaterThan(-1L));
-        assertThat(info.diskWriteSizeInBytes(), greaterThan(-1L));
     }
 
     @Test
