@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused queries to get stuck if an invalid regex is used. 
+
  - Fixed an issue that caused INSERT-FROM-QUERY statements to fail if the
    target table contained a generated column as primary key
 

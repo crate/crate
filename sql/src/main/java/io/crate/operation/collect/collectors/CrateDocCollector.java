@@ -147,11 +147,10 @@ public class CrateDocCollector implements CrateCollector {
         try {
             weight = searchContext.engineSearcher().searcher().createNormalizedWeight(searchContext.query());
             leavesIt = contextIndexSearcher.getTopReaderContext().leaves().iterator();
-        } catch (IOException e) {
+        } catch (Throwable e) {
             fail(e);
             return;
         }
-
         // these won't change anymore, so safe the state once in case there is a pause or resume
         state.collector = collector;
         state.weight = weight;
