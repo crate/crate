@@ -936,7 +936,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into source (col1) values (1)");
         refresh();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Missing primary key values");
+        expectedException.expectMessage("Column \"col2\" is required but is missing from the insert statement");
         execute("insert into target (col1) (select col1 from source)");
     }
 
@@ -994,5 +994,14 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         expectedException.expectMessage("Object o is null, cannot write {x=5} onto it");
         execute("insert into t (id, i, o) values(1, 1, null) ON DUPLICATE KEY UPDATE o['x'] = 5");
+    }
+
+    @Test
+    public void testInsertFromQueryWithGeneratedPrimaryKey() throws Exception {
+        execute("create table t (x int, y int, z as x + y primary key)");
+        ensureYellow();
+        execute("insert into t (x, y) (select 1, 2 from sys.cluster)");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(execute("select * from t where z = 3").rowCount(), is(1L));
     }
 }

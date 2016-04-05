@@ -123,6 +123,7 @@ public class TransportExecutor implements Executor {
         ImplementationSymbolVisitor globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
+                functions,
                 threadPool,
                 settings,
                 transportActionProvider,

@@ -87,6 +87,7 @@ public class CollectSourceResolver {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, clusterReferenceResolver);
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
                 clusterService,
+                functions,
                 threadPool,
                 settings,
                 transportActionProvider,
