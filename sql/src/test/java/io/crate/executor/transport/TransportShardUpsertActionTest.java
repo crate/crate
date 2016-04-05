@@ -44,6 +44,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -89,12 +90,12 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         }
 
         @Override
-        protected boolean indexItem(DocTableInfo tableInfo,
-                                          ShardUpsertRequest request,
-                                          ShardUpsertRequest.Item item,
-                                          IndexShard indexShard,
-                                          boolean tryInsertFirst,
-                                          int retryCount) throws ElasticsearchException {
+        protected Translog.Location indexItem(DocTableInfo tableInfo,
+                                              ShardUpsertRequest request,
+                                              ShardUpsertRequest.Item item,
+                                              IndexShard indexShard,
+                                              boolean tryInsertFirst,
+                                              int retryCount) throws ElasticsearchException {
             throw new DocumentAlreadyExistsException(new ShardId(request.index(), request.shardId().id()), request.type(), item.id());
         }
     }
@@ -168,7 +169,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 shardId, request, new AtomicBoolean(false));
 
         assertThat(response.failures().size(), is(1));
-        assertThat(response.failures().get(0).message(), is("DocumentAlreadyExistsException[["+TABLE_IDENT.indexName()+"][0] [default][1]: document already exists]"));
+        assertThat(response.failures().get(0).message(), is("DocumentAlreadyExistsException[[default][1]: document already exists]"));
     }
 
     @Test
