@@ -94,6 +94,7 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
             this.logger = Loggers.getLogger(getClass());
             this.values = values;
             this.initialSettings = initialSettings;
+            applySettings(CrateSettings.CRATE_SETTINGS, initialSettings);
         }
 
         @Override
@@ -132,18 +133,18 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
 
     @Inject
     public ClusterSettingsExpression(Settings settings, NodeSettingsService nodeSettingsService) {
-        applyDefaults(CrateSettings.CRATE_SETTINGS);
+        setDefaultValues(CrateSettings.CRATE_SETTINGS);
         ApplySettings applySettings = new ApplySettings(settings, values);
 
         nodeSettingsService.addListener(applySettings);
         addChildImplementations();
     }
 
-    private void applyDefaults(List<Setting> settings) {
+    private void setDefaultValues(List<Setting> settings) {
         for (Setting<?, ?> setting : settings) {
             String settingName = setting.settingName();
             values.put(settingName, setting.defaultValue());
-            applyDefaults(setting.children());
+            setDefaultValues(setting.children());
         }
     }
 
