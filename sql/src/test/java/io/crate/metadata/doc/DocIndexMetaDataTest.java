@@ -1214,6 +1214,15 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
     }
 
     @Test
+    public void testCreateTableWithNestedPrimaryKey() throws Exception {
+        DocIndexMetaData metaData = getDocIndexMetaDataFromStatement("create table t (o object as (x int primary key))");
+        assertThat(metaData.primaryKey(), contains(new ColumnIdent("o", "x")));
+
+        metaData = getDocIndexMetaDataFromStatement("create table t (x object as (y object as (z int primary key)))");
+        assertThat(metaData.primaryKey(), contains(new ColumnIdent("x", Arrays.asList("y", "z"))));
+    }
+
+    @Test
     public void testSchemaEquals() throws Exception {
         DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table schema_equals1 (id byte, tags array(string))");
         DocIndexMetaData mdSame = getDocIndexMetaDataFromStatement("create table schema_equals1 (id byte, tags array(string))");
