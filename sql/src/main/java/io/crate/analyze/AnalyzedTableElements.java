@@ -135,13 +135,20 @@ public class AnalyzedTableElements {
         if (primaryKeys == null) {
             primaryKeys = new ArrayList<>();
             for (AnalyzedColumnDefinition column : columns) {
-                if (column.isPrimaryKey()) {
-                    primaryKeys.add(column.ident().fqn());
-                }
+                addPrimaryKeys(primaryKeys, column);
             }
             primaryKeys.addAll(additionalPrimaryKeys);
         }
         return primaryKeys;
+    }
+
+    private void addPrimaryKeys(List<String> primaryKeys, AnalyzedColumnDefinition column) {
+        if (column.isPrimaryKey()) {
+            primaryKeys.add(column.ident().fqn());
+        }
+        for (AnalyzedColumnDefinition analyzedColumnDefinition : column.children()) {
+            addPrimaryKeys(primaryKeys, analyzedColumnDefinition);
+        }
     }
 
     public void addPrimaryKey(String fqColumnName) {
