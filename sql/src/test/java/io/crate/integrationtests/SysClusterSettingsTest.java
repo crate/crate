@@ -38,7 +38,6 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         Settings.Builder builder = Settings.builder().put(super.nodeSettings(nodeOrdinal));
         builder.put(CrateSettings.BULK_REQUEST_TIMEOUT.settingName(), "42s");
-        builder.put("gateway.type", "default");
         return builder.build();
     }
 
@@ -127,7 +126,6 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
     @Test
     public void testDynamicPersistentSettings() throws Exception {
         Settings.Builder builder = Settings.builder()
-                .put(CrateSettings.BULK_REQUEST_TIMEOUT.settingName(), "1s")
                 .put(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.settingName(), "2s");
         client().admin().cluster().prepareUpdateSettings().setPersistentSettings(builder.build()).execute().actionGet();
 
@@ -135,7 +133,6 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
         Map<String, Map> settings = (Map<String, Map>)response.rows()[0][0];
         Map bulk = settings.get(CrateSettings.BULK.name());
-        assertEquals("1s", bulk.get(CrateSettings.BULK_REQUEST_TIMEOUT.name()));
         assertEquals("2s", bulk.get(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.name()));
 
         internalCluster().fullRestart();
@@ -144,7 +141,6 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
         settings = (Map<String, Map>)response.rows()[0][0];
         bulk = settings.get(CrateSettings.BULK.name());
-        assertEquals("1s", bulk.get(CrateSettings.BULK_REQUEST_TIMEOUT.name()));
         assertEquals("2s", bulk.get(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.name()));
     }
 
