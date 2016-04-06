@@ -136,12 +136,18 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertEquals("2s", bulk.get(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.name()));
 
         internalCluster().fullRestart();
-
-        execute("select settings from sys.cluster");
-        assertEquals(1L, response.rowCount());
-        settings = (Map<String, Map>)response.rows()[0][0];
-        bulk = settings.get(CrateSettings.BULK.name());
-        assertEquals("2s", bulk.get(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.name()));
+        // the gateway recovery is async and
+        // it might take a bit until it reads the persisted cluster state and updates the settings expression
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                execute("select settings from sys.cluster");
+                assertEquals(1L, response.rowCount());
+                Map<String, Map> settings = (Map<String, Map>)response.rows()[0][0];
+                Map bulk = settings.get(CrateSettings.BULK.name());
+                assertEquals("2s", bulk.get(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.name()));
+            }
+        });
     }
 
     @Test
