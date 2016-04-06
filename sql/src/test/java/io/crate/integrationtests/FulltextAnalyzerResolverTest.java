@@ -287,7 +287,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
         List<String> tokenizers = new ArrayList<>(fulltextAnalyzerResolver.getBuiltInTokenizers());
         Collections.sort(tokenizers);
         assertThat(Joiner.on(", ").join(tokenizers),
-                is("classic, edgeNGram, edge_ngram, keyword, letter, lowercase, " +
+                is("PathHierarchy, classic, edgeNGram, edge_ngram, keyword, letter, lowercase, " +
                         "nGram, ngram, path_hierarchy, pattern, standard, thai, " +
                         "uax_url_email, whitespace"));
     }

@@ -113,7 +113,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
         execute("select * from information_schema.routines");
-        assertEquals(116L, response.rowCount());
+        assertEquals(117L, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
@@ -378,7 +378,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
             tokenizerNames[i] = (String)response.rows()[i][0];
         }
         assertEquals(
-                "classic, edgeNGram, edge_ngram, keyword, letter",
+                "PathHierarchy, classic, edgeNGram, edge_ngram, keyword",
                 Joiner.on(", ").join(tokenizerNames)
         );
     }
