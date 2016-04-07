@@ -128,7 +128,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into t (name, p) values ('Arthur', 'a'), ('Trillian', 't')");
         ensureYellow();
 
-        Plan plan = plan(stmt);
+        PlanForNode plan = plan(stmt);
         execute("delete from t");
         ListenableFuture<List<TaskResult>> future = execute(plan);
         return future.get(500, TimeUnit.MILLISECONDS).get(0);
@@ -160,7 +160,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into t (name, p) values ('Arthur', 'a'), ('Trillian', 't')");
         execute("refresh table t");
 
-        Plan plan = plan("refresh table t"); // create a plan in which the partitions exist
+        PlanForNode plan = plan("refresh table t"); // create a plan in which the partitions exist
         execute("delete from t");
 
         ListenableFuture<List<TaskResult>> future = execute(plan); // execute now that the partitions are gone

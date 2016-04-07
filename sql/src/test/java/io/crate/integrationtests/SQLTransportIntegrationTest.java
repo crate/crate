@@ -253,17 +253,31 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         return response;
     }
 
-    public Plan plan(String stmt) {
-        Analyzer analyzer = internalCluster().getInstance(Analyzer.class);
-        Planner planner = internalCluster().getInstance(Planner.class);
+    public static class PlanForNode {
+        private final Plan plan;
+        private final String nodeName;
 
-        ParameterContext parameterContext = new ParameterContext(new Object[0], new Object[0][], null);
-        return planner.plan(analyzer.analyze(SqlParser.createStatement(stmt), parameterContext), UUID.randomUUID());
+        private PlanForNode(Plan plan, String nodeName) {
+            this.plan = plan;
+            this.nodeName = nodeName;
+        }
     }
 
-    public ListenableFuture<List<TaskResult>> execute(Plan plan) {
-        TransportExecutor transportExecutor = internalCluster().getInstance(TransportExecutor.class);
-        Job job = transportExecutor.newJob(plan);
+    public PlanForNode plan(String stmt) {
+        String[] nodeNames = internalCluster().getNodeNames();
+        String nodeName = nodeNames[randomIntBetween(1, nodeNames.length) - 1];
+
+        Analyzer analyzer = internalCluster().getInstance(Analyzer.class, nodeName);
+        Planner planner = internalCluster().getInstance(Planner.class, nodeName);
+
+        ParameterContext parameterContext = new ParameterContext(new Object[0], new Object[0][], null);
+        Plan plan = planner.plan(analyzer.analyze(SqlParser.createStatement(stmt), parameterContext), UUID.randomUUID());
+        return new PlanForNode(plan, nodeName);
+    }
+
+    public ListenableFuture<List<TaskResult>> execute(PlanForNode planForNode) {
+        TransportExecutor transportExecutor = internalCluster().getInstance(TransportExecutor.class, planForNode.nodeName);
+        Job job = transportExecutor.newJob(planForNode.plan);
         List<? extends ListenableFuture<TaskResult>> futures = transportExecutor.execute(job);
         return Futures.allAsList(futures);
     }
