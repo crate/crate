@@ -26,7 +26,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.SQLResponse;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
-import io.crate.planner.Plan;
 import io.crate.testing.SQLTransportExecutor;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
@@ -175,7 +174,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         execute("insert into t (name, p) values ('Arthur', 'a'), ('Trillian', 't')");
         ensureYellow();
 
-        Plan plan = plan(stmt);
+        PlanForNode plan = plan(stmt);
         execute("delete from t");
         ListenableFuture<List<TaskResult>> future = execute(plan);
         return future.get(500, TimeUnit.MILLISECONDS).get(0);
@@ -207,7 +206,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         execute("insert into t (name, p) values ('Arthur', 'a'), ('Trillian', 't')");
         execute("refresh table t");
 
-        Plan plan = plan("refresh table t"); // create a plan in which the partitions exist
+        PlanForNode plan = plan("refresh table t"); // create a plan in which the partitions exist
         execute("delete from t");
 
         ListenableFuture<List<TaskResult>> future = execute(plan); // execute now that the partitions are gone

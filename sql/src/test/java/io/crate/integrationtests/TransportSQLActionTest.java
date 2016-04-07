@@ -31,7 +31,6 @@ import io.crate.action.sql.SQLBulkResponse;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.executor.TaskResult;
-import io.crate.planner.Plan;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -88,7 +87,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table t (name string)");
         ensureYellow();
 
-        Plan plan = plan("select * from t");
+        PlanForNode plan = plan("select * from t");
         execute("drop table t");
         ListenableFuture<List<TaskResult>> future = execute(plan);
         try {
