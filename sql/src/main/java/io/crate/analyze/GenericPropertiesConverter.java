@@ -40,27 +40,33 @@ public class GenericPropertiesConverter {
     /**
      * Put a genericProperty into a settings-structure
      */
-    public static void genericPropertyToSetting(ImmutableSettings.Builder builder,
+    static void genericPropertyToSetting(ImmutableSettings.Builder builder,
                                                 String name,
                                                 Expression value,
                                                 ParameterContext parameterContext) {
         if (value instanceof ArrayLiteral) {
-            ArrayLiteral array = (ArrayLiteral)value;
+            ArrayLiteral array = (ArrayLiteral) value;
             List<String> values = new ArrayList<>(array.values().size());
             for (Expression expression : array.values()) {
                 values.add(ExpressionToStringVisitor.convert(expression, parameterContext.parameters()));
             }
             builder.putArray(name, values.toArray(new String[values.size()]));
-        } else  {
+        } else {
             builder.put(name, ExpressionToStringVisitor.convert(value, parameterContext.parameters()));
         }
     }
 
-    public static Settings genericPropertiesToSettings(GenericProperties genericProperties, ParameterContext parameterContext) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+    public static void genericPropertiesToSettings(ImmutableSettings.Builder builder,
+                                                   GenericProperties genericProperties,
+                                                   ParameterContext parameterContext) {
         for (Map.Entry<String, Expression> entry : genericProperties.properties().entrySet()) {
             genericPropertyToSetting(builder, entry.getKey(), entry.getValue(), parameterContext);
         }
+    }
+
+    static Settings genericPropertiesToSettings(GenericProperties genericProperties, ParameterContext parameterContext) {
+        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        genericPropertiesToSettings(builder, genericProperties, parameterContext);
         return builder.build();
     }
 

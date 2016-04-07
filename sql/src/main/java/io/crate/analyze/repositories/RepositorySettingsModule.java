@@ -69,20 +69,24 @@ public class RepositorySettingsModule extends AbstractModule {
                     .put("compress", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("compress", true, true)))
                     .put("chunk_size", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("chunk_size", null, true)))
             .build()) {
+
         @Override
-        public Optional<GenericProperties> preProcess(Optional<GenericProperties> genericProperties) {
+        public Optional<GenericProperties> dynamicProperties(Optional<GenericProperties> genericProperties) {
             if (!genericProperties.isPresent()) {
                 return genericProperties;
             }
-            GenericProperties newProperties = new GenericProperties();
-            GenericProperties properties = genericProperties.get();
-            for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
+            GenericProperties dynamicProperties = null;
+            Map<String, Expression> properties = genericProperties.get().properties();
+            for(Map.Entry<String, Expression> entry : properties.entrySet()) {
                 String key = entry.getKey();
-                if (!key.startsWith("conf.")) {
-                    newProperties.add(new GenericProperty(key, entry.getValue()));
+                if (key.startsWith("conf.")) {
+                    if (dynamicProperties == null) {
+                        dynamicProperties = new GenericProperties();
+                    }
+                    dynamicProperties.add(new GenericProperty(key, entry.getValue()));
                 }
             }
-            return Optional.of(newProperties);
+            return Optional.of(dynamicProperties);
         }
     };
 

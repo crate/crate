@@ -24,9 +24,13 @@ package io.crate.analyze.repositories;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.crate.analyze.GenericPropertiesConverter;
 import io.crate.analyze.ParameterContext;
+import io.crate.analyze.SettingsApplier;
+import io.crate.analyze.SettingsAppliers;
+import io.crate.metadata.settings.StringSetting;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -51,9 +55,21 @@ public class RepositoryParamValidator {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid repository type \"%s\"", type));
         }
 
-        genericProperties = typeSettings.preProcess(genericProperties);
+        Map<String, SettingsApplier> allSettings = typeSettings.all();
+
+        // create string settings applier for all dynamic settings
+        Optional<GenericProperties> dynamicProperties = typeSettings.dynamicProperties(genericProperties);
+        if (dynamicProperties.isPresent()) {
+            // allSettings are immutable by default, copy map
+            allSettings = Maps.newHashMap(allSettings);
+            for (String key : dynamicProperties.get().properties().keySet()) {
+                allSettings.put(key, new SettingsAppliers.StringSettingsApplier(new StringSetting(key, true)));
+            }
+        }
+
+        // convert and validate all settings
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
-                genericProperties, parameterContext, typeSettings.all()).build();
+                genericProperties, parameterContext, allSettings).build();
 
         Set<String> names = settings.getAsMap().keySet();
         Sets.SetView<String> missingRequiredSettings = Sets.difference(typeSettings.required().keySet(), names);
@@ -63,11 +79,6 @@ public class RepositoryParamValidator {
                     type, Joiner.on(", ").join(missingRequiredSettings)));
         }
 
-        Set<String> invalidSettings = Sets.difference(names, typeSettings.all().keySet());
-        if (!invalidSettings.isEmpty()) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid parameters specified: [%s]",
-                    Joiner.on(", ").join(invalidSettings)));
-        }
         return settings;
     }
 }

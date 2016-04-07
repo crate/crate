@@ -30,8 +30,11 @@ import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.hamcrest.Matchers.is;
 
 public class RepositoryParamValidatorTest extends CrateUnitTest {
 
@@ -73,6 +76,7 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
         GenericProperties genericProperties = new GenericProperties();
         genericProperties.add(new GenericProperty("path", new StringLiteral("/data")));
         genericProperties.add(new GenericProperty("conf.foobar", new StringLiteral("bar")));
-        validator.convertAndValidate("hdfs", Optional.of(genericProperties), ParameterContext.EMPTY);
+        Settings settings = validator.convertAndValidate("hdfs", Optional.of(genericProperties), ParameterContext.EMPTY);
+        assertThat(settings.get("conf.foobar"), is("bar"));
     }
 }

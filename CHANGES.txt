@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: `hdfs` specific settings `conf.*` were not recognized on
+   repository creation but silently ignored.
+
  - Fix: queries could be slower if they contain an expression on
    the left side of a comparison, ( e.g: 2 + 1 > x ) instead of the right side
 

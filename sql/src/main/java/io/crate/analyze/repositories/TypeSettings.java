@@ -32,35 +32,33 @@ import io.crate.sql.tree.GenericProperties;
 import java.util.Map;
 
 public class TypeSettings {
-    private static final Map<String, ? extends SettingsApplier> GENERIC = ImmutableMap.<String, SettingsApplier>builder()
+    private static final Map<String, SettingsApplier> GENERIC = ImmutableMap.<String, SettingsApplier>builder()
             .put("max_restore_bytes_per_sec", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("max_restore_bytes_per_sec", null, true)))
             .put("max_snapshot_bytes_per_sec", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("max_snapshot_bytes_per_sec", null, true)))
             .build();
 
-    private final Map<String, ? extends SettingsApplier> required;
-    private final Map<String, ? extends SettingsApplier> all;
+    private final Map<String, SettingsApplier> required;
+    private final Map<String, SettingsApplier> all;
 
-    public TypeSettings(Map<String, ? extends SettingsApplier> required, Map<String, ? extends SettingsApplier> optional) {
+    public TypeSettings(Map<String, SettingsApplier> required,
+                        Map<String, SettingsApplier> optional) {
         this.required = required;
         this.all = ImmutableMap.<String, SettingsApplier>builder().putAll(required).putAll(optional).putAll(GENERIC).build();
     }
 
-    public Map<String, ? extends SettingsApplier> required() {
+    public Map<String, SettingsApplier> required() {
         return required;
     }
 
-    public Map<String, ? extends SettingsApplier> all() {
+    public Map<String, SettingsApplier> all() {
         return all;
     }
 
+
     /**
-     * preProcess genericProperties. This can be used to remove dynamic properties that shouldn't be validated
-     * <p>
-     * Note that this must not modify the supplied instance.
-     * (Otherwise this would mess up Statement caching)
-     * </p>
+     * Return possible dynamic GenericProperties which will not be validated.
      */
-    public Optional<GenericProperties> preProcess(Optional<GenericProperties> genericProperties) {
-        return genericProperties;
+    public Optional<GenericProperties> dynamicProperties(Optional<GenericProperties> genericProperties) {
+        return Optional.absent();
     }
 }
