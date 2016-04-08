@@ -113,6 +113,23 @@ public class ExecutionPhasesTask extends JobTask {
 
         Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(nodeOperations);
         List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(nodeOperationTrees.size());
+        List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases = createHandlerPhases();
+
+        try {
+            setupContext(operationByServer, pageDownstreamContexts, handlerPhases);
+        } catch (Throwable throwable) {
+            for (SettableFuture<TaskResult> result : results) {
+                result.setException(throwable);
+            }
+            return;
+        }
+        if (operationByServer.isEmpty()) {
+            return;
+        }
+        sendJobRequests(pageDownstreamContexts, operationByServer);
+    }
+
+    private List<Tuple<ExecutionPhase, RowReceiver>> createHandlerPhases() {
         List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases = new ArrayList<>(nodeOperationTrees.size());
 
         if (operationType == OperationType.BULK || nodeOperationTrees.size() > 1) {
@@ -127,19 +144,7 @@ public class ExecutionPhasesTask extends JobTask {
             QueryResultRowDownstream downstream = new QueryResultRowDownstream(result);
             handlerPhases.add(new Tuple<ExecutionPhase, RowReceiver>(Iterables.getOnlyElement(nodeOperationTrees).leaf(), downstream));
         }
-
-        try {
-            setupContext(operationByServer, pageDownstreamContexts, handlerPhases);
-        } catch (Throwable throwable) {
-            for (SettableFuture<TaskResult> result : results) {
-                result.setException(throwable);
-            }
-            return;
-        }
-        if (operationByServer.isEmpty()) {
-            return;
-        }
-        sendJobRequests(pageDownstreamContexts, operationByServer);
+        return handlerPhases;
     }
 
     private void setupContext(Map<String, Collection<NodeOperation>> operationByServer,
