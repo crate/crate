@@ -36,7 +36,7 @@ public class CreateRepositoryAnalyzer extends AbstractRepositoryDDLAnalyzer {
     private final RepositoryService repositoryService;
 
     @Inject
-    CreateRepositoryAnalyzer(RepositoryService repositoryService, RepositoryParamValidator repositoryParamValidator) {
+    public CreateRepositoryAnalyzer(RepositoryService repositoryService, RepositoryParamValidator repositoryParamValidator) {
         this.repositoryService = repositoryService;
         this.repositoryParamValidator = repositoryParamValidator;
     }

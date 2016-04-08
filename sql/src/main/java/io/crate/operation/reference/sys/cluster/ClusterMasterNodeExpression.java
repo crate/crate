@@ -32,7 +32,7 @@ public class ClusterMasterNodeExpression extends SimpleObjectExpression<BytesRef
     private final ClusterService clusterService;
 
     @Inject
-    protected ClusterMasterNodeExpression(ClusterService clusterService) {
+    public ClusterMasterNodeExpression(ClusterService clusterService) {
         this.clusterService = clusterService;
     }
 

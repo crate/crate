@@ -666,7 +666,7 @@ public class LuceneQueryBuilder {
 
                     Query exists = new TermRangeQuery(fieldName, null, null, true, true);
 
-                    Filter intersects = prefixTreeStrategy.makeFilter(getArgs(shape, ShapeRelation.INTERSECTS));
+                    Query intersects = prefixTreeStrategy.makeQuery(getArgs(shape, ShapeRelation.INTERSECTS));
                     bool.add(exists, BooleanClause.Occur.MUST);
                     bool.add(intersects, BooleanClause.Occur.MUST_NOT);
                     return new ConstantScoreQuery(bool.build());

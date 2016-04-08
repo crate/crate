@@ -4,10 +4,6 @@ archivesBaseName = 'crate-sigar'
 group = 'io.crate'
 description = 'Crate.IO Sigar Plugin'
 
-configurations {
-    all*.exclude group: 'org.elasticsearch'
-}
-
 dependencies {
     compile project(':es')
     compile project(':core')

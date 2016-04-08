@@ -46,7 +46,7 @@ import org.elasticsearch.common.inject.Singleton;
 import java.util.*;
 
 @Singleton
-class InsertFromSubQueryAnalyzer {
+public class InsertFromSubQueryAnalyzer {
 
     private final AnalysisMetaData analysisMetaData;
     private final RelationAnalyzer relationAnalyzer;
@@ -77,7 +77,7 @@ class InsertFromSubQueryAnalyzer {
     }
 
     @Inject
-    protected InsertFromSubQueryAnalyzer(AnalysisMetaData analysisMetaData, RelationAnalyzer relationAnalyzer) {
+    public InsertFromSubQueryAnalyzer(AnalysisMetaData analysisMetaData, RelationAnalyzer relationAnalyzer) {
         this.analysisMetaData = analysisMetaData;
         this.relationAnalyzer = relationAnalyzer;
     }

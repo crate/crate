@@ -28,6 +28,7 @@ import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -545,6 +546,10 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         try {
             execute(plan).get(1, TimeUnit.SECONDS);
         } catch (Throwable t) {
+            // TODO: figure out if it is safe to add NotSerializableExceptionWrapper to exceptions that are unwrapped in Exceptions.unwrap
+            if (t instanceof NotSerializableExceptionWrapper) {
+                t = t.getCause();
+            }
             throw Exceptions.unwrap(t);
         }
     }

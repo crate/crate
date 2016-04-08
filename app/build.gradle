@@ -16,7 +16,6 @@ group = "io.crate"
 
 
 configurations {
-    all*.exclude group: 'org.elasticsearch'
     compileNotTransitive {
         transitive = false
     }

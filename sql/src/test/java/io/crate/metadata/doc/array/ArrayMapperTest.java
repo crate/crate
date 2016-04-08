@@ -76,13 +76,13 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
         DocumentMapperParser parser = indexService.mapperService().documentMapperParser();
 
-        DocumentMapper defaultMapper = parser.parse(mapping);
+        DocumentMapper defaultMapper = parser.parse(type, new CompressedXContent(mapping));
         XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
         builder.startObject();
         defaultMapper.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
         String rebuildMapping = builder.string();
-        return parser.parse(rebuildMapping);
+        return parser.parse(type, new CompressedXContent(rebuildMapping));
     }
 
     @Test

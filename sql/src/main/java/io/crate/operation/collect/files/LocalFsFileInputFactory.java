@@ -24,7 +24,7 @@ package io.crate.operation.collect.files;
 
 import java.io.IOException;
 
-class LocalFsFileInputFactory implements FileInputFactory {
+public class LocalFsFileInputFactory implements FileInputFactory {
     public static final String NAME = "file";
 
     @Override

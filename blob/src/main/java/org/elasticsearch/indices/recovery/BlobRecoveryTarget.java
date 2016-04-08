@@ -109,7 +109,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
             logger.info("[{}] StartRecoveryRequestHandler start recovery with recoveryId {}",
                 request.shardId().getId(), request.recoveryId);
 
-            try (RecoveriesCollection.StatusRef statusSafe = indexRecoveryTarget.onGoingRecoveries().getStatusSafe(
+            try (RecoveriesCollection.StatusRef statusSafe = indexRecoveryTarget.onGoingRecoveries.getStatusSafe(
                     request.recoveryId(), request.shardId())) {
                 RecoveryStatus onGoingIndexRecovery = statusSafe.status();
 
