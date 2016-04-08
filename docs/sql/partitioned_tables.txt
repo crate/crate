@@ -448,6 +448,18 @@ Limitations
 * ``WHERE`` clauses cannot contain queries like ``partitioned_by_column='x' OR normal_column=x``
 
 
+Consistency notes related to concurrent DML statement
+=====================================================
+
+If a partition is deleted during an active insert or update bulk
+operation this partition won't be re-created.
+
+The number of affected rows will always reflect the real number of
+inserted/updated documents.
+
+
+
+
 .. Hidden: drop table::
 
     cr> drop table parted_table;
