@@ -152,7 +152,7 @@ public class BlobTransferTarget extends AbstractComponent {
                 recipientNodeId,
                 BlobHeadRequestHandler.Actions.GET_TRANSFER_INFO,
                 new BlobInfoRequest(senderNodeId, request.transferId),
-                TransportRequestOptions.options(),
+                TransportRequestOptions.EMPTY,
                 new FutureTransportResponseHandler<TransportResponse>() {
                     @Override
                     public TransportResponse newInstance() {
@@ -185,7 +185,7 @@ public class BlobTransferTarget extends AbstractComponent {
             recipientNodeId,
             BlobHeadRequestHandler.Actions.GET_BLOB_HEAD,
             new GetBlobHeadRequest(senderNodeId, request.transferId(), request.currentPos),
-            TransportRequestOptions.options(),
+            TransportRequestOptions.EMPTY,
             EmptyTransportResponseHandler.INSTANCE_SAME
         ).txGet();
         return status;

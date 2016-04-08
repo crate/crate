@@ -83,7 +83,7 @@ public class BlobRecoveryHandler {
                 request.targetNode(),
                 BlobRecoveryTarget.Actions.START_PREFIX,
                 new BlobStartPrefixSyncRequest(request.recoveryId(), request.shardId(), prefix),
-                TransportRequestOptions.options(),
+                TransportRequestOptions.EMPTY,
                 new FutureTransportResponseHandler<TransportResponse>() {
                     @Override
                     public TransportResponse newInstance() {
@@ -192,7 +192,7 @@ public class BlobRecoveryHandler {
             request.targetNode(),
             BlobRecoveryTarget.Actions.DELETE_FILE,
             new BlobRecoveryDeleteRequest(request.recoveryId(), digests),
-            TransportRequestOptions.options(),
+            TransportRequestOptions.EMPTY,
             EmptyTransportResponseHandler.INSTANCE_SAME
         ).txGet();
     }
@@ -201,7 +201,7 @@ public class BlobRecoveryHandler {
         transportService.submitRequest(request.targetNode(),
             BlobRecoveryTarget.Actions.FINALIZE_RECOVERY,
             new BlobFinalizeRecoveryRequest(request.recoveryId()),
-            TransportRequestOptions.options(),
+            TransportRequestOptions.EMPTY,
             EmptyTransportResponseHandler.INSTANCE_SAME
         ).txGet();
     }
@@ -210,7 +210,7 @@ public class BlobRecoveryHandler {
         transportService.submitRequest(request.targetNode(),
             BlobRecoveryTarget.Actions.START_RECOVERY,
             new BlobStartRecoveryRequest(request.recoveryId(), request.shardId()),
-            TransportRequestOptions.options(),
+            TransportRequestOptions.EMPTY,
             EmptyTransportResponseHandler.INSTANCE_SAME
         ).txGet();
     }
@@ -267,7 +267,7 @@ public class BlobRecoveryHandler {
                             request.targetNode(),
                             BlobRecoveryTarget.Actions.START_TRANSFER,
                             startTransferRequest,
-                            TransportRequestOptions.options(),
+                            TransportRequestOptions.EMPTY,
                             EmptyTransportResponseHandler.INSTANCE_SAME
                         ).txGet();
 
@@ -290,7 +290,7 @@ public class BlobRecoveryHandler {
                                 BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
                                 new BlobRecoveryChunkRequest(request.recoveryId(),
                                     startTransferRequest.transferId(), content, isLast),
-                                TransportRequestOptions.options(),
+                                TransportRequestOptions.EMPTY,
                                 EmptyTransportResponseHandler.INSTANCE_SAME
                             ).txGet();
                         }
@@ -301,7 +301,7 @@ public class BlobRecoveryHandler {
                                 BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
                                 new BlobRecoveryChunkRequest(request.recoveryId(),
                                     startTransferRequest.transferId(), BytesArray.EMPTY, true),
-                                TransportRequestOptions.options(),
+                                TransportRequestOptions.EMPTY,
                                 EmptyTransportResponseHandler.INSTANCE_SAME
                             ).txGet();
                         }

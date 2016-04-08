@@ -157,6 +157,15 @@ public class CrateSearchContext extends DefaultSearchContext {
         }
 
         @Override
+        public void setProfile(boolean profile) {
+        }
+
+        @Override
+        public boolean isProfile() {
+            return false;
+        }
+
+        @Override
         public BytesReference cacheKey() throws IOException {
             return null;
         }

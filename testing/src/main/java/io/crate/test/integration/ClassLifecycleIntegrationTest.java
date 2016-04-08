@@ -78,7 +78,7 @@ public abstract class ClassLifecycleIntegrationTest extends ESTestCase {
     };
 
     @BeforeClass
-    public synchronized static void beforeClass() throws IOException {
+    public synchronized static void beforeClass() throws Throwable {
         long CLUSTER_SEED = System.nanoTime();
         if (random == null) {
             random = new Random(CLUSTER_SEED);

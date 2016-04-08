@@ -29,6 +29,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
@@ -66,15 +67,22 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
     }
 
     @Override
-    protected Tuple<PutChunkResponse, PutChunkReplicaRequest> shardOperationOnPrimary(ClusterState clusterState,
-                                                                                      PrimaryOperationRequest shardRequest) {
-        final PutChunkRequest request = shardRequest.request;
+    protected void resolveRequest(MetaData metaData, String concreteIndex, PutChunkRequest request) {
+        ShardIterator shardIterator = clusterService.operationRouting().indexShards(
+                clusterService.state(), concreteIndex, null, null, request.digest());
+        request.setShardId(shardIterator.shardId());
+    }
+
+    @Override
+    protected Tuple<PutChunkResponse, PutChunkReplicaRequest> shardOperationOnPrimary(MetaData metaData,
+                                                                                      PutChunkRequest request) throws Throwable {
         PutChunkResponse response = newResponseInstance();
         transferTarget.continueTransfer(request, response);
 
         final PutChunkReplicaRequest replicaRequest = new PutChunkReplicaRequest();
+        replicaRequest.setShardId(request.shardId());
         replicaRequest.transferId = request.transferId();
-        replicaRequest.sourceNodeId = clusterState.getNodes().localNode().getId();
+        replicaRequest.sourceNodeId = clusterService.localNode().id();
         replicaRequest.currentPos = request.currentPos();
         replicaRequest.content = request.content();
         replicaRequest.isLast = request.isLast();
@@ -83,19 +91,9 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
     }
 
     @Override
-    protected void shardOperationOnReplica(ShardId shardId, PutChunkReplicaRequest shardRequest) {
+    protected void shardOperationOnReplica(PutChunkReplicaRequest shardRequest) {
         PutChunkResponse response = newResponseInstance();
-        transferTarget.continueTransfer(shardRequest, response, shardId.id());
-    }
-
-    @Override
-    protected ShardIterator shards(ClusterState clusterState, InternalRequest request) throws ElasticsearchException {
-        return clusterService.operationRouting()
-            .indexShards(clusterService.state(),
-                    request.concreteIndex(),
-                    null,
-                    null,
-                    request.request().digest());
+        transferTarget.continueTransfer(shardRequest, response, shardRequest.shardId().id());
     }
 
     @Override

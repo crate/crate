@@ -113,7 +113,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
         execute("select * from information_schema.routines");
-        assertEquals(117L, response.rowCount());
+        assertEquals(118L, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
