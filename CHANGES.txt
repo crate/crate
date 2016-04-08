@@ -8,31 +8,8 @@ Unreleased
  - Fix: `hdfs` specific settings `conf.*` were not recognized on
    repository creation but silently ignored.
 
- - Fix: queries could be slower if they contain an expression on
-   the left side of a comparison, ( e.g: 2 + 1 > x ) instead of the right side
-
- - Updated crate/elasticsearch to fix an issue where the `minAvailability`
-   setting was not read from config file
-
- - Fixed an issue that caused `CREATE TABLE` statements to ignore PRIMARY KEY
-   constraints on nested columns
-
- - Fixed an issue that caused queries to get stuck if an invalid regex is used. 
-
- - Fixed an issue that caused INSERT-FROM-QUERY statements to fail if the
-   target table contained a generated column as primary key
-
  - Improved validation of geo point data type; now it is not possible any more
    to insert invalid latitude or longitude in array literals.
-
- - Fix: ``path.conf`` setting was ignored when set as command line argument
-
- - Improved the error message of ON DUPLICATE KEY statements that attempt to
-   update null objects using a subscript notation.
-
- - Fixed issue that caused certain operations not showing up at all
-   in operations_log while other marked as finished even before they actually
-   finished
 
  - Nodes can be configured now to allow only SQL statemens resulting
    in read operations using new setting ``node.sql.read_only`.
@@ -40,19 +17,11 @@ Unreleased
  - Improved bulk insert/update and copy-from performance when replicas
    are configured.
 
- - Added support for set to array and array to set conversions
-
- - Improved the error message of insert into target/source column size
-   miss-match
-
  - Fixed planner issues that could cause INSERT INTO with a JOIN in the
    sub-query to fail or get stuck.
 
  - Removed the ``jobs.keep_alive_timeout`` setting and all related logic.
    This means it is no longer possible to enable automatic job termination.
-
- - Create Table statements now validate that the PRIMARY KEY constraint doesn't
-   contain columns with unsupported data types
 
  - Added a ``node_filters`` option to ``COPY FROM``
 
@@ -87,6 +56,52 @@ Unreleased
  - Exposed setting the default schema via HTTP header.
 
  - added `lower`` and `upper`` string functions
+
+2016/04/08 0.54.8
+=================
+
+ - Updated crate/elasticsearch to fix an issue where the `minAvailability`
+   setting was not read from config file
+
+ - Fixed an issue that caused `CREATE TABLE` statements to ignore PRIMARY KEY
+   constraints on nested columns
+
+ - Fixed an issue that caused queries to get stuck if an invalid regex is used.
+
+ - Fixed an issue that caused INSERT-FROM-QUERY statements to fail if the
+   target table contained a generated column as primary key
+
+ - Fixed an issue that caused delete queries to fail if they contain
+   a expression on the left side of a comparison, e.g. 2 + 1 > x
+
+ - Fix: ``path.conf`` setting was ignored when set as command line argument
+
+ - Fixed error handling of concurrent update/insert and delete
+   statements on partitioned tables.
+
+ - Improved the error message of ON DUPLICATE KEY statements that attempt to
+   update null objects using a subscript notation.
+
+ - Fixed issue that caused certain operations not showing up at all
+   in operations_log while other marked as finished even before they actually
+   finished
+
+ - Fixed an issue that caused `timestamp_column = <exact_value>` not to match
+   in DELETE queries
+
+ - Added support for set to array and array to set conversions
+
+ - Improved the error message of insert into target/source column size
+   miss-match
+
+ - Create Table statements now validate that the PRIMARY KEY constraint doesn't
+   contain columns with unsupported data types
+
+ - Fixed an issue that could cause INSERT INTO with an INNER JOIN in the
+   sub-query to fail.
+
+ - Avoid running KeepAliveTimers every ms if ``jobs.keep_alive_timeout`` is set
+   to zero
 
 2016/03/11 0.54.7
 =================
