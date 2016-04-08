@@ -346,8 +346,6 @@ public class SysClusterTableInfo extends StaticTableInfo {
                         .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.BULK.name()))
                         .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.BULK.name(),
                                 CrateSettings.BULK_REQUEST_TIMEOUT.name()))
-                        .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.BULK.name(),
-                                CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.name()))
 
                         .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.GATEWAY.name()))
                         .register(ClusterSettingsExpression.NAME, DataTypes.INTEGER, ImmutableList.of(CrateSettings.GATEWAY.name(),

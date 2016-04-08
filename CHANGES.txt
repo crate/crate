@@ -4,10 +4,15 @@ Changes for Crate
 
 Unreleased
 ==========
- 
+
  - NOTE: Upgrading to this Crate version is only supported from >= 0.52
 
- - Upgraded Elasticsearch to 2.1.2
+ - Upgraded Elasticsearch to 2.2.2
+
+ - BREAKING: Units are now required for time or byte based settings in the
+   `crate.yml` configuration file. Nodes won't start otherwise.
+
+ - Removed the `bulk.partition_creation_timeout` setting
 
  - BREAKING: The `gateway.local.sync` setting has been renamed to
    `translog.sync_interval`

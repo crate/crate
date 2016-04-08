@@ -38,10 +38,6 @@ import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.operation.aggregation.impl.AggregationImplModule;
-import io.crate.operation.operator.OperatorModule;
-import io.crate.operation.predicate.PredicateModule;
-import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.sql.Identifiers;
 import io.crate.types.DataType;
@@ -51,9 +47,9 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.*;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.powermock.api.mockito.PowerMockito;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
@@ -540,7 +536,7 @@ public class TestingHelpers {
     }
 
     public static ThreadPool newMockedThreadPool() {
-        ThreadPool threadPool = PowerMockito.mock(ThreadPool.class);
+        ThreadPool threadPool = Mockito.mock(ThreadPool.class);
         final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         doAnswer(new Answer() {

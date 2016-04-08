@@ -24,6 +24,7 @@ package io.crate.executor.transport.task.elasticsearch;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.where.DocKeys;
+import io.crate.exceptions.Exceptions;
 import io.crate.executor.TaskResult;
 import io.crate.jobs.JobContextService;
 import io.crate.planner.node.dml.ESDeleteNode;
@@ -63,11 +64,11 @@ public class ESDeleteTask extends EsJobContextTask {
         createContext("delete", requests, listeners, transport, null);
     }
 
-    static class DeleteResponseListener implements ActionListener<DeleteResponse> {
+    private static class DeleteResponseListener implements ActionListener<DeleteResponse> {
 
         private final SettableFuture<TaskResult> result;
 
-        public DeleteResponseListener(SettableFuture<TaskResult> result) {
+        DeleteResponseListener(SettableFuture<TaskResult> result) {
             this.result = result;
         }
 
@@ -82,10 +83,8 @@ public class ESDeleteTask extends EsJobContextTask {
 
         @Override
         public void onFailure(Throwable e) {
-            Throwable cause = e.getCause();
-            // if the delete Operation was done locally (on the same node) e is the real exception
-            // otherwise the exception is wrapped inside a transportExecutionException
-            if (e instanceof VersionConflictEngineException || (cause != null && cause instanceof VersionConflictEngineException)) {
+            e = Exceptions.unwrap(e); // unwrap to get rid of RemoteTransportException
+            if (e instanceof VersionConflictEngineException) {
                 // treat version conflict as rows affected = 0
                 result.set(TaskResult.ZERO);
             } else {

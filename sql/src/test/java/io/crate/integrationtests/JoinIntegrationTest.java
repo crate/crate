@@ -24,12 +24,10 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.ResourceUnknownException;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -42,7 +40,6 @@ import java.util.concurrent.TimeUnit;
 import static io.crate.testing.TestingHelpers.printRows;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
@@ -541,7 +538,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         PlanForNode plan = plan("select * from t1, t2 where t1.x = t2.x");
         execute("drop table t2");
 
-        expectedException.expect(Matchers.anyOf(instanceOf(TableUnknownException.class), instanceOf(ResourceUnknownException.class)));
+        expectedException.expect(IndexNotFoundException.class);
         try {
             execute(plan).get(1, TimeUnit.SECONDS);
         } catch (Throwable t) {

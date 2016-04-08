@@ -36,7 +36,7 @@ public class JobRequest extends TransportRequest {
     private UUID jobId;
     private Collection<? extends NodeOperation> nodeOperations;
 
-    protected JobRequest() {
+    public JobRequest() {
     }
 
     public JobRequest(UUID jobId, Collection<? extends NodeOperation> nodeOperations) {

@@ -41,10 +41,10 @@ public class BlobShard extends AbstractIndexShardComponent {
     private final IndexShard indexShard;
 
     @Inject
-    protected BlobShard(ShardId shardId,
-                        IndexSettingsService indexSettingsService,
-                        BlobEnvironment blobEnvironment,
-                        IndexShard indexShard) {
+    public BlobShard(ShardId shardId,
+                     IndexSettingsService indexSettingsService,
+                     BlobEnvironment blobEnvironment,
+                     IndexShard indexShard) {
         super(shardId, indexSettingsService.getSettings());
         this.indexShard = indexShard;
         File blobDir = blobDir(blobEnvironment);

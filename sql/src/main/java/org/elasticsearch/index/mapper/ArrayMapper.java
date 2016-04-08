@@ -77,7 +77,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
     private static final String INNER_TYPE = "inner";
     public static final XContentBuilderString INNER = new XContentBuilderString(INNER_TYPE);
-    private final Mapper innerMapper;
+    private Mapper innerMapper;
 
     protected ArrayMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType,
                           Settings indexSettings, MultiFields multiFields, CopyTo copyTo, Mapper innerMapper) {
@@ -87,7 +87,6 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
     public static class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
 
-        @Override
         public Mapper create(String name, ObjectMapper parentMapper, ParseContext context) {
             BuilderContext builderContext = new BuilderContext(context.indexSettings(), context.path());
             try {
@@ -96,8 +95,10 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
                     return null;
                 }
                 Mapper mapper = innerBuilder.build(builderContext);
-                DocumentParser.parseAndMergeUpdate(mapper, context);
+                mapper = DocumentParser.parseAndMergeUpdate(mapper, context);
                 MappedFieldType mappedFieldType = newArrayFieldType(innerBuilder);
+                String fullName = context.path().fullPathAsText(name);
+                mappedFieldType.setNames(new MappedFieldType.Names(fullName));
                 return new ArrayMapper(
                         name,
                         mappedFieldType,
@@ -146,7 +147,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         private final Mapper.Builder innerBuilder;
 
         public Builder(String name, Mapper.Builder innerBuilder) {
-            super(name, newArrayFieldType(innerBuilder));
+            super(name, newArrayFieldType(innerBuilder), newArrayFieldType(innerBuilder));
             this.innerBuilder = innerBuilder;
         }
 
@@ -154,7 +155,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         @Override
         public ArrayMapper build(BuilderContext context) {
             Mapper innerMapper = innerBuilder.build(context);
-            fieldType.setNames(new MappedFieldType.Names(name));
+            fieldType.setNames(buildNames(context));
             return new ArrayMapper(name, fieldType, defaultFieldType, context.indexSettings(),
                     multiFieldsBuilder.build(this, context), copyTo, innerMapper);
         }
@@ -184,11 +185,6 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
             return new Builder(name, innerBuilder);
         }
-    }
-
-    @Override
-    public String name() {
-        return simpleName();
     }
 
     protected String contentType() {
@@ -229,24 +225,25 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         }
         Map<String, Object> innerMap = parser.mapOrdered();
 
-        builder.startObject(name());
+        builder.startObject(simpleName());
         builder.field("type", contentType());
         builder.field(INNER, innerMap);
         return builder.endObject();
-    }
-
-    public void merge(Mapper mergeWith, MergeResult mergeResult) throws MergeMappingException {
-        if (mergeWith instanceof ArrayMapper) {
-            innerMapper.merge(((ArrayMapper) mergeWith).innerMapper, mergeResult);
-        } else {
-            innerMapper.merge(mergeWith, mergeResult);
-        }
     }
 
     public Iterator<Mapper> iterator() {
         return innerMapper.iterator();
     }
 
+
+    @Override
+    protected void doMerge(Mapper mergeWith, boolean updateAllTypes) {
+        if (mergeWith instanceof ArrayMapper) {
+            innerMapper = innerMapper.merge(((ArrayMapper) mergeWith).innerMapper, updateAllTypes);
+        } else {
+            innerMapper = innerMapper.merge(mergeWith, updateAllTypes);
+        }
+    }
 
     @Override
     public Mapper parse(ParseContext context) throws IOException {
@@ -258,17 +255,20 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             throw new ElasticsearchParseException("invalid array");
         }
         token = parser.nextToken();
-        boolean updatedMapping = false;
+        Mapper newInnerMapper = innerMapper;
         while (token != XContentParser.Token.END_ARRAY) {
             // we only get here for non-empty arrays
             Mapper update = parseInner(context);
             if (update != null) {
-                MapperUtils.merge(innerMapper, update);
-                updatedMapping = true;
+                newInnerMapper = newInnerMapper.merge(update, true);
             }
             token = parser.nextToken();
         }
-        return updatedMapping ? this : null;
+        if (newInnerMapper == innerMapper) {
+            return null;
+        }
+        innerMapper = newInnerMapper;
+        return this;
     }
 
     private Mapper parseInner(ParseContext context) throws IOException {

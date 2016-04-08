@@ -31,28 +31,20 @@ import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.testing.CollectingRowReceiver;
-import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.util.concurrent.CancellationException;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
-import static org.powermock.api.mockito.PowerMockito.mock;
 
-/**
- * This class requires PowerMock in order to mock the final {@link SearchContext#close} method.
- */
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(CrateSearchContext.class)
 public class JobCollectContextTest extends RandomizedTest {
 
     private JobCollectContext jobCollectContext;

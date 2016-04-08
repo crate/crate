@@ -79,8 +79,6 @@ public class CrateClient {
                 .put("threadpool.get.size", 1)
                 .put("threadpool.percolate.size", 1);
 
-        //Tuple<Settings, Environment> tuple = InternalSettingsPreparer.prepareSettings(settings, false);
-
         if (builder.get("name") == null){
             builder.put("name", "crate_client");
         }

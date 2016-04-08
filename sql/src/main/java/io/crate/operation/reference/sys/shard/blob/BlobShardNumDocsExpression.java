@@ -31,7 +31,7 @@ public class BlobShardNumDocsExpression extends SimpleObjectExpression<Long> imp
     private final BlobShard blobShard;
 
     @Inject
-    protected BlobShardNumDocsExpression(BlobShard blobShard) {
+    public BlobShardNumDocsExpression(BlobShard blobShard) {
         this.blobShard = blobShard;
     }
 

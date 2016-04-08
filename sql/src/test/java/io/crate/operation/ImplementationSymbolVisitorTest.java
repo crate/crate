@@ -46,7 +46,6 @@ import org.junit.Test;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -56,7 +55,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
 
     private ImplementationSymbolVisitor visitor;
 
-    static class MultiplyFunction extends Scalar<Long, Object> {
+    public static class MultiplyFunction extends Scalar<Long, Object> {
 
         public final static String NAME = "dummy_multiply";
         public static FunctionInfo INFO = new FunctionInfo(

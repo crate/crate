@@ -793,14 +793,6 @@ those queries.
   Defines the timeout of internal shard-based requests involved
   in the execution of SQL DML Statements over a huge amount of rows.
 
-**bulk.partition_creation_timeout**
-  | *Default:* ``10s``
-  | *Runtime:* ``yes``
-
-  Timeout that applies to creating partitions while handling SQL DML Statements
-  over a huge amount of rows. The default value of the setting is ``10s``.
-  So, if 10 partitions are to be created at once, a timeout of 100s applies
-  to that operation.
 
 Discovery
 ---------

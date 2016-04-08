@@ -26,7 +26,6 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.action.job.SharedShardContext;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.symbol.Reference;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
@@ -34,10 +33,10 @@ import io.crate.metadata.TableIdent;
 import io.crate.planner.node.fetch.FetchPhase;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.IndexNotFoundException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -110,7 +109,7 @@ public class FetchContext extends AbstractExecutionSubContext {
                                 searchers.put(readerId, shardContext.searcher());
                             } catch (IndexNotFoundException e) {
                                 if (!PartitionName.isPartition(index)) {
-                                    throw new TableUnknownException(index, e);
+                                    throw e;
                                 }
                             }
                         }

@@ -83,7 +83,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
     }
 
     @Inject
-    protected InsertFromValuesAnalyzer(AnalysisMetaData analysisMetaData) {
+    public InsertFromValuesAnalyzer(AnalysisMetaData analysisMetaData) {
         super(analysisMetaData);
     }
 
