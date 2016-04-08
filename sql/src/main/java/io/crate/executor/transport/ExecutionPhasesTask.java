@@ -245,7 +245,7 @@ public class ExecutionPhasesTask extends JobTask {
         private final int bucketIdx;
         private final List<PageDownstreamContext> pageDownstreamContexts;
 
-        public DirectResponseListener(int bucketIdx, List<PageDownstreamContext> pageDownstreamContexts) {
+        DirectResponseListener(int bucketIdx, List<PageDownstreamContext> pageDownstreamContexts) {
             this.bucketIdx = bucketIdx;
             this.pageDownstreamContexts = pageDownstreamContexts;
         }
@@ -258,6 +258,7 @@ public class ExecutionPhasesTask extends JobTask {
                 Bucket bucket = jobResponse.directResponse().get(i);
                 if (bucket == null) {
                     pageDownstreamContext.failure(bucketIdx, new IllegalStateException("expected directResponse but didn't get one"));
+                    continue;
                 }
                 pageDownstreamContext.setBucket(bucketIdx, bucket, true, new PageResultListener() {
                     @Override
@@ -287,7 +288,7 @@ public class ExecutionPhasesTask extends JobTask {
 
         private final List<SettableFuture<TaskResult>> results;
 
-        public FailureOnlyResponseListener(List<SettableFuture<TaskResult>> results) {
+        FailureOnlyResponseListener(List<SettableFuture<TaskResult>> results) {
             this.results = results;
         }
 
