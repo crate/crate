@@ -134,6 +134,7 @@ public class ExecutionPhasesTask extends JobTask {
             for (SettableFuture<TaskResult> result : results) {
                 result.setException(throwable);
             }
+            return;
         }
         if (operationByServer.isEmpty()) {
             return;
