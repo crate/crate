@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: queries could be slower if they contain an expression on
+   the left side of a comparison, ( e.g: 2 + 1 > x ) instead of the right side
+
  - Updated crate/elasticsearch to fix an issue where the `minAvailability`
    setting was not read from config file
 

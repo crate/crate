@@ -39,6 +39,8 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.SqlExpressions;
+import io.crate.testing.T3;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Before;
@@ -47,6 +49,7 @@ import org.junit.Test;
 import java.util.*;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.isField;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -158,6 +161,15 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         Field t1Id = ((Field) ((Function) ((Function) andFunction.arguments().get(0)).arguments().get(0)).arguments().get(0));
         Field t2Id = ((Field) ((Function) ((Function) andFunction.arguments().get(1)).arguments().get(0)).arguments().get(0));
         assertTrue(t1Id.relation() != t2Id.relation());
+    }
+
+    @Test
+    public void testSwapFunctionLeftSide() throws Exception {
+        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        Function cmp = (Function)expressions.normalize(expressions.asSymbol("8 + 5 > t1.x"));
+        // the comparison was swapped so the field is on the left side
+        assertThat(cmp.info().ident().name(), is("op_<"));
+        assertThat(cmp.arguments().get(0), isField("x"));
     }
 
     @Test

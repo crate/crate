@@ -764,12 +764,13 @@ public class ExpressionAnalyzer {
         }
 
         /**
-         * swaps the comparison so that references are on the left side.
+         * swaps the comparison so that references and fields are on the left side.
          * e.g.:
          * eq(2, name)  becomes  eq(name, 2)
          */
         private void swapIfNecessary() {
-            if (!(left.symbolType().isValueSymbol() && (right instanceof Reference || right instanceof Field))) {
+            if (!(right instanceof Reference || right instanceof Field)
+                    || left instanceof Reference || left instanceof Field) {
                 return;
             }
             ComparisonExpression.Type type = SWAP_OPERATOR_TABLE.get(comparisonExpressionType);
