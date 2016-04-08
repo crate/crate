@@ -110,7 +110,7 @@ public class InternalCountOperation implements CountOperation {
             if (Thread.interrupted()) {
                 throw new InterruptedException();
             }
-            return Lucene.count(searcher.searcher(), queryCtx.query());
+            return searcher.searcher().count(queryCtx.query());
         }
     }
 

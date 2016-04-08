@@ -58,8 +58,9 @@ public class SysSnapshots implements Supplier<Iterable<?>> {
 
             List<Snapshot> snapshots;
             try {
-                snapshots = snapshotsService.snapshots(repositoryName);
+                snapshots = snapshotsService.snapshots(repositoryName, true);
             } catch (Throwable t) {
+                // TODO: catch can probably be removed due to ignore unavailable flag?
                 LOGGER.warn("Error occurred listing snapshots of repository {}", t, repositoryName);
                 continue;
             }

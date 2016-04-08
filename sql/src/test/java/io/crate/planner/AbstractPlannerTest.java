@@ -259,7 +259,7 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
                     DiscoveryNodes.builder().put(newNode("nodeOne")).put(newNode("nodeTwo")).localNodeId("nodeOne")).build();
 
             AllocationService allocationService = createAllocationService();
-            routingTable = allocationService.reroute(state).routingTable();
+            routingTable = allocationService.reroute(state, "test!").routingTable();
             state = ClusterState.builder(state).routingTable(routingTable).build();
 
             ClusterService clusterService = new NoopClusterService(state);

@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import org.elasticsearch.cluster.metadata.MetaDataService;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,6 +36,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
+
+import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 1)
 public class BulkSettingsTest extends SQLTransportIntegrationTest {
@@ -64,6 +65,10 @@ public class BulkSettingsTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("failed to process cluster event (acquire index lock) within 1ms");
 
         // locks are acquired here to make sure that the indices operation cannot finish within 1ms
+
+        // TODO: locks are gone.. come up with a different test?
+        assertThat(false, is(true));
+        /*
         String masterName = internalCluster().getMasterName();
         MetaDataService metaDataService = internalCluster().getInstance(MetaDataService.class, masterName);
         Map<Semaphore, Collection<String>> semaphoreCollectionMap = metaDataService.indexMetaDataLocks(Arrays.asList(
@@ -80,5 +85,6 @@ public class BulkSettingsTest extends SQLTransportIntegrationTest {
                 semaphore.release();
             }
         }
+        */
     }
 }

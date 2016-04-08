@@ -104,7 +104,7 @@ public class PutHeadChunkRunnable implements Runnable {
                         recipientNode,
                         BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK,
                         new PutBlobHeadChunkRequest(transferId, new BytesArray(buffer, 0, bytesRead)),
-                        TransportRequestOptions.options(),
+                        TransportRequestOptions.EMPTY,
                         EmptyTransportResponseHandler.INSTANCE_SAME
                 ).txGet();
             }

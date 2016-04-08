@@ -24,7 +24,7 @@ package io.crate.operation.collect.files;
 
 import java.io.IOException;
 
-class S3FileInputFactory implements FileInputFactory {
+public class S3FileInputFactory implements FileInputFactory {
 
     public final static String NAME = "s3";
 

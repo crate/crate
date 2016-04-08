@@ -87,7 +87,6 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
     public static class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
 
-        @Override
         public Mapper create(String name, ObjectMapper parentMapper, ParseContext context) {
             BuilderContext builderContext = new BuilderContext(context.indexSettings(), context.path());
             try {
@@ -146,7 +145,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         private final Mapper.Builder innerBuilder;
 
         public Builder(String name, Mapper.Builder innerBuilder) {
-            super(name, newArrayFieldType(innerBuilder));
+            super(name, newArrayFieldType(innerBuilder), newArrayFieldType(innerBuilder));
             this.innerBuilder = innerBuilder;
         }
 
@@ -235,14 +234,6 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         return builder.endObject();
     }
 
-    public void merge(Mapper mergeWith, MergeResult mergeResult) throws MergeMappingException {
-        if (mergeWith instanceof ArrayMapper) {
-            innerMapper.merge(((ArrayMapper) mergeWith).innerMapper, mergeResult);
-        } else {
-            innerMapper.merge(mergeWith, mergeResult);
-        }
-    }
-
     public Iterator<Mapper> iterator() {
         return innerMapper.iterator();
     }
@@ -263,7 +254,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             // we only get here for non-empty arrays
             Mapper update = parseInner(context);
             if (update != null) {
-                MapperUtils.merge(innerMapper, update);
+                //MapperUtils.merge(innerMapper, update);
                 updatedMapping = true;
             }
             token = parser.nextToken();

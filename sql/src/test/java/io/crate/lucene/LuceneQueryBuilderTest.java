@@ -42,8 +42,8 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.queries.TermsQuery;
 import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
-import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeFilter;
-import org.apache.lucene.spatial.prefix.WithinPrefixTreeFilter;
+import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeQuery;
+import org.apache.lucene.spatial.prefix.WithinPrefixTreeQuery;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
@@ -367,7 +367,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     public void testGeoShapeMatchWithDefaultMatchType() throws Exception {
         Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')");
         assertThat(query, instanceOf(ConstantScoreQuery.class));
-        assertThat(((ConstantScoreQuery) query).getQuery(), instanceOf(IntersectsPrefixTreeFilter.class));
+        assertThat(((ConstantScoreQuery) query).getQuery(), instanceOf(IntersectsPrefixTreeQuery.class));
     }
 
     @Test
@@ -381,14 +381,14 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         BooleanClause intersectsClause = ((BooleanQuery) booleanQuery).clauses().get(1);
 
         assertThat(existsClause.getQuery(), instanceOf(TermRangeQuery.class));
-        assertThat(intersectsClause.getQuery(), instanceOf(IntersectsPrefixTreeFilter.class));
+        assertThat(intersectsClause.getQuery(), instanceOf(IntersectsPrefixTreeQuery.class));
     }
 
     @Test
     public void testGeoShapeMatchWithin() throws Exception {
         Query query = convert("match(shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') using within");
         assertThat(query, instanceOf(ConstantScoreQuery.class));
-        assertThat(((ConstantScoreQuery) query).getQuery(), instanceOf(WithinPrefixTreeFilter.class));
+        assertThat(((ConstantScoreQuery) query).getQuery(), instanceOf(WithinPrefixTreeQuery.class));
     }
 
     @Test
