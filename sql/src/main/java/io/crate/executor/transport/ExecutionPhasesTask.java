@@ -23,8 +23,9 @@ package io.crate.executor.transport;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.job.*;
@@ -44,6 +45,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.indices.IndicesService;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 
@@ -112,21 +114,15 @@ public class ExecutionPhasesTask extends JobTask {
                 });
 
         Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(nodeOperations);
-        List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(nodeOperationTrees.size());
         List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases = createHandlerPhases();
 
         try {
-            setupContext(operationByServer, pageDownstreamContexts, handlerPhases);
+            setupContext(operationByServer, handlerPhases);
         } catch (Throwable throwable) {
             for (SettableFuture<TaskResult> result : results) {
                 result.setException(throwable);
             }
-            return;
         }
-        if (operationByServer.isEmpty()) {
-            return;
-        }
-        sendJobRequests(pageDownstreamContexts, operationByServer);
     }
 
     private List<Tuple<ExecutionPhase, RowReceiver>> createHandlerPhases() {
@@ -148,86 +144,64 @@ public class ExecutionPhasesTask extends JobTask {
     }
 
     private void setupContext(Map<String, Collection<NodeOperation>> operationByServer,
-                              List<PageDownstreamContext> pageDownstreamContexts,
                               List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases) throws Throwable {
-        boolean noNodeOperations = false;
-        if (operationByServer.isEmpty()) {
-            // this should never happen, instead we should use a NOOP plan instead
-            // which immediately results in an empty result
-            noNodeOperations = true;
+
+        String localNodeId = clusterService.localNode().id();
+        Collection<NodeOperation> localNodeOperations = operationByServer.remove(localNodeId);
+        if (localNodeOperations == null) {
+            localNodeOperations = Collections.emptyList();
         }
-        List<ExecutionSubContext> localContextAndStartOperation = createLocalContextAndStartOperation(operationByServer, handlerPhases);
-        if (noNodeOperations) {
-            for (ExecutionSubContext executionSubContext : localContextAndStartOperation) {
-                executionSubContext.close();
-            }
-            return;
+
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
+        Tuple<List<ExecutionSubContext>, List<ListenableFuture<Bucket>>> onHandler =
+                contextPreparer.prepareOnHandler(localNodeOperations, builder, handlerPhases, new SharedShardContexts(indicesService));
+        JobExecutionContext localJobContext = jobContextService.createContext(builder);
+        localJobContext.start();
+
+
+        List<PageDownstreamContext> pageDownstreamContexts = getHandlerPageDownstreamContexts(onHandler);
+        int bucketIdx = 0;
+        List<ListenableFuture<Bucket>> directResponseFutures = onHandler.v2();
+
+        if (directResponseFutures.size() > 0) {
+            Futures.addCallback(Futures.allAsList(directResponseFutures),
+                    new SetBucketAction(pageDownstreamContexts, bucketIdx));
+            bucketIdx++;
         }
-        if (hasDirectResponse) {
-            for (ExecutionSubContext executionSubContext : localContextAndStartOperation) {
-                assert executionSubContext != null && executionSubContext instanceof DownstreamExecutionSubContext
-                        : "Need DownstreamExecutionSubContext for DIRECT_RESPONSE remote jobs. Got " + executionSubContext;
-                pageDownstreamContexts.add(((DownstreamExecutionSubContext) executionSubContext).pageDownstreamContext((byte) 0));
-            }
+
+        sendJobRequests(operationByServer, pageDownstreamContexts, bucketIdx);
+        if (localNodeOperations.isEmpty() && operationByServer.isEmpty()) {
+            // queries on partitioned tables without active partitions can lead to a plan without executionNodes
+            // (no shards -> no routing)
+            // just close context to trigger a response
+            localJobContext.close();
         }
     }
 
-    private void sendJobRequests(List<PageDownstreamContext> pageDownstreamContexts,
-                                 Map<String, Collection<NodeOperation>> operationsByServer) {
-        int idx = 0;
-        for (Map.Entry<String, Collection<NodeOperation>> entry : operationsByServer.entrySet()) {
+    private void sendJobRequests(Map<String, Collection<NodeOperation>> operationByServer, List<PageDownstreamContext> pageDownstreamContexts, int bucketIdx) {
+        for (Map.Entry<String, Collection<NodeOperation>> entry : operationByServer.entrySet()) {
             String serverNodeId = entry.getKey();
             Collection<NodeOperation> nodeOperations = entry.getValue();
 
             JobRequest request = new JobRequest(jobId(), nodeOperations);
             if (hasDirectResponse) {
-                transportJobAction.execute(serverNodeId, request, new DirectResponseListener(idx, pageDownstreamContexts));
+                transportJobAction.execute(serverNodeId, request, new SetBucketAction(pageDownstreamContexts, bucketIdx));
             } else {
-                transportJobAction.execute(serverNodeId, request,
-                        new FailureOnlyResponseListener(results));
+                transportJobAction.execute(serverNodeId, request, new FailureOnlyResponseListener(results));
             }
-            idx++;
+            bucketIdx++;
         }
     }
 
-    /**
-     * removes the localNodeId entry from the nodesByServer map and initializes the context and starts the operation.
-     *
-     * This is done in order to be able to create the JobExecutionContext with the localMerge PageDownstreamContext
-     */
-    private List<ExecutionSubContext> createLocalContextAndStartOperation(Map<String, Collection<NodeOperation>> operationsByServer,
-                                                                          List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases) throws Throwable {
-        String localNodeId = clusterService.localNode().id();
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
-        Collection<NodeOperation> localNodeOperations = null;
-        SharedShardContexts sharedShardContexts = null;
-        if (!hasDirectResponse) {
-            localNodeOperations = operationsByServer.remove(localNodeId);
-        }
-        if (localNodeOperations == null) {
-            localNodeOperations = ImmutableList.of();
-        } else {
-            sharedShardContexts = new SharedShardContexts(indicesService);
-        }
-
-        List<ExecutionSubContext> executionSubContexts = contextPreparer.prepareOnHandler(
-                jobId(),
-                localNodeOperations,
-                builder,
-                handlerPhases,
-                sharedShardContexts
-        );
-
-        if (!hasDirectResponse) {
-            JobExecutionContext context = jobContextService.createContext(builder);
-            context.start();
-        } else {
-            for (ExecutionSubContext executionSubContext : executionSubContexts) {
-                executionSubContext.prepare();
-                executionSubContext.start();
+    private List<PageDownstreamContext> getHandlerPageDownstreamContexts(Tuple<List<ExecutionSubContext>, List<ListenableFuture<Bucket>>> onHandler) {
+        final List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(onHandler.v1().size());
+        for (ExecutionSubContext handlerExecutionSubContext : onHandler.v1()) {
+            if (handlerExecutionSubContext instanceof DownstreamExecutionSubContext) {
+                PageDownstreamContext pageDownstreamContext = ((DownstreamExecutionSubContext) handlerExecutionSubContext).pageDownstreamContext((byte) 0);
+                pageDownstreamContexts.add(pageDownstreamContext);
             }
         }
-        return executionSubContexts;
+        return pageDownstreamContexts;
     }
 
     @Override
@@ -238,50 +212,6 @@ public class ExecutionPhasesTask extends JobTask {
     @Override
     public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
         throw new UnsupportedOperationException("ExecutionNodesTask doesn't support upstreamResult");
-    }
-
-    private static class DirectResponseListener implements ActionListener<JobResponse> {
-
-        private final int bucketIdx;
-        private final List<PageDownstreamContext> pageDownstreamContexts;
-
-        DirectResponseListener(int bucketIdx, List<PageDownstreamContext> pageDownstreamContexts) {
-            this.bucketIdx = bucketIdx;
-            this.pageDownstreamContexts = pageDownstreamContexts;
-        }
-
-        @Override
-        public void onResponse(JobResponse jobResponse) {
-            for (int i = 0; i < pageDownstreamContexts.size(); i++) {
-                PageDownstreamContext pageDownstreamContext = pageDownstreamContexts.get(i);
-                jobResponse.streamers(pageDownstreamContext.streamer());
-                Bucket bucket = jobResponse.directResponse().get(i);
-                if (bucket == null) {
-                    pageDownstreamContext.failure(bucketIdx, new IllegalStateException("expected directResponse but didn't get one"));
-                    continue;
-                }
-                pageDownstreamContext.setBucket(bucketIdx, bucket, true, new PageResultListener() {
-                    @Override
-                    public void needMore(boolean needMore) {
-                        if (needMore) {
-                            LOGGER.warn("requested more data but directResponse doesn't support paging");
-                        }
-                    }
-
-                    @Override
-                    public int buckedIdx() {
-                        return bucketIdx;
-                    }
-                });
-            }
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            for (PageDownstreamContext pageDownstreamContext : pageDownstreamContexts) {
-                pageDownstreamContext.failure(bucketIdx, e);
-            }
-        }
     }
 
     private static class FailureOnlyResponseListener implements ActionListener<JobResponse> {
@@ -305,6 +235,65 @@ public class ExecutionPhasesTask extends JobTask {
         public void onFailure(Throwable e) {
             // in the non-direct-response case the failure is pushed to downStreams
             LOGGER.warn(e.getMessage(), e);
+        }
+    }
+
+    private static class SetBucketAction implements FutureCallback<List<Bucket>>, ActionListener<JobResponse> {
+        private final List<PageDownstreamContext> pageDownstreamContexts;
+        private final int bucketIdx;
+
+        SetBucketAction(List<PageDownstreamContext> pageDownstreamContexts, int bucketIdx) {
+            this.pageDownstreamContexts = pageDownstreamContexts;
+            this.bucketIdx = bucketIdx;
+        }
+
+        @Override
+        public void onSuccess(@Nullable List<Bucket> result) {
+            if (result == null) {
+                onFailure(new NullPointerException("result is null"));
+                return;
+            }
+
+            for (int i = 0; i < pageDownstreamContexts.size(); i++) {
+                PageDownstreamContext pageDownstreamContext = pageDownstreamContexts.get(i);
+                setBucket(pageDownstreamContext, result.get(i));
+            }
+        }
+
+        @Override
+        public void onResponse(JobResponse jobResponse) {
+            for (int i = 0; i < pageDownstreamContexts.size(); i++) {
+                PageDownstreamContext pageDownstreamContext = pageDownstreamContexts.get(i);
+                jobResponse.streamers(pageDownstreamContext.streamer());
+                setBucket(pageDownstreamContext, jobResponse.directResponse().get(i));
+            }
+        }
+
+        private void setBucket(PageDownstreamContext pageDownstreamContext, Bucket bucket) {
+            if (bucket == null) {
+                pageDownstreamContext.failure(bucketIdx, new IllegalStateException("expected directResponse but didn't get one"));
+                return;
+            }
+            pageDownstreamContext.setBucket(bucketIdx, bucket, true, new PageResultListener() {
+                @Override
+                public void needMore(boolean needMore) {
+                    if (needMore) {
+                        LOGGER.warn("requested more data but directResponse doesn't support paging");
+                    }
+                }
+
+                @Override
+                public int buckedIdx() {
+                    return bucketIdx;
+                }
+            });
+        }
+
+        @Override
+        public void onFailure(@Nonnull Throwable t) {
+            for (PageDownstreamContext pageDownstreamContext : pageDownstreamContexts) {
+                pageDownstreamContext.failure(bucketIdx, t);
+            }
         }
     }
 }

@@ -228,7 +228,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 "remoteNode");
 
         List<ListenableFuture<Bucket>> results = contextPreparer.prepareOnRemote(
-                collectNode.jobId(), ImmutableList.of(nodeOperation), builder, sharedShardContexts);
+                ImmutableList.of(nodeOperation), builder, sharedShardContexts);
         JobExecutionContext context = contextService.createContext(builder);
         context.start();
         return results.get(0).get(2, TimeUnit.SECONDS);

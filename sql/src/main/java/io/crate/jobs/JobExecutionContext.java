@@ -89,7 +89,7 @@ public class JobExecutionContext {
             return jobId;
         }
 
-        public JobExecutionContext build() {
+        JobExecutionContext build() {
             return new JobExecutionContext(jobId, statsTables, subContexts);
         }
     }
