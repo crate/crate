@@ -21,10 +21,7 @@
 
 package io.crate.action.job;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntCollection;
-import com.carrotsearch.hppc.IntOpenHashSet;
-import com.carrotsearch.hppc.LongObjectOpenHashMap;
+import com.carrotsearch.hppc.*;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
@@ -73,6 +70,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.BitSet;
 import java.util.concurrent.Executor;
 
 @Singleton
@@ -107,11 +105,10 @@ public class ContextPreparer extends AbstractComponent {
         innerPreparer = new InnerPreparer();
     }
 
-    public List<ListenableFuture<Bucket>> prepareOnRemote(UUID jobId,
-                                                          Iterable<? extends NodeOperation> nodeOperations,
+    public List<ListenableFuture<Bucket>> prepareOnRemote(Iterable<? extends NodeOperation> nodeOperations,
                                                           JobExecutionContext.Builder contextBuilder,
                                                           SharedShardContexts sharedShardContexts) {
-        PreparerContext preparerContext = initContext(jobId, nodeOperations, contextBuilder, sharedShardContexts);
+        PreparerContext preparerContext = initContext(nodeOperations, contextBuilder, sharedShardContexts);
         logger.trace("prepareOnRemote: nodeOperations={}, targetSourceMap={}", nodeOperations, preparerContext.opCtx.targetToSourceMap);
 
         for (IntCursor cursor : preparerContext.opCtx.findLeafs()) {
@@ -121,12 +118,11 @@ public class ContextPreparer extends AbstractComponent {
         return preparerContext.directResponseFutures;
     }
 
-    public List<ExecutionSubContext> prepareOnHandler(UUID jobId,
-                                                      Iterable<? extends NodeOperation> nodeOperations,
-                                                      JobExecutionContext.Builder contextBuilder,
-                                                      List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
-                                                      @Nullable SharedShardContexts sharedShardContexts) {
-        PreparerContext preparerContext = initContext(jobId, nodeOperations, contextBuilder, sharedShardContexts);
+    public Tuple<List<ExecutionSubContext>, List<ListenableFuture<Bucket>>> prepareOnHandler(Iterable<? extends NodeOperation> nodeOperations,
+                                                                                             JobExecutionContext.Builder contextBuilder,
+                                                                                             List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
+                                                                                             @Nullable SharedShardContexts sharedShardContexts) {
+        PreparerContext preparerContext = initContext(nodeOperations, contextBuilder, sharedShardContexts);
         logger.trace("prepareOnHandler: nodeOperations={}, handlerPhases={}, targetSourceMap={}",
                 nodeOperations, handlerPhases, preparerContext.opCtx.targetToSourceMap);
 
@@ -134,7 +130,7 @@ public class ContextPreparer extends AbstractComponent {
         IntOpenHashSet leafs = new IntOpenHashSet();
         for (Tuple<ExecutionPhase, RowReceiver> handlerPhase : handlerPhases) {
             ExecutionPhase phase = handlerPhase.v1();
-            preparerContext.registerRowReceiver(phase.executionPhaseId(), handlerPhase.v2());
+            preparerContext.handlerRowReceivers.put(phase.executionPhaseId(), handlerPhase.v2());
             ExecutionSubContext subContext = createContext(phase, preparerContext);
             if (subContext != null) {
                 contextBuilder.addSubContext(subContext);
@@ -147,7 +143,7 @@ public class ContextPreparer extends AbstractComponent {
             contextBuilder.addAllSubContexts(prepareSourceOperations(cursor.value, preparerContext));
         }
         assert preparerContext.opCtx.allContextsBuilt() : "some nodeOperations haven't been processed";
-        return handlerContexts;
+        return new Tuple<>(handlerContexts, preparerContext.directResponseFutures);
     }
 
     private ExecutionSubContext createContext(ExecutionPhase phase, PreparerContext preparerContext) {
@@ -161,12 +157,11 @@ public class ContextPreparer extends AbstractComponent {
         }
     }
 
-    private PreparerContext initContext(UUID jobId,
-                                        Iterable<? extends NodeOperation> nodeOperations,
+    private PreparerContext initContext(Iterable<? extends NodeOperation> nodeOperations,
                                         JobExecutionContext.Builder contextBuilder,
                                         @Nullable SharedShardContexts sharedShardContexts) {
         ContextPreparer.PreparerContext preparerContext = new PreparerContext(
-                jobId, logger, rowDownstreamFactory, nodeOperations, sharedShardContexts);
+                contextBuilder.jobId(), logger, rowDownstreamFactory, nodeOperations, sharedShardContexts);
 
         for (NodeOperation nodeOperation : nodeOperations) {
             // context for nodeOperations without dependencies can be built immediately (e.g. FetchPhase)
@@ -308,6 +303,7 @@ public class ContextPreparer extends AbstractComponent {
          * from toKey(phaseId, inputId) to RowReceiver.
          */
         private final LongObjectOpenHashMap<RowReceiver> phaseIdToRowReceivers = new LongObjectOpenHashMap<>();
+        private final IntObjectOpenHashMap<RowReceiver> handlerRowReceivers = new IntObjectOpenHashMap<>();
 
         @Nullable
         private final SharedShardContexts sharedShardContexts;
@@ -385,19 +381,19 @@ public class ContextPreparer extends AbstractComponent {
         }
 
         /**
-         * The rowReceiver for handlerPhases got passed into {@link #prepareOnHandler(UUID, Iterable, JobExecutionContext.Builder, List, SharedShardContexts)}
+         * The rowReceiver for handlerPhases got passed into {@link #prepareOnHandler(Iterable, JobExecutionContext.Builder, List, SharedShardContexts)}
          * and is registered there.
          *
          * Retrieve it
          */
         private RowReceiver handlerPhaseRowReceiver(int phaseId) {
-            RowReceiver rowReceiver = phaseIdToRowReceivers.get(toKey(phaseId, (byte) 0));
+            RowReceiver rowReceiver = handlerRowReceivers.get(phaseId);
             logger.trace("Using rowReceiver {} for phase {}, this is a leaf/handlerPhase", rowReceiver, phaseId);
             assert rowReceiver != null : "No rowReceiver for handlerPhase " + phaseId;
             return rowReceiver;
         }
 
-        public void registerRowReceiver(int phaseId, RowReceiver rowReceiver) {
+        void registerRowReceiver(int phaseId, RowReceiver rowReceiver) {
             phaseIdToRowReceivers.put(toKey(phaseId, (byte) 0), rowReceiver);
         }
     }

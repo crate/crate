@@ -110,7 +110,7 @@ public class JobExecutionContext implements KeepAliveListener {
             return jobId;
         }
 
-        public JobExecutionContext build() {
+        JobExecutionContext build() {
             return new JobExecutionContext(jobId, threadPool, statsTables, subContexts);
         }
     }
