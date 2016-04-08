@@ -241,10 +241,12 @@ public class ExecutionPhasesTask extends JobTask {
     private static class SetBucketAction implements FutureCallback<List<Bucket>>, ActionListener<JobResponse> {
         private final List<PageDownstreamContext> pageDownstreamContexts;
         private final int bucketIdx;
+        private final BucketResultListener bucketResultListener;
 
         SetBucketAction(List<PageDownstreamContext> pageDownstreamContexts, int bucketIdx) {
             this.pageDownstreamContexts = pageDownstreamContexts;
             this.bucketIdx = bucketIdx;
+            bucketResultListener = new BucketResultListener(bucketIdx);
         }
 
         @Override
@@ -274,19 +276,7 @@ public class ExecutionPhasesTask extends JobTask {
                 pageDownstreamContext.failure(bucketIdx, new IllegalStateException("expected directResponse but didn't get one"));
                 return;
             }
-            pageDownstreamContext.setBucket(bucketIdx, bucket, true, new PageResultListener() {
-                @Override
-                public void needMore(boolean needMore) {
-                    if (needMore) {
-                        LOGGER.warn("requested more data but directResponse doesn't support paging");
-                    }
-                }
-
-                @Override
-                public int buckedIdx() {
-                    return bucketIdx;
-                }
-            });
+            pageDownstreamContext.setBucket(bucketIdx, bucket, true, bucketResultListener);
         }
 
         @Override
@@ -294,6 +284,27 @@ public class ExecutionPhasesTask extends JobTask {
             for (PageDownstreamContext pageDownstreamContext : pageDownstreamContexts) {
                 pageDownstreamContext.failure(bucketIdx, t);
             }
+        }
+    }
+
+    private static class BucketResultListener implements PageResultListener {
+
+        private final int bucketIdx;
+
+        BucketResultListener(int bucketIdx) {
+            this.bucketIdx = bucketIdx;
+        }
+
+        @Override
+        public void needMore(boolean needMore) {
+            if (needMore) {
+                LOGGER.warn("requested more data but directResponse doesn't support paging");
+            }
+        }
+
+        @Override
+        public int buckedIdx() {
+            return bucketIdx;
         }
     }
 }
