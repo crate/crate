@@ -1104,7 +1104,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(BULK_PARTITION_CREATION_TIMEOUT, BULK_REQUEST_TIMEOUT);
+            return ImmutableList.<Setting>of(BULK_REQUEST_TIMEOUT);
         }
 
         @Override
@@ -1122,28 +1122,6 @@ public class CrateSettings {
         @Override
         public TimeValue defaultValue() {
             return new TimeValue(1, TimeUnit.MINUTES);
-        }
-
-        @Override
-        public Setting parent() {
-            return BULK;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
-
-    public static final TimeSetting BULK_PARTITION_CREATION_TIMEOUT = new TimeSetting() {
-        @Override
-        public String name() {
-            return "partition_creation_timeout";
-        }
-
-        @Override
-        public TimeValue defaultValue() {
-            return new TimeValue(10, TimeUnit.SECONDS);
         }
 
         @Override
@@ -1441,8 +1419,6 @@ public class CrateSettings {
                     new SettingsAppliers.ObjectSettingsApplier(CrateSettings.BULK))
             .put(CrateSettings.BULK_REQUEST_TIMEOUT.settingName(),
                     new SettingsAppliers.TimeSettingsApplier(CrateSettings.BULK_REQUEST_TIMEOUT))
-            .put(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.settingName(),
-                    new SettingsAppliers.TimeSettingsApplier(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT))
             .put(CrateSettings.GATEWAY.settingName(),
                     new SettingsAppliers.ObjectSettingsApplier(CrateSettings.GATEWAY))
             .put(CrateSettings.GATEWAY_EXPECTED_NODES.settingName(),

@@ -6,9 +6,7 @@ apply plugin: 'maven'
 
 archivesBaseName = 'crate-sql'
 
-// we do not want to have elasticsearch here, since we provide it in :es
 configurations {
-    all*.exclude group: 'org.elasticsearch'
     benchmarksCompile.extendsFrom testCompile
     benchmarksRuntime.extendsFrom testRuntime, benchmarksCompile
 }

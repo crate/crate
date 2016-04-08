@@ -154,7 +154,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into dynamic_table (new, meta) values(['a', 'b', 'c'], 'hello')");
         execute("insert into dynamic_table (new) values(['d', 'e', 'f'])");
-        waitForConcreteMappingsOnAll("dynamic_table", Constants.DEFAULT_MAPPING_TYPE, "new", "meta");
+        waitForMappingUpdateOnAll("dynamic_table", "new", "meta");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.type")), is("array"));
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.inner.type")), is("string"));
@@ -168,7 +168,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into dynamic_table (person) values " +
                 "({name='Ford', addresses=[{city='West Country', country='GB'}]})");
         refresh();
-        waitForConcreteMappingsOnAll("dynamic_table", Constants.DEFAULT_MAPPING_TYPE, "person.name");
+        waitForMappingUpdateOnAll("dynamic_table", "person.name");
 
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.person.properties.addresses.type")), is("array"));
@@ -308,7 +308,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("update dynamic_table set name='Trillian', boo=true where name='Ford'");
         execute("refresh table dynamic_table");
 
-        waitForConcreteMappingsOnAll("dynamic_table", Constants.DEFAULT_MAPPING_TYPE, "boo");
+        waitForMappingUpdateOnAll("dynamic_table", "boo");
         execute("select * from dynamic_table");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.cols(), is(arrayContaining("boo", "id", "name")));
@@ -360,7 +360,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("update dynamic_table set name='Trillian', good=true where score > 0.0");
         execute("refresh table dynamic_table");
 
-        waitForConcreteMappingsOnAll("dynamic_table", Constants.DEFAULT_MAPPING_TYPE, "name");
+        waitForMappingUpdateOnAll("dynamic_table", "name");
         execute("select * from dynamic_table");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.cols(), is(arrayContaining("good", "id", "name", "score")));

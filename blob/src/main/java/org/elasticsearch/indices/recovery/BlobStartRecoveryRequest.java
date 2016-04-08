@@ -36,7 +36,7 @@ public class BlobStartRecoveryRequest extends BlobRecoveryRequest {
         this.shardId = shardId;
     }
 
-    protected BlobStartRecoveryRequest() {
+    public BlobStartRecoveryRequest() {
     }
 
     public ShardId shardId() {

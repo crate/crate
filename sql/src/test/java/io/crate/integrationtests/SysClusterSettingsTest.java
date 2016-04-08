@@ -43,7 +43,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
     @After
     public void resetSettings() throws Exception {
-        execute("reset global bulk.partition_creation_timeout, bulk.request_timeout");
+        execute("reset global stats.operations_log_size, bulk.request_timeout");
     }
 
     @Test
@@ -126,14 +126,14 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
     @Test
     public void testDynamicPersistentSettings() throws Exception {
         Settings.Builder builder = Settings.builder()
-                .put(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.settingName(), "2s");
+                .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 100);
         client().admin().cluster().prepareUpdateSettings().setPersistentSettings(builder.build()).execute().actionGet();
 
         execute("select settings from sys.cluster");
         assertEquals(1L, response.rowCount());
         Map<String, Map> settings = (Map<String, Map>)response.rows()[0][0];
-        Map bulk = settings.get(CrateSettings.BULK.name());
-        assertEquals("2s", bulk.get(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.name()));
+        Map bulk = settings.get(CrateSettings.STATS.name());
+        assertEquals(100, bulk.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
 
         internalCluster().fullRestart();
         // the gateway recovery is async and
@@ -144,8 +144,8 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
                 execute("select settings from sys.cluster");
                 assertEquals(1L, response.rowCount());
                 Map<String, Map> settings = (Map<String, Map>)response.rows()[0][0];
-                Map bulk = settings.get(CrateSettings.BULK.name());
-                assertEquals("2s", bulk.get(CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.name()));
+                Map bulk = settings.get(CrateSettings.STATS.name());
+                assertEquals(100, bulk.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
             }
         });
     }

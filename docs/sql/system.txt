@@ -87,7 +87,6 @@ currently applied cluster settings.
     +-----------------------------------------------------------------------------------+--------------+
     | settings                                                                          | object       |
     | settings['bulk']                                                                  | object       |
-    | settings['bulk']['partition_creation_timeout']                                    | string       |
     | settings['bulk']['request_timeout']                                               | string       |
     | settings['cluster']                                                               | object       |
     | settings['cluster']['graceful_stop']                                              | object       |
@@ -180,7 +179,7 @@ currently applied cluster settings.
     | settings['udc']['interval']                                                       | string       |
     | settings['udc']['url']                                                            | string       |
     +-----------------------------------------------------------------------------------+--------------+
-    SELECT 94 rows in set (... sec)
+    SELECT 93 rows in set (... sec)
 
 For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` configuration section.
 

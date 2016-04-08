@@ -31,10 +31,10 @@ import io.crate.jobs.KillAllListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
@@ -77,11 +77,11 @@ public abstract class TransportShardAction<R extends ShardRequest>
     }
 
     @Override
-    protected void shardOperationOnReplica(final ShardId shardId, final R shardRequest) {
+    protected void shardOperationOnReplica(final R shardRequest) {
         KillableCallable<Tuple> callable = new KillableWrapper() {
             @Override
             public Tuple call() throws Exception {
-                processRequestItemsOnReplica(shardId, shardRequest, killed);
+                processRequestItemsOnReplica(shardRequest.shardId(), shardRequest, killed);
                 return null;
             }
         };
@@ -89,16 +89,15 @@ public abstract class TransportShardAction<R extends ShardRequest>
     }
 
     @Override
-    protected Tuple<ShardResponse, R> shardOperationOnPrimary(ClusterState clusterState, final PrimaryOperationRequest shardRequest) {
+    protected Tuple<ShardResponse, R> shardOperationOnPrimary(MetaData metaData, final R shardRequest) throws Throwable {
         KillableCallable<Tuple> callable = new KillableWrapper() {
             @Override
             public Tuple call() throws Exception {
-                ShardResponse shardResponse = processRequestItems(shardRequest.shardId, shardRequest.request, killed);
-                return new Tuple<>(shardResponse, shardRequest.request);
+                ShardResponse shardResponse = processRequestItems(shardRequest.shardId(), shardRequest, killed);
+                return new Tuple<>(shardResponse, shardRequest);
             }
         };
-
-        return wrapOperationInKillable(shardRequest.request, callable);
+        return wrapOperationInKillable(shardRequest, callable);
     }
 
     protected Tuple<ShardResponse, R> wrapOperationInKillable(R request, KillableCallable<Tuple> callable) {

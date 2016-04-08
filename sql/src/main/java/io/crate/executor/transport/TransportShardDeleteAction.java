@@ -27,11 +27,9 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -69,13 +67,6 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     @Override
     protected boolean checkWriteConsistency() {
         return true;
-    }
-
-    @Override
-    protected ShardIterator shards(ClusterState clusterState, InternalRequest request) {
-        return clusterState.routingTable()
-                .index(request.concreteIndex())
-                .shard(request.request().shardId().getId()).shardsIt();
     }
 
     @Override
@@ -131,7 +122,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                 throw new CancellationException(JobKilledException.MESSAGE);
             }
             try {
-                Engine.Delete delete = indexShard.prepareDelete(request.type(), item.id(), item.version(), item.versionType(), Engine.Operation.Origin.REPLICA);
+                Engine.Delete delete = indexShard.prepareDeleteOnReplica(request.type(), item.id(), item.version(), item.versionType());
                 indexShard.delete(delete);
                 logger.trace("{} REPLICA: successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
             } catch (Throwable e) {
@@ -146,7 +137,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     }
 
     private boolean shardDeleteOperationOnPrimary(ShardDeleteRequest request, ShardDeleteRequest.Item item, IndexShard indexShard) {
-        Engine.Delete delete = indexShard.prepareDelete(request.type(), item.id(), item.version(), item.versionType(), Engine.Operation.Origin.PRIMARY);
+        Engine.Delete delete = indexShard.prepareDeleteOnPrimary(request.type(), item.id(), item.version(), item.versionType());
         indexShard.delete(delete);
         // update the request with the version so it will go to the replicas
         item.versionType(delete.versionType().versionTypeForReplicationAndRecovery());

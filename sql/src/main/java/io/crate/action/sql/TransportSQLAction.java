@@ -55,7 +55,7 @@ import java.util.List;
 public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLResponse> {
 
     @Inject
-    protected TransportSQLAction(
+    public TransportSQLAction(
             ClusterService clusterService,
             Settings settings,
             ThreadPool threadPool,

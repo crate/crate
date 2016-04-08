@@ -20,6 +20,8 @@
 
 package io.crate.http.netty;
 
+import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.IntSet;
 import com.google.common.collect.ImmutableMap;
 import io.crate.blob.BlobService;
 import io.crate.blob.v2.BlobIndices;
@@ -57,6 +59,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -88,6 +91,7 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
 
     public static final boolean DEFAULT_SETTING_PIPELINING = true;
     public static final int DEFAULT_SETTING_PIPELINING_MAX_EVENTS = 10000;
+    public static final String DEFAULT_PORT_RANGE = "4200-4300";
 
     protected final NetworkService networkService;
     protected final BigArrays bigArrays;
@@ -116,13 +120,11 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
 
     protected final String port;
 
-    protected final String bindHost;
+    protected final String bindHosts[];
 
-    protected final String publishHost;
+    protected final String publishHosts[];
 
     protected final boolean detailedErrorsEnabled;
-
-    protected int publishPort;
 
     protected final String tcpNoDelay;
     protected final String tcpKeepAlive;
@@ -141,7 +143,8 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
 
     protected volatile List<Channel> serverChannels = new ArrayList<>();
 
-    protected OpenChannelsHandler serverOpenChannels;
+    // package private for testing
+    OpenChannelsHandler serverOpenChannels;
 
     protected volatile HttpServerAdapter httpServerAdapter;
 
@@ -170,10 +173,9 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
         this.maxCompositeBufferComponents = settings.getAsInt("http.netty.max_composite_buffer_components", -1);
         this.workerCount = settings.getAsInt("http.netty.worker_count", EsExecutors.boundedNumberOfProcessors(settings) * 2);
         this.blockingServer = settings.getAsBoolean("http.netty.http.blocking_server", settings.getAsBoolean(TCP_BLOCKING_SERVER, settings.getAsBoolean(TCP_BLOCKING, false)));
-        this.port = settings.get("http.netty.port", settings.get("http.port", "4200-2300"));
-        this.bindHost = settings.get("http.netty.bind_host", settings.get("http.bind_host", settings.get("http.host")));
-        this.publishHost = settings.get("http.netty.publish_host", settings.get("http.publish_host", settings.get("http.host")));
-        this.publishPort = settings.getAsInt("http.netty.publish_port", settings.getAsInt("http.publish_port", 0));
+        this.port = settings.get("http.netty.port", settings.get("http.port", DEFAULT_PORT_RANGE));
+        this.bindHosts = settings.getAsArray("http.netty.bind_host", settings.getAsArray("http.bind_host", settings.getAsArray("http.host", null)));
+        this.publishHosts = settings.getAsArray("http.netty.publish_host", settings.getAsArray("http.publish_host", settings.getAsArray("http.host", null)));
         this.tcpNoDelay = settings.get("http.netty.tcp_no_delay", settings.get(TCP_NO_DELAY, "true"));
         this.tcpKeepAlive = settings.get("http.netty.tcp_keep_alive", settings.get(TCP_KEEP_ALIVE, "true"));
         this.reuseAddress = settings.getAsBoolean("http.netty.reuse_address", settings.getAsBoolean(TCP_REUSE_ADDRESS, NetworkUtils.defaultReuseAddress()));
@@ -256,13 +258,24 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
         serverBootstrap.setOption("child.receiveBufferSizePredictorFactory", receiveBufferSizePredictorFactory);
         serverBootstrap.setOption("reuseAddress", reuseAddress);
         serverBootstrap.setOption("child.reuseAddress", reuseAddress);
+        this.boundAddress = createBoundHttpAddress();
 
+        final String httpAddress = "http://" + boundAddress.publishAddress().getHost() + ":" + boundAddress.publishAddress().getPort();
+        discoveryNodeService.addCustomAttributeProvider(new DiscoveryNodeService.CustomAttributesProvider() {
+            @Override
+            public Map<String, String> buildAttributes() {
+                return ImmutableMap.<String, String>builder().put("http_address", httpAddress).build();
+            }
+        });
+    }
+
+    private BoundTransportAddress createBoundHttpAddress() {
         // Bind and start to accept incoming connections.
         InetAddress hostAddresses[];
         try {
-            hostAddresses = networkService.resolveBindHostAddress(bindHost);
+            hostAddresses = networkService.resolveBindHostAddresses(bindHosts);
         } catch (IOException e) {
-            throw new BindHttpException("Failed to resolve host [" + bindHost + "]", e);
+            throw new BindHttpException("Failed to resolve host [" + Arrays.toString(bindHosts) + "]", e);
         }
 
         List<InetSocketTransportAddress> boundAddresses = new ArrayList<>(hostAddresses.length);
@@ -270,28 +283,51 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
             boundAddresses.add(bindAddress(address));
         }
 
-        InetSocketTransportAddress boundAddress = boundAddresses.get(0);
-        InetSocketAddress publishAddress;
-        if (0 == publishPort) {
-            publishPort = boundAddress.getPort();
-        }
+        final InetAddress publishInetAddress;
         try {
-            publishAddress = new InetSocketAddress(networkService.resolvePublishHostAddress(publishHost), publishPort);
+            publishInetAddress = networkService.resolvePublishHostAddresses(publishHosts);
         } catch (Exception e) {
             throw new BindTransportException("Failed to resolve publish address", e);
         }
-        this.boundAddress = new BoundTransportAddress(boundAddresses.toArray(new TransportAddress[boundAddresses.size()]), new InetSocketTransportAddress(publishAddress));
 
-        final String httpAddress = "http://" + publishAddress.getAddress().getHostAddress() + ":" + publishAddress.getPort();
-        discoveryNodeService.addCustomAttributeProvider(new DiscoveryNodeService.CustomAttributesProvider() {
-            @Override
-            public Map<String, String> buildAttributes() {
-                return ImmutableMap.<String, String>builder().put("http_address", httpAddress).build();
-            }
-        });
-
+        final int publishPort = resolvePublishPort(settings, boundAddresses, publishInetAddress);
+        final InetSocketAddress publishAddress = new InetSocketAddress(publishInetAddress, publishPort);
+        return new BoundTransportAddress(boundAddresses.toArray(new TransportAddress[boundAddresses.size()]), new InetSocketTransportAddress(publishAddress));
     }
-    
+
+    // package private for tests
+    static int resolvePublishPort(Settings settings, List<InetSocketTransportAddress> boundAddresses, InetAddress publishInetAddress) {
+        int publishPort = settings.getAsInt("http.netty.publish_port", settings.getAsInt("http.publish_port", -1));
+
+        if (publishPort < 0) {
+            for (InetSocketTransportAddress boundAddress : boundAddresses) {
+                InetAddress boundInetAddress = boundAddress.address().getAddress();
+                if (boundInetAddress.isAnyLocalAddress() || boundInetAddress.equals(publishInetAddress)) {
+                    publishPort = boundAddress.getPort();
+                    break;
+                }
+            }
+        }
+
+        // if no matching boundAddress found, check if there is a unique port for all bound addresses
+        if (publishPort < 0) {
+            final IntSet ports = new IntHashSet();
+            for (InetSocketTransportAddress boundAddress : boundAddresses) {
+                ports.add(boundAddress.getPort());
+            }
+            if (ports.size() == 1) {
+                publishPort = ports.iterator().next().value;
+            }
+        }
+
+        if (publishPort < 0) {
+            throw new BindHttpException("Failed to auto-resolve http publish port, multiple bound addresses " + boundAddresses +
+                                        " with distinct ports and none of them matched the publish address (" + publishInetAddress + "). " +
+                                        "Please specify a unique port by setting http.port or http.publish_port");
+        }
+        return publishPort;
+    }
+
     private InetSocketTransportAddress bindAddress(final InetAddress hostAddress) {
         PortsRange portsRange = new PortsRange(port);
         final AtomicReference<Exception> lastException = new AtomicReference<>();
@@ -379,7 +415,7 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
             }
             ctx.getChannel().close();
         } else {
-            if (!lifecycle.started()) {
+            if (!(lifecycle.started() || lifecycle.disabled())) {
                 // ignore
                 return;
             }
@@ -428,7 +464,6 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
             }
             pipeline.addLast("decoder", requestDecoder);
             pipeline.addLast("decoder_compress", new ESHttpContentDecompressor(transport.compression));
-
 
             HttpBlobHandler blobHandler = new HttpBlobHandler(transport.blobService, transport.blobIndices);
             pipeline.addLast("blob_handler", blobHandler);

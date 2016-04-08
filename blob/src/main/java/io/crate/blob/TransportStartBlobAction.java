@@ -29,6 +29,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
@@ -69,31 +70,26 @@ public class TransportStartBlobAction
     }
 
     @Override
-    protected Tuple<StartBlobResponse, StartBlobRequest> shardOperationOnPrimary(ClusterState clusterState,
-                                                                                 PrimaryOperationRequest shardRequest) {
-        logger.trace("shardOperationOnPrimary {}", shardRequest);
-        final StartBlobRequest request = shardRequest.request;
+    protected Tuple<StartBlobResponse, StartBlobRequest> shardOperationOnPrimary(MetaData metaData,
+                                                                                 StartBlobRequest request) throws Throwable {
+        logger.trace("shardOperationOnPrimary {}", request);
         final StartBlobResponse response = newResponseInstance();
-        transferTarget.startTransfer(shardRequest.shardId.id(), request, response);
+        transferTarget.startTransfer(request.shardId().id(), request, response);
         return new Tuple<>(response, request);
-
     }
 
     @Override
-    protected void shardOperationOnReplica(ShardId shardId, StartBlobRequest shardRequest) {
-        logger.trace("shardOperationOnReplica operating on replica {}", shardRequest);
+    protected void shardOperationOnReplica(StartBlobRequest request) {
+        logger.trace("shardOperationOnReplica operating on replica {}", request);
         final StartBlobResponse response = newResponseInstance();
-        transferTarget.startTransfer(shardId.id(), shardRequest, response);
+        transferTarget.startTransfer(request.shardId().id(), request, response);
     }
 
     @Override
-    protected ShardIterator shards(ClusterState clusterState, InternalRequest request) throws ElasticsearchException {
-        return clusterService.operationRouting()
-                .indexShards(clusterService.state(),
-                        request.concreteIndex(),
-                        null,
-                        request.request().id(),
-                        null);
+    protected void resolveRequest(MetaData metaData, String concreteIndex, StartBlobRequest request) {
+        ShardIterator shardIterator = clusterService.operationRouting().indexShards(
+                clusterService.state(), concreteIndex, null, request.id(), null);
+        request.setShardId(shardIterator.shardId());
     }
 
     @Override

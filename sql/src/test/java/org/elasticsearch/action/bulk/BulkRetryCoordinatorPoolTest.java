@@ -75,7 +75,7 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
                 DiscoveryNodes.builder().put(newNode(NODE_IDS[0])).localNodeId(NODE_IDS[0])).build();
 
         AllocationService allocationService = createAllocationService();
-        routingTable = allocationService.reroute(state).routingTable();
+        routingTable = allocationService.reroute(state, "test").routingTable();
         state = ClusterState.builder(state).routingTable(routingTable).build();
 
         ClusterService clusterService = new NoopClusterService(state);
@@ -131,7 +131,7 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
                 DiscoveryNodes.builder().put(newNode(NODE_IDS[1]))).build();
 
         AllocationService allocationService = createAllocationService();
-        RoutingTable routingTable = allocationService.reroute(newState).routingTable();
+        RoutingTable routingTable = allocationService.reroute(newState, "test").routingTable();
         newState = ClusterState.builder(newState).routingTable(routingTable).build();
 
         pool.clusterChanged(new ClusterChangedEvent("bla", newState, state));

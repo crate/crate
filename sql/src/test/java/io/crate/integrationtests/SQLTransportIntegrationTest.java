@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.*;
@@ -127,12 +128,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     public Settings indexSettings() {
         // set number of replicas to 0 for getting a green cluster when using only one node
         return Settings.builder().put("number_of_replicas", 0).build();
-    }
-
-    // TODO: FIX ME! Not needed anymore?
-    //@Override
-    public void waitForConcreteMappingsOnAll(String index, String type, String... fieldNames) throws Exception {
-        waitForMappingUpdateOnAll(index, fieldNames);
     }
 
     @After

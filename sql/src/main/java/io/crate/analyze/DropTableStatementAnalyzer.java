@@ -35,7 +35,7 @@ public class DropTableStatementAnalyzer extends DefaultTraversalVisitor<DropTabl
     private final Schemas schemas;
 
     @Inject
-    protected DropTableStatementAnalyzer(Schemas schemas) {
+    public DropTableStatementAnalyzer(Schemas schemas) {
         this.schemas = schemas;
     }
 

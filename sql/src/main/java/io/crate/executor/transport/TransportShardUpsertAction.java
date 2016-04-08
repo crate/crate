@@ -125,15 +125,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @Override
-    protected ShardIterator shards(ClusterState clusterState, InternalRequest request) {
-        IndexRoutingTable routingTable = clusterState.routingTable().index(request.concreteIndex());
-        if (routingTable == null) {
-            throw new IndexNotFoundException(request.concreteIndex());
-        }
-        return routingTable.shard(request.request().shardId().id()).shardsIt();
-    }
-
-    @Override
     protected ShardResponse processRequestItems(ShardId shardId,
                                                 ShardUpsertRequest request,
                                                 AtomicBoolean killed) {
@@ -367,11 +358,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     indexShard.shardId(), item.opType(), item.id(), version, item.source().toUtf8());
         }
         if (item.opType() == IndexRequest.OpType.INDEX) {
-            return indexShard.prepareIndex(sourceToParse, version, item.versionType(),
-                    Engine.Operation.Origin.PRIMARY, request.canHaveDuplicates());
+            return indexShard.prepareIndexOnPrimary(sourceToParse, version, item.versionType(), request.canHaveDuplicates());
         }
-        return indexShard.prepareCreate(sourceToParse, version, item.versionType(), Engine.Operation.Origin.PRIMARY,
-                request.canHaveDuplicates(), false);
+        return indexShard.prepareCreateOnPrimary(
+                sourceToParse, version, item.versionType(), request.canHaveDuplicates(), false);
     }
 
     private Translog.Location shardIndexOperation(ShardUpsertRequest request,
@@ -423,15 +413,15 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 if (logger.isTraceEnabled()) {
                     logger.trace("[{} (R)] Updating document with id {}, source: {}", indexShard.shardId(), item.id(), item.source().toUtf8());
                 }
-                Engine.Index index = indexShard.prepareIndex(sourceToParse, item.version(), item.versionType(),
-                        Engine.Operation.Origin.REPLICA, request.canHaveDuplicates());
+                Engine.Index index = indexShard.prepareIndexOnReplica(
+                        sourceToParse, item.version(), item.versionType(), request.canHaveDuplicates());
                 indexShard.index(index);
             } else {
                 if (logger.isTraceEnabled()) {
                     logger.trace("[{} (R)] Creating document with id {}, source: {}", indexShard.shardId(), item.id(), item.source().toUtf8());
                 }
-                Engine.Create create = indexShard.prepareCreate(sourceToParse, item.version(), item.versionType(),
-                        Engine.Operation.Origin.REPLICA, request.canHaveDuplicates(), false);
+                Engine.Create create = indexShard.prepareCreateOnReplica(
+                        sourceToParse, item.version(), item.versionType(), request.canHaveDuplicates(), false);
                 indexShard.create(create);
             }
         } catch (Throwable t) {

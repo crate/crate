@@ -76,7 +76,7 @@ configurations.all {
 }
 
 task downloadUpstreamSources (type: Download) {
-    def upstreamCommit = '5c912c932497a87fb49d06426270e1c7c96797d1'
+    def upstreamCommit = 'v2.2.1'
     src "https://github.com/elastic/elasticsearch-hadoop/archive/${upstreamCommit}.zip"
     dest file("${buildDir}/downloads/elasticsearch-hadoop-${upstreamCommit}.zip")
     overwrite false
@@ -90,7 +90,7 @@ task extractUpstreamSources(type: Copy) {
     }
     eachFile {details ->
         details.path = details.path.replaceFirst(
-            'elasticsearch-hadoop-.{40}/repository-hdfs/', '')
+            'elasticsearch-hadoop-[^/]+/repository-hdfs/', '')
     }
     into 'upstream'
     includeEmptyDirs false

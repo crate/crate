@@ -33,8 +33,6 @@ public class CrateSingleNodeTest extends ESSingleNodeTestCase {
     @Override
     @After
     public void tearDown() throws Exception {
-        DynamicSettings dynamicSettings = node().injector().getInstance(Key.get(DynamicSettings.class, ClusterDynamicSettings.class));
-        //dynamicSettings.addDynamicSetting("cluster_id");
         client().admin().cluster()
                 .prepareUpdateSettings()
                 .setTransientSettingsToRemove(Sets.newHashSet("cluster_id"))

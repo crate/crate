@@ -109,17 +109,17 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
     private final StatsTables statsTables;
     private volatile boolean disabled;
 
-    public TransportBaseSQLAction(ClusterService clusterService,
-                                  Settings settings,
-                                  String actionName,
-                                  ThreadPool threadPool,
-                                  Analyzer analyzer,
-                                  Planner planner,
-                                  Provider<Executor> executorProvider,
-                                  StatsTables statsTables,
-                                  ActionFilters actionFilters,
-                                  IndexNameExpressionResolver indexNameExpressionResolver,
-                                  TransportKillJobsNodeAction transportKillJobsNodeAction) {
+    protected TransportBaseSQLAction(ClusterService clusterService,
+                                     Settings settings,
+                                     String actionName,
+                                     ThreadPool threadPool,
+                                     Analyzer analyzer,
+                                     Planner planner,
+                                     Provider<Executor> executorProvider,
+                                     StatsTables statsTables,
+                                     ActionFilters actionFilters,
+                                     IndexNameExpressionResolver indexNameExpressionResolver,
+                                     TransportKillJobsNodeAction transportKillJobsNodeAction) {
         super(settings, actionName, threadPool, actionFilters, indexNameExpressionResolver);
         this.clusterService = clusterService;
         this.analyzer = analyzer;
