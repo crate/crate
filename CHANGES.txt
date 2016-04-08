@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/04/08 0.54.8
+=================
+
  - Updated crate/elasticsearch to fix an issue where the `minAvailability`
    setting was not read from config file
 
