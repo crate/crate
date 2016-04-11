@@ -29,7 +29,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.concurrent.CancellationException;
 
-public abstract class AbstractExecutionSubContext implements ExecutionSubContext, ExecutionState {
+public abstract class AbstractExecutionSubContext implements ExecutionSubContext {
 
     protected static final ESLogger LOGGER = Loggers.getLogger(AbstractExecutionSubContext.class);
 
@@ -37,7 +37,6 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     private final int id;
 
     protected KeepAliveListener keepAliveListener;
-    private volatile boolean isKilled = false;
 
     protected AbstractExecutionSubContext(int id) {
         this.id = id;
@@ -127,7 +126,6 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
             } finally {
                 cleanup();
             }
-            isKilled = true;
             future.close(t);
         }
     }
@@ -135,11 +133,6 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     @Override
     final public SubExecutionContextFuture future() {
         return future;
-    }
-
-    @Override
-    public boolean isKilled() {
-        return isKilled;
     }
 
 

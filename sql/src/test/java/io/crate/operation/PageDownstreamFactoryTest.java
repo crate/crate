@@ -34,7 +34,6 @@ import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
@@ -174,7 +173,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         Tuple<PageDownstream, FlatProjectorChain> downstreamFlatProjectorChainTuple =
                 pageDownstreamFactory.createMergeNodePageDownstream(
                         mergeNode, rowReceiver, randomBoolean(), ramAccountingContext, Optional.<Executor>absent());
-        downstreamFlatProjectorChainTuple.v2().prepare(mock(ExecutionState.class));
+        downstreamFlatProjectorChainTuple.v2().prepare();
         return downstreamFlatProjectorChainTuple.v1();
     }
 

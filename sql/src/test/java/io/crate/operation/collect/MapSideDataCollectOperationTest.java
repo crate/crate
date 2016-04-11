@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.TreeMapBuilder;
-import io.crate.jobs.ExecutionState;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.metadata.*;
 import io.crate.operation.collect.sources.CollectSourceResolver;
@@ -129,7 +128,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
         String threadPoolName = JobCollectContext.threadPoolName(collectNode, "dummyNodeId");
 
         CollectingRowReceiver cd = new CollectingRowReceiver();
-        cd.prepare(mock(ExecutionState.class));
+        cd.prepare();
         JobCollectContext jobCollectContext = mock(JobCollectContext.class);
         KeepAliveListener keepAliveListener = mock(KeepAliveListener.class);
         when(jobCollectContext.keepAliveListener()).thenReturn(keepAliveListener);

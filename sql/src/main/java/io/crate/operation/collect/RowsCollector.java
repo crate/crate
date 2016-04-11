@@ -23,13 +23,12 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.projectors.IterableRowEmitter;
 import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
 
-public class RowsCollector implements CrateCollector, ExecutionState {
+public class RowsCollector implements CrateCollector {
 
     private final IterableRowEmitter emitter;
 
@@ -42,7 +41,7 @@ public class RowsCollector implements CrateCollector, ExecutionState {
     }
 
     public RowsCollector(RowReceiver rowDownstream, Iterable<Row> rows) {
-        this.emitter = new IterableRowEmitter(rowDownstream, this, rows);
+        this.emitter = new IterableRowEmitter(rowDownstream, rows);
     }
 
     @Override
@@ -52,11 +51,6 @@ public class RowsCollector implements CrateCollector, ExecutionState {
 
     @Override
     public void kill(@Nullable Throwable throwable) {
-        emitter.topRowUpstream().kill(throwable);
-    }
-
-    @Override
-    public boolean isKilled() {
-        return emitter.topRowUpstream().isKilled();
+        emitter.kill(throwable);
     }
 }

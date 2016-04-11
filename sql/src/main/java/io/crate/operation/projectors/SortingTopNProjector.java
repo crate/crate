@@ -44,6 +44,7 @@ public class SortingTopNProjector extends AbstractProjector {
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
     private Object[] spare;
     private Set<Requirement> requirements;
+    private volatile IterableRowEmitter rowEmitter = null;
 
     /**
      * @param inputs             contains output {@link io.crate.operation.Input}s and orderBy {@link io.crate.operation.Input}s
@@ -97,7 +98,7 @@ public class SortingTopNProjector extends AbstractProjector {
             downstream.finish();
             return;
         }
-        IterableRowEmitter rowEmitter = createRowEmitter(resultSize);
+        rowEmitter = createRowEmitter(resultSize);
         rowEmitter.run();
     }
 
@@ -106,7 +107,17 @@ public class SortingTopNProjector extends AbstractProjector {
         for (int i = resultSize - 1; i >= 0; i--) {
             rows[i] = pq.pop();
         }
-        return new IterableRowEmitter(downstream, executionState, new ArrayBucket(rows, numOutputs));
+        return new IterableRowEmitter(downstream, new ArrayBucket(rows, numOutputs));
+    }
+
+    @Override
+    public void kill(Throwable throwable) {
+        IterableRowEmitter emitter = rowEmitter;
+        if (emitter == null) {
+            downstream.kill(throwable);
+        } else {
+            emitter.kill(throwable);
+        }
     }
 
     @Override
@@ -117,7 +128,7 @@ public class SortingTopNProjector extends AbstractProjector {
     @Override
     public void repeat() {
         final int resultSize = Math.max(pq.size() - offset, 0);
-        IterableRowEmitter rowEmitter = createRowEmitter(resultSize);
+        rowEmitter = createRowEmitter(resultSize);
         rowEmitter.run();
     }
 

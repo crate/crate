@@ -25,7 +25,6 @@ package io.crate.operation.projectors;
 import com.google.common.collect.Sets;
 import io.crate.core.collections.ArrayRow;
 import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowUpstream;
 import org.elasticsearch.common.logging.ESLogger;
@@ -134,10 +133,15 @@ public class RowMergers {
         }
 
         @Override
-        public void prepare(ExecutionState executionState) {
+        public void prepare() {
             if (prepared.compareAndSet(false, true)) {
-                delegate.prepare(executionState);
+                delegate.prepare();
             }
+        }
+
+        @Override
+        public void kill(Throwable throwable) {
+            delegate.kill(throwable);
         }
 
         @Override

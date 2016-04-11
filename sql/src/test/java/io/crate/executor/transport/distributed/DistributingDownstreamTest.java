@@ -30,7 +30,6 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.transport.Transports;
-import io.crate.jobs.ExecutionState;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.KeepAliveTimers;
 import io.crate.test.integration.CrateUnitTest;
@@ -52,7 +51,10 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.core.Is.is;
@@ -188,7 +190,7 @@ public class DistributingDownstreamTest extends CrateUnitTest {
                 streamers,
                 pageSize
         );
-        distributingDownstream.prepare(mock(ExecutionState.class));
+        distributingDownstream.prepare();
         countDownLatch.await(1, TimeUnit.SECONDS);
     }
 
@@ -228,7 +230,7 @@ public class DistributingDownstreamTest extends CrateUnitTest {
                 streamers,
                 2
         );
-        dd.prepare(mock(ExecutionState.class));
+        dd.prepare();
 
         RowSender rowSender = new RowSender(
                 Arrays.<Row>asList(

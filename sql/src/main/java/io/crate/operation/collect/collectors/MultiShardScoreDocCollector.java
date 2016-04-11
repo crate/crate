@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.*;
 import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.merge.KeyIterable;
@@ -49,7 +48,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
 
-public class MultiShardScoreDocCollector implements CrateCollector, ExecutionState {
+public class MultiShardScoreDocCollector implements CrateCollector {
 
     private static final ESLogger LOGGER = Loggers.getLogger(MultiShardScoreDocCollector.class);
 
@@ -65,6 +64,7 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
     private final KeepAliveListener keepAliveListener;
     private final FlatProjectorChain flatProjectorChain;
     private final boolean singleShard;
+    private IterableRowEmitter rowEmitter = null;
 
     private long rowCount = 0;
 
@@ -86,8 +86,7 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
         }, new Runnable() {
             @Override
             public void run() {
-                IterableRowEmitter rowEmitter =
-                        new IterableRowEmitter(rowReceiver, MultiShardScoreDocCollector.this, pagingIterator.repeat());
+                rowEmitter = new IterableRowEmitter(rowReceiver, pagingIterator.repeat());
                 rowEmitter.run();
             }
         });
@@ -129,7 +128,7 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
 
     @Override
     public void doCollect() {
-        flatProjectorChain.prepare(topRowUpstream);
+        flatProjectorChain.prepare();
         if (singleShard) {
             runWithoutThreads(orderedDocCollectors.get(0));
         } else {
@@ -197,8 +196,6 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
 
     private Result emitRows() {
         while (pagingIterator.hasNext()) {
-            topRowUpstream.throwIfKilled();
-
             Row row = pagingIterator.next();
             rowCount++;
 
@@ -245,11 +242,10 @@ public class MultiShardScoreDocCollector implements CrateCollector, ExecutionSta
 
     @Override
     public void kill(@Nullable Throwable throwable) {
-        topRowUpstream.kill(throwable);
-    }
-
-    @Override
-    public boolean isKilled() {
-        return topRowUpstream.isKilled();
+        if (rowEmitter == null) {
+            rowReceiver.kill(throwable);
+        } else {
+            rowEmitter.kill(throwable);
+        }
     }
 }

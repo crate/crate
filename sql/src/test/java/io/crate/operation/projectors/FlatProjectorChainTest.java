@@ -25,7 +25,6 @@ package io.crate.operation.projectors;
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.projection.Projection;
@@ -46,14 +45,13 @@ public class FlatProjectorChainTest extends CrateUnitTest {
         TopNProjection topN = new TopNProjection(0, 1);
         ProjectorFactory factory = mock(ProjectorFactory.class);
         RamAccountingContext ramAccountingContext = mock(RamAccountingContext.class);
-        ExecutionState state = mock(ExecutionState.class);
 
         UUID jobId = UUID.randomUUID();
         when(factory.create(topN, ramAccountingContext, jobId)).thenReturn(new SimpleTopNProjector(ImmutableList.<Input<?>>of(), Collections.<CollectExpression<Row, Object>>emptyList(), 0, 1));
         FlatProjectorChain chain = FlatProjectorChain.withAttachedDownstream(factory, ramAccountingContext, ImmutableList.<Projection>of(topN), finalDownstream, jobId);
-        chain.prepare(state);
+        chain.prepare();
 
-        verify(finalDownstream, times(1)).prepare(state);
+        verify(finalDownstream, times(1)).prepare();
 
     }
 }

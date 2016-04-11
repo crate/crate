@@ -208,7 +208,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     @Override
     protected void innerPrepare() {
         if (projectorChain != null) {
-            projectorChain.prepare(this);
+            projectorChain.prepare();
         }
     }
 

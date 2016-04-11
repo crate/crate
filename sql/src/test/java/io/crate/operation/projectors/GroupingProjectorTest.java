@@ -15,7 +15,6 @@ import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.collect.JobCollectContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataType;
@@ -30,7 +29,6 @@ import java.util.Arrays;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
 
 
 public class GroupingProjectorTest extends CrateUnitTest {
@@ -76,7 +74,7 @@ public class GroupingProjectorTest extends CrateUnitTest {
 
         Row emptyRow = new RowN(new Object[]{});
 
-        projector.prepare(mock(JobCollectContext.class));
+        projector.prepare();
         projector.setNextRow(emptyRow);
         projector.setNextRow(emptyRow);
         projector.setNextRow(emptyRow);

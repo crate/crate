@@ -31,7 +31,6 @@ import io.crate.action.job.SharedShardContexts;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.AbstractExecutionSubContext;
-import io.crate.jobs.ExecutionState;
 import io.crate.jobs.KeepAliveListener;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.ListenableRowReceiver;
@@ -47,7 +46,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
 
-public class JobCollectContext extends AbstractExecutionSubContext implements ExecutionState {
+public class JobCollectContext extends AbstractExecutionSubContext {
 
     private final CollectPhase collectPhase;
     private final MapSideDataCollectOperation collectOperation;

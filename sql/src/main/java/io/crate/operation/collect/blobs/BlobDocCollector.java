@@ -34,7 +34,6 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.CancellationException;
 
 public class BlobDocCollector implements CrateCollector, RowUpstream {
 
@@ -73,7 +72,7 @@ public class BlobDocCollector implements CrateCollector, RowUpstream {
 
     @Override
     public void kill(@Nullable Throwable throwable) {
-        killed = true;
+        downstream.kill(throwable);
     }
 
     @Override
@@ -100,9 +99,6 @@ public class BlobDocCollector implements CrateCollector, RowUpstream {
 
         @Override
         public boolean visit(File file) throws IOException {
-            if (killed) {
-                throw new CancellationException();
-            }
             for (CollectExpression<File, ?> expression : expressions) {
                 expression.setNextRow(file);
             }

@@ -305,7 +305,6 @@ public class JobContextServiceTest extends CrateUnitTest {
         assertThat(numContexts(jobContextService1), is(1));
         Thread.sleep(300);
 
-        assertTrue(executionSubContext.isKilled());
         assertThat(numContexts(jobContextService1), is(0));
 
         // close service, stop reaper thread

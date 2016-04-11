@@ -28,7 +28,6 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.Requirements;
@@ -61,7 +60,7 @@ public class CollectingRowReceiver implements RowReceiver {
     }
 
     @Override
-    public void prepare(ExecutionState executionState) {
+    public void prepare() {
     }
 
     @Override
@@ -78,6 +77,12 @@ public class CollectingRowReceiver implements RowReceiver {
     public boolean setNextRow(Row row) {
         rows.add(row.materialize());
         return true;
+    }
+
+    @Override
+    public void kill(Throwable throwable) {
+        resultFuture.setException(throwable);
+        isFinished = true;
     }
 
     @Override

@@ -25,7 +25,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.operation.projectors.Requirement;
@@ -156,7 +155,13 @@ public class NestedLoopOperation implements RowUpstream {
         }
 
         @Override
-        public void prepare(ExecutionState executionState) {
+        public void prepare() {
+        }
+
+        @Override
+        public void kill(Throwable throwable) {
+            finished.setException(throwable);
+            downstream.kill(throwable);
         }
 
         @Override

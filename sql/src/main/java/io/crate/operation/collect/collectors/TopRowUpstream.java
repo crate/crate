@@ -22,22 +22,18 @@
 
 package io.crate.operation.collect.collectors;
 
-import com.google.common.base.Throwables;
 import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
-import javax.annotation.Nullable;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class TopRowUpstream implements RowUpstream, ExecutionState {
+public class TopRowUpstream implements RowUpstream {
 
     private final static ESLogger LOGGER = Loggers.getLogger(TopRowUpstream.class);
 
@@ -47,9 +43,7 @@ public class TopRowUpstream implements RowUpstream, ExecutionState {
     private final AtomicBoolean paused = new AtomicBoolean(false);
     private final ReentrantLock pauseLock = new ReentrantLock();
 
-    private volatile boolean killed = false;
     private volatile boolean pendingPause = false;
-    private volatile Throwable killedThrowable = null;
 
     public TopRowUpstream(Executor executor,
                           Runnable resumeRunnable,
@@ -58,24 +52,6 @@ public class TopRowUpstream implements RowUpstream, ExecutionState {
         this.resumeRunnable = resumeRunnable;
         this.repeatRunnable = repeatRunnable;
     }
-
-    public void kill(@Nullable Throwable throwable) {
-        killed = true;
-        if (throwable == null) {
-            throwable = new CancellationException();
-        }
-        killedThrowable = throwable;
-        if (paused.compareAndSet(true, false)) {
-            resumeRunnable.run();;
-        }
-    }
-
-    public void throwIfKilled() {
-        if (killedThrowable != null) {
-            throw Throwables.propagate(killedThrowable);
-        }
-    }
-
 
     /**
      * this methods checks if the downstream requested a pause.
@@ -113,11 +89,6 @@ public class TopRowUpstream implements RowUpstream, ExecutionState {
             LOGGER.warn("possible pendingPause deadlock");
         }
         pauseLock.unlock();
-    }
-
-    @Override
-    public boolean isKilled() {
-        return killed;
     }
 
     @Override

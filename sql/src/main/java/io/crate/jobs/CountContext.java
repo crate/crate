@@ -60,7 +60,7 @@ public class CountContext extends AbstractExecutionSubContext implements RowUpst
 
     @Override
     protected void innerPrepare() {
-        rowReceiver.prepare(this);
+        rowReceiver.prepare();
     }
 
     @Override
@@ -89,7 +89,7 @@ public class CountContext extends AbstractExecutionSubContext implements RowUpst
         if (countFuture != null) {
             countFuture.cancel(true);
         }
-        rowReceiver.fail(throwable);
+        rowReceiver.kill(throwable);
     }
 
     @Override
