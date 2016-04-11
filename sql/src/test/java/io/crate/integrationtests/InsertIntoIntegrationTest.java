@@ -1004,4 +1004,19 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         assertThat(execute("select * from t where z = 3").rowCount(), is(1L));
     }
+
+    @Test
+    public void testInsertIntoTableWithNestedPrimaryKeyFromQuery() throws Exception {
+        execute("create table t (o object as (ot object as (x int primary key)))");
+        ensureYellow();
+        assertThat(execute("insert into t (o) (select {ot={x=10}} from sys.cluster)").rowCount(), is(1L));
+        assertThat(execute("select * from t where o['ot']['x'] = 10").rowCount(), is(1L));
+    }
+
+    @Test
+    public void testInsertIntoTableWithNestedPartitionedByFromQuery() throws Exception {
+        execute("create table t (o object as (x int)) partitioned by (o['x'])");
+        ensureYellow();
+        assertThat(execute("insert into t (o) (select {x=10} from sys.cluster)").rowCount(), is(1L));
+    }
 }

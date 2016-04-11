@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Insert by query into a table with nested primary keys or
+   nested partitioned by columns defined did not work.
+
  - Fix: `hdfs` specific settings `conf.*` were not recognized on
    repository creation but silently ignored.
 
