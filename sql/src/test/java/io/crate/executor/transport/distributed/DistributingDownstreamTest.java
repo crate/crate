@@ -28,7 +28,6 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.transport.Transports;
-import io.crate.jobs.ExecutionState;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.test.integration.CrateUnitTest;
@@ -177,7 +176,7 @@ public class DistributingDownstreamTest extends CrateUnitTest {
                 streamers,
                 2
         );
-        dd.prepare(mock(ExecutionState.class));
+        dd.prepare();
 
         RowSender rowSender = new RowSender(
                 Arrays.<Row>asList(

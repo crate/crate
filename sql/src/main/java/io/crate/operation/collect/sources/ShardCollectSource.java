@@ -176,7 +176,7 @@ public class ShardCollectSource implements CollectSource {
                         getDocCollectors(jobCollectContext, normalizedPhase, projectorChain, indexShards));
             }
         }
-        projectorChain.prepare(jobCollectContext);
+        projectorChain.prepare();
         return shardCollectors;
     }
 

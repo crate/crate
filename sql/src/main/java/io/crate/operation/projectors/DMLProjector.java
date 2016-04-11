@@ -26,7 +26,6 @@ import com.google.common.util.concurrent.Futures;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.collect.CollectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -77,8 +76,8 @@ public abstract class DMLProjector<Request extends ShardRequest> extends Abstrac
     protected abstract ShardRequest.Item createItem(String id);
 
     @Override
-    public void prepare(ExecutionState executionState) {
-        super.prepare(executionState);
+    public void prepare() {
+        super.prepare();
         bulkShardProcessor = createBulkShardProcessor(DEFAULT_BULK_SIZE);
         Futures.addCallback(bulkShardProcessor.result(), new BulkProcessorFutureCallback(failed, downstream));
     }

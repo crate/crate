@@ -64,6 +64,7 @@ public class CrateDocCollector implements CrateCollector {
     private final Collector luceneCollector;
     private final TopRowUpstream upstreamState;
     private final State state = new State();
+    private boolean killed;
 
     public CrateDocCollector(final CrateSearchContext searchContext,
                              Executor executor,
@@ -225,7 +226,7 @@ public class CrateDocCollector implements CrateCollector {
 
     @Override
     public void kill(@Nullable Throwable throwable) {
-        upstreamState.kill(throwable);
+        rowReceiver.kill(throwable);
     }
 
     static class State {
@@ -264,7 +265,6 @@ public class CrateDocCollector implements CrateCollector {
 
         @Override
         public void collect(int doc) throws IOException {
-            topRowUpstream.throwIfKilled();
             checkCircuitBreaker();
 
             for (LuceneCollectorExpression<?> expression : expressions) {

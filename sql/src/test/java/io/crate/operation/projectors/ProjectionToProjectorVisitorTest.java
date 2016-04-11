@@ -29,14 +29,11 @@ import io.crate.core.collections.ArrayRow;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
 import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.EqOperator;
-import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
@@ -47,13 +44,9 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -130,7 +123,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
 
-        projector.prepare(mock(ExecutionState.class));
+        projector.prepare();
         int i;
         for (i = 0; i < 20; i++) {
             if (!projector.setNextRow(spare(42))) {
@@ -170,7 +163,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         assertThat(projector, instanceOf(AggregationPipe.class));
 
 
-        projector.prepare(mock(ExecutionState.class));
+        projector.prepare();
         projector.setNextRow(spare("foo", 10));
         projector.setNextRow(spare("bar", 20));
         projector.finish();
@@ -206,11 +199,9 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         CollectingRowReceiver collector = new CollectingRowReceiver();
         topNProjector.downstream(collector);
 
-        ExecutionState state = mock(ExecutionState.class);
-
-        collector.prepare(state);
-        topNProjector.prepare(state);
-        projector.prepare(state);
+        collector.prepare();
+        topNProjector.prepare();
+        projector.prepare();
 
         assertThat(projector, instanceOf(GroupingProjector.class));
 
@@ -247,7 +238,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(FilterProjector.class));
 
-        projector.prepare(mock(ExecutionState.class));
+        projector.prepare();
         projector.setNextRow(spare("human", 2));
         projector.setNextRow(spare("vogon", 1));
 

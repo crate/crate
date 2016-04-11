@@ -25,7 +25,6 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.Requirements;
@@ -37,7 +36,6 @@ import org.elasticsearch.common.logging.Loggers;
 import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -77,6 +75,7 @@ public class DistributingDownstream implements RowReceiver {
     private final Bucket[] buckets;
 
     private volatile boolean gatherMoreRows = true;
+    private volatile boolean killed = false;
     private boolean hasUpstreamFinished = false;
 
     public DistributingDownstream(ESLogger logger,
@@ -110,6 +109,9 @@ public class DistributingDownstream implements RowReceiver {
 
     @Override
     public boolean setNextRow(Row row) {
+        if (killed) {
+            return false;
+        }
         multiBucketBuilder.add(row);
         synchronized (lock) {
             if (multiBucketBuilder.size() >= pageSize) {
@@ -159,20 +161,25 @@ public class DistributingDownstream implements RowReceiver {
 
     @Override
     public void fail(Throwable throwable) {
-        if (throwable instanceof CancellationException) {
-            failure.set(throwable);
-        } else {
-            failure.compareAndSet(null, throwable);
-        }
+        failure.compareAndSet(null, throwable);
         gatherMoreRows = false;
         upstreamFinished();
     }
 
     @Override
-    public void prepare(ExecutionState executionState) {
+    public void kill(Throwable throwable) {
+        killed = true;
+        // downstream will also receive a kill request
+    }
+
+    @Override
+    public void prepare() {
     }
 
     private void upstreamFinished() {
+        if (killed) {
+            return;
+        }
         hasUpstreamFinished = true;
         final Throwable throwable = failure.get();
         if (throwable == null) {
@@ -183,7 +190,7 @@ public class DistributingDownstream implements RowReceiver {
             } else if (logger.isTraceEnabled()) {
                 traceLog("all upstreams finished. Doing nothing since there are pending requests");
             }
-        } else if (!(throwable instanceof CancellationException)) { // no need to forward kill - downstream will receive it too
+        } else {
             traceLog("all upstreams finished; forwarding failure");
             for (Downstream downstream : downstreams) {
                 downstream.forwardFailure(throwable);

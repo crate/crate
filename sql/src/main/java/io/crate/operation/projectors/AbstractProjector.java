@@ -23,7 +23,6 @@
 package io.crate.operation.projectors;
 
 import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 
 import java.util.Set;
@@ -37,7 +36,6 @@ public abstract class AbstractProjector implements Projector {
 
     private RowUpstream upstream = STATE_CHECK_ROW_UPSTREAM;
     protected RowReceiver downstream = STATE_CHECK_RECEIVER;
-    protected ExecutionState executionState;
 
     @Override
     public void downstream(RowReceiver rowReceiver) {
@@ -47,13 +45,17 @@ public abstract class AbstractProjector implements Projector {
     }
 
     @Override
-    public void prepare(ExecutionState executionState) {
-        this.executionState = executionState;
+    public void prepare() {
     }
 
     @Override
     public void pause() {
         upstream.pause();
+    }
+
+    @Override
+    public void kill(Throwable throwable) {
+        downstream.kill(throwable);
     }
 
     @Override
@@ -117,7 +119,12 @@ public abstract class AbstractProjector implements Projector {
         }
 
         @Override
-        public void prepare(ExecutionState executionState) {
+        public void kill(Throwable throwable) {
+            throw new IllegalStateException(STATE_ERROR);
+        }
+
+        @Override
+        public void prepare() {
             throw new IllegalStateException(STATE_ERROR);
         }
 

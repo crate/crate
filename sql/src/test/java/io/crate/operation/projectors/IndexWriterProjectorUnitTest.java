@@ -29,7 +29,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
@@ -132,7 +131,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
                 UUID.randomUUID()
         );
         indexWriter.downstream(rowReceiver);
-        indexWriter.prepare(mock(ExecutionState.class));
+        indexWriter.prepare();
         indexWriter.setNextRow(new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null}));
         indexWriter.finish();
     }

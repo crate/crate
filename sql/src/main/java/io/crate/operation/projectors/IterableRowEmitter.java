@@ -25,26 +25,21 @@ package io.crate.operation.projectors;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.collect.collectors.TopRowUpstream;
 
 import java.util.Iterator;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executor;
 
 public class IterableRowEmitter implements Runnable {
 
     private final RowReceiver rowReceiver;
-    private final ExecutionState executionState;
     private final TopRowUpstream topRowUpstream;
     private Iterator<? extends Row> rowsIt;
 
     public IterableRowEmitter(RowReceiver rowReceiver,
-                              ExecutionState executionState,
                               final Iterable<? extends Row> rows,
                               Optional<Executor> executor) {
         this.rowReceiver = rowReceiver;
-        this.executionState = executionState;
         topRowUpstream = new TopRowUpstream(
                 executor.or(MoreExecutors.directExecutor()),
                 this,
@@ -60,18 +55,18 @@ public class IterableRowEmitter implements Runnable {
         this.rowsIt = rows.iterator();
     }
 
-    public IterableRowEmitter(RowReceiver rowReceiver, ExecutionState executionState, Iterable<? extends Row> rows) {
-        this(rowReceiver, executionState, rows, Optional.<Executor>absent());
+    public IterableRowEmitter(RowReceiver rowReceiver, Iterable<? extends Row> rows) {
+        this(rowReceiver, rows, Optional.<Executor>absent());
+    }
+
+    public void kill(Throwable t) {
+        rowReceiver.kill(t);
     }
 
     @Override
     public void run() {
         try {
             while (rowsIt.hasNext()) {
-                if (executionState != null && executionState.isKilled()) {
-                    rowReceiver.fail(new CancellationException());
-                    return;
-                }
                 boolean wantsMore = rowReceiver.setNextRow(rowsIt.next());
                 if (!wantsMore) {
                     break;
@@ -85,9 +80,5 @@ public class IterableRowEmitter implements Runnable {
         } catch (Throwable t) {
             rowReceiver.fail(t);
         }
-    }
-
-    public TopRowUpstream topRowUpstream() {
-        return topRowUpstream;
     }
 }

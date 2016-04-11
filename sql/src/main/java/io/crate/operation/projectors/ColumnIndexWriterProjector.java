@@ -136,6 +136,13 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
     }
 
     @Override
+    public void kill(Throwable throwable) {
+        super.kill(throwable);
+        failed.set(true);
+        bulkShardProcessor.kill(throwable);
+    }
+
+    @Override
     public void fail(Throwable throwable) {
         failed.set(true);
         downstream.fail(throwable);

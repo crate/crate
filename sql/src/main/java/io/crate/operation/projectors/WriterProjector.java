@@ -26,9 +26,7 @@ import io.crate.core.collections.Row1;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.writer.Output;
@@ -36,7 +34,6 @@ import io.crate.operation.projectors.writer.OutputFile;
 import io.crate.operation.projectors.writer.OutputS3;
 import io.crate.planner.projection.WriterProjection;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -141,7 +138,7 @@ public class WriterProjector extends AbstractProjector {
     }
 
     @Override
-    public void prepare(ExecutionState executionState) {
+    public void prepare() {
         counter.set(0);
         try {
             if (!overwrites.isEmpty()) {

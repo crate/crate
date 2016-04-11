@@ -30,7 +30,6 @@ import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.Aggregator;
@@ -53,6 +52,7 @@ public class GroupingProjector extends AbstractProjector {
 
     private final Grouper grouper;
     private EnumSet<Requirement> requirements;
+    private boolean killed = false;
 
     public GroupingProjector(List<? extends DataType> keyTypes,
                              List<Input<?>> keyInputs,
@@ -91,14 +91,12 @@ public class GroupingProjector extends AbstractProjector {
         });
     }
 
-    @Override
-    public void prepare(ExecutionState executionState) {
-        super.prepare(executionState);
-        grouper.prepare(executionState);
-    }
 
     @Override
     public boolean setNextRow(Row row) {
+        if (killed) {
+            return false;
+        }
         return grouper.setNextRow(row);
     }
 
@@ -108,6 +106,12 @@ public class GroupingProjector extends AbstractProjector {
         if (logger.isDebugEnabled()) {
             logger.debug("grouping operation size is: {}", new ByteSizeValue(ramAccountingContext.totalBytes()));
         }
+    }
+
+    @Override
+    public void kill(Throwable throwable) {
+        killed = true;
+        grouper.kill(throwable);
     }
 
     @Override
@@ -150,9 +154,8 @@ public class GroupingProjector extends AbstractProjector {
 
     private interface Grouper extends AutoCloseable {
         boolean setNextRow(final Row row);
-
         void finish();
-        void prepare(ExecutionState executionState);
+        void kill(Throwable t);
     }
 
     private class SingleKeyGrouper implements Grouper {
@@ -162,7 +165,7 @@ public class GroupingProjector extends AbstractProjector {
         private final Input keyInput;
         private final CollectExpression[] collectExpressions;
         private final SizeEstimator<Object> sizeEstimator;
-        private ExecutionState executionState;
+        private volatile IterableRowEmitter rowEmitter = null;
 
         public SingleKeyGrouper(Input keyInput,
                                 DataType keyInputType,
@@ -220,8 +223,8 @@ public class GroupingProjector extends AbstractProjector {
                 return;
             }
 
-            IterableRowEmitter rowEmitter = new IterableRowEmitter(
-                    downstream, executionState, Iterables.transform(result.entrySet(), new Function<Map.Entry<Object, Object[]>, Row>() {
+            rowEmitter = new IterableRowEmitter(
+                    downstream, Iterables.transform(result.entrySet(), new Function<Map.Entry<Object, Object[]>, Row>() {
 
                 RowN row = new RowN(1 + aggregators.length); // 1 for key
                 Object[] cells = new Object[row.size()];
@@ -239,8 +242,13 @@ public class GroupingProjector extends AbstractProjector {
         }
 
         @Override
-        public void prepare(ExecutionState executionState) {
-            this.executionState = executionState;
+        public void kill(Throwable t) {
+            IterableRowEmitter emitter = rowEmitter;
+            if (emitter == null) {
+                downstream.kill(t);
+            } else {
+                emitter.kill(t);
+            }
         }
 
         @Override
@@ -254,14 +262,15 @@ public class GroupingProjector extends AbstractProjector {
         private final Aggregator[] aggregators;
         private final Map<List<Object>, Object[]> result;
         private final List<Input<?>> keyInputs;
-        private ExecutionState executionState;
         private final CollectExpression[] collectExpressions;
         private final List<SizeEstimator<Object>> sizeEstimators;
+        private final Object killLock = new Object();
+        private IterableRowEmitter rowEmitter = null;
 
-        public ManyKeyGrouper(List<Input<?>> keyInputs,
-                              List<? extends DataType> keyTypes,
-                              CollectExpression[] collectExpressions,
-                              Aggregator[] aggregators) {
+        ManyKeyGrouper(List<Input<?>> keyInputs,
+                       List<? extends DataType> keyTypes,
+                       CollectExpression[] collectExpressions,
+                       Aggregator[] aggregators) {
             this.collectExpressions = collectExpressions;
             this.result = new HashMap<>();
             this.keyInputs = keyInputs;
@@ -328,8 +337,8 @@ public class GroupingProjector extends AbstractProjector {
                 return;
             }
 
-            IterableRowEmitter rowEmitter = new IterableRowEmitter(
-                    downstream, executionState, Iterables.transform(result.entrySet(), new Function<Map.Entry<List<Object>, Object[]>, Row>() {
+            rowEmitter = new IterableRowEmitter(
+                    downstream, Iterables.transform(result.entrySet(), new Function<Map.Entry<List<Object>, Object[]>, Row>() {
 
                 RowN row = new RowN(keyInputs.size() + aggregators.length);
                 Object[] cells = new Object[row.size()];
@@ -347,8 +356,13 @@ public class GroupingProjector extends AbstractProjector {
         }
 
         @Override
-        public void prepare(ExecutionState executionState) {
-            this.executionState = executionState;
+        public void kill(Throwable t) {
+            IterableRowEmitter emitter = rowEmitter;
+            if (emitter == null) {
+                downstream.kill(t);
+            } else {
+                emitter.kill(t);
+            }
         }
 
         @Override

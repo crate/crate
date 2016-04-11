@@ -24,7 +24,6 @@ package io.crate.operation.projectors;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.RowDownstream;
 import io.crate.planner.projection.Projection;
@@ -62,7 +61,7 @@ import java.util.UUID;
  *  <li> get a shard projector by calling {@linkplain #newShardDownstreamProjector(ProjectorFactory)}
  *       from a shard context. do this for every shard you have
  *  </li>
- *  <li> call {@linkplain #prepare(ExecutionState)}</li>
+ *  <li> call {@linkplain #prepare()}</li>
  *  <li> feed data to the shard projectors</li>
  * </ul>
  */
@@ -191,14 +190,14 @@ public class ShardProjectorChain {
         return projector;
     }
 
-    public void prepare(ExecutionState executionState) {
-        this.finalDownstream.prepare(executionState);
+    public void prepare() {
+        this.finalDownstream.prepare();
         for (Projector projector : Lists.reverse(nodeProjectors)) {
-            projector.prepare(executionState);
+            projector.prepare();
         }
         if (shardProjectionsIndex >= 0) {
             for (Projector p : shardProjectors) {
-                p.prepare(executionState);
+                p.prepare();
             }
         }
     }

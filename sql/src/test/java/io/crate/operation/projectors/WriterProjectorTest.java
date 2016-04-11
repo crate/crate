@@ -26,7 +26,6 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.projection.WriterProjection;
@@ -34,14 +33,11 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
@@ -52,7 +48,6 @@ import java.util.concurrent.Executors;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
 
 public class WriterProjectorTest extends CrateUnitTest {
 
@@ -79,7 +74,7 @@ public class WriterProjectorTest extends CrateUnitTest {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         projector.downstream(rowReceiver);
 
-        projector.prepare(mock(ExecutionState.class));
+        projector.prepare();
         for (int i = 0; i < 5; i++) {
             projector.setNextRow(new Row1(new BytesRef(String.format(Locale.ENGLISH, "input line %02d", i))));
         }
@@ -125,7 +120,7 @@ public class WriterProjectorTest extends CrateUnitTest {
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         projector.downstream(rowReceiver);
-        projector.prepare(mock(ExecutionState.class));
+        projector.prepare();
         projector.finish();
         rowReceiver.result();
     }
@@ -148,7 +143,7 @@ public class WriterProjectorTest extends CrateUnitTest {
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         projector.downstream(rowReceiver);
-        projector.prepare(mock(ExecutionState.class));
+        projector.prepare();
         projector.finish();
         rowReceiver.result();
     }

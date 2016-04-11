@@ -81,7 +81,7 @@ public class BlobContainer {
 
     public interface FileVisitor {
 
-        public boolean visit(File file) throws IOException;
+        boolean visit(File file) throws IOException;
 
     }
 

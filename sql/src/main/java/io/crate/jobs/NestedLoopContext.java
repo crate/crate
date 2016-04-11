@@ -35,7 +35,7 @@ import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class NestedLoopContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext, ExecutionState {
+public class NestedLoopContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext {
 
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopContext.class);
 
@@ -50,7 +50,6 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
     private final ListenableRowReceiver leftRowReceiver;
     private final ListenableRowReceiver rightRowReceiver;
 
-    private volatile boolean isKilled;
     private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
     public NestedLoopContext(NestedLoopPhase phase,
@@ -93,7 +92,7 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
 
     @Override
     protected void innerPrepare() {
-        flatProjectorChain.prepare(this);
+        flatProjectorChain.prepare();
     }
 
     @Override
@@ -130,22 +129,16 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
 
     @Override
     protected void innerKill(@Nullable Throwable t) {
-        isKilled = true;
         killSubContext(t, leftPageDownstreamContext, leftRowReceiver);
         killSubContext(t, rightPageDownstreamContext, rightRowReceiver);
     }
 
     private static void killSubContext(Throwable t, @Nullable PageDownstreamContext subContext, ListenableRowReceiver rowReceiver) {
         if (subContext == null) {
-            rowReceiver.fail(t);
+            rowReceiver.kill(t);
         } else {
             subContext.kill(t);
         }
-    }
-
-    @Override
-    public boolean isKilled() {
-        return isKilled;
     }
 
     @Override

@@ -37,8 +37,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.greaterThan;
 
-public class AbstractExecutionSubContextTest extends CrateUnitTest {
+public abstract class AbstractExecutionSubContextTest extends CrateUnitTest {
 
     private TestingExecutionSubContext ctx;
 
@@ -177,7 +178,7 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
         ctx.start();
         runAsync(killRunnable, 3);
         assertThat(ctx.stats(), contains(1, 1, 0, 1));
-        assertTrue(ctx.isKilled());
+        assertThat(ctx.numKill.get(), greaterThan(0));
     }
 
 }

@@ -23,7 +23,6 @@
 package io.crate.operation.projectors;
 
 import io.crate.core.collections.Row;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 
 import java.util.Set;
@@ -55,6 +54,8 @@ public interface RowReceiver {
 
     /**
      * Is called from the upstream in case of a failure.
+     * This is the equivalent to finish and indicates that the upstream is finished
+     *
      * @param throwable the cause of the fail
      *
      * NOTE: This method must not throw any exceptions!
@@ -62,9 +63,18 @@ public interface RowReceiver {
     void fail(Throwable throwable);
 
     /**
+     * kill a RowReceiver to stop it's execution.
+     * kill can be called from a different thread and can be called after/during finish/fail operations
+     *
+     * If a RowReceiver doesn't delegate the kill to another RowReceiver the rowReceiver has to return false on the
+     * next setNextRow call in order to stop collect operations.
+     */
+    void kill(Throwable throwable);
+
+    /**
      * prepares / starts the RowReceiver, after this call it must be ready to receive rows
      */
-    void prepare(ExecutionState executionState);
+    void prepare();
 
     /**
      * an RowUpstream who wants to call {@link #setNextRow(Row)} calls setUpstream before he starts sending rows

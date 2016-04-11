@@ -36,7 +36,6 @@ import io.crate.executor.transport.NodeFetchRequest;
 import io.crate.executor.transport.NodeFetchResponse;
 import io.crate.executor.transport.StreamBucket;
 import io.crate.executor.transport.TransportFetchNodeAction;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
@@ -155,9 +154,8 @@ public class FetchProjector extends AbstractProjector {
     }
 
     @Override
-    public void prepare(ExecutionState executionState) {
+    public void prepare() {
         assert stage.get() == Stage.INIT;
-        this.executionState = executionState;
         fetches = new Fetches();
         nextStage(Stage.INIT, Stage.COLLECT);
     }
@@ -313,6 +311,11 @@ public class FetchProjector extends AbstractProjector {
             }
         }
         downstream.fail(throwable);
+    }
+
+    @Override
+    public void kill(Throwable throwable) {
+        downstream.kill(throwable);
     }
 
     private static class IndexInfo {

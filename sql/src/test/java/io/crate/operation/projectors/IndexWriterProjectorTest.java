@@ -29,7 +29,6 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.RowDownstream;
@@ -93,7 +92,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         final RowDownstream rowDownstream = RowMergers.passThroughRowMerger(writerProjector);
 
         final RowReceiver receiver1 = rowDownstream.newRowReceiver();
-        receiver1.prepare(mock(ExecutionState.class));
+        receiver1.prepare();
 
         Thread t1 = new Thread(new Runnable() {
             @Override
@@ -107,7 +106,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
 
         final RowReceiver receiver2 = rowDownstream.newRowReceiver();
-        receiver2.prepare(mock(ExecutionState.class));
+        receiver2.prepare();
         Thread t2 = new Thread(new Runnable() {
             @Override
             public void run() {

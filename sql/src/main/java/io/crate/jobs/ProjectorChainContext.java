@@ -74,8 +74,13 @@ public class ProjectorChainContext extends AbstractExecutionSubContext {
     }
 
     @Override
+    protected void innerKill(@Nonnull Throwable t) {
+        rowReceiver.kill(t);
+    }
+
+    @Override
     public void innerPrepare() {
-        projectorChain.prepare(this);
+        projectorChain.prepare();
     }
 
     @Override

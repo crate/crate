@@ -24,7 +24,6 @@ package io.crate.operation.projectors;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.jobs.ExecutionState;
 import io.crate.planner.projection.Projection;
 
 import java.util.ArrayList;
@@ -41,7 +40,7 @@ import java.util.UUID;
  * Usage:
  * <ul>
  * <li> construct it,
- * <li> call {@linkplain #prepare(ExecutionState)},
+ * <li> call {@linkplain #prepare()},
  * <li> get the first projector using {@linkplain #firstProjector()}
  * <li> feed data to it,
  * <li> wait for the result of  your custom downstream
@@ -56,9 +55,9 @@ public class FlatProjectorChain {
         this.rowReceivers = rowReceivers;
     }
 
-    public void prepare(ExecutionState executionState) {
+    public void prepare() {
         for (RowReceiver rowReceiver : Lists.reverse(rowReceivers)) {
-            rowReceiver.prepare(executionState);
+            rowReceiver.prepare();
         }
     }
 

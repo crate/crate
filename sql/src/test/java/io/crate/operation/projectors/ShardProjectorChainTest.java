@@ -29,7 +29,6 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.NestedReferenceResolver;
@@ -305,8 +304,7 @@ public class ShardProjectorChainTest extends CrateUnitTest {
                 finalDownstream,
                 projectionToProjectorVisitor,
                 RAM_ACCOUNTING_CONTEXT);
-        ExecutionState executionState = mock(ExecutionState.class);
-        chain.prepare(executionState);
-        verify(finalDownstream, times(1)).prepare(executionState);
+        chain.prepare();
+        verify(finalDownstream, times(1)).prepare();
     }
 }
