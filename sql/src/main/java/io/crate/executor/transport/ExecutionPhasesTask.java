@@ -311,8 +311,11 @@ public class ExecutionPhasesTask extends JobTask {
         @Override
         public void onFailure(Throwable e) {
             initializationTracker.jobInitialized(null);
-            // in the non-direct-response case the failure is pushed to downStreams
-            LOGGER.warn(e.getMessage(), e);
+            // could be a preparation failure - in that case the regular error propagation doesn't work as it hasn't been set up yet
+            // so fail rowReceivers directly
+            for (Tuple<ExecutionPhase, RowReceiver> rowReceiver : rowReceivers) {
+                rowReceiver.v2().fail(e);
+            }
         }
     }
 

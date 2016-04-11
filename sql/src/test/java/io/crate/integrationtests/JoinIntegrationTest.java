@@ -23,9 +23,13 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.core.collections.CollectionBucket;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -33,10 +37,12 @@ import org.junit.rules.ExpectedException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.printRows;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
 @ElasticsearchIntegrationTest.ClusterScope(minNumDataNodes = 2)
@@ -521,5 +527,24 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t");
         execute("select * from t inner join information_schema.tables on t.id = tables.number_of_replicas");
         assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testJoinWithIndexMissingExceptions() throws Throwable {
+        execute("create table t1 (x int)");
+        execute("create table t2 (x int)");
+        execute("insert into t1 (x) values (1)");
+        execute("insert into t2 (x) values (2)");
+        execute("refresh table t1, t2");
+
+        PlanForNode plan = plan("select * from t1, t2 where t1.x = t2.x");
+        execute("drop table t2");
+
+        expectedException.expect(Matchers.anyOf(instanceOf(TableUnknownException.class), instanceOf(IndexMissingException.class)));
+        try {
+            execute(plan).get(1, TimeUnit.SECONDS);
+        } catch (Throwable t) {
+            throw Exceptions.unwrap(t);
+        }
     }
 }
