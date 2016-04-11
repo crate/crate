@@ -51,7 +51,7 @@ public class DistributingDownstream implements RowReceiver {
 
         @Override
         public void onFailure(Throwable e) {
-            LOGGER.trace("Received failure from downstream: {}", e);
+            LOGGER.trace("Received failure from downstream", e);
         }
     };
 

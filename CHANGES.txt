@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Improved error handling to make sure JOIN queries don't get stuck on
+   shard failures.
+
  - Fix bug which could cause the MATCH predicate in WHERE clause for
    partitioned tables to fail. This happens in cases when a column ident of the
    MATCH predicate is not a primary key column.
