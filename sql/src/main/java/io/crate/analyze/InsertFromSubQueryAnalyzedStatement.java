@@ -27,17 +27,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Reference;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReferenceInfo;
-import io.crate.metadata.Path;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.scalar.SubscriptObjectFunction;
 import io.crate.planner.projection.builder.InputCreatingVisitor;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -91,10 +88,10 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
         return columnPositions;
     }
 
-    private static List<Symbol> symbolsFromTargetColumnPositionOrGeneratedExpression(Map<ColumnIdent, Integer> targetColumnMap,
-                                                                                     List<Reference> targetColumns,
-                                                                                     List<ColumnIdent> columns,
-                                                                                     Map<ColumnIdent, GeneratedReferenceInfo> generatedColumns) {
+    private List<Symbol> symbolsFromTargetColumnPositionOrGeneratedExpression(Map<ColumnIdent, Integer> targetColumnMap,
+                                                                              List<Reference> targetColumns,
+                                                                              List<ColumnIdent> columns,
+                                                                              Map<ColumnIdent, GeneratedReferenceInfo> generatedColumns) {
         if (columns.isEmpty()) {
             return Collections.emptyList();
         }
@@ -102,9 +99,18 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
         List<Symbol> symbols = new ArrayList<>(columns.size());
         InputCreatingVisitor.Context inputContext = null;
         for (ColumnIdent column : columns) {
+            ColumnIdent subscriptColumn = null;
+            if (!column.isColumn()) {
+                subscriptColumn = column;
+                column = column.getRoot();
+            }
             Integer colPosition = targetColumnMap.get(column);
             if (colPosition != null) {
-                symbols.add(new InputColumn(colPosition, targetColumns.get(colPosition).valueType()));
+                Symbol symbol = new InputColumn(colPosition, targetColumns.get(colPosition).valueType());
+                if (subscriptColumn != null) {
+                    symbol = rewriteNestedInputToSubscript(subscriptColumn, symbol);
+                }
+                symbols.add(symbol);
             } else {
                 GeneratedReferenceInfo generatedReferenceInfo = generatedColumns.get(column);
                 if (generatedReferenceInfo == null) {
@@ -120,6 +126,26 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
             }
         }
         return symbols;
+    }
+
+    private Symbol rewriteNestedInputToSubscript(ColumnIdent columnIdent, Symbol inputSymbol) {
+        ReferenceInfo referenceInfo = tableInfo().getReferenceInfo(columnIdent);
+        Symbol symbol = inputSymbol;
+        Iterator<String> pathIt = columnIdent.path().iterator();
+        while (pathIt.hasNext()) {
+            // rewrite object access to subscript scalar
+            String key = pathIt.next();
+            DataType returnType = DataTypes.OBJECT;
+            if (!pathIt.hasNext()) {
+                returnType = referenceInfo.type();
+            }
+
+            FunctionIdent functionIdent = new FunctionIdent(SubscriptObjectFunction.NAME,
+                    ImmutableList.<DataType>of(DataTypes.OBJECT, DataTypes.STRING));
+            symbol = new Function(new FunctionInfo(functionIdent, returnType),
+                    Arrays.asList(symbol, Literal.newLiteral(key)));
+        }
+        return symbol;
     }
 
     public List<Reference> columns() {
