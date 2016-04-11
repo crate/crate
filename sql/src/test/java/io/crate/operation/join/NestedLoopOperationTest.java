@@ -32,6 +32,7 @@ import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.merge.IteratorPageDownstream;
 import io.crate.operation.merge.PassThroughPagingIterator;
+import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.SimpleTopNProjector;
 import io.crate.test.integration.CrateUnitTest;
@@ -235,6 +236,43 @@ public class NestedLoopOperationTest extends CrateUnitTest {
 
         leftT.join();
         rightT.join();
+    }
+
+    @Test
+    public void testFailIsOnlyForwardedOnce() throws Exception {
+        CollectingRowReceiver receiver = new CollectingRowReceiver();
+        List<ListenableRowReceiver> listenableRowReceivers = getRandomLeftAndRightRowReceivers(receiver);
+
+        listenableRowReceivers.get(0).fail(new IllegalStateException("dummy1"));
+        listenableRowReceivers.get(1).fail(new IllegalStateException("dummy2"));
+        assertThat(receiver.getNumFailOrFinishCalls(), is(1));
+
+        expectedException.expect(IllegalStateException.class);
+        expectedException.expectMessage("dummy2");
+        receiver.result();
+    }
+
+    @Test
+    public void testFailAndFinishResultsInFailure() throws Exception {
+        CollectingRowReceiver receiver = new CollectingRowReceiver();
+        List<ListenableRowReceiver> listenableRowReceivers = getRandomLeftAndRightRowReceivers(receiver);
+
+        listenableRowReceivers.get(0).fail(new IllegalStateException("dummy1"));
+        listenableRowReceivers.get(1).finish();
+        assertThat(receiver.getNumFailOrFinishCalls(), is(1));
+
+        expectedException.expect(IllegalStateException.class);
+        expectedException.expectMessage("dummy1");
+        receiver.result();
+    }
+
+    private static List<ListenableRowReceiver> getRandomLeftAndRightRowReceivers(CollectingRowReceiver receiver) {
+        NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(0, receiver);
+
+        List<ListenableRowReceiver> listenableRowReceivers =
+                Arrays.asList(nestedLoopOperation.rightRowReceiver(), nestedLoopOperation.leftRowReceiver());
+        Collections.shuffle(listenableRowReceivers, getRandom());
+        return listenableRowReceivers;
     }
 
     private Thread sendRowsThreaded(String name, final PageDownstream pageDownstream, final List<Row> rows) {

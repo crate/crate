@@ -38,6 +38,6 @@ public class RowCountRowReceiver extends CollectingRowReceiver {
     @Override
     public void finish() {
         resultFuture.set(new SingleRowBucket(new Row1(rowCount)));
-        isFinished = true;
+        numFailOrFinish++;
     }
 }

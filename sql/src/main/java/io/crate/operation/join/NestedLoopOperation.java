@@ -48,6 +48,7 @@ public class NestedLoopOperation implements RowUpstream {
     private final RowReceiver downstream;
     private volatile boolean downstreamWantsMore = true;
     private volatile boolean paused;
+    private volatile Throwable upstreamFailure = null;
 
     /**
      * state of the left and right side.
@@ -188,7 +189,12 @@ public class NestedLoopOperation implements RowUpstream {
             }
             finishThisSide();
             if (otherState == State.FINISHED) {
-                downstream.finish();
+                Throwable upstreamFailure = NestedLoopOperation.this.upstreamFailure;
+                if (upstreamFailure == null) {
+                    downstream.finish();
+                } else {
+                    downstream.fail(upstreamFailure);
+                }
             } else {
                 otherUpstream.resume(false);
             }
@@ -252,8 +258,8 @@ public class NestedLoopOperation implements RowUpstream {
 
         @Override
         public void fail(Throwable throwable) {
-            downstream.fail(throwable);
-            finished.setException(throwable);
+            upstreamFailure = throwable;
+            finish(right.state, right.upstream);
         }
 
         @Override
@@ -339,8 +345,9 @@ public class NestedLoopOperation implements RowUpstream {
 
         @Override
         public void fail(Throwable throwable) {
-            downstream.fail(throwable);
-            finished.setException(throwable);
+            upstreamFailure = throwable;
+            leftIsSuspended = true;
+            finish(left.state, left.upstream);
         }
 
         @Override

@@ -45,7 +45,7 @@ public class CollectingRowReceiver implements RowReceiver {
 
     public final List<Object[]> rows = new ArrayList<>();
     protected final SettableFuture<Bucket> resultFuture = SettableFuture.create();
-    protected boolean isFinished = false;
+    protected int numFailOrFinish = 0;
     protected RowUpstream upstream;
 
     public static CollectingRowReceiver withPauseAfter(int pauseAfter) {
@@ -82,23 +82,26 @@ public class CollectingRowReceiver implements RowReceiver {
     @Override
     public void kill(Throwable throwable) {
         resultFuture.setException(throwable);
-        isFinished = true;
     }
 
     @Override
     public void finish() {
         resultFuture.set(new CollectionBucket(rows));
-        isFinished = true;
+        numFailOrFinish++;
+    }
+
+    public int getNumFailOrFinishCalls() {
+        return numFailOrFinish;
     }
 
     public boolean isFinished() {
-        return isFinished;
+        return numFailOrFinish > 0;
     }
 
     @Override
     public void fail(Throwable throwable) {
         resultFuture.setException(throwable);
-        isFinished = true;
+        numFailOrFinish++;
     }
 
     public void resumeUpstream(boolean async) {
