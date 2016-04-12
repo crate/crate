@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: While restoring a snapshot with multiple indices inside,
+   selecting concrete indices can result in a wrong index being restored.
+
  - Fix: Insert by query into a table with nested primary keys or
    nested partitioned by columns defined did not work.
 
