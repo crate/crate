@@ -167,10 +167,15 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
             }, 10L, TimeUnit.SECONDS);
         } catch (AssertionError e) {
             StringBuilder errorMessageBuilder = new StringBuilder();
-            for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
+            String[] nodeNames = internalCluster().getNodeNames();
+            for (String nodeName : nodeNames) {
+                JobContextService jobContextService = internalCluster().getInstance(JobContextService.class, nodeName);
                 try {
                     //noinspection unchecked
                     Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
+                    errorMessageBuilder.append("## node: ");
+                    errorMessageBuilder.append(nodeName);
+                    errorMessageBuilder.append("\n");
                     errorMessageBuilder.append(contexts.toString());
                     errorMessageBuilder.append("\n");
 

@@ -154,7 +154,8 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     @Override
     public String toString() {
         return "JobCollectContext{" +
-               "sharedContexts=" + sharedShardContexts +
+               "id=" + id +
+               ", sharedContexts=" + sharedShardContexts +
                ", rowReceiver=" + rowReceiver +
                ", searchContexts=" + Arrays.toString(searchContexts.keys) +
                ", closed=" + future.closed() +
