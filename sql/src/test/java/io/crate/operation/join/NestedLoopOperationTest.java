@@ -47,8 +47,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.isA;
 import static org.hamcrest.core.Is.is;
 
 public class NestedLoopOperationTest extends CrateUnitTest {
@@ -264,6 +268,46 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("dummy1");
         receiver.result();
+    }
+
+    @Test
+    public void testFutureIsTriggeredOnKill() throws Exception {
+        CollectingRowReceiver receiver = new CollectingRowReceiver();
+        List<ListenableRowReceiver> listenableRowReceivers = getRandomLeftAndRightRowReceivers(receiver);
+        ListenableRowReceiver receiver1 = listenableRowReceivers.get(0);
+        receiver1.kill(new CancellationException());
+
+        expectedException.expectCause(isA(CancellationException.class));
+        listenableRowReceivers.get(1).finishFuture().get(1, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void testFinishOnPausedLeftDoesNotCauseDeadlocksIfRightGotKilled() throws Exception {
+        CollectingRowReceiver receiver = new CollectingRowReceiver();
+        final NestedLoopOperation nl = new NestedLoopOperation(0, receiver);
+
+        // initiate RowSender so that the RowReceiver has an upstream that can receive pause
+        new RowSender(Collections.<Row>emptyList(), nl.leftRowReceiver(), MoreExecutors.directExecutor());
+
+        nl.leftRowReceiver().setNextRow(new Row1(10)); // causes left to get paused
+        nl.rightRowReceiver().kill(new CancellationException());
+
+        // a rowReceiver should not receive fail/or finish if paused but it can happen, e.g. if a node is stopped
+        final CountDownLatch latch = new CountDownLatch(1);
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                nl.leftRowReceiver().finish();
+                latch.countDown();
+            }
+        });
+        t.start();
+
+        // latch is used to make sure there is a timeout exception if the finish within the thread is stuck
+        latch.await(1, TimeUnit.SECONDS);
+
+        // join is used to make sure the are no "lingering thread" warnings from randomized-test
+        t.join(5000);
     }
 
     private static List<ListenableRowReceiver> getRandomLeftAndRightRowReceivers(CollectingRowReceiver receiver) {

@@ -161,7 +161,7 @@ public class NestedLoopOperation implements RowUpstream {
 
         @Override
         public void kill(Throwable throwable) {
-            finished.setException(throwable);
+            killBoth(throwable);
             downstream.kill(throwable);
         }
 
@@ -199,6 +199,13 @@ public class NestedLoopOperation implements RowUpstream {
                 otherUpstream.resume(false);
             }
         }
+    }
+
+    private void killBoth(Throwable throwable) {
+        left.finished.setException(throwable);
+        left.state.set(State.FINISHED);
+        right.finished.setException(throwable);
+        right.state.set(State.FINISHED);
     }
 
     private class LeftRowReceiver extends AbstractRowReceiver {
