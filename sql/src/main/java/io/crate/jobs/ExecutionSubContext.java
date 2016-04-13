@@ -44,8 +44,6 @@ public interface ExecutionSubContext {
      */
     void start();
 
-    void close();
-
     void kill(@Nullable Throwable throwable);
 
     String name();

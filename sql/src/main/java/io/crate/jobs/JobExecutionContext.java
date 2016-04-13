@@ -198,24 +198,6 @@ public class JobExecutionContext {
         return numKilled;
     }
 
-    public void close() {
-        if (closed.compareAndSet(false, true)) {
-            LOGGER.trace("close called on JobExecutionContext {}", jobId);
-            if (numSubContexts.get() == 0) {
-                callCloseCallback();
-            } else {
-                for (ExecutionSubContext executionSubContext : subContexts.values()) {
-                    executionSubContext.close();
-                }
-            }
-        }
-        try {
-            chainedFuture.get();
-        } catch (Exception e) {
-            Throwables.propagate(e);
-        }
-    }
-
     private void callCloseCallback() {
         if (closeCallback == null) {
             return;
