@@ -38,16 +38,14 @@ import io.crate.analyze.AlterTableAnalyzedStatement;
 import io.crate.analyze.TableParameter;
 import io.crate.exceptions.AlterTableAliasException;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -60,6 +58,7 @@ import org.elasticsearch.common.compress.CompressedString;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 
@@ -130,7 +129,7 @@ public class AlterTableOperation {
                 results.add(updateSettings(parameterWithFilteredSettings, index));
             } else {
                 // template gets all changes unfiltered
-                results.add(updateTemplate(analysis.tableParameter(), table));
+                results.add(updateTemplate(analysis.tableParameter(), table.ident()));
 
                 if (!analysis.excludePartitions()) {
                     // resolve indices on master node to make sure it doesn't hit partitions that are being deleted
@@ -148,46 +147,46 @@ public class AlterTableOperation {
         return Futures.transform(allAsList, Functions.<Long>constant(null));
     }
 
-    private ListenableFuture<Long> updateTemplate(final TableParameter tableParameter,
-                                                  TableInfo table) {
-        final SettableFuture<Long> templateFuture = SettableFuture.create();
-
-        // update template
-        final String templateName = PartitionName.templateName(table.ident().schema(), table.ident().name());
-        GetIndexTemplatesRequest getRequest = new GetIndexTemplatesRequest(templateName);
-
-        transportActionProvider.transportGetIndexTemplatesAction().execute(getRequest, new ActionListener<GetIndexTemplatesResponse>() {
-            @Override
-            public void onResponse(GetIndexTemplatesResponse response) {
-                IndexTemplateMetaData template = response.getIndexTemplates().get(0);
-                Map<String, Object> mapping = mergeMapping(template, tableParameter.mappings());
-
-                ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
-                settingsBuilder.put(template.settings());
-                settingsBuilder.put(tableParameter.settings());
-
-                PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
-                        .create(false)
-                        .mapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
-                        .order(template.order())
-                        .settings(settingsBuilder.build())
-                        .template(template.template());
-                for (ObjectObjectCursor<String, AliasMetaData> container : response.getIndexTemplates().get(0).aliases()) {
-                    Alias alias = new Alias(container.key);
-                    request.alias(alias);
-                }
-
-                transportActionProvider.transportPutIndexTemplateAction().execute(request,
-                        new SettableFutureToNullActionListener<PutIndexTemplateResponse>(templateFuture));
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-                templateFuture.setException(e);
-            }
-        });
-
+    private ListenableFuture<Long> updateTemplate(TableParameter tableParameter, TableIdent tableIdent) {
+        SettableFuture<Long> templateFuture = SettableFuture.create();
+        updateTemplate(templateFuture, tableParameter.mappings(), tableParameter.settings(), tableIdent,
+                new SettableFutureToNullActionListener<PutIndexTemplateResponse>(templateFuture));
         return templateFuture;
+    }
+
+    private void updateTemplate(SettableFuture<Long> templateFuture,
+                                Map<String, Object> newMappings,
+                                Settings newSettings,
+                                TableIdent tableIdent,
+                                ActionListener<PutIndexTemplateResponse> listener) {
+        String templateName = PartitionName.templateName(tableIdent.schema(), tableIdent.name());
+        IndexTemplateMetaData indexTemplateMetaData =
+                clusterService.state().metaData().templates().get(templateName);
+        if (indexTemplateMetaData == null) {
+            templateFuture.setException(new RuntimeException("Template for partitioned table is missing"));
+            return;
+        }
+
+        // merge mappings
+        Map<String, Object> mapping = mergeMapping(indexTemplateMetaData, newMappings);
+
+        // merge settings
+        ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
+        settingsBuilder.put(indexTemplateMetaData.settings());
+        settingsBuilder.put(newSettings);
+
+        PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
+                .create(false)
+                .mapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
+                .order(indexTemplateMetaData.order())
+                .settings(settingsBuilder.build())
+                .template(indexTemplateMetaData.template());
+        for (ObjectObjectCursor<String, AliasMetaData> container : indexTemplateMetaData.aliases()) {
+            Alias alias = new Alias(container.key);
+            request.alias(alias);
+        }
+
+        transportActionProvider.transportPutIndexTemplateAction().execute(request, listener);
     }
 
     private ListenableFuture<Long> updateMapping(Map<String, Object> mappings, String indexOrAlias) {
@@ -256,13 +255,20 @@ public class AlterTableOperation {
         final Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
 
         if (updateTemplate) {
-            String templateName = PartitionName.templateName(analysis.table().ident().schema(), analysis.table().ident().name());
-            IndexTemplateMetaData indexTemplateMetaData =
-                    clusterService.state().metaData().templates().get(templateName);
-            if (indexTemplateMetaData == null) {
-                result.setException(new RuntimeException("Template for partitioned table is missing"));
-            }
-            mergeMappingAndUpdateTemplate(result, mapping, indexTemplateMetaData, operations);
+            updateTemplate(result, mapping, ImmutableSettings.EMPTY, analysis.table().ident(),
+                    new ActionListener<PutIndexTemplateResponse>() {
+                        @Override
+                        public void onResponse(PutIndexTemplateResponse putIndexTemplateResponse) {
+                            if (operations.decrementAndGet() == 0) {
+                                result.set(1L);
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Throwable e) {
+                            result.setException(e);
+                        }
+                    });
         }
 
         // need to merge the _meta part of the mapping mapping before-hand because ES doesn't
@@ -281,7 +287,7 @@ public class AlterTableOperation {
         request.type(Constants.DEFAULT_MAPPING_TYPE);
         IndexMetaData indexMetaData = clusterService.state().getMetaData().getIndices().get(indexNames[0]);
         try {
-            Map mergedMeta = (Map)indexMetaData.getMappings()
+            Map mergedMeta = (Map) indexMetaData.getMappings()
                     .get(Constants.DEFAULT_MAPPING_TYPE)
                     .getSourceAsMap()
                     .get("_meta");
@@ -316,42 +322,12 @@ public class AlterTableOperation {
                 indexNames = tableInfo.concreteIndices();
             } else {
                 // single partition
-                indexNames = new String[] { partitionName.asIndexName() };
+                indexNames = new String[]{partitionName.asIndexName()};
             }
         } else {
-            indexNames = new String[] { tableInfo.ident().indexName() };
+            indexNames = new String[]{tableInfo.ident().indexName()};
         }
         return indexNames;
-    }
-
-    private void mergeMappingAndUpdateTemplate(final SettableFuture<Long> result,
-                                               final Map<String, Object> mapping,
-                                               final IndexTemplateMetaData templateMetaData,
-                                               final AtomicInteger operations) {
-        Map<String, Object> mergedMapping = mergeMapping(templateMetaData, mapping);
-        PutIndexTemplateRequest updateTemplateRequest = new PutIndexTemplateRequest(templateMetaData.name())
-                .create(false)
-                .mapping(Constants.DEFAULT_MAPPING_TYPE, mergedMapping)
-                .settings(templateMetaData.settings())
-                .template(templateMetaData.template());
-
-        for (ObjectObjectCursor<String, AliasMetaData> container : templateMetaData.aliases()) {
-            Alias alias = new Alias(container.key);
-            updateTemplateRequest.alias(alias);
-        }
-        transportActionProvider.transportPutIndexTemplateAction().execute(updateTemplateRequest, new ActionListener<PutIndexTemplateResponse>() {
-            @Override
-            public void onResponse(PutIndexTemplateResponse putIndexTemplateResponse) {
-                if (operations.decrementAndGet() == 0) {
-                    result.set(1L);
-                }
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-                result.setException(e);
-            }
-        });
     }
 
     private static class SettableFutureToNullActionListener<T> implements ActionListener<T> {
