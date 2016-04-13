@@ -52,12 +52,13 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
 
     private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
-    public NestedLoopContext(NestedLoopPhase phase,
+    public NestedLoopContext(ESLogger logger,
+                             NestedLoopPhase phase,
                              FlatProjectorChain flatProjectorChain,
                              NestedLoopOperation nestedLoopOperation,
                              @Nullable PageDownstreamContext leftPageDownstreamContext,
                              @Nullable PageDownstreamContext rightPageDownstreamContext) {
-        super(phase.executionPhaseId(), LOGGER);
+        super(phase.executionPhaseId(), logger);
 
         nestedLoopPhase = phase;
         this.flatProjectorChain = flatProjectorChain;

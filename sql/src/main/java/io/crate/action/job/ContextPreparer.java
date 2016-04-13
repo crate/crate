@@ -82,6 +82,7 @@ public class ContextPreparer extends AbstractComponent {
 
     private final MapSideDataCollectOperation collectOperation;
     private final ESLogger pageDownstreamContextLogger;
+    private final ESLogger nlContextLogger;
     private ClusterService clusterService;
     private CountOperation countOperation;
     private final ThreadPool threadPool;
@@ -100,6 +101,7 @@ public class ContextPreparer extends AbstractComponent {
                            PageDownstreamFactory pageDownstreamFactory,
                            RowDownstreamFactory rowDownstreamFactory) {
         super(settings);
+        nlContextLogger = Loggers.getLogger(NestedLoopContext.class, settings);
         pageDownstreamContextLogger = Loggers.getLogger(PageDownstreamContext.class, settings);
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
@@ -555,6 +557,7 @@ public class ContextPreparer extends AbstractComponent {
 
             NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(phase.executionPhaseId(), flatProjectorChain.firstProjector());
             return new NestedLoopContext(
+                    nlContextLogger,
                     phase,
                     flatProjectorChain,
                     nestedLoopOperation,

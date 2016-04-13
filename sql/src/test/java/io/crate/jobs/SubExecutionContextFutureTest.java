@@ -31,6 +31,8 @@ import org.junit.rules.ExpectedException;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 
+import static org.hamcrest.Matchers.isA;
+
 public class SubExecutionContextFutureTest {
 
     @Rule
@@ -38,7 +40,7 @@ public class SubExecutionContextFutureTest {
 
     @Test
     public void testCloseWithCancellationExceptionAsPartOfCombinedFuture() throws Exception {
-        expectedException.expect(CancellationException.class);
+        expectedException.expectCause(isA(CancellationException.class));
 
         SubExecutionContextFuture f1 = new SubExecutionContextFuture();
         SubExecutionContextFuture f2 = new SubExecutionContextFuture();

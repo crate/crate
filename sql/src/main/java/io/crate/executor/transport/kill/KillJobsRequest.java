@@ -67,4 +67,9 @@ public class KillJobsRequest extends TransportRequest {
             out.writeLong(job.getLeastSignificantBits());
         }
     }
+
+    @Override
+    public String toString() {
+        return "KillJobsRequest{" + toKill + '}';
+    }
 }

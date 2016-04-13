@@ -173,19 +173,13 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
                 try {
                     //noinspection unchecked
                     Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
-                    errorMessageBuilder.append("## node: ");
-                    errorMessageBuilder.append(nodeName);
-                    errorMessageBuilder.append("\n");
-                    errorMessageBuilder.append(contexts.toString());
-                    errorMessageBuilder.append("\n");
-
-                    // prevent other tests from failing:
-                    for (JobExecutionContext jobExecutionContext : contexts.values()) {
-                        try {
-                            jobExecutionContext.kill();
-                        } catch (Throwable t) {
-                            LOGGER.error("Error killing {} in assertNoJobExecutionContextAreLeftOpen", t, jobExecutionContext);
-                        }
+                    String contextsString = contexts.toString();
+                    if (!"{}".equals(contextsString)) {
+                        errorMessageBuilder.append("## node: ");
+                        errorMessageBuilder.append(nodeName);
+                        errorMessageBuilder.append("\n");
+                        errorMessageBuilder.append(contextsString);
+                        errorMessageBuilder.append("\n");
                     }
                     contexts.clear();
                 } catch (IllegalAccessException ex) {
@@ -193,23 +187,6 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
                 }
             }
             throw new AssertionError(errorMessageBuilder.toString(), e);
-        }
-    }
-
-    public void clearActiveJobContexts() throws Exception {
-
-        Field activeContextsField = JobContextService.class.getDeclaredField("activeContexts");
-        activeContextsField.setAccessible(true);
-
-        for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
-            @SuppressWarnings("unchecked")
-            Collection<JobExecutionContext> activeContexts = ((ConcurrentMap<UUID, JobExecutionContext>)activeContextsField.get(jobContextService)).values();
-            Iterator<JobExecutionContext> it = activeContexts.iterator();
-            while (it.hasNext()) {
-                JobExecutionContext ctx = it.next();
-                ctx.kill();
-                it.remove();
-            }
         }
     }
 

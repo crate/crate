@@ -30,8 +30,10 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -40,7 +42,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Singleton
-public class TransportKillJobsNodeAction implements NodeAction<KillJobsRequest, KillResponse> {
+public class TransportKillJobsNodeAction extends AbstractComponent implements NodeAction<KillJobsRequest, KillResponse> {
 
     private static final String TRANSPORT_ACTION = "crate/sql/kill_jobs";
 
@@ -49,10 +51,12 @@ public class TransportKillJobsNodeAction implements NodeAction<KillJobsRequest, 
     private Transports transports;
 
     @Inject
-    public TransportKillJobsNodeAction(JobContextService jobContextService,
+    public TransportKillJobsNodeAction(Settings settings,
+                                       JobContextService jobContextService,
                                        ClusterService clusterService,
                                        Transports transports,
                                        TransportService transportService) {
+        super(settings);
         this.jobContextService = jobContextService;
         this.clusterService = clusterService;
         this.transports = transports;
@@ -103,6 +107,7 @@ public class TransportKillJobsNodeAction implements NodeAction<KillJobsRequest, 
             }
         };
 
+        logger.trace("Sending {} to {}", request, nodes);
         for (DiscoveryNode node : nodes) {
             transports.executeLocalOrWithTransport(
                     this, node.id(), request, killResponseActionListener, transportResponseHandler);

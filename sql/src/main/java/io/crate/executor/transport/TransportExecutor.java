@@ -218,6 +218,7 @@ public class TransportExecutor implements Executor {
                     jobContextService,
                     indicesService,
                     transportActionProvider.transportJobInitAction(),
+                    transportActionProvider.transportKillJobsNodeAction(),
                     nodeOperationTrees,
                     operationType
             );
