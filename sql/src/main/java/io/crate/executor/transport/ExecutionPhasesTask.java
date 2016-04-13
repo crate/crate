@@ -170,12 +170,6 @@ public class ExecutionPhasesTask extends JobTask {
         }
 
         sendJobRequests(operationByServer, pageDownstreamContexts, bucketIdx);
-        if (localNodeOperations.isEmpty() && operationByServer.isEmpty()) {
-            // queries on partitioned tables without active partitions can lead to a plan without executionNodes
-            // (no shards -> no routing)
-            // just close context to trigger a response
-            localJobContext.close();
-        }
     }
 
     private void sendJobRequests(Map<String, Collection<NodeOperation>> operationByServer, List<PageDownstreamContext> pageDownstreamContexts, int bucketIdx) {
