@@ -2106,6 +2106,32 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(((String) response.rows()[0][0]), is("{\"v\":\"Marvin\"}"));
     }
 
+    @Test
+    public void testMatchPredicateOnPartitionedTableWithPKColumn() throws Throwable {
+        execute("create table foo (id integer primary key, name string INDEX using fulltext) partitioned by (id)");
+        ensureYellow();
+        execute("insert into foo (id, name) values (?, ?)", new Object[]{1, "Marvin Other Name"});
+        execute("insert into foo (id, name) values (?, ?)", new Object[]{2, "Ford Yet Another Name"});
+        execute("refresh table foo");
+
+        execute("select id from foo where match(name, 'Ford')");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((int)response.rows()[0][0], is(2));
+    }
+
+    @Test
+    public void testMatchPredicateOnPartitionedTableWithoutPKColumn() throws Throwable {
+        execute("create table foo (id integer, name string INDEX using fulltext) partitioned by (id)");
+        ensureYellow();
+        execute("insert into foo (id, name) values (?, ?)", new Object[]{1, "Marvin Other Name"});
+        execute("insert into foo (id, name) values (?, ?)", new Object[]{2, "Ford Yet Another Name"});
+        execute("refresh table foo");
+
+        execute("select id from foo where match(name, 'Marvin')");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((int)response.rows()[0][0], is(1));
+    }
+
     @After
     @Override
     public void tearDown() throws Exception {

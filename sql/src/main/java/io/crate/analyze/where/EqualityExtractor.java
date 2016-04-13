@@ -89,12 +89,14 @@ public class EqualityExtractor {
                 if (anyNull){
                     return null;
                 }
-                List<Symbol> row = new ArrayList<>(proxies.size());
-                for (EqProxy proxy : proxies) {
-                    proxy.reset();
-                    row.add(proxy.origin.arguments().get(1));
+                if (!proxies.isEmpty()) {
+                    List<Symbol> row = new ArrayList<>(proxies.size());
+                    for (EqProxy proxy : proxies) {
+                        proxy.reset();
+                        row.add(proxy.origin.arguments().get(1));
+                    }
+                    result.add(row);
                 }
-                result.add(row);
             } else {
                 for (EqProxy proxy : proxies) {
                     proxy.reset();

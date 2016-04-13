@@ -289,7 +289,13 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         assertThat(whereClause.docKeys().get(), contains(isDocKey(1, 1395874800000L)));
         // not partitions if docKeys are there
         assertThat(whereClause.partitions(), empty());
+    }
 
+    @Test
+    public void testSelectFromPartitionedTableWithoutPKInWhereClause() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select id from parted where match(name, 'name')");
+        assertThat(whereClause.docKeys().isPresent(), is(false));
+        assertThat(whereClause.partitions(), empty());
     }
 
     @Test
