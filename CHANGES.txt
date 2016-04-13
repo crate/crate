@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix bug which could cause the MATCH predicate in WHERE clause for
+   partitioned tables to fail. This happens in cases when a column ident of the
+   MATCH predicate is not a primary key column.
+
  - Fix: While restoring a snapshot with multiple indices inside,
    selecting concrete indices can result in a wrong index being restored.
 

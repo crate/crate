@@ -56,7 +56,7 @@ public class WhereClauseAnalyzer {
     }
 
     public WhereClause analyze(WhereClause whereClause) {
-        if (!whereClause.hasQuery()){
+        if (!whereClause.hasQuery()) {
             return whereClause;
         }
         Set<Symbol> clusteredBy = null;
@@ -79,21 +79,23 @@ public class WhereClauseAnalyzer {
         }
         List<List<Symbol>> pkValues = eqExtractor.extractExactMatches(pkCols, whereClause.query());
 
-        if (pkValues != null) {
+        if (!pkCols.isEmpty() && pkValues != null) {
             int clusterdIdx = -1;
             if (tableInfo.clusteredBy() != null) {
                 clusterdIdx = tableInfo.primaryKey().indexOf(tableInfo.clusteredBy());
                 clusteredBy = new HashSet<>(pkValues.size());
             }
             List<Integer> partitionsIdx = null;
-            if (tableInfo.isPartitioned()){
+            if (tableInfo.isPartitioned()) {
                 partitionsIdx = new ArrayList<>(tableInfo.partitionedByColumns().size());
                 for (ColumnIdent columnIdent : tableInfo.partitionedBy()) {
-                    partitionsIdx.add(tableInfo.primaryKey().indexOf(columnIdent));
+                    int posPartitionColumn = tableInfo.primaryKey().indexOf(columnIdent);
+                    if (posPartitionColumn >= 0) {
+                        partitionsIdx.add(posPartitionColumn);
+                    }
                 }
             }
             whereClause.docKeys(new DocKeys(pkValues, versionInQuery, clusterdIdx, partitionsIdx));
-
             if (clusterdIdx >= 0) {
                 for (List<Symbol> row : pkValues) {
                     clusteredBy.add(row.get(clusterdIdx));
@@ -106,10 +108,8 @@ public class WhereClauseAnalyzer {
         if (clusteredBy != null) {
             whereClause.clusteredBy(clusteredBy);
         }
-        if (tableInfo.isPartitioned()){
-            if (!whereClause.docKeys().isPresent()){
-                whereClause = resolvePartitions(whereClause, tableInfo,analysisMetaData);
-            }
+        if (tableInfo.isPartitioned() && !whereClause.docKeys().isPresent()) {
+            whereClause = resolvePartitions(whereClause, tableInfo, analysisMetaData);
         }
         return whereClause;
     }
