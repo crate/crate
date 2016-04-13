@@ -356,10 +356,13 @@ Partitioned Tables
 ==================
 
 A partitioned table is a virtual table that is internally split up into several
-internal *tables*, called `partitions`, by the value of one or more columns. For every distinct combination
-of values in those configured columns one separate partition is created.
+internal *tables* called `partitions`.
 
-Creating a partitioned table is done using the :ref:`partitioned_by_clause`::
+In order to define a partitioned table the :ref:`partitioned_by_clause` is used
+in the `CREATE TABLE` statement.
+
+These columns define how to partition the table. For every distinct combination
+of values in those columns one partition gets created.
 
     cr> create table partitioned_table (
     ... id long,
@@ -369,6 +372,13 @@ Creating a partitioned table is done using the :ref:`partitioned_by_clause`::
     CREATE OK (... sec)
 
 For further details, please refer to :ref:`partitioned_by_clause`.
+
+.. warning::
+
+    Each partition will be sharded into the number of shards specified in the
+    `CREATE TABLE` statement (or 5 by default). This can quickly lead to a high
+    number of shards in the cluster if a column with high cardinality is used
+    for partitioning.
 
 
 .. _sql-ddl-generated-columns:
