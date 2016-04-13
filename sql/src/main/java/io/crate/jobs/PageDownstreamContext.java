@@ -21,6 +21,7 @@
 
 package io.crate.jobs;
 
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
@@ -209,6 +210,16 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     protected void innerPrepare() {
         if (projectorChain != null) {
             projectorChain.prepare();
+        }
+    }
+
+    @Override
+    protected void innerStart() {
+        // E.g. If the upstreamPhase is a collectPhase for a partitioned table without any partitions
+        // there won't be any executionNodes for that collectPhase
+        // -> no upstreams -> just finish
+        if (numBuckets == 0) {
+            pageDownstream.nextPage(new BucketPage(Futures.immediateFuture(Bucket.EMPTY)), new ResultListenerBridgingConsumeListener());
         }
     }
 
