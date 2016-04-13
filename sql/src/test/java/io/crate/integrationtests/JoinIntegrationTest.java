@@ -533,6 +533,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     public void testJoinWithIndexMissingExceptions() throws Throwable {
         execute("create table t1 (x int)");
         execute("create table t2 (x int)");
+        ensureYellow();
         execute("insert into t1 (x) values (1)");
         execute("insert into t2 (x) values (2)");
         execute("refresh table t1, t2");

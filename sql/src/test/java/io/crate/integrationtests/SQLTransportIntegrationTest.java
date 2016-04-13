@@ -160,37 +160,26 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
             }, 10L, TimeUnit.SECONDS);
         } catch (AssertionError e) {
             StringBuilder errorMessageBuilder = new StringBuilder();
-            for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
+            String[] nodeNames = internalCluster().getNodeNames();
+            for (String nodeName : nodeNames) {
+                JobContextService jobContextService = internalCluster().getInstance(JobContextService.class, nodeName);
                 try {
                     //noinspection unchecked
                     Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
-                    errorMessageBuilder.append(contexts.toString());
-                    errorMessageBuilder.append("\n");
-
-                    // prevent other tests from failing:
-                    for (JobExecutionContext jobExecutionContext : contexts.values()) {
-                        jobExecutionContext.kill();
+                    String contextsString = contexts.toString();
+                    if (!"{}".equals(contextsString)) {
+                        errorMessageBuilder.append("## node: ");
+                        errorMessageBuilder.append(nodeName);
+                        errorMessageBuilder.append("\n");
+                        errorMessageBuilder.append(contextsString);
+                        errorMessageBuilder.append("\n");
                     }
                     contexts.clear();
                 } catch (IllegalAccessException ex) {
                     throw Throwables.propagate(e);
                 }
             }
-            printStackDump(LOGGER);
             throw new AssertionError(errorMessageBuilder.toString(), e);
-        }
-    }
-
-    public void runJobContextReapers() throws Exception {
-
-        LocalReaper reaper = internalCluster().getInstance(LocalReaper.class);
-        Field activeContextsField = JobContextService.class.getDeclaredField("activeContexts");
-        activeContextsField.setAccessible(true);
-
-        for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
-            @SuppressWarnings("unchecked")
-            Collection<JobExecutionContext> activeContexts = ((ConcurrentMap<UUID, JobExecutionContext>)activeContextsField.get(jobContextService)).values();
-            reaper.killHangingJobs(TimeValue.timeValueSeconds(-1), activeContexts);
         }
     }
 

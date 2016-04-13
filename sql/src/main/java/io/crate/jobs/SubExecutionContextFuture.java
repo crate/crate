@@ -29,7 +29,10 @@ import com.google.common.util.concurrent.SettableFuture;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @ParametersAreNonnullByDefault
@@ -68,9 +71,7 @@ public class SubExecutionContextFuture implements ListenableFuture<SubExecutionC
     public boolean close(@Nullable Throwable t) {
         if (t == null) {
             return internalFuture.set(state);
-        } else if (t instanceof CancellationException){
-            return internalFuture.cancel(true);
-        } else {
+        }  else {
             return internalFuture.setException(t);
         }
     }

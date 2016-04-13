@@ -67,12 +67,6 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
                 assertThat(e.getMessage(), Matchers.containsString("rejected execution"));
             }
         }
-
-        /**
-         * if there is a rejection exception somewhere the query execution is aborted *before*
-         * all contexts are created. We'll leave it up to the context reaper to remove dangling contexts
-         */
-        runJobContextReapers();
     }
 
     private void bulkInsert(int docCount) {

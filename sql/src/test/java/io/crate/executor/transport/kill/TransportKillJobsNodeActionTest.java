@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.executor.transport.Transports;
 import io.crate.jobs.JobContextService;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -61,6 +62,7 @@ public class TransportKillJobsNodeActionTest {
         NoopClusterService noopClusterService = new NoopClusterService();
 
         TransportKillJobsNodeAction transportKillJobsNodeAction = new TransportKillJobsNodeAction(
+                ImmutableSettings.EMPTY,
                 jobContextService,
                 new NoopClusterService(),
                 new Transports(noopClusterService, transportService, threadPool),

@@ -30,8 +30,12 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.job.*;
 import io.crate.core.collections.Bucket;
+import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.kill.KillJobsRequest;
+import io.crate.executor.transport.kill.KillResponse;
+import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.*;
 import io.crate.operation.*;
 import io.crate.operation.projectors.ForwardingRowReceiver;
@@ -49,6 +53,8 @@ import org.elasticsearch.indices.IndicesService;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -57,6 +63,7 @@ public class ExecutionPhasesTask extends JobTask {
     private static final ESLogger LOGGER = Loggers.getLogger(ExecutionPhasesTask.class);
 
     private final TransportJobAction transportJobAction;
+    private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final List<NodeOperationTree> nodeOperationTrees;
     private final OperationType operationType;
     private final ClusterService clusterService;
@@ -82,6 +89,7 @@ public class ExecutionPhasesTask extends JobTask {
                                   JobContextService jobContextService,
                                   IndicesService indicesService,
                                   TransportJobAction transportJobAction,
+                                  TransportKillJobsNodeAction transportKillJobsNodeAction,
                                   List<NodeOperationTree> nodeOperationTrees,
                                   OperationType operationType) {
         super(jobId);
@@ -90,6 +98,7 @@ public class ExecutionPhasesTask extends JobTask {
         this.jobContextService = jobContextService;
         this.indicesService = indicesService;
         this.transportJobAction = transportJobAction;
+        this.transportKillJobsNodeAction = transportKillJobsNodeAction;
         this.nodeOperationTrees = nodeOperationTrees;
         this.operationType = operationType;
 
@@ -142,7 +151,7 @@ public class ExecutionPhasesTask extends JobTask {
         }
 
         void jobInitialized(@Nullable Throwable t) {
-            if (t != null) {
+            if (failure == null || failure instanceof CancellationException) {
                 failure = t;
             }
             if (serverToInitialize.decrementAndGet() <= 0) {
@@ -158,42 +167,70 @@ public class ExecutionPhasesTask extends JobTask {
     private static class InterceptingRowReceiver extends ForwardingRowReceiver implements FutureCallback<Void> {
 
         private final AtomicInteger upstreams = new AtomicInteger(2);
+        private final UUID jobId;
+        private final TransportKillJobsNodeAction transportKillJobsNodeAction;
+        private final AtomicBoolean rowReceiverDone = new AtomicBoolean(false);
         private Throwable failure;
 
-        InterceptingRowReceiver(RowReceiver rowReceiver, InitializationTracker jobsInitialized) {
+        InterceptingRowReceiver(UUID jobId,
+                                RowReceiver rowReceiver,
+                                InitializationTracker jobsInitialized,
+                                TransportKillJobsNodeAction transportKillJobsNodeAction) {
             super(rowReceiver);
+            this.jobId = jobId;
+            this.transportKillJobsNodeAction = transportKillJobsNodeAction;
             Futures.addCallback(jobsInitialized.future, this);
         }
 
         @Override
         public void fail(Throwable throwable) {
-            failure = throwable;
-            tryForwardResult();
+            if (rowReceiverDone.compareAndSet(false, true)) {
+                tryForwardResult(throwable);
+            }
+        }
+
+        @Override
+        public void kill(Throwable throwable) {
+            fail(throwable);
         }
 
         @Override
         public void finish() {
-            tryForwardResult();
+            fail(null);
         }
 
         @Override
         public void onSuccess(@Nullable Void result) {
-            finish();
+            tryForwardResult(null);
         }
 
         @Override
         public void onFailure(@Nonnull Throwable t) {
-            fail(t);
+            tryForwardResult(t);
         }
 
-        private void tryForwardResult() {
+        private void tryForwardResult(Throwable throwable) {
+            if (throwable != null && (failure == null || failure instanceof CancellationException)) {
+                failure = Exceptions.unwrap(throwable);
+            }
             if (upstreams.decrementAndGet() > 0) {
                 return;
             }
             if (failure == null) {
                 super.finish();
             } else {
-                super.fail(failure);
+                transportKillJobsNodeAction.executeKillOnAllNodes(
+                        new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<KillResponse>() {
+                            @Override
+                            public void onResponse(KillResponse killResponse) {
+                                InterceptingRowReceiver.super.fail(failure);
+                            }
+
+                            @Override
+                            public void onFailure(Throwable e) {
+                                InterceptingRowReceiver.super.fail(failure);
+                            }
+                        });
             }
         }
     }
@@ -205,12 +242,20 @@ public class ExecutionPhasesTask extends JobTask {
             // bulk Operation with rowCountResult
             for (int i = 0; i < nodeOperationTrees.size(); i++) {
                 SettableFuture<TaskResult> result = results.get(i);
-                RowReceiver receiver = new InterceptingRowReceiver(new RowCountResultRowDownstream(result), initializationTracker);
+                RowReceiver receiver = new InterceptingRowReceiver(
+                        jobId(),
+                        new RowCountResultRowDownstream(result),
+                        initializationTracker,
+                        transportKillJobsNodeAction);
                 handlerPhases.add(new Tuple<>(nodeOperationTrees.get(i).leaf(), receiver));
             }
         } else {
             SettableFuture<TaskResult> result = Iterables.getOnlyElement(results);
-            RowReceiver receiver = new InterceptingRowReceiver(new QueryResultRowDownstream(result), initializationTracker);
+            RowReceiver receiver = new InterceptingRowReceiver(
+                    jobId(),
+                    new QueryResultRowDownstream(result),
+                    initializationTracker,
+                    transportKillJobsNodeAction);
             handlerPhases.add(new Tuple<>(Iterables.getOnlyElement(nodeOperationTrees).leaf(), receiver));
         }
         return handlerPhases;
