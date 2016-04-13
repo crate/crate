@@ -108,7 +108,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     @Override
     protected void doStop() throws ElasticsearchException {
         for (JobExecutionContext context : activeContexts.values()) {
-            context.close();
+            context.kill();
         }
     }
 

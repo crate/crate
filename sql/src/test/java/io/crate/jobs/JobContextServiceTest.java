@@ -270,14 +270,6 @@ public class JobContextServiceTest extends CrateUnitTest {
         assertThat(jobContextService.killJobs(jobsToKill), is(1L));
     }
 
-    @Test
-    public void testCloseContextRemovesSubContext() throws Exception {
-        JobExecutionContext ctx1 = getJobExecutionContextWithOneActiveSubContext(jobContextService);
-        assertThat(numContexts(ctx1), is(1));
-        ctx1.close();
-        assertThat(numContexts(ctx1), is(0));
-    }
-
     private JobExecutionContext getJobExecutionContextWithOneActiveSubContext(JobContextService jobContextService) {
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(UUID.randomUUID());
         PageDownstreamContext pageDownstreamContext =

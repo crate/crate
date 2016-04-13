@@ -104,7 +104,6 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
         return false;
     }
 
-    @Override
     final public void close() {
         close(null);
     }

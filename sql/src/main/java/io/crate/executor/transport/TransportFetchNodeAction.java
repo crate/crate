@@ -118,7 +118,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
             if (request.toFetch() == null) {
                 JobExecutionContext ctx = jobContextService.getContextOrNull(request.jobId());
                 if (ctx != null) {
-                    ExecutionSubContext fetchContext = ctx.getSubContextOrNull(request.fetchPhaseId());
+                    FetchContext fetchContext = ctx.getSubContextOrNull(request.fetchPhaseId());
                     if (fetchContext != null) {
                         fetchContext.close();
                     }
