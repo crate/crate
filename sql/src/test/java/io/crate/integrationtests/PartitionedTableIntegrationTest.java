@@ -1679,6 +1679,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 .mapAndClose()
                 .get(Constants.DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
+        // template order must not be touched
+        assertThat(metaData.order(), is(100));
     }
 
     @Test
