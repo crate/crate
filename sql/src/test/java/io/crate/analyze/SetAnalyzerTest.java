@@ -268,4 +268,11 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
         analyze("RESET GLOBAL gateway");
     }
 
+    @Test
+    public void testSetWildcardRuntimeSetting() {
+        SetAnalyzedStatement analysis = analyze("SET GLOBAL TRANSIENT \"cluster.routing.allocation.include.zone\" = 'zone'");
+        assertThat(analysis.isPersistent(), is(false));
+        assertThat(analysis.settings().get("cluster.routing.allocation.include.zone"), is("zone"));
+    }
+
 }
