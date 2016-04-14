@@ -136,7 +136,7 @@ public class SettingsAppliers {
                             setting.getValue());
                 }
             } else {
-                SettingsApplier settingsApplier = CrateSettings.getSetting(key);
+                SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(key);
                 settingsApplier.applyValue(settingsBuilder, value);
             }
         }

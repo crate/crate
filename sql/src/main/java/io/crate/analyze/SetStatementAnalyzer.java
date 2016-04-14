@@ -44,7 +44,7 @@ public class SetStatementAnalyzer {
             String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(),
                     parameterContext.parameters());
 
-            SettingsApplier settingsApplier = CrateSettings.getSetting(settingsName);
+            SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(settingsName);
             for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
                 checkIfSettingIsRuntime(setting);
             }

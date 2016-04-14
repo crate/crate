@@ -27,6 +27,7 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.SettingsApplier;
 import io.crate.analyze.SettingsAppliers;
 import io.crate.breaker.CrateCircuitBreakerService;
+import org.apache.commons.lang3.StringUtils;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -1447,15 +1448,30 @@ public class CrateSettings {
                     new SettingsAppliers.IntSettingsApplier(CrateSettings.GATEWAY_RECOVERY_AFTER_NODES))
             .build();
 
+    public static final ImmutableList<Setting> CRATE_WILDCARD_SETTINGS = ImmutableList.<Setting>of(
+            ROUTING_ALLOCATION_EXCLUDE,
+            ROUTING_ALLOCATION_INCLUDE,
+            ROUTING_ALLOCATION_REQUIRE
+    );
+
     /**
-     * @return a SettingsApplier for the given setting
+     *  Returns a SettingApplier for the given setting or generates
+     *  a new one SettingsApplier for a wildcard setting
+     *
+     * @return a SettingsApplier
+     *
      * @throws IllegalArgumentException if the setting isn't supported
      */
     @Nonnull
-    public static SettingsApplier getSetting(String name) {
-        SettingsApplier settingsApplier = SUPPORTED_SETTINGS.get(name);
+    public static SettingsApplier getSettingsApplier(String settingName) {
+        SettingsApplier settingsApplier = SUPPORTED_SETTINGS.get(settingName);
         if (settingsApplier == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", name));
+            for (Setting setting : CRATE_WILDCARD_SETTINGS) {
+                if (StringUtils.containsIgnoreCase(settingName, setting.name())) {
+                    return new SettingsAppliers.StringSettingsApplier(new StringSetting(settingName, true));
+                }
+            }
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", settingName));
         }
         return settingsApplier;
     }

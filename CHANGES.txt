@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix bug preventing setting the wildcard runtime settings via SET statement.
+
  - Fix: Improved error handling to make sure JOIN queries don't get stuck on
    shard failures.
 
