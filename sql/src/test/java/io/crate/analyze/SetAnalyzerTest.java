@@ -268,4 +268,18 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
         analyze("RESET GLOBAL gateway");
     }
 
+    @Test
+    public void testSetLoggingSetting() {
+        SetAnalyzedStatement setAnalyzedStatement = analyze("SET GLOBAL TRANSIENT \"logger.action\" = 'INFO'");
+        assertThat(setAnalyzedStatement.isPersistent(), is(false));
+        assertThat(setAnalyzedStatement.settings().get("logger.action"), is("INFO"));
+    }
+
+    @Test
+    public void testSetLoggingSettingWithNotAllowedLoggingValue() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("\'INF\' is not an allowed value. Allowed values are: TRACE, DEBUG, INFO, WARN, ERROR, FATAL");
+        analyze("SET GLOBAL TRANSIENT \"logger.action\" = 'INF'");
+    }
+
 }
