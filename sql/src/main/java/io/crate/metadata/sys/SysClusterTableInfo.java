@@ -30,7 +30,9 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.operation.reference.sys.cluster.ClusterLoggingOverridesExpression;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -354,6 +356,15 @@ public class SysClusterTableInfo extends StaticTableInfo {
                                 CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.name()))
                         .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.GATEWAY.name(),
                                 CrateSettings.GATEWAY_RECOVER_AFTER_TIME.name()))
+
+                        .register(ClusterSettingsExpression.NAME, new ArrayType(DataTypes.OBJECT), ImmutableList.of(
+                                ClusterLoggingOverridesExpression.NAME))
+                        .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(
+                                ClusterLoggingOverridesExpression.NAME,
+                                ClusterLoggingOverridesExpression.ClusterLoggingOverridesChildExpression.NAME))
+                        .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(
+                                ClusterLoggingOverridesExpression.NAME,
+                                ClusterLoggingOverridesExpression.ClusterLoggingOverridesChildExpression.LEVEL))
 
                         .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.UDC.name()))
                         .register(ClusterSettingsExpression.NAME, DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.UDC.name(),

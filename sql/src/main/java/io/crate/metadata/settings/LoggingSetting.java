@@ -20,29 +20,32 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.cluster;
+package io.crate.metadata.settings;
 
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.node.settings.NodeSettingsService;
-import org.junit.Test;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSet;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
+import javax.annotation.Nullable;
+import java.util.Locale;
+import java.util.Set;
 
-public class ClusterSettingsExpressionTest {
+public class LoggingSetting extends StringSetting {
 
+    private static final Set<String> LOGGING_VALUES = ImmutableSet.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR");
 
-    @Test
-    public void testSettingsAreAppliedImmediately() throws Exception {
-        ClusterSettingsExpression clusterSettingsExpression = new ClusterSettingsExpression(
-                ImmutableSettings.builder().put("bulk.request_timeout", "20s").build(), mock(NodeSettingsService.class), mock(ClusterService.class));
+    public LoggingSetting(String name) {
+        super(name, LOGGING_VALUES, true);
+    }
 
-        assertThat(((BytesRef) clusterSettingsExpression
-                .getChildImplementation("bulk")
-                .getChildImplementation("request_timeout").value()).utf8ToString(),
-                is("20s"));
+    @Nullable
+    public String validate(String value) {
+        for (String allowedValue : allowedValues) {
+            if (allowedValue.equalsIgnoreCase(value)) {
+                return null;
+            }
+        }
+        return String.format(Locale.ENGLISH, "'%s' is not an allowed value. Allowed values are: %s",
+                value, Joiner.on(", ").join(LOGGING_VALUES)
+        );
     }
 }

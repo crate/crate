@@ -115,6 +115,7 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
             MetaData metaData = mock(MetaData.class);
             when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
             when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+            when(metaData.settings()).thenReturn(ImmutableSettings.EMPTY);
             when(state.metaData()).thenReturn(metaData);
             when(clusterService.state()).thenReturn(state);
             bind(ClusterService.class).toInstance(clusterService);

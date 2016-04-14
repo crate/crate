@@ -136,7 +136,7 @@ public class SettingsAppliers {
                             setting.getValue());
                 }
             } else {
-                SettingsApplier settingsApplier = CrateSettings.getSetting(key);
+                SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(key);
                 settingsApplier.applyValue(settingsBuilder, value);
             }
         }
@@ -302,7 +302,6 @@ public class SettingsAppliers {
                     ImmutableSettings.builder().put(setting.settingName(), setting.defaultValue()).build());
             this.setting = setting;
         }
-
 
         @Override
         protected Object validate(Object value) {

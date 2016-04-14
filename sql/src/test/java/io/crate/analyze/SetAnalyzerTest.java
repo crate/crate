@@ -21,16 +21,19 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.MetaDataModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.*;
 
@@ -266,6 +269,26 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
         analyze("RESET GLOBAL gateway");
+    }
+
+    @Test
+    public void testSetLoggingSetting() {
+        SetAnalyzedStatement setAnalyzedStatement = analyze("SET GLOBAL TRANSIENT \"logger.action\" = 'INFo'");
+        assertThat(setAnalyzedStatement.isPersistent(), is(false));
+        assertThat(setAnalyzedStatement.settings().get("logger.action"), is("INFo"));
+    }
+
+    @Test
+    public void testSetLoggingSettingWithNotAllowedLoggingValue() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("\'INF\' is not an allowed value. Allowed values are: TRACE, DEBUG, INFO, WARN, ERROR");
+        analyze("SET GLOBAL TRANSIENT \"logger.action\" = 'INF'");
+    }
+
+    @Test
+    public void testResetLoggingSetting() {
+        ResetAnalyzedStatement resetStatement = analyze("RESET GLOBAL \"logger.action\"");
+        assertThat(resetStatement.settingsToRemove(), Matchers.<Set<String>>is(ImmutableSet.of("logger.action")));
     }
 
 }

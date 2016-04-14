@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - The log level of loggers can now be set at runtime via the ``SET`` statement.
+
  - Fix: Changing the column policy on a partitioned table throws an
    exception if more than 1 partition exists.
 

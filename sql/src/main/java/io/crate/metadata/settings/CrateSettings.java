@@ -1448,14 +1448,21 @@ public class CrateSettings {
             .build();
 
     /**
-     * @return a SettingsApplier for the given setting
+     * Returns a SettingApplier for the given setting or
+     * generates a new one for logging settings.
+     *
+     * @param setting the name of the setting
+     * @return a SettingsApplier
      * @throws IllegalArgumentException if the setting isn't supported
      */
     @Nonnull
-    public static SettingsApplier getSetting(String name) {
-        SettingsApplier settingsApplier = SUPPORTED_SETTINGS.get(name);
+    public static SettingsApplier getSettingsApplier(String setting) {
+        SettingsApplier settingsApplier = SUPPORTED_SETTINGS.get(setting);
         if (settingsApplier == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", name));
+            if (isLoggingSetting(setting)) {
+                return new SettingsAppliers.StringSettingsApplier(new LoggingSetting(setting));
+            }
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", setting));
         }
         return settingsApplier;
     }
@@ -1463,8 +1470,9 @@ public class CrateSettings {
     public static Set<String> settingNamesByPrefix(String prefix) {
         Set<String> settingNames = Sets.newHashSet();
         SettingsApplier settingsApplier = SUPPORTED_SETTINGS.get(prefix);
-        if (settingsApplier != null
-                && !(settingsApplier instanceof SettingsAppliers.ObjectSettingsApplier)) {
+        if (settingsApplier != null && !(settingsApplier instanceof SettingsAppliers.ObjectSettingsApplier)) {
+            settingNames.add(prefix);
+        } else if (isLoggingSetting(prefix)) {
             settingNames.add(prefix);
         } else {
             prefix += ".";
@@ -1475,5 +1483,9 @@ public class CrateSettings {
             }
         }
         return settingNames;
+    }
+
+    private static boolean isLoggingSetting(String settingName) {
+        return settingName.startsWith("logger.");
     }
 }
