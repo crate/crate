@@ -23,6 +23,7 @@ package io.crate.metadata.settings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.crate.analyze.SettingsApplier;
 import io.crate.analyze.SettingsAppliers;
@@ -1447,24 +1448,33 @@ public class CrateSettings {
                     new SettingsAppliers.IntSettingsApplier(CrateSettings.GATEWAY_RECOVERY_AFTER_NODES))
             .build();
 
+    private static final Set<String> LOGGING_VALUES = ImmutableSet.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL");
+
     /**
      * @return a SettingsApplier for the given setting
      * @throws IllegalArgumentException if the setting isn't supported
      */
     @Nonnull
-    public static SettingsApplier getSetting(String name) {
-        SettingsApplier settingsApplier = SUPPORTED_SETTINGS.get(name);
+    public static SettingsApplier getSettingsApplier(String setting) {
+        if (isLoggingSetting(setting)) {
+            return new SettingsAppliers.StringSettingsApplier(new StringSetting(setting, LOGGING_VALUES, true));
+        }
+
+        SettingsApplier settingsApplier = SUPPORTED_SETTINGS.get(setting);
         if (settingsApplier == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", name));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", setting));
         }
         return settingsApplier;
+    }
+
+    private static boolean isLoggingSetting(String settingName) {
+        return settingName.startsWith("logger.");
     }
 
     public static Set<String> settingNamesByPrefix(String prefix) {
         Set<String> settingNames = Sets.newHashSet();
         SettingsApplier settingsApplier = SUPPORTED_SETTINGS.get(prefix);
-        if (settingsApplier != null
-                && !(settingsApplier instanceof SettingsAppliers.ObjectSettingsApplier)) {
+        if (settingsApplier != null && !(settingsApplier instanceof SettingsAppliers.ObjectSettingsApplier)) {
             settingNames.add(prefix);
         } else {
             prefix += ".";
