@@ -270,9 +270,9 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSetLoggingSetting() {
-        SetAnalyzedStatement setAnalyzedStatement = analyze("SET GLOBAL TRANSIENT \"logger.action\" = 'INFO'");
+        SetAnalyzedStatement setAnalyzedStatement = analyze("SET GLOBAL TRANSIENT \"logger.action\" = 'INFo'");
         assertThat(setAnalyzedStatement.isPersistent(), is(false));
-        assertThat(setAnalyzedStatement.settings().get("logger.action"), is("INFO"));
+        assertThat(setAnalyzedStatement.settings().get("logger.action"), is("INFo"));
     }
 
     @Test
