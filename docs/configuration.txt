@@ -1577,12 +1577,18 @@ Logger Settings
 
 It's possible to set the log level of loggers at runtime. This is particularly
 useful when debugging problems and there is a need to increase the logging
-setting without wanting to restart nodes. Logging settings are cluster wide
-and override the logging configuration of nodes defined in their
-``logging.yaml``.
+setting without wanting to restart nodes. Logging settings are cluster wide and
+override the logging configuration of nodes defined in their ``logging.yaml``.
 
-To set the log level you can use the regular :ref:`SET/RESET<ddl-set-reset>`
-statement, for example:
+The :ref:RESET <ref-set> statement is not supported for logging settings.
+Therefore, it is recommended to change log levels only using TRANSIENT
+because they will be discarded on cluster restart and the logging configuration
+defined in logging.yaml will be applied.
+If using PERSISTENT it would not possible to discard them to revert to the
+values defined in the logging configuration.
+
+To set the log level you can use the regular :ref:`SET<ref-set>` statement,
+for example:
 
 .. code-block:: sql
 
