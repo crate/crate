@@ -5,6 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Changing the column policy on a partitioned table throws an
+   exception if more than 1 partition exists.
+
+ - Fix: Altering a setting on an empty partitioned table is changing
+   the setting on all exising tables.
+
  - Fix: Throw proper error if a column is used twice in primary key constraint.
 
  - Fix: Improved error handling to make sure JOIN queries don't get stuck on
