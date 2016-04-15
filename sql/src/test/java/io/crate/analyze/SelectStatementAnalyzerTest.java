@@ -126,7 +126,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         @Override
         protected void bindFunctions() {
             super.bindFunctions();
-            functionBinder.addBinding(YEAR_FUNCTION_INFO.ident()).toInstance(new YearFunction());
             functionBinder.addBinding(new FunctionIdent(SleepScalarFunction.NAME, ImmutableList.<DataType>of(DataTypes.LONG)))
                     .toInstance(new SleepScalarFunction());
         }

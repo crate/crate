@@ -95,12 +95,6 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                     .thenReturn(NESTED_CLUSTERED_TABLE_INFO);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
-
-        @Override
-        protected void bindFunctions() {
-            super.bindFunctions();
-            functionBinder.addBinding(ABS_FUNCTION_INFO.ident()).to(AbsFunction.class);
-        }
     }
 
     @Override
