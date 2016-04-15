@@ -1594,9 +1594,8 @@ for example:
 
   SET GLOBAL TRANSIENT "logger.action" = 'INFO';
 
-The logging setting is a wildcard setting consisting of the prefix ``logger``
-and a variable suffix which defines the name of the logger that the log level
-should be applied to.
+The logging setting consists of the prefix ``logger`` and a variable suffix
+which defines the name of the logger that the log level should be applied to.
 
 In addition to `hierarchical named loggers`_ you can also change the log level
 of the root logger using the ``_root`` suffix.
