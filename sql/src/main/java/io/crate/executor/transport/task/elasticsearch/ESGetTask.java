@@ -289,7 +289,6 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
     static class GetResponseContext extends SymbolToFieldExtractor.Context {
         private final HashMap<String, DocKeys.DocKey> ids2Keys;
         private final ESGetNode node;
-        private final HashMap<ColumnIdent, Integer> partitionPositions;
 
         public GetResponseContext(Functions functions, ESGetNode node) {
             super(functions, node.outputs().size());
@@ -297,15 +296,6 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
             ids2Keys = new HashMap<>(node.docKeys().size());
             for (DocKeys.DocKey key : node.docKeys()) {
                 ids2Keys.put(key.id(), key);
-            }
-
-            if (node.tableInfo().isPartitioned()) {
-                partitionPositions = new HashMap<>(node.tableInfo().partitionedByColumns().size());
-                for (Integer idx : node.docKeys().partitionIdx().get()) {
-                    partitionPositions.put(node.tableInfo().primaryKey().get(idx), idx);
-                }
-            } else {
-                partitionPositions = null;
             }
         }
 
