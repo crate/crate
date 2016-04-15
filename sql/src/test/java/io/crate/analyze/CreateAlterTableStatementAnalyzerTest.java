@@ -894,4 +894,12 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(UnsupportedOperationException.class);
         analyze("create table t (c geo_shape primary key)");
     }
+
+    @Test
+    public void testCreateTableWithDuplicatePrimaryKey() throws Exception {
+        expectedException.expectMessage("Column \"id\" appears twice in primary key constraint");
+        expectedException.expect(IllegalArgumentException.class);
+        analyze("create table t (id int, primary key (id, id))");
+    }
+
 }

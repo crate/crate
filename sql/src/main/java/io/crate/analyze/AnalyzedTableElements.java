@@ -152,6 +152,10 @@ public class AnalyzedTableElements {
     }
 
     public void addPrimaryKey(String fqColumnName) {
+        if (additionalPrimaryKeys.contains(fqColumnName)) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Column \"%s\" appears twice in primary key constraint", fqColumnName));
+        }
         additionalPrimaryKeys.add(fqColumnName);
     }
 
