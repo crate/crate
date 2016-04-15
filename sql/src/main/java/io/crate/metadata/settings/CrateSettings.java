@@ -1472,6 +1472,8 @@ public class CrateSettings {
         SettingsApplier settingsApplier = SUPPORTED_SETTINGS.get(prefix);
         if (settingsApplier != null && !(settingsApplier instanceof SettingsAppliers.ObjectSettingsApplier)) {
             settingNames.add(prefix);
+        } else if (isLoggingSetting(prefix)) {
+            settingNames.add(prefix);
         } else {
             prefix += ".";
             for (String name : SUPPORTED_SETTINGS.keySet()) {
