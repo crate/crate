@@ -282,4 +282,11 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
         analyze("SET GLOBAL TRANSIENT \"logger.action\" = 'INF'");
     }
 
+    @Test
+    public void testResetLoggingSetting() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("setting 'logger.action' not supported");
+        analyze("RESET GLOBAL \"logger.action\"");
+    }
+
 }
