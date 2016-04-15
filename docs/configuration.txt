@@ -1603,8 +1603,8 @@ of the root logger using the ``_root`` suffix.
 In the example above the log level ``INFO`` is applied to the logger ``action``.
 
 Possible log levels are the same as for Log4j_: ``TRACE``, ``DEBUG``, ``INFO``,
-``WARN``, ``ERROR`` and ``FATAL``. They must be provided as string literals
-in the ``SET`` statement.
+``WARN``, and ``ERROR``. They must be provided as string literals in the
+``SET`` statement.
 
 .. note::
 

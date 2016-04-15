@@ -31,7 +31,7 @@ import java.util.Set;
 
 public class LoggingSetting extends StringSetting {
 
-    private static final Set<String> LOGGING_VALUES = ImmutableSet.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL");
+    private static final Set<String> LOGGING_VALUES = ImmutableSet.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR");
 
     public LoggingSetting(String name) {
         super(name, LOGGING_VALUES, true);
