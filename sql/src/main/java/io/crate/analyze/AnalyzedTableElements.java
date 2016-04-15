@@ -134,24 +134,34 @@ public class AnalyzedTableElements {
     public List<String> primaryKeys() {
         if (primaryKeys == null) {
             primaryKeys = new ArrayList<>();
+            primaryKeys.addAll(additionalPrimaryKeys);
             for (AnalyzedColumnDefinition column : columns) {
                 addPrimaryKeys(primaryKeys, column);
             }
-            primaryKeys.addAll(additionalPrimaryKeys);
         }
         return primaryKeys;
     }
 
-    private void addPrimaryKeys(List<String> primaryKeys, AnalyzedColumnDefinition column) {
+    private static void addPrimaryKeys(List<String> primaryKeys, AnalyzedColumnDefinition column) {
         if (column.isPrimaryKey()) {
-            primaryKeys.add(column.ident().fqn());
+            String fqn = column.ident().fqn();
+            checkPrimaryKeyAlreadyDefined(primaryKeys, fqn);
+            primaryKeys.add(fqn);
         }
         for (AnalyzedColumnDefinition analyzedColumnDefinition : column.children()) {
             addPrimaryKeys(primaryKeys, analyzedColumnDefinition);
         }
     }
 
+    private static void checkPrimaryKeyAlreadyDefined(List<String> primaryKeys, String columnName) {
+        if (primaryKeys.contains(columnName)) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Column \"%s\" appears twice in primary key constraint", columnName));
+        }
+    }
+
     public void addPrimaryKey(String fqColumnName) {
+        checkPrimaryKeyAlreadyDefined(additionalPrimaryKeys, fqColumnName);
         additionalPrimaryKeys.add(fqColumnName);
     }
 
@@ -281,6 +291,8 @@ public class AnalyzedTableElements {
                 throw new ColumnUnknownException(columnIdent.sqlFqn());
             }
         }
+        // will collect both column constraint and additional defined once and check for duplicates
+        primaryKeys();
     }
 
     private void validateIndexDefinitions() {

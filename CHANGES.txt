@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Throw proper error if a column is used twice in primary key constraint.
+
  - Fix: Improved error handling to make sure JOIN queries don't get stuck on
    shard failures.
 
