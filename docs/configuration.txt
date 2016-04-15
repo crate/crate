@@ -1580,7 +1580,7 @@ useful when debugging problems and there is a need to increase the logging
 setting without wanting to restart nodes. Logging settings are cluster wide and
 override the logging configuration of nodes defined in their ``logging.yaml``.
 
-The :ref:RESET <ref-set> statement is not supported for logging settings.
+The :ref:`RESET<ref-set>` statement is not supported for logging settings.
 Therefore, it is recommended to change log levels only using TRANSIENT
 because they will be discarded on cluster restart and the logging configuration
 defined in logging.yaml will be applied.
