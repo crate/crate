@@ -5,7 +5,7 @@ Changes for Crate
 Unreleased
 ==========
 
- - The log level of loggers can now set at runtime via the ``SET`` statement
+ - The log level of loggers can now be set at runtime via the ``SET`` statement.
 
  - Fix: Improved error handling to make sure JOIN queries don't get stuck on
    shard failures.
