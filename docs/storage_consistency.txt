@@ -33,9 +33,9 @@ primary shard.
 
 With read operations, there is no difference between executing
 the operation on the primary shard or on any of the replicas. Crate
-randomly assigns a shard when routing an operation. However it is
-possible to configure this behavior if required - for example in a
-:ref:`multi_zone_setup`.
+randomly assigns a shard when routing an operation. It is possible
+to configure this behavior if required, see our best practice guide
+on `multi zone setups`_ for more details.
 
 Write operations are handled differently than reads. Such operations
 are synchronous over all active replicas with the following flow:
@@ -57,7 +57,7 @@ are synchronous over all active replicas with the following flow:
    returned to the caller.
 
 Should any replica shard fail to write the data or times out in step
-5, it's immediatly considered as unavailable.
+5, it's immediately considered as unavailable.
 
 
 Atomic on Document Level
@@ -93,7 +93,7 @@ The translog is also directly transferred when a newly allocated
 replica initializes itself from the primary shard. There is no need
 to flush segments to disc just for replica-recovery purposes.
 
-Adressing of Documents
+Addressing of Documents
 ======================
 
 Every document has an internal identifier (see
@@ -116,7 +116,7 @@ accesses documents:
       a single shard gets accessed and only a simple index lookup on
       the ``_id`` field has to be done.
 
-:search: Query by matching against fields of documents accross all
+:search: Query by matching against fields of documents across all
          candidate shards of the table.
 
 Consistency
@@ -209,3 +209,5 @@ schema of a table:
 .. _Lucene: http://lucene.apache.org/core/
 
 .. _WAL: http://en.wikipedia.org/wiki/Write-ahead_logging
+
+.. _multi zone setups: https://crate.io/docs/scale/multi_zone_setup

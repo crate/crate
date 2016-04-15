@@ -103,7 +103,7 @@ Adapt Crate Configuration
 The Crate configuration file ``/etc/crate/crate.yml`` can be adapted on startup
 by using the *User-Data* script (see :ref:`cloud_init`). The following example
 shows how to set the ``minimum_master_nodes`` and gateway configuration setting
-which are essential for a multi node setup (:ref:`multi_node_setup`). This
+which are essential for a `multi node setup`_. This
 configuration is used when a cluster with 3 or more nodes is set up.
 
 .. code-block:: bash
@@ -181,4 +181,5 @@ directory of Crate is set to ``/var/lib/crate``. The data paths are set in
 .. _AWS CLI: https://aws.amazon.com/cli/
 .. _Cloud-Init: http://cloudinit.readthedocs.org/en/latest/
 .. _Amazon Linux: https://aws.amazon.com/amazon-linux-ami/
+.. _multi node setup: https://crate.io/docs/scale/multi_node_setup/
 .. _IAM roles: http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
