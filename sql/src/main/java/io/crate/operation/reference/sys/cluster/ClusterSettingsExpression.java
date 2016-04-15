@@ -26,6 +26,7 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.types.DataType;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -130,9 +131,11 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
 
 
     private final ConcurrentHashMap<String, Object> values = new ConcurrentHashMap<>();
+    private final ClusterService clusterService;
 
     @Inject
-    public ClusterSettingsExpression(Settings settings, NodeSettingsService nodeSettingsService) {
+    public ClusterSettingsExpression(Settings settings, NodeSettingsService nodeSettingsService, ClusterService clusterService) {
+        this.clusterService = clusterService;
         setDefaultValues(CrateSettings.CRATE_SETTINGS);
         ApplySettings applySettings = new ApplySettings(settings, values);
 
@@ -170,5 +173,8 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
         childImplementations.put(
                 CrateSettings.UDC.name(),
                 new NestedSettingExpression(CrateSettings.UDC, values));
+        childImplementations.put(
+                ClusterLoggingOverridesExpression.NAME,
+                new ClusterLoggingOverridesExpression(clusterService));
     }
 }

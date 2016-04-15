@@ -1576,16 +1576,13 @@ Logger Settings
 ---------------
 
 It's possible to set the log level of loggers at runtime. This is particularly
-useful when debugging problems and there is a need to increase the logging
-setting without wanting to restart nodes. Logging settings are cluster wide and
+useful when debugging problems and there is a need to increase the log level
+without wanting to restart nodes. Logging settings are cluster wide and
 override the logging configuration of nodes defined in their ``logging.yaml``.
 
-The :ref:`RESET<ref-set>` statement is not supported for logging settings.
-Therefore, it is recommended to change log levels only using TRANSIENT
-because they will be discarded on cluster restart and the logging configuration
-defined in logging.yaml will be applied.
-If using PERSISTENT it would not possible to discard them to revert to the
-values defined in the logging configuration.
+The :ref:`RESET<ref-set>` statement is also supported, however only with the
+limitation that the reset of the logging override only takes affect after
+cluster restart.
 
 To set the log level you can use the regular :ref:`SET<ref-set>` statement,
 for example:
@@ -1611,6 +1608,10 @@ Possible log levels are the same as for Log4j_: ``TRACE``, ``DEBUG``, ``INFO``,
    Be careful using the ``TRACE`` log level because it's extremely verbose,
    can obscure other important log messages and even fill up entire data disks
    in some cases.
+
+It is also possible to inspect the current "logging overrides" in a cluster by
+querying the ``sys.cluster`` table
+(see :ref:`Cluster Settings<sys-cluster-settings>`).
 
 
 Environment Variables

@@ -23,6 +23,7 @@
 package io.crate.operation.reference.sys.cluster;
 
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.junit.Test;
@@ -37,7 +38,7 @@ public class ClusterSettingsExpressionTest {
     @Test
     public void testSettingsAreAppliedImmediately() throws Exception {
         ClusterSettingsExpression clusterSettingsExpression = new ClusterSettingsExpression(
-                ImmutableSettings.builder().put("bulk.request_timeout", "20s").build(), mock(NodeSettingsService.class));
+                ImmutableSettings.builder().put("bulk.request_timeout", "20s").build(), mock(NodeSettingsService.class), mock(ClusterService.class));
 
         assertThat(((BytesRef) clusterSettingsExpression
                 .getChildImplementation("bulk")

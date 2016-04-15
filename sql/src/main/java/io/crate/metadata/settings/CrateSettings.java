@@ -1457,11 +1457,11 @@ public class CrateSettings {
      */
     @Nonnull
     public static SettingsApplier getSettingsApplier(String setting) {
-        if (setting.startsWith("logger.")) {
-            return new SettingsAppliers.StringSettingsApplier(new LoggingSetting(setting));
-        }
         SettingsApplier settingsApplier = SUPPORTED_SETTINGS.get(setting);
         if (settingsApplier == null) {
+            if (isLoggingSetting(setting)) {
+                return new SettingsAppliers.StringSettingsApplier(new LoggingSetting(setting));
+            }
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", setting));
         }
         return settingsApplier;
@@ -1483,5 +1483,9 @@ public class CrateSettings {
             }
         }
         return settingNames;
+    }
+
+    private static boolean isLoggingSetting(String settingName) {
+        return settingName.startsWith("logger.");
     }
 }
