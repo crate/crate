@@ -91,6 +91,13 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    @After
+    @Override
+    public void tearDown() throws Exception {
+        execute("RESET GLOBAL stats.enabled");
+        super.tearDown();
+    }
+
     @Test
     public void testCopyFromIntoPartitionedTableWithPARTITIONKeyword() throws Exception {
         execute("create table quotes (" +
@@ -2134,10 +2141,20 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat((int)response.rows()[0][0], is(1));
     }
 
-    @After
-    @Override
-    public void tearDown() throws Exception {
-        execute("RESET GLOBAL stats.enabled");
-        super.tearDown();
+    @Test
+    public void testAlterSettingsEmptyPartitionedTableDoNotAffectAllTables() throws Exception {
+        execute("create table tweets (id string primary key)" +
+                " with (number_of_replicas='0')");
+        execute("create table device_event (id long, reseller_id long, date_partition string, value float," +
+                " primary key (id, reseller_id, date_partition))" +
+                " partitioned by (date_partition)" +
+                " with (number_of_replicas='0')");
+        ensureYellow();
+
+        execute("alter table device_event SET (number_of_replicas='3')");
+
+        execute("select table_name, number_of_replicas from information_schema.tables where schema_name = 'doc' order by table_name");
+        assertThat((String) response.rows()[0][1], is("3"));
+        assertThat((String) response.rows()[1][1], is("0"));
     }
 }
