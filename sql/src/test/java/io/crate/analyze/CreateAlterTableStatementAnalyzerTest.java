@@ -40,6 +40,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
@@ -897,9 +898,22 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateTableWithDuplicatePrimaryKey() throws Exception {
-        expectedException.expectMessage("Column \"id\" appears twice in primary key constraint");
-        expectedException.expect(IllegalArgumentException.class);
-        analyze("create table t (id int, primary key (id, id))");
+        assertDuplicatePrimaryKey("create table t (id int, primary key (id, id))");
+        assertDuplicatePrimaryKey("create table t (obj object as (id int), primary key (obj['id'], obj['id']))");
+        assertDuplicatePrimaryKey("create table t (id int primary key, primary key (id))");
+        assertDuplicatePrimaryKey("create table t (obj object as (id int primary key), primary key (obj['id']))");
+    }
+
+    private void assertDuplicatePrimaryKey(String stmt) throws Exception {
+        try {
+            analyze(stmt);
+            fail(String.format(Locale.ENGLISH, "Statement '%s' did not result in duplicate primary key exception", stmt));
+        } catch (IllegalArgumentException e) {
+            String msg = "appears twice in primary key constraint";
+            if (!e.getMessage().contains(msg)) {
+                fail("Exception message is expected to contain: " + msg);
+            }
+        }
     }
 
 }
