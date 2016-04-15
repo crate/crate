@@ -24,7 +24,6 @@ package io.crate.metadata.settings;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
-import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
@@ -41,7 +40,7 @@ public class LoggingSetting extends StringSetting {
     @Nullable
     public String validate(String value) {
         for (String allowedValue : allowedValues) {
-            if (StringUtils.equalsIgnoreCase(allowedValue, value)) {
+            if (allowedValue.equalsIgnoreCase(value)) {
                 return null;
             }
         }
