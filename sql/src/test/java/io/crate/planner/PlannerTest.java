@@ -240,6 +240,7 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(collectPhase.maxRowGranularity(), is(RowGranularity.DOC));
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(AggregationProjection.class));
+        assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
 
         MergePhase mergeNode = globalAggregate.localMerge();
 

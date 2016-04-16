@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved the speed of global aggregation queries which involve more than 1
+   shard per node.
+
  - The log level of loggers can now be set at runtime via the ``SET`` statement.
 
  - Fix: Changing the column policy on a partitioned table throws an
