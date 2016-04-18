@@ -30,10 +30,7 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
@@ -60,6 +57,12 @@ public class BlobEnvironmentTest extends CrateUnitTest {
         Environment environment = new Environment(settings);
         nodeEnvironment = new NodeEnvironment(settings, environment);
         blobEnvironment = new BlobEnvironment(nodeEnvironment, new ClusterName("test"));
+    }
+
+    @After
+    public void cleanup() throws Exception {
+        nodeEnvironment.close();
+        nodeEnvironment = null;
     }
 
     @Test
