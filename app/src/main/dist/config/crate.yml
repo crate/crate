@@ -747,13 +747,6 @@
 #
 # bulk.request_timeout: 1m
 
-# A SQL DML operation can cause lots of operations on the master
-# node when new partitions need to be created.
-# Those operations are not handled by the bulk.request_timeout setting.
-# If this setting is omitted a timeout of 10s per single master operation is used.
-#
-# bulk.partition_creation_timeout: 10s
-
 ########################## SQL Query Circuit Breaker ##########################
 
 # The query circuit breaker allows estimation of needed memory required by

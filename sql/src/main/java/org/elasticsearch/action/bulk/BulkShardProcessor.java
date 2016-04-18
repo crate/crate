@@ -35,7 +35,6 @@ import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.settings.CrateSettings;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
@@ -46,7 +45,6 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
@@ -298,9 +296,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
         if (pendings.size() > 0 || indices.size() > 0) {
             LOGGER.debug("create {} pending indices in bulk...", indices.size());
-            TimeValue timeout = CrateSettings.BULK_PARTITION_CREATION_TIMEOUT.extractTimeValue(clusterService.state().metaData().settings());
-            BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices, jobId)
-                    .timeout(timeout);
+            BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices, jobId);
 
             final FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {
                 @Override
