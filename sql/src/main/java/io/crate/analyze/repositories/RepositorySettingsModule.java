@@ -86,7 +86,7 @@ public class RepositorySettingsModule extends AbstractModule {
                     dynamicProperties.add(new GenericProperty(key, entry.getValue()));
                 }
             }
-            return Optional.of(dynamicProperties);
+            return Optional.fromNullable(dynamicProperties);
         }
     };
 
