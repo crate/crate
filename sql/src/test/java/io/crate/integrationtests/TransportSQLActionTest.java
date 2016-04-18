@@ -1469,7 +1469,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "GROUP BY i";
         execute(stmtAggregate);
         assertThat(response.rowCount(), is(1L));
-        String expectedAggregate = "1| 2297790.338709135\n";
+        String expectedAggregate = "1| 2297790.348010545\n";
         assertEquals(expectedAggregate, TestingHelpers.printedTable(response.rows()));
 
         // queries
@@ -1486,7 +1486,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select p from t where distance(p, 'POINT (11 21)') < 10.0 or distance(p, 'POINT (11 21)') > 10.0");
         assertThat(response.rowCount(), is(2L));
 
-        execute("select p from t where distance(p, 'POINT (10 20)') = 0");
+        execute("select p from t where distance(p, 'POINT (10 20)') >= -0.99 and distance(p, 'POINT (10 20)') <= 0.01");
         assertThat(response.rowCount(), is(1L));
     }
 
