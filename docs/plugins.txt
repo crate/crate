@@ -1,5 +1,3 @@
-.. highlight:: java
-
 .. _plugins:
 
 =========
@@ -29,13 +27,17 @@ the crate's server libraries must be set up.
 Gradle
 ------
 
-Define bintray (jCenter) repository::
+Define bintray (jCenter) repository:
+
+.. code-block:: groovy
 
    repositories {
        jcenter()
    }
 
-Add crate to compile dependencies::
+Add crate to compile dependencies:
+
+.. code-block:: groovy
 
   dependencies {
       compile 'io.crate:crate:<VERSION>'
@@ -44,7 +46,9 @@ Add crate to compile dependencies::
 Maven
 -----
 
-Add bintray (jCenter) as a repository to your maven ``settings.xml``::
+Add bintray (jCenter) as a repository to your maven ``settings.xml``:
+
+.. code-block:: xml
 
   <profiles>
     <profile>
@@ -66,7 +70,9 @@ Add bintray (jCenter) as a repository to your maven ``settings.xml``::
     <activeProfile>bintray</activeProfile>
   </activeProfiles>
 
-Add crate as a dependency::
+Add crate as a dependency:
+
+.. code-block:: xml
 
   <dependencies>
     <dependency>
@@ -98,6 +104,7 @@ process existing settings and/or implement it's own custom setting entries.
 
 The `example crate plugin`_ makes use of that to implement a custom setting.
 
+.. highlight:: java
 .. _plugins_interface:
 
 Plugin Interface
