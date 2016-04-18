@@ -16,6 +16,7 @@ Contents
 .. toctree::
    :maxdepth: 2
 
+   architecture/index
    installation
    configuration
    cli
@@ -24,5 +25,4 @@ Contents
    blob
    plugins
    udc
-   storage_consistency
    best_practice/index

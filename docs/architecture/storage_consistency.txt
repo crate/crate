@@ -94,10 +94,11 @@ replica initializes itself from the primary shard. There is no need
 to flush segments to disc just for replica-recovery purposes.
 
 Addressing of Documents
-======================
+=======================
 
 Every document has an internal identifier (see
-:ref:`_id <sql_ddl_system_column_id>`) . By default this identifier is derived from the primary key. Documents living in tables without a primary
+:ref:`_id <sql_ddl_system_column_id>`) . By default this identifier is derived
+from the primary key. Documents living in tables without a primary
 key are assigned a unique auto-generated id automatically when created.
 
 Each document is routed by its routing key to one specific shard. By
@@ -181,7 +182,7 @@ current master node goes down for some reason.
   To avoid a scenario where two masters are elected due to
   network partitioning it's required to define a quorum of nodes with
   which it's possible to elect a master. For details in how to do this
-  and further information see :ref:`master_node_election`.
+  and further information see :ref:`shared_nothing_primary_election`.
 
 To explain the flow of events for any cluster state change -
 here an example flow for an "ALTER TABLE" statement which changes the

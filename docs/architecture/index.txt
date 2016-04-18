@@ -1,0 +1,14 @@
+============
+Architecture
+============
+
+This section provides an overview about the core concepts and an architectural
+overview of Crate.
+
+|
+
+.. toctree::
+    :maxdepth: 1
+
+    shared_nothing
+    storage_consistency

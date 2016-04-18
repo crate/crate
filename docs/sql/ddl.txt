@@ -629,8 +629,6 @@ over building a token stream used for fulltext search.  For example
 you can use language specific analyzers, tokenizers and token-filters
 to get proper search results for data provided in a certain language.
 
-.. highlight:: psql
-
 Here is a simple Example::
 
     cr> create ANALYZER myanalyzer (

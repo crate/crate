@@ -870,7 +870,7 @@ is re-elected (see :ref:`storage_consistency_cluster_meta_data`).
   | *Runtime:*   ``no``
   | *Allowed Values:*  ``srv``, ``ec2``
 
-See also: :ref:`best_practice_node_discovery`.
+See also: :ref:`shared_nothing_discovery`.
 
 .. _conf_dns_discovery:
 
