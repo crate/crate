@@ -1577,11 +1577,11 @@ Logger Settings
 
 It's possible to set the log level of loggers at runtime. This is particularly
 useful when debugging problems and there is a need to increase the log level
-without wanting to restart nodes. Logging settings are cluster wide and
-override the logging configuration of nodes defined in their ``logging.yaml``.
+without wanting to restart nodes. Logging settings are cluster-wide and
+override the logging configuration of nodes defined in their ``logging.yml``.
 
 The :ref:`RESET<ref-set>` statement is also supported, however only with the
-limitation that the reset of the logging override only takes affect after
+limitation that the reset of the logging override only takes effect after
 cluster restart.
 
 To set the log level you can use the regular :ref:`SET<ref-set>` statement,
@@ -1599,6 +1599,25 @@ of the root logger using the ``_root`` suffix.
 
 In the example above the log level ``INFO`` is applied to the logger ``action``.
 
+Some of the common loggers which can be used to enable more verbose logging
+are:
+
++-----------------------------+-------------------------------------------------+
+|       Logger                |                  Purpose                        |
++=============================+=================================================+
+| logger.action               | Logs action execution process.                  |
++-----------------------------+-------------------------------------------------+
+| logger.recovery             | Logs peer shard recovery process.               |
++-----------------------------+-------------------------------------------------+
+| logger.index.index          | Logs indexing process.                          |
++-----------------------------+-------------------------------------------------+
+| logger.discovery            | Logs the nodes discovery process in the Crate   |
+|                             | cluster.                                        |
++-----------------------------+-------------------------------------------------+
+| logger.io.crate.planner     | Logs the planning stage of the query processing.|
++-----------------------------+-------------------------------------------------+
+
+|
 Possible log levels are the same as for Log4j_: ``TRACE``, ``DEBUG``, ``INFO``,
 ``WARN``, and ``ERROR``. They must be provided as string literals in the
 ``SET`` statement.
