@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.analyze.WhereClause;
 import io.crate.lucene.LuceneQueryBuilder;
-import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
