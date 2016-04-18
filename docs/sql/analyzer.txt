@@ -1143,6 +1143,13 @@ A group of filters that applies language specific stemmers to the token stream.
 To prevent terms from being stemmed put a `keywordmarker-tokenfilter`_ before this
 filter into the ``token_filter`` chain.
 
+
+decimal_digit
+-------------
+
+A token filter that folds unicode digits to `0-9`
+
+
 .. _builtin-char-filter:
 
 Builtin Char Filter
