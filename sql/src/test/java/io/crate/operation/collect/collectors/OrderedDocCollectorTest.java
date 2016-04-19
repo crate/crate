@@ -51,9 +51,10 @@ import org.elasticsearch.index.mapper.core.LongFieldMapper;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 public class OrderedDocCollectorTest extends RandomizedTest {
@@ -61,8 +62,8 @@ public class OrderedDocCollectorTest extends RandomizedTest {
     private static final ReferenceInfo INFO = new ReferenceInfo(new ReferenceIdent(new TableIdent(null, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
 
     private Directory createLuceneIndex() throws IOException {
-        File tmpDir = newTempDir();
-        Directory index = FSDirectory.open(tmpDir.toPath());
+        Path tmpDir = newTempDir();
+        Directory index = FSDirectory.open(tmpDir);
         StandardAnalyzer analyzer = new StandardAnalyzer();
         IndexWriterConfig cfg = new IndexWriterConfig(analyzer);
         IndexWriter w = new IndexWriter(index, cfg);

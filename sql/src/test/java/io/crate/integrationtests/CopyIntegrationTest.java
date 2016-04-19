@@ -51,11 +51,8 @@ import java.util.List;
 import java.util.Locale;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, randomDynamicTemplates = false)
 public class CopyIntegrationTest extends SQLHttpIntegrationTest {
@@ -532,13 +529,13 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("create blob table blobs with (number_of_replicas = 0)");
         execute("create table names (id int primary key, name string) with (number_of_replicas = 0)");
 
-        File tmpDir = newTempDir(LifecycleScope.TEST);
-        File file = new File(tmpDir, "names.json");
+        Path tmpDir = newTempDir(LifecycleScope.TEST);
+        File file = new File(tmpDir.toFile(), "names.json");
         String r1 = "{\"id\": 1, \"name\": \"Arthur\"}";
         String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
 
         Files.write(file.toPath(), Collections.singletonList(r1), StandardCharsets.UTF_8);
-        String[] urls = { tmpDir.getAbsolutePath() + "/*.json", upload(r2) };
+        String[] urls = { tmpDir.toAbsolutePath() + "/*.json", upload(r2) };
 
         execute("copy names from ?", new Object[] { urls });
         assertThat(response.rowCount(), is(2L));

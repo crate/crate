@@ -220,7 +220,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables where schema_name='blob'");
         assertEquals(0L, response.rowCount());
 
-        execute("create blob table test clustered into 5 shards with (blobs_path='/tmp/blobs_path')");
+        String blobsPath = createTempDir().toAbsolutePath().toString();
+        execute("create blob table test clustered into 5 shards with (blobs_path=?)", new Object[]{blobsPath});
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas, " +
@@ -230,7 +231,10 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(5, response.rows()[0][1]);
         assertEquals("1", response.rows()[0][2]);
         assertEquals("digest", response.rows()[0][3]);
-        assertEquals("/tmp/blobs_path", response.rows()[0][4]);
+        assertEquals(blobsPath, response.rows()[0][4]);
+
+        // cleanup blobs path, tempDir hook will be deleted before table would be deleted, avoid error in log
+        execute("drop blob table test");
     }
 
     @Test

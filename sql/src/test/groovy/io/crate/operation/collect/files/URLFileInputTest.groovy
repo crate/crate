@@ -25,13 +25,16 @@ package io.crate.operation.collect.files
 import com.carrotsearch.randomizedtesting.RandomizedTest
 import org.junit.Test
 
+import java.nio.file.Path
+
 class URLFileInputTest extends RandomizedTest {
 
 
     @Test
     void testGetStream() {
-        def uri = new URI("file:///file/that/does/not/exist")
-        URLFileInput input = new URLFileInput(uri);
-        assert input.getStream(uri) == null;
+        Path tempDir = newTempDir();
+        File file = new File("dont_exists", tempDir.toFile())
+        URLFileInput input = new URLFileInput(file.toURI());
+        assert input.getStream(file.toURI()) == null;
     }
 }

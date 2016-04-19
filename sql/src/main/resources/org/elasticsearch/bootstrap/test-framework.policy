@@ -1,0 +1,76 @@
+/*
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+//// additional test framework permissions.
+
+
+// ES policies (also related for Crate)
+grant codeBase "${codebase.lucene-test-framework-5.4.1.jar}" {
+  // needed by RamUsageTester
+  permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
+};
+
+grant codeBase "${codebase.randomizedtesting-runner-2.3.1.jar}" {
+  // optionally needed for access to private test methods (e.g. beforeClass)
+  permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
+  // needed to fail tests on uncaught exceptions from other threads
+  permission java.lang.RuntimePermission "setDefaultUncaughtExceptionHandler";
+  // needed for top threads handling
+  permission org.elasticsearch.ThreadPermission "modifyArbitraryThreadGroup";
+};
+
+grant codeBase "${codebase.junit4-ant-2.3.1.jar}" {
+  // needed for stream redirection
+  permission java.lang.RuntimePermission "setIO";
+};
+
+// Crate only related policies
+grant {
+  // needed by io.crate.test.GroovyTestSanitizer
+  permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
+  // Groovy new class invocation
+  permission java.lang.RuntimePermission "createClassLoader";
+  // needed by groovy for file access
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.nio.fs";
+
+  // MOCKITO
+  // needed to access ReflectionFactory (see below)
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.reflect";
+  // needed to support creation of mocks
+  permission java.lang.RuntimePermission "reflectionFactoryAccess";
+  permission java.lang.RuntimePermission "setContextClassLoader";
+  // needed for spy interception, etc
+  permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
+
+  // Additional randomizedtesting policies, don't work under codebase (no idea why)
+  // needed for reflection by RamUsageEstimator
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.reflect.generics.repository";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.reflect.generics.tree";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.reflect.generics.factory";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.reflect.generics.scope";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.reflect.generics.reflectiveObjects";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.nio.cs";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun.util.locale";
+  // needed to delete temp dirs
+  permission java.lang.RuntimePermission "shutdownHooks";
+
+  // required by CurrentTimestampScalar
+  permission org.joda.time.JodaTimePermission "CurrentTime.setProvider";
+};
+
