@@ -9,6 +9,7 @@ overview of Crate.
 
 .. toctree::
     :maxdepth: 1
-
+    
+    joins
     shared_nothing
     storage_consistency

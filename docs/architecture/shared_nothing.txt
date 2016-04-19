@@ -16,7 +16,7 @@ perform every operation - hence all nodes are equal in terms of functionality
 Components of a Crate Node
 ==========================
 
-To understand the how a Crate cluster works it makes sense to first take a look
+To understand how a Crate cluster works it makes sense to first take a look
 at the components of an individual node of the cluster.
 
 .. _figure_1:
@@ -273,4 +273,3 @@ will taken out of the load balancing.
 .. _abstract syntax tree: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 .. _POJOs: https://en.wikipedia.org/wiki/Plain_Old_Java_Object
 .. _full mesh: https://en.wikipedia.org/wiki/Network_topology#Mesh
-
