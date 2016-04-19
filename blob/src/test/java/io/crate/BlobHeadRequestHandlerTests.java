@@ -21,6 +21,7 @@
 
 package io.crate;
 
+import com.carrotsearch.randomizedtesting.LifecycleScope;
 import io.crate.blob.BlobTransferTarget;
 import io.crate.blob.DigestBlob;
 import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
@@ -40,6 +41,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
@@ -48,7 +50,8 @@ public class BlobHeadRequestHandlerTests extends CrateUnitTest {
 
     @Test
     public void testPutHeadChunkRunnableFileGrowth() throws Exception {
-        File file = File.createTempFile("test", "");
+        File tempDir = newTempDir(LifecycleScope.TEST).toFile();
+        File file = new File(tempDir, "test");
 
         try (final FileOutputStream outputStream = new FileOutputStream(file)) {
             outputStream.write(new byte[]{0x65});
@@ -109,8 +112,9 @@ public class BlobHeadRequestHandlerTests extends CrateUnitTest {
         // this test is rather slow, tune wait time in PutHeadChunkRunnable?
         expectedException.expect(HeadChunkFileTooSmallException.class);
 
-        File file = File.createTempFile("test", "");
-        File notExisting = new File("./does/not/exist");
+        File tmpDir = newTempDir(LifecycleScope.TEST).toFile();
+        File file = new File(tmpDir, "test");
+        File notExisting = new File(tmpDir, "./does/not/exist");
         try (final FileOutputStream outputStream = new FileOutputStream(file)) {
             outputStream.write(new byte[]{0x65});
         }
