@@ -31,7 +31,6 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
 import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
@@ -210,7 +209,7 @@ public class ShardCollectSource implements CollectSource {
                     if (PartitionName.isPartition(indexName)) {
                         break;
                     }
-                    throw new TableUnknownException(indexName, e);
+                    throw e;
                 } catch (Throwable t) {
                     throw new UnhandledServerException(t);
                 }
@@ -246,7 +245,7 @@ public class ShardCollectSource implements CollectSource {
                 if (PartitionName.isPartition(indexName)) {
                     continue;
                 }
-                throw new TableUnknownException(entry.getKey(), e);
+                throw e;
             }
 
             for (Integer shardId : entry.getValue()) {
