@@ -101,7 +101,7 @@ public class SigarExtendedNodeInfoTest extends CrateUnitTest {
         assertThat(stats.timestamp(), greaterThan(0L));
         assertThat(stats.uptime().millis(), greaterThan(0L));
         ExtendedOsStats.Cpu cpu = stats.cpu();
-        assertThat(cpu.sys(), greaterThan((short) 0));
+        assertThat(cpu.sys(), greaterThan((short) -1));
     }
 
     @Test
