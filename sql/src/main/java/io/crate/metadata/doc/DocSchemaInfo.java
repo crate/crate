@@ -36,7 +36,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
@@ -223,7 +223,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             if (cause == null) {
                 throw e;
             }
-            if (cause instanceof TableUnknownException) {
+            if (cause instanceof ResourceUnknownException) {
                 return null;
             }
             throw Throwables.propagate(cause);

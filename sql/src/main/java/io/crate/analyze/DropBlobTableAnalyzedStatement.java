@@ -21,8 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobTableInfo;
@@ -41,7 +40,7 @@ public class DropBlobTableAnalyzedStatement extends AbstractDropTableAnalyzedSta
     public void table(TableIdent tableIdent) {
         try {
             tableInfo = (BlobTableInfo) schemas.getTableInfo(tableIdent);
-        } catch (SchemaUnknownException | TableUnknownException e) {
+        } catch (ResourceUnknownException e) {
             if (dropIfExists) {
                 noop = true;
             } else {

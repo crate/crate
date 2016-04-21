@@ -27,8 +27,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.PartitionUnknownException;
-import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.ResourceUnknownException;
 import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
@@ -98,7 +97,7 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
                 TableInfo tableInfo;
                 try {
                     tableInfo = schemas.getTableInfo(TableIdent.of(table, analysis.parameterContext().defaultSchema()));
-                } catch (SchemaUnknownException|TableUnknownException e) {
+                } catch (ResourceUnknownException e) {
                     if (ignoreUnavailable) {
                         LOGGER.info("ignoring: {}", e.getMessage());
                         continue;

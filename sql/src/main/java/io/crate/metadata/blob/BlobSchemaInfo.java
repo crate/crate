@@ -29,7 +29,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
@@ -104,7 +104,7 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
         } catch (ExecutionException e) {
             throw new UnhandledServerException("Failed to get TableInfo", e.getCause());
         } catch (UncheckedExecutionException e) {
-            if (e.getCause() instanceof TableUnknownException) {
+            if (e.getCause() instanceof ResourceUnknownException) {
                 return null;
             }
             throw e;
