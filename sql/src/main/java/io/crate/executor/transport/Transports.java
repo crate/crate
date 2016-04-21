@@ -64,7 +64,9 @@ public class Transports {
             TransportResponseHandler<TResponse> transportResponseHandler) {
         DiscoveryNode discoveryNode = clusterService.state().nodes().get(node);
         if (discoveryNode == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "node \"%s\" not found in cluster state!", node));
+            listener.onFailure(new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "node \"%s\" not found in cluster state!", node)));
+            return;
         }
         executeLocalOrWithTransport(nodeAction, discoveryNode, request, listener, transportResponseHandler);
     }

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could lead to stuck queries if a node dropped out of the
+   cluster.
+
  - NOTE: Upgrading to this Crate version is only supported from >= 0.52
 
  - Upgraded Elasticsearch to 2.2.2
