@@ -77,9 +77,9 @@ public class CrateClientUsageTest extends CrateClientIntegrationTest {
         // These host/port combination should work
         assertThat(client().tryCreateTransportFor("localhost:1234"), instanceOf(InetSocketTransportAddress.class));
         assertThat(client().tryCreateTransportFor("1.2.3.4:1234"), instanceOf(InetSocketTransportAddress.class));
-        assertThat(client().tryCreateTransportFor("www.example.com:1234"), instanceOf(InetSocketTransportAddress.class));
-        assertThat(client().tryCreateTransportFor("www.example.com"), instanceOf(InetSocketTransportAddress.class));
-        assertThat(client().tryCreateTransportFor("http://example.com:4321"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client().tryCreateTransportFor("www.crate.io:1234"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client().tryCreateTransportFor("crate.io"), instanceOf(InetSocketTransportAddress.class));
+        assertThat(client().tryCreateTransportFor("http://crate.io:4321"), instanceOf(InetSocketTransportAddress.class));
 
 
         // IPV6 - should not throw exceptions
