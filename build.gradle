@@ -91,6 +91,8 @@ allprojects {
         }
         if (project.hasProperty('disableAssertions')) {
             enableAssertions = false
+            // LuceneTestCase defaults this value to 'true' if not set which results in an exception if '-ea' is skipped
+            systemProperty "tests.asserts", "false"
         }
 
         // tell ES to add required permissions for gradle
