@@ -31,6 +31,7 @@ import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
@@ -41,8 +42,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
 
 public class TransportsTest extends CrateUnitTest {
 
@@ -105,5 +106,16 @@ public class TransportsTest extends CrateUnitTest {
 
         Boolean result = failCalled.get(100, TimeUnit.MILLISECONDS);
         assertThat(result, is(true));
+    }
+
+
+    @Test
+    public void testOnFailureOnListenerIsCalledIfNodeIsNotInClusterState() throws Exception {
+        Transports transports = new Transports(new NoopClusterService(), mock(TransportService.class), mock(ThreadPool.class));
+        ActionListener actionListener = mock(ActionListener.class);
+        transports.executeLocalOrWithTransport(mock(NodeAction.class),
+            "invalid", mock(TransportRequest.class), actionListener, mock(TransportResponseHandler.class));
+
+        verify(actionListener, times(1)).onFailure(any(Throwable.class));
     }
 }

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could lead to stuck queries if a node dropped out of the
+   cluster.
+
  - Fix: Changing the column policy on a partitioned table throws an
    exception if more than 1 partition exists.
 
