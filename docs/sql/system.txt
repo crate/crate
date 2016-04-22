@@ -70,11 +70,11 @@ currently applied cluster settings.
 ::
 
     cr> select settings from sys.cluster;
-    +--------------------------------------------------------------------------------------------------------------------------------...-+
-    | settings                                                                                                                           |
-    +--------------------------------------------------------------------------------------------------------------------------------...-+
-    | {"bulk": {...}, "cluster": {...}, "routing": {...}, "discovery": {...}, "indices": {...}, "logging_overrides": [], "stats": {...}} |
-    +--------------------------------------------------------------------------------------------------------------------------------...-+
+    +---------------------------------------------------------------------------------------------------------------------...-+
+    | settings                                                                                                                |
+    +---------------------------------------------------------------------------------------------------------------------...-+
+    | {"bulk": {...}, "cluster": {...}, "routing": {...}, "discovery": {...}, "indices": {...}, "logger": [], "stats": {...}} |
+    +---------------------------------------------------------------------------------------------------------------------...-+
     SELECT 1 row in set (... sec)
 
 ::
@@ -166,9 +166,9 @@ currently applied cluster settings.
     | settings['indices']['store']['throttle']                                          | object       |
     | settings['indices']['store']['throttle']['max_bytes_per_sec']                     | string       |
     | settings['indices']['store']['throttle']['type']                                  | string       |
-    | settings['logging_overrides']                                                     | object_array |
-    | settings['logging_overrides']['level']                                            | string       |
-    | settings['logging_overrides']['name']                                             | string       |
+    | settings['logger']                                                                | object_array |
+    | settings['logger']['level']                                                       | string       |
+    | settings['logger']['name']                                                        | string       |
     | settings['stats']                                                                 | object       |
     | settings['stats']['enabled']                                                      | boolean      |
     | settings['stats']['jobs_log_size']                                                | integer      |

@@ -36,7 +36,7 @@ import java.util.Map;
 
 public class ClusterLoggingOverridesExpression extends SysObjectArrayReference {
 
-    public static final String NAME = "logging_overrides";
+    public static final String NAME = "logger";
     private final ClusterService clusterService;
 
     public ClusterLoggingOverridesExpression(ClusterService clusterService) {
