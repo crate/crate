@@ -1,30 +1,23 @@
 package io.crate.operation.scalar.timestamp;
 
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Reference;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingHelpers;
-import io.crate.types.DataTypes;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import org.joda.time.DateTimeUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
 
-import static io.crate.testing.TestingHelpers.createFunction;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-public class CurrentTimestampFunctionTest extends CrateUnitTest {
+public class CurrentTimestampFunctionTest extends AbstractScalarFunctionsTest {
 
     private CurrentTimestampFunction timestampFunction;
-    public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS";
-    public static final long EXPECTED_TIMESTAMP = 1422294644581L;
+    private static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+    private static final long EXPECTED_TIMESTAMP = 1422294644581L;
 
     @Before
     public void prepare() {
@@ -91,16 +84,6 @@ public class CurrentTimestampFunctionTest extends CrateUnitTest {
 
     @Test
     public void integerIsNormalizedToLiteral() {
-        Function function = createFunction("CURRENT_TIMESTAMP", DataTypes.TIMESTAMP, Arrays.<Symbol>asList(Literal.newLiteral(1)));
-        assertThat(timestampFunction.normalizeSymbol(function), instanceOf(Literal.class));
-    }
-
-    @Test
-    public void normalizeReferenceRaisesException() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid argument to CURRENT_TIMESTAMP");
-        Reference ref = TestingHelpers.createReference("Some_Column", DataTypes.INTEGER);
-        Function function = createFunction("CURRENT_TIMESTAMP", DataTypes.TIMESTAMP, Arrays.<Symbol>asList(ref));
-        timestampFunction.normalizeSymbol(function);
+        assertNormalize("CURRENT_TIMESTAMP(1)", instanceOf(Literal.class));
     }
 }

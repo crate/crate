@@ -144,39 +144,6 @@ public class TestingHelpers {
                 .add(new OperatorModule()).createInjector().getInstance(Functions.class);
     }
 
-    /**
-     * @deprecated use {@link SqlExpressions} instead
-     */
-    @Deprecated
-    public static Function createFunction(String functionName, DataType returnType, Symbol... arguments) {
-        return createFunction(functionName, returnType, Arrays.asList(arguments), true, false);
-    }
-
-    /**
-     * @deprecated use {@link SqlExpressions} instead
-     */
-    @Deprecated
-    public static Function createFunction(String functionName, DataType returnType, List<Symbol> arguments) {
-        return createFunction(functionName, returnType, arguments, true, false);
-    }
-
-    /**
-     * @deprecated use {@link SqlExpressions} instead
-     */
-    @Deprecated
-    public static Function createFunction(String functionName,
-                                          DataType returnType,
-                                          List<Symbol> arguments,
-                                          boolean deterministic,
-                                          boolean comparisonReplacementPossible) {
-        List<DataType> dataTypes = Symbols.extractTypes(arguments);
-        return new Function(
-                new FunctionInfo(new FunctionIdent(functionName, dataTypes), returnType, FunctionInfo.Type.SCALAR,
-                        deterministic, comparisonReplacementPossible),
-                arguments
-        );
-    }
-
     public static Reference createReference(String columnName, DataType dataType) {
         return createReference("dummyTable", new ColumnIdent(columnName), dataType);
     }

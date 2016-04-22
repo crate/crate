@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import com.google.common.base.Joiner;
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import org.elasticsearch.common.inject.Inject;
 

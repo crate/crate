@@ -46,12 +46,14 @@ import org.junit.Before;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
 
 public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     protected SqlExpressions sqlExpressions;
     protected Functions functions;
+    protected Map<QualifiedName, AnalyzedRelation> tableSources;
 
 
     /**
@@ -173,9 +175,15 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
                 .add("tags", new ArrayType(DataTypes.STRING))
                 .add("age", DataTypes.INTEGER)
                 .add("shape", DataTypes.GEO_SHAPE)
+                .add("timestamp", DataTypes.TIMESTAMP)
+                .add("timezone", DataTypes.STRING)
+                .add("time_format", DataTypes.STRING)
+                .add("long_array", new ArrayType(DataTypes.LONG))
+                .add("regex_pattern", DataTypes.STRING)
                 .build();
         TableRelation tableRelation = new TableRelation(tableInfo);
-        sqlExpressions = new SqlExpressions(ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), tableRelation));
+        tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), tableRelation);
+        sqlExpressions = new SqlExpressions(tableSources);
         functions = sqlExpressions.getInstance(Functions.class);
     }
 }

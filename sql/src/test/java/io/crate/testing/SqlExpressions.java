@@ -53,10 +53,22 @@ public class SqlExpressions {
     private final AnalysisMetaData analysisMetaData;
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources) {
-        this(sources, null);
+        this(sources, null, null);
     }
 
-    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources, @Nullable FieldResolver fieldResolver) {
+
+    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources, Object[] parameters) {
+        this(sources, null, parameters);
+    }
+
+    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
+                          @Nullable FieldResolver fieldResolver) {
+        this(sources, fieldResolver, null);
+    }
+
+    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
+                          @Nullable FieldResolver fieldResolver,
+                          @Nullable Object[] parameters) {
         ModulesBuilder modulesBuilder = new ModulesBuilder()
                 .add(new OperatorModule())
                 .add(new ScalarFunctionModule())
@@ -73,7 +85,7 @@ public class SqlExpressions {
         analysisMetaData = new AnalysisMetaData(injector.getInstance(Functions.class), schemas, referenceResolver);
         expressionAnalyzer =  new ExpressionAnalyzer(
                 analysisMetaData,
-                new ParameterContext(new Object[0], new Object[0][], null),
+                new ParameterContext(parameters == null ? new Object[0] : parameters, new Object[0][], null),
                 new FullQualifedNameFieldProvider(sources),
                 fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext();

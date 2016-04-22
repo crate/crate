@@ -79,6 +79,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     private IndexCache indexCache;
     private SqlExpressions expressions;
     private EvaluatingNormalizer normalizer;
+    private Map<QualifiedName, AnalyzedRelation> sources;
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -95,8 +96,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                 .add("point", DataTypes.GEO_POINT)
                 .build();
         TableRelation usersTr = new TableRelation(users);
-        Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-                new QualifiedName("users"), usersTr);
+        sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), usersTr);
 
         expressions = new SqlExpressions(sources);
         normalizer = new EvaluatingNormalizer(expressions.analysisMD(), usersTr, true);
@@ -183,11 +183,8 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
 
     @Test
     public void testEqOnTwoArraysBecomesGenericFunctionQueryAllValuesNull() throws Exception {
-        DataType longArray = new ArrayType(DataTypes.LONG);
-        Query query = convert(new WhereClause(createFunction(EqOperator.NAME,
-                DataTypes.BOOLEAN,
-                createReference("x", longArray),
-                Literal.newLiteral(longArray, new Object[] { null, null, null }))));
+        SqlExpressions sqlExpressions = new SqlExpressions(sources, new Object[]{new Object[] { null, null, null }});
+        Query query = convert(new WhereClause(normalizer.normalize(sqlExpressions.asSymbol("y_array = ?"))));
         assertThat(query, instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
     }
 
@@ -195,11 +192,8 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     public void testEqOnArrayWithTooManyClauses() throws Exception {
         Object[] values = new Object[2000]; // should trigger the TooManyClauses exception
         Arrays.fill(values, 10L);
-        DataType longArray = new ArrayType(DataTypes.LONG);
-        Query query = convert(new WhereClause(createFunction(EqOperator.NAME,
-                DataTypes.BOOLEAN,
-                createReference("x", longArray),
-                Literal.newLiteral(longArray, values))));
+        SqlExpressions sqlExpressions = new SqlExpressions(sources, new Object[]{values});
+        Query query = convert(new WhereClause(normalizer.normalize(sqlExpressions.asSymbol("y_array = ?"))));
         assertThat(query, instanceOf(BooleanQuery.class));
         BooleanQuery booleanQuery = (BooleanQuery) query;
         assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(TermsQuery.class));

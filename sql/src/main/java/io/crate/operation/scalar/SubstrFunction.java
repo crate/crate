@@ -23,8 +23,6 @@ package io.crate.operation.scalar;
 
 import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
@@ -139,43 +137,6 @@ public class SubstrFunction extends Scalar<BytesRef, Object> implements DynamicF
         // Check if we didn't go over the limit on the last character.
         if (pos > limit) throw new IllegalArgumentException();
         return new BytesRef(bytes, posBegin, pos - posBegin);
-    }
-
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        final int size = symbol.arguments().size();
-        assert (size >= 2 && size <= 3);
-
-        final Symbol input = symbol.arguments().get(0);
-        final Symbol beginIdx = symbol.arguments().get(1);
-
-        if (anyNonLiterals(input, beginIdx, symbol.arguments())) {
-            return symbol;
-        }
-
-        final Object inputValue = ((Input) input).value();
-        final Object beginIdxValue = ((Input) beginIdx).value();
-        if (inputValue == null || beginIdxValue == null) {
-            return Literal.NULL;
-        }
-        if (size == 3) {
-            if (((Input)symbol.arguments().get(2)).value() == null) {
-                return Literal.NULL;
-            }
-            return Literal.newLiteral(
-                    evaluate(BytesRefs.toBytesRef(inputValue),
-                    ((Number) ((Input) beginIdx).value()).intValue(),
-                    ((Number) ((Input) symbol.arguments().get(2)).value()).intValue()));
-        }
-        return Literal.newLiteral(evaluate(
-                BytesRefs.toBytesRef(inputValue),
-                ((Number) ((Input) beginIdx).value()).intValue()));
-    }
-
-    private static boolean anyNonLiterals(Symbol input, Symbol beginIdx, List<Symbol> arguments) {
-        return !input.symbolType().isValueSymbol() ||
-                !beginIdx.symbolType().isValueSymbol() ||
-                (arguments.size() == 3 && !arguments.get(2).symbolType().isValueSymbol());
     }
 
     @Override

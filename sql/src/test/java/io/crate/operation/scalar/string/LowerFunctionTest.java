@@ -21,81 +21,22 @@
 
 package io.crate.operation.scalar.string;
 
-import com.google.common.collect.Lists;
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Scalar;
-import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
-
-import static io.crate.testing.TestingHelpers.createFunction;
 import static io.crate.testing.TestingHelpers.isLiteral;
-import static org.hamcrest.Matchers.*;
 
 public class LowerFunctionTest extends AbstractScalarFunctionsTest {
 
-    public Symbol normalizeForArgs(List<Symbol> args) {
-        Function function = createFunction(LowerFunction.NAME, DataTypes.STRING, args);
-        FunctionImplementation impl = functions.get(function.info().ident());
-        impl = ((Scalar) impl).compile(function.arguments());
-
-        return impl.normalizeSymbol(function);
-    }
-
-    public Object evaluateForArgs(List<Symbol> args) {
-        Function function = createFunction(LowerFunction.NAME, DataTypes.STRING, args);
-        Scalar impl = (Scalar) functions.get(function.info().ident());
-        impl = impl.compile(function.arguments());
-
-        Input[] inputs = new Input[args.size()];
-        for (int i = 0; i < args.size(); i++) {
-            inputs[i] = (Input) args.get(i);
-        }
-
-        return impl.evaluate(inputs);
-    }
-
     @Test
-    public void testNormalizeDefault() throws Exception {
-        List<Symbol> args = Lists.<Symbol>newArrayList(
-                Literal.newLiteral("ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜΑΒΓ")
-        );
-        assertThat(
-                normalizeForArgs(args),
-                isLiteral("abcdefghijklmnopqrstuvwxyzäöüαβγ"));
+    public void testNormalize() throws Exception {
+        assertNormalize("lower('ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜΑΒΓ')", isLiteral("abcdefghijklmnopqrstuvwxyzäöüαβγ"));
     }
 
     @Test
     public void testEvaluateNull() throws Exception {
-        Literal stringNull = Literal.newLiteral(DataTypes.STRING, null);
-        List<List<Symbol>> argLists = Arrays.asList(
-                Arrays.<Symbol>asList(stringNull)
-        );
-
-        for (List<Symbol> argList : argLists) {
-            Object value = evaluateForArgs(argList);
-            assertThat(value, is(nullValue()));
-        }
-    }
-
-    public void testNormalizeSymbol() throws Exception {
-        Function function = (Function) sqlExpressions.asSymbol("lower('SomeString')");
-        LowerFunction lowerFunction = (LowerFunction) functions.get(function.info().ident());
-        Symbol result = lowerFunction.normalizeSymbol(function);
-        assertThat(result, isLiteral(new BytesRef("somestring")));
-
-        function = (Function) sqlExpressions.asSymbol("lower(name)");
-        lowerFunction = (LowerFunction) functions.get(function.info().ident());
-        result = lowerFunction.normalizeSymbol(function);
-        assertThat(result, instanceOf(Function.class));
-        assertThat((Function)result, is(function));
+        assertEvaluate("lower(name)", null, Literal.newLiteral(DataTypes.STRING, null));
     }
 }

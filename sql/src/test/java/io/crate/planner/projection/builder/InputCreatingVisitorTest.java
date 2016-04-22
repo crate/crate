@@ -26,8 +26,8 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingHelpers;
-import io.crate.types.DataTypes;
+import io.crate.testing.SqlExpressions;
+import io.crate.testing.T3;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -39,31 +39,33 @@ public class InputCreatingVisitorTest extends CrateUnitTest {
 
     @Test
     public void testNonDeterministicFunctionsReplacement() throws Exception {
-        Function fn1 = TestingHelpers.createFunction("non_deterministic", DataTypes.INTEGER, Arrays.<Symbol>asList(Literal.newLiteral(1), TestingHelpers.createReference("ref", DataTypes.INTEGER)), false, false);
-        Function fn2 = TestingHelpers.createFunction("non_deterministic", DataTypes.INTEGER, Arrays.<Symbol>asList(Literal.newLiteral(1), TestingHelpers.createReference("ref", DataTypes.INTEGER)), false, false);
+        SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES, T3.TR_1);
+        Function fn1 = (Function) sqlExpressions.asSymbol("random()");
+        Function fn2 = (Function) sqlExpressions.asSymbol("random()");
+
         List<Symbol> inputSymbols = Arrays.<Symbol>asList(
-                Literal.BOOLEAN_FALSE,
-                TestingHelpers.createFunction("deterministic", DataTypes.INTEGER, Literal.newLiteral(1), TestingHelpers.createReference("ref", DataTypes.INTEGER)),
-                fn1,
-                fn2
+            Literal.BOOLEAN_FALSE,
+            sqlExpressions.asSymbol("upper(a)"),
+            fn1,
+            fn2
         );
 
-        Function newSameFn = TestingHelpers.createFunction("non_deterministic", DataTypes.INTEGER, Arrays.<Symbol>asList(Literal.newLiteral(1), TestingHelpers.createReference("ref", DataTypes.INTEGER)), false, false);
-        Function newDifferentFn = TestingHelpers.createFunction("non_deterministic", DataTypes.INTEGER, Arrays.<Symbol>asList(Literal.newLiteral(1), TestingHelpers.createReference("ref2", DataTypes.INTEGER)), false, false);
+        Function newSameFn = (Function) sqlExpressions.asSymbol("random()");
+        Function newDifferentFn = (Function) sqlExpressions.asSymbol("random()");
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputSymbols);
 
         Symbol replaced1 = InputCreatingVisitor.INSTANCE.process(fn1, context);
         assertThat(replaced1, is(instanceOf(InputColumn.class)));
-        assertThat(((InputColumn)replaced1).index(), is(2));
+        assertThat(((InputColumn) replaced1).index(), is(2));
 
         Symbol replaced2 = InputCreatingVisitor.INSTANCE.process(fn2, context);
         assertThat(replaced2, is(instanceOf(InputColumn.class)));
-        assertThat(((InputColumn)replaced2).index(), is(3));
+        assertThat(((InputColumn) replaced2).index(), is(3));
 
         Symbol replaced3 = InputCreatingVisitor.INSTANCE.process(newSameFn, context);
-        assertThat(replaced3, is(equalTo((Symbol)newSameFn))); // not replaced
+        assertThat(replaced3, is(equalTo((Symbol) newSameFn))); // not replaced
 
         Symbol replaced4 = InputCreatingVisitor.INSTANCE.process(newDifferentFn, context);
-        assertThat(replaced4, is(equalTo((Symbol)newDifferentFn)));
-     }
+        assertThat(replaced4, is(equalTo((Symbol) newDifferentFn))); // not replaced
+    }
 }

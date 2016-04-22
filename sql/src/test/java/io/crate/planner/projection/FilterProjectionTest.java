@@ -23,25 +23,25 @@ package io.crate.planner.projection;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
-import io.crate.operation.operator.AndOperator;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingHelpers;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
+import io.crate.testing.SqlExpressions;
+import io.crate.testing.T3;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 public class FilterProjectionTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
+        SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES, T3.TR_1);
+
         FilterProjection p = new FilterProjection();
         p.outputs(ImmutableList.<Symbol>of(new InputColumn(1)));
         p.requiredGranularity(RowGranularity.SHARD);
-        p.query(TestingHelpers.createFunction(AndOperator.NAME, DataTypes.BOOLEAN, Literal.newLiteral(true), Literal.newLiteral(false)));
+        p.query(sqlExpressions.normalize(sqlExpressions.asSymbol("a = 'foo'")));
 
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
