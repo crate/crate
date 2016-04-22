@@ -49,8 +49,8 @@ public class Transports {
     public <TRequest extends TransportRequest, TResponse extends TransportResponse> void sendRequest(
             String actionName,
             String node,
-            final TRequest request,
-            final ActionListener<TResponse> listener,
+            TRequest request,
+            ActionListener<TResponse> listener,
             TransportResponseHandler<TResponse> transportResponseHandler) {
         DiscoveryNode discoveryNode = clusterService.state().nodes().get(node);
         if (discoveryNode == null) {

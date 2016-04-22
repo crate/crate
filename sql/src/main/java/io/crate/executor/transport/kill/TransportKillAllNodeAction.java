@@ -21,12 +21,15 @@
 
 package io.crate.executor.transport.kill;
 
+import io.crate.executor.MultiActionListener;
 import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
-import io.crate.executor.transport.Transports;
 import io.crate.jobs.JobContextService;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -37,30 +40,36 @@ public class TransportKillAllNodeAction implements NodeAction<KillAllRequest, Ki
 
     private static final String TRANSPORT_ACTION = "crate/sql/kill_all";
 
-    private JobContextService jobContextService;
-    private Transports transports;
+
+    private final JobContextService jobContextService;
+    private final ClusterService clusterService;
+    private final TransportService transportService;
 
     @Inject
     public TransportKillAllNodeAction(JobContextService jobContextService,
-                                      Transports transports,
+                                      ClusterService clusterService,
                                       TransportService transportService) {
         this.jobContextService = jobContextService;
-        this.transports = transports;
-
+        this.clusterService = clusterService;
+        this.transportService = transportService;
         transportService.registerRequestHandler(TRANSPORT_ACTION,
                 KillAllRequest.class,
                 ThreadPool.Names.GENERIC,
                 new NodeActionRequestHandler<KillAllRequest, KillResponse>(this) { });
     }
 
-    public void execute(String targetNode, KillAllRequest request, ActionListener<KillResponse> listener) {
-        transports.sendRequest(TRANSPORT_ACTION, targetNode, request, listener,
-                new DefaultTransportResponseHandler<KillResponse>(listener) {
+    public void broadcast(KillAllRequest request, ActionListener<KillResponse> listener) {
+        DiscoveryNodes nodes = clusterService.state().nodes();
+        listener = new MultiActionListener<>(nodes.size(), KillResponse.MERGE_FUNCTION, listener);
+        DefaultTransportResponseHandler<KillResponse> responseHandler = new DefaultTransportResponseHandler<KillResponse>(listener) {
             @Override
             public KillResponse newInstance() {
                 return new KillResponse(0);
             }
-        });
+        };
+        for (DiscoveryNode node : nodes) {
+            transportService.sendRequest(node, TRANSPORT_ACTION, request, responseHandler);
+        }
     }
 
     @Override
@@ -71,4 +80,5 @@ public class TransportKillAllNodeAction implements NodeAction<KillAllRequest, Ki
             listener.onFailure(t);
         }
     }
+
 }

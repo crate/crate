@@ -21,16 +21,19 @@
 
 package io.crate.executor.transport.kill;
 
-import io.crate.executor.transport.Transports;
 import io.crate.jobs.JobContextService;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.transport.TransportService;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.*;
 
 public class TransportKillAllNodeActionTest {
@@ -42,9 +45,9 @@ public class TransportKillAllNodeActionTest {
         NoopClusterService noopClusterService = new NoopClusterService();
 
         TransportKillAllNodeAction transportKillAllNodeAction = new TransportKillAllNodeAction(
-                jobContextService,
-                new Transports(noopClusterService, transportService),
-                transportService
+            jobContextService,
+            noopClusterService,
+            transportService
         );
 
         final CountDownLatch latch = new CountDownLatch(1);
@@ -63,4 +66,5 @@ public class TransportKillAllNodeActionTest {
         latch.await(1, TimeUnit.SECONDS);
         verify(jobContextService, times(1)).killAll();
     }
+
 }

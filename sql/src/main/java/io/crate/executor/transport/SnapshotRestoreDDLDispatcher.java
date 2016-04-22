@@ -22,13 +22,14 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.base.Functions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.ActionListeners;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.exceptions.CreateSnapshotException;
-import io.crate.action.ActionListeners;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
@@ -148,8 +149,8 @@ public class SnapshotRestoreDDLDispatcher {
                 .waitForCompletion(waitForCompletion)
                 .includeGlobalState(false)
                 .includeAliases(true);
-        transportActionProvider.transportRestoreSnapshotAction().execute(request,
-                ActionListeners.<Long, RestoreSnapshotResponse>futureSettingListener(resultFuture, 1L));
+        ActionListener<RestoreSnapshotResponse> listener = ActionListeners.wrap(resultFuture, Functions.constant(1L));
+        transportActionProvider.transportRestoreSnapshotAction().execute(request, listener);
         return resultFuture;
     }
 }

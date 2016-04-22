@@ -22,7 +22,6 @@
 package io.crate.executor.transport.kill;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.executor.transport.Transports;
 import io.crate.jobs.JobContextService;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.settings.Settings;
@@ -43,13 +42,11 @@ public class TransportKillJobsNodeActionTest {
     public void testKillIsCalledOnJobContextService() throws Exception {
         TransportService transportService = mock(TransportService.class);
         JobContextService jobContextService = mock(JobContextService.class);
-        NoopClusterService noopClusterService = new NoopClusterService();
 
         TransportKillJobsNodeAction transportKillJobsNodeAction = new TransportKillJobsNodeAction(
                 Settings.EMPTY,
                 jobContextService,
                 new NoopClusterService(),
-                new Transports(noopClusterService, transportService),
                 transportService
         );
 

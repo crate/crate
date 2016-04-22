@@ -22,6 +22,7 @@
 package io.crate.blob.v2;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -119,9 +120,9 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
      */
     public ListenableFuture<Void> alterBlobTable(String tableName, Settings indexSettings) {
         final SettableFuture<Void> result = SettableFuture.create();
+        ActionListener<UpdateSettingsResponse> listener = ActionListeners.wrap(result, Functions.<Void>constant(null));
         transportUpdateSettingsActionProvider.get().execute(
-                new UpdateSettingsRequest(indexSettings, fullIndexName(tableName)),
-                ActionListeners.<Void, UpdateSettingsResponse>futureSettingListener(result, null));
+            new UpdateSettingsRequest(indexSettings, fullIndexName(tableName)), listener);
         return result;
     }
 
@@ -149,8 +150,8 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
 
     public ListenableFuture<Void> dropBlobTable(final String tableName) {
         final SettableFuture<Void> result = SettableFuture.create();
-        transportDeleteIndexActionProvider.get().execute(new DeleteIndexRequest(fullIndexName(tableName)),
-                ActionListeners.<Void, DeleteIndexResponse>futureSettingListener(result, null));
+        ActionListener<DeleteIndexResponse> listener = ActionListeners.wrap(result, Functions.<Void>constant(null));
+        transportDeleteIndexActionProvider.get().execute(new DeleteIndexRequest(fullIndexName(tableName)), listener);
         return result;
     }
 

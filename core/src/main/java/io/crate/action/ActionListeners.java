@@ -22,6 +22,7 @@
 
 package io.crate.action;
 
+import com.google.common.base.Function;
 import com.google.common.util.concurrent.SettableFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
@@ -57,17 +58,30 @@ public class ActionListeners {
         };
     }
 
-    public static <T, Response> ActionListener<Response> futureSettingListener(final SettableFuture<T> settableFuture, final T value) {
-        return new ActionListener<Response>() {
-            @Override
-            public void onResponse(Response response) {
-                settableFuture.set(value);
-            }
+    public static <Response, Result> ActionListener<Response> wrap(
+        final SettableFuture<? super Result> future,
+        final Function<? super Response, ? extends Result> transformFunction) {
 
-            @Override
-            public void onFailure(Throwable e) {
-                settableFuture.setException(e);
-            }
-        };
+        return new SettableActionListener<>(future, transformFunction);
+    }
+
+    private static class SettableActionListener<Response, Result> implements ActionListener<Response> {
+        private final SettableFuture<? super Result> future;
+        private final Function<? super Response, ? extends Result> transformFunction;
+
+        SettableActionListener(SettableFuture<? super Result> future, Function<? super Response, ? extends Result> transformFunction) {
+            this.future = future;
+            this.transformFunction = transformFunction;
+        }
+
+        @Override
+        public void onResponse(Response response) {
+            future.set(transformFunction.apply(response));
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            future.setException(e);
+        }
     }
 }

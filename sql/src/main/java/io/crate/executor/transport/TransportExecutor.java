@@ -235,9 +235,7 @@ public class TransportExecutor implements Executor {
                     new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
                             jobId,
                             killPlan.jobToKill().get()) :
-                    new KillTask(clusterService,
-                            transportActionProvider.transportKillAllNodeAction(),
-                            jobId);
+                    new KillTask(transportActionProvider.transportKillAllNodeAction(), jobId);
             return ImmutableList.of(task);
         }
 

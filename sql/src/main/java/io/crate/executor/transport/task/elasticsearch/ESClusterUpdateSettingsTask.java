@@ -21,12 +21,13 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.base.Functions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.ActionListeners;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
-import io.crate.action.ActionListeners;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
@@ -62,7 +63,7 @@ public class ESClusterUpdateSettingsTask extends JobTask {
         if (node.transientSettingsToRemove() != null) {
             request.transientSettingsToRemove(node.transientSettingsToRemove());
         }
-        listener = ActionListeners.futureSettingListener(result, TaskResult.ONE_ROW);
+        listener = ActionListeners.wrap(result, Functions.constant(TaskResult.ONE_ROW));
     }
 
     @Override
