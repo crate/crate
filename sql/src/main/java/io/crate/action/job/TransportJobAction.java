@@ -64,12 +64,12 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         this.contextPreparer = contextPreparer;
         transportService.registerRequestHandler(ACTION_NAME,
                 JobRequest.class,
-                ThreadPool.Names.GENERIC,
+                EXECUTOR,
                 new NodeActionRequestHandler<JobRequest, JobResponse>(this) { });
     }
 
     public void execute(String node, final JobRequest request, final ActionListener<JobResponse> listener) {
-        transports.executeLocalOrWithTransport(this, node, request, listener,
+        transports.sendRequest(ACTION_NAME, node, request, listener,
                 new DefaultTransportResponseHandler<JobResponse>(listener) {
                     @Override
                     public JobResponse newInstance() {
@@ -109,15 +109,5 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
                 }
             });
         }
-    }
-
-    @Override
-    public String actionName() {
-        return ACTION_NAME;
-    }
-
-    @Override
-    public String executorName() {
-        return EXECUTOR;
     }
 }

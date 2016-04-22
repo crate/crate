@@ -23,41 +23,31 @@ package io.crate.executor.transport;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.Locale;
-import java.util.concurrent.RejectedExecutionException;
 
 
 @Singleton
 public class Transports {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(Transports.class);
-
     private final ClusterService clusterService;
     private final TransportService transportService;
-    private final ThreadPool threadPool;
 
     @Inject
-    public Transports(ClusterService clusterService, TransportService transportService, ThreadPool threadPool) {
+    public Transports(ClusterService clusterService, TransportService transportService) {
         this.clusterService = clusterService;
         this.transportService = transportService;
-        this.threadPool = threadPool;
     }
 
-    public <TRequest extends TransportRequest, TResponse extends TransportResponse> void executeLocalOrWithTransport(
-            final NodeAction<TRequest, TResponse> nodeAction,
+    public <TRequest extends TransportRequest, TResponse extends TransportResponse> void sendRequest(
+            String actionName,
             String node,
             final TRequest request,
             final ActionListener<TResponse> listener,
@@ -68,34 +58,6 @@ public class Transports {
                 String.format(Locale.ENGLISH, "node \"%s\" not found in cluster state!", node)));
             return;
         }
-        executeLocalOrWithTransport(nodeAction, discoveryNode, request, listener, transportResponseHandler);
-    }
-
-    public <TRequest extends TransportRequest, TResponse extends TransportResponse> void executeLocalOrWithTransport(
-            final NodeAction<TRequest, TResponse> nodeAction,
-            DiscoveryNode node,
-            final TRequest request,
-            final ActionListener<TResponse> listener,
-            TransportResponseHandler<TResponse> transportResponseHandler) {
-
-        ClusterState clusterState = clusterService.state();
-        if (node.id().equals("_local") || node.equals(clusterState.nodes().localNode())) {
-            try {
-                threadPool.executor(nodeAction.executorName()).execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        nodeAction.nodeOperation(request, listener);
-                    }
-                });
-            } catch (EsRejectedExecutionException | RejectedExecutionException e) {
-                if (LOGGER.isWarnEnabled()) {
-                    LOGGER.warn("Couldn't execute {} locally on node {}", e, nodeAction.getClass().getSimpleName(), node);
-                }
-                listener.onFailure(e);
-            }
-        } else {
-            transportService.sendRequest(
-                    node, nodeAction.actionName(), request, transportResponseHandler);
-        }
+        transportService.sendRequest(discoveryNode, actionName, request, transportResponseHandler);
     }
 }

@@ -26,7 +26,6 @@ import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.Exceptions;
-import io.crate.jobs.ExecutionSubContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.operation.collect.StatsTables;
@@ -51,7 +50,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
     private static final String EXECUTOR_NAME = ThreadPool.Names.SEARCH;
     private static final String RESPONSE_EXECUTOR = ThreadPool.Names.SAME;
 
-    private Transports transports;
+    private final Transports transports;
     private final StatsTables statsTables;
     private final NodeFetchOperation nodeFetchOperation;
     private final CircuitBreaker circuitBreaker;
@@ -75,7 +74,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
 
         transportService.registerRequestHandler(TRANSPORT_ACTION,
                 NodeFetchRequest.class,
-                ThreadPool.Names.GENERIC,
+                EXECUTOR_NAME,
                 new NodeActionRequestHandler<NodeFetchRequest, NodeFetchResponse>(this) { });
     }
 
@@ -83,23 +82,13 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                         final IntObjectMap<Streamer[]> streamers,
                         final NodeFetchRequest request,
                         ActionListener<NodeFetchResponse> listener) {
-        transports.executeLocalOrWithTransport(this, targetNode, request, listener,
+        transports.sendRequest(TRANSPORT_ACTION, targetNode, request, listener,
                 new DefaultTransportResponseHandler<NodeFetchResponse>(listener, RESPONSE_EXECUTOR) {
                     @Override
                     public NodeFetchResponse newInstance() {
                         return NodeFetchResponse.forReceiveing(streamers);
                     }
                 });
-    }
-
-    @Override
-    public String actionName() {
-        return TRANSPORT_ACTION;
-    }
-
-    @Override
-    public String executorName() {
-        return EXECUTOR_NAME;
     }
 
     @Override

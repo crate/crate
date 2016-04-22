@@ -54,23 +54,13 @@ public class TransportKillAllNodeAction implements NodeAction<KillAllRequest, Ki
     }
 
     public void execute(String targetNode, KillAllRequest request, ActionListener<KillResponse> listener) {
-        transports.executeLocalOrWithTransport(this, targetNode, request, listener,
+        transports.sendRequest(TRANSPORT_ACTION, targetNode, request, listener,
                 new DefaultTransportResponseHandler<KillResponse>(listener) {
             @Override
             public KillResponse newInstance() {
                 return new KillResponse(0);
             }
         });
-    }
-
-    @Override
-    public String actionName() {
-        return TRANSPORT_ACTION;
-    }
-
-    @Override
-    public String executorName() {
-        return ThreadPool.Names.MANAGEMENT;
     }
 
     @Override

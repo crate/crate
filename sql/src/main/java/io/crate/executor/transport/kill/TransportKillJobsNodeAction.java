@@ -108,19 +108,9 @@ public class TransportKillJobsNodeAction extends AbstractComponent implements No
 
         logger.trace("Sending {} to {}", request, nodes);
         for (DiscoveryNode node : nodes) {
-            transports.executeLocalOrWithTransport(
-                    this, node.id(), request, killResponseActionListener, transportResponseHandler);
+            transports.sendRequest(
+                    TRANSPORT_ACTION, node.id(), request, killResponseActionListener, transportResponseHandler);
         }
-    }
-
-    @Override
-    public String actionName() {
-        return TRANSPORT_ACTION;
-    }
-
-    @Override
-    public String executorName() {
-        return ThreadPool.Names.MANAGEMENT;
     }
 
     @Override
