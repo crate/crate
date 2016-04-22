@@ -228,8 +228,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 .getState().metaData();
         assertNotNull(metaData.indices().get(partitionName).getAliases().get("parted"));
         assertThat(
-                client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
-                        .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
+                client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                    .setSize(0).setQuery(new MatchAllQueryBuilder())
+                    .execute().actionGet().getHits().totalHits(),
                 is(1L)
         );
 
@@ -248,8 +249,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
         assertThat(
-                client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
-                        .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
+                client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                    .setSize(0).setQuery(new MatchAllQueryBuilder())
+                    .execute().actionGet().getHits().totalHits(),
                 is(1L)
         );
 
@@ -258,8 +260,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
         assertThat(
-                client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
-                        .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
+                client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                    .setSize(0).setQuery(new MatchAllQueryBuilder())
+                    .execute().actionGet().getHits().totalHits(),
                 is(1L)
         );
 
@@ -270,8 +273,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
         assertThat(
-                client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
-                        .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
+                client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                    .setSize(0).setQuery(new MatchAllQueryBuilder())
+                    .execute().actionGet().getHits().totalHits(),
                 is(1L)
         );
     }
@@ -327,8 +331,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
         assertThat(
-                client().prepareCount(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
-                        .setQuery(new MatchAllQueryBuilder()).execute().actionGet().getCount(),
+                client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
+                    .setSize(0).setQuery(new MatchAllQueryBuilder())
+                    .execute().actionGet().getHits().totalHits(),
                 is(1L)
         );
         execute("select * from parted");
