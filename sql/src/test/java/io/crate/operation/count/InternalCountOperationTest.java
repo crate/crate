@@ -21,14 +21,20 @@
 
 package io.crate.operation.count;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.operation.operator.EqOperator;
-import io.crate.testing.TestingHelpers;
-import io.crate.types.DataTypes;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.TableInfo;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.testing.SqlExpressions;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
+
+import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
@@ -42,14 +48,16 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
         execute("insert into t (name) values ('Marvin'), ('Arthur'), ('Trillian')");
         execute("refresh table t");
 
-
-        WhereClause whereClause = TestingHelpers.whereClause(
-                EqOperator.NAME,
-                TestingHelpers.createReference("name", DataTypes.STRING),
-                Literal.newLiteral("Marvin"));
-
         CountOperation countOperation = internalCluster().getDataNodeInstance(CountOperation.class);
         assertThat(countOperation.count("t", 0, WhereClause.MATCH_ALL), is(3L));
+
+        Schemas schemas = internalCluster().getInstance(Schemas.class);
+        TableInfo tableInfo = schemas.getTableInfo(new TableIdent(null, "t"));
+        TableRelation tableRelation = new TableRelation(tableInfo);
+        Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName(tableInfo.ident().name()), tableRelation);
+        SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);
+
+        WhereClause whereClause = new WhereClause(sqlExpressions.normalize(sqlExpressions.asSymbol("name = 'Marvin'")));
         assertThat(countOperation.count("t", 0, whereClause), is(1L));
     }
 }

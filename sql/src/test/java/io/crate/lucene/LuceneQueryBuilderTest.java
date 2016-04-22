@@ -26,13 +26,10 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Reference;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.operator.EqOperator;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -65,7 +62,6 @@ import org.mockito.Answers;
 import java.util.Arrays;
 import java.util.Map;
 
-import static io.crate.testing.TestingHelpers.*;
 import static org.elasticsearch.index.mapper.core.MapperTestUtils.newMapperService;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
@@ -147,8 +143,14 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testWhereRefEqNullWithDifferentTypes() throws Exception {
         for (DataType type : DataTypes.PRIMITIVE_TYPES) {
-            Reference foo = createReference("foo", type);
-            Query query = convert(whereClause(EqOperator.NAME, foo, Literal.newLiteral(type, null)));
+            DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent(null, "test_primitive"), null)
+                .add("x", type)
+                .build();
+            TableRelation tableRelation = new TableRelation(tableInfo);
+            Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName(tableInfo.ident().name()), tableRelation);
+            SqlExpressions sqlExpressions = new SqlExpressions(tableSources, new Object[]{null});
+
+            Query query = convert(new WhereClause(sqlExpressions.normalize(sqlExpressions.asSymbol("x = ?"))));
 
             // must always become a MatchNoDocsQuery (empty BooleanQuery)
             // string: term query with null would cause NPE

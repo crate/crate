@@ -25,7 +25,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.Bucket;
@@ -489,17 +488,6 @@ public class TestingHelpers {
             column[i] = rows[i][index];
         }
         return column;
-    }
-
-    /**
-     * @deprecated use {@link SqlExpressions} instead
-     */
-    @Deprecated
-    public static WhereClause whereClause(String opname, Symbol left, Symbol right) {
-        return new WhereClause(new Function(new FunctionInfo(
-                new FunctionIdent(opname, Arrays.asList(left.valueType(), right.valueType())), DataTypes.BOOLEAN),
-                Arrays.asList(left, right)
-        ));
     }
 
     public static ThreadPool newMockedThreadPool() {
