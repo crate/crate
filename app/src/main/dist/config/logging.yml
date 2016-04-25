@@ -18,11 +18,6 @@ logger:
 #  If you want to log the discovery process, set the following:
 # discovery: TRACE
 
-#  If searching or indexing starts to slow down, you may want to log that as
-#  well. Here are two prepared examples for such use cases:
-# index.search.slowlog: TRACE, table_search_slow_log_file
-# index.indexing.slowlog: TRACE, table_indexing_slow_log_file
-
 # mute amazon s3 client logging a bit
   com.amazonaws: WARN
 
@@ -47,18 +42,3 @@ appender:
       type: pattern
       conversionPattern: "[%d{ISO8601}][%-5p][%-25c] %m%n"
 
-#  table_search_slow_log_file:
-#    type: dailyRollingFile
-#    file: ${path.logs}/${cluster.name}_table_search_slowlog.log
-#    datePattern: "'.'yyyy-MM-dd"
-#    layout:
-#      type: pattern
-#      conversionPattern: "[%d{ISO8601}][%-5p][%-25c] %m%n"
-
-#  table_indexing_slow_log_file:
-#    type: dailyRollingFile
-#    file: ${path.logs}/${cluster.name}_table_indexing_slowlog.log
-#    datePattern: "'.'yyyy-MM-dd"
-#    layout:
-#      type: pattern
-#      conversionPattern: "[%d{ISO8601}][%-5p][%-25c] %m%n"
