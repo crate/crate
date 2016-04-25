@@ -37,6 +37,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
@@ -55,9 +56,7 @@ import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
+import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
 import static io.crate.testing.TestingHelpers.createReference;
@@ -166,7 +165,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
 
     @Test
     public void testDoCollectRawFromCompressed() throws Throwable {
-        CollectingRowReceiver projector = getObjects(Paths.get(tmpFileGz.toURI()).toUri().toString(), "gzip");
+        CollectingRowReceiver projector = getObjects(Collections.singletonList(Paths.get(tmpFileGz.toURI()).toUri().toString()), "gzip");
         assertCorrectResult(projector.result());
     }
 
@@ -188,7 +187,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                 .thenReturn(-1);
 
 
-        CollectingRowReceiver projector = getObjects("s3://fakebucket/foo", null, inputStream);
+        CollectingRowReceiver projector = getObjects(Collections.singletonList("s3://fakebucket/foo"), null, inputStream);
         Bucket rows = projector.result();
         assertThat(rows.size(), is(2));
         assertThat(TestingHelpers.printedTable(rows), is("foo\nbar\n"));
@@ -201,6 +200,31 @@ public class FileReadingCollectorTest extends CrateUnitTest {
         getObjects("invalid://crate.io/docs/en/latest/sql/reference/copy_from.html").result();
     }
 
+    @Test
+    public void testMultipleUriSupport() throws Throwable {
+        List<String> fileUris = new ArrayList<>();
+        fileUris.add(tmpFile.getCanonicalPath());
+        fileUris.add(tmpFileEmptyLine.getCanonicalPath());
+        CollectingRowReceiver projector = getObjects(fileUris, null);
+        Iterator<Row> it = projector.result().iterator();
+        assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
+        assertThat(it.next(), isRow("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
+        assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
+        assertThat(it.next(), isRow("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
+    }
+
+    @Test
+    public void testRowReceiverDontWantMoreStopsCollectingMultipleUris() throws Throwable {
+        DontWantMoreRowReceiver rowReceiver = new DontWantMoreRowReceiver(1);
+        List<String> fileUris = new ArrayList<>();
+        fileUris.add(tmpFile.getCanonicalPath());
+        fileUris.add(tmpFileEmptyLine.getCanonicalPath());
+        getObjects(fileUris, null, null, rowReceiver);
+        Iterator<Row> it = rowReceiver.result().iterator();
+        assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
+        assertThat(it.hasNext(), is(false));
+    }
+
     private void assertCorrectResult(Bucket rows) throws Throwable {
         Iterator<Row> it = rows.iterator();
         assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
@@ -208,21 +232,26 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     }
 
     private CollectingRowReceiver getObjects(String fileUri) throws Throwable {
-        return getObjects(fileUri, null);
+        return getObjects(Collections.singletonList(fileUri), null);
     }
 
-    private CollectingRowReceiver getObjects(String fileUri, String compression) throws Throwable {
+    private CollectingRowReceiver getObjects(Collection<String> fileUris, String compression) throws Throwable {
         S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
         when(inputStream.read(new byte[anyInt()], anyInt(), anyByte())).thenReturn(-1);
-        return getObjects(fileUri, compression, inputStream);
+        return getObjects(fileUris, compression, inputStream);
     }
 
-    private CollectingRowReceiver getObjects(String fileUri, String compression, final S3ObjectInputStream s3InputStream) throws Throwable {
+    private CollectingRowReceiver getObjects(Collection<String> fileUris, String compression, S3ObjectInputStream s3InputStream) throws Throwable {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        getObjects(fileUris, compression, s3InputStream, rowReceiver);
+        return rowReceiver;
+    }
+
+    private void getObjects(Collection<String> fileUris, String compression, final S3ObjectInputStream s3InputStream, RowReceiver rowReceiver) throws Throwable {
         FileCollectInputSymbolVisitor.Context context =
                 inputSymbolVisitor.extractImplementations(createReference("_raw", DataTypes.STRING));
         FileReadingCollector collector = new FileReadingCollector(
-                Collections.singletonList(fileUri),
+                fileUris,
                 context.topLevelInputs(),
                 context.expressions(),
                 rowReceiver,
@@ -260,7 +289,6 @@ public class FileReadingCollectorTest extends CrateUnitTest {
         );
         rowReceiver.prepare();
         collector.doCollect();
-        return rowReceiver;
     }
 
     /**
@@ -293,6 +321,23 @@ public class FileReadingCollectorTest extends CrateUnitTest {
             byte[] buffer = (byte[]) invocation.getArguments()[0];
             System.arraycopy(bytes, 0, buffer, 0, bytes.length);
             return bytes.length;
+        }
+    }
+
+    static class DontWantMoreRowReceiver extends CollectingRowReceiver {
+        private int stopAfter;
+
+        public DontWantMoreRowReceiver(int stopAfter) {
+            this.stopAfter = stopAfter;
+        }
+
+        @Override
+        public boolean setNextRow(Row row) {
+            boolean res = super.setNextRow(row);
+            if (rows.size() >= stopAfter) {
+                return false;
+            }
+            return res;
         }
     }
 }

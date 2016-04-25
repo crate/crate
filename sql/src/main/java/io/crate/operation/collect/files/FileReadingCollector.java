@@ -25,7 +25,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import io.crate.exceptions.JobKilledException;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.RowUpstream;
@@ -47,7 +46,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CancellationException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
@@ -73,7 +71,6 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
         }
     };
     private final List<UriWithGlob> fileUris;
-    private volatile boolean killed;
 
     @Override
     public void pause() {
@@ -181,6 +178,7 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
             collectorExpression.startCollect(collectorContext);
         }
 
+        fileUriLoop:
         for (UriWithGlob fileUri : fileUris) {
             FileInput fileInput;
             try {
@@ -195,7 +193,10 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
             try {
                 uris = getUris(fileInput, fileUri.uri, fileUri.preGlobUri, uriPredicate);
                 for (URI uri : uris) {
-                    readLines(fileInput, collectorContext, uri, 0, 0);
+                    if (!readLines(fileInput, collectorContext, uri, 0, 0)) {
+                        // break out nested loop and finish normally
+                        break fileUriLoop;
+                    }
                 }
             } catch (Throwable e) {
                 downstream.fail(e);
@@ -207,27 +208,23 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
 
     @Override
     public void kill(@Nullable Throwable throwable) {
-        killed = true;
+        downstream.kill(throwable);
     }
 
-    private void readLines(FileInput fileInput,
+    private boolean readLines(FileInput fileInput,
                            CollectorContext collectorContext,
                            URI uri,
                            long startLine,
                            int retry) throws IOException {
         InputStream inputStream = fileInput.getStream(uri);
         if (inputStream == null) {
-            return;
+            return true;
         }
 
         String line;
         long linesRead = 0L;
         try (BufferedReader reader = createReader(inputStream)) {
             while ((line = reader.readLine()) != null) {
-                if (killed) {
-                    throw new CancellationException(JobKilledException.MESSAGE);
-                }
-
                 linesRead++;
                 if (linesRead < startLine) {
                     continue;
@@ -237,7 +234,8 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
                 }
                 collectorContext.lineContext().rawSource(line.getBytes(StandardCharsets.UTF_8));
                 if (!downstream.setNextRow(row)) {
-                    break;
+                    // stop collecting
+                    return false;
                 }
             }
         } catch (SocketTimeoutException e) {
@@ -245,7 +243,7 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
                 LOGGER.info("Timeout during COPY FROM '{}' after {} retries", e, uri.toString(), retry);
                 throw e;
             } else {
-                readLines(fileInput, collectorContext, uri, linesRead + 1, retry + 1);
+                return readLines(fileInput, collectorContext, uri, linesRead + 1, retry + 1);
             }
         } catch (Exception e) {
             // it's nice to know which exact file/uri threw an error
@@ -253,6 +251,7 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
             LOGGER.info("Error during COPY FROM '{}'", e, uri.toString());
             throw e;
         }
+        return true;
     }
 
     private BufferedReader createReader(InputStream inputStream) throws IOException {
