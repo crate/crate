@@ -62,10 +62,10 @@ public class SubstrFunction extends Scalar<BytesRef, Object> implements DynamicF
     @Override
     public BytesRef evaluate(Input[] args) {
         assert (args.length >= 2 && args.length <= 3);
-        final Object val = args[0].value();
-        if (val == null) {
+        if (hasNullInputs(args)) {
             return null;
         }
+        final Object val = args[0].value();
         if (args.length == 3) {
             return evaluate(BytesRefs.toBytesRef(val),
                     ((Number) args[1].value()).intValue(),

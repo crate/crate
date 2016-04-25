@@ -268,6 +268,15 @@ public class SubstrFunctionTest extends AbstractScalarFunctionsTest {
         assertNull(format.evaluate(
                 (Input) Literal.newLiteral(DataTypes.STRING, null),
                 (Input) Literal.newLiteral(1)));
+
+        assertNull(format.evaluate(
+                (Input) Literal.newLiteral("crate"),
+                (Input) Literal.newLiteral(DataTypes.INTEGER, null)));
+
+        assertNull(format.evaluate(
+                (Input) Literal.newLiteral("crate"),
+                (Input) Literal.newLiteral(1),
+                (Input) Literal.newLiteral(DataTypes.INTEGER, null)));
     }
 
     @Test
