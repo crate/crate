@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could lead to the `internal_action_long_timeout` and
+   `recovery_activity_timeout` settings to be reset to a wrong default value on
+   a setting update
+
  - Fixed an issue that could lead to stuck queries if a node dropped out of the
    cluster.
 
