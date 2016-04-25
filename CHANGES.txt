@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that prevented generated columns to work correctly
+   with arrays.
+
  - Restrict creation of tables having the primary key constraint within
    an array column type or its children.
    with arrays.
