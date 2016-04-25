@@ -29,6 +29,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
@@ -227,6 +228,28 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 .map();
 
         transportShardUpsertAction.processGeneratedColumns(generatedColumnTableInfo, updatedColumns, updatedGeneratedColumns, false);
+    }
+
+    @Test
+    public void testGeneratedColumnsValidationWorksForArrayColumns() throws Exception {
+        // test no exception are thrown when validating array generated columns
+        Map<String, Object> updatedColumns = MapBuilder.<String, Object>newMapBuilder()
+            .put("obj", MapBuilder.<String, Object>newMapBuilder().put("arr", new Object[]{1}).map())
+            .map();
+
+        Map<String, Object> updatedGeneratedColumns = MapBuilder.<String, Object>newMapBuilder()
+            .put("arr", new Object[]{1})
+            .map();
+
+        DocTableInfo docTableInfo = new TestingTableInfo.Builder(
+            new TableIdent(null, "generated_column"),
+            new Routing(Collections.<String, Map<String, List<Integer>>>emptyMap()))
+            .add("obj", DataTypes.OBJECT, null)
+            .add("obj", new ArrayType(DataTypes.INTEGER), Arrays.asList("arr"))
+            .addGeneratedColumn("arr", new ArrayType(DataTypes.INTEGER), "obj['arr']", false)
+            .build(getFunctions());
+
+        transportShardUpsertAction.processGeneratedColumns(docTableInfo, updatedColumns, updatedGeneratedColumns, false);
     }
 
     @Test

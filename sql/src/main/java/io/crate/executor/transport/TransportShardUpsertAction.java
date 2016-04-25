@@ -37,6 +37,8 @@ import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchGenerationException;
@@ -488,7 +490,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     if (givenValue == null) {
                         // add column & value
                         updatedColumns.put(referenceInfo.ident().columnIdent().fqn(), value);
-                    } else if (validateExpressionValue && !givenValue.equals(value)) {
+                    } else if (validateExpressionValue && referenceInfo.type().compareValueTo(value, givenValue) != 0) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                 "Given value %s for generated column does not match defined generated expression value %s",
                                 givenValue, value));
@@ -496,7 +498,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
             }
         }
-
     }
 
     private boolean generatedExpressionEvaluationNeeded(List<ReferenceInfo> referencedReferenceInfos,

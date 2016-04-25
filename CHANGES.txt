@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that prevented generated columns to work correctly
+   with arrays.
+
  - Fixed a NPE at the `substr` scalar function when using column
    references as from/to arguments containing null values.
 
