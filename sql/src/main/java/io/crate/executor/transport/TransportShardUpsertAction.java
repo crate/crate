@@ -24,10 +24,6 @@ package io.crate.executor.transport;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import io.crate.Constants;
 import io.crate.analyze.symbol.InputColumn;
@@ -37,8 +33,6 @@ import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchGenerationException;
@@ -46,12 +40,9 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.routing.IndexRoutingTable;
-import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
@@ -64,7 +55,6 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.*;
@@ -140,7 +130,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             int location = request.itemIndices().get(i);
             ShardUpsertRequest.Item item = request.items().get(i);
             if (killed.get()) {
-                throw new CancellationException();
+                // set failure on response and skip all next items.
+                // this way replica operation will be executed, but only items with a valid source (= was processed on primary)
+                // will be processed on the replica
+                shardResponse.failure(new CancellationException());
+                break;
             }
             try {
                 translogLocation = indexItem(
@@ -175,7 +169,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @Override
-    protected void processRequestItemsOnReplica(ShardId shardId, ShardUpsertRequest request, AtomicBoolean killed) {
+    protected void processRequestItemsOnReplica(ShardId shardId, ShardUpsertRequest request) {
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         IndexShard indexShard = indexService.shardSafe(shardId.id());
         for (int i = 0; i < request.itemIndices().size(); i++) {
@@ -242,10 +236,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
      * TODO: detect a NOOP and return an update response if true
      */
     @SuppressWarnings("unchecked")
-    public SourceAndVersion prepareUpdate(DocTableInfo tableInfo,
-                                          ShardUpsertRequest request,
-                                          ShardUpsertRequest.Item item,
-                                          IndexShard indexShard) throws ElasticsearchException {
+    private SourceAndVersion prepareUpdate(DocTableInfo tableInfo,
+                                           ShardUpsertRequest request,
+                                           ShardUpsertRequest.Item item,
+                                           IndexShard indexShard) throws ElasticsearchException {
         final GetResult getResult = indexShard.getService().get(request.type(), item.id(),
                 new String[]{RoutingFieldMapper.NAME, ParentFieldMapper.NAME, TTLFieldMapper.NAME},
                 true, Versions.MATCH_ANY, VersionType.INTERNAL, FetchSourceContext.FETCH_SOURCE, false);
@@ -550,7 +544,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
     }
 
-    static class SymbolToFieldExtractorContext extends SymbolToFieldExtractor.Context {
+    private static class SymbolToFieldExtractorContext extends SymbolToFieldExtractor.Context {
 
         private final Object[] insertValues;
         private final Map<String, Object> updatedColumnValues;
@@ -565,11 +559,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         }
 
-        public SymbolToFieldExtractorContext(Functions functions, Object[] insertValues) {
+        SymbolToFieldExtractorContext(Functions functions, Object[] insertValues) {
             this(functions, insertValues != null ? insertValues.length : 0, insertValues, null);
         }
 
-        public SymbolToFieldExtractorContext(Functions functions, Map<String, Object> updatedColumnValues) {
+        SymbolToFieldExtractorContext(Functions functions, Map<String, Object> updatedColumnValues) {
             this(functions, updatedColumnValues.size(), null, updatedColumnValues);
         }
 
@@ -610,12 +604,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
     }
 
-    static class SourceAndVersion {
+    private static class SourceAndVersion {
 
         final BytesReference source;
         final long version;
 
-        public SourceAndVersion(BytesReference source, long version) {
+        SourceAndVersion(BytesReference source, long version) {
             this.source = source;
             this.version = version;
         }

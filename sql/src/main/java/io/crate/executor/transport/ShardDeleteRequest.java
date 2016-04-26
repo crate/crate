@@ -37,6 +37,8 @@ import java.util.UUID;
 
 public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDeleteRequest.Item> {
 
+    private int skipFromLocation = -1;
+
     public ShardDeleteRequest() {
     }
 
@@ -44,16 +46,33 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
         super(shardId, routing, jobId);
     }
 
+    void skipFromLocation(int location) {
+        skipFromLocation = location;
+    }
+
+    int skipFromLocation() {
+        return skipFromLocation;
+    }
+
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         writeItems(out);
+        if (skipFromLocation > -1) {
+            out.writeBoolean(true);
+            out.writeVInt(skipFromLocation);
+        } else {
+            out.writeBoolean(false);
+        }
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         readItems(in, locations.size());
+        if (in.readBoolean()) {
+            skipFromLocation = in.readVInt();
+        }
     }
 
     @Override

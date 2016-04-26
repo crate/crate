@@ -43,6 +43,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
@@ -53,13 +54,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class TransportShardUpsertActionTest extends CrateUnitTest {
 
@@ -102,6 +103,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
     }
 
     private TransportShardUpsertAction transportShardUpsertAction;
+    private IndexShard indexShard;
 
     @Before
     public void prepare() throws Exception {
@@ -112,7 +114,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         IndexService indexService = mock(IndexService.class);
         when(indicesService.indexServiceSafe(TABLE_IDENT.indexName())).thenReturn(indexService);
         when(indicesService.indexServiceSafe(PARTITION_INDEX)).thenReturn(indexService);
-        IndexShard indexShard = mock(IndexShard.class);
+        indexShard = mock(IndexShard.class);
         when(indexService.shardSafe(0)).thenReturn(indexShard);
 
 
@@ -360,5 +362,32 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         expectedException.expect(NullPointerException.class);
         expectedException.expectMessage("Object o is null, cannot write {x.y=5} onto it");
         TransportShardUpsertAction.updateSourceByPaths(source, changes);
+    }
+
+    @Test
+    public void testKilledSetWhileProcessingItemsDoesNotThrowException() throws Exception {
+        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), 0);
+        final ShardUpsertRequest request = new ShardUpsertRequest(
+            shardId, null, new Reference[]{ID_REF}, null, UUID.randomUUID());
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
+
+        ShardResponse shardResponse = transportShardUpsertAction.processRequestItems(
+            shardId, request, new AtomicBoolean(true));
+
+        assertThat(shardResponse.failure(), instanceOf(CancellationException.class));
+    }
+
+    @Test
+    public void testItemsWithoutSourceAreSkippedOnReplicaOperation() throws Exception {
+        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), 0);
+        final ShardUpsertRequest request = new ShardUpsertRequest(
+            shardId, null, new Reference[]{ID_REF}, null, UUID.randomUUID());
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
+
+        reset(indexShard);
+
+        // would fail with NPE if not skipped
+        transportShardUpsertAction.processRequestItemsOnReplica(shardId, request);
+        verify(indexShard, times(0)).index(any(Engine.Index.class));
     }
 }

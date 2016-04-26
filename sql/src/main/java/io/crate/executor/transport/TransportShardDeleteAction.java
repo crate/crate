@@ -78,7 +78,12 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
             int location = request.itemIndices().get(i);
             ShardDeleteRequest.Item item = request.items().get(i);
             if (killed.get()) {
-                throw new CancellationException(JobKilledException.MESSAGE);
+                // set failure on response, mark current item and skip all next items.
+                // this way replica operation will be executed, but only items already processed here
+                // will be processed on the replica
+                request.skipFromLocation(location);
+                shardResponse.failure(new CancellationException(JobKilledException.MESSAGE));
+                break;
             }
             try {
                 boolean found = shardDeleteOperationOnPrimary(request, item, indexShard);
@@ -114,13 +119,17 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     }
 
     @Override
-    protected void processRequestItemsOnReplica(ShardId shardId, ShardDeleteRequest request, AtomicBoolean killed) {
+    protected void processRequestItemsOnReplica(ShardId shardId, ShardDeleteRequest request) {
         IndexService indexService = indicesService.indexServiceSafe(request.index());
         IndexShard indexShard = indexService.shardSafe(shardId.id());
-        for (ShardDeleteRequest.Item item : request.items()) {
-            if (killed.get()) {
-                throw new CancellationException(JobKilledException.MESSAGE);
+        for (int i = 0; i < request.itemIndices().size(); i++) {
+            int location = request.itemIndices().get(i);
+            if (request.skipFromLocation() == location) {
+                // skipping this and all next items, the primary did not processed them (mostly due to a kill request)
+                break;
             }
+
+            ShardDeleteRequest.Item item = request.items().get(i);
             try {
                 Engine.Delete delete = indexShard.prepareDeleteOnReplica(request.type(), item.id(), item.version(), item.versionType());
                 indexShard.delete(delete);

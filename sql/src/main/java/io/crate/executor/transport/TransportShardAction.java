@@ -81,7 +81,7 @@ public abstract class TransportShardAction<R extends ShardRequest>
         KillableCallable<Tuple> callable = new KillableWrapper() {
             @Override
             public Tuple call() throws Exception {
-                processRequestItemsOnReplica(shardRequest.shardId(), shardRequest, killed);
+                processRequestItemsOnReplica(shardRequest.shardId(), shardRequest);
                 return null;
             }
         };
@@ -138,7 +138,7 @@ public abstract class TransportShardAction<R extends ShardRequest>
 
     protected abstract ShardResponse processRequestItems(ShardId shardId, R request, AtomicBoolean killed);
 
-    protected abstract void processRequestItemsOnReplica(ShardId shardId, R request, AtomicBoolean killed);
+    protected abstract void processRequestItemsOnReplica(ShardId shardId, R request);
 
     static abstract class KillableWrapper implements KillableCallable<Tuple> {
 
