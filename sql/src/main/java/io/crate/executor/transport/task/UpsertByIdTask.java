@@ -57,7 +57,6 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
 
 public class UpsertByIdTask extends JobTask {
 
@@ -253,7 +252,7 @@ public class UpsertByIdTask extends JobTask {
                 }
 
                 private void setAllToFailed(@Nullable Throwable throwable) {
-                    if (throwable instanceof CancellationException) {
+                    if (throwable instanceof InterruptedException) {
                         for (ListenableFuture<TaskResult> future : resultList) {
                             ((SettableFuture<TaskResult>) future).setException(throwable);
                         }

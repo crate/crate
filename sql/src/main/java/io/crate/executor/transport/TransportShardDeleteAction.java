@@ -42,7 +42,6 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
@@ -70,7 +69,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     }
 
     @Override
-    protected ShardResponse processRequestItems(ShardId shardId, ShardDeleteRequest request, AtomicBoolean killed) {
+    protected ShardResponse processRequestItems(ShardId shardId, ShardDeleteRequest request, AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
         IndexService indexService = indicesService.indexServiceSafe(request.index());
         IndexShard indexShard = indexService.shardSafe(shardId.id());
@@ -82,7 +81,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                 // this way replica operation will be executed, but only items already processed here
                 // will be processed on the replica
                 request.skipFromLocation(location);
-                shardResponse.failure(new CancellationException(JobKilledException.MESSAGE));
+                shardResponse.failure(new InterruptedException(JobKilledException.MESSAGE));
                 break;
             }
             try {

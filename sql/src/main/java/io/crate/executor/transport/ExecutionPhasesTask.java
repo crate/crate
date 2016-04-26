@@ -53,12 +53,11 @@ import org.elasticsearch.indices.IndicesService;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-public class ExecutionPhasesTask extends JobTask {
+class ExecutionPhasesTask extends JobTask {
 
     private static final ESLogger LOGGER = Loggers.getLogger(ExecutionPhasesTask.class);
 
@@ -75,7 +74,7 @@ public class ExecutionPhasesTask extends JobTask {
     private final List<SettableFuture<TaskResult>> results = new ArrayList<>();
     private boolean hasDirectResponse;
 
-    public enum OperationType {
+    enum OperationType {
         BULK,
         /**
          * UNKNOWN means it will depend on the number of nodeOperationTrees, if > 1 it will use bulk, otherwise QueryResult
@@ -83,15 +82,15 @@ public class ExecutionPhasesTask extends JobTask {
         UNKNOWN
     }
 
-    protected ExecutionPhasesTask(UUID jobId,
-                                  ClusterService clusterService,
-                                  ContextPreparer contextPreparer,
-                                  JobContextService jobContextService,
-                                  IndicesService indicesService,
-                                  TransportJobAction transportJobAction,
-                                  TransportKillJobsNodeAction transportKillJobsNodeAction,
-                                  List<NodeOperationTree> nodeOperationTrees,
-                                  OperationType operationType) {
+    ExecutionPhasesTask(UUID jobId,
+                        ClusterService clusterService,
+                        ContextPreparer contextPreparer,
+                        JobContextService jobContextService,
+                        IndicesService indicesService,
+                        TransportJobAction transportJobAction,
+                        TransportKillJobsNodeAction transportKillJobsNodeAction,
+                        List<NodeOperationTree> nodeOperationTrees,
+                        OperationType operationType) {
         super(jobId);
         this.clusterService = clusterService;
         this.contextPreparer = contextPreparer;
@@ -116,13 +115,13 @@ public class ExecutionPhasesTask extends JobTask {
     @Override
     public void start() {
         FluentIterable<NodeOperation> nodeOperations = FluentIterable.from(nodeOperationTrees)
-                .transformAndConcat(new Function<NodeOperationTree, Iterable<? extends NodeOperation>>() {
-                    @Nullable
-                    @Override
-                    public Iterable<? extends NodeOperation> apply(NodeOperationTree input) {
-                        return input.nodeOperations();
-                    }
-                });
+            .transformAndConcat(new Function<NodeOperationTree, Iterable<? extends NodeOperation>>() {
+                @Nullable
+                @Override
+                public Iterable<? extends NodeOperation> apply(NodeOperationTree input) {
+                    return input.nodeOperations();
+                }
+            });
 
         Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(nodeOperations);
         InitializationTracker initializationTracker = new InitializationTracker(operationByServer.size());
@@ -151,7 +150,7 @@ public class ExecutionPhasesTask extends JobTask {
         }
 
         void jobInitialized(@Nullable Throwable t) {
-            if (failure == null || failure instanceof CancellationException) {
+            if (failure == null || failure instanceof InterruptedException) {
                 failure = t;
             }
             if (serverToInitialize.decrementAndGet() <= 0) {
@@ -210,7 +209,7 @@ public class ExecutionPhasesTask extends JobTask {
         }
 
         private void tryForwardResult(Throwable throwable) {
-            if (throwable != null && (failure == null || failure instanceof CancellationException)) {
+            if (throwable != null && (failure == null || failure instanceof InterruptedException)) {
                 failure = Exceptions.unwrap(throwable);
             }
             if (upstreams.decrementAndGet() > 0) {
@@ -220,17 +219,17 @@ public class ExecutionPhasesTask extends JobTask {
                 super.finish();
             } else {
                 transportKillJobsNodeAction.executeKillOnAllNodes(
-                        new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<KillResponse>() {
-                            @Override
-                            public void onResponse(KillResponse killResponse) {
-                                InterceptingRowReceiver.super.fail(failure);
-                            }
+                    new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<KillResponse>() {
+                        @Override
+                        public void onResponse(KillResponse killResponse) {
+                            InterceptingRowReceiver.super.fail(failure);
+                        }
 
-                            @Override
-                            public void onFailure(Throwable e) {
-                                InterceptingRowReceiver.super.fail(failure);
-                            }
-                        });
+                        @Override
+                        public void onFailure(Throwable e) {
+                            InterceptingRowReceiver.super.fail(failure);
+                        }
+                    });
             }
         }
     }
@@ -243,19 +242,19 @@ public class ExecutionPhasesTask extends JobTask {
             for (int i = 0; i < nodeOperationTrees.size(); i++) {
                 SettableFuture<TaskResult> result = results.get(i);
                 RowReceiver receiver = new InterceptingRowReceiver(
-                        jobId(),
-                        new RowCountResultRowDownstream(result),
-                        initializationTracker,
-                        transportKillJobsNodeAction);
+                    jobId(),
+                    new RowCountResultRowDownstream(result),
+                    initializationTracker,
+                    transportKillJobsNodeAction);
                 handlerPhases.add(new Tuple<>(nodeOperationTrees.get(i).leaf(), receiver));
             }
         } else {
             SettableFuture<TaskResult> result = Iterables.getOnlyElement(results);
             RowReceiver receiver = new InterceptingRowReceiver(
-                    jobId(),
-                    new QueryResultRowDownstream(result),
-                    initializationTracker,
-                    transportKillJobsNodeAction);
+                jobId(),
+                new QueryResultRowDownstream(result),
+                initializationTracker,
+                transportKillJobsNodeAction);
             handlerPhases.add(new Tuple<>(Iterables.getOnlyElement(nodeOperationTrees).leaf(), receiver));
         }
         return handlerPhases;
@@ -273,7 +272,7 @@ public class ExecutionPhasesTask extends JobTask {
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
         Tuple<List<ExecutionSubContext>, List<ListenableFuture<Bucket>>> onHandler =
-                contextPreparer.prepareOnHandler(localNodeOperations, builder, handlerPhases, new SharedShardContexts(indicesService));
+            contextPreparer.prepareOnHandler(localNodeOperations, builder, handlerPhases, new SharedShardContexts(indicesService));
         JobExecutionContext localJobContext = jobContextService.createContext(builder);
         localJobContext.start();
 
@@ -286,7 +285,7 @@ public class ExecutionPhasesTask extends JobTask {
                 initializationTracker.jobInitialized(null);
             } else {
                 Futures.addCallback(Futures.allAsList(directResponseFutures),
-                        new SetBucketAction(pageDownstreamContexts, bucketIdx, initializationTracker));
+                    new SetBucketAction(pageDownstreamContexts, bucketIdx, initializationTracker));
                 bucketIdx++;
             }
         }
@@ -304,7 +303,7 @@ public class ExecutionPhasesTask extends JobTask {
             JobRequest request = new JobRequest(jobId(), entry.getValue());
             if (hasDirectResponse) {
                 transportJobAction.execute(serverNodeId, request,
-                        new SetBucketAction(pageDownstreamContexts, bucketIdx, initializationTracker));
+                    new SetBucketAction(pageDownstreamContexts, bucketIdx, initializationTracker));
             } else {
                 transportJobAction.execute(serverNodeId, request, new FailureOnlyResponseListener(handlerPhases, initializationTracker));
             }

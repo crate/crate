@@ -36,8 +36,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.util.concurrent.CancellationException;
-
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -124,8 +122,8 @@ public class JobCollectContextTest extends RandomizedTest {
         jobCtx.start();
         jobCtx.kill(null);
 
-        verify(collectorMock1, times(1)).kill(any(CancellationException.class));
-        verify(collectorMock2, times(1)).kill(any(CancellationException.class));
+        verify(collectorMock1, times(1)).kill(any(InterruptedException.class));
+        verify(collectorMock2, times(1)).kill(any(InterruptedException.class));
         verify(mock1, times(1)).close();
         verify(ramAccountingContext, times(1)).close();
     }

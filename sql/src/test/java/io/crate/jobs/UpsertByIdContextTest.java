@@ -14,7 +14,6 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.*;
@@ -49,7 +48,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         ShardResponse response = mock(ShardResponse.class);
         listener.getValue().onResponse(response);
 
-        expectedException.expectCause(CauseMatcher.cause(CancellationException.class));
+        expectedException.expectCause(CauseMatcher.cause(InterruptedException.class));
         context.future().get(500, TimeUnit.MILLISECONDS);
     }
 
@@ -57,7 +56,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
     public void testKillBeforeStart() throws Exception {
         context.prepare();
         context.kill(null);
-        expectedException.expectCause(CauseMatcher.cause(CancellationException.class));
+        expectedException.expectCause(CauseMatcher.cause(InterruptedException.class));
         context.future().get(500, TimeUnit.MILLISECONDS);
     }
 

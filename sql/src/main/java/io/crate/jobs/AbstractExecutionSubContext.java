@@ -27,7 +27,6 @@ import org.elasticsearch.common.logging.ESLogger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.concurrent.CancellationException;
 
 public abstract class AbstractExecutionSubContext implements ExecutionSubContext {
 
@@ -108,7 +107,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     final public void kill(@Nullable Throwable t) {
         if (future.firstClose()) {
             if (t == null) {
-                t = new CancellationException(JobKilledException.MESSAGE);
+                t = new InterruptedException(JobKilledException.MESSAGE);
             }
             logger.trace("killing id={} ctx={} cause={}", id, this, t);
             try {

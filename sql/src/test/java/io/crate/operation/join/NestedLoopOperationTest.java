@@ -47,7 +47,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -275,9 +274,9 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         CollectingRowReceiver receiver = new CollectingRowReceiver();
         List<ListenableRowReceiver> listenableRowReceivers = getRandomLeftAndRightRowReceivers(receiver);
         ListenableRowReceiver receiver1 = listenableRowReceivers.get(0);
-        receiver1.kill(new CancellationException());
+        receiver1.kill(new InterruptedException());
 
-        expectedException.expectCause(isA(CancellationException.class));
+        expectedException.expectCause(isA(InterruptedException.class));
         listenableRowReceivers.get(1).finishFuture().get(1, TimeUnit.SECONDS);
     }
 
@@ -290,7 +289,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         new RowSender(Collections.<Row>emptyList(), nl.leftRowReceiver(), MoreExecutors.directExecutor());
 
         nl.leftRowReceiver().setNextRow(new Row1(10)); // causes left to get paused
-        nl.rightRowReceiver().kill(new CancellationException());
+        nl.rightRowReceiver().kill(new InterruptedException());
 
         // a rowReceiver should not receive fail/or finish if paused but it can happen, e.g. if a node is stopped
         final CountDownLatch latch = new CountDownLatch(1);

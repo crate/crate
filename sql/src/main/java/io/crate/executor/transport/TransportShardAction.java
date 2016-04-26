@@ -136,7 +136,7 @@ public abstract class TransportShardAction<R extends ShardRequest>
         }
     }
 
-    protected abstract ShardResponse processRequestItems(ShardId shardId, R request, AtomicBoolean killed);
+    protected abstract ShardResponse processRequestItems(ShardId shardId, R request, AtomicBoolean killed) throws InterruptedException;
 
     protected abstract void processRequestItemsOnReplica(ShardId shardId, R request);
 

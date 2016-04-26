@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect.sources;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -68,7 +69,6 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.*;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
 
 @Singleton
@@ -203,7 +203,7 @@ public class ShardCollectSource implements CollectSource {
                     Injector shardInjector = context.indexService().shardInjectorSafe(shardId);
                     ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
                     orderedDocCollectors.add(shardCollectService.getOrderedCollector(collectPhase, context, jobCollectContext));
-                } catch (ShardNotFoundException | CancellationException | IllegalIndexShardStateException e) {
+                } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     throw e;
                 } catch (IndexNotFoundException e) {
                     if (PartitionName.isPartition(indexName)) {
@@ -259,9 +259,9 @@ public class ShardCollectSource implements CollectSource {
                             jobCollectContext
                     );
                     crateCollectors.add(collector);
-                } catch (ShardNotFoundException | CancellationException | IllegalIndexShardStateException e) {
+                } catch (ShardNotFoundException | InterruptedException | IllegalIndexShardStateException e) {
                     projectorChain.fail(e);
-                    throw e;
+                    Throwables.propagate(e);
                 } catch (Throwable t) {
                     projectorChain.fail(t);
                     throw new UnhandledServerException(t);

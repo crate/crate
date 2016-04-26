@@ -51,6 +51,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.isA;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -262,9 +263,10 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 UUID.randomUUID()
         );
         assertThat(bulkShardProcessor.add("foo", new ShardUpsertRequest.Item("1", null, new Object[]{"bar1"}, null), null), is(true));
-        bulkShardProcessor.kill(new CancellationException());
-        // A CancellationException is thrown
-        expectedException.expect(CancellationException.class);
+        bulkShardProcessor.kill(new InterruptedException());
+        // A InterruptedException is thrown
+        expectedException.expect(ExecutionException.class);
+        expectedException.expectCause(isA(InterruptedException.class));
         bulkShardProcessor.result().get();
         // it's not possible to add more
         assertThat(bulkShardProcessor.add("foo", new ShardUpsertRequest.Item("1", null, new Object[]{"bar1"}, null), null), is(false));

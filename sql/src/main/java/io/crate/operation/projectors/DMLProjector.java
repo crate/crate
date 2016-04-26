@@ -36,12 +36,11 @@ import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class DMLProjector<Request extends ShardRequest> extends AbstractProjector {
+abstract class DMLProjector<Request extends ShardRequest> extends AbstractProjector {
 
-    public static final int DEFAULT_BULK_SIZE = 1024;
+    static final int DEFAULT_BULK_SIZE = 1024;
 
     private final ShardId shardId;
     private final CollectExpression<Row, ?> collectUidExpression;
@@ -53,9 +52,9 @@ public abstract class DMLProjector<Request extends ShardRequest> extends Abstrac
     protected final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     protected final UUID jobId;
 
-    protected BulkShardProcessor<Request> bulkShardProcessor;
+    private BulkShardProcessor<Request> bulkShardProcessor;
 
-    public DMLProjector(ClusterService clusterService,
+    DMLProjector(ClusterService clusterService,
                         Settings settings,
                         ShardId shardId,
                         TransportActionProvider transportActionProvider,
@@ -102,7 +101,7 @@ public abstract class DMLProjector<Request extends ShardRequest> extends Abstrac
         failed.set(true);
         downstream.fail(throwable);
 
-        if (throwable instanceof CancellationException) {
+        if (throwable instanceof InterruptedException) {
             bulkShardProcessor.kill(throwable);
         } else {
             bulkShardProcessor.close();

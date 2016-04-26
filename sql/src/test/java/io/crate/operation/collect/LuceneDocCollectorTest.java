@@ -41,7 +41,6 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.util.ArrayList;
-import java.util.concurrent.CancellationException;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.*;
@@ -226,9 +225,10 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         docCollector.doCollect();
         assertThat(projector.rows.size(), is(5));
 
-        docCollector.kill(new CancellationException());
+        docCollector.kill(new InterruptedException());
 
-        expectedException.expect(CancellationException.class);
+        expectedException.expect(RuntimeException.class);
+        expectedException.expectCause(isA(InterruptedException.class));
         projector.result();
     }
 

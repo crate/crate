@@ -77,7 +77,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
 
 public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TResponse extends SQLBaseResponse>
         extends TransportAction<TRequest, TResponse> {
@@ -261,7 +260,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                     public void onFailure(final @Nonnull Throwable t) {
                         String message;
                         Throwable unwrappedException = Exceptions.unwrap(t);
-                        if (unwrappedException instanceof CancellationException) {
+                        if (unwrappedException instanceof InterruptedException) {
                             message = KILLED_MESSAGE;
                             logger.debug("KILLED: [{}]", request.stmt());
                         } else if ((unwrappedException instanceof ShardNotFoundException || unwrappedException instanceof IllegalIndexShardStateException)
@@ -321,7 +320,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
      * and {@link org.elasticsearch.action.search.ReduceSearchPhaseException}.
      * Also transform throwable to {@link io.crate.exceptions.CrateException}.
      */
-    public Throwable esToCrateException(Throwable e) {
+    private Throwable esToCrateException(Throwable e) {
         e = Exceptions.unwrap(e);
 
         if (e instanceof IllegalArgumentException || e instanceof ParsingException) {
@@ -347,7 +346,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             return new TableUnknownException(((IndexNotFoundException) e).getIndex(), e);
         } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
             return new CircuitBreakingException(e.getMessage());
-        } else if (e instanceof CancellationException) {
+        } else if (e instanceof InterruptedException) {
             return new JobKilledException();
         } else if (e instanceof RepositoryMissingException) {
             return new RepositoryUnknownException(((RepositoryMissingException) e).repository());
@@ -366,7 +365,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
      * If concrete {@link org.elasticsearch.ElasticsearchException} is found, first transform it
      * to a {@link io.crate.exceptions.CrateException}
      */
-    public SQLActionException buildSQLActionException(Throwable e) {
+    private SQLActionException buildSQLActionException(Throwable e) {
         if (e instanceof SQLActionException) {
             return (SQLActionException) e;
         }

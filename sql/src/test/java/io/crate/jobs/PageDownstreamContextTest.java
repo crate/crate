@@ -38,7 +38,7 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.util.concurrent.CancellationException;
+import javax.annotation.Nonnull;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.is;
@@ -91,12 +91,12 @@ public class PageDownstreamContextTest extends CrateUnitTest {
             }
 
             @Override
-            public void onFailure(Throwable t) {
+            public void onFailure(@Nonnull  Throwable t) {
                 assertTrue(throwable.compareAndSet(null, t));
             }
         });
         ctx.kill(null);
-        assertThat(throwable.get(), Matchers.instanceOf(CancellationException.class));
-        verify(downstream, times(1)).fail(any(CancellationException.class));
+        assertThat(throwable.get(), Matchers.instanceOf(InterruptedException.class));
+        verify(downstream, times(1)).fail(any(InterruptedException.class));
     }
 }

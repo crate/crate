@@ -32,6 +32,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.JobKilledException;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.metadata.PartitionName;
@@ -368,7 +369,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
     public void kill(@Nullable Throwable throwable) {
         failure.compareAndSet(null, throwable);
-        result.cancel(true);
+        result.setException(new InterruptedException(JobKilledException.MESSAGE));
     }
 
     private void setFailure(Throwable e) {

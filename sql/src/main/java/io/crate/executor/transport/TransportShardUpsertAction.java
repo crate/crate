@@ -28,6 +28,7 @@ import com.google.common.base.Throwables;
 import io.crate.Constants;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
+import io.crate.exceptions.JobKilledException;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
 import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.jobs.JobContextService;
@@ -76,7 +77,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
@@ -119,7 +119,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     @Override
     protected ShardResponse processRequestItems(ShardId shardId,
                                                 ShardUpsertRequest request,
-                                                AtomicBoolean killed) {
+                                                AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
         DocTableInfo tableInfo = schemas.getWritableTable(TableIdent.fromIndexName(request.index()));
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
@@ -133,7 +133,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 // set failure on response and skip all next items.
                 // this way replica operation will be executed, but only items with a valid source (= was processed on primary)
                 // will be processed on the replica
-                shardResponse.failure(new CancellationException());
+                shardResponse.failure(new InterruptedException());
                 break;
             }
             try {
@@ -172,8 +172,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     protected void processRequestItemsOnReplica(ShardId shardId, ShardUpsertRequest request) {
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         IndexShard indexShard = indexService.shardSafe(shardId.id());
-        for (int i = 0; i < request.itemIndices().size(); i++) {
-            ShardUpsertRequest.Item item = request.items().get(i);
+        for (ShardUpsertRequest.Item item : request.items()) {
             if (item.source() == null) {
                 if (logger.isTraceEnabled()) {
                     logger.trace("[{} (R)] Document with id {}, has no source, primary operation must have failed",

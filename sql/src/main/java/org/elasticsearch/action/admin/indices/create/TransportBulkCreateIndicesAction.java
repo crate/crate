@@ -74,7 +74,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
-import java.util.concurrent.CancellationException;
 
 import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
@@ -205,7 +204,7 @@ public class TransportBulkCreateIndicesAction
             }
         };
         if (timeStart <= lastKillAllEvent) {
-            responseListener.onFailure(new CancellationException(JobKilledException.MESSAGE));
+            responseListener.onFailure(new InterruptedException(JobKilledException.MESSAGE));
             return;
         }
         createIndices(request, stateUpdateListener);
@@ -514,7 +513,7 @@ public class TransportBulkCreateIndicesAction
         synchronized (pendingLock) {
             PendingOperation pendingOperation;
             while ( (pendingOperation = pendingOperations.poll()) != null) {
-                pendingOperation.responseListener.onFailure(new CancellationException(JobKilledException.MESSAGE));
+                pendingOperation.responseListener.onFailure(new InterruptedException(JobKilledException.MESSAGE));
             }
         }
     }
@@ -526,7 +525,7 @@ public class TransportBulkCreateIndicesAction
             while (it.hasNext()) {
                 PendingOperation pendingOperation = it.next();
                 if (pendingOperation.request.jobId().equals(jobId)) {
-                    pendingOperation.responseListener.onFailure(new CancellationException(JobKilledException.MESSAGE));
+                    pendingOperation.responseListener.onFailure(new InterruptedException(JobKilledException.MESSAGE));
                     it.remove();
                 }
             }
