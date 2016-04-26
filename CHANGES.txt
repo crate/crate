@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Restrict creation of tables having the primary key constraint within
+   an array column type or its children.
+
  - Renamed all scalar function names to lowercase (CamelCase names
    were transformed to lowercase using `_` as word boundary)
 

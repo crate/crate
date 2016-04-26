@@ -920,4 +920,17 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         }
     }
 
+    @Test
+    public void testCreateTableWithPrimaryKeyConstraintInArrayItem() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot use column \"id\" as primary key within an array object");
+        analyze("create table test (arr array(object as (id long primary key)))");
+    }
+
+    @Test
+    public void testCreateTableWithDeepNestedPrimaryKeyConstraintInArrayItem() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot use column \"name\" as primary key within an array object");
+        analyze("create table test (arr array(object as (user object as (name string primary key), id long)))");
+    }
 }
