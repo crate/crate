@@ -37,8 +37,9 @@ import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
 public abstract class CrateClientIntegrationTest extends Assert {
@@ -50,24 +51,14 @@ public abstract class CrateClientIntegrationTest extends Assert {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private static String tarBallPath;
+    private static Path distributionsDir = Paths.get(System.getProperty("project_root") + "/app/build/distributions");
+
+    private static String tarBallPath = null;
 
     static {
-
-        final PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:crate-*.tar.gz");
-        FileVisitor<Path> matcherVisitor = new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attribs) {
-                if (matcher.matches(file.getFileName())) {
-                    tarBallPath = file.toAbsolutePath().toString();
-                    return FileVisitResult.TERMINATE;
-                }
-                return FileVisitResult.CONTINUE;
-            }
-        };
         try {
-            Files.walkFileTree(Paths.get(
-                    System.getProperty("project_root") + "/app/build/distributions/"), matcherVisitor);
+            tarBallPath = Files.newDirectoryStream(distributionsDir, "crate-*.tar.gz").iterator().next()
+                .toAbsolutePath().toString();
         } catch (IOException e) {
             Throwables.propagate(e);
         }
