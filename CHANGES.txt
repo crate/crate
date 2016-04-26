@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Restrict creation of tables having the primary key constraint within
+   an array column type or its children.
+   with arrays.
+
  - Fixed an issue that could lead to the `internal_action_long_timeout` and
    `recovery_activity_timeout` settings to be reset to a wrong default value on
    a setting update

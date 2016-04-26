@@ -201,6 +201,10 @@ public class AnalyzedColumnDefinition {
             throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", dataType));
         }
+        if (isArrayOrInArray()) {
+            throw new UnsupportedOperationException(
+                    String.format(Locale.ENGLISH, "Cannot use column \"%s\" as primary key within an array object", name));
+        }
     }
 
     public String name() {
