@@ -38,6 +38,7 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.concurrent.CancellationException;
 
 public class UpsertByIdContext extends AbstractExecutionSubContext {
 
@@ -71,6 +72,10 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                 if (updateResponse.failure() != null) {
                     onFailure(updateResponse.failure());
                 }
+                if (updateResponse.isKilled()) {
+                    onFailure(new CancellationException());
+                }
+
                 int location = updateResponse.itemIndices().get(0);
 
                 ShardResponse.Failure failure = updateResponse.failures().get(location);

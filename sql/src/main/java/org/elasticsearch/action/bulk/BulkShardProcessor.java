@@ -51,6 +51,7 @@ import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -410,6 +411,10 @@ public class BulkShardProcessor<Request extends ShardRequest> {
         trace("process response");
         if (response.failure() != null) {
             setFailure(response.failure());
+            return;
+        }
+        if (response.isKilled()) {
+            setFailure(new CancellationException());
             return;
         }
         for (int i = 0; i < response.itemIndices().size(); i++) {
