@@ -24,10 +24,6 @@ package io.crate.executor.transport;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import io.crate.Constants;
 import io.crate.analyze.symbol.InputColumn;
@@ -37,8 +33,6 @@ import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchGenerationException;
@@ -46,12 +40,9 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.routing.IndexRoutingTable;
-import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
@@ -64,7 +55,6 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.*;
@@ -86,7 +76,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
@@ -140,7 +129,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             int location = request.itemIndices().get(i);
             ShardUpsertRequest.Item item = request.items().get(i);
             if (killed.get()) {
-                throw new CancellationException();
+                shardResponse.setKilled();
+                break;
             }
             try {
                 translogLocation = indexItem(

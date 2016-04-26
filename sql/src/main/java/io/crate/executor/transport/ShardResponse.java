@@ -47,7 +47,7 @@ public class ShardResponse extends ActionWriteResponse {
         Failure() {
         }
 
-        public Failure(String id, String message, boolean versionConflict) {
+        Failure(String id, String message, boolean versionConflict) {
              this.id = id;
              this.message = message;
              this.versionConflict = versionConflict;
@@ -65,7 +65,7 @@ public class ShardResponse extends ActionWriteResponse {
             return versionConflict;
         }
 
-        public static Failure readFailure(StreamInput in) throws IOException {
+        static Failure readFailure(StreamInput in) throws IOException {
             Failure failure = new Failure();
             failure.readFrom(in);
             return failure;
@@ -99,6 +99,7 @@ public class ShardResponse extends ActionWriteResponse {
     private List<Failure> failures = new ArrayList<>();
     @Nullable
     private Throwable failure;
+    private boolean killed = false;
 
     public ShardResponse() {
     }
@@ -129,6 +130,14 @@ public class ShardResponse extends ActionWriteResponse {
         return failure;
     }
 
+    void setKilled() {
+        killed = true;
+    }
+
+    public boolean isKilled() {
+        return killed;
+    }
+
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
@@ -146,6 +155,7 @@ public class ShardResponse extends ActionWriteResponse {
         if (in.readBoolean()) {
             failure = in.readThrowable();
         }
+        killed = in.readBoolean();
     }
 
     @Override
@@ -167,6 +177,7 @@ public class ShardResponse extends ActionWriteResponse {
         } else {
             out.writeBoolean(false);
         }
+        out.writeBoolean(killed);
     }
 
 }

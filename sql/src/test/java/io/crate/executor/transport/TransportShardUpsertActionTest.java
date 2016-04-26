@@ -361,4 +361,17 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         expectedException.expectMessage("Object o is null, cannot write {x.y=5} onto it");
         TransportShardUpsertAction.updateSourceByPaths(source, changes);
     }
+
+    @Test
+    public void testKillFlagSetOnResponseWhenKilled() throws Exception {
+        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), 0);
+        final ShardUpsertRequest request = new ShardUpsertRequest(
+            shardId, null, new Reference[]{ID_REF}, null, UUID.randomUUID());
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
+
+        ShardResponse shardResponse = transportShardUpsertAction.processRequestItems(
+            shardId, request, new AtomicBoolean(true));
+
+        assertThat(shardResponse.isKilled(), is(true));
+    }
 }
