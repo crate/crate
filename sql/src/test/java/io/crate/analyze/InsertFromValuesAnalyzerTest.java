@@ -945,7 +945,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 "on duplicate key update name = awesome");
         assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
         Symbol symbol = statement.onDuplicateKeyAssignments().get(0)[0];
-        assertThat(symbol, isFunction("toString"));
+        assertThat(symbol, isFunction("to_string"));
     }
 
     @Test

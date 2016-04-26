@@ -37,10 +37,8 @@ import java.lang.reflect.Field;
 import java.util.*;
 
 import static io.crate.testing.TestingHelpers.*;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
 
 @SuppressWarnings("ConstantConditions")
 public class PlannerTest extends AbstractPlannerTest {
@@ -1198,7 +1196,7 @@ public class PlannerTest extends AbstractPlannerTest {
         TopNProjection collectTopN = (TopNProjection)collectPhase.projections().get(1);
         assertThat(collectTopN.limit(), is(TopN.NO_LIMIT));
         assertThat(collectTopN.offset(), is(TopN.NO_OFFSET));
-        assertThat(collectTopN.outputs(), contains(isInputColumn(0), isFunction("toString")));
+        assertThat(collectTopN.outputs(), contains(isInputColumn(0), isFunction("to_string")));
 
         MergePhase mergePhase = nonDistributedGroupBy.localMerge();
         assertThat(mergePhase.projections(), hasSize(2));
@@ -1252,7 +1250,7 @@ public class PlannerTest extends AbstractPlannerTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) queryAndFetch.collectPhase());
         List<Symbol> toCollect = collectPhase.toCollect();
         assertThat(toCollect.size(), is(2));
-        assertThat(toCollect.get(0), isFunction("toLong"));
+        assertThat(toCollect.get(0), isFunction("to_long"));
         assertThat(((Function) toCollect.get(0)).arguments().get(0), isReference("_doc['id']"));
         assertThat((Reference) toCollect.get(1), equalTo(new Reference(new ReferenceInfo(
                 new ReferenceIdent(new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted"), "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP))));

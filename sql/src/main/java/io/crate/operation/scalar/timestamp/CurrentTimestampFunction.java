@@ -41,7 +41,7 @@ import java.util.Locale;
 
 public class CurrentTimestampFunction extends Scalar<Long, Integer> implements FunctionFormatSpec {
 
-    public static final String NAME = "CURRENT_TIMESTAMP";
+    public static final String NAME = "current_timestamp";
     public static final int DEFAULT_PRECISION = 3;
 
     public static final FunctionInfo INFO = new FunctionInfo(
@@ -105,7 +105,7 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> implements F
 
     @Override
     public String beforeArgs(Function function) {
-        return "CURRENT_TIMESTAMP" + (function.arguments().isEmpty() ? "" : "(");
+        return "current_timestamp" + (function.arguments().isEmpty() ? "" : "(");
     }
 
     @Override

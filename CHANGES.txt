@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Renamed all scalar function names to lowercase (CamelCase names
+   were transformed to lowercase using `_` as word boundary)
+
  - Fixed an issue that prevented generated columns to work correctly
    with arrays.
 

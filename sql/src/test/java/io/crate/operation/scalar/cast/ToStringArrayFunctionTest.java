@@ -33,12 +33,12 @@ public class ToStringArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalize() throws Exception {
-        assertNormalize("\"toStringArray\"([1, 2, 3])", isLiteral(new ArrayType(DataTypes.STRING).value(new Object[]{"1", "2", "3"})));
+        assertNormalize("to_string_array([1, 2, 3])", isLiteral(new ArrayType(DataTypes.STRING).value(new Object[]{"1", "2", "3"})));
     }
 
     @Test
     public void testEvaluate() throws Exception {
-        assertEvaluate("\"toStringArray\"(long_array)", new ArrayType(DataTypes.STRING).value(new Object[]{"1", "2", "3"}),
+        assertEvaluate("to_string_array(long_array)", new ArrayType(DataTypes.STRING).value(new Object[]{"1", "2", "3"}),
             Literal.newLiteral(new Long[]{1L, 2L, 3L}, new ArrayType(DataTypes.LONG)));
     }
 
@@ -46,14 +46,14 @@ public class ToStringArrayFunctionTest extends AbstractScalarFunctionsTest {
     public void testInvalidArgumentType() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("type 'string' not supported for conversion to 'string_array'");
-        sqlExpressions.normalize(sqlExpressions.asSymbol("\"toStringArray\"('bla')"));
+        sqlExpressions.normalize(sqlExpressions.asSymbol("to_string_array('bla')"));
     }
 
     @Test
     public void testInvalidArgumentInnerType() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("type 'object_array' not supported for conversion to 'string_array'");
-        sqlExpressions.normalize(sqlExpressions.asSymbol("\"toStringArray\"([{a = 1}])"));
+        sqlExpressions.normalize(sqlExpressions.asSymbol("to_string_array([{a = 1}])"));
     }
 
 }

@@ -78,12 +78,12 @@ public class CurrentTimestampFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void precisionOfNullLRaisesException() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("NULL precision not supported for CURRENT_TIMESTAMP");
+        expectedException.expectMessage("NULL precision not supported for current_timestamp");
         timestampFunction.evaluate(Literal.newLiteral((Integer) null));
     }
 
     @Test
     public void integerIsNormalizedToLiteral() {
-        assertNormalize("CURRENT_TIMESTAMP(1)", instanceOf(Literal.class));
+        assertNormalize("current_timestamp(1)", instanceOf(Literal.class));
     }
 }

@@ -1683,7 +1683,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(symbol, isFunction("extract_DAY_OF_MONTH"));
 
         Symbol argument = ((Function) symbol).arguments().get(0);
-        assertThat(argument, isFunction("toTimestamp"));
+        assertThat(argument, isFunction("to_timestamp"));
     }
 
     @Test
