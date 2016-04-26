@@ -39,10 +39,10 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 
 public class NodeSettingsTest {
@@ -53,6 +53,8 @@ public class NodeSettingsTest {
     protected Node node;
     protected Client client;
     private boolean loggingConfigured = false;
+
+    private final String CRATE_CONFIG_PATH = getClass().getResource("/crate").getPath();
 
     private void doSetup() throws IOException {
         // mute log4j warning by configuring a dummy logger
@@ -70,9 +72,7 @@ public class NodeSettingsTest {
             .put("index.store.type", "memory")
             .put("index.store.fs.memory.enabled", "true")
             .put("gateway.type", "none")
-            .put("path.data", new File(tmp.getRoot(), "data"))
-            .put("path.work", new File(tmp.getRoot(), "work"))
-            .put("path.logs", new File(tmp.getRoot(), "logs"))
+            .put("path.home", CRATE_CONFIG_PATH)
             .put("index.number_of_shards", "1")
             .put("index.number_of_replicas", "0")
             .put("cluster.routing.schedule", "50ms")
@@ -135,25 +135,31 @@ public class NodeSettingsTest {
      */
     @Test
     public void testCustomYMLSettings() throws IOException {
-
-        File custom = new File("custom");
-        custom.mkdir();
-        File file = new File(custom, "custom.yml");
-        try (FileWriter customWriter = new FileWriter(file, false)) {
-            customWriter.write("cluster.name: custom");
-        }
-
-        System.setProperty("es.config", "custom/custom.yml");
-
+        System.setProperty("es.config", new File(CRATE_CONFIG_PATH, "config/custom.yml").getAbsolutePath());
         doSetup();
-
-        file.delete();
-        custom.delete();
         System.clearProperty("es.config");
-
         assertEquals("custom",
             client.admin().cluster().prepareHealth().
                 setWaitForGreenStatus().execute().actionGet().getClusterName());
+    }
+
+    @Test
+    public void testDefaultPaths() throws Exception {
+        doSetup();
+        assertTrue(node.settings().get("path.data").endsWith("data"));
+        assertTrue(node.settings().get("path.logs").endsWith("logs"));
+    }
+
+    @Test
+    public void testCustomPaths() throws Exception {
+        File data1 = new File(tmp.getRoot(), "data1");
+        File data2 = new File(tmp.getRoot(), "data2");
+        System.setProperty("es.path.data", data1.getAbsolutePath() + "," + data2.getAbsolutePath());
+        doSetup();
+        String[] paths = node.settings().getAsArray("path.data");
+        assertTrue(paths[0].endsWith("data1"));
+        assertTrue(paths[1].endsWith("data2"));
+        System.clearProperty("es.path.data");
     }
 
     @Test

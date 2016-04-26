@@ -1,0 +1,8 @@
+# This is a crate.yml configuration file for testing
+# that system properties are overriding settings from
+# this file correctly!
+
+path:
+  work: /tmp
+  data: /tmp/crate/data
+  logs: /tmp/crate/logs

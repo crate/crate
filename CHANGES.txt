@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - In certain cases settings provided via ``-Des.`` system properties could
+   be overridden by the ``crate.yml`` provided in ``$CRATE_HOME/config``
+
  - Fixed an issue that prevented generated columns to work correctly
    with arrays.
 

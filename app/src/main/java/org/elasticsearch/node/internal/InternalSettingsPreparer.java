@@ -107,6 +107,7 @@ public class InternalSettingsPreparer {
             }
             if (loadFromEnv) {
                 try {
+                    // read only from crate.yml
                     settingsBuilder.loadFromUrl(environment.resolveConfig("crate.yml"));
                 } catch (FailedToResolveConfigException e) {
                     // ignore

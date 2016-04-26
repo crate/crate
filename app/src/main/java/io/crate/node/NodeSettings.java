@@ -36,20 +36,6 @@ public class NodeSettings {
      */
     public static void applyDefaultSettings(ImmutableSettings.Builder settingsBuilder) {
 
-        // read also from crate.yml by default if no other config path has been set
-        // if there is also a elasticsearch.yml file this file will be read first and the settings in crate.yml
-        // will overwrite them.
-        Environment environment = new Environment(settingsBuilder.build());
-        if (System.getProperty("es.config") == null && System.getProperty("elasticsearch.config") == null) {
-            // no explicit config path set
-            try {
-                URL crateConfigUrl = environment.resolveConfig("crate.yml");
-                settingsBuilder.loadFromUrl(crateConfigUrl);
-            } catch (FailedToResolveConfigException e) {
-                // ignore
-            }
-        }
-
         if (settingsBuilder.get("http.port") == null) {
             settingsBuilder.put("http.port", Constants.HTTP_PORT_RANGE);
         }
