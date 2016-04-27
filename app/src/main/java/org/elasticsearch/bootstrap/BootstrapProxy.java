@@ -365,7 +365,7 @@ public class BootstrapProxy {
     private static void checkUnsetAndMaybeExit(String confFileSetting, String settingName) {
         if (confFileSetting != null && confFileSetting.isEmpty() == false) {
             ESLogger logger = Loggers.getLogger(Bootstrap.class);
-            logger.info("{} is no longer supported. elasticsearch.yml must be placed in the config directory and cannot be renamed.", settingName);
+            logger.info("{} is no longer supported. crate.yml must be placed in the config directory and cannot be renamed.", settingName);
             System.exit(1);
         }
     }

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Load ``crate.yml`` explicitly and do not allow any other extension than
+   ``yml`` for the configuration file.
+
  - Restrict creation of tables having the primary key constraint within
    an array column type or its children.
 

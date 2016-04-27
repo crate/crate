@@ -42,6 +42,7 @@ import java.io.File;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 
 public class NodeSettingsTest {
@@ -52,6 +53,8 @@ public class NodeSettingsTest {
     protected Node node;
     protected Client client;
     private boolean loggingConfigured = false;
+
+    private final String CRATE_CONFIG_PATH = getClass().getResource("/crate").getPath();
 
     private void doSetup() throws IOException {
         // mute log4j warning by configuring a dummy logger
@@ -69,10 +72,7 @@ public class NodeSettingsTest {
             .put("index.store.type", "default")
             .put("index.store.fs.memory.enabled", "true")
             .put("gateway.type", "default")
-            .put("path.home", tmp.getRoot())
-            .put("path.data", new File(tmp.getRoot(), "data"))
-            .put("path.work", new File(tmp.getRoot(), "work"))
-            .put("path.logs", new File(tmp.getRoot(), "logs"))
+            .put("path.home", CRATE_CONFIG_PATH)
             .put("index.number_of_shards", "1")
             .put("index.number_of_replicas", "0")
             .put("cluster.routing.schedule", "50ms")
@@ -125,6 +125,25 @@ public class NodeSettingsTest {
                 setWaitForGreenStatus().execute().actionGet().getClusterName());
         System.clearProperty("es.cluster.name");
 
+    }
+
+    @Test
+    public void testDefaultPaths() throws Exception {
+        doSetup();
+        assertTrue(node.settings().get("path.data").endsWith("data"));
+        assertTrue(node.settings().get("path.logs").endsWith("logs"));
+    }
+
+    @Test
+    public void testCustomPaths() throws Exception {
+        File data1 = new File(tmp.getRoot(), "data1");
+        File data2 = new File(tmp.getRoot(), "data2");
+        System.setProperty("es.path.data", data1.getAbsolutePath() + "," + data2.getAbsolutePath());
+        doSetup();
+        String[] paths = node.settings().getAsArray("path.data");
+        assertTrue(paths[0].endsWith("data1"));
+        assertTrue(paths[1].endsWith("data2"));
+        System.clearProperty("es.path.data");
     }
 
     @Test

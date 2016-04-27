@@ -396,7 +396,7 @@ test {
 
 sourceSets {
     test {
-        output.resourcesDir = null
+        output.resourcesDir = 'build/resources'
     }
 }
 

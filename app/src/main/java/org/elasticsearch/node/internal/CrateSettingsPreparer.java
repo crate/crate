@@ -39,7 +39,6 @@ import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 public class CrateSettingsPreparer {
 
-    private static final String[] ALLOWED_SUFFIXES = {".yml", ".yaml", ".json", ".properties"};
     public static final String IGNORE_SYSTEM_PROPERTIES_SETTING = "config.ignore_system_properties";
 
     /**
@@ -53,20 +52,10 @@ public class CrateSettingsPreparer {
         Settings.Builder output = settingsBuilder();
         InternalSettingsPreparer.initializeSettings(output, input, true);
         Environment environment = new Environment(output.build());
-        boolean settingsFileFound = false;
-        Set<String> foundSuffixes = new HashSet<>();
-        for (String allowedSuffix : ALLOWED_SUFFIXES) {
-            Path path = environment.configFile().resolve("elasticsearch" + allowedSuffix);
-            if (Files.exists(path)) {
-                if (!settingsFileFound) {
-                    output.loadFromPath(path);
-                }
-                settingsFileFound = true;
-                foundSuffixes.add(allowedSuffix);
-            }
-        }
-        if (foundSuffixes.size() > 1) {
-            throw new SettingsException("multiple settings files found with suffixes: " + Strings.collectionToDelimitedString(foundSuffixes, ","));
+
+        Path path = environment.configFile().resolve("crate.yml");
+        if (Files.exists(path)) {
+            output.loadFromPath(path);
         }
 
         // re-initialize settings now that the config file has been loaded
@@ -88,16 +77,6 @@ public class CrateSettingsPreparer {
         // read also from crate.yml by default if no other config path has been set
         // if there is also a elasticsearch.yml file this file will be read first and the settings in crate.yml
         // will overwrite them.
-        Environment environment = new Environment(settingsBuilder.build());
-        if (System.getProperty("es.config") == null && System.getProperty("elasticsearch.config") == null) {
-            // no explicit config path set
-            try {
-                Path crateConfigPath = environment.configFile().resolve("crate.yml");
-                settingsBuilder.loadFromPath(crateConfigPath);
-            } catch (SettingsException e) {
-                // ignore
-            }
-        }
         putIfAbsent(settingsBuilder, "http.port", Constants.HTTP_PORT_RANGE);
         putIfAbsent(settingsBuilder, "transport.tcp.port", Constants.TRANSPORT_PORT_RANGE);
         putIfAbsent(settingsBuilder, "thrift.port", Constants.THRIFT_PORT_RANGE);
