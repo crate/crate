@@ -86,7 +86,7 @@ public class TransportShardDeleteActionTest {
         ShardResponse shardResponse = transportShardDeleteAction.processRequestItems(
             shardId, request, new AtomicBoolean(true));
 
-        assertThat(shardResponse.failure(), instanceOf(CancellationException.class));
+        assertThat(shardResponse.failure(), instanceOf(InterruptedException.class));
         assertThat(request.skipFromLocation(), is(1));
     }
 

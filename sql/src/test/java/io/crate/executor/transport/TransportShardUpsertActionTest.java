@@ -54,7 +54,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -374,7 +373,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         ShardResponse shardResponse = transportShardUpsertAction.processRequestItems(
             shardId, request, new AtomicBoolean(true));
 
-        assertThat(shardResponse.failure(), instanceOf(CancellationException.class));
+        assertThat(shardResponse.failure(), instanceOf(InterruptedException.class));
     }
 
     @Test
