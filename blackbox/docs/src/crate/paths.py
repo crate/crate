@@ -18,18 +18,20 @@
 # However, if you have executed another commercial license agreement
 # with Crate these terms will supersede the license and you may use the
 # software solely pursuant to the terms of the relevant commercial agreement.
-import os
 
-here = os.path.dirname(__file__)
+from os.path import dirname, join
+
+here = dirname(__file__)  # blackbox/docs/src/crate
+project_root = dirname(dirname(dirname(dirname(here))))
 
 
 def project_path(*parts):
-    return os.path.join(os.path.dirname(docs_path()), *parts)
+    return join(project_root, *parts)
 
 
 def docs_path(*parts):
-    return os.path.join(os.path.dirname(os.path.dirname(here)), *parts)
+    return join(project_root, 'docs/', *parts)
 
 
 def crate_path(*parts):
-    return docs_path('tmp', 'crate', *parts)
+    return join(project_root, 'blackbox', 'tmp', 'crate', *parts)

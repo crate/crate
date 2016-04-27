@@ -44,27 +44,29 @@ The documentation is maintained under the ``docs`` directory and
 written in ReStructuredText_ and processed with Sphinx_.
 
 Normally the documentation is built by `Read the Docs`_ and isn't part of the
-Crate distribution. However if you work on the documentation you can run
-sphinx directly, which can be done by just running ``bin/sphinx`` in the
-``docs`` directory. The output can then be found in the ``out/html`` and
-``out/text`` directories.
+Crate distribution. However if you work on the documentation you can run sphinx
+directly, which can be done by just running ``bin/sphinx`` in the ``blackbox``
+directory. The output can then be found in the ``docs/out/html`` and
+``docs/out/text`` directories.
 
-Before you can run ``bin/sphinx`` you need to setup a development environment
-by running `bootstrap.py` inside the ``docs`` directory::
+Before you can run ``blackbox/bin/sphinx`` you need to setup a development
+environment by running `bootstrap.py` inside the ``blackbox`` directory::
 
-    python bootstrap.py
+    
+    $ cd blackbox
+    $ python bootstrap.py
 
 And afterwards run buildout::
 
-    ./bin/buildout -N
+    $ ./bin/buildout -N
 
 To test that all examples in the documentation execute correctly run::
 
-    ./bin/test
+    $ ./bin/test
 
 Or if you want to test that a specific file executes correctly run::
 
-    ./bin/test -1vt <filename>
+    $ ./bin/test -1vt <filename>
 
 There is also a gradle task called ``itest`` which will execute all of the
 above steps.
