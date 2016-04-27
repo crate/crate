@@ -177,6 +177,18 @@ task distZip(type: Zip, dependsOn: [hadoopLinkedJar, jar]) { zipTask ->
     classifier = "light"
 }
 
+task distZipHadoop2(type: Zip, dependsOn: [hadoopLinkedJar, jar]) { zipTask ->
+    baseZip(zipTask)
+    description = "Builds archive (with Hadoop2/YARN dependencies)"
+    classifier = "hadoop2"
+
+    into ("hadoop-libs") {
+        from configurations.hadoop2.allArtifacts.files
+        from configurations.hadoop2
+    }
+}
+
+
 compileJava.dependsOn extractUpstreamSources
 ideaModule.dependsOn extractUpstreamSources
 assemble.dependsOn = ['jar', 'hadoopLinkedJar']

@@ -1,5 +1,7 @@
 def crateDist = file("$projectDir/tmp/crate/")
 
+evaluationDependsOn(':app')
+evaluationDependsOn(':es-repository-hdfs')
 
 task bootstrap (type:Exec) {
     inputs.file "$projectDir/bootstrap.py"
@@ -19,21 +21,11 @@ task unpackDistTar (dependsOn: project(':app').distTar) << {
         }
         into crateDist
     }
-
 }
 
 task buildout (type:Exec, dependsOn: bootstrap) {
-    commandLine "$projectDir/bin/buildout", '-N', 'install', 'test'
+    commandLine "$projectDir/bin/buildout", '-N', 'install', 'test', 'hdfs-test', 'hadoop'
 }
-
-task itest (type:Exec) {
-    commandLine "$projectDir/bin/test", '-1', '-t', '!process_test'
-}
-
-task gtest (type:Exec) {
-    commandLine "$projectDir/bin/test", '-1', '-t', 'process_test'
-}
-
 
 task lessLogging (dependsOn: unpackDistTar) << {
     def file = new File("$projectDir/tmp/crate/config/logging.yml")
@@ -48,13 +40,29 @@ task ignoreDiskThreshold (dependsOn: unpackDistTar) << {
     )
 }
 
+task hdfsTest (type:Exec) {
+    commandLine "$projectDir/bin/hdfs-test"
+}
+
+task itest (type:Exec) {
+    commandLine "$projectDir/bin/test", '-1', '-t', '!process_test'
+}
+
+task gtest (type:Exec) {
+    commandLine "$projectDir/bin/test", '-1', '-t', 'process_test'
+}
+
+
+hdfsTest.dependsOn(unpackDistTar, buildout, lessLogging, ignoreDiskThreshold, project(':es-repository-hdfs').distZipHadoop2)
 itest.dependsOn(unpackDistTar, buildout, lessLogging, ignoreDiskThreshold)
 gtest.dependsOn(unpackDistTar, buildout, lessLogging, ignoreDiskThreshold)
 
 task clean << {
     FileCollection toDelete = files(crateDist,
-        "$projectDir/out/text",
-        "$projectDir/out/html",
+        "$projectDir/docs/out/text",
+        "$projectDir/docs/out/html",
+        "$projectDir/docs/clients/out/text",
+        "$projectDir/docs/clients/out/html",
         "$projectDir/parts",
         "$projectDir/.installed.cfg",
         "$projectDir/bin",
