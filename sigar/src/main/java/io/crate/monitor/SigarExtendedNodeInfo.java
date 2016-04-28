@@ -113,7 +113,8 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
 
                     FileSystemUsage fileSystemUsage = sigar.getFileSystemUsage(fileSystem.getDirName());
                     if (fileSystemUsage != null) {
-                        // total/free/available seem to be in megabytes?
+                        // total/free/available seem to be reported in kilobytes
+                        // so convert it into bytes
                         info.total(fileSystemUsage.getTotal() * 1024);
                         info.free(fileSystemUsage.getFree() * 1024);
                         info.used(fileSystemUsage.getUsed() * 1024);

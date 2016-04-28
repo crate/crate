@@ -75,19 +75,19 @@ public class NodeFsDisksExpression extends SysObjectArrayReference {
             childImplementations.put(SIZE, new ChildExpression<Long>() {
                 @Override
                 public Long value() {
-                    return fsInfo.total() * 1024;
+                    return fsInfo.total();
                 }
             });
             childImplementations.put(USED, new ChildExpression<Long>() {
                 @Override
                 public Long value() {
-                    return fsInfo.used() * 1024;
+                    return fsInfo.used();
                 }
             });
             childImplementations.put(AVAILABLE, new ChildExpression<Long>() {
                 @Override
                 public Long value() {
-                    return fsInfo.available() * 1024;
+                    return fsInfo.available();
                 }
             });
             childImplementations.put(READS, new ChildExpression<Long>() {

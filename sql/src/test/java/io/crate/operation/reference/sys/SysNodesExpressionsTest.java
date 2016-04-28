@@ -331,11 +331,11 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
         assertThat(disks.length, is(2));
         Map<String, Object> disk0 = (Map<String, Object>) disks[0];
         assertThat((String) disk0.get("dev"), is(resolveCanonicalPath("/dev/sda1")));
-        assertThat((Long) disk0.get("size"), is(42L * 1024));
+        assertThat((Long) disk0.get("size"), is(42L));
 
         Map<String, Object> disk1 = (Map<String, Object>) disks[1];
         assertThat((String) disk1.get("dev"), is(resolveCanonicalPath("/dev/sda2")));
-        assertThat((Long) disk0.get("used"), is(42L * 1024));
+        assertThat((Long) disk0.get("used"), is(42L));
 
         Object[] data = (Object[]) v.get("data");
         assertThat(data.length, is(2));
