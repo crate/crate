@@ -192,11 +192,11 @@ public class Routing implements Streamable {
         if (locations.isEmpty()) {
             return true;
         }
-        if (!(locations instanceof TreeMap)) {
+        if (!(locations instanceof TreeMap) && locations.size() > 1) {
             return false;
         }
         for (Map<String, List<Integer>> innerMap : locations.values()) {
-            if (!(innerMap instanceof TreeMap)) {
+            if (innerMap.size() > 1 &&  !(innerMap instanceof TreeMap)) {
                 return false;
             }
         }

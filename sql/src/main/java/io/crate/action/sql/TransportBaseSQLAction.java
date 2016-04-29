@@ -39,7 +39,9 @@ import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.metadata.PartitionName;
+import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.projectors.ShardProjectorChain;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.Planner;
@@ -74,6 +76,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 
@@ -271,6 +274,19 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                     }
 
                     private void killAndRetry(@Nonnull final Throwable t) {
+                        /**
+                         * retry should only be done for select operations or absolute write operations
+                         *
+                         * relative write operations (x = x + 1) must not be retried
+                         *  - if one shard was successful that operation would be executed twice.
+                         *
+                         * This is currently ensured by the fact that
+                         * {@link io.crate.operation.collect.sources.ShardCollectSource#getDocCollectors(JobCollectContext, RoutedCollectPhase, ShardProjectorChain, Map)}
+                         * doesn't raise shard errors but instead uses a remoteCollector as fallback
+                         *
+                         * ORDERED collect operations would raise shard failures, but currently there is no case where
+                         * ordered + relative write operations happen
+                         */
                         transportKillJobsNodeAction.executeKillOnAllNodes(
                                 new KillJobsRequest(Collections.singletonList(plan.jobId())), new ActionListener<KillResponse>() {
                                     @Override

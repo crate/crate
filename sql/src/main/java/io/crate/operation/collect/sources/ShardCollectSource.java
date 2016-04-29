@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect.sources;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -39,10 +40,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.collect.JobCollectContext;
-import io.crate.operation.collect.RowsCollector;
-import io.crate.operation.collect.ShardCollectService;
+import io.crate.operation.collect.*;
 import io.crate.operation.collect.collectors.MultiShardScoreDocCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.*;
@@ -78,6 +76,7 @@ public class ShardCollectSource implements CollectSource {
     private final Functions functions;
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
+    private final RemoteCollectorFactory remoteCollectorFactory;
     private final SystemCollectSource systemCollectSource;
     private final TransportActionProvider transportActionProvider;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
@@ -92,6 +91,7 @@ public class ShardCollectSource implements CollectSource {
                               ThreadPool threadPool,
                               TransportActionProvider transportActionProvider,
                               BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
+                              RemoteCollectorFactory remoteCollectorFactory,
                               SystemCollectSource systemCollectSource,
                               NodeSysExpression nodeSysExpression) {
         this.settings = settings;
@@ -99,6 +99,7 @@ public class ShardCollectSource implements CollectSource {
         this.functions = functions;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
+        this.remoteCollectorFactory = remoteCollectorFactory;
         this.systemCollectSource = systemCollectSource;
         this.executor = MoreExecutors.listeningDecorator((ExecutorService) threadPool.executor(ThreadPool.Names.SEARCH));
         this.transportActionProvider = transportActionProvider;
@@ -249,14 +250,17 @@ public class ShardCollectSource implements CollectSource {
                     shardInjector = indexService.shardInjectorSafe(shardId);
                     ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
                     CrateCollector collector = shardCollectService.getDocCollector(
-                            collectPhase,
-                            projectorChain,
-                            jobCollectContext
+                        collectPhase,
+                        projectorChain,
+                        jobCollectContext
                     );
                     crateCollectors.add(collector);
-                } catch (IndexShardMissingException | CancellationException | IllegalIndexShardStateException e) {
+                } catch (IndexShardMissingException | IllegalIndexShardStateException e) {
+                    crateCollectors.add(remoteCollectorFactory.createCollector(
+                        indexName, shardId, collectPhase, projectorChain, jobCollectContext.queryPhaseRamAccountingContext()));
+                } catch (InterruptedException e) {
                     projectorChain.fail(e);
-                    throw e;
+                    throw Throwables.propagate(e);
                 } catch (Throwable t) {
                     projectorChain.fail(t);
                     throw new UnhandledServerException(t);

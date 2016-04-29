@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition that could lead to relative write operations (`x = x
+   + 1`) to be executed twice.
+
  - In certain cases settings provided via ``-Des.`` system properties could
    be overridden by the ``crate.yml`` provided in ``$CRATE_HOME/config``
 

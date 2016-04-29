@@ -50,10 +50,10 @@ public class NodeOperation implements Streamable {
     private int downstreamExecutionPhaseId = NO_DOWNSTREAM;
     private byte downstreamExecutionPhaseInputId;
 
-    private NodeOperation(ExecutionPhase executionPhase,
-                          Collection<String> downstreamNodes,
-                          int downstreamExecutionPhaseId,
-                          byte downstreamExecutionPhaseInputId) {
+    public NodeOperation(ExecutionPhase executionPhase,
+                         Collection<String> downstreamNodes,
+                         int downstreamExecutionPhaseId,
+                         byte downstreamExecutionPhaseInputId) {
         this.executionPhase = executionPhase;
         this.downstreamNodes = downstreamNodes;
         this.downstreamExecutionPhaseId = downstreamExecutionPhaseId;
