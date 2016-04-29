@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition that could lead to relative write operations (`x = x
+   + 1`) to be executed twice.
+
  - Load ``crate.yml`` explicitly and do not allow any other extension than
    ``yml`` for the configuration file.
 
