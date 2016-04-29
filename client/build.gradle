@@ -79,7 +79,17 @@ shadowJar {
     duplicatesStrategy 'fail'
 
     exclude 'org/hyperic/**' // exclude sigar stuff
-    exclude 'META-INF/**'
+
+    // exclude all but META-INF/services
+    // if the client is used with assertions enabled it will try to load the 
+    // Lucene PostingFormats and without the service files those can't be found
+    exclude 'META-INF/DEPENDENCIES'
+    exclude 'META-INF/maven/**'
+    exclude 'META-INF/license/**'
+    exclude 'META-INF/LICENSE*'
+    exclude 'META-INF/NOTICE*'
+    mergeServiceFiles()
+
 
     // remember to update mapping in CrateClientClassLoader when changing this
     relocate 'org.elasticsearch', 'io.crate.shade.org.elasticsearch'
