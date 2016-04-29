@@ -42,6 +42,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 import org.mockito.*;
 
@@ -70,6 +71,9 @@ public class BulkShardProcessorTest extends CrateUnitTest {
     @Mock(answer = Answers.RETURNS_MOCKS)
     ClusterService clusterService;
 
+    @Mock
+    ThreadPool threadPool;
+
     @Test
     public void testNonEsRejectedExceptionDoesNotResultInRetryButAborts() throws Throwable {
         expectedException.expect(RuntimeException.class);
@@ -84,9 +88,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                     }
         };
 
-        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                Settings.EMPTY
-        );
+        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(threadPool);
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
 
@@ -152,9 +154,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
         when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardBulkAction);
 
-        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                Settings.EMPTY
-        );
+        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(threadPool);
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
 
@@ -209,7 +209,6 @@ public class BulkShardProcessorTest extends CrateUnitTest {
             assertTrue(hadBlocked.get());
         } finally {
             scheduledExecutorService.shutdownNow();
-            bulkRetryCoordinator.close();
         }
     }
 
@@ -235,9 +234,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
         when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardBulkAction);
 
-        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                Settings.EMPTY
-        );
+        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(threadPool);
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
 

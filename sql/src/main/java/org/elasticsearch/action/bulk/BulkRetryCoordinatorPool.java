@@ -37,6 +37,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,11 +50,14 @@ public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent<BulkRet
     private final Map<String, BulkRetryCoordinator> coordinatorsByNodeId;
     private final Map<ShardId, BulkRetryCoordinator> coordinatorsByShardId;
     private final ClusterService clusterService;
+    private final ThreadPool threadPool;
 
     @Inject
     public BulkRetryCoordinatorPool(Settings settings,
-                                    ClusterService clusterService) {
+                                    ClusterService clusterService,
+                                    ThreadPool threadPool) {
         super(settings);
+        this.threadPool = threadPool;
         this.coordinatorsByShardId = new HashMap<>();
         this.coordinatorsByNodeId = new HashMap<>();
         this.clusterService = clusterService;
@@ -82,8 +86,8 @@ public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent<BulkRet
                 synchronized (coordinatorsByNodeId) {
                     coordinator = coordinatorsByNodeId.get(nodeId);
                     if (coordinator == null) {
-                        LOGGER.trace("create new coordinator for node {} and shard {}", nodeId, shardId);
-                        coordinator = new BulkRetryCoordinator(settings);
+                        LOGGER.debug("create new coordinator for node {} and shard {}", nodeId, shardId);
+                        coordinator = new BulkRetryCoordinator(threadPool);
                         coordinatorsByNodeId.put(nodeId, coordinator);
                     }
                 }
@@ -101,22 +105,12 @@ public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent<BulkRet
     @Override
     protected void doStop() throws ElasticsearchException {
         clusterService.remove(this);
-        synchronized (coordinatorsByNodeId) {
-            for (BulkRetryCoordinator bulkRetryCoordinator : coordinatorsByNodeId.values()) {
-                bulkRetryCoordinator.close();
-            }
-        }
         coordinatorsByShardId.clear();
     }
 
     @Override
     protected void doClose() throws ElasticsearchException {
         doStop();
-        synchronized (coordinatorsByNodeId) {
-            for (BulkRetryCoordinator bulkRetryCoordinator : coordinatorsByNodeId.values()) {
-                bulkRetryCoordinator.shutdown();
-            }
-        }
         coordinatorsByNodeId.clear();
     }
 
@@ -126,13 +120,10 @@ public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent<BulkRet
             coordinatorsByShardId.clear();
         }
         if (event.nodesRemoved()) {
-            // stop retrycoordinators of removed nodes
+            // remove retrycoordinators of removed nodes
             synchronized (coordinatorsByNodeId) {
                 for (DiscoveryNode node : event.nodesDelta().removedNodes()) {
-                    BulkRetryCoordinator oldCoordinator = coordinatorsByNodeId.remove(node.id());
-                    if (oldCoordinator != null) {
-                        oldCoordinator.close();
-                    }
+                    coordinatorsByNodeId.remove(node.id());
                 }
             }
         }

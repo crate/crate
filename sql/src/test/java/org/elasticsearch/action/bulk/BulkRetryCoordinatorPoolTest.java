@@ -36,6 +36,7 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -45,6 +46,7 @@ import org.junit.rules.ExpectedException;
 import static org.elasticsearch.test.ESAllocationTestCase.createAllocationService;
 import static org.elasticsearch.test.ESAllocationTestCase.newNode;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.mock;
 
 public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
 
@@ -82,7 +84,7 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
 
         this.state = state;
 
-        pool = new BulkRetryCoordinatorPool(Settings.EMPTY, clusterService);
+        pool = new BulkRetryCoordinatorPool(Settings.EMPTY, clusterService, mock(ThreadPool.class));
         pool.start();
     }
 

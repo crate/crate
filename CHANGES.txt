@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved retry logic of bulk inserts/updates in order to prevent stack
+   overflows caused by recursive retry calls that could lead to hanging updates
+   and imports using ``copy from``.
+
  - Fixed a race condition that could lead to relative write operations (`x = x
    + 1`) to be executed twice.
 
