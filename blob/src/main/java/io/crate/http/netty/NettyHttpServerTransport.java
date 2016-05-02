@@ -415,7 +415,7 @@ public class NettyHttpServerTransport extends AbstractLifecycleComponent<HttpSer
             }
             ctx.getChannel().close();
         } else {
-            if (!(lifecycle.started() || lifecycle.disabled())) {
+            if (!lifecycle.started()) {
                 // ignore
                 return;
             }

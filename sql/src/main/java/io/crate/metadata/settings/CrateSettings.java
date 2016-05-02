@@ -1261,8 +1261,9 @@ public class CrateSettings {
     public static final StringSetting UDC_URL = new StringSetting("url", null, true, "https://udc.crate.io", UDC);
 
     public static final List<Setting<?, ?>> CRATE_SETTINGS = ImmutableList.<Setting<?, ?>>of(
-            STATS,
-            BULK
+        STATS,
+        BULK,
+        GRACEFUL_STOP
     );
 
     public static final List<Setting> SETTINGS = ImmutableList.<Setting>of(

@@ -30,6 +30,8 @@ import io.crate.action.sql.TransportSQLBulkAction;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.breaker.CircuitBreakerModule;
 import io.crate.breaker.CrateCircuitBreakerService;
+import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
+import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobModule;
@@ -42,6 +44,7 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
 import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.sys.MetaDataSysModule;
+import io.crate.monitor.MonitorModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.collect.CollectOperationModule;
 import io.crate.operation.collect.CollectShardModule;
@@ -57,8 +60,6 @@ import io.crate.operation.reference.sys.shard.blob.BlobShardExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.rest.action.RestSQLAction;
-import io.crate.service.SQLService;
-import io.crate.monitor.MonitorModule;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -109,9 +110,9 @@ public class SQLPlugin extends Plugin {
     @Override
     public Collection<Class<? extends LifecycleComponent>> nodeServices() {
         return ImmutableList.<Class<? extends LifecycleComponent>>of(
-                SQLService.class,
-                BulkRetryCoordinatorPool.class,
-                JobContextService.class);
+            DecommissioningService.class,
+            BulkRetryCoordinatorPool.class,
+            JobContextService.class);
     }
 
     @Override
@@ -177,7 +178,11 @@ public class SQLPlugin extends Plugin {
         clusterModule.registerClusterDynamicSetting(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING, Validator.MEMORY_SIZE);
         clusterModule.registerClusterDynamicSetting(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING, Validator.NON_NEGATIVE_DOUBLE);
 
+        clusterModule.registerClusterDynamicSetting("crate.internal.decommission.*", Validator.EMPTY);
+
         registerSettings(clusterModule, CrateSettings.CRATE_SETTINGS);
+
+        clusterModule.registerAllocationDecider(DecommissionAllocationDecider.class);
     }
 
     private void registerSettings(ClusterModule clusterModule, Collection<? extends Setting> settings) {

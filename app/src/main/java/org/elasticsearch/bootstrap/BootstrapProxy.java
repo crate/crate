@@ -40,10 +40,7 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.monitor.os.OsProbe;
 import org.elasticsearch.monitor.process.ProcessProbe;
-import org.elasticsearch.node.Node;
 import org.elasticsearch.node.internal.CrateSettingsPreparer;
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -190,8 +187,6 @@ public class BootstrapProxy {
         //setupSecurity(settings, crateEnvironment);
 
         node = new CrateNode(crateEnvironment);
-
-        registerSignalHandler(node);
     }
 
     /**
@@ -367,26 +362,6 @@ public class BootstrapProxy {
             ESLogger logger = Loggers.getLogger(Bootstrap.class);
             logger.info("{} is no longer supported. crate.yml must be placed in the config directory and cannot be renamed.", settingName);
             System.exit(1);
-        }
-    }
-
-    @SuppressForbidden(reason = "uses signal handling for graceful stop support")
-    private static void registerSignalHandler(final Node node) {
-        try {
-            Signal signal = new Signal("USR2");
-            Signal.handle(signal, new SignalHandler() {
-                @Override
-                public void handle(Signal sig) {
-                    if (node.disable()) {
-                        System.exit(0); // this calls the shutdown hook and does node.close()
-                    } else {
-                        node.start();
-                    }
-                }
-            });
-        } catch (IllegalArgumentException e) {
-            ESLogger logger = Loggers.getLogger(Bootstrap.class);
-            logger.warn("SIGUSR2 signal not supported on {}.", System.getProperty("os.name"), e);
         }
     }
 }

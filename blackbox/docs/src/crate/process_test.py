@@ -5,8 +5,35 @@ import time
 import random
 from crate.testing.layer import CrateLayer
 from crate.client.http import Client
+from crate.client.exceptions import ProgrammingError
 from .paths import crate_path
 from .ports import GLOBAL_PORT_POOL
+
+
+def decommission(process):
+    os.kill(process.pid, signal.SIGUSR2)
+    return process.wait(timeout=60)
+
+
+def retry_sql(client, statement):
+    """ retry statement on node not found in cluster state errros
+
+    sys.shards queries might fail if a node that has shutdown is still
+    in the cluster state
+    """
+    retry = 0
+    last_error = None
+    while retry < 50:
+        try:
+            return client.sql(statement)
+        except ProgrammingError as e:
+            if 'not found in cluster state' in e.message:
+                time.sleep(0.1)
+                last_error = e
+                retry += 1
+                continue
+            raise e
+    raise last_error
 
 
 class CascadedLayer(object):
@@ -31,8 +58,8 @@ class GracefulStopCrateLayer(CrateLayer):
             raise SystemError('Could not start Crate server. Max retries exceeded!')
         try:
             super(GracefulStopCrateLayer, self).start()
-        except Exception as e:
-            self.start(retry=retry+1)
+        except Exception:
+            self.start(retry=retry + 1)
 
     def stop(self):
         """do not care if process already died"""
@@ -56,13 +83,14 @@ class GracefulStopTest(unittest.TestCase):
         self.clients = []
         self.node_names = []
         for i in range(num_servers):
-            layer = GracefulStopCrateLayer(self.node_name(i),
-                           crate_path(),
-                           host='0.0.0.0',
-                           port=GLOBAL_PORT_POOL.get(),
-                           transport_port=GLOBAL_PORT_POOL.get(),
-                           multicast=True,
-                           cluster_name=self.__class__.__name__)
+            layer = GracefulStopCrateLayer(
+                self.node_name(i),
+                crate_path(),
+                host='0.0.0.0',
+                port=GLOBAL_PORT_POOL.get(),
+                transport_port=GLOBAL_PORT_POOL.get(),
+                multicast=True,
+                cluster_name=self.__class__.__name__)
             client = Client(layer.crate_servers)
             self.crates.append(layer)
             self.clients.append(client)
@@ -88,17 +116,10 @@ class GracefulStopTest(unittest.TestCase):
     def node_name(self, i):
         return "crate_{0}_{1}".format(self.__class__.__name__, i)
 
-    def settings(self, settings):
+    def set_settings(self, settings):
         client = self.random_client()
         for key, value in settings.items():
             client.sql("set global transient {}=?".format(key), (value,))
-
-    def wait_for_deallocation(self, nodename, client):
-        node_still_up = True
-        while node_still_up:
-            time.sleep(1)
-            response = client.sql("select name from sys.nodes where name=?", (nodename,))
-            node_still_up = response.get('rowcount', -1) == 1
 
 
 class TestProcessSignal(GracefulStopTest):
@@ -114,9 +135,7 @@ class TestProcessSignal(GracefulStopTest):
         crate = self.crates[0]
         process = crate.process
 
-        os.kill(process.pid, signal.SIGUSR2)
-
-        exit_value = process.wait()
+        exit_value = decommission(process)
         self.assertTrue(
             exit_value == 0,
             "crate stopped with return value {0}. expected: 0".format(exit_value)
@@ -142,14 +161,10 @@ class TestGracefulStopPrimaries(GracefulStopTest):
         test min_availability: primaries
         """
         client2 = self.clients[1]
-        self.settings({
-            "cluster.graceful_stop.min_availability": "primaries",
-            "cluster.routing.allocation.enable": "new_primaries"
-        })
-        os.kill(self.crates[0].process.pid, signal.SIGUSR2)
-        self.wait_for_deallocation(self.node_names[0], client2)
-        response = client2.sql("select table_name, id from sys.shards "
-                               "where state='UNASSIGNED'")
+        self.set_settings({"cluster.graceful_stop.min_availability": "primaries"})
+        decommission(self.crates[0].process)
+        stmt = "select table_name, id from sys.shards where state = 'UNASSIGNED'"
+        response = retry_sql(client2, stmt)
         # assert that all shards are assigned
         self.assertEqual(response.get("rowcount", -1), 0)
 
@@ -166,10 +181,10 @@ class TestGracefulStopFull(GracefulStopTest):
         super(TestGracefulStopFull, self).setUp()
         client = self.clients[0]
         client.sql("create table t1 (id int, name string) "
-                    "clustered into 4 shards "
-                    "with (number_of_replicas=1)")
+                   "clustered into 4 shards "
+                   "with (number_of_replicas=1)")
         client.sql("insert into t1 (id, name) values (?, ?), (?, ?)",
-                    (1, "Ford", 2, "Trillian"))
+                   (1, "Ford", 2, "Trillian"))
         client.sql("refresh table t1")
 
     def test_graceful_stop_full(self):
@@ -178,14 +193,11 @@ class TestGracefulStopFull(GracefulStopTest):
         """
         crate1, crate2, crate3 = self.crates
         client1, client2, client3 = self.clients
-        self.settings({
-            "cluster.graceful_stop.min_availability": "full",
-            "cluster.routing.allocation.enable": "new_primaries"
-        })
-        os.kill(crate1.process.pid, signal.SIGUSR2)
-        self.wait_for_deallocation(self.node_names[0], client2)
-        response = client2.sql("select table_name, id from sys.shards "
-                               "where state='UNASSIGNED'")
+        self.set_settings({"cluster.graceful_stop.min_availability": "full"})
+        decommission(crate1.process)
+
+        stmt = "select table_name, id from sys.shards where state = 'UNASSIGNED'"
+        response = retry_sql(client2, stmt)
         # assert that all shards are assigned
         self.assertEqual(response.get("rowcount", -1), 0)
 
@@ -215,23 +227,20 @@ class TestGracefulStopNone(GracefulStopTest):
 
     def test_graceful_stop_none(self):
         """
-        test min_availability: none
+        test `min_availability: none` will stop the node immediately.
+        Causes some shard to become unassigned (no replicas)
         """
         client2 = self.clients[1]
 
-        self.settings({
-            "cluster.graceful_stop.min_availability": "none",
-            "cluster.routing.allocation.enable": "none"
-        })
+        self.set_settings({"cluster.graceful_stop.min_availability": "none"})
+        decommission(self.crates[0].process)
 
-        os.kill(self.crates[0].process.pid, signal.SIGUSR2)
-        self.wait_for_deallocation(self.node_names[0], client2)
-        time.sleep(5)  # wait some time for discovery to kick in
-        response = client2.sql("select _node['id'] as node_id, id, state from sys.shards "
-                               "where state='UNASSIGNED'")
+        stmt = "select _node['id'] as node_id, id, state \
+            from sys.shards where state='UNASSIGNED'"
+        resp = retry_sql(client2, stmt)
 
-        # assert that some shards are not assigned
-        unassigned_shards = response.get("rowcount", -1)
+        # since there were no replicas some shards must be missing
+        unassigned_shards = resp.get("rowcount", -1)
         self.assertTrue(
             unassigned_shards > 0,
             "{0} unassigned shards, expected more than 0".format(unassigned_shards)
@@ -240,4 +249,3 @@ class TestGracefulStopNone(GracefulStopTest):
     def tearDown(self):
         client = self.clients[1]
         client.sql("drop table t1")
-
