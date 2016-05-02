@@ -22,13 +22,10 @@
 package io.crate.executor.transport.task;
 
 import io.crate.executor.transport.kill.KillAllRequest;
-import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.ActionListener;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 
 import java.util.UUID;
 
@@ -36,11 +33,6 @@ import static org.mockito.Mockito.*;
 
 public class KillTaskTest extends CrateUnitTest {
 
-    @Captor
-    public ArgumentCaptor<ActionListener<KillResponse>> responseListener;
-
-    private KillTask killTask;
-    private KillJobTask killJobsTask;
 
     @SuppressWarnings("unchecked")
     @Test
