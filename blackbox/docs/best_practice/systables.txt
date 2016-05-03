@@ -21,10 +21,10 @@ of health checks, you may know from the admin UI. Order them by
 severity::
 
     cr> SELECT description FROM sys.checks WHERE NOT passed ORDER BY severity DESC;
-    +-------------+
+    +---------...-+
     | description |      
-    +-------------+
-    +-------------+
+    +---------...-+...
+    +---------...-+
     SELECT ... in set (... sec)
 
 If a check fails, the description offers some explanation on how to
