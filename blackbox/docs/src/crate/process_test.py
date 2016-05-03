@@ -7,7 +7,19 @@ from crate.testing.layer import CrateLayer
 from crate.client.http import Client
 from .paths import crate_path
 from .ports import GLOBAL_PORT_POOL
-from lovely.testlayers.layer import CascadedLayer
+
+
+class CascadedLayer(object):
+
+    def __init__(self, name, *bases):
+        self.__name__ = name
+        self.__bases__ = tuple(bases)
+
+    def setUp(self):
+        pass
+
+    def teardown(self):
+        pass
 
 
 class GracefulStopCrateLayer(CrateLayer):
