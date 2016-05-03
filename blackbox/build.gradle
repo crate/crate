@@ -24,7 +24,11 @@ task unpackDistTar (dependsOn: project(':app').distTar) << {
 }
 
 task buildout (type:Exec, dependsOn: bootstrap) {
-    commandLine "$projectDir/bin/buildout", '-N', 'install', 'test', 'hdfs-test', 'hadoop'
+    commandLine "$projectDir/bin/buildout", '-N', 'install', 'test', 'hdfs-test'
+}
+
+task buildoutHadoop(type:Exec, dependsOn: buildout) {
+    commandLine "$projectDir/bin/buildout", 'install', 'hadoop'
 }
 
 task lessLogging (dependsOn: unpackDistTar) << {
@@ -53,7 +57,7 @@ task gtest (type:Exec) {
 }
 
 
-hdfsTest.dependsOn(unpackDistTar, buildout, lessLogging, ignoreDiskThreshold, project(':es-repository-hdfs').distZipHadoop2)
+hdfsTest.dependsOn(unpackDistTar, buildoutHadoop, lessLogging, ignoreDiskThreshold, project(':es-repository-hdfs').distZipHadoop2)
 itest.dependsOn(unpackDistTar, buildout, lessLogging, ignoreDiskThreshold)
 gtest.dependsOn(unpackDistTar, buildout, lessLogging, ignoreDiskThreshold)
 
