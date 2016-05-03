@@ -21,21 +21,25 @@
 
 package org.elasticsearch.action.bulk;
 
+import io.crate.action.BackoffPolicy;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.action.LimitedExponentialBackoff;
+import io.crate.exceptions.Exceptions;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.threadpool.ThreadPool;
 
+import java.util.ArrayDeque;
+import java.util.Iterator;
 import java.util.Locale;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
+import java.util.Queue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 /**
  * coordinates bulk operation retries for one node
@@ -43,102 +47,135 @@ import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadF
 public class BulkRetryCoordinator {
 
     private static final ESLogger LOGGER = Loggers.getLogger(BulkRetryCoordinator.class);
-    private static final int DELAY_INCREMENT = 1;
 
     private final ReadWriteLock retryLock;
-    private final AtomicInteger currentDelay;
+    private static final BackoffPolicy backoff = LimitedExponentialBackoff.limitedExponential(1000);
 
-    private final ScheduledExecutorService retryExecutorService;
+    private final ThreadPool threadPool;
 
-    public BulkRetryCoordinator(Settings settings) {
-        this.retryExecutorService = Executors.newSingleThreadScheduledExecutor(
-                daemonThreadFactory(settings, getClass().getSimpleName()));
+    private final Object pendingLock = new Object();
+    private final Queue<PendingOperation<ShardUpsertRequest, ShardUpsertResponse>> pendingOperations = new ArrayDeque<>();
+    private volatile int activeOperations = 0;
+
+    public BulkRetryCoordinator(ThreadPool threadPool) {
+        this.threadPool = threadPool;
         this.retryLock = new ReadWriteLock();
-        this.currentDelay = new AtomicInteger(0);
-    }
-
-    public ReadWriteLock retryLock() {
-        return retryLock;
-    }
-
-    public void retry(final ShardUpsertRequest request,
-                      final BulkRequestExecutor executor,
-                      boolean repeatingRetry,
-                      ActionListener<ShardUpsertResponse> listener) {
-        trace("doRetry");
-        final RetryBulkActionListener retryBulkActionListener = new RetryBulkActionListener(listener);
-        if (repeatingRetry) {
-            try {
-                Thread.sleep(currentDelay.getAndAdd(DELAY_INCREMENT));
-            } catch (InterruptedException e) {
-                Thread.interrupted();
-            }
-            executor.execute(request, retryBulkActionListener);
-        } else {
-            // new retries will be spawned in new thread because they can block
-            retryExecutorService.schedule(
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            LOGGER.trace("retry thread [{}] started", Thread.currentThread().getName());
-                            // will block if other retries/writer are active
-                            try {
-                                retryLock.acquireWriteLock();
-                            } catch (InterruptedException e) {
-                                Thread.interrupted();
-                            }
-                            LOGGER.trace("retry thread [{}] executing", Thread.currentThread().getName());
-                            executor.execute(request, retryBulkActionListener);
-                        }
-                    }, currentDelay.getAndAdd(DELAY_INCREMENT), TimeUnit.MILLISECONDS);
-        }
     }
 
     private void trace(String message, Object ... args) {
         if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("BulkRetryCoordinator: active retries: {} - {}",
-                    retryLock.activeWriters(), String.format(Locale.ENGLISH, message, args));
+            LOGGER.trace("BulkRetryCoordinator{activeOperations='" + activeOperations + "', " +
+                         "pendingOperations='" + pendingOperations.size() + "'} {}",
+                String.format(Locale.ENGLISH, message, args));
         }
     }
 
-    public void close() {
-        if (!retryExecutorService.isTerminated()) {
-            retryExecutorService.shutdown();
-            try {
-                retryExecutorService.awaitTermination(currentDelay.get() + 100, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                retryExecutorService.shutdownNow();
+    public void acquireReadLock() throws InterruptedException {
+        /**
+         * In order to keep the {@link retryLock} field private we expose only this proxy method.
+         * This method is only used by the BulkShardProcessor.
+         */
+        retryLock.acquireReadLock();
+    }
+
+    public void releaseWriteLock() {
+        /**
+         * In order to keep the {@link retryLock} field private we expose only this proxy method.
+         * This method is only used by the BulkShardProcessor.
+         */
+        retryLock.releaseWriteLock();
+    }
+
+    public int numPendingOperations() {
+        return pendingOperations.size();
+    }
+
+    public void retry(ShardUpsertRequest request, BulkRequestExecutor executor, ActionListener<ShardUpsertResponse> responseListener) {
+        retryOperation(new PendingOperation(request, responseListener, executor));
+    }
+
+    private void retryOperation(final PendingOperation<ShardUpsertRequest, ShardUpsertResponse> operation) {
+        trace("retryOperation - activeOperations=%d", activeOperations);
+        synchronized (pendingLock) {
+            if (activeOperations > 0) {
+                pendingOperations.add(operation);
+                return;
+            }
+            activeOperations++;
+        }
+
+        try {
+            retryLock.acquireWriteLock();
+        } catch (InterruptedException e) {
+            operation.responseListener.onFailure(e);
+            return;
+        }
+
+        final ActionListener<ShardUpsertResponse> triggeringListener = new PendingTriggeringActionListener(operation);
+        operation.executor.execute(operation.request, triggeringListener);
+    }
+
+    private void triggerNext() {
+        releaseWriteLock();
+        PendingOperation<ShardUpsertRequest, ShardUpsertResponse> pendingOperation = null;
+        synchronized (pendingLock) {
+            activeOperations--;
+            if (activeOperations == 0) {
+                pendingOperation = pendingOperations.poll();
             }
         }
+        trace("triggerNext - pendingOperation=%s pendingOperations=%d", pendingOperation, pendingOperations.size());
+
+        if (pendingOperation == null) {
+            return;
+        }
+        retryOperation(pendingOperation);
     }
 
-    public void shutdown() {
-        retryExecutorService.shutdownNow();
+    static class PendingOperation<Request, Response> {
+
+        private final Request request;
+        private final ActionListener<Response> responseListener;
+        private final BulkRequestExecutor executor;
+        private final Iterator<TimeValue> delay = backoff.iterator();
+
+
+        public PendingOperation(Request request, ActionListener<Response> responseListener, BulkRequestExecutor executor) {
+            this.request = request;
+            this.responseListener = responseListener;
+            this.executor = executor;
+        }
     }
 
-    private class RetryBulkActionListener implements ActionListener<ShardUpsertResponse> {
+    private class PendingTriggeringActionListener implements ActionListener<ShardUpsertResponse> {
+        private final PendingOperation<ShardUpsertRequest, ShardUpsertResponse> operation;
 
-        private final ActionListener<ShardUpsertResponse> listener;
-
-        private RetryBulkActionListener(ActionListener<ShardUpsertResponse> listener) {
-            this.listener = listener;
+        public PendingTriggeringActionListener(PendingOperation<ShardUpsertRequest, ShardUpsertResponse> operation) {
+            this.operation = operation;
         }
 
         @Override
         public void onResponse(ShardUpsertResponse response) {
-            currentDelay.set(0);
-            retryLock.releaseWriteLock();
-            listener.onResponse(response);
+            triggerNext();
+            operation.responseListener.onResponse(response);
         }
 
         @Override
         public void onFailure(Throwable e) {
-            listener.onFailure(e);
+            e = Exceptions.unwrap(e);
+            if (e instanceof EsRejectedExecutionException && operation.delay.hasNext()) {
+                threadPool.schedule(operation.delay.next(), ThreadPool.Names.SAME, new Runnable() {
+                    @Override
+                    public void run() {
+                        operation.executor.execute(operation.request, PendingTriggeringActionListener.this);
+                    }
+                });
+            } else {
+                triggerNext();
+                operation.responseListener.onFailure(e);
+            }
         }
     }
-
 
     /**
      * A {@link Semaphore} based read/write lock allowing multiple readers,
@@ -146,7 +183,7 @@ public class BulkRetryCoordinator {
      * precedence over readers, a writer will block all readers.
      * Compared to a {@link ReadWriteLock}, no lock is owned by a thread.
      */
-    static class ReadWriteLock {
+    static private class ReadWriteLock {
         private final Semaphore readLock = new Semaphore(1, true);
         private final Semaphore writeLock = new Semaphore(1, true);
         private final AtomicInteger activeWriters = new AtomicInteger(0);
@@ -174,14 +211,10 @@ public class BulkRetryCoordinator {
 
         public void acquireReadLock() throws InterruptedException {
             // only acquire permit if writers are active
-            if(activeWriters.get() > 0) {
+            if (activeWriters.get() > 0) {
                 waitingReaders.getAndIncrement();
                 readLock.acquire();
             }
-        }
-
-        public int activeWriters() {
-            return activeWriters.get();
         }
 
     }

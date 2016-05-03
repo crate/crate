@@ -34,6 +34,7 @@ import org.elasticsearch.common.transport.DummyTransportAddress;
 import org.elasticsearch.index.IndexShardMissingException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -43,6 +44,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -82,7 +84,7 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
                 return state;
             }
         });
-        pool = new BulkRetryCoordinatorPool(ImmutableSettings.EMPTY, clusterService);
+        pool = new BulkRetryCoordinatorPool(ImmutableSettings.EMPTY, clusterService, mock(ThreadPool.class));
         pool.start();
     }
 
