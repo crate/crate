@@ -29,17 +29,18 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mock;
@@ -73,7 +74,9 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
 
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
-                ImmutableSettings.EMPTY,
+                TestingHelpers.getFunctions(),
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                Settings.EMPTY,
                 mock(TransportActionProvider.class),
                 Suppliers.ofInstance("foo"),
                 mock(BulkRetryCoordinatorPool.class),
@@ -111,7 +114,9 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
                 clusterService,
-                ImmutableSettings.EMPTY,
+                TestingHelpers.getFunctions(),
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                Settings.EMPTY,
                 mock(TransportActionProvider.class),
                 Suppliers.ofInstance("foo"),
                 mock(BulkRetryCoordinatorPool.class, Answers.RETURNS_DEEP_STUBS.get()),
@@ -129,7 +134,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
                 UUID.randomUUID()
         );
         indexWriter.downstream(rowReceiver);
-        indexWriter.prepare(mock(ExecutionState.class));
+        indexWriter.prepare();
         indexWriter.setNextRow(new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null}));
         indexWriter.finish();
     }

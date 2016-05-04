@@ -31,6 +31,7 @@ import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.jobs.*;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import org.elasticsearch.ExceptionsHelper;
@@ -44,7 +45,9 @@ import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 
@@ -54,11 +57,11 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
 
 public class UpsertByIdTask extends JobTask {
 
-    private final BulkRequestExecutor transportShardUpsertActionDelegate;
+    private final BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportBulkCreateIndicesAction transportBulkCreateIndicesAction;
     private final ClusterService clusterService;
@@ -74,14 +77,16 @@ public class UpsertByIdTask extends JobTask {
 
     public UpsertByIdTask(UUID jobId,
                           ClusterService clusterService,
+                          IndexNameExpressionResolver indexNameExpressionResolver,
                           Settings settings,
-                          BulkRequestExecutor transportShardUpsertActionDelegate,
+                          BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate,
                           TransportCreateIndexAction transportCreateIndexAction,
                           TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
                           BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                           UpsertByIdNode node,
                           JobContextService jobContextService) {
         super(jobId);
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.transportBulkCreateIndicesAction = transportBulkCreateIndicesAction;
@@ -89,7 +94,7 @@ public class UpsertByIdTask extends JobTask {
         this.node = node;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.jobContextService = jobContextService;
-        autoCreateIndex = new AutoCreateIndex(settings);
+        autoCreateIndex = new AutoCreateIndex(settings, indexNameExpressionResolver);
 
         if (node.items().size() == 1) {
             // skip useless usage of bulk processor if only 1 item in statement
@@ -120,13 +125,9 @@ public class UpsertByIdTask extends JobTask {
             } else if (bulkShardProcessorContext != null) {
                 assert jobExecutionContext != null;
                 for (UpsertByIdNode.Item item : node.items()) {
-                    bulkShardProcessorContext.add(
-                            item.index(),
-                            item.id(),
-                            item.updateAssignments(),
-                            item.insertValues(),
-                            item.routing(),
-                            item.version());
+                    ShardUpsertRequest.Item requestItem = new ShardUpsertRequest.Item(
+                            item.id(), item.updateAssignments(), item.insertValues(), item.version());
+                    bulkShardProcessorContext.add(item.index(), requestItem, item.routing());
                 }
                 jobExecutionContext.start();
             }
@@ -137,19 +138,30 @@ public class UpsertByIdTask extends JobTask {
         }
     }
 
-    private void executeUpsertRequest(final UpsertByIdNode.Item item, final SettableFuture futureResult) {
-        ShardId shardId = clusterService.operationRouting().indexShards(
-                clusterService.state(),
-                item.index(),
-                Constants.DEFAULT_MAPPING_TYPE,
-                item.id(),
-                item.routing()
-        ).shardId();
+    private void executeUpsertRequest(final UpsertByIdNode.Item item, final SettableFuture<TaskResult> futureResult) {
+        ShardId shardId;
+        try {
+            shardId = clusterService.operationRouting().indexShards(
+                    clusterService.state(),
+                    item.index(),
+                    Constants.DEFAULT_MAPPING_TYPE,
+                    item.id(),
+                    item.routing()
+            ).shardId();
+        } catch (IndexNotFoundException e) {
+            if (PartitionName.isPartition(item.index())) {
+                futureResult.set(TaskResult.ZERO);
+                return;
+            }
+            throw e;
+        }
 
         ShardUpsertRequest upsertRequest = new ShardUpsertRequest(
                 shardId, node.updateColumns(), node.insertColumns(), item.routing(), jobId());
         upsertRequest.continueOnError(false);
-        upsertRequest.add(0, item.id(), item.updateAssignments(), item.insertValues(), item.version());
+        ShardUpsertRequest.Item requestItem = new ShardUpsertRequest.Item(
+                item.id(), item.updateAssignments(), item.insertValues(), item.version());
+        upsertRequest.add(0, requestItem);
 
         UpsertByIdContext upsertByIdContext = new UpsertByIdContext(
                 node.executionPhaseId(), upsertRequest, item, futureResult, transportShardUpsertActionDelegate);
@@ -180,9 +192,10 @@ public class UpsertByIdTask extends JobTask {
                 jobId(),
                 false
         );
-        BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
+        BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 transportBulkCreateIndicesAction,
+                indexNameExpressionResolver,
                 settings,
                 bulkRetryCoordinatorPool,
                 node.isPartitionedTable(),
@@ -239,7 +252,7 @@ public class UpsertByIdTask extends JobTask {
                 }
 
                 private void setAllToFailed(@Nullable Throwable throwable) {
-                    if (throwable instanceof CancellationException) {
+                    if (throwable instanceof InterruptedException) {
                         for (ListenableFuture<TaskResult> future : resultList) {
                             ((SettableFuture<TaskResult>) future).setException(throwable);
                         }
@@ -265,7 +278,7 @@ public class UpsertByIdTask extends JobTask {
     }
 
     private void createIndexAndExecuteUpsertRequest(final UpsertByIdNode.Item item,
-                                                    final SettableFuture futureResult) {
+                                                    final SettableFuture<TaskResult> futureResult) {
         transportCreateIndexAction.execute(
                 new CreateIndexRequest(item.index()).cause("upsert single item"),
                 new ActionListener<CreateIndexResponse>() {

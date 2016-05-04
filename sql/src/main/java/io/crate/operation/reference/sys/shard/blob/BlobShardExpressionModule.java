@@ -26,17 +26,14 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.settings.IndexSettings;
 
 public class BlobShardExpressionModule extends AbstractModule {
 
     private final Settings settings;
 
-    @Inject
-    public BlobShardExpressionModule(@IndexSettings Settings settings) {
+    public BlobShardExpressionModule(Settings settings) {
         this.settings = settings;
     }
 
@@ -53,6 +50,7 @@ public class BlobShardExpressionModule extends AbstractModule {
             binder.addBinding(SysShardsTableInfo.ReferenceIdents.SCHEMA_NAME).to(BlobShardSchemaNameExpression.class).asEagerSingleton();
             binder.addBinding(SysShardsTableInfo.ReferenceIdents.SIZE).to(BlobShardSizeExpression.class).asEagerSingleton();
             binder.addBinding(SysShardsTableInfo.ReferenceIdents.STATE).to(BlobShardStateExpression.class).asEagerSingleton();
+            binder.addBinding(SysShardsTableInfo.ReferenceIdents.ROUTING_STATE).to(BlobShardRoutingStateExpression.class).asEagerSingleton();
             binder.addBinding(SysShardsTableInfo.ReferenceIdents.TABLE_NAME).to(BlobShardTableNameExpression.class).asEagerSingleton();
             binder.addBinding(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT).to(BlobShardPartitionIdentExpression.class).asEagerSingleton();
             binder.addBinding(SysShardsTableInfo.ReferenceIdents.ORPHAN_PARTITION).to(BlobShardPartitionOrphanedExpression.class).asEagerSingleton();

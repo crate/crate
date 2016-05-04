@@ -40,7 +40,8 @@ import io.crate.planner.Planner;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.QueryAndFetchConsumer;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.FileUriCollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.sql.parser.SqlParser;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -59,7 +60,7 @@ import java.util.UUID;
 public class LuceneDocCollectorProvider implements AutoCloseable {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     private final InternalTestCluster cluster;
     private final Analyzer analyzer;
@@ -73,7 +74,7 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
         this.queryAndFetchConsumer = cluster.getDataNodeInstance(QueryAndFetchConsumer.class);
     }
 
-    private Iterable<CrateCollector> createNodeCollectors(String nodeId, CollectPhase collectPhase, RowReceiver downstream) {
+    private Iterable<CrateCollector> createNodeCollectors(String nodeId, RoutedCollectPhase collectPhase, RowReceiver downstream) {
         String nodeName = cluster.clusterService().state().nodes().get(nodeId).name();
         IndicesService indicesService = cluster.getInstance(IndicesService.class, nodeName);
         JobContextService jobContextService = cluster.getInstance(JobContextService.class, nodeName);
@@ -81,7 +82,9 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
 
         SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
         JobExecutionContext.Builder builder = jobContextService.newBuilder(collectPhase.jobId());
-        JobCollectContext jobCollectContext = new JobCollectContext(collectPhase, collectOperation, RAM_ACCOUNTING_CONTEXT, downstream, sharedShardContexts);
+        JobCollectContext jobCollectContext = new JobCollectContext(
+                collectPhase, collectOperation,  cluster.clusterService().state().nodes().localNodeId(),
+                RAM_ACCOUNTING_CONTEXT, downstream, sharedShardContexts);
         collectContexts.add(jobCollectContext);
         builder.addSubContext(jobCollectContext);
         jobContextService.createContext(builder);
@@ -99,7 +102,7 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
         PlannedAnalyzedRelation plannedAnalyzedRelation = queryAndFetchConsumer.consume(
                 analysis.rootRelation(),
                 new ConsumerContext(analysis.rootRelation(), new Planner.Context(cluster.clusterService(), UUID.randomUUID(), null)));
-        final CollectPhase collectPhase = ((CollectAndMerge) plannedAnalyzedRelation.plan()).collectPhase();
+        final RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((CollectAndMerge) plannedAnalyzedRelation.plan()).collectPhase());
         collectPhase.nodePageSizeHint(nodePageSizeHint);
 
         final ImmutableList.Builder<CrateCollector> builder = ImmutableList.builder();

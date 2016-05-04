@@ -21,8 +21,10 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.base.Functions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.ActionListeners;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
@@ -31,7 +33,7 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequ
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -50,7 +52,7 @@ public class ESClusterUpdateSettingsTask extends JobTask {
         this.transport = transport;
 
         final SettableFuture<TaskResult> result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<TaskResult>>asList(result);
+        results = Collections.<ListenableFuture<TaskResult>>singletonList(result);
 
         request = new ClusterUpdateSettingsRequest();
         request.persistentSettings(node.persistentSettings());
@@ -61,26 +63,7 @@ public class ESClusterUpdateSettingsTask extends JobTask {
         if (node.transientSettingsToRemove() != null) {
             request.transientSettingsToRemove(node.transientSettingsToRemove());
         }
-        listener = new ClusterUpdateSettingsResponseListener(result);
-    }
-
-    static class ClusterUpdateSettingsResponseListener implements ActionListener<ClusterUpdateSettingsResponse> {
-
-        private final SettableFuture<TaskResult> result;
-
-        public ClusterUpdateSettingsResponseListener(SettableFuture<TaskResult> result) {
-            this.result = result;
-        }
-
-        @Override
-        public void onResponse(ClusterUpdateSettingsResponse response) {
-            result.set(TaskResult.ONE_ROW);
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            result.setException(e);
-        }
+        listener = ActionListeners.wrap(result, Functions.constant(TaskResult.ONE_ROW));
     }
 
     @Override

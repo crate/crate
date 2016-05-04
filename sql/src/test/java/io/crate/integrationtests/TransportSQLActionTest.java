@@ -29,14 +29,17 @@ import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.executor.TaskResult;
-import io.crate.planner.Plan;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,9 +51,11 @@ import java.io.File;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
+@ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -82,13 +87,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testTableUnknownExceptionIsRaisedIfDeletedAfterPlan() throws Throwable {
-        expectedException.expect(TableUnknownException.class);
+    public void testIndexNotFoundExceptionIsRaisedIfDeletedAfterPlan() throws Throwable {
+        expectedException.expect(IndexNotFoundException.class);
 
         execute("create table t (name string)");
         ensureYellow();
 
-        Plan plan = plan("select * from t");
+        PlanForNode plan = plan("select * from t");
         execute("drop table t");
         ListenableFuture<List<TaskResult>> future = execute(plan);
         try {
@@ -139,7 +144,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table test (\"firstName\" string, \"lastName\" string)");
         ensureYellow();
         execute("select * from test");
-        assertArrayEquals(new String[]{"\"firstName\"", "\"lastName\""}, response.cols());
+        assertArrayEquals(new String[]{"firstName", "lastName"}, response.cols());
         assertEquals(0, response.rowCount());
     }
 
@@ -177,7 +182,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}")
                 .execute().actionGet();
         execute("select \"_version\", *, \"_id\" from test");
-        assertArrayEquals(new String[]{"_version", "\"firstName\"", "\"lastName\"", "_id"},
+        assertArrayEquals(new String[]{"_version", "firstName", "lastName", "_id"},
                 response.cols());
         assertEquals(1, response.rowCount());
         assertArrayEquals(new Object[]{1L, "Youri", "Zoon", "id1"}, response.rows()[0]);
@@ -220,7 +225,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}")
                 .execute().actionGet();
         execute("select *, \"_version\", \"_version\" as v from test");
-        assertArrayEquals(new String[]{"\"firstName\"", "\"lastName\"", "_version", "v"},
+        assertArrayEquals(new String[]{"firstName", "lastName", "_version", "v"},
                 response.cols());
         assertEquals(1, response.rowCount());
         assertArrayEquals(new Object[]{"Youri", "Zoon", 1L, 1L}, response.rows()[0]);
@@ -344,52 +349,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rows()[0].length);
         assertEquals("id1", response.rows()[0][0]);
     }
-
-    @Test
-    public void testDelete() throws Exception {
-        createIndex("test");
-        ensureYellow();
-        client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
-        refresh();
-        execute("delete from test");
-        assertEquals(-1, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
-        execute("select \"_id\" from test");
-        assertEquals(0, response.rowCount());
-    }
-
-    @Test
-    public void testDeleteWithWhere() throws Exception {
-        createIndex("test");
-        ensureYellow();
-        client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
-        client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
-        client().prepareIndex("test", "default", "id3").setSource("{}").execute().actionGet();
-        refresh();
-        execute("delete from test where \"_id\" = 'id1'");
-        assertEquals(1, response.rowCount());
-        refresh();
-        execute("select \"_id\" from test");
-        assertEquals(2, response.rowCount());
-    }
-
-    @Test
-    public void testDeleteWhereIsNull() throws Exception {
-        execute("create table test (id integer, name string) with (number_of_replicas=0)");
-        execute("insert into test (id, name) values (1, 'foo')"); // name exists
-        execute("insert into test (id, name) values (2, null)"); // name is null
-        execute("insert into test (id) values (3)"); // name does not exist
-        refresh();
-        execute("delete from test where name is null");
-        refresh();
-        execute("select * from test");
-        assertEquals(1, response.rowCount());
-        execute("select * from test where name is not null");
-        assertEquals(1, response.rowCount());
-        execute("select * from test where name is null");
-        assertEquals(0, response.rowCount());
-    }
-
 
     @Test
     public void testSqlRequestWithLimit() throws Exception {
@@ -699,7 +658,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .endObject()
                 .startObject("data")
                 .field("type", "object")
-                .field("index", "not_analyzed")
                 .field("dynamic", false)
                 .endObject()
                 .endObject()
@@ -733,23 +691,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
         assertEquals("124", response.rows()[0][0]);
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
-    }
-
-    @Test
-    public void testDeleteToDeleteRequestByPlanner() throws Exception {
-        this.setup.createTestTableWithPrimaryKey();
-
-        execute("insert into test (pk_col, message) values ('123', 'bar')");
-        assertEquals(1, response.rowCount());
-        refresh();
-
-        execute("delete from test where pk_col='123'");
-        assertEquals(1, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
-        refresh();
-
-        execute("select * from test where pk_col='123'");
-        assertEquals(0, response.rowCount());
     }
 
     @Test
@@ -809,39 +750,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("SELECT * FROM test WHERE pk_col IN (?,?,?)", new Object[]{"1", "2", "3"});
         assertEquals(3, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
-    }
-
-    @Test
-    public void testDeleteToRoutedRequestByPlannerWhereIn() throws Exception {
-        this.setup.createTestTableWithPrimaryKey();
-
-        execute("insert into test (pk_col, message) values ('1', 'foo')");
-        execute("insert into test (pk_col, message) values ('2', 'bar')");
-        execute("insert into test (pk_col, message) values ('3', 'baz')");
-        refresh();
-
-        execute("DELETE FROM test WHERE pk_col IN (?, ?, ?)", new Object[]{"1", "2", "4"});
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
-        refresh();
-
-        execute("SELECT pk_col FROM test");
-        assertThat(response.rowCount(), is(1L));
-        assertEquals(response.rows()[0][0], "3");
-
-    }
-
-
-    @Test
-    public void testDeleteToRoutedRequestByPlannerWhereOr() throws Exception {
-        this.setup.createTestTableWithPrimaryKey();
-        execute("insert into test (pk_col, message) values ('1', 'foo'), ('2', 'bar'), ('3', 'baz')");
-        refresh();
-        execute("DELETE FROM test WHERE pk_col=? or pk_col=? or pk_col=?", new Object[]{"1", "2", "4"});
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
-        refresh();
-        execute("SELECT pk_col FROM test");
-        assertThat(response.rowCount(), is(1L));
-        assertEquals(response.rows()[0][0], "3");
     }
 
     @Test
@@ -1240,47 +1148,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testDeleteByIdWithMultiplePrimaryKey() throws Exception {
-        execute("create table quotes (id integer primary key, author string primary key, " +
-                "quote string) with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into quotes (id, author, quote) values (?, ?, ?), (?, ?, ?)",
-                new Object[]{1, "Ford", "I'd far rather be happy than right any day.",
-                        1, "Douglas", "Don't panic"}
-        );
-        assertEquals(2L, response.rowCount());
-        refresh();
-
-        execute("delete from quotes where id=1 and author='Ford'");
-        assertEquals(1L, response.rowCount());
-        refresh();
-
-        execute("select quote from quotes where id=1");
-        assertEquals(1L, response.rowCount());
-    }
-
-    @Test
-    public void testDeleteByQueryWithMultiplePrimaryKey() throws Exception {
-        execute("create table quotes (id integer primary key, author string primary key, " +
-                "quote string) with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into quotes (id, author, quote) values (?, ?, ?), (?, ?, ?)",
-                new Object[]{1, "Ford", "I'd far rather be happy than right any day.",
-                        1, "Douglas", "Don't panic"}
-        );
-        assertEquals(2L, response.rowCount());
-        refresh();
-
-        execute("delete from quotes where id=1");
-        // no rowCount available for deleteByQuery requests
-        assertEquals(-1L, response.rowCount());
-        refresh();
-
-        execute("select quote from quotes where id=1");
-        assertEquals(0L, response.rowCount());
-    }
-
-    @Test
     public void testSelectWhereBoolean() {
         execute("create table a (v boolean)");
         ensureYellow();
@@ -1393,7 +1260,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         });
         assertThat(bulkResp.results().length, is(2));
         for (SQLBulkResponse.Result result : bulkResp.results()) {
-            assertThat(result.rowCount(), is(-1L));
+            assertThat(result.rowCount(), is(1L));
         }
         refresh();
 
@@ -1547,19 +1414,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testDeleteOnIpType() throws Exception {
-        execute("create table ip_table (fqdn string, addr ip) with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into ip_table (fqdn, addr) values ('localhost', '127.0.0.1'), ('crate.io', '23.235.33.143')");
-        execute("refresh table ip_table");
-        execute("delete from ip_table where addr = '127.0.0.1'");
-        assertThat(response.rowCount(), is(-1L));
-        execute("select addr from ip_table");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("23.235.33.143"));
-    }
-
-    @Test
     public void testInsertAndSelectGeoType() throws Exception {
         execute("create table geo_point_table (id int primary key, p geo_point) with (number_of_replicas=0)");
         ensureYellow();
@@ -1611,7 +1465,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "GROUP BY i";
         execute(stmtAggregate);
         assertThat(response.rowCount(), is(1L));
-        String expectedAggregate = "1| 2297790.338709135\n";
+        String expectedAggregate = "1| 2297790.348010545\n";
         assertEquals(expectedAggregate, TestingHelpers.printedTable(response.rows()));
 
         // queries
@@ -1628,7 +1482,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select p from t where distance(p, 'POINT (11 21)') < 10.0 or distance(p, 'POINT (11 21)') > 10.0");
         assertThat(response.rowCount(), is(2L));
 
-        execute("select p from t where distance(p, 'POINT (10 20)') = 0");
+        execute("select p from t where distance(p, 'POINT (10 20)') >= -0.99 and distance(p, 'POINT (10 20)') <= 0.01");
         assertThat(response.rowCount(), is(1L));
     }
 
@@ -1805,20 +1659,20 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "where match((kind, name_description_ft 0.5), 'Planet earth') using most_fields with (analyzer='english') order by _score desc");
         assertThat(response.rowCount(), is(5L));
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("Alpha Centauri| 4.1 light-years northwest of earth| Star System| 0.049483635\n" +
-                        "| This Planet doesn't really exist| Planet| 0.04724514\nAllosimanius Syneca| Allosimanius Syneca is a planet noted for ice, snow, mind-hurtling beauty and stunning cold.| Planet| 0.021473126\n" +
-                        "Bartledan| An Earthlike planet on which Arthur Dent lived for a short time, Bartledan is inhabited by Bartledanians, a race that appears human but only physically.| Planet| 0.018788986\n" +
-                        "Galactic Sector QQ7 Active J Gamma| Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains.| Galaxy| 0.017716927\n"));
+                is("Alpha Centauri| 4.1 light-years northwest of earth| Star System| 0.05715186\n" +
+                   "Bartledan| An Earthlike planet on which Arthur Dent lived for a short time, Bartledan is inhabited by Bartledanians, a race that appears human but only physically.| Planet| 0.033338584\n| This Planet doesn't really exist| Planet| 0.023602562\n" +
+                   "Allosimanius Syneca| Allosimanius Syneca is a planet noted for ice, snow, mind-hurtling beauty and stunning cold.| Planet| 0.011801281\n" +
+                   "Galactic Sector QQ7 Active J Gamma| Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains.| Galaxy| 0.008850961\n"));
 
         execute("select name, description, kind, _score from locations " +
                 "where match((kind, name_description_ft 0.5), 'Planet earth') using cross_fields order by _score desc");
         assertThat(response.rowCount(), is(5L));
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("Alpha Centauri| 4.1 light-years northwest of earth| Star System| 0.06658964\n" +
-                        "| This Planet doesn't really exist| Planet| 0.06235056\n" +
-                        "Allosimanius Syneca| Allosimanius Syneca is a planet noted for ice, snow, mind-hurtling beauty and stunning cold.| Planet| 0.02889618\n" +
-                        "Bartledan| An Earthlike planet on which Arthur Dent lived for a short time, Bartledan is inhabited by Bartledanians, a race that appears human but only physically.| Planet| 0.025284158\n" +
-                        "Galactic Sector QQ7 Active J Gamma| Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains.| Galaxy| 0.02338146\n"));
+                is("Alpha Centauri| 4.1 light-years northwest of earth| Star System| 0.07601598\n" +
+                   "Bartledan| An Earthlike planet on which Arthur Dent lived for a short time, Bartledan is inhabited by Bartledanians, a race that appears human but only physically.| Planet| 0.044342656\n" +
+                   "| This Planet doesn't really exist| Planet| 0.031368554\n" +
+                   "Allosimanius Syneca| Allosimanius Syneca is a planet noted for ice, snow, mind-hurtling beauty and stunning cold.| Planet| 0.015684277\n" +
+                   "Galactic Sector QQ7 Active J Gamma| Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains.| Galaxy| 0.011763208\n"));
     }
 
     @Test
@@ -1851,25 +1705,37 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testMatchTypes() throws Exception {
         this.setup.setUpLocations();
         refresh();
+
+        SearchRequest searchRequest = new SearchRequest("locations")
+                .source("{\"query\": {\"multi_match\": {\"fields\": [\"kind^0.8\", \"name_description_ft^0.6\"], \"query\": \"planet earth\"}}}");
+        SearchResponse searchResponse = client().search(searchRequest).actionGet();
+
         execute("select name, _score from locations where match((kind 0.8, name_description_ft 0.6), 'planet earth') using best_fields order by _score desc");
+
+        SearchHit[] hits = searchResponse.getHits().getHits();
+        for (int i = 0; i < hits.length; i++) {
+            assertThat(hits[i].score(), is(((float) response.rows()[i][1])));
+        }
+
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("Alpha Centauri| 0.22184466\n| 0.21719791\nAllosimanius Syneca| 0.09626817\nBartledan| 0.08423465\nGalactic Sector QQ7 Active J Gamma| 0.08144922\n"));
+                is("Alpha Centauri| 0.2600391\nBartledan| 0.15168947\n| 0.10750017\nAllosimanius Syneca| 0.053750087\nGalactic Sector QQ7 Active J Gamma| 0.040312566\n"));
+
 
         execute("select name, _score from locations where match((kind 0.6, name_description_ft 0.8), 'planet earth') using most_fields order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("Alpha Centauri| 0.12094267\n| 0.1035407\nAllosimanius Syneca| 0.05248235\nBartledan| 0.045922056\nGalactic Sector QQ7 Active J Gamma| 0.038827762\n"));
+                is("Alpha Centauri| 0.13054572\nBartledan| 0.07615167\n| 0.053683124\nAllosimanius Syneca| 0.026841562\nGalactic Sector QQ7 Active J Gamma| 0.02013117\n"));
 
         execute("select name, _score from locations where match((kind 0.4, name_description_ft 1.0), 'planet earth') using cross_fields order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("Alpha Centauri| 0.14147125\n| 0.116184436\nAllosimanius Syneca| 0.061390605\nBartledan| 0.05371678\nGalactic Sector QQ7 Active J Gamma| 0.043569162\n"));
+                is("Alpha Centauri| 0.14860114\nBartledan| 0.086684\n| 0.061013106\nAllosimanius Syneca| 0.030506553\nGalactic Sector QQ7 Active J Gamma| 0.022879915\n"));
 
         execute("select name, _score from locations where match((kind 1.0, name_description_ft 0.4), 'Alpha Centauri') using phrase");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("Alpha Centauri| 0.94653714\n"));
+                is("Alpha Centauri| 1.1095\n"));
 
         execute("select name, _score from locations where match(name_description_ft, 'Alpha Centauri') using phrase_prefix");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("Alpha Centauri| 1.5739591\n"));
+                is("Alpha Centauri| 1.7897208\n"));
     }
 
     @Test
@@ -1880,12 +1746,12 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
                 "using best_fields with (analyzer='english') order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("End of the Galaxy| 0.7260999\nAltair| 0.2895972\nNorth West Ripple| 0.25339755\nOuter Eastern Rim| 0.2246257\n"));
+                is("End of the Galaxy| 0.65826756\nAltair| 0.3518162\nNorth West Ripple| 0.20364113\nOuter Eastern Rim| 0.20364113\n"));
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
                 "using best_fields with (fuzziness=0.5) order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("Outer Eastern Rim| 1.4109559\nEnd of the Galaxy| 1.4109559\nNorth West Ripple| 1.2808706\nGalactic Sector QQ7 Active J Gamma| 1.2808706\nAltair| 0.3842612\nAlgol| 0.25617412\n"));
+                is("End of the Galaxy| 1.1972358\nAltair| 0.4790727\nNorth West Ripple| 0.37037593\nOuter Eastern Rim| 0.37037593\n"));
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'gala') " +
                 "using best_fields with (operator='or', minimum_should_match=2) order by _score desc");
@@ -1895,17 +1761,17 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select name, _score from locations where match((kind, name_description_ft), 'gala') " +
                 "using phrase_prefix with (slop=1) order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("End of the Galaxy| 0.75176084\nOuter Eastern Rim| 0.5898516\nGalactic Sector QQ7 Active J Gamma| 0.34636837\nAlgol| 0.32655922\nAltair| 0.32655922\nNorth West Ripple| 0.2857393\n"));
+                is("End of the Galaxy| 0.53688645\nOuter Eastern Rim| 0.49600732\nAlgol| 0.3770475\nGalactic Sector QQ7 Active J Gamma| 0.35930455\nAltair| 0.33875558\nNorth West Ripple| 0.16609077\n"));
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
                 "using phrase with (tie_breaker=2.0) order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("End of the Galaxy| 0.4618873\nAltair| 0.18054473\nNorth West Ripple| 0.15797664\nOuter Eastern Rim| 0.1428891\n"));
+                is("End of the Galaxy| 0.4428768\nAltair| 0.19800007\nNorth West Ripple| 0.13700803\nOuter Eastern Rim| 0.13700803\n"));
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
                 "using best_fields with (zero_terms_query='all') order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("End of the Galaxy| 0.7260999\nAltair| 0.2895972\nNorth West Ripple| 0.25339755\nOuter Eastern Rim| 0.2246257\n"));
+                is("End of the Galaxy| 0.65826756\nAltair| 0.3518162\nNorth West Ripple| 0.20364113\nOuter Eastern Rim| 0.20364113\n"));
     }
 
     @Test
@@ -1977,7 +1843,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         try {
             execute("select * from foobar");
         } catch (SQLActionException e) {
-            assertEquals(e.getMessage(), "Table 'doc.foobar' unknown");
+            assertThat(e.getMessage(), containsString("Table 'doc.foobar' unknown"));
             execute("select stmt from sys.jobs");
             assertEquals(response.rowCount(), 1L);
             assertEquals(response.rows()[0][0], "select stmt from sys.jobs");
@@ -2018,6 +1884,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectFrom_Doc() throws Exception {
         execute("create table t (name string) with (number_of_replicas = 0)");
+        ensureYellow();
         execute("insert into t (name) values ('Marvin')");
         execute("refresh table t");
 
@@ -2033,7 +1900,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("REFRESH TABLE with_quote");
         execute("SELECT * FROM with_quote");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), is(arrayContaining("\"\"\"\"")));
+        assertThat(response.cols(), is(arrayContaining("\"")));
         assertThat((String)response.rows()[0][0], is("'"));
     }
 }

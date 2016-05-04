@@ -22,38 +22,17 @@
 package io.crate.planner.node;
 
 import io.crate.planner.node.ddl.*;
-import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.UpsertByIdNode;
-import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.ESGetNode;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.join.NestedLoopPhase;
-import org.elasticsearch.common.Nullable;
 
 public class PlanNodeVisitor<C, R> {
-
-    public R process(PlanNode node, @Nullable C context) {
-        return node.accept(this, context);
-    }
 
     protected R visitPlanNode(PlanNode node, C context) {
         return null;
     }
 
-    public R visitMergeNode(MergePhase node, C context) {
-        return visitPlanNode(node, context);
-    }
-
-    public R visitCollectNode(CollectPhase node, C context) {
-        return visitPlanNode(node, context);
-    }
-
     public R visitESGetNode(ESGetNode node, C context) {
-        return visitPlanNode(node, context);
-    }
-
-    public R visitESDeleteByQueryNode(ESDeleteByQueryNode node, C context) {
         return visitPlanNode(node, context);
     }
 
@@ -79,10 +58,6 @@ public class PlanNodeVisitor<C, R> {
 
     public R visitDropTableNode(DropTableNode node, C context) {
         return visitPlanNode(node, context);
-    }
-
-    public R visitNestedLoopPhase(NestedLoopPhase phase, C context) {
-        return visitPlanNode(phase, context);
     }
 
     public R visitGenericDDLNode(GenericDDLNode node, C context) {

@@ -27,7 +27,6 @@ import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.concurrent.CancellationException;
 
 import static org.mockito.Mockito.*;
 
@@ -50,7 +49,7 @@ public class BulkShardProcessorContextTest extends CrateUnitTest {
         verify(processor, times(1)).close();
 
         context.kill(null);
-        verify(processor, times(1)).kill(any(CancellationException.class));
+        verify(processor, times(1)).kill(any(InterruptedException.class));
     }
 
     @Test
@@ -60,14 +59,14 @@ public class BulkShardProcessorContextTest extends CrateUnitTest {
         context.kill(null);
         context.close();
         // BulkShardProcessor is killed and callback is closed once
-        verify(processor, times(1)).kill(any(CancellationException.class));
+        verify(processor, times(1)).kill(any(InterruptedException.class));
     }
 
     @Test
     public void testStartAfterKill() throws Exception {
         context.prepare();
         context.kill(null);
-        verify(processor, times(1)).kill(any(CancellationException.class));
+        verify(processor, times(1)).kill(any(InterruptedException.class));
         // close is never called on BulkShardProcessor so no requests are issued
         context.start();
         verify(processor, never()).close();

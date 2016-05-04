@@ -35,5 +35,6 @@ public class SysChecksModule extends AbstractModule {
         checksBinder.addBinding().to(RecoveryAfterTimeSysCheck.class);
         checksBinder.addBinding().to(RecoveryAfterNodesSysCheck.class);
         checksBinder.addBinding().to(NumberOfPartitionsSysCheck.class);
+        checksBinder.addBinding().to(JvmVersionSysCheck.class);
     }
 }

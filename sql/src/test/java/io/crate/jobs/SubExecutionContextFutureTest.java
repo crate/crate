@@ -29,7 +29,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.List;
-import java.util.concurrent.CancellationException;
+
+import static org.hamcrest.Matchers.isA;
 
 public class SubExecutionContextFutureTest {
 
@@ -38,14 +39,14 @@ public class SubExecutionContextFutureTest {
 
     @Test
     public void testCloseWithCancellationExceptionAsPartOfCombinedFuture() throws Exception {
-        expectedException.expect(CancellationException.class);
+        expectedException.expectCause(isA(InterruptedException.class));
 
         SubExecutionContextFuture f1 = new SubExecutionContextFuture();
         SubExecutionContextFuture f2 = new SubExecutionContextFuture();
 
-        // close with Cancellation results in a cancel call on a internal future.
+        // close with InterruptedException results in a cancel call on a internal future.
         // cancel on one future causes the other futures to be canceled too
-        f1.close(new CancellationException());
+        f1.close(new InterruptedException());
 
         ListenableFuture<List<SubExecutionContextFuture.State>> asList = Futures.allAsList(f1, f2);
         asList.get();

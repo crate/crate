@@ -34,6 +34,7 @@ import io.crate.metadata.*;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.inject.Injector;
@@ -52,13 +53,26 @@ public class SqlExpressions {
     private final AnalysisMetaData analysisMetaData;
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources) {
-        this(sources, null);
+        this(sources, null, null);
     }
 
-    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources, @Nullable FieldResolver fieldResolver) {
+
+    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources, Object[] parameters) {
+        this(sources, null, parameters);
+    }
+
+    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
+                          @Nullable FieldResolver fieldResolver) {
+        this(sources, fieldResolver, null);
+    }
+
+    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
+                          @Nullable FieldResolver fieldResolver,
+                          @Nullable Object[] parameters) {
         ModulesBuilder modulesBuilder = new ModulesBuilder()
                 .add(new OperatorModule())
                 .add(new ScalarFunctionModule())
+                .add(new TableFunctionModule())
                 .add(new PredicateModule());
         injector = modulesBuilder.createInjector();
         NestedReferenceResolver referenceResolver = new NestedReferenceResolver() {
@@ -71,7 +85,7 @@ public class SqlExpressions {
         analysisMetaData = new AnalysisMetaData(injector.getInstance(Functions.class), schemas, referenceResolver);
         expressionAnalyzer =  new ExpressionAnalyzer(
                 analysisMetaData,
-                new ParameterContext(new Object[0], new Object[0][], null),
+                new ParameterContext(parameters == null ? new Object[0] : parameters, new Object[0][], null),
                 new FullQualifedNameFieldProvider(sources),
                 fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext();

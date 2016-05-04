@@ -23,16 +23,22 @@ package io.crate.executor.transport;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.job.*;
 import io.crate.core.collections.Bucket;
+import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.kill.KillJobsRequest;
+import io.crate.executor.transport.kill.KillResponse;
+import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.*;
 import io.crate.operation.*;
+import io.crate.operation.projectors.ForwardingRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
@@ -44,15 +50,19 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.indices.IndicesService;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
-public class ExecutionPhasesTask extends JobTask {
+class ExecutionPhasesTask extends JobTask {
 
     private static final ESLogger LOGGER = Loggers.getLogger(ExecutionPhasesTask.class);
 
     private final TransportJobAction transportJobAction;
+    private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final List<NodeOperationTree> nodeOperationTrees;
     private final OperationType operationType;
     private final ClusterService clusterService;
@@ -64,7 +74,7 @@ public class ExecutionPhasesTask extends JobTask {
     private final List<SettableFuture<TaskResult>> results = new ArrayList<>();
     private boolean hasDirectResponse;
 
-    public enum OperationType {
+    enum OperationType {
         BULK,
         /**
          * UNKNOWN means it will depend on the number of nodeOperationTrees, if > 1 it will use bulk, otherwise QueryResult
@@ -72,20 +82,22 @@ public class ExecutionPhasesTask extends JobTask {
         UNKNOWN
     }
 
-    protected ExecutionPhasesTask(UUID jobId,
-                                  ClusterService clusterService,
-                                  ContextPreparer contextPreparer,
-                                  JobContextService jobContextService,
-                                  IndicesService indicesService,
-                                  TransportJobAction transportJobAction,
-                                  List<NodeOperationTree> nodeOperationTrees,
-                                  OperationType operationType) {
+    ExecutionPhasesTask(UUID jobId,
+                        ClusterService clusterService,
+                        ContextPreparer contextPreparer,
+                        JobContextService jobContextService,
+                        IndicesService indicesService,
+                        TransportJobAction transportJobAction,
+                        TransportKillJobsNodeAction transportKillJobsNodeAction,
+                        List<NodeOperationTree> nodeOperationTrees,
+                        OperationType operationType) {
         super(jobId);
         this.clusterService = clusterService;
         this.contextPreparer = contextPreparer;
         this.jobContextService = jobContextService;
         this.indicesService = indicesService;
         this.transportJobAction = transportJobAction;
+        this.transportKillJobsNodeAction = transportKillJobsNodeAction;
         this.nodeOperationTrees = nodeOperationTrees;
         this.operationType = operationType;
 
@@ -103,125 +115,211 @@ public class ExecutionPhasesTask extends JobTask {
     @Override
     public void start() {
         FluentIterable<NodeOperation> nodeOperations = FluentIterable.from(nodeOperationTrees)
-                .transformAndConcat(new Function<NodeOperationTree, Iterable<? extends NodeOperation>>() {
-                    @Nullable
-                    @Override
-                    public Iterable<? extends NodeOperation> apply(NodeOperationTree input) {
-                        return input.nodeOperations();
-                    }
-                });
+            .transformAndConcat(new Function<NodeOperationTree, Iterable<? extends NodeOperation>>() {
+                @Nullable
+                @Override
+                public Iterable<? extends NodeOperation> apply(NodeOperationTree input) {
+                    return input.nodeOperations();
+                }
+            });
 
         Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(nodeOperations);
-        List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(nodeOperationTrees.size());
+        InitializationTracker initializationTracker = new InitializationTracker(operationByServer.size());
+        List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases = createHandlerPhases(initializationTracker);
+        try {
+            setupContext(operationByServer, handlerPhases, initializationTracker);
+        } catch (Throwable throwable) {
+            for (SettableFuture<TaskResult> result : results) {
+                result.setException(throwable);
+            }
+        }
+    }
+
+    private static class InitializationTracker {
+
+        private final SettableFuture<Void> future;
+        private final AtomicInteger serverToInitialize;
+        private Throwable failure;
+
+        InitializationTracker(int numServer) {
+            future = SettableFuture.create();
+            if (numServer == 0) {
+                future.set(null);
+            }
+            serverToInitialize = new AtomicInteger(numServer);
+        }
+
+        void jobInitialized(@Nullable Throwable t) {
+            if (failure == null || failure instanceof InterruptedException) {
+                failure = t;
+            }
+            if (serverToInitialize.decrementAndGet() <= 0) {
+                if (failure == null) {
+                    future.set(null);
+                } else {
+                    future.setException(failure);
+                }
+            }
+        }
+    }
+
+    private static class InterceptingRowReceiver extends ForwardingRowReceiver implements FutureCallback<Void> {
+
+        private final AtomicInteger upstreams = new AtomicInteger(2);
+        private final UUID jobId;
+        private final TransportKillJobsNodeAction transportKillJobsNodeAction;
+        private final AtomicBoolean rowReceiverDone = new AtomicBoolean(false);
+        private Throwable failure;
+
+        InterceptingRowReceiver(UUID jobId,
+                                RowReceiver rowReceiver,
+                                InitializationTracker jobsInitialized,
+                                TransportKillJobsNodeAction transportKillJobsNodeAction) {
+            super(rowReceiver);
+            this.jobId = jobId;
+            this.transportKillJobsNodeAction = transportKillJobsNodeAction;
+            Futures.addCallback(jobsInitialized.future, this);
+        }
+
+        @Override
+        public void fail(Throwable throwable) {
+            if (rowReceiverDone.compareAndSet(false, true)) {
+                tryForwardResult(throwable);
+            }
+        }
+
+        @Override
+        public void kill(Throwable throwable) {
+            fail(throwable);
+        }
+
+        @Override
+        public void finish() {
+            fail(null);
+        }
+
+        @Override
+        public void onSuccess(@Nullable Void result) {
+            tryForwardResult(null);
+        }
+
+        @Override
+        public void onFailure(@Nonnull Throwable t) {
+            tryForwardResult(t);
+        }
+
+        private void tryForwardResult(Throwable throwable) {
+            if (throwable != null && (failure == null || failure instanceof InterruptedException)) {
+                failure = Exceptions.unwrap(throwable);
+            }
+            if (upstreams.decrementAndGet() > 0) {
+                return;
+            }
+            if (failure == null) {
+                super.finish();
+            } else {
+                transportKillJobsNodeAction.executeKillOnAllNodes(
+                    new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<KillResponse>() {
+                        @Override
+                        public void onResponse(KillResponse killResponse) {
+                            InterceptingRowReceiver.super.fail(failure);
+                        }
+
+                        @Override
+                        public void onFailure(Throwable e) {
+                            InterceptingRowReceiver.super.fail(failure);
+                        }
+                    });
+            }
+        }
+    }
+
+    private List<Tuple<ExecutionPhase, RowReceiver>> createHandlerPhases(InitializationTracker initializationTracker) {
         List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases = new ArrayList<>(nodeOperationTrees.size());
 
         if (operationType == OperationType.BULK || nodeOperationTrees.size() > 1) {
             // bulk Operation with rowCountResult
             for (int i = 0; i < nodeOperationTrees.size(); i++) {
                 SettableFuture<TaskResult> result = results.get(i);
-                RowCountResultRowDownstream rowDownstream = new RowCountResultRowDownstream(result);
-                handlerPhases.add(new Tuple<ExecutionPhase, RowReceiver>(nodeOperationTrees.get(i).leaf(), rowDownstream));
+                RowReceiver receiver = new InterceptingRowReceiver(
+                    jobId(),
+                    new RowCountResultRowDownstream(result),
+                    initializationTracker,
+                    transportKillJobsNodeAction);
+                handlerPhases.add(new Tuple<>(nodeOperationTrees.get(i).leaf(), receiver));
             }
         } else {
             SettableFuture<TaskResult> result = Iterables.getOnlyElement(results);
-            QueryResultRowDownstream downstream = new QueryResultRowDownstream(result);
-            handlerPhases.add(new Tuple<ExecutionPhase, RowReceiver>(Iterables.getOnlyElement(nodeOperationTrees).leaf(), downstream));
+            RowReceiver receiver = new InterceptingRowReceiver(
+                jobId(),
+                new QueryResultRowDownstream(result),
+                initializationTracker,
+                transportKillJobsNodeAction);
+            handlerPhases.add(new Tuple<>(Iterables.getOnlyElement(nodeOperationTrees).leaf(), receiver));
         }
-
-        try {
-            setupContext(operationByServer, pageDownstreamContexts, handlerPhases);
-        } catch (Throwable throwable) {
-            for (SettableFuture<TaskResult> result : results) {
-                result.setException(throwable);
-            }
-        }
-        if (operationByServer.isEmpty()) {
-            return;
-        }
-        sendJobRequests(pageDownstreamContexts, operationByServer);
+        return handlerPhases;
     }
 
     private void setupContext(Map<String, Collection<NodeOperation>> operationByServer,
-                              List<PageDownstreamContext> pageDownstreamContexts,
-                              List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases) throws Throwable {
-        boolean noNodeOperations = false;
-        if (operationByServer.isEmpty()) {
-            // this should never happen, instead we should use a NOOP plan instead
-            // which immediately results in an empty result
-            noNodeOperations = true;
-        }
-        List<ExecutionSubContext> localContextAndStartOperation = createLocalContextAndStartOperation(operationByServer, handlerPhases);
-        if (noNodeOperations) {
-            for (ExecutionSubContext executionSubContext : localContextAndStartOperation) {
-                executionSubContext.close();
-            }
-            return;
-        }
-        if (hasDirectResponse) {
-            for (ExecutionSubContext executionSubContext : localContextAndStartOperation) {
-                assert executionSubContext != null && executionSubContext instanceof DownstreamExecutionSubContext
-                        : "Need DownstreamExecutionSubContext for DIRECT_RESPONSE remote jobs";
-                pageDownstreamContexts.add(((DownstreamExecutionSubContext) executionSubContext).pageDownstreamContext((byte) 0));
-            }
-        }
-    }
+                              List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
+                              InitializationTracker initializationTracker) throws Throwable {
 
-    private void sendJobRequests(List<PageDownstreamContext> pageDownstreamContexts,
-                                 Map<String, Collection<NodeOperation>> operationsByServer) {
-        int idx = 0;
-        for (Map.Entry<String, Collection<NodeOperation>> entry : operationsByServer.entrySet()) {
-            String serverNodeId = entry.getKey();
-            Collection<NodeOperation> nodeOperations = entry.getValue();
-
-            JobRequest request = new JobRequest(jobId(), nodeOperations);
-            if (hasDirectResponse) {
-                transportJobAction.execute(serverNodeId, request, new DirectResponseListener(idx, pageDownstreamContexts));
-            } else {
-                transportJobAction.execute(serverNodeId, request,
-                        new FailureOnlyResponseListener(results));
-            }
-            idx++;
-        }
-    }
-
-    /**
-     * removes the localNodeId entry from the nodesByServer map and initializes the context and starts the operation.
-     *
-     * This is done in order to be able to create the JobExecutionContext with the localMerge PageDownstreamContext
-     */
-    private List<ExecutionSubContext> createLocalContextAndStartOperation(Map<String, Collection<NodeOperation>> operationsByServer,
-                                                                          List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases) throws Throwable {
         String localNodeId = clusterService.localNode().id();
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
-        Collection<NodeOperation> localNodeOperations = null;
-        SharedShardContexts sharedShardContexts = null;
-        if (!hasDirectResponse) {
-            localNodeOperations = operationsByServer.remove(localNodeId);
-        }
+        Collection<NodeOperation> localNodeOperations = operationByServer.remove(localNodeId);
         if (localNodeOperations == null) {
-            localNodeOperations = ImmutableList.of();
-        } else {
-            sharedShardContexts = new SharedShardContexts(indicesService);
+            localNodeOperations = Collections.emptyList();
         }
 
-        List<ExecutionSubContext> executionSubContexts = contextPreparer.prepareOnHandler(
-                jobId(),
-                localNodeOperations,
-                builder,
-                handlerPhases,
-                sharedShardContexts
-        );
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
+        Tuple<List<ExecutionSubContext>, List<ListenableFuture<Bucket>>> onHandler =
+            contextPreparer.prepareOnHandler(localNodeOperations, builder, handlerPhases, new SharedShardContexts(indicesService));
+        JobExecutionContext localJobContext = jobContextService.createContext(builder);
+        localJobContext.start();
 
-        if (!hasDirectResponse) {
-            JobExecutionContext context = jobContextService.createContext(builder);
-            context.start();
-        } else {
-            for (ExecutionSubContext executionSubContext : executionSubContexts) {
-                executionSubContext.prepare();
-                executionSubContext.start();
+        List<PageDownstreamContext> pageDownstreamContexts = getHandlerPageDownstreamContexts(onHandler);
+        int bucketIdx = 0;
+        List<ListenableFuture<Bucket>> directResponseFutures = onHandler.v2();
+
+        if (!localNodeOperations.isEmpty()) {
+            if (directResponseFutures.isEmpty()) {
+                initializationTracker.jobInitialized(null);
+            } else {
+                Futures.addCallback(Futures.allAsList(directResponseFutures),
+                    new SetBucketAction(pageDownstreamContexts, bucketIdx, initializationTracker));
+                bucketIdx++;
             }
         }
-        return executionSubContexts;
+
+        sendJobRequests(operationByServer, pageDownstreamContexts, handlerPhases, bucketIdx, initializationTracker);
+    }
+
+    private void sendJobRequests(Map<String, Collection<NodeOperation>> operationByServer,
+                                 List<PageDownstreamContext> pageDownstreamContexts,
+                                 List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
+                                 int bucketIdx,
+                                 InitializationTracker initializationTracker) {
+        for (Map.Entry<String, Collection<NodeOperation>> entry : operationByServer.entrySet()) {
+            String serverNodeId = entry.getKey();
+            JobRequest request = new JobRequest(jobId(), entry.getValue());
+            if (hasDirectResponse) {
+                transportJobAction.execute(serverNodeId, request,
+                    new SetBucketAction(pageDownstreamContexts, bucketIdx, initializationTracker));
+            } else {
+                transportJobAction.execute(serverNodeId, request, new FailureOnlyResponseListener(handlerPhases, initializationTracker));
+            }
+            bucketIdx++;
+        }
+    }
+
+    private List<PageDownstreamContext> getHandlerPageDownstreamContexts(Tuple<List<ExecutionSubContext>, List<ListenableFuture<Bucket>>> onHandler) {
+        final List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(onHandler.v1().size());
+        for (ExecutionSubContext handlerExecutionSubContext : onHandler.v1()) {
+            if (handlerExecutionSubContext instanceof DownstreamExecutionSubContext) {
+                PageDownstreamContext pageDownstreamContext = ((DownstreamExecutionSubContext) handlerExecutionSubContext).pageDownstreamContext((byte) 0);
+                pageDownstreamContexts.add(pageDownstreamContext);
+            }
+        }
+        return pageDownstreamContexts;
     }
 
     @Override
@@ -234,70 +332,109 @@ public class ExecutionPhasesTask extends JobTask {
         throw new UnsupportedOperationException("ExecutionNodesTask doesn't support upstreamResult");
     }
 
-    private static class DirectResponseListener implements ActionListener<JobResponse> {
+    private static class FailureOnlyResponseListener implements ActionListener<JobResponse> {
 
-        private final int bucketIdx;
-        private final List<PageDownstreamContext> pageDownstreamContexts;
+        private final List<Tuple<ExecutionPhase, RowReceiver>> rowReceivers;
+        private final InitializationTracker initializationTracker;
 
-        public DirectResponseListener(int bucketIdx, List<PageDownstreamContext> pageDownstreamContexts) {
-            this.bucketIdx = bucketIdx;
-            this.pageDownstreamContexts = pageDownstreamContexts;
+        FailureOnlyResponseListener(List<Tuple<ExecutionPhase, RowReceiver>> rowReceivers, InitializationTracker initializationTracker) {
+            this.rowReceivers = rowReceivers;
+            this.initializationTracker = initializationTracker;
         }
 
         @Override
         public void onResponse(JobResponse jobResponse) {
-            for (int i = 0; i < pageDownstreamContexts.size(); i++) {
-                PageDownstreamContext pageDownstreamContext = pageDownstreamContexts.get(i);
-                jobResponse.streamers(pageDownstreamContext.streamer());
-                Bucket bucket = jobResponse.directResponse().get(i);
-                if (bucket == null) {
-                    pageDownstreamContext.failure(bucketIdx, new IllegalStateException("expected directResponse but didn't get one"));
+            initializationTracker.jobInitialized(null);
+            if (jobResponse.directResponse().size() > 0) {
+                for (Tuple<ExecutionPhase, RowReceiver> rowReceiver : rowReceivers) {
+                    rowReceiver.v2().fail(new IllegalStateException("Got a directResponse but didn't expect one"));
                 }
-                pageDownstreamContext.setBucket(bucketIdx, bucket, true, new PageResultListener() {
-                    @Override
-                    public void needMore(boolean needMore) {
-                        if (needMore) {
-                            LOGGER.warn("requested more data but directResponse doesn't support paging");
-                        }
-                    }
-
-                    @Override
-                    public int buckedIdx() {
-                        return bucketIdx;
-                    }
-                });
             }
         }
 
         @Override
         public void onFailure(Throwable e) {
-            for (PageDownstreamContext pageDownstreamContext : pageDownstreamContexts) {
-                pageDownstreamContext.failure(bucketIdx, e);
+            initializationTracker.jobInitialized(null);
+            // could be a preparation failure - in that case the regular error propagation doesn't work as it hasn't been set up yet
+            // so fail rowReceivers directly
+            for (Tuple<ExecutionPhase, RowReceiver> rowReceiver : rowReceivers) {
+                rowReceiver.v2().fail(e);
             }
         }
     }
 
-    private static class FailureOnlyResponseListener implements ActionListener<JobResponse> {
+    private static class SetBucketAction implements FutureCallback<List<Bucket>>, ActionListener<JobResponse> {
+        private final List<PageDownstreamContext> pageDownstreamContexts;
+        private final int bucketIdx;
+        private final InitializationTracker initializationTracker;
+        private final BucketResultListener bucketResultListener;
 
-        private final List<SettableFuture<TaskResult>> results;
-
-        public FailureOnlyResponseListener(List<SettableFuture<TaskResult>> results) {
-            this.results = results;
+        SetBucketAction(List<PageDownstreamContext> pageDownstreamContexts, int bucketIdx, InitializationTracker initializationTracker) {
+            this.pageDownstreamContexts = pageDownstreamContexts;
+            this.bucketIdx = bucketIdx;
+            this.initializationTracker = initializationTracker;
+            bucketResultListener = new BucketResultListener(bucketIdx);
         }
 
         @Override
-        public void onResponse(JobResponse jobResponse) {
-            if (jobResponse.directResponse().size() > 0) {
-                for (SettableFuture<TaskResult> result : results) {
-                    result.setException(new IllegalStateException("Got a directResponse but didn't expect one"));
-                }
+        public void onSuccess(@Nullable List<Bucket> result) {
+            initializationTracker.jobInitialized(null);
+            if (result == null) {
+                onFailure(new NullPointerException("result is null"));
+                return;
+            }
+
+            for (int i = 0; i < pageDownstreamContexts.size(); i++) {
+                PageDownstreamContext pageDownstreamContext = pageDownstreamContexts.get(i);
+                setBucket(pageDownstreamContext, result.get(i));
             }
         }
 
         @Override
-        public void onFailure(Throwable e) {
-            // in the non-direct-response case the failure is pushed to downStreams
-            LOGGER.warn(e.getMessage(), e);
+        public void onResponse(JobResponse jobResponse) {
+            initializationTracker.jobInitialized(null);
+            for (int i = 0; i < pageDownstreamContexts.size(); i++) {
+                PageDownstreamContext pageDownstreamContext = pageDownstreamContexts.get(i);
+                jobResponse.streamers(pageDownstreamContext.streamer());
+                setBucket(pageDownstreamContext, jobResponse.directResponse().get(i));
+            }
+        }
+
+        @Override
+        public void onFailure(@Nonnull Throwable t) {
+            initializationTracker.jobInitialized(t);
+            for (PageDownstreamContext pageDownstreamContext : pageDownstreamContexts) {
+                pageDownstreamContext.failure(bucketIdx, t);
+            }
+        }
+
+        private void setBucket(PageDownstreamContext pageDownstreamContext, Bucket bucket) {
+            if (bucket == null) {
+                pageDownstreamContext.failure(bucketIdx, new IllegalStateException("expected directResponse but didn't get one"));
+                return;
+            }
+            pageDownstreamContext.setBucket(bucketIdx, bucket, true, bucketResultListener);
+        }
+    }
+
+    private static class BucketResultListener implements PageResultListener {
+
+        private final int bucketIdx;
+
+        BucketResultListener(int bucketIdx) {
+            this.bucketIdx = bucketIdx;
+        }
+
+        @Override
+        public void needMore(boolean needMore) {
+            if (needMore) {
+                LOGGER.warn("requested more data but directResponse doesn't support paging");
+            }
+        }
+
+        @Override
+        public int buckedIdx() {
+            return bucketIdx;
         }
     }
 }

@@ -15,11 +15,9 @@ documentation.
 For more information on how to do that please refer to the documentation
 section in the ``DEVELOP.rst``.
 
-If you have any questions don't hesitate to ask us in our public room on 
-HipChat_.
+If you have any questions don't hesitate to ask us on Slack_.
 
-.. _HipChat: https://www.hipchat.com/g7Pc2CYwi
-
+.. _Slack: https://crate.io/docs/support/slackin/
 
 Reporting an issue
 ------------------

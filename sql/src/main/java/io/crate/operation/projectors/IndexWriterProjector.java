@@ -30,6 +30,7 @@ import io.crate.core.collections.Row;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
@@ -39,6 +40,7 @@ import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.logging.ESLogger;
@@ -61,17 +63,19 @@ public class IndexWriterProjector extends AbstractProjector {
     private final RowShardResolver rowShardResolver;
     private final Supplier<String> indexNameResolver;
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
-    private final BulkShardProcessor bulkShardProcessor;
+    private final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor;
     private final AtomicBoolean failed = new AtomicBoolean(false);
 
     public IndexWriterProjector(ClusterService clusterService,
+                                Functions functions,
+                                IndexNameExpressionResolver indexNameExpressionResolver,
                                 Settings settings,
                                 TransportActionProvider transportActionProvider,
                                 Supplier<String> indexNameResolver,
                                 BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                 Reference rawSourceReference,
                                 List<ColumnIdent> primaryKeyIdents,
-                                List<Symbol> primaryKeySymbols,
+                                List<? extends Symbol> primaryKeySymbols,
                                 @Nullable Symbol routingSymbol,
                                 ColumnIdent clusteredByColumn,
                                 Input<?> sourceInput,
@@ -92,7 +96,7 @@ public class IndexWriterProjector extends AbstractProjector {
             this.sourceInput =
                     new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
         }
-        rowShardResolver = new RowShardResolver(primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
+        rowShardResolver = new RowShardResolver(functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
                 CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
                 overwriteDuplicates,
@@ -102,9 +106,10 @@ public class IndexWriterProjector extends AbstractProjector {
                 jobId,
                 false);
 
-        bulkShardProcessor = new BulkShardProcessor(
+        bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 transportActionProvider.transportBulkCreateIndicesAction(),
+                indexNameExpressionResolver,
                 settings,
                 bulkRetryCoordinatorPool,
                 autoCreateIndices,
@@ -127,12 +132,9 @@ public class IndexWriterProjector extends AbstractProjector {
             collectExpression.setNextRow(row);
         }
         rowShardResolver.setNextRow(row);
-        return bulkShardProcessor.add(
-                indexNameResolver.get(),
-                rowShardResolver.id(),
-                new Object[] { sourceInput.value() },
-                rowShardResolver.routing(),
-                null);
+        ShardUpsertRequest.Item item = new ShardUpsertRequest.Item(
+                rowShardResolver.id(), null, new Object[] { sourceInput.value() }, null);
+        return bulkShardProcessor.add(indexNameResolver.get(), item, rowShardResolver.routing());
     }
 
     @Override

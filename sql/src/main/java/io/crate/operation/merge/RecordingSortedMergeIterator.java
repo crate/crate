@@ -34,27 +34,27 @@ import static com.google.common.collect.Iterators.peekingIterator;
 /**
  * records sort order in order to repeat it later without having to sort everything again
  */
-class RecordingSortedMergeIterator<T> extends UnmodifiableIterator<T> implements SortedMergeIterator<T> {
+class RecordingSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow> implements SortedMergeIterator<TKey, TRow> {
 
-    private final Function<Iterable<T>, Iterator<T>> TO_ITERATOR = new Function<Iterable<T>, Iterator<T>>() {
+    private final Function<Iterable<TRow>, Iterator<TRow>> TO_ITERATOR = new Function<Iterable<TRow>, Iterator<TRow>>() {
         @Nullable
         @Override
-        public Iterator<T> apply(Iterable<T> input) {
+        public Iterator<TRow> apply(Iterable<TRow> input) {
             return input.iterator();
         }
     };
-    private final Queue<Indexed<PeekingIterator<T>>> queue;
-    private Indexed<PeekingIterator<T>> lastUsedIter = null;
+    private final Queue<Indexed<TKey, PeekingIterator<TRow>>> queue;
+    private Indexed<TKey, PeekingIterator<TRow>> lastUsedIter = null;
     private boolean leastExhausted = false;
 
     private final IntArrayList sortRecording = new IntArrayList();
-    private final List<Iterable<T>> storedIterables = new ArrayList<>();
-    private int exhausted;
+    private final List<Iterable<TRow>> storedIterables = new ArrayList<>();
+    private TKey exhausted;
 
-    public RecordingSortedMergeIterator(Iterable<? extends NumberedIterable<T>> iterables, final Comparator<? super T> itemComparator) {
-        Comparator<Indexed<PeekingIterator<T>>> heapComparator = new Comparator<Indexed<PeekingIterator<T>>>() {
+    public RecordingSortedMergeIterator(Iterable<? extends KeyIterable<TKey, TRow>> iterables, final Comparator<? super TRow> itemComparator) {
+        Comparator<Indexed<?, PeekingIterator<TRow>>> heapComparator = new Comparator<Indexed<?, PeekingIterator<TRow>>>() {
             @Override
-            public int compare(Indexed<PeekingIterator<T>> o1, Indexed<PeekingIterator<T>> o2) {
+            public int compare(Indexed<?, PeekingIterator<TRow>> o1, Indexed<?, PeekingIterator<TRow>> o2) {
                 return itemComparator.compare(o1.val.peek(), o2.val.peek());
             }
         };
@@ -75,14 +75,14 @@ class RecordingSortedMergeIterator<T> extends UnmodifiableIterator<T> implements
                 queue.add(lastUsedIter);
             } else {
                 leastExhausted = true;
-                exhausted = lastUsedIter.number;
+                exhausted = lastUsedIter.key;
             }
             lastUsedIter = null;
         }
     }
 
     @Override
-    public T next() {
+    public TRow next() {
         if (!hasNext()) {
             throw new NoSuchElementException();
         }
@@ -91,19 +91,19 @@ class RecordingSortedMergeIterator<T> extends UnmodifiableIterator<T> implements
         return lastUsedIter.val.next();
     }
 
-    void addIterators(Iterable<? extends NumberedIterable<T>> iterables) {
-        for (NumberedIterable<T> rowIterable : iterables) {
-            Iterator<T> rowIterator = rowIterable.iterator();
+    void addIterators(Iterable<? extends KeyIterable<TKey, TRow>> iterables) {
+        for (KeyIterable<TKey, TRow> rowIterable : iterables) {
+            Iterator<TRow> rowIterator = rowIterable.iterator();
             if (rowIterator.hasNext()) {
                 // store index in stored list
-                queue.add(new Indexed<>(storedIterables.size(), rowIterable.number(), peekingIterator(rowIterator)));
+                queue.add(new Indexed<>(storedIterables.size(), rowIterable.key(), peekingIterator(rowIterator)));
                 this.storedIterables.add(rowIterable);
             }
         }
     }
 
     @Override
-    public void merge(Iterable<? extends NumberedIterable<T>> numberedIterables) {
+    public void merge(Iterable<? extends KeyIterable<TKey, TRow>> numberedIterables) {
         if (lastUsedIter != null && lastUsedIter.val.hasNext()) {
             queue.add(lastUsedIter);
             lastUsedIter = null;
@@ -118,15 +118,15 @@ class RecordingSortedMergeIterator<T> extends UnmodifiableIterator<T> implements
     }
 
     @Override
-    public int exhaustedIterable() {
+    public TKey exhaustedIterable() {
         return exhausted;
     }
 
-    public Iterable<T> repeat() {
+    public Iterable<TRow> repeat() {
         // TODO: make defensive copies?
-        return new Iterable<T>() {
+        return new Iterable<TRow>() {
             @Override
-            public Iterator<T> iterator() {
+            public Iterator<TRow> iterator() {
                 return new ReplayingIterator<>(sortRecording.buffer, Iterables.transform(storedIterables, TO_ITERATOR));
             }
         };
@@ -163,15 +163,15 @@ class RecordingSortedMergeIterator<T> extends UnmodifiableIterator<T> implements
     /**
      * a container for associating some object with an int index
      */
-    static class Indexed<T> {
+    static class Indexed<TKey, TVal> {
         private final int i;
-        private final T val;
-        private final int number;
+        private final TVal val;
+        private final TKey key;
 
 
-        public Indexed(int i, int number, T val) {
+        public Indexed(int i, TKey key, TVal val) {
             this.i = i;
-            this.number = number;
+            this.key = key;
             this.val = val;
         }
     }

@@ -23,11 +23,14 @@
 package io.crate.lucene;
 
 import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.index.mapper.ArrayMapper;
+import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
 
 public class CrateIndexModule extends AbstractModule {
 
     @Override
     protected void configure() {
         bind(CrateDocIndexService.class).asEagerSingleton();
+        bind(DynamicArrayFieldMapperBuilderFactory.class).to(ArrayMapper.BuilderFactory.class).asEagerSingleton();
     }
 }

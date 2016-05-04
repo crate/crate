@@ -63,4 +63,16 @@ public class BytesRefUtilsTest extends CrateUnitTest {
         BytesRefUtils.ensureStringTypesAreStrings(dataTypes, rows);
         assertThat(commaJoiner.join((String[])rows[0][0]), is("foo, bar"));
     }
+
+    @Test
+    public void testConvertSetWithNullValues() throws Exception {
+        DataType[] dataTypes = new DataType[] { new SetType(DataTypes.STRING) };
+        Object[][] rows = new Object[1][1];
+        Set<BytesRef> refs = new HashSet<>(
+                Arrays.asList(new BytesRef("foo"), null));
+        rows[0][0] = refs;
+        BytesRefUtils.ensureStringTypesAreStrings(dataTypes, rows);
+
+        assertThat((String[]) rows[0][0], Matchers.arrayContainingInAnyOrder("foo", null));
+    }
 }

@@ -26,6 +26,8 @@ import io.crate.types.FixedWidthType;
 import io.crate.types.IpType;
 import io.crate.types.StringType;
 
+import java.util.Locale;
+
 public class SizeEstimatorFactory {
 
     @SuppressWarnings("unchecked")
@@ -38,7 +40,7 @@ public class SizeEstimatorFactory {
                 if (type instanceof FixedWidthType) {
                     return (SizeEstimator<T>) new ConstSizeEstimator(((FixedWidthType) type).fixedSize());
                 }
-                throw new UnsupportedOperationException(String.format("Cannot get SizeEstimator for type %s", type));
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Cannot get SizeEstimator for type %s", type));
         }
     }
 }

@@ -25,11 +25,36 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
-public abstract class BoolSetting extends Setting<Boolean, Boolean> {
+public class BoolSetting extends Setting<Boolean, Boolean> {
+
+    private final String name;
+    private final boolean value;
+    private final boolean isRuntimeSetting;
+
+    public BoolSetting(String name, boolean defaultValue, boolean isRuntimeSetting) {
+        this.name = name;
+        this.value = defaultValue;
+        this.isRuntimeSetting = isRuntimeSetting;
+    }
+
+    @Override
+    public String name() {
+        return name;
+    }
+
+    @Override
+    public Boolean defaultValue() {
+        return value;
+    }
 
     @Override
     public Boolean extract(Settings settings) {
         return settings.getAsBoolean(settingName(), defaultValue());
+    }
+
+    @Override
+    public boolean isRuntime() {
+        return isRuntimeSetting;
     }
 
     @Override

@@ -30,6 +30,8 @@ import io.crate.core.collections.Row1;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.RowReceiver;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,6 +40,8 @@ import java.util.List;
 import java.util.Map;
 
 public class CountContext extends AbstractExecutionSubContext implements RowUpstream {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(CountContext.class);
 
     private final CountOperation countOperation;
     private final RowReceiver rowReceiver;
@@ -50,7 +54,7 @@ public class CountContext extends AbstractExecutionSubContext implements RowUpst
                         RowReceiver rowReceiver,
                         Map<String, List<Integer>> indexShardMap,
                         WhereClause whereClause) {
-        super(id);
+        super(id, LOGGER);
         this.countOperation = countOperation;
         this.rowReceiver = rowReceiver;
         rowReceiver.setUpstream(this);
@@ -60,7 +64,7 @@ public class CountContext extends AbstractExecutionSubContext implements RowUpst
 
     @Override
     protected void innerPrepare() {
-        rowReceiver.prepare(this);
+        rowReceiver.prepare();
     }
 
     @Override
@@ -89,7 +93,7 @@ public class CountContext extends AbstractExecutionSubContext implements RowUpst
         if (countFuture != null) {
             countFuture.cancel(true);
         }
-        rowReceiver.fail(throwable);
+        rowReceiver.kill(throwable);
     }
 
     @Override

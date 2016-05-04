@@ -45,4 +45,9 @@ public class SetAnalyzedStatement implements AnalyzedStatement {
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitSetStatement(this, context);
     }
+
+    @Override
+    public boolean isWriteOperation() {
+        return true;
+    }
 }

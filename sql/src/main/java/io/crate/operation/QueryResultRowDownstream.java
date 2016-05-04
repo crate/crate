@@ -26,7 +26,6 @@ import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.Requirements;
 import io.crate.operation.projectors.RowReceiver;
@@ -43,6 +42,7 @@ public class QueryResultRowDownstream implements RowReceiver {
 
     private final SettableFuture<TaskResult> result;
     private final List<Object[]> rows = new ArrayList<>();
+    private boolean killed;
 
     public QueryResultRowDownstream(SettableFuture<TaskResult> result) {
         this.result = result;
@@ -50,6 +50,9 @@ public class QueryResultRowDownstream implements RowReceiver {
 
     @Override
     public boolean setNextRow(Row row) {
+        if (killed) {
+            return false;
+        }
         rows.add(row.materialize());
         return true;
     }
@@ -65,7 +68,13 @@ public class QueryResultRowDownstream implements RowReceiver {
     }
 
     @Override
-    public void prepare(ExecutionState executionState) {
+    public void kill(Throwable throwable) {
+        killed = true;
+        result.setException(throwable);
+    }
+
+    @Override
+    public void prepare() {
     }
 
     @Override

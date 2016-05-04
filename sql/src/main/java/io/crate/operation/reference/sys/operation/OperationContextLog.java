@@ -61,6 +61,14 @@ public class OperationContextLog {
         return  operationContext.usedBytes;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        OperationContextLog that = (OperationContextLog) o;
+        return operationContext.equals(that.operationContext);
+    }
+
     @Nullable
     public String errorMessage() {
         return errorMessage;

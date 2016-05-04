@@ -22,11 +22,14 @@
 package io.crate.blob.v2;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.ActionListeners;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.BlobShardFuture;
+import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
@@ -47,16 +50,16 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.io.FileSystemUtils;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.IndexShardMissingException;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 
 import java.io.File;
+import java.io.IOException;
 
 public class BlobIndices extends AbstractComponent implements ClusterStateListener {
 
@@ -117,26 +120,15 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
      */
     public ListenableFuture<Void> alterBlobTable(String tableName, Settings indexSettings) {
         final SettableFuture<Void> result = SettableFuture.create();
+        ActionListener<UpdateSettingsResponse> listener = ActionListeners.wrap(result, Functions.<Void>constant(null));
         transportUpdateSettingsActionProvider.get().execute(
-                new UpdateSettingsRequest(indexSettings, fullIndexName(tableName)),
-                new ActionListener<UpdateSettingsResponse>() {
-                    @Override
-                    public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
-                        result.set(null);
-                    }
-
-                    @Override
-                    public void onFailure(Throwable e) {
-                        result.setException(e);
-
-                    }
-                });
+            new UpdateSettingsRequest(indexSettings, fullIndexName(tableName)), listener);
         return result;
     }
 
     public ListenableFuture<Void> createBlobTable(String tableName,
                                                   Settings indexSettings) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
         builder.put(indexSettings);
         builder.put(SETTING_INDEX_BLOBS_ENABLED, true);
 
@@ -158,17 +150,8 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
 
     public ListenableFuture<Void> dropBlobTable(final String tableName) {
         final SettableFuture<Void> result = SettableFuture.create();
-        transportDeleteIndexActionProvider.get().execute(new DeleteIndexRequest(fullIndexName(tableName)), new ActionListener<DeleteIndexResponse>() {
-            @Override
-            public void onResponse(DeleteIndexResponse deleteIndexResponse) {
-                result.set(null);
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-                result.setException(e);
-            }
-        });
+        ActionListener<DeleteIndexResponse> listener = ActionListeners.wrap(result, Functions.<Void>constant(null));
+        transportDeleteIndexActionProvider.get().execute(new DeleteIndexRequest(fullIndexName(tableName)), listener);
         return result;
     }
 
@@ -178,7 +161,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
             try {
                 Injector injector = indexService.shardInjectorSafe(shardId);
                 return injector.getInstance(BlobShard.class);
-            } catch (IndexShardMissingException e) {
+            } catch (ShardNotFoundException e) {
                 return null;
             }
         }
@@ -263,7 +246,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     private void removeIndexLocationsForDeletedIndices(ClusterChangedEvent event, MetaData currentMetaData) {
         MetaData newMetaData = event.state().metaData();
         for (IndexMetaData current : currentMetaData) {
-            String index = current.index();
+            String index = current.getIndex();
             if (!newMetaData.hasIndex(index) && isBlobIndex(index)) {
                 deleteBlobIndexLocation(current, index);
             }
@@ -273,8 +256,8 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     private void deleteBlobIndexLocation(IndexMetaData current, String index) {
         File indexLocation = null;
         File customBlobsPath = null;
-        if (current.settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH) != null) {
-            customBlobsPath = new File(current.settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH));
+        if (current.getSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH) != null) {
+            customBlobsPath = new File(current.getSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH));
             indexLocation = blobEnvironment.indexLocation(new Index(index), customBlobsPath);
         } else if (blobEnvironment.blobsPath() != null) {
             indexLocation = blobEnvironment.indexLocation(new Index(index));
@@ -288,7 +271,9 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         String absolutePath = indexLocation.getAbsolutePath();
         if (indexLocation.exists()) {
             logger.debug("[{}] Deleting blob index directory '{}'", index, absolutePath);
-            if (!FileSystemUtils.deleteRecursively(indexLocation)) {
+            try {
+                IOUtils.rm(indexLocation.toPath());
+            } catch (IOException e) {
                 logger.warn("Could not delete blob index directory {}", absolutePath);
             }
         } else {
@@ -299,7 +284,9 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         if (customBlobsPath != null && blobEnvironment.isCustomBlobPathEmpty(customBlobsPath)) {
             logger.debug("[{}] Empty per table defined blobs path found, deleting leftover folders inside {}",
                     index, customBlobsPath.getAbsolutePath());
-            if (!FileSystemUtils.deleteRecursively(customBlobsPath, false)) {
+            try {
+                FileSystemUtils.deleteSubDirectories(customBlobsPath.toPath());
+            } catch (IOException e) {
                 logger.warn("Could not delete custom blob path {}", customBlobsPath.getAbsolutePath());
             }
         }

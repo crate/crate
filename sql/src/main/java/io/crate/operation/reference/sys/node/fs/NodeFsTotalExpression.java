@@ -26,13 +26,9 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
+import io.crate.monitor.ExtendedFsStats;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.monitor.sigar.SigarService;
-import org.hyperic.sigar.FileSystem;
-import org.hyperic.sigar.FileSystemUsage;
-import org.hyperic.sigar.SigarException;
-import org.hyperic.sigar.SigarPermissionDeniedException;
 
 import javax.annotation.Nonnull;
 import java.util.HashMap;
@@ -55,7 +51,8 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
             SIZE, USED, AVAILABLE, READS, BYTES_READ, WRITES, BYTES_WRITTEN);
     private static final ESLogger logger = Loggers.getLogger(NodeFsTotalExpression.class);
 
-    private final SigarService sigarService;
+    private final ExtendedFsStats extendedFsStats;
+
 
     // cache that collects all totals at once, even if only one total value is queried
     private final LoadingCache<String, Long> totals = CacheBuilder.newBuilder()
@@ -74,8 +71,8 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
                 }
             });
 
-    protected NodeFsTotalExpression(SigarService sigarService) {
-        this.sigarService = sigarService;
+    protected NodeFsTotalExpression(ExtendedFsStats extendedFsStats) {
+        this.extendedFsStats = extendedFsStats;
         addChildImplementations();
     }
 
@@ -89,56 +86,17 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
         childImplementations.put(BYTES_WRITTEN, new NodeFSTotalChildExpression(BYTES_WRITTEN));
     }
 
-    private Map<String,Long> getTotals() {
-        Map<String, Long> totals = new HashMap<>(7);
-        long size=-1L, used=-1L, available=-1L,
-             reads=-1L, bytes_read=-1L,
-             writes=-1L, bytes_written=-1L;
-        if (sigarService.sigarAvailable()) {
-            try {
-                for (FileSystem fs : sigarService.sigar().getFileSystemList()) {
-                    if (!FileSystems.SUPPORTED_FS_TYPE.apply(fs)) {
-                        continue;
-                    }
-                    try {
-                        FileSystemUsage usage = sigarService.sigar().getFileSystemUsage(fs.getDirName());
-                        size = setOrIncrementBy(size, usage.getTotal() * 1024);
-                        used = setOrIncrementBy(used, usage.getUsed());
-                        available = setOrIncrementBy(available, usage.getAvail() * 1024);
-                        reads = setOrIncrementBy(reads, usage.getDiskReads());
-                        bytes_read = setOrIncrementBy(bytes_read, usage.getDiskReadBytes());
-                        writes = setOrIncrementBy(writes, usage.getDiskWrites());
-                        bytes_written = setOrIncrementBy(bytes_written, usage.getDiskWriteBytes());
-                    } catch (SigarPermissionDeniedException e) {
-                        logger.warn(String.format(
-                            "Permission denied: couldn't get file system usage for \"%s\"", fs.getDirName()));
-                    }
-                }
-            } catch (SigarException e) {
-                logger.warn("error getting filesystem totals", e);
-            }
-        } else {
-            logger.trace("sigar not available");
-        }
-        totals.put(SIZE, size);
-        totals.put(USED, used);
-        totals.put(AVAILABLE, available);
-        totals.put(READS, reads);
-        totals.put(BYTES_READ, bytes_read);
-        totals.put(WRITES, writes);
-        totals.put(BYTES_WRITTEN, bytes_written);
+    private Map<String, Long> getTotals() {
+        Map<String, Long> totals = new HashMap<>(ALL_TOTALS.size());
+        ExtendedFsStats.Info totalInfo = extendedFsStats.total();
+        totals.put(SIZE, totalInfo.total() == -1 ? -1 : totalInfo.total() * 1024);
+        totals.put(USED, totalInfo.used() == -1 ? - 1 : totalInfo.used() * 1024);
+        totals.put(AVAILABLE, totalInfo.available() == -1 ? -1 : totalInfo.available() * 1024);
+        totals.put(READS, totalInfo.diskReads());
+        totals.put(BYTES_READ, totalInfo.diskReadSizeInBytes());
+        totals.put(WRITES, totalInfo.diskWrites());
+        totals.put(BYTES_WRITTEN, totalInfo.diskWriteSizeInBytes());
         return totals;
-    }
-
-    private static long setOrIncrementBy(long l, long val) {
-        if (val >= 0) {
-            if (l < 0) {
-                l = val;
-            } else {
-                l += val;
-            }
-        }
-        return l;
     }
 
     protected class NodeFSTotalChildExpression extends ChildExpression<Long> {

@@ -37,7 +37,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.FilterProjection;
@@ -170,7 +170,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 ));
             }
 
-            CollectPhase collectPhase = CollectPhase.forQueriedTable(
+            RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
                     context.plannerContext(),
                     table,
                     splitPoints.leaves(),

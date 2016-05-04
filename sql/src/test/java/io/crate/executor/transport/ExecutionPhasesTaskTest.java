@@ -32,7 +32,7 @@ import io.crate.operation.NodeOperation;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.NodeOperationGrouper;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
@@ -55,7 +55,7 @@ public class ExecutionPhasesTaskTest {
                 .map());
 
         UUID jobId = UUID.randomUUID();
-        CollectPhase c1 = new CollectPhase(
+        RoutedCollectPhase c1 = new RoutedCollectPhase(
                 jobId,
                 1,
                 "c1",

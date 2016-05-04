@@ -25,7 +25,32 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
-public abstract class IntSetting extends Setting<Integer, Integer> {
+public class IntSetting extends Setting<Integer, Integer> {
+
+    private final String name;
+    private final Integer defaultValue;
+    private final boolean isRuntimeSetting;
+
+    public IntSetting(String name, Integer defaultValue, boolean isRuntimeSetting) {
+        this.name = name;
+        this.defaultValue = defaultValue;
+        this.isRuntimeSetting = isRuntimeSetting;
+    }
+
+    @Override
+    public String name() {
+        return name;
+    }
+
+    @Override
+    public Integer defaultValue() {
+        return defaultValue;
+    }
+
+    @Override
+    public boolean isRuntime() {
+        return isRuntimeSetting;
+    }
 
     public Integer maxValue() {
         return Integer.MAX_VALUE;

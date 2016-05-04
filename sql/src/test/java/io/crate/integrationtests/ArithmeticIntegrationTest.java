@@ -33,6 +33,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
+
 public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule

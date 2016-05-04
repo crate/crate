@@ -25,6 +25,8 @@ package io.crate.jobs;
 import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,8 +37,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.greaterThan;
 
-public class AbstractExecutionSubContextTest extends CrateUnitTest {
+public abstract class AbstractExecutionSubContextTest extends CrateUnitTest {
 
     private TestingExecutionSubContext ctx;
 
@@ -80,17 +83,19 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
 
     public static class TestingExecutionSubContext extends AbstractExecutionSubContext {
 
+        private static final ESLogger LOGGER = Loggers.getLogger(TestingExecutionSubContext.class);
+
         final AtomicInteger numPrepare = new AtomicInteger();
         final AtomicInteger numStart = new AtomicInteger();
         final AtomicInteger numClose = new AtomicInteger();
         final AtomicInteger numKill = new AtomicInteger();
 
         public TestingExecutionSubContext(int id) {
-            super(id);
+            super(id, LOGGER);
         }
 
         public TestingExecutionSubContext() {
-            super(0);
+            this(0);
         }
 
         @Override
@@ -173,7 +178,7 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
         ctx.start();
         runAsync(killRunnable, 3);
         assertThat(ctx.stats(), contains(1, 1, 0, 1));
-        assertTrue(ctx.isKilled());
+        assertThat(ctx.numKill.get(), greaterThan(0));
     }
 
 }

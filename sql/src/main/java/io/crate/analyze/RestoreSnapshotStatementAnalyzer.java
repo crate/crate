@@ -33,12 +33,13 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.common.Preconditions;
+import com.google.common.base.Preconditions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
 
@@ -70,22 +71,8 @@ public class RestoreSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnaly
         repositoryService.failIfRepositoryDoesNotExist(repositoryName);
 
         // validate and extract settings
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
-
-        // apply defaults
-        for (Map.Entry<String, SettingsApplier> entry : SETTINGS.entrySet()) {
-            builder.put(entry.getValue().getDefault());
-        }
-        if (node.properties().isPresent()) {
-            // apply given config
-            for (Map.Entry<String, Expression> entry : node.properties().get().properties().entrySet()) {
-                SettingsApplier settingsApplier = SETTINGS.get(entry.getKey());
-                if (settingsApplier == null) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", entry.getKey()));
-                }
-                settingsApplier.apply(builder, analysis.parameterContext().parameters(), entry.getValue());
-            }
-        }
+        Settings.Builder builder = GenericPropertiesConverter.settingsFromProperties(
+                node.properties(), analysis.parameterContext(), SETTINGS);
 
         if (node.tableList().isPresent()) {
             List<Table> tableList = node.tableList().get();

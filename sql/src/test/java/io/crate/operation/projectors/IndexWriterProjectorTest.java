@@ -29,7 +29,6 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.RowDownstream;
@@ -40,7 +39,8 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -70,7 +70,9 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
         IndexWriterProjector writerProjector = new IndexWriterProjector(
                 internalCluster().getInstance(ClusterService.class),
-                ImmutableSettings.EMPTY,
+                internalCluster().getInstance(Functions.class),
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                Settings.EMPTY,
                 internalCluster().getInstance(TransportActionProvider.class),
                 IndexNameResolver.forTable(new TableIdent(null, "bulk_import")),
                 internalCluster().getInstance(BulkRetryCoordinatorPool.class),
@@ -92,7 +94,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         final RowDownstream rowDownstream = RowMergers.passThroughRowMerger(writerProjector);
 
         final RowReceiver receiver1 = rowDownstream.newRowReceiver();
-        receiver1.prepare(mock(ExecutionState.class));
+        receiver1.prepare();
 
         Thread t1 = new Thread(new Runnable() {
             @Override
@@ -106,7 +108,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
 
         final RowReceiver receiver2 = rowDownstream.newRowReceiver();
-        receiver2.prepare(mock(ExecutionState.class));
+        receiver2.prepare();
         Thread t2 = new Thread(new Runnable() {
             @Override
             public void run() {

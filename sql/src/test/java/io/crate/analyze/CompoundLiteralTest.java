@@ -27,9 +27,13 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.FullQualifedNameFieldProvider;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
@@ -38,10 +42,13 @@ import io.crate.types.*;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -76,16 +83,23 @@ public class CompoundLiteralTest extends CrateUnitTest {
         when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
         when(state.metaData()).thenReturn(metaData);
         when(clusterService.state()).thenReturn(state);
-        TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
+        final TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
         analysisMetaData = new AnalysisMetaData(
                 new Functions(
                         Collections.<FunctionIdent, FunctionImplementation>emptyMap(),
-                        Collections.<String, DynamicFunctionResolver>emptyMap()),
+                        Collections.<String, DynamicFunctionResolver>emptyMap(),
+                        Collections.<String, TableFunctionImplementation>emptyMap()),
                 new ReferenceInfos(
                         Collections.<String, SchemaInfo>emptyMap(),
                         clusterService,
+                        new IndexNameExpressionResolver(Settings.EMPTY),
                         threadPool,
-                        transportPutIndexTemplateAction,
+                        new Provider<TransportPutIndexTemplateAction>() {
+                            @Override
+                            public TransportPutIndexTemplateAction get() {
+                                return transportPutIndexTemplateAction;
+                            }
+                        },
                         mock(Functions.class)),
                 new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap())
         );
@@ -170,7 +184,7 @@ public class CompoundLiteralTest extends CrateUnitTest {
     @Test
     public void testObjectLiteralWithFunction() throws Exception {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:4: no viable alternative at input 'format'");
+        expectedException.expectMessage("line 1:4: mismatched input 'format' expecting '{'");
         analyzeExpression("{a=format('%s.', 'dot')}");
     }
 

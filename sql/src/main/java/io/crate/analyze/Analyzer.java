@@ -23,6 +23,8 @@ package io.crate.analyze;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 
+import java.util.Locale;
+
 public class Analyzer {
 
     private final AnalyzerDispatcher dispatcher = new AnalyzerDispatcher();
@@ -30,6 +32,7 @@ public class Analyzer {
     private final DropTableStatementAnalyzer dropTableStatementAnalyzer;
     private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
     private final ShowCreateTableAnalyzer showCreateTableAnalyzer;
+    private final ExplainStatementAnalyzer explainStatementAnalyzer;
     private final ShowStatementAnalyzer showStatementAnalyzer;
     private final CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer;
     private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
@@ -49,7 +52,6 @@ public class Analyzer {
     private final DropSnapshotAnalyzer dropSnapshotAnalyzer;
     private final CreateSnapshotStatementAnalyzer createSnapshotStatementAnalyzer;
     private final RestoreSnapshotStatementAnalyzer restoreSnapshotStatementAnalyzer;
-
 
     @Inject
     public Analyzer(SelectStatementAnalyzer selectStatementAnalyzer,
@@ -77,6 +79,7 @@ public class Analyzer {
         this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
         this.createTableStatementAnalyzer = createTableStatementAnalyzer;
         this.showCreateTableAnalyzer = showCreateTableAnalyzer;
+        this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
         this.showStatementAnalyzer = new ShowStatementAnalyzer(this);
         this.createBlobTableStatementAnalyzer = createBlobTableStatementAnalyzer;
         this.createAnalyzerStatementAnalyzer = createAnalyzerStatementAnalyzer;
@@ -99,11 +102,17 @@ public class Analyzer {
 
     public Analysis analyze(Statement statement, ParameterContext parameterContext) {
         Analysis analysis = new Analysis(parameterContext);
-        AnalyzedStatement analyzedStatement = dispatcher.process(statement, analysis);
-        assert analyzedStatement != null : "analyzed statement must not be null";
+        AnalyzedStatement analyzedStatement = analyzedStatement(statement, analysis);
         analysis.analyzedStatement(analyzedStatement);
         return analysis;
     }
+
+    AnalyzedStatement analyzedStatement(Statement statement, Analysis analysis) {
+        AnalyzedStatement analyzedStatement = dispatcher.process(statement, analysis);
+        assert analyzedStatement != null : "analyzed statement must not be null";
+        return analyzedStatement;
+    }
+
 
     private class AnalyzerDispatcher extends AstVisitor<AnalyzedStatement, Analysis> {
 
@@ -251,8 +260,13 @@ public class Analyzer {
         }
 
         @Override
+        protected AnalyzedStatement visitExplain(Explain node, Analysis context) {
+            return explainStatementAnalyzer.analyze(node, context);
+        }
+
+        @Override
         protected AnalyzedStatement visitNode(Node node, Analysis context) {
-            throw new UnsupportedOperationException(String.format("cannot analyze statement: '%s'", node));
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "cannot analyze statement: '%s'", node));
         }
     }
 }

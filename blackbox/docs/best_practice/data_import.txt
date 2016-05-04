@@ -1,0 +1,398 @@
+.. highlight:: psql
+.. _efficient_data_import:
+
+==================================
+Importing huge datasets into Crate
+==================================
+
+When you start a project one does not usually start with nothing.
+Most of the time there is pre-existing data that needs to be imported,
+and sometimes the amount of data is significant.
+
+Assume you have an existing application that generates a few hundred
+thousand records a day and you are about to migrate to a new stack
+with Crate as the database backend. You'll need a way to import the
+existing millions of records into Crate as quickly as possible.
+
+This best practice example will guide you through the process and shows
+tips and tricks on how to import your data quickly and safe.
+
+
+Defining the Data Structure
+---------------------------
+
+Before starting the import you'll have to consider how your data
+structure will look. Decisions made at this point will influence
+the import process later.
+
+For this example we have a simple single ``user`` table with 6 columns
+of different types.
+
+By default you would probably create the table like this::
+
+  cr> CREATE TABLE user (
+  ...   id INT primary key,
+  ...   name STRING,
+  ...   day_joined TIMESTAMP,
+  ...   bio STRING INDEX using fulltext,
+  ...   address OBJECT (dynamic) AS (
+  ...     city STRING,
+  ...     country STRING
+  ...   )
+  ... );
+  CREATE OK (... sec)
+
+.. hide:
+
+  cr> DROP TABLE user;
+  DROP OK (... sec)
+
+There's nothing wrong with this method and it does the job, but it is
+not very performant and therefore not what we want to use in a real
+world application.
+
+
+Shards & Replicas
+.................
+
+If you do not set the number of shards and/or number of replicas,
+the default configuration will be used, which is:
+
+:shards:
+  5
+:replicas:
+  1
+
+The number of shards are not the biggest speed break,
+but replicas are!
+
+So we recommend you choose the number of shards wisely. They depend
+on the amount of instances in the cluster as well as on the amount
+of data that goes into the table.
+
+.. note::
+
+  Be careful, you cannot change the number of shards once the table
+  is created!
+
+Assuming there are 6 instances in the cluster we put 2 shards on each
+node giving us a total of 12 shards, which should be more than enough
+for millions of records.
+
+Shards can be thought of as "virtual nodes" - create enough for your
+needs for scaling, but use as few as possible to keep the
+resource overhead (such as file descriptors and memory) as small
+as possible.
+
+More important is to set the number of replicas as low as possible,
+ideally to zero. Whilst importing data, replication is usually
+not necessary anyway. If the import fails, we can drop the table and
+re-import again.
+
+The ``CREATE TABLE`` statement now looks like::
+
+  cr> CREATE TABLE user (
+  ...   id INT primary key,
+  ...   name STRING,
+  ...   day_joined TIMESTAMP,
+  ...   bio STRING INDEX using fulltext,
+  ...   address OBJECT (dynamic) AS (
+  ...     city STRING,
+  ...     country STRING
+  ...   )
+  ... ) CLUSTERED INTO 12 shards
+  ... WITH (number_of_replicas = 0);
+  CREATE OK (... sec)
+
+.. seealso::
+
+  - :ref:`replication`
+
+
+Refresh Interval
+................
+
+Another simple, but very important tweak to speed up importing is
+to set the refresh interval of the table to 0.
+This will disable the periodic refresh of the table that is needed
+to minimise the effect of eventual consistency and therefore also
+minimise the overhead during import.
+
+::
+
+  cr> ALTER TABLE user SET (refresh_interval = 0);
+  ALTER OK (... sec)
+
+.. hide:
+
+  cr> DROP TABLE user;
+  DROP OK (... sec)
+
+It is possible to set the refresh interval
+in the ``CREATE TABLE`` statement::
+
+  cr> CREATE TABLE user (
+  ...   id INT primary key,
+  ...   name STRING,
+  ...   day_joined TIMESTAMP,
+  ...   bio STRING INDEX using fulltext,
+  ...   address OBJECT (dynamic) AS (
+  ...     city STRING,
+  ...     country STRING
+  ...   )
+  ... ) CLUSTERED INTO 12 shards
+  ... WITH (
+  ...   number_of_replicas = 0,
+  ...   refresh_interval = 0
+  ... );
+  CREATE OK (... sec)
+
+Once the import is finished you can set the refresh interval to
+a reasonable value (time in ms)::
+
+  cr> ALTER TABLE user SET (refresh_interval = 1000);
+  ALTER OK (... sec)
+
+.. seealso::
+
+  - :ref:`refresh_data`
+  - :ref:`sql_ref_refresh_interval`
+
+Store Level Throttling
+.......................
+
+If you do not need to query your data during import, which is the case
+most of the time, you can lighten the merge throttling behaviour that
+otherwise would ensure better search performance.
+
+To improve indexing performance you can temporarily disable throttling
+completely by setting the ``indices.store.throttle.type`` to ``none``.
+
+::
+
+  cr> SET GLOBAL TRANSIENT indices.store.throttle.type = 'none';
+  SET OK (... sec)
+
+However if you still want to throttle the merging of segments during
+import you can increase the maximum bytes per second from its default
+of ``20mb`` to something like 100-200mb/s for SSD disks::
+
+  cr> SET GLOBAL TRANSIENT indices.store.throttle.max_bytes_per_sec = '150mb';
+  SET OK (... sec)
+
+
+After import don't forget to turn throttling on again by setting its
+value to ``merge`` (default) or ``all``.
+
+::
+
+  cr> SET GLOBAL TRANSIENT indices.store.throttle.type = 'merge';
+  SET OK (... sec)
+
+.. seealso::
+
+  - :ref:`indices.store.throttle`
+
+Importing Data Using COPY FROM
+------------------------------
+
+Once the table is created it is time for the actual import. Use the
+``COPY FROM`` command to import data into a table efficiently. For more
+in-depth documentation on ``COPY FROM`` see :ref:`copy_from`.
+
+JSON Import Format
+..................
+
+Crate has native support for ``JSON`` formatted data, where each line is a
+``JSON`` string and represents a single record. Empty lines are skipped.
+The keys of the ``JSON`` objects are mapped to the columns when imported.
+
+For example: ``users.json``
+
+.. code-block:: json
+
+   {"id": 1, "name": "foo", "day_joined": 1408312800, "bio": "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.", "address": {"city": "Dornbirn", "country": "Austria"}}
+   {"id": 2, "name": "bar", "day_joined": 1408312800, "bio": "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.", "address": {"city": "Berlin", "country": "Germany"}}
+
+COPY FROM Command
+.................
+
+::
+
+  cr> COPY user FROM '/tmp/best_practice_data/users.json';
+  COPY OK, 150 rows affected (... sec)
+
+.. hide:
+
+  cr> REFRESH TABLE user;
+  REFRESH OK (... sec)
+
+  cr> delete from user;
+  DELETE OK, 150 rows affected (... sec)
+
+  cr> REFRESH TABLE user;
+  REFRESH OK (... sec)
+
+.. note::
+
+  When importing data using ``COPY FROM`` Crate does not check if the types
+  from the columns and the types from the import file match. It does not cast
+  the types to their target but will always import the data as it is
+  in the source file.
+
+
+Bulk Size
+^^^^^^^^^
+
+The bulk size defines the amount of lines that are read at once and imported
+into the table. You can specify it in the ``WITH`` clause of the statement
+and defaults to 10,000 if not specified.
+
+For example::
+
+  cr> COPY user FROM '/tmp/best_practice_data/users.json'
+  ... WITH (bulk_size = 2000);
+  COPY OK, 150 rows affected (... sec)
+
+.. hide:
+
+  cr> REFRESH TABLE user;
+  REFRESH OK (... sec)
+
+  cr> delete from user;
+  DELETE OK, 150 rows affected (... sec)
+
+  cr> REFRESH TABLE user;
+  REFRESH OK (... sec)
+
+In our example it will not make a difference, but if you have a more complex
+data set with a lot of columns and large values, it probably makes sense to
+decrease the ``bulk_size``. A ``bulk_size`` value that is too large
+might consume a lot of node resources while a small ``bulk_size`` can
+increase the overhead per request.
+
+
+Compression
+^^^^^^^^^^^
+
+If you do not have your data locally to the nodes, but somewhere on the network,
+e.g. ``NAS`` or ``S3``, it is recommended to use ``gzip`` compression to reduce
+the network traffic needed to obtain the data.
+
+Crate does not automatically detect compression, so you'll need to specify
+``gzip`` compression in the ``WITH`` clause.
+
+For example::
+
+  cr> COPY user FROM '/tmp/best_practice_data/users.json.gz'
+  ... WITH (compression = 'gzip');
+  COPY OK, 150 rows affected (... sec)
+
+.. hide:
+
+  cr> REFRESH TABLE user;
+  REFRESH OK (... sec)
+
+Partitioned Tables
+------------------
+
+Sometimes you want to split your table into partitions
+to be able to handle datasets (e.g. backup/restore) more efficiently.
+To demonstrate data import into partitioned tables, we could in our case
+make a partition for every day (not necessarily very useful).
+
+Partitions can be created using the ``CREATE TABLE`` statement
+using the ``PARTITIONED BY`` clause.
+
+Because there is already a column with a primary key in our example,
+either the partition column must also have a primary key,
+or the other column must lose its constraint.
+
+.. hide:
+
+  cr> DROP TABLE user;
+  DROP OK (... sec)
+
+::
+
+  cr> CREATE TABLE user (
+  ...   id INT primary key,
+  ...   name STRING,
+  ...   day_joined TIMESTAMP primary key,
+  ...   bio STRING INDEX using fulltext,
+  ...   address OBJECT (dynamic) AS (
+  ...     city STRING,
+  ...     country STRING
+  ...   )
+  ... ) CLUSTERED INTO 6 shards
+  ... PARTITIONED BY (day_joined)
+  ... WITH (number_of_replicas = 0);
+  CREATE OK (... sec)
+
+To import data into partitioned tables efficiently you should import
+each table partition separately. Since the value of the table
+partition is not stored in the column of the table, the ``JSON``
+source must not contain the column value.
+
+For example: ``users_1408312800.json``
+
+.. code-block:: json
+
+   {"id": 1, "name": "foo", "bio": "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.", "address": {"city": "Dornbirn", "country": "Austria"}}
+   {"id": 2, "name": "bar", "bio": "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.", "address": {"city": "Berlin", "country": "Germany"}}
+
+The value of the partition column must be defined in the ``COPY FROM``
+statement using the ``PARTITION`` clause::
+
+  cr> COPY user PARTITION (day_joined=1408312800)
+  ... FROM '/tmp/best_practice_data/users_1408312800.json';
+  COPY OK, 23 rows affected (... sec)
+
+This way, Crate does not need to resolve the partition for each row
+that is imported but can store it directly into the correct place
+resulting in a much faster import.
+
+However, it is still possible (but not recommended) to import into
+partitioned tables without the ``PARTITION`` clause and have the
+column value in the source.
+
+When importing data into a partitioned table with existing partitions,
+it may be wanted to apply import optimizations like e.g. disable the
+`Refresh Interval`_ only to newly created partitions. This can be done
+by altering the partitioned table *only* by using the :ref:`ALTER
+TABLE ONLY <partitioned_tables_alter_table_only>` statement.
+
+.. seealso::
+
+  - Detailed documentation of :ref:`partitioned_tables`
+  - Table creation of :ref:`sql_ddl_partitioned_by`
+  - :ref:`Alter a partitioned table <partitioned_tables_alter>`
+
+
+Summary
+-------
+
+To sum up the points described above, importing huge data sets is not
+difficult if a few things are kept in mind. These are:
+
+- Reduce the number of replicas as much as possible, ideally
+  to 0. Replication slows down the import process.
+- Use only as many shards as you really need.
+- Disable the periodic table refresh by setting the refresh interval
+  to 0 during import.
+- Adjust the bulk size of the import depending on the size of your records.
+- Import table partitions separately using the ``PARTITION`` clause in
+  the ``COPY TO`` statement.
+
+And last but not least:
+
+- Import speed significantly increases with increasing disk I/O. Using
+  SSDs for Crate is recommended anyway, but having one disk more (by
+  adding another node) in the cluster, can make quite a difference.
+
+Further Reading
+---------------
+
+.. seealso::
+
+  - :ref:`importing_data`

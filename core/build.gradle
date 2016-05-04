@@ -1,16 +1,16 @@
+apply plugin: 'me.champeau.gradle.jmh'
 apply plugin: 'java'
 apply plugin: 'maven'
+apply plugin: 'de.thetaphi.forbiddenapis'
 
 archivesBaseName = 'crate-core'
 
 configurations {
-    all*.exclude group: 'org.elasticsearch'
-    sharedCompile.extendsFrom compile
+    all*.exclude group: 'org.apache.commons', module: 'commons-math3'
 }
 
 dependencies {
     compile project(':es')
-    compile 'commons-codec:commons-codec:1.9'
     compile ('org.apache.xbean:xbean-finder:4.2') {
         exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
     }
@@ -27,6 +27,11 @@ test {
                 "*Test*"
                 ]
     }
+}
+
+forbiddenApisMain {
+    bundledSignatures = ['jdk-unsafe', 'jdk-deprecated']
+    ignoreFailures = false
 }
 
 task getVersion (dependsOn: 'classes') << {
@@ -59,18 +64,6 @@ sourceSets {
     test {
         resources {
             srcDir 'src/test/java'
-        }
-    }
-    shared {
-        java {
-            srcDir "src/main/java/"
-            include "io/crate/Streamer*"
-            include "io/crate/TimestampFormat*"
-            include "io/crate/core/collections/MapComparator*"
-            include "io/crate/core/collections/ForEach*"
-            include "io/crate/core/StringUtils*"
-            include "io/crate/geo/GeoJSONUtils*"
-            include "io/crate/types/**"
         }
     }
 }

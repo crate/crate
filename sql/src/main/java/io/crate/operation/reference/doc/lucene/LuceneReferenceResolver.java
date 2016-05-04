@@ -30,6 +30,8 @@ import io.crate.types.*;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.index.mapper.MapperService;
 
+import java.util.Locale;
+
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
     private final @Nullable MapperService mapperService;
@@ -50,7 +52,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             } else {
                 // TODO: implement an Object source expression which may support subscripts
                 throw new UnsupportedFeatureException(
-                        String.format("_source expression does not support subscripts %s",
+                        String.format(Locale.ENGLISH, "_source expression does not support subscripts %s",
                         refInfo.ident().columnIdent().fqn()));
             }
         } else if (IdCollectorExpression.COLUMN_NAME.equals(refInfo.ident().columnIdent().name())) {
@@ -64,7 +66,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         }
 
         String colName = refInfo.ident().columnIdent().fqn();
-        if (this.mapperService != null && mapperService.smartNameFieldMapper(colName) == null) {
+        if (this.mapperService != null && mapperService.smartNameFieldType(colName) == null) {
             return NULL_COLLECTOR_EXPRESSION;
         }
 
@@ -95,7 +97,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case GeoShapeType.ID:
                 return new GeoShapeColumnReference(colName);
             default:
-                throw new UnhandledServerException(String.format("unsupported type '%s'", refInfo.type().getName()));
+                throw new UnhandledServerException(String.format(Locale.ENGLISH, "unsupported type '%s'", refInfo.type().getName()));
         }
     }
 

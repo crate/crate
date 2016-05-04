@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect.sources;
 
-import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import com.google.common.collect.*;
 import io.crate.analyze.OrderBy;
@@ -45,11 +44,11 @@ import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.repositories.SysRepositories;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 /**
@@ -90,7 +89,7 @@ public class SystemCollectSource implements CollectSource {
         this.discoveryService = discoveryService;
     }
 
-    public Iterable<Row> toRowsIterable(CollectPhase collectPhase, Iterable<?> iterable) {
+    public Iterable<Row> toRowsIterable(RoutedCollectPhase collectPhase, Iterable<?> iterable) {
         WhereClause whereClause = collectPhase.whereClause();
         if (whereClause.noMatch()){
             return Collections.emptyList();
@@ -115,9 +114,8 @@ public class SystemCollectSource implements CollectSource {
 
         @SuppressWarnings("unchecked")
         Iterable<Row> rows = Iterables.filter(
-                toRowsIterable(iterable, ctx.topLevelInputs(), ctx.docLevelExpressions()),
-                InputCondition.asPredicate(condition)
-        );
+                Iterables.transform(iterable, InputRow.toInputRowFunction(ctx.topLevelInputs(), ctx.docLevelExpressions())),
+                InputCondition.asPredicate(condition));
 
         if (orderBy == null) {
             return rows;
@@ -125,30 +123,16 @@ public class SystemCollectSource implements CollectSource {
         return sortRows(Iterables.transform(rows, Row.MATERIALIZE), collectPhase);
     }
 
-    private static Iterable<Row> sortRows(Iterable<Object[]> rows, CollectPhase collectPhase) {
+    static Iterable<Row> sortRows(Iterable<Object[]> rows, RoutedCollectPhase collectPhase) {
         ArrayList<Object[]> objects = Lists.newArrayList(rows);
         Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(collectPhase);
         Collections.sort(objects, ordering.reverse());
         return Iterables.transform(objects, Buckets.arrayToRowFunction());
     }
 
-    private static Iterable<Row> toRowsIterable(
-            Iterable<?> iterable, List<Input<?>> inputs, final Iterable<CollectExpression<Object, ?>> expressions) {
-        final InputRow row = new InputRow(inputs);
-        return Iterables.transform(iterable, new Function<Object, Row>() {
-            @Nullable
-            @Override
-            public Row apply(Object input) {
-                for (CollectExpression<Object, ?> expression : expressions) {
-                    expression.setNextRow(input);
-                }
-                return row;
-            }
-        });
-    }
-
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+        RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         String table = Iterables.getOnlyElement(locations.get(discoveryService.localNode().id()).keySet());
         Supplier<Iterable<?>> iterableGetter = iterableGetters.get(table);

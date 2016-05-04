@@ -27,7 +27,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import io.crate.exceptions.JobKilledException;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.KillAllListener;
 import org.apache.lucene.util.CollectionUtil;
@@ -35,7 +35,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.action.support.master.TransportMasterNodeOperationAction;
+import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -47,18 +47,16 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.compress.CompressedString;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.regex.Regex;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -71,17 +69,13 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 /**
  * creates one or more indices within one cluster-state-update-task
@@ -95,7 +89,7 @@ import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilde
  */
 @Singleton
 public class TransportBulkCreateIndicesAction
-        extends TransportMasterNodeOperationAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse>
+        extends TransportMasterNodeAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse>
         implements KillAllListener {
 
     public static final String NAME = "indices:admin/bulk_create";
@@ -109,7 +103,6 @@ public class TransportBulkCreateIndicesAction
     private final AllocationService allocationService;
     private final MetaDataCreateIndexService createIndexService;
     private final Environment environment;
-    private final MetaDataService metaDataService;
 
     private final Object pendingLock = new Object();
     private final Queue<PendingOperation> pendingOperations = new ArrayDeque<>();
@@ -117,23 +110,22 @@ public class TransportBulkCreateIndicesAction
     private volatile long lastKillAllEvent = System.nanoTime();
 
     @Inject
-    protected TransportBulkCreateIndicesAction(Settings settings,
-                                               JobContextService jobContextService,
-                                               TransportService transportService,
-                                               Environment environment,
-                                               ClusterService clusterService,
-                                               ThreadPool threadPool,
-                                               MetaDataService metaDataService,
-                                               AliasValidator aliasValidator,
-                                               Version version,
-                                               IndicesService indicesService,
-                                               AllocationService allocationService,
-                                               MetaDataCreateIndexService createIndexService,
-                                               Set<IndexTemplateFilter> indexTemplateFilters,
-                                               ActionFilters actionFilters) {
-        super(settings, NAME, transportService, clusterService, threadPool, actionFilters);
+    public TransportBulkCreateIndicesAction(Settings settings,
+                                            JobContextService jobContextService,
+                                            TransportService transportService,
+                                            Environment environment,
+                                            ClusterService clusterService,
+                                            ThreadPool threadPool,
+                                            AliasValidator aliasValidator,
+                                            Version version,
+                                            IndicesService indicesService,
+                                            AllocationService allocationService,
+                                            MetaDataCreateIndexService createIndexService,
+                                            Set<IndexTemplateFilter> indexTemplateFilters,
+                                            IndexNameExpressionResolver indexNameExpressionResolver,
+                                            ActionFilters actionFilters) {
+        super(settings, NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, BulkCreateIndicesRequest.class);
         this.environment = environment;
-        this.metaDataService = metaDataService;
         this.aliasValidator = aliasValidator;
         this.version = version;
         this.indicesService = indicesService;
@@ -158,11 +150,6 @@ public class TransportBulkCreateIndicesAction
     @Override
     protected String executor() {
         return ThreadPool.Names.MANAGEMENT;
-    }
-
-    @Override
-    protected BulkCreateIndicesRequest newRequest() {
-        return new BulkCreateIndicesRequest();
     }
 
     @Override
@@ -205,27 +192,10 @@ public class TransportBulkCreateIndicesAction
         final long timeStart = System.nanoTime();
 
         final ActionListener<BulkCreateIndicesResponse> listener = new PendingTriggeringActionListener(responseListener);
-        final Map<Semaphore, Collection<String>> locked = new HashMap<>();
-        final Map<Semaphore, Collection<String>> unlocked = metaDataService.indexMetaDataLocks(request.indices());
-
-        try {
-            tryAcquireLocksAndRemoveExistingIndices(state, locked, unlocked, 0L);
-        } catch (InterruptedException e) {
-            unlockIndices(locked);
-            listener.onFailure(e);
-            return;
-        }
         final ActionListener<ClusterStateUpdateResponse> stateUpdateListener = new ActionListener<ClusterStateUpdateResponse>() {
             @Override
             public void onResponse(ClusterStateUpdateResponse clusterStateUpdateResponse) {
-                locked.clear();  // locks are already unlocked;
-
-                if (!unlocked.isEmpty()) {
-                    tryAcquireLocksAndCreateIndicesThreaded(
-                            timeStart, request, clusterService.state(), locked, unlocked, this);
-                } else {
                     listener.onResponse(new BulkCreateIndicesResponse(true));
-                }
             }
 
             @Override
@@ -233,115 +203,15 @@ public class TransportBulkCreateIndicesAction
                 listener.onFailure(e);
             }
         };
-
-        if (locked.isEmpty() && unlocked.isEmpty()) {
-            // all indices already existed?
-            listener.onResponse(new BulkCreateIndicesResponse(true));
-            return;
-        }
-
         if (timeStart <= lastKillAllEvent) {
-            unlockIndices(locked);
-            responseListener.onFailure(new CancellationException());
+            responseListener.onFailure(new InterruptedException(JobKilledException.MESSAGE));
             return;
         }
-        if (!locked.isEmpty()) {
-            createIndices(request, locked, stateUpdateListener);
-        } else {
-            tryAcquireLocksAndCreateIndicesThreaded(timeStart, request, state, locked, unlocked, stateUpdateListener);
-        }
-    }
-    private void tryAcquireLocksAndCreateIndicesThreaded(final long timeStart,
-                                                         final BulkCreateIndicesRequest request,
-                                                         final ClusterState state,
-                                                         final Map<Semaphore, Collection<String>> locked,
-                                                         final Map<Semaphore, Collection<String>> unlocked,
-                                                         final ActionListener<ClusterStateUpdateResponse> stateUpdateListener) {
-        try {
-            threadPool.executor(ThreadPool.Names.MANAGEMENT).execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        if (timeStart < lastKillAllEvent) {
-                            stateUpdateListener.onFailure(new CancellationException());
-                            return;
-                        }
-                        long elapsed = System.nanoTime() - timeStart;
-                        long timeout = request.timeout().nanos();
-                        if (elapsed >= timeout) {
-                            stateUpdateListener.onFailure(new ProcessClusterEventTimeoutException(request.timeout(), "acquire index lock"));
-                            return;
-                        }
-                        tryAcquireLocksAndRemoveExistingIndices(state, locked, unlocked, 0);
-                        if (locked.isEmpty() && !unlocked.isEmpty()) {
-                            long remainingTimeout = timeout - elapsed;
-                            tryAcquireLocksAndRemoveExistingIndices(state, locked, unlocked, remainingTimeout);
-                        } else {
-                            createIndices(request, locked, stateUpdateListener);
-                        }
-                    } catch (InterruptedException e) {
-                        stateUpdateListener.onFailure(
-                                new ProcessClusterEventTimeoutException(request.timeout(), "acquire index lock"));
-                    } finally {
-                        unlockIndices(locked);
-                    }
-                }
-            });
-        } catch (EsRejectedExecutionException | RejectedExecutionException e) {
-            unlockIndices(locked);
-            stateUpdateListener.onFailure(e);
-        }
+        createIndices(request, stateUpdateListener);
     }
 
-    private void tryAcquireLocksAndRemoveExistingIndices(ClusterState state,
-                                                         Map<Semaphore, Collection<String>> locked,
-                                                         Map<Semaphore, Collection<String>> unlocked,
-                                                         long timeout) throws InterruptedException {
-        Iterator<Map.Entry<Semaphore, Collection<String>>> unlockedIterator = unlocked.entrySet().iterator();
-        while (unlockedIterator.hasNext()) {
-            Map.Entry<Semaphore, Collection<String>> entry = unlockedIterator.next();
-
-            Set<String> validIndices = Sets.newHashSet(entry.getValue());
-            Iterator<String> iterator = validIndices.iterator();
-            while (iterator.hasNext()) {
-                String index = iterator.next();
-
-                if (state.routingTable().hasIndex(index) || state.metaData().hasIndex(index)) {
-                    iterator.remove();
-                }
-            }
-
-            if (validIndices.isEmpty()) {
-                unlockedIterator.remove();
-                continue;
-            }
-
-            Semaphore lock = entry.getKey();
-            if (lockAcquired(timeout, lock)) {
-                locked.put(lock, validIndices);
-                unlockedIterator.remove();
-            } else{
-                entry.setValue(validIndices);
-            }
-        }
-    }
-
-    private void unlockIndices(Map<Semaphore, Collection<String>> lockedIndices) {
-        for (Semaphore semaphore : lockedIndices.keySet()) {
-            semaphore.release();
-        }
-    }
-
-    private boolean lockAcquired(long timeout, Semaphore lock) throws InterruptedException {
-        boolean b = lock.tryAcquire(timeout, TimeUnit.NANOSECONDS);
-        if (!b && timeout > 0) {
-            throw new InterruptedException();
-        }
-        return b;
-    }
-
-    protected ClusterState executeCreateIndices(ClusterState currentState,
-                                                BulkCreateIndicesRequest request) throws Exception {
+    ClusterState executeCreateIndices(ClusterState currentState,
+                                      BulkCreateIndicesRequest request) throws Exception {
         /**
          * This code is more or less the same as the stuff in {@link MetaDataCreateIndexService}
          * but optimized for bulk operation without separate mapping/alias/index settings.
@@ -363,7 +233,7 @@ public class TransportBulkCreateIndicesAction
 
             List<IndexTemplateMetaData> templates = findTemplates(request, currentState, indexTemplateFilter);
             applyTemplates(customs, mappings, templatesAliases, templateNames, templates);
-            File mappingsDir = new File(environment.configFile(), "mappings");
+            File mappingsDir = new File(environment.configFile().toFile(), "mappings");
             if (mappingsDir.isDirectory()) {
                 addMappingFromMappingsFile(mappings, mappingsDir, request);
             }
@@ -379,7 +249,7 @@ public class TransportBulkCreateIndicesAction
             // first, add the default mapping
             if (mappings.containsKey(MapperService.DEFAULT_MAPPING)) {
                 try {
-                    mapperService.merge(MapperService.DEFAULT_MAPPING, new CompressedString(XContentFactory.jsonBuilder().map(mappings.get(MapperService.DEFAULT_MAPPING)).string()), false);
+                    mapperService.merge(MapperService.DEFAULT_MAPPING, new CompressedXContent(XContentFactory.jsonBuilder().map(mappings.get(MapperService.DEFAULT_MAPPING)).string()), false, false);
                 } catch (Exception e) {
                     removalReason = "failed on parsing default mapping on index creation";
                     throw new MapperParsingException("mapping [" + MapperService.DEFAULT_MAPPING + "]", e);
@@ -391,7 +261,7 @@ public class TransportBulkCreateIndicesAction
                 }
                 try {
                     // apply the default here, its the first time we parse it
-                    mapperService.merge(entry.getKey(), new CompressedString(XContentFactory.jsonBuilder().map(entry.getValue()).string()), true);
+                    mapperService.merge(entry.getKey(), new CompressedXContent(XContentFactory.jsonBuilder().map(entry.getValue()).string()), true, false);
                 } catch (Exception e) {
                     removalReason = "failed on parsing mappings on index creation";
                     throw new MapperParsingException("mapping [" + entry.getKey() + "]", e);
@@ -436,9 +306,9 @@ public class TransportBulkCreateIndicesAction
                     throw e;
                 }
                 logger.info("[{}] creating index, cause [bulk], templates {}, shards [{}]/[{}], mappings {}",
-                        index, templateNames, indexMetaData.numberOfShards(), indexMetaData.numberOfReplicas(), mappings.keySet());
+                        index, templateNames, indexMetaData.getNumberOfShards(), indexMetaData.getNumberOfReplicas(), mappings.keySet());
 
-                indexService.indicesLifecycle().beforeIndexAddedToCluster(new Index(index), indexMetaData.settings());
+                indexService.indicesLifecycle().beforeIndexAddedToCluster(new Index(index), indexMetaData.getSettings());
                 newMetaDataBuilder.put(indexMetaData, false);
             }
             MetaData newMetaData = newMetaDataBuilder.build();
@@ -449,7 +319,7 @@ public class TransportBulkCreateIndicesAction
                 routingTableBuilder.addAsNew(updatedState.metaData().index(index));
             }
             RoutingAllocation.Result routingResult = allocationService.reroute(
-                    ClusterState.builder(updatedState).routingTable(routingTableBuilder).build());
+                    ClusterState.builder(updatedState).routingTable(routingTableBuilder).build(), "bulk-index-creation");
             updatedState = ClusterState.builder(updatedState).routingResult(routingResult).build();
 
             removalReason = "cleaning up after validating index on master";
@@ -463,9 +333,8 @@ public class TransportBulkCreateIndicesAction
     }
 
     private void createIndices(final BulkCreateIndicesRequest request,
-                               final Map<Semaphore, Collection<String>> lockedIndices,
                                ActionListener<ClusterStateUpdateResponse> listener) {
-        clusterService.submitStateUpdateTask("create-indices [" +  "], cause [" +  "]", Priority.URGENT,
+        clusterService.submitStateUpdateTask("create-indices [" +  "], cause [" +  "]",
                 new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
 
             @Override
@@ -474,29 +343,10 @@ public class TransportBulkCreateIndicesAction
             }
 
             @Override
-            public void onAllNodesAcked(@Nullable Throwable t) {
-                unlockIndices(lockedIndices);
-                super.onAllNodesAcked(t);
-            }
-
-            @Override
-            public void onAckTimeout() {
-                unlockIndices(lockedIndices);
-                super.onAckTimeout();
-            }
-
-            @Override
-            public void onFailure(String source, Throwable t) {
-                unlockIndices(lockedIndices);
-                super.onFailure(source, t);
-            }
-
-            @Override
             public ClusterState execute(ClusterState currentState) throws Exception {
                 return executeCreateIndices(currentState, request);
             }
         });
-
     }
 
     private void addMappingFromMappingsFile(Map<String, Map<String, Object>> mappings, File mappingsDir, BulkCreateIndicesRequest request) {
@@ -529,7 +379,7 @@ public class TransportBulkCreateIndicesAction
     }
 
     private Settings createIndexSettings(ClusterState currentState, List<IndexTemplateMetaData> templates) {
-        ImmutableSettings.Builder indexSettingsBuilder = settingsBuilder();
+        Settings.Builder indexSettingsBuilder = settingsBuilder();
         // apply templates, here, in reverse order, since first ones are better matching
         for (int i = templates.size() - 1; i >= 0; i--) {
             indexSettingsBuilder.put(templates.get(i).settings());
@@ -558,7 +408,7 @@ public class TransportBulkCreateIndicesAction
             indexSettingsBuilder.put(IndexMetaData.SETTING_CREATION_DATE, System.currentTimeMillis());
         }
 
-        indexSettingsBuilder.put(IndexMetaData.SETTING_UUID, Strings.randomBase64UUID());
+        indexSettingsBuilder.put(IndexMetaData.SETTING_INDEX_UUID, Strings.randomBase64UUID());
 
         return indexSettingsBuilder.build();
     }
@@ -592,7 +442,7 @@ public class TransportBulkCreateIndicesAction
 
         for (IndexTemplateMetaData template : templates) {
             templateNames.add(template.getName());
-            for (ObjectObjectCursor<String, CompressedString> cursor : template.mappings()) {
+            for (ObjectObjectCursor<String, CompressedXContent> cursor : template.mappings()) {
                 if (mappings.containsKey(cursor.key)) {
                     XContentHelper.mergeDefaults(mappings.get(cursor.key), parseMapping(cursor.value.string()));
                 } else {
@@ -607,7 +457,7 @@ public class TransportBulkCreateIndicesAction
                 if (existing == null) {
                     customs.put(type, custom);
                 } else {
-                    IndexMetaData.Custom merged = IndexMetaData.lookupFactorySafe(type).merge(existing, custom);
+                    IndexMetaData.Custom merged = existing.mergeWith(custom);
                     customs.put(type, merged);
                 }
             }
@@ -624,7 +474,7 @@ public class TransportBulkCreateIndicesAction
                                                       IndexTemplateFilter indexTemplateFilter) {
         List<IndexTemplateMetaData> templates = new ArrayList<>();
         CreateIndexClusterStateUpdateRequest dummyRequest =
-                new CreateIndexClusterStateUpdateRequest(request, "bulk-create", request.indices().iterator().next());
+                new CreateIndexClusterStateUpdateRequest(request, "bulk-create", request.indices().iterator().next(), false);
 
         // note: only use the first index name to see if template matches.
         // this means
@@ -645,7 +495,11 @@ public class TransportBulkCreateIndicesAction
     }
 
     private Map<String, Object> parseMapping(String mappingSource) throws Exception {
-        return XContentFactory.xContent(mappingSource).createParser(mappingSource).mapAndClose();
+        try (XContentParser parser = XContentFactory.xContent(mappingSource).createParser(mappingSource)) {
+            return parser.map();
+        } catch (IOException e) {
+            throw new ElasticsearchException("failed to parse mapping", e);
+        }
     }
 
     @Override
@@ -659,7 +513,7 @@ public class TransportBulkCreateIndicesAction
         synchronized (pendingLock) {
             PendingOperation pendingOperation;
             while ( (pendingOperation = pendingOperations.poll()) != null) {
-                pendingOperation.responseListener.onFailure(new CancellationException());
+                pendingOperation.responseListener.onFailure(new InterruptedException(JobKilledException.MESSAGE));
             }
         }
     }
@@ -671,7 +525,7 @@ public class TransportBulkCreateIndicesAction
             while (it.hasNext()) {
                 PendingOperation pendingOperation = it.next();
                 if (pendingOperation.request.jobId().equals(jobId)) {
-                    pendingOperation.responseListener.onFailure(new CancellationException());
+                    pendingOperation.responseListener.onFailure(new InterruptedException(JobKilledException.MESSAGE));
                     it.remove();
                 }
             }

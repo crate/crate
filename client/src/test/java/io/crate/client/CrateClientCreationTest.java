@@ -22,53 +22,22 @@
 
 package io.crate.client;
 
-import io.crate.plugin.CrateCorePlugin;
 import org.elasticsearch.client.transport.TransportClientNodesService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
 import java.util.List;
-import java.util.Locale;
 
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
 
-public class CrateClientCreationTest extends ElasticsearchIntegrationTest {
-
-    private int port;
-    private String serverAddress;
-
-    private static final String TEST_SETTINGS_PATH = CrateClientCreationTest.class.getResource("crate.yml").getPath();
-
-    @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put("node.mode", "network")
-                .put("plugin.types", CrateCorePlugin.class.getName())
-                .build();
-    }
-
-    @Before
-    public void prepare() {
-        System.setProperty("es.config", TEST_SETTINGS_PATH);
-        InetSocketAddress address = ((InetSocketTransportAddress) internalCluster()
-                .getInstance(TransportService.class)
-                .boundAddress().boundAddress()).address();
-        port = address.getPort();
-        serverAddress = String.format(Locale.ENGLISH, "localhost:%s", port);
-    }
+public class CrateClientCreationTest extends CrateClientIntegrationTest {
 
     @After
     public void cleanUp() throws Exception {
@@ -87,7 +56,7 @@ public class CrateClientCreationTest extends ElasticsearchIntegrationTest {
 
     @Test
     public void testWithNode() throws Exception {
-        CrateClient localClient = new CrateClient(ImmutableSettings.EMPTY, false, serverAddress);
+        CrateClient localClient = new CrateClient(serverAddress());
         try {
             assertThat(extractDiscoveryNodes(localClient), hasSize(1));
         } finally {
@@ -107,7 +76,7 @@ public class CrateClientCreationTest extends ElasticsearchIntegrationTest {
 
     @Test
     public void testCreateWithServer() throws Exception {
-        CrateClient localClient = new CrateClient(ImmutableSettings.EMPTY, false, serverAddress);
+        CrateClient localClient = new CrateClient(serverAddress());
         try {
             assertThat(extractDiscoveryNodes(localClient), hasSize(1));
         } finally {
@@ -135,10 +104,10 @@ public class CrateClientCreationTest extends ElasticsearchIntegrationTest {
 
     @Test
     public void testWithSettings() throws Exception {
-        CrateClient localClient = new CrateClient(ImmutableSettings.builder()
+        CrateClient localClient = new CrateClient(settingsBuilder()
                 .put("fancy.setting", "check") // will not be overridden
                 .put("node.name", "fancy-node-name") // will be overridden
-                .build(), false);
+                .build());
 
         try {
             Settings settings = localClient.settings();
@@ -147,23 +116,5 @@ public class CrateClientCreationTest extends ElasticsearchIntegrationTest {
         } finally {
             localClient.close();
         }
-    }
-
-    @Test
-    public void testLoadFromConfig() throws Exception {
-        CrateClient configClient = new CrateClient(ImmutableSettings.EMPTY, true);
-        CrateClient noConfigClient = new CrateClient(ImmutableSettings.EMPTY, false);
-        try {
-            Settings configSettings = configClient.settings();
-            Settings noConfigSettings = noConfigClient.settings();
-
-            assertThat(configSettings.getAsBoolean("loaded.from.file", false), is(true));
-            assertThat(noConfigSettings.getAsMap().containsKey("loaded.from.file"), is(false));
-        } finally {
-            configClient.close();
-            noConfigClient.close();
-        }
-
-
     }
 }

@@ -31,7 +31,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
@@ -63,19 +63,21 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 jobId);
         request.validateGeneratedColumns(false);
 
-        request.add(123, "99",
+        request.add(123, new ShardUpsertRequest.Item(
+                "99",
                 null,
                 new Object[]{99, new BytesRef("Marvin")},
-                null);
-        request.add(5, "42",
+                null));
+        request.add(5, new ShardUpsertRequest.Item(
+                "42",
                 new Symbol[]{Literal.newLiteral(42), Literal.newLiteral("Deep Thought") },
                 null,
-                2L);
+                2L));
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         ShardUpsertRequest request2 = new ShardUpsertRequest();
         request2.readFrom(in);
 

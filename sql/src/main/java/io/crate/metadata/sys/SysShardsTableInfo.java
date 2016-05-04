@@ -25,9 +25,11 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
+import io.crate.metadata.table.ColumnRegistrar;
+import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.*;
-import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -36,15 +38,16 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 @Singleton
-public class SysShardsTableInfo extends SysTableInfo {
+public class SysShardsTableInfo extends StaticTableInfo {
 
-    public static final TableIdent IDENT = new TableIdent(SCHEMA, "shards");
-
-    private final Map<ColumnIdent, ReferenceInfo> infos;
-    private final Set<ReferenceInfo> columns;
+    public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "shards");
+    private final ClusterService service;
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
@@ -56,6 +59,7 @@ public class SysShardsTableInfo extends SysTableInfo {
         public static final ColumnIdent RELOCATING_NODE = new ColumnIdent("relocating_node");
         public static final ColumnIdent SIZE = new ColumnIdent("size");
         public static final ColumnIdent STATE = new ColumnIdent("state");
+        public static final ColumnIdent ROUTING_STATE = new ColumnIdent("routing_state");
         public static final ColumnIdent ORPHAN_PARTITION = new ColumnIdent("orphan_partition");
 
         public static final ColumnIdent RECOVERY = new ColumnIdent("recovery");
@@ -96,11 +100,12 @@ public class SysShardsTableInfo extends SysTableInfo {
         public static final ReferenceIdent RELOCATING_NODE = new ReferenceIdent(IDENT, Columns.RELOCATING_NODE);
         public static final ReferenceIdent SIZE = new ReferenceIdent(IDENT, Columns.SIZE);
         public static final ReferenceIdent STATE = new ReferenceIdent(IDENT, Columns.STATE);
+        public static final ReferenceIdent ROUTING_STATE = new ReferenceIdent(IDENT, Columns.ROUTING_STATE);
         public static final ReferenceIdent ORPHAN_PARTITION = new ReferenceIdent(IDENT, Columns.ORPHAN_PARTITION);
         public static final ReferenceIdent RECOVERY = new ReferenceIdent(IDENT, Columns.RECOVERY);
     }
 
-    private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(
+    private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(
             Columns.SCHEMA_NAME,
             Columns.TABLE_NAME,
             Columns.ID,
@@ -111,54 +116,48 @@ public class SysShardsTableInfo extends SysTableInfo {
 
     @Inject
     public SysShardsTableInfo(ClusterService service, SysNodesTableInfo sysNodesTableInfo) {
-        super(service);
+        super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.SHARD)
+                        .register(Columns.SCHEMA_NAME, StringType.INSTANCE)
+                        .register(Columns.TABLE_NAME, StringType.INSTANCE)
+                        .register(Columns.ID, IntegerType.INSTANCE)
+                        .register(Columns.PARTITION_IDENT, StringType.INSTANCE)
+                        .register(Columns.NUM_DOCS, LongType.INSTANCE)
+                        .register(Columns.PRIMARY, BooleanType.INSTANCE)
+                        .register(Columns.RELOCATING_NODE, StringType.INSTANCE)
+                        .register(Columns.SIZE, LongType.INSTANCE)
+                        .register(Columns.STATE, StringType.INSTANCE)
+                        .register(Columns.ROUTING_STATE, StringType.INSTANCE)
+                        .register(Columns.ORPHAN_PARTITION, BooleanType.INSTANCE)
+
+                        .register(Columns.RECOVERY, ObjectType.INSTANCE)
+                        .register(Columns.RECOVERY_STAGE, StringType.INSTANCE)
+                        .register(Columns.RECOVERY_TYPE, StringType.INSTANCE)
+                        .register(Columns.RECOVERY_TOTAL_TIME, LongType.INSTANCE)
+
+                        .register(Columns.RECOVERY_SIZE, ObjectType.INSTANCE)
+                        .register(Columns.RECOVERY_SIZE_USED, LongType.INSTANCE)
+                        .register(Columns.RECOVERY_SIZE_REUSED, LongType.INSTANCE)
+                        .register(Columns.RECOVERY_SIZE_RECOVERED, LongType.INSTANCE)
+                        .register(Columns.RECOVERY_SIZE_PERCENT, FloatType.INSTANCE)
+
+                        .register(Columns.RECOVERY_FILES, ObjectType.INSTANCE)
+                        .register(Columns.RECOVERY_FILES_USED, IntegerType.INSTANCE)
+                        .register(Columns.RECOVERY_FILES_REUSED, IntegerType.INSTANCE)
+                        .register(Columns.RECOVERY_FILES_RECOVERED, IntegerType.INSTANCE)
+                        .register(Columns.RECOVERY_FILES_PERCENT, FloatType.INSTANCE)
+                        .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT)),
+                PRIMARY_KEY);
+        this.service = service;
         nodesTableColumn = sysNodesTableInfo.tableColumn();
-
-        ColumnRegistrar registrar = new ColumnRegistrar(IDENT, RowGranularity.SHARD)
-                .register(Columns.SCHEMA_NAME, StringType.INSTANCE)
-                .register(Columns.TABLE_NAME, StringType.INSTANCE)
-                .register(Columns.ID, IntegerType.INSTANCE)
-                .register(Columns.PARTITION_IDENT, StringType.INSTANCE)
-                .register(Columns.NUM_DOCS, LongType.INSTANCE)
-                .register(Columns.PRIMARY, BooleanType.INSTANCE)
-                .register(Columns.RELOCATING_NODE, StringType.INSTANCE)
-                .register(Columns.SIZE, LongType.INSTANCE)
-                .register(Columns.STATE, StringType.INSTANCE)
-                .register(Columns.ORPHAN_PARTITION, BooleanType.INSTANCE)
-
-                .register(Columns.RECOVERY, ObjectType.INSTANCE)
-                .register(Columns.RECOVERY_STAGE, StringType.INSTANCE)
-                .register(Columns.RECOVERY_TYPE, StringType.INSTANCE)
-                .register(Columns.RECOVERY_TOTAL_TIME, LongType.INSTANCE)
-
-                .register(Columns.RECOVERY_SIZE, ObjectType.INSTANCE)
-                .register(Columns.RECOVERY_SIZE_USED, LongType.INSTANCE)
-                .register(Columns.RECOVERY_SIZE_REUSED, LongType.INSTANCE)
-                .register(Columns.RECOVERY_SIZE_RECOVERED, LongType.INSTANCE)
-                .register(Columns.RECOVERY_SIZE_PERCENT, FloatType.INSTANCE)
-
-                .register(Columns.RECOVERY_FILES, ObjectType.INSTANCE)
-                .register(Columns.RECOVERY_FILES_USED, IntegerType.INSTANCE)
-                .register(Columns.RECOVERY_FILES_REUSED, IntegerType.INSTANCE)
-                .register(Columns.RECOVERY_FILES_RECOVERED, IntegerType.INSTANCE)
-                .register(Columns.RECOVERY_FILES_PERCENT, FloatType.INSTANCE)
-                .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT));
-        infos = registrar.infos();
-        columns = registrar.columns();
     }
 
     @Override
     public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        ReferenceInfo info = infos.get(columnIdent);
+        ReferenceInfo info = super.getReferenceInfo(columnIdent);
         if (info == null) {
             return nodesTableColumn.getReferenceInfo(this.ident(), columnIdent);
         }
         return info;
-    }
-
-    @Override
-    public Collection<ReferenceInfo> columns() {
-        return columns;
     }
 
     private void processShardRouting(Map<String, Map<String, List<Integer>>> routing, ShardRouting shardRouting, ShardId shardId) {
@@ -167,7 +166,7 @@ public class SysShardsTableInfo extends SysTableInfo {
         String index = shardId.getIndex();
 
         if (shardRouting == null) {
-            node = clusterService.localNode().id();
+            node = service.localNode().id();
             id = UnassignedShard.markUnassigned(shardId.id());
         } else {
             node = shardRouting.currentNodeId();
@@ -187,17 +186,10 @@ public class SysShardsTableInfo extends SysTableInfo {
         shards.add(id);
     }
 
-
     @Override
     public RowGranularity rowGranularity() {
         return RowGranularity.SHARD;
     }
-
-    @Override
-    public TableIdent ident() {
-        return IDENT;
-    }
-
 
     /**
      * Retrieves the routing for sys.shards
@@ -209,22 +201,13 @@ public class SysShardsTableInfo extends SysTableInfo {
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         // TODO: filter on whereClause
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-        String[] concreteIndices = clusterService.state().metaData().concreteAllIndices();
-        GroupShardsIterator groupShardsIterator = clusterService.state().getRoutingTable().allAssignedShardsGrouped(concreteIndices, true, true);
+        ClusterState state = service.state();
+        String[] concreteIndices = state.metaData().concreteAllIndices();
+        GroupShardsIterator groupShardsIterator = state.getRoutingTable().allAssignedShardsGrouped(concreteIndices, true, true);
         for (final ShardIterator shardIt : groupShardsIterator) {
             final ShardRouting shardRouting = shardIt.nextOrNull();
             processShardRouting(locations, shardRouting, shardIt.shardId());
         }
         return new Routing(locations);
-    }
-
-    @Override
-    public List<ColumnIdent> primaryKey() {
-        return primaryKey;
-    }
-
-    @Override
-    public Iterator<ReferenceInfo> iterator() {
-        return infos.values().iterator();
     }
 }

@@ -22,8 +22,10 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.base.Functions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.ActionListeners;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
@@ -147,17 +149,8 @@ public class SnapshotRestoreDDLDispatcher {
                 .waitForCompletion(waitForCompletion)
                 .includeGlobalState(false)
                 .includeAliases(true);
-        transportActionProvider.transportRestoreSnapshotAction().execute(request, new ActionListener<RestoreSnapshotResponse>() {
-            @Override
-            public void onResponse(RestoreSnapshotResponse restoreSnapshotResponse) {
-                resultFuture.set(1L);
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-                resultFuture.setException(e);
-            }
-        });
+        ActionListener<RestoreSnapshotResponse> listener = ActionListeners.wrap(resultFuture, Functions.constant(1L));
+        transportActionProvider.transportRestoreSnapshotAction().execute(request, listener);
         return resultFuture;
     }
 }

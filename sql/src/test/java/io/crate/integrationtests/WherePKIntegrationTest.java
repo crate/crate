@@ -221,6 +221,8 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Integer)response.rows()[1][0], is(2));
 
         execute("delete from expl_routing where name = ''");
+        assertThat(response.rowCount(), is(2L));
+        refresh();
         execute("select count(*) from expl_routing");
         assertThat((Long) response.rows()[0][0], is(1L));
     }
@@ -241,7 +243,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
 
         // does not delete anything - goes to shard 1
         execute("delete from explicit_routing where name='A,W'");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), is(0L));
         execute("refresh table explicit_routing");
 
         execute("select * from explicit_routing");

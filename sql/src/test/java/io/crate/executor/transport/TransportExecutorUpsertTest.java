@@ -42,7 +42,7 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
@@ -50,7 +50,7 @@ import io.crate.planner.projection.UpdateProjection;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.routing.operation.plain.Preference;
+import org.elasticsearch.cluster.routing.Preference;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.search.SearchHits;
 import org.junit.Test;
@@ -67,7 +67,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
     @Test
     public void testInsertWithUpsertByIdTask() throws Exception {
         execute("create table characters (id int primary key, name string)");
-        ensureGreen();
+        ensureYellow();
 
         /* insert into characters (id, name) values (99, 'Marvin'); */
         Planner.Context ctx = newPlannerContext();
@@ -154,7 +154,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
     @Test
     public void testInsertMultiValuesWithUpsertByIdTask() throws Exception {
         execute("create table characters (id int primary key, name string)");
-        ensureGreen();
+        ensureYellow();
 
         /* insert into characters (id, name) values (99, 'Marvin'), (42, 'Deep Thought'); */
         Planner.Context ctx = newPlannerContext();
@@ -316,7 +316,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 null);
 
         WhereClause whereClause = new WhereClause(query);
-        CollectPhase collectPhase1 = new CollectPhase(
+        RoutedCollectPhase collectPhase1 = new RoutedCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "collect",
@@ -342,7 +342,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 Arrays.<Symbol>asList(femaleRef, Literal.newLiteral(true)));
 
         final WhereClause whereClause1 = new WhereClause(query2);
-        CollectPhase collectPhase2 = new CollectPhase(
+        RoutedCollectPhase collectPhase2 = new RoutedCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "collect",

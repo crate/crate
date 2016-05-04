@@ -27,7 +27,6 @@ import io.crate.analyze.*;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.core.collections.TreeMapBuilder;
-import io.crate.exceptions.ConversionException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -111,7 +110,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
                         .addGeneratedColumn("x_incr", DataTypes.LONG, "x + 1", false)
                         .addPartitions(
                                 new PartitionName("generated_col", Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName(),
-                                new PartitionName("generated_col", Arrays.asList(new BytesRef("1420200000000"), new BytesRef("-2"))).asIndexName()
+                                new PartitionName("generated_col", Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()
                         )
                         .build(injector.getInstance(Functions.class));
         when(schemaInfo.getTableInfo(GENERATED_COL_TABLE_NAME)).thenReturn(genInfo);
@@ -289,7 +288,13 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         assertThat(whereClause.docKeys().get(), contains(isDocKey(1, 1395874800000L)));
         // not partitions if docKeys are there
         assertThat(whereClause.partitions(), empty());
+    }
 
+    @Test
+    public void testSelectFromPartitionedTableWithoutPKInWhereClause() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select id from parted where match(name, 'name')");
+        assertThat(whereClause.docKeys().isPresent(), is(false));
+        assertThat(whereClause.partitions(), empty());
     }
 
     @Test
@@ -655,8 +660,8 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testAnyInvalidArrayType() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast ['foo', 'bar', 'baz'] to type boolean_array");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("['foo', 'bar', 'baz'] cannot be cast to type boolean_array");
         analyzeSelectWhere("select * from users_multi_pk where awesome = any(['foo', 'bar', 'baz'])");
     }
 
@@ -719,7 +724,14 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     public void testGtGenColOptimization() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts > '2015-01-02T12:00:00'");
         assertThat(whereClause.partitions().size(), is(1));
-        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420200000000"), new BytesRef("-2"))).asIndexName()));
+        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()));
+    }
+
+    @Test
+    public void testGenColRoundingFunctionNoSwappingOperatorOptimization() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts >= '2015-01-02T12:00:00'");
+        assertThat(whereClause.partitions().size(), is(1));
+        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()));
     }
 
     @Test
@@ -751,5 +763,13 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         assertThat(whereClause.query(), isSQL("(doc.double_gen_parted.x > 3)"));
         assertThat(whereClause.partitions().size(), is(1));
         assertThat(whereClause.partitions().get(0), is(".partitioned.double_gen_parted.0813a0hm"));
+    }
+
+    @Test
+    public void testGenColRangeOptimization() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from generated_col where ts >= '2015-01-01T12:00:00' and ts <= '2015-01-02T00:00:00'");
+        assertThat(whereClause.partitions().size(), is(2));
+        assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName()));
+        assertThat(whereClause.partitions().get(1), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()));
     }
 }

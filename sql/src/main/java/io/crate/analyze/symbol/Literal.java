@@ -4,7 +4,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import io.crate.exceptions.ConversionException;
 import io.crate.operation.Input;
-import io.crate.types.*;
+import io.crate.types.ArrayType;
+import io.crate.types.CollectionType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -31,27 +34,6 @@ public class Literal<ReturnType>
             return new Literal();
         }
     };
-
-    public static Literal implodeCollection(DataType itemType, Set<Literal> literals) {
-        Set<Object> set = new HashSet<>(literals.size(), 1.0F);
-        for (Literal literal : literals) {
-            assert literal.valueType() == itemType :
-                    String.format("Literal type: %s does not match item type: %s", literal.valueType(), itemType);
-            set.add(literal.value());
-        }
-        return new Literal<>(new SetType(itemType), Collections.unmodifiableSet(set));
-    }
-
-    public static Literal implodeCollection(DataType itemType, List<Literal> literals) {
-       Object[] values = new Object[literals.size()];
-        for (int i = 0; i<literals.size(); i++) {
-            assert literals.get(i).valueType().equals(itemType) || literals.get(i).valueType() == DataTypes.UNDEFINED:
-                    String.format("Literal type: %s does not match item type: %s",
-                            literals.get(i).valueType(), itemType);
-            values[i] = literals.get(i).value();
-        }
-        return new Literal<>(new ArrayType(itemType), values);
-    }
 
     public static Collection<Literal> explodeCollection(Literal collectionLiteral) {
         Preconditions.checkArgument(DataTypes.isCollectionType(collectionLiteral.valueType()));
@@ -80,12 +62,12 @@ public class Literal<ReturnType>
     }
 
     private Literal(DataType type, ReturnType value) {
-        assert typeMatchesValue(type, value) : String.format("value %s is not of type %s", value, type.getName());
+        assert typeMatchesValue(type, value) : String.format(Locale.ENGLISH, "value %s is not of type %s", value, type.getName());
         this.type = type;
         this.value = value;
     }
 
-    private static <ReturnType> boolean typeMatchesValue(DataType type, Object value) {
+    private static boolean typeMatchesValue(DataType type, Object value) {
         if (value == null) {
             return true;
         }

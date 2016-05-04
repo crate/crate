@@ -26,9 +26,7 @@ import io.crate.core.collections.Row1;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.writer.Output;
@@ -36,7 +34,6 @@ import io.crate.operation.projectors.writer.OutputFile;
 import io.crate.operation.projectors.writer.OutputS3;
 import io.crate.planner.projection.WriterProjection;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -92,14 +89,14 @@ public class WriterProjector extends AbstractProjector {
         try {
             this.uri = new URI(uri);
         } catch (URISyntaxException e) {
-            throw new ValidationException(String.format("Invalid uri '%s'", uri), e);
+            throw new ValidationException(String.format(Locale.ENGLISH, "Invalid uri '%s'", uri), e);
         }
         if (this.uri.getScheme() == null || this.uri.getScheme().equals("file")) {
             this.output = new OutputFile(this.uri, this.compressionType);
         } else if (this.uri.getScheme().equalsIgnoreCase("s3")) {
             this.output = new OutputS3(executorService, this.uri, this.compressionType);
         } else {
-            throw new UnsupportedFeatureException(String.format("Unknown scheme '%s'", this.uri.getScheme()));
+            throw new UnsupportedFeatureException(String.format(Locale.ENGLISH, "Unknown scheme '%s'", this.uri.getScheme()));
         }
     }
 
@@ -141,7 +138,7 @@ public class WriterProjector extends AbstractProjector {
     }
 
     @Override
-    public void prepare(ExecutionState executionState) {
+    public void prepare() {
         counter.set(0);
         try {
             if (!overwrites.isEmpty()) {
@@ -155,7 +152,7 @@ public class WriterProjector extends AbstractProjector {
                 rowWriter = new RawRowWriter(output.acquireOutputStream());
             }
         } catch (IOException e) {
-            throw new UnhandledServerException(String.format("Failed to open output: '%s'", e.getMessage()), e);
+            throw new UnhandledServerException(String.format(Locale.ENGLISH, "Failed to open output: '%s'", e.getMessage()), e);
         }
     }
 

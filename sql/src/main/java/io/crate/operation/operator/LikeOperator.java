@@ -53,14 +53,6 @@ public class LikeOperator extends Operator<BytesRef> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        assert (symbol != null);
-        assert (symbol.arguments().size() == 2);
-
-        return Scalar.evaluateIfLiterals(this, symbol);
-    }
-
-    @Override
     public Boolean evaluate(Input<BytesRef>... args) {
         assert (args != null);
         assert (args.length == 2);

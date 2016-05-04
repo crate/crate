@@ -30,15 +30,11 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Assignment;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class PartitionPropertiesAnalyzer {
 
@@ -77,7 +73,7 @@ public class PartitionPropertiesAnalyzer {
                 values[idx] = converted == null ? null : DataTypes.STRING.value(converted);
             } catch (IndexOutOfBoundsException ex) {
                 throw new IllegalArgumentException(
-                        String.format("\"%s\" is no known partition column", entry.getKey().sqlFqn()));
+                        String.format(Locale.ENGLISH, "\"%s\" is no known partition column", entry.getKey().sqlFqn()));
             }
         }
         return new PartitionName(tableInfo.ident(), Arrays.asList(values));
@@ -96,10 +92,8 @@ public class PartitionPropertiesAnalyzer {
         BytesRef[] values = new BytesRef[properties.size()];
 
         int idx = 0;
-        for (Map.Entry<ColumnIdent, Object> entry : properties.entrySet()) {
-            DataType guessedType = DataTypes.guessType(entry.getValue(), false);
-            Object value = guessedType.value(entry.getValue());
-            values[idx++] = DataTypes.STRING.value(value);
+        for (Object o : properties.values()) {
+            values[idx++] = DataTypes.STRING.value(o);
         }
         return new PartitionName(tableIdent, Arrays.asList(values));
     }

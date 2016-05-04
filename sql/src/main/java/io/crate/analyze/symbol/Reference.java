@@ -21,15 +21,18 @@
 
 package io.crate.analyze.symbol;
 
+import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class Reference extends Symbol {
@@ -38,6 +41,22 @@ public class Reference extends Symbol {
         @Override
         public Reference newInstance() {
             return new Reference();
+        }
+    };
+
+    public static final com.google.common.base.Function<Reference, ColumnIdent> TO_COLUMN_IDENT = new Function<Reference, ColumnIdent>() {
+        @Nullable
+        @Override
+        public ColumnIdent apply(@Nullable Reference input) {
+            return input == null ? null : input.ident().columnIdent();
+        }
+    };
+
+    public static final com.google.common.base.Function<Reference, String> TO_COLUMN_NAME = new Function<Reference, String>() {
+        @Nullable
+        @Override
+        public String apply(@Nullable Reference input) {
+            return input == null ? null : input.ident().columnIdent().sqlFqn();
         }
     };
 

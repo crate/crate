@@ -33,15 +33,17 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.sql.parser.SqlParser;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
@@ -58,7 +60,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
             FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
             when(fulltextAnalyzerResolver.hasCustomAnalyzer("german")).thenReturn(false);
             when(fulltextAnalyzerResolver.hasCustomAnalyzer("ft_search")).thenReturn(true);
-            ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder();
+            Settings.Builder settingsBuilder = Settings.builder();
             settingsBuilder.put("search", "foobar");
             when(fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("ft_search")).thenReturn(settingsBuilder.build());
             bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
@@ -91,7 +93,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateTableWithAlternativePrimaryKeySyntax() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (id integer, name string, primary key (id, name))"
         );
 
@@ -104,7 +106,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testSimpleCreateTable() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (id integer primary key, name string) " +
                 "clustered into 3 shards with (number_of_replicas=0)");
 
@@ -132,10 +134,10 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateTableWithRefreshInterval() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "CREATE TABLE foo (id int primary key, content string) " +
                         "with (refresh_interval=5000)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.REFRESH_INTERVAL), is("5000"));
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.REFRESH_INTERVAL), is("5000ms"));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -147,21 +149,21 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testAlterTableWithRefreshInterval() throws Exception {
         // alter t set
-        AlterTableAnalyzedStatement analysisSet = (AlterTableAnalyzedStatement)analyze(
+        AlterTableAnalyzedStatement analysisSet = analyze(
                 "ALTER TABLE user_refresh_interval " +
                 "SET (refresh_interval = '5000')");
-        assertEquals("5000", analysisSet.tableParameter().settings().get(TableParameterInfo.REFRESH_INTERVAL));
+        assertEquals("5000ms", analysisSet.tableParameter().settings().get(TableParameterInfo.REFRESH_INTERVAL));
 
         // alter t reset
-        AlterTableAnalyzedStatement analysisReset = (AlterTableAnalyzedStatement)analyze(
+        AlterTableAnalyzedStatement analysisReset = analyze(
                 "ALTER TABLE user_refresh_interval " +
                 "RESET (refresh_interval)");
-        assertEquals("1000", analysisReset.tableParameter().settings().get(TableParameterInfo.REFRESH_INTERVAL));
+        assertEquals("1000ms", analysisReset.tableParameter().settings().get(TableParameterInfo.REFRESH_INTERVAL));
     }
 
     @Test
     public void testAlterTableWithColumnPolicy() throws Exception {
-        AlterTableAnalyzedStatement analysisSet = (AlterTableAnalyzedStatement)analyze(
+        AlterTableAnalyzedStatement analysisSet = analyze(
                 "ALTER TABLE user_refresh_interval " +
                         "SET (column_policy = 'strict')");
         assertEquals(ColumnPolicy.STRICT.mappingValue(), analysisSet.tableParameter().mappings().get(TableParameterInfo.COLUMN_POLICY));
@@ -178,7 +180,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithClusteredBy() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (id integer, name string) clustered by(id)");
 
         Map<String, Object> meta = (Map)analysis.mapping().get("_meta");
@@ -195,7 +197,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithObjects() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (id integer primary key, details object as (name string, age integer))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -215,7 +217,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithStrictObject() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (id integer primary key, details object(strict) as (name string, age integer))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -228,7 +230,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithIgnoredObject() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (id integer primary key, details object(ignored))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -241,7 +243,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithSubscriptInFulltextIndexDefinition() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table my_table1g ("+
                         "title string, " +
                         "author object(dynamic) as ( " +
@@ -270,7 +272,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateTableWithArray() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (id integer primary key, details array(string))");
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         Map<String, Object> details = (Map<String, Object>)mappingProperties.get("details");
@@ -283,7 +285,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithObjectsArray() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (id integer primary key, details array(object as (name string, age integer, tags array(string))))");
 
         Map<String, Object> metaMapping = (Map) analysis.mapping().get("_meta");
@@ -291,18 +293,18 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         assertThat(mapToSortedString(mappingProperties),
-                is("details={inner={doc_values=false, dynamic=true, index=not_analyzed, " +
+                is("details={inner={dynamic=true, " +
                         "properties={age={doc_values=true, index=not_analyzed, store=false, type=integer}, " +
                         "name={doc_values=true, index=not_analyzed, store=false, type=string}, " +
                         "tags={inner={doc_values=false, index=not_analyzed, store=false, type=string}, type=array}}," +
-                        " store=false, type=object}, type=array}, " +
+                        " type=object}, type=array}, " +
                         "id={doc_values=true, index=not_analyzed, store=false, type=integer}"));
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithAnalyzer() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (id integer primary key, content string INDEX using fulltext with (analyzer='german'))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -315,7 +317,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithAnalyzerParameter() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (id integer primary key, content string INDEX using fulltext with (analyzer=?))",
                 new Object[] {"german"}
         );
@@ -329,7 +331,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void textCreateTableWithCustomAnalyzerInNestedColumn() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table ft_search (" +
                     "user object (strict) as (" +
                         "name string index using fulltext with (analyzer='ft_search') " +
@@ -348,7 +350,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCreateTableWithSchemaName() throws Exception {
         CreateTableAnalyzedStatement analysis =
-                (CreateTableAnalyzedStatement)analyze("create table something.foo (id integer primary key)");
+                analyze("create table something.foo (id integer primary key)");
         TableIdent tableIdent = analysis.tableIdent();
         assertThat(tableIdent.schema(), is("something"));
         assertThat(tableIdent.name(), is("foo"));
@@ -357,7 +359,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithIndexColumn() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (id integer primary key, content string, INDEX content_ft using fulltext (content))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -374,7 +376,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithPlainIndexColumn() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (id integer primary key, content string, INDEX content_ft using plain (content))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -405,7 +407,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testChangeNumberOfReplicas() throws Exception {
         AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (number_of_replicas=2)");
+                analyze("alter table users set (number_of_replicas=2)");
 
         assertThat(analysis.table().ident().name(), is("users"));
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_REPLICAS), is("2"));
@@ -414,7 +416,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testResetNumberOfReplicas() throws Exception {
         AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users reset (number_of_replicas)");
+                analyze("alter table users reset (number_of_replicas)");
 
         assertThat(analysis.table().ident().name(), is("users"));
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_REPLICAS), is("1"));
@@ -435,7 +437,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateTableWithMultiplePrimaryKeys() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table test (id integer primary key, name string primary key)");
 
         List<String> primaryKeys = analysis.primaryKeys();
@@ -446,7 +448,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateTableWithMultiplePrimaryKeysAndClusteredBy() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table test (id integer primary key, name string primary key) " +
                         "clustered by(name)");
 
@@ -473,7 +475,8 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testHasColumnDefinition() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyze("create table my_table (" +
+        CreateTableAnalyzedStatement analysis = analyze(
+                "create table my_table (" +
                 "  id integer primary key, " +
                 "  name string, " +
                 "  indexed string index using fulltext with (analyzer='german')," +
@@ -500,7 +503,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateTableWithGeoPoint() throws Exception {
-        CreateTableAnalyzedStatement analyze = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analyze = analyze(
                 "create table geo_point_table (\n" +
                 "    id integer primary key,\n" +
                 "    my_point geo_point\n" +
@@ -525,7 +528,8 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testEarlyPrimaryKeyConstraint() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyze("create table my_table (" +
+        CreateTableAnalyzedStatement analysis = analyze(
+                "create table my_table (" +
                 "primary key (id1, id2)," +
                 "id1 integer," +
                 "id2 long" +
@@ -545,7 +549,8 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testEarlyIndexDefinition() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyze("create table my_table (" +
+        CreateTableAnalyzedStatement analysis = analyze(
+                "create table my_table (" +
                 "index ft using fulltext(title, name) with (analyzer='snowball')," +
                 "title string," +
                 "name string" +
@@ -581,7 +586,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void createTableNegativeReplicas() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table t (id int, name string) with (number_of_replicas=-1)");
         assertThat(analysis.tableParameter().settings().getAsInt(TableParameterInfo.NUMBER_OF_REPLICAS, 0), is(-1));
     }
@@ -599,7 +604,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateTableWithClusteredIntoShardsParameter() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table t (id int primary key) clustered into ? shards", new Object[]{2});
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS), is("2"));
     }
@@ -644,6 +649,15 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testInvalidColumnNamePredicate() throws Exception {
+        assertThat(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply("validName"), is(false));
+        assertThat(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply("invalid["), is(true));
+        assertThat(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply("invalid'"), is(true));
+        assertThat(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply("invalid]"), is(true));
+        assertThat(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply("invalid."), is(true));
+    }
+
+    @Test
     public void testCreateTableShouldRaiseErrorIfItExists() throws Exception {
         expectedException.expect(TableAlreadyExistsException.class);
         analyze("create table users (\"'test\" string)");
@@ -671,70 +685,70 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testChangeReadBlock() throws Exception {
         AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (\"blocks.read\"=true)");
+                analyze("alter table users set (\"blocks.read\"=true)");
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.BLOCKS_READ), is("true"));
     }
 
     @Test
     public void testChangeWriteBlock() throws Exception {
         AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (\"blocks.write\"=true)");
+                analyze("alter table users set (\"blocks.write\"=true)");
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.BLOCKS_WRITE), is("true"));
     }
 
     @Test
     public void testChangeMetadataBlock() throws Exception {
         AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (\"blocks.metadata\"=true)");
+                analyze("alter table users set (\"blocks.metadata\"=true)");
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.BLOCKS_METADATA), is("true"));
     }
 
     @Test
     public void testChangeReadOnlyBlock() throws Exception {
         AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (\"blocks.read_only\"=true)");
+                analyze("alter table users set (\"blocks.read_only\"=true)");
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.READ_ONLY), is("true"));
     }
 
     @Test
     public void testChangeFlushThresholdOpsNumber() throws Exception {
         AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.flush_threshold_ops\"=10)");
+                analyze("alter table users set (\"translog.flush_threshold_ops\"=10)");
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_THRESHOLD_OPS), is("10"));
     }
 
     @Test
     public void testChangeFlushThresholdSize() throws Exception {
         AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.flush_threshold_size\"=300)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_THRESHOLD_SIZE), is("300"));
+                analyze("alter table users set (\"translog.flush_threshold_size\"=300)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_THRESHOLD_SIZE), is("300b"));
     }
 
     @Test
     public void testChangeFlushThresholdPeriod() throws Exception {
         AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.flush_threshold_period\"=35)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_THRESHOLD_PERIOD), is("35"));
+                analyze("alter table users set (\"translog.flush_threshold_period\"=35)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_THRESHOLD_PERIOD), is("35ms"));
     }
 
     @Test
     public void testChangeFlushDisable() throws Exception {
         AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.disable_flush\"=true)");
+                analyze("alter table users set (\"translog.disable_flush\"=true)");
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_DISABLE), is("true"));
     }
 
     @Test
     public void testChangeTranslogInterval() throws Exception {
         AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (\"translog.interval\"=50)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.TRANSLOG_INTERVAL), is("50"));
+                analyze("alter table users set (\"translog.interval\"=50)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.TRANSLOG_INTERVAL), is("50ms"));
     }
 
     @Test
     public void testRoutingAllocationEnable() throws Exception {
         AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (\"routing.allocation.enable\"=\"none\")");
+                analyze("alter table users set (\"routing.allocation.enable\"=\"none\")");
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.ROUTING_ALLOCATION_ENABLE), is("none"));
     }
 
@@ -747,7 +761,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRecoveryShardsWithString() throws Exception {
         AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (\"recovery.initial_shards\"=\"full\")");
+                analyze("alter table users set (\"recovery.initial_shards\"=\"full\")");
         assertThat(analysis.table().ident().name(), is("users"));
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.RECOVERY_INITIAL_SHARDS), is("full"));
 
@@ -756,19 +770,19 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRecoveryShardsWithInteger() throws Exception {
         AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (\"recovery.initial_shards\"=1)");
+                analyze("alter table users set (\"recovery.initial_shards\"=1)");
         assertThat(analysis.table().ident().name(), is("users"));
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.RECOVERY_INITIAL_SHARDS), is("1"));
 
     }
 
     @Test
-    public void testGatewayLocalSyncPeriod() throws Exception {
+    public void testTranslogSyncInterval() throws Exception {
 
         AlterTableAnalyzedStatement analysis =
-                (AlterTableAnalyzedStatement)analyze("alter table users set (\"gateway.local.sync\"=1)");
+                analyze("alter table users set (\"translog.sync_interval\"='1s')");
         assertThat(analysis.table().ident().name(), is("users"));
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.GATEWAY_LOCAL_SYNC), is("1"));
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.TRANSLOG_SYNC_INTERVAL), is("1000ms"));
 
     }
 
@@ -780,7 +794,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateReadOnlyTable() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (id integer primary key, name string) "
                 + "clustered into 3 shards with (\"blocks.read_only\"=true)");
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.READ_ONLY), is("true"));
@@ -788,7 +802,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateTableWithGeneratedColumn() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (ts timestamp, day as date_trunc('day', ts))");
 
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
@@ -807,7 +821,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateTableGeneratedColumnWithCast() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (ts timestamp, day timestamp GENERATED ALWAYS as ts + 1)");
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
@@ -820,7 +834,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateTableGeneratedColumnWithSubscript() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (user object as (name string), name as concat(user['name'], 'foo'))");
 
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
@@ -830,7 +844,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateTableGeneratedColumnParameter() throws Exception {
-        CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement)analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (user object as (name string), name as concat(user['name'], ?))", $("foo"));
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
@@ -863,5 +877,60 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column unknown_col unknown");
         analyze("create table foo (ts timestamp, day as date_trunc('day', ts), date_string as cast(unknown_col as string))");
+    }
+
+    @Test
+    public void testCreateTableWithObjectAsPrimaryKey() throws Exception {
+        expectedException.expectMessage("Cannot use columns of type \"object\" as primary key");
+        expectedException.expect(UnsupportedOperationException.class);
+        analyze("create table t (obj object as (x int) primary key)");
+    }
+
+    @Test
+    public void testCreateTableWithGeoPointAsPrimaryKey() throws Exception {
+        expectedException.expectMessage("Cannot use columns of type \"geo_point\" as primary key");
+        expectedException.expect(UnsupportedOperationException.class);
+        analyze("create table t (c geo_point primary key)");
+    }
+
+    @Test
+    public void testCreateTableWithGeoShapeAsPrimaryKey() throws Exception {
+        expectedException.expectMessage("Cannot use columns of type \"geo_shape\" as primary key");
+        expectedException.expect(UnsupportedOperationException.class);
+        analyze("create table t (c geo_shape primary key)");
+    }
+
+    @Test
+    public void testCreateTableWithDuplicatePrimaryKey() throws Exception {
+        assertDuplicatePrimaryKey("create table t (id int, primary key (id, id))");
+        assertDuplicatePrimaryKey("create table t (obj object as (id int), primary key (obj['id'], obj['id']))");
+        assertDuplicatePrimaryKey("create table t (id int primary key, primary key (id))");
+        assertDuplicatePrimaryKey("create table t (obj object as (id int primary key), primary key (obj['id']))");
+    }
+
+    private void assertDuplicatePrimaryKey(String stmt) throws Exception {
+        try {
+            analyze(stmt);
+            fail(String.format(Locale.ENGLISH, "Statement '%s' did not result in duplicate primary key exception", stmt));
+        } catch (IllegalArgumentException e) {
+            String msg = "appears twice in primary key constraint";
+            if (!e.getMessage().contains(msg)) {
+                fail("Exception message is expected to contain: " + msg);
+            }
+        }
+    }
+
+    @Test
+    public void testCreateTableWithPrimaryKeyConstraintInArrayItem() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot use column \"id\" as primary key within an array object");
+        analyze("create table test (arr array(object as (id long primary key)))");
+    }
+
+    @Test
+    public void testCreateTableWithDeepNestedPrimaryKeyConstraintInArrayItem() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot use column \"name\" as primary key within an array object");
+        analyze("create table test (arr array(object as (user object as (name string primary key), id long)))");
     }
 }

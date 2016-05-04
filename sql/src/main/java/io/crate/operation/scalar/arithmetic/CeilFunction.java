@@ -47,15 +47,6 @@ public abstract class CeilFunction extends Scalar<Number, Number> {
         module.register(new NoopCeilFunction(DataTypes.UNDEFINED));
     }
 
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        Symbol argument = symbol.arguments().get(0);
-        if (argument.symbolType().isValueSymbol()) {
-            return Literal.newLiteral(info().returnType(), evaluate((Input) argument));
-        }
-        return symbol;
-    }
-
     static class DoubleCeilFunction extends CeilFunction {
 
         private static final FunctionInfo INFO = new FunctionInfo(

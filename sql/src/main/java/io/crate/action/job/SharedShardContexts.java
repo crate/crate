@@ -60,4 +60,11 @@ public class SharedShardContexts {
         }
         return sharedShardContext;
     }
+
+    @Override
+    public String toString() {
+        return "SharedShardContexts{" +
+               "allocatedShards=" + allocatedShards.keySet() +
+               '}';
+    }
 }

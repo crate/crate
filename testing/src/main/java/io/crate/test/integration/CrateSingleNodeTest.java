@@ -25,17 +25,14 @@ import com.google.common.collect.Sets;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
 import org.elasticsearch.cluster.settings.DynamicSettings;
 import org.elasticsearch.common.inject.Key;
-import org.elasticsearch.node.internal.InternalNode;
-import org.elasticsearch.test.ElasticsearchSingleNodeTest;
+import org.elasticsearch.test.ESSingleNodeTestCase;
 import org.junit.After;
 
-public class CrateSingleNodeTest extends ElasticsearchSingleNodeTest {
+public class CrateSingleNodeTest extends ESSingleNodeTestCase {
 
     @Override
     @After
     public void tearDown() throws Exception {
-        DynamicSettings dynamicSettings = ((InternalNode) node()).injector().getInstance(Key.get(DynamicSettings.class, ClusterDynamicSettings.class));
-        dynamicSettings.addDynamicSetting("cluster_id");
         client().admin().cluster()
                 .prepareUpdateSettings()
                 .setTransientSettingsToRemove(Sets.newHashSet("cluster_id"))

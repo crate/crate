@@ -21,7 +21,7 @@
 
 package io.crate.planner;
 
-import com.carrotsearch.hppc.IntOpenHashSet;
+import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -29,11 +29,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.where.DocKeys;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
@@ -44,18 +42,20 @@ import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.UpdateConsumer;
 import io.crate.planner.fetch.IndexBaseVisitor;
-import io.crate.planner.node.ddl.*;
-import io.crate.planner.node.dml.ESDeleteByQueryNode;
-import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.ddl.DropTableNode;
+import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
+import io.crate.planner.node.ddl.GenericDDLNode;
+import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertByIdNode;
+import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.statement.CopyStatementPlanner;
+import io.crate.planner.statement.DeleteStatementPlanner;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -70,6 +70,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private final UpdateConsumer updateConsumer;
     private final CopyStatementPlanner copyStatementPlanner;
     private final SelectStatementPlanner selectStatementPlanner;
+    private final DeleteStatementPlanner deleteStatementPlanner;
 
     public static class Context {
 
@@ -113,12 +114,14 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 }
                 for (Map.Entry<String, Map<Integer, String>> entry : shardNodes.entrySet()) {
                     Integer base = bases.get(entry.getKey());
-                    assert base != null;
+                    if (base == null) {
+                        continue;
+                    }
                     for (Map.Entry<Integer, String> nodeEntries : entry.getValue().entrySet()) {
                         int readerId = base + nodeEntries.getKey();
                         IntSet readerIds = nodeReaders.get(nodeEntries.getValue());
                         if (readerIds == null){
-                            readerIds = new IntOpenHashSet();
+                            readerIds = new IntHashSet();
                             nodeReaders.put(nodeEntries.getValue(), readerIds);
                         }
                         readerIds.add(readerId);
@@ -207,17 +210,18 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 shardNodes = new HashMap<>();
             }
             for (Map.Entry<String, Map<String, List<Integer>>> location : locations.entrySet()) {
-                for (Map.Entry<String, List<Integer>> nodeRouting : location.getValue().entrySet()) {
-                    Map<Integer, String> shardsOnIndex = shardNodes.get(nodeRouting.getKey());
-                    tableIndices.put(tableIdent, nodeRouting.getKey());
+                for (Map.Entry<String, List<Integer>> indexEntry : location.getValue().entrySet()) {
+                    Map<Integer, String> shardsOnIndex = shardNodes.get(indexEntry.getKey());
+                    tableIndices.put(tableIdent, indexEntry.getKey());
+                    List<Integer> shards = indexEntry.getValue();
                     if (shardsOnIndex == null) {
-                        shardsOnIndex = new HashMap<>(nodeRouting.getValue().size());
-                        shardNodes.put(nodeRouting.getKey(), shardsOnIndex);
-                        for (Integer id : nodeRouting.getValue()) {
+                        shardsOnIndex = new HashMap<>(shards.size());
+                        shardNodes.put(indexEntry.getKey(), shardsOnIndex);
+                        for (Integer id : shards) {
                             shardsOnIndex.put(id, location.getKey());
                         }
                     } else {
-                        for (Integer id : nodeRouting.getValue()) {
+                        for (Integer id : shards) {
                             String allocatedNodeId = shardsOnIndex.get(id);
                             if (allocatedNodeId != null) {
                                 if (!allocatedNodeId.equals(location.getKey())) {
@@ -282,12 +286,14 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                    ConsumingPlanner consumingPlanner,
                    UpdateConsumer updateConsumer,
                    CopyStatementPlanner copyStatementPlanner,
-                   SelectStatementPlanner selectStatementPlanner) {
+                   SelectStatementPlanner selectStatementPlanner,
+                   DeleteStatementPlanner deleteStatementPlanner) {
         this.clusterService = clusterService;
         this.updateConsumer = updateConsumer;
         this.consumingPlanner = consumingPlanner;
         this.copyStatementPlanner = copyStatementPlanner;
         this.selectStatementPlanner = selectStatementPlanner;
+        this.deleteStatementPlanner = deleteStatementPlanner;
     }
 
     /**
@@ -303,7 +309,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Context context) {
-        throw new UnsupportedOperationException(String.format("AnalyzedStatement \"%s\" not supported.", analyzedStatement));
+        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "AnalyzedStatement \"%s\" not supported.", analyzedStatement));
     }
 
     @Override
@@ -334,30 +340,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitDeleteStatement(DeleteAnalyzedStatement analyzedStatement, Context context) {
-        IterablePlan plan = new IterablePlan(context.jobId());
-        DocTableRelation tableRelation = analyzedStatement.analyzedRelation();
-        List<WhereClause> whereClauses = new ArrayList<>(analyzedStatement.whereClauses().size());
-        List<DocKeys.DocKey> docKeys = new ArrayList<>(analyzedStatement.whereClauses().size());
-        for (WhereClause whereClause : analyzedStatement.whereClauses()) {
-            if (whereClause.noMatch()) {
-                continue;
-            }
-            if (whereClause.docKeys().isPresent() && whereClause.docKeys().get().size() == 1) {
-                docKeys.add(whereClause.docKeys().get().getOnlyKey());
-            } else if (!whereClause.noMatch()) {
-                whereClauses.add(whereClause);
-            }
-        }
-        if (!docKeys.isEmpty()) {
-            plan.add(new ESDeleteNode(context.nextExecutionPhaseId(), tableRelation.tableInfo(), docKeys));
-        } else if (!whereClauses.isEmpty()) {
-            createESDeleteByQueryNode(tableRelation.tableInfo(), whereClauses, plan, context);
-        }
-
-        if (plan.isEmpty()) {
-            return new NoopPlan(context.jobId());
-        }
-        return plan;
+        return deleteStatementPlanner.planDelete(analyzedStatement, context);
     }
 
     @Override
@@ -433,7 +416,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             if (analysis.isPersistent()) {
                 node = new ESClusterUpdateSettingsNode(analysis.settings());
             } else {
-                node = new ESClusterUpdateSettingsNode(ImmutableSettings.EMPTY, analysis.settings());
+                node = new ESClusterUpdateSettingsNode(Settings.EMPTY, analysis.settings());
             }
         }
         return node != null ? new IterablePlan(context.jobId(), node) : new NoopPlan(context.jobId());
@@ -446,28 +429,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 new KillPlan(context.jobId());
     }
 
-    private void createESDeleteByQueryNode(DocTableInfo tableInfo,
-                                           List<WhereClause> whereClauses,
-                                           IterablePlan plan,
-                                           Context context) {
-
-        List<String[]> indicesList = new ArrayList<>(whereClauses.size());
-        for (WhereClause whereClause : whereClauses) {
-            String[] indices = indices(tableInfo, whereClause);
-            if (indices.length > 0) {
-                if (!whereClause.hasQuery() && tableInfo.isPartitioned()) {
-                    plan.add(new ESDeletePartitionNode(indices));
-                } else {
-                    indicesList.add(indices);
-                }
-            }
-        }
-        // TODO: if we allow queries like 'partitionColumn=X or column=Y' which is currently
-        // forbidden through analysis, we must issue deleteByQuery request in addition
-        // to above deleteIndex request(s)
-        if (!indicesList.isEmpty()) {
-            plan.add(new ESDeleteByQueryNode(context.nextExecutionPhaseId(), indicesList, whereClauses));
-        }
+    @Override
+    public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, Context context) {
+        return new ExplainPlan(process(explainAnalyzedStatement.statement(), context));
     }
 
     private Upsert processInsertStatement(InsertFromValuesAnalyzedStatement analysis, Context context) {

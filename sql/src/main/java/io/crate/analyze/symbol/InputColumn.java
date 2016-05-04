@@ -29,6 +29,9 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * A symbol which represents a column of a result array
@@ -46,6 +49,42 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
 
     private int index;
 
+    public static List<Symbol> fromIntArray(int[] indices) {
+        List<Symbol> inputColumns = new ArrayList<>(indices.length);
+        for (int i : indices) {
+            inputColumns.add(new InputColumn(i));
+        }
+        return inputColumns;
+    }
+
+
+    public static List<Symbol> numInputs(int size) {
+        List<Symbol> inputColumns = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            inputColumns.add(new InputColumn(i));
+        }
+        return inputColumns;
+    }
+
+    public static List<Symbol> fromSymbols(List<? extends Symbol> symbols) {
+        List<Symbol> inputColumns = new ArrayList<>(symbols.size());
+        for (int i = 0; i < symbols.size(); i++) {
+            inputColumns.add(new InputColumn(i, symbols.get(i).valueType()));
+        }
+        return inputColumns;
+    }
+
+    /**
+     * generate a list of inputColumn where each inputColumn points to some symbol that is part of sourceList
+     */
+    public static List<InputColumn> fromSymbols(Collection<? extends Symbol> symbols, List<? extends Symbol> sourceList) {
+        List<InputColumn> inputColumns = new ArrayList<>(symbols.size());
+        for (Symbol symbol : symbols) {
+            inputColumns.add(new InputColumn(sourceList.indexOf(symbol), symbol.valueType()));
+        }
+        return inputColumns;
+    }
+
     public InputColumn(int index, @Nullable DataType dataType) {
         assert index >= 0;
         this.index = index;
@@ -56,9 +95,7 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
         this(index, null);
     }
 
-    public InputColumn() {
-
-    }
+    protected InputColumn() {}
 
     public int index() {
         return index;
@@ -120,5 +157,4 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     public int hashCode() {
         return index;
     }
-
 }

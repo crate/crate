@@ -26,11 +26,10 @@ import com.google.common.util.concurrent.SettableFuture;
 import org.elasticsearch.cluster.*;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 import static org.elasticsearch.cluster.ClusterState.builder;
 
@@ -118,16 +117,10 @@ public class ClusterIdService implements ClusterStateListener {
         if (logger.isTraceEnabled()) {
             logger.trace("Announcing new cluster_id to all nodes");
         }
-        clusterService.submitStateUpdateTask("new_cluster_id", Priority.URGENT, new ClusterStateUpdateTask() {
-
+        clusterService.submitStateUpdateTask("new_cluster_id", new ClusterStateUpdateTask() {
             @Override
-            public void onFailure(String source, Throwable t) {
-                logger.error("failed to perform [{}]", t, source);
-            }
-
-            @Override
-            public ClusterState execute(final ClusterState currentState) {
-                ImmutableSettings.Builder transientSettings = ImmutableSettings.settingsBuilder();
+            public ClusterState execute(ClusterState currentState) throws Exception {
+                Settings.Builder transientSettings = Settings.settingsBuilder();
                 transientSettings.put(currentState.metaData().transientSettings());
                 transientSettings.put(clusterIdSettingsKey, clusterId.value().toString());
 
@@ -148,8 +141,11 @@ public class ClusterIdService implements ClusterStateListener {
                 return builder(currentState).metaData(metaData).blocks(blocks).build();
             }
 
+            @Override
+            public void onFailure(String source, Throwable t) {
+                logger.error("failed to perform [{}]", t, source);
+            }
         });
-
     }
 
 }

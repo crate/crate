@@ -21,15 +21,16 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Optional;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class GenericPropertiesConverter {
@@ -38,27 +39,56 @@ public class GenericPropertiesConverter {
     /**
      * Put a genericProperty into a settings-structure
      */
-    public static void genericPropertyToSetting(ImmutableSettings.Builder builder,
-                                                String name,
-                                                Expression value,
-                                                ParameterContext parameterContext) {
+    static void genericPropertyToSetting(Settings.Builder builder,
+                                         String name,
+                                         Expression value,
+                                         ParameterContext parameterContext) {
         if (value instanceof ArrayLiteral) {
-            ArrayLiteral array = (ArrayLiteral)value;
+            ArrayLiteral array = (ArrayLiteral) value;
             List<String> values = new ArrayList<>(array.values().size());
             for (Expression expression : array.values()) {
                 values.add(ExpressionToStringVisitor.convert(expression, parameterContext.parameters()));
             }
             builder.putArray(name, values.toArray(new String[values.size()]));
-        } else  {
+        } else {
             builder.put(name, ExpressionToStringVisitor.convert(value, parameterContext.parameters()));
         }
     }
 
-    public static Settings genericPropertiesToSettings(GenericProperties genericProperties, ParameterContext parameterContext) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+    public static void genericPropertiesToSettings(Settings.Builder builder,
+                                                   GenericProperties genericProperties,
+                                                   ParameterContext parameterContext) {
         for (Map.Entry<String, Expression> entry : genericProperties.properties().entrySet()) {
             genericPropertyToSetting(builder, entry.getKey(), entry.getValue(), parameterContext);
         }
+    }
+
+    static Settings genericPropertiesToSettings(GenericProperties genericProperties, ParameterContext parameterContext) {
+        Settings.Builder builder = Settings.builder();
+        genericPropertiesToSettings(builder, genericProperties, parameterContext);
         return builder.build();
+    }
+
+    public static Settings.Builder settingsFromProperties(Optional<GenericProperties> properties,
+                                                          ParameterContext parameterContext,
+                                                          Map<String, ? extends SettingsApplier> settingAppliers) {
+        Settings.Builder builder = Settings.builder();
+        setDefaults(settingAppliers, builder);
+        if (properties.isPresent()) {
+            for (Map.Entry<String, Expression> entry : properties.get().properties().entrySet()) {
+                SettingsApplier settingsApplier = settingAppliers.get(entry.getKey());
+                if (settingsApplier == null) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", entry.getKey()));
+                }
+                settingsApplier.apply(builder, parameterContext.parameters(), entry.getValue());
+            }
+        }
+        return builder;
+    }
+
+    private static void setDefaults(Map<String, ? extends SettingsApplier> settingAppliers, Settings.Builder builder) {
+        for (Map.Entry<String, ? extends SettingsApplier> entry : settingAppliers.entrySet()) {
+            builder.put(entry.getValue().getDefault());
+        }
     }
 }

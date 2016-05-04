@@ -28,26 +28,115 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
+import io.crate.operation.Input;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
+import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+
+import static org.hamcrest.core.Is.is;
 
 public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     protected SqlExpressions sqlExpressions;
     protected Functions functions;
+    protected Map<QualifiedName, AnalyzedRelation> tableSources;
+
+
+    /**
+     * Assert that the functionExpression normalizes to the expectedSymbol
+     *
+     * If the result of normalize is a Literal and all arguments were Literals evaluate is also called and
+     * compared to the result of normalize - the resulting value of normalize must match evaluate.
+     */
+    @SuppressWarnings("unchecked")
+    public void assertNormalize(String functionExpression, Matcher<? super Symbol> expectedSymbol) {
+        Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
+        if (functionSymbol instanceof Literal) {
+            assertThat(functionSymbol, expectedSymbol);
+            return;
+        }
+        Function function = (Function) functionSymbol;
+        FunctionImplementation impl = functions.get(function.info().ident());
+
+        assertThat(impl, Matchers.notNullValue());
+
+        Symbol normalized = impl.normalizeSymbol(function);
+        assertThat(normalized, expectedSymbol);
+
+        if (normalized instanceof Input && allArgsAreInputs(function.arguments())) {
+            Input[] inputs = new Input[function.arguments().size()];
+            for (int i = 0; i < inputs.length; i++) {
+                inputs[i] = ((Input) function.arguments().get(i));
+            }
+            Object expectedValue = ((Input) normalized).value();
+            assertThat(((Scalar) impl).evaluate(inputs), is(expectedValue));
+            assertThat(((Scalar) impl).compile(function.arguments()).evaluate(inputs), is(expectedValue));
+        }
+    }
+
+    /**
+     * asserts that the given functionExpression evaluates to the expectedValue.
+     * If the functionExpression contains references the inputs will be used in the order the references appear.
+     *
+     * E.g.
+     * <code>
+     *     assertEvaluate("foo(name, age)", "expectedValue", inputForName, inputForAge)
+     * </code>
+     * or
+     * <code>
+     *     assertEvaluate("foo('literalName', age)", "expectedValue", inputForAge)
+     * </code>
+     */
+    public void assertEvaluate(String functionExpression, Object expectedValue, Input ... inputs) {
+        Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
+        if (functionSymbol instanceof Literal) {
+            assertThat(((Literal) functionSymbol).value(), is(expectedValue));
+            return;
+        }
+        Function function = (Function) functionSymbol;
+        Scalar scalar = (Scalar) functions.get(function.info().ident());
+
+        Input[] arguments = new Input[function.arguments().size()];
+        int idx = 0;
+        for (int i = 0; i < function.arguments().size(); i++) {
+            Symbol arg = function.arguments().get(i);
+            if (arg instanceof Input) {
+                arguments[i] = ((Input) arg);
+            } else {
+                arguments[i] = inputs[idx];
+                idx++;
+            }
+        }
+        if (expectedValue instanceof String) {
+            expectedValue = new BytesRef((String) expectedValue);
+        }
+        assertThat(scalar.compile(function.arguments()).evaluate(arguments), is(expectedValue));
+        assertThat(scalar.evaluate(arguments), is(expectedValue));
+
+    }
+
+    private static boolean allArgsAreInputs(List<Symbol> arguments) {
+        for (Symbol argument : arguments) {
+            if (!(argument instanceof Input)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     @SuppressWarnings("unchecked")
     protected <T extends FunctionImplementation> T getFunction(String functionName, DataType... argTypes) {
@@ -83,11 +172,18 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         TableInfo tableInfo = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "users"), null)
                 .add("id", DataTypes.INTEGER)
                 .add("name", DataTypes.STRING)
+                .add("tags", new ArrayType(DataTypes.STRING))
                 .add("age", DataTypes.INTEGER)
                 .add("shape", DataTypes.GEO_SHAPE)
+                .add("timestamp", DataTypes.TIMESTAMP)
+                .add("timezone", DataTypes.STRING)
+                .add("time_format", DataTypes.STRING)
+                .add("long_array", new ArrayType(DataTypes.LONG))
+                .add("regex_pattern", DataTypes.STRING)
                 .build();
         TableRelation tableRelation = new TableRelation(tableInfo);
-        sqlExpressions = new SqlExpressions(ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), tableRelation));
+        tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), tableRelation);
+        sqlExpressions = new SqlExpressions(tableSources);
         functions = sqlExpressions.getInstance(Functions.class);
     }
 }

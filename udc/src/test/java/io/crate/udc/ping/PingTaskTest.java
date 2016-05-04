@@ -25,21 +25,20 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.ClusterId;
 import io.crate.ClusterIdService;
 import io.crate.http.HttpTestServer;
+import io.crate.monitor.ExtendedNetworkInfo;
+import io.crate.monitor.ExtendedNodeInfo;
+import io.crate.monitor.ExtendedOsInfo;
 import io.crate.test.integration.CrateUnitTest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
-import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.monitor.network.NetworkInfo;
-import org.elasticsearch.node.service.NodeService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.net.InetAddress;
-import java.net.NetworkInterface;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,30 +51,10 @@ import static org.mockito.Mockito.when;
 public class PingTaskTest extends CrateUnitTest {
 
     private ClusterService clusterService;
-    private NodeService nodeService;
     private ClusterIdService clusterIdService;
+    private ExtendedNodeInfo extendedNodeInfo;
 
     private HttpTestServer testServer;
-
-    private String macAddr() {
-        InetAddress ip;
-        try {
-            ip = InetAddress.getLocalHost();
-            NetworkInterface networkInterface = NetworkInterface.getByInetAddress(ip);
-            if (networkInterface.getName().equals("lo"))
-                return "loopback";
-            byte[] mac = networkInterface.getHardwareAddress();
-            StringBuilder sb = new StringBuilder(18);
-            for (byte b : mac) {
-                if (sb.length() > 0)
-                    sb.append(':');
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
-        } catch (Exception e) {
-            return null;
-        }
-    }
 
     @After
     public void cleanUp() {
@@ -88,7 +67,6 @@ public class PingTaskTest extends CrateUnitTest {
     public void prepare() throws Exception {
         clusterService = mock(ClusterService.class);
         clusterIdService = mock(ClusterIdService.class);
-        nodeService = mock(NodeService.class);
         DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
 
         SettableFuture<ClusterId> clusterIdFuture = SettableFuture.create();
@@ -96,42 +74,19 @@ public class PingTaskTest extends CrateUnitTest {
         when(clusterIdService.clusterId()).thenReturn(clusterIdFuture);
         when(clusterService.localNode()).thenReturn(discoveryNode);
         when(discoveryNode.isMasterNode()).thenReturn(true);
-        NodeInfo nodeInfo = mock(NodeInfo.class);
-        NetworkInfo networkInfo = mock(NetworkInfo.class);
-        NetworkInfo.Interface iface = mock(NetworkInfo.Interface.class);
-        when(iface.getMacAddress()).thenReturn(macAddr());
-        when(networkInfo.getPrimaryInterface()).thenReturn(iface);
-        when(nodeInfo.getNetwork()).thenReturn(networkInfo);
-        when(nodeService.info()).thenReturn(nodeInfo);
-    }
 
-    @Test
-    public void testGetHardwareAddressNetworkInfoNull() throws Exception {
-        NodeService nodeService = mock(NodeService.class);
-        NodeInfo nodeInfo = mock(NodeInfo.class);
-        when(nodeService.info()).thenReturn(nodeInfo);
-        when(nodeInfo.getNetwork()).thenReturn(null);
-        PingTask pingTask = new PingTask(
-                mock(ClusterService.class),
-                mock(ClusterIdService.class),
-                nodeService, "http://dummy");
-        assertThat(pingTask.getHardwareAddress(), Matchers.nullValue());
+        extendedNodeInfo = mock(ExtendedNodeInfo.class);
+        when(extendedNodeInfo.networkInfo()).thenReturn(new ExtendedNetworkInfo(ExtendedNetworkInfo.NA_INTERFACE));
+        when(extendedNodeInfo.osInfo()).thenReturn(new ExtendedOsInfo(Collections.<String, Object>emptyMap()));
     }
 
     @Test
     public void testGetHardwareAddressMacAddrNull() throws Exception {
-        NodeService nodeService = mock(NodeService.class);
-        NodeInfo nodeInfo = mock(NodeInfo.class);
-        NetworkInfo network = mock(NetworkInfo.class);
-        NetworkInfo.Interface networkInterface = mock(NetworkInfo.Interface.class);
-        when(networkInterface.getMacAddress()).thenReturn(null);
-        when(network.getPrimaryInterface()).thenReturn(networkInterface);
-        when(nodeService.info()).thenReturn(nodeInfo);
-        when(nodeInfo.getNetwork()).thenReturn(network);
         PingTask pingTask = new PingTask(
                 mock(ClusterService.class),
                 mock(ClusterIdService.class),
-                nodeService, "http://dummy");
+                extendedNodeInfo,
+                "http://dummy");
         assertThat(pingTask.getHardwareAddress(), Matchers.nullValue());
     }
 
@@ -141,19 +96,19 @@ public class PingTaskTest extends CrateUnitTest {
         testServer.run();
 
         PingTask task = new PingTask(
-                clusterService, clusterIdService, nodeService, "http://localhost:18080/");
+                clusterService, clusterIdService, extendedNodeInfo, "http://localhost:18080/");
         task.run();
         assertThat(testServer.responses.size(), is(1));
         task.run();
         assertThat(testServer.responses.size(), is(2));
-        for (long i=0; i< testServer.responses.size(); i++) {
-            String json = testServer.responses.get((int)i);
-            Map<String,String> map = new HashMap<>();
+        for (long i = 0; i < testServer.responses.size(); i++) {
+            String json = testServer.responses.get((int) i);
+            Map<String, String> map = new HashMap<>();
             ObjectMapper mapper = new ObjectMapper();
             try {
                 //convert JSON string to Map
                 map = mapper.readValue(json,
-                        new TypeReference<HashMap<String,String>>(){});
+                        new TypeReference<HashMap<String, String>>() {});
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -168,7 +123,7 @@ public class PingTaskTest extends CrateUnitTest {
             assertThat(map, hasKey("ping_count"));
             assertThat(map.get("ping_count"), is(notNullValue()));
             Map<String, Long> pingCountMap;
-            pingCountMap = mapper.readValue(map.get("ping_count"), new TypeReference<Map<String, Long>>(){});
+            pingCountMap = mapper.readValue(map.get("ping_count"), new TypeReference<Map<String, Long>>() {});
 
             assertThat(pingCountMap.get("success"), is(i));
             assertThat(pingCountMap.get("failure"), is(0L));
@@ -188,20 +143,20 @@ public class PingTaskTest extends CrateUnitTest {
         testServer = new HttpTestServer(18081, true);
         testServer.run();
         PingTask task = new PingTask(
-                clusterService, clusterIdService, nodeService, "http://localhost:18081/");
+                clusterService, clusterIdService, extendedNodeInfo, "http://localhost:18081/");
         task.run();
         assertThat(testServer.responses.size(), is(1));
         task.run();
         assertThat(testServer.responses.size(), is(2));
 
-        for (long i=0; i< testServer.responses.size(); i++) {
-            String json = testServer.responses.get((int)i);
-            Map<String,String> map = new HashMap<>();
+        for (long i = 0; i < testServer.responses.size(); i++) {
+            String json = testServer.responses.get((int) i);
+            Map<String, String> map = new HashMap<>();
             ObjectMapper mapper = new ObjectMapper();
             try {
                 //convert JSON string to Map
                 map = mapper.readValue(json,
-                        new TypeReference<HashMap<String,String>>(){});
+                        new TypeReference<HashMap<String, String>>() {});
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -216,7 +171,7 @@ public class PingTaskTest extends CrateUnitTest {
             assertThat(map, hasKey("ping_count"));
             assertThat(map.get("ping_count"), is(notNullValue()));
             Map<String, Long> pingCountMap;
-            pingCountMap = mapper.readValue(map.get("ping_count"), new TypeReference<Map<String, Long>>(){});
+            pingCountMap = mapper.readValue(map.get("ping_count"), new TypeReference<Map<String, Long>>() {});
 
             assertThat(pingCountMap.get("success"), is(0L));
             assertThat(pingCountMap.get("failure"), is(i));

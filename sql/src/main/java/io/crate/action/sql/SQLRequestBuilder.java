@@ -21,22 +21,13 @@
 
 package io.crate.action.sql;
 
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequestBuilder;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.ElasticsearchClient;
 
-public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLResponse, SQLRequestBuilder, Client> {
+public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLResponse, SQLRequestBuilder> {
 
-    public SQLRequestBuilder(Client client) {
-        super(client, new SQLRequest());
-    }
-
-    /**
-     * Executes the built request on the client
-     */
-    @Override
-    protected void doExecute(ActionListener<SQLResponse> listener) {
-        client.execute(SQLAction.INSTANCE, request, listener);
+    public SQLRequestBuilder(ElasticsearchClient client, SQLAction action) {
+        super(client, action, new SQLRequest());
     }
 
     public void stmt(String stmt) {
@@ -47,12 +38,15 @@ public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLRespo
         request.args(args);
     }
 
+    public void setSchema(String name) {
+        request.setDefaultSchema(name);
+    }
+
     public void includeTypesOnResponse(boolean includeTypes) {
         request.includeTypesOnResponse(includeTypes);
     }
 
     public void addFlagsToRequestHeader(int flags) {
-        request.putHeader(request.FLAGS_HEADER_KEY, flags);
+        request.putHeader(SQLBaseRequest.FLAGS_HEADER_KEY, flags);
     }
-
 }

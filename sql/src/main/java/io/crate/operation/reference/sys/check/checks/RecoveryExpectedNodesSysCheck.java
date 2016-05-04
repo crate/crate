@@ -36,7 +36,7 @@ public class RecoveryExpectedNodesSysCheck extends AbstractSysCheck {
 
     private static final int ID = 2;
     private static final String DESCRIPTION = "The value of the cluster setting 'gateway.expected_nodes' " +
-            "must be equal to the maximum/expected number of nodes in the cluster.";
+            "must be equal to the maximum/expected number of master and data nodes in the cluster.";
 
     @Inject
     public RecoveryExpectedNodesSysCheck(ClusterService clusterService, Settings settings) {
@@ -47,12 +47,12 @@ public class RecoveryExpectedNodesSysCheck extends AbstractSysCheck {
 
     @Override
     public boolean validate() {
-        return validate(clusterService.state().nodes().getSize(),
+        return validate(clusterService.state().nodes().masterAndDataNodes().size(),
                 CrateSettings.GATEWAY_EXPECTED_NODES.extract(settings)
         );
     }
 
-    protected boolean validate(int clusterSize, int expectedNodes) {
-        return clusterSize == 1 || clusterSize == expectedNodes;
+    protected boolean validate(int dataAndMaster, int expectedNodes) {
+        return dataAndMaster == 1 || dataAndMaster == expectedNodes;
     }
 }

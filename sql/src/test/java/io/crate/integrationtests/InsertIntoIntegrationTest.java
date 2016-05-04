@@ -23,11 +23,10 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.core.IsNull;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,10 +35,12 @@ import org.junit.rules.ExpectedException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, numClientNodes = 0, randomDynamicTemplates = false)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, randomDynamicTemplates = false)
 public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -937,7 +938,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into source (col1) values (1)");
         refresh();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Missing primary key values");
+        expectedException.expectMessage("Column \"col2\" is required but is missing from the insert statement");
         execute("insert into target (col1) (select col1 from source)");
     }
 
@@ -984,5 +985,40 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select _raw from dyn_ts where id = 0");
         assertThat((String) response.rows()[0][0], is("{\"id\":0,\"ts\":\"2015-01-01\"}"));
+    }
+
+    @Test
+    public void testInsertIntoUpdateOnNullObjectColumnWithSubscript() throws Exception {
+        execute("create table t (id integer primary key, i integer, o object)");
+        ensureYellow();
+        execute("insert into t (id, i, o) values(1, 1, null)");
+        execute("refresh table t");
+
+        expectedException.expectMessage("Object o is null, cannot write {x=5} onto it");
+        execute("insert into t (id, i, o) values(1, 1, null) ON DUPLICATE KEY UPDATE o['x'] = 5");
+    }
+
+    @Test
+    public void testInsertFromQueryWithGeneratedPrimaryKey() throws Exception {
+        execute("create table t (x int, y int, z as x + y primary key)");
+        ensureYellow();
+        execute("insert into t (x, y) (select 1, 2 from sys.cluster)");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(execute("select * from t where z = 3").rowCount(), is(1L));
+    }
+
+    @Test
+    public void testInsertIntoTableWithNestedPrimaryKeyFromQuery() throws Exception {
+        execute("create table t (o object as (ot object as (x int primary key)))");
+        ensureYellow();
+        assertThat(execute("insert into t (o) (select {ot={x=10}} from sys.cluster)").rowCount(), is(1L));
+        assertThat(execute("select * from t where o['ot']['x'] = 10").rowCount(), is(1L));
+    }
+
+    @Test
+    public void testInsertIntoTableWithNestedPartitionedByFromQuery() throws Exception {
+        execute("create table t (o object as (x int)) partitioned by (o['x'])");
+        ensureYellow();
+        assertThat(execute("insert into t (o) (select {x=10} from sys.cluster)").rowCount(), is(1L));
     }
 }

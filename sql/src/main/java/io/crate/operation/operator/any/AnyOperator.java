@@ -23,8 +23,6 @@ package io.crate.operation.operator.any;
 
 import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.MapComparator;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
@@ -39,7 +37,9 @@ import io.crate.types.DataTypes;
 
 import java.util.*;
 
-public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Object> {
+import static com.google.common.base.Preconditions.checkArgument;
+
+public abstract class AnyOperator extends Operator<Object> {
 
     public static final String OPERATOR_PREFIX = "any_";
 
@@ -67,33 +67,6 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
     @Override
     public FunctionInfo info() {
         return functionInfo;
-    }
-
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        assert (symbol != null);
-        assert (symbol.arguments().size() == 2);
-
-        if (containsNullLiteral(symbol.arguments())) {
-            return Literal.NULL;
-        }
-
-        if (anyNonLiterals(symbol.arguments())) {
-            return symbol;
-        }
-
-        Literal collLiteral = (Literal) symbol.arguments().get(1);
-        Object leftValue = ((Literal) symbol.arguments().get(0)).value();
-        if (!DataTypes.isCollectionType(collLiteral.valueType())) {
-            throw new IllegalArgumentException("invalid array expression");
-        }
-        Iterable<?> collectionIterable = collectionValueToIterable(collLiteral.value());
-        Boolean result = doEvaluate(leftValue, collectionIterable);
-        if (result == null) {
-            return Literal.NULL;
-        } else {
-            return Literal.newLiteral(result);
-        }
     }
 
     @SuppressWarnings("unchecked")
@@ -162,11 +135,10 @@ public abstract class AnyOperator<Op extends AnyOperator<?>> extends Operator<Ob
 
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(
-                    dataTypes.size() == 2 &&
-                            DataTypes.isCollectionType(dataTypes.get(1)) &&
-                            ((CollectionType)dataTypes.get(1)).innerType().equals(dataTypes.get(0))
-            );
+            checkArgument(dataTypes.size() == 2, "ANY operator requires exactly 2 arguments");
+            checkArgument(DataTypes.isCollectionType(dataTypes.get(1)), "The second argument to ANY must be an array or set");
+            checkArgument(((CollectionType) dataTypes.get(1)).innerType().equals(dataTypes.get(0)),
+                    "The inner type of the array/set passed to ANY must match its left expression");
             return newInstance(new FunctionInfo(new FunctionIdent(name(), dataTypes), BooleanType.INSTANCE));
         }
     }

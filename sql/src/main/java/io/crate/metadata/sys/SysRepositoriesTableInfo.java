@@ -23,16 +23,21 @@ package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.ColumnRegistrar;
+import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 
 import javax.annotation.Nullable;
-import java.util.*;
 
-public class SysRepositoriesTableInfo extends SysTableInfo {
+public class SysRepositoriesTableInfo extends StaticTableInfo {
 
-    public static final TableIdent IDENT = new TableIdent(SCHEMA, "repositories");
+    public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "repositories");
+    private final ClusterService clusterService;
 
     public static class Columns {
         public static final ColumnIdent NAME = new ColumnIdent("name");
@@ -43,28 +48,12 @@ public class SysRepositoriesTableInfo extends SysTableInfo {
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.NAME);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
-    private final Map<ColumnIdent, ReferenceInfo> infos;
-    private final Set<ReferenceInfo> columns;
-
     public SysRepositoriesTableInfo(ClusterService clusterService) {
-        super(clusterService);
-        ColumnRegistrar registrar = new ColumnRegistrar(IDENT, GRANULARITY)
+        super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
             .register(Columns.NAME, DataTypes.STRING)
             .register(Columns.TYPE, DataTypes.STRING)
-            .register(Columns.SETTINGS, DataTypes.OBJECT);
-        infos = registrar.infos();
-        columns = registrar.columns();
-    }
-
-    @Nullable
-    @Override
-    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        return infos.get(columnIdent);
-    }
-
-    @Override
-    public Collection<ReferenceInfo> columns() {
-        return columns;
+            .register(Columns.SETTINGS, DataTypes.OBJECT), PRIMARY_KEY);
+        this.clusterService = clusterService;
     }
 
     @Override
@@ -73,22 +62,7 @@ public class SysRepositoriesTableInfo extends SysTableInfo {
     }
 
     @Override
-    public TableIdent ident() {
-        return IDENT;
-    }
-
-    @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        return Routing.forTableOnNode(IDENT, clusterService.localNode().id());
-    }
-
-    @Override
-    public List<ColumnIdent> primaryKey() {
-        return PRIMARY_KEY;
-    }
-
-    @Override
-    public Iterator<ReferenceInfo> iterator() {
-        return infos.values().iterator();
+        return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().id());
     }
 }

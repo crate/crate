@@ -27,6 +27,10 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 public abstract class Symbol implements Streamable {
 
@@ -43,9 +47,28 @@ public abstract class Symbol implements Streamable {
 
     public abstract <C, R> R accept(SymbolVisitor<C, R> visitor, C context);
 
+    public static void toStream(Collection<? extends Symbol> symbols, StreamOutput out) throws IOException {
+        out.writeVInt(symbols.size());
+        for (Symbol symbol : symbols) {
+            toStream(symbol, out);
+        }
+    }
+
     public static void toStream(Symbol symbol, StreamOutput out) throws IOException {
         out.writeVInt(symbol.symbolType().ordinal());
         symbol.writeTo(out);
+    }
+
+    public static List<Symbol> listFromStream(StreamInput in) throws IOException {
+        int numSymbols = in.readVInt();
+        if (numSymbols == 0) {
+            return Collections.emptyList();
+        }
+        List<Symbol> symbols = new ArrayList<>(numSymbols);
+        for (int i = 0; i < numSymbols; i++) {
+            symbols.add(Symbol.fromStream(in));
+        }
+        return symbols;
     }
 
     public static Symbol fromStream(StreamInput in) throws IOException {

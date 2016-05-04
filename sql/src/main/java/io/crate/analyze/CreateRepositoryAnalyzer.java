@@ -27,7 +27,6 @@ import io.crate.executor.transport.RepositoryService;
 import io.crate.sql.tree.CreateRepository;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 @Singleton
@@ -37,7 +36,7 @@ public class CreateRepositoryAnalyzer extends AbstractRepositoryDDLAnalyzer {
     private final RepositoryService repositoryService;
 
     @Inject
-    CreateRepositoryAnalyzer(RepositoryService repositoryService, RepositoryParamValidator repositoryParamValidator) {
+    public CreateRepositoryAnalyzer(RepositoryService repositoryService, RepositoryParamValidator repositoryParamValidator) {
         this.repositoryService = repositoryService;
         this.repositoryParamValidator = repositoryParamValidator;
     }
@@ -49,11 +48,8 @@ public class CreateRepositoryAnalyzer extends AbstractRepositoryDDLAnalyzer {
             throw new RepositoryAlreadyExistsException(repositoryName);
         }
 
-        Settings settings = ImmutableSettings.EMPTY;
-        if (node.properties().isPresent()) {
-            settings = GenericPropertiesConverter.genericPropertiesToSettings(node.properties().get(), context.parameterContext());
-        }
-        repositoryParamValidator.validate(node.type(), settings);
+        Settings settings = repositoryParamValidator.convertAndValidate(
+                node.type(), node.properties(), context.parameterContext());
         return new CreateRepositoryAnalyzedStatement(repositoryName, node.type(), settings);
     }
 }

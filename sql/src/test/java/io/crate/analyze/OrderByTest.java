@@ -30,7 +30,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -51,7 +51,7 @@ public class OrderByTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         orderBy.writeTo(out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         OrderBy orderBy2 = OrderBy.fromStream(in);
 
         assertEquals(orderBy.orderBySymbols(), orderBy2.orderBySymbols());

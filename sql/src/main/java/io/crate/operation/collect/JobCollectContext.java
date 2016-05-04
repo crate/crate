@@ -21,8 +21,9 @@
 
 package io.crate.operation.collect;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -30,20 +31,26 @@ import io.crate.action.job.SharedShardContexts;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.AbstractExecutionSubContext;
-import io.crate.jobs.ExecutionState;
-import io.crate.jobs.KeepAliveListener;
+import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.StopWatch;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
 
-public class JobCollectContext extends AbstractExecutionSubContext implements ExecutionState {
+public class JobCollectContext extends AbstractExecutionSubContext {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
 
     private final CollectPhase collectPhase;
     private final MapSideDataCollectOperation collectOperation;
@@ -51,18 +58,20 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
     private final RowReceiver rowReceiver;
     private final SharedShardContexts sharedShardContexts;
 
-    private final IntObjectOpenHashMap<CrateSearchContext> searchContexts = new IntObjectOpenHashMap<>();
+    private final IntObjectHashMap<CrateSearchContext> searchContexts = new IntObjectHashMap<>();
     private final Object subContextLock = new Object();
     private final ListenableRowReceiver listenableRowReceiver;
+    private final String threadPoolName;
 
     private Collection<CrateCollector> collectors;
 
     public JobCollectContext(final CollectPhase collectPhase,
                              MapSideDataCollectOperation collectOperation,
+                             String localNodeId,
                              RamAccountingContext queryPhaseRamAccountingContext,
                              final RowReceiver rowReceiver,
                              SharedShardContexts sharedShardContexts) {
-        super(collectPhase.executionPhaseId());
+        super(collectPhase.executionPhaseId(), LOGGER);
         this.collectPhase = collectPhase;
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
@@ -81,6 +90,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
             }
         });
         this.rowReceiver = listenableRowReceiver;
+        this.threadPoolName = threadPoolName(collectPhase, localNodeId);
     }
 
     public void addSearchContext(int jobSearchContextId, CrateSearchContext searchContext) {
@@ -144,9 +154,12 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
     @Override
     public String toString() {
         return "JobCollectContext{" +
-                "searchContexts=" + searchContexts +
-                ", closed=" + future.closed() +
-                '}';
+               "id=" + id +
+               ", sharedContexts=" + sharedShardContexts +
+               ", rowReceiver=" + rowReceiver +
+               ", searchContexts=" + Arrays.toString(searchContexts.keys) +
+               ", closed=" + future.closed() +
+               '}';
     }
 
     @Override
@@ -160,10 +173,10 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
         if (collectors.isEmpty()) {
             rowReceiver.finish();
         } else {
-            if (LOGGER.isTraceEnabled()) {
+            if (logger.isTraceEnabled()) {
                 measureCollectTime();
             }
-            collectOperation.launchCollectors(collectors);
+            collectOperation.launchCollectors(collectors, threadPoolName);
         }
     }
 
@@ -174,7 +187,7 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
             @Override
             public void run() {
                 stopWatch.stop();
-                LOGGER.trace("Collectors finished: {}", stopWatch.shortSummary());
+                logger.trace("Collectors finished: {}", stopWatch.shortSummary());
             }
         }, MoreExecutors.directExecutor());
     }
@@ -183,22 +196,26 @@ public class JobCollectContext extends AbstractExecutionSubContext implements Ex
         return queryPhaseRamAccountingContext;
     }
 
-    public KeepAliveListener keepAliveListener() {
-        return keepAliveListener;
-    }
-
     public SharedShardContexts sharedShardContexts() {
         return sharedShardContexts;
     }
 
+    @VisibleForTesting
+    static String threadPoolName(CollectPhase phase, String localNodeId) {
+        if (phase instanceof RoutedCollectPhase) {
+            RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
+            if (collectPhase.maxRowGranularity() == RowGranularity.DOC
+                && collectPhase.routing().containsShards(localNodeId)) {
+                // DOC table collectors
+                return ThreadPool.Names.SEARCH;
+            } else if (collectPhase.maxRowGranularity() == RowGranularity.NODE
+                       || collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
+                // Node or Shard system table collector
+                return ThreadPool.Names.MANAGEMENT;
+            }
+        }
 
-    /**
-     * active by default, because as long its operation is running
-     * it is keeping the local execution context alive itself
-     * and does not need external keep alives.
-     */
-    @Override
-    public SubContextMode subContextMode() {
-        return SubContextMode.ACTIVE;
+        // Anything else like INFORMATION_SCHEMA tables or sys.cluster table collector
+        return ThreadPool.Names.PERCOLATE;
     }
 }

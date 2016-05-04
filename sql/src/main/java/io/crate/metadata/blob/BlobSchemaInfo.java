@@ -29,7 +29,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
@@ -38,6 +38,7 @@ import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.env.Environment;
 
@@ -52,6 +53,7 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     private final ClusterService clusterService;
     private final BlobEnvironment blobEnvironment;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Environment environment;
     private final Functions functions;
 
@@ -71,10 +73,12 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
     @Inject
     public BlobSchemaInfo(ClusterService clusterService,
                           BlobEnvironment blobEnvironment,
+                          IndexNameExpressionResolver indexNameExpressionResolver,
                           Environment environment,
                           Functions functions) {
         this.clusterService = clusterService;
         this.blobEnvironment = blobEnvironment;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.environment = environment;
         this.functions = functions;
         clusterService.add(this);
@@ -89,7 +93,7 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     private BlobTableInfo innerGetTableInfo(String name) {
         BlobTableInfoBuilder builder = new BlobTableInfoBuilder(
-                new TableIdent(NAME, name), clusterService, blobEnvironment, environment, functions);
+                new TableIdent(NAME, name), clusterService, indexNameExpressionResolver, blobEnvironment, environment, functions);
         return builder.build();
     }
 
@@ -100,7 +104,7 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
         } catch (ExecutionException e) {
             throw new UnhandledServerException("Failed to get TableInfo", e.getCause());
         } catch (UncheckedExecutionException e) {
-            if (e.getCause() instanceof TableUnknownException) {
+            if (e.getCause() instanceof ResourceUnknownException) {
                 return null;
             }
             throw e;

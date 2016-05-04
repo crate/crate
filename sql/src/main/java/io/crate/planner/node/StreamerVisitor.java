@@ -22,11 +22,11 @@
 package io.crate.planner.node;
 
 import io.crate.Streamer;
-import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.node.dql.CountPhase;
-import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.types.DataTypes;
+
+import java.util.Locale;
 
 /**
  * get input and output {@link io.crate.Streamer}s for {@link io.crate.planner.node.PlanNode}s
@@ -51,7 +51,7 @@ public class StreamerVisitor {
         }
 
         @Override
-        public Streamer<?>[] visitCollectPhase(CollectPhase phase, Void context) {
+        public Streamer<?>[] visitRoutedCollectPhase(RoutedCollectPhase phase, Void context) {
             return DataTypes.getStreamer(phase.outputTypes());
         }
 
@@ -66,8 +66,18 @@ public class StreamerVisitor {
         }
 
         @Override
+        public Streamer<?>[] visitFileUriCollectPhase(FileUriCollectPhase phase, Void context) {
+            return DataTypes.getStreamer(phase.outputTypes());
+        }
+
+        @Override
+        public Streamer<?>[] visitTableFunctionCollect(TableFunctionCollectPhase phase, Void context) {
+            return visitRoutedCollectPhase(phase, context);
+        }
+
+        @Override
         protected Streamer<?>[] visitExecutionPhase(ExecutionPhase node, Void context) {
-            throw new UnsupportedOperationException(String.format("Got unsupported ExecutionNode %s", node.getClass().getName()));
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Got unsupported ExecutionNode %s", node.getClass().getName()));
         }
     }
 }

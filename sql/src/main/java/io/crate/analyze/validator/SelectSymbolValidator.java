@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 
 import java.util.Collection;
+import java.util.Locale;
 
 public class SelectSymbolValidator {
 
@@ -47,10 +48,10 @@ public class SelectSymbolValidator {
                 case AGGREGATE:
                     break;
                 case PREDICATE:
-                    throw new UnsupportedOperationException(String.format(
+                    throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                             "%s predicate cannot be selected", symbol.info().ident().name()));
                 default:
-                    throw new UnsupportedOperationException(String.format(
+                    throw new UnsupportedOperationException(String.format(Locale.ENGLISH, 
                             "FunctionInfo.Type %s not handled", symbol.info().type()));
             }
             for (Symbol arg : symbol.arguments()) {

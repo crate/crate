@@ -22,14 +22,13 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Predicate;
-import io.crate.Constants;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -40,7 +39,7 @@ import java.util.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
-@ElasticsearchIntegrationTest.ClusterScope(minNumDataNodes = 2)
+@ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Rule
@@ -210,7 +209,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidWhereInWhereClause() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("invalid IN LIST value 'a'. expected type 'byte'");
+        expectedException.expectMessage("cannot cast 'a' to type byte");
 
         setUpSimple();
         execute("update t1 set byte_field=0 where byte_field in ('a')");
@@ -286,7 +285,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         execute("create table t1 (o object)");
         ensureYellow();
         execute("insert into t1 values ({a='abc'})");
-        waitForConcreteMappingsOnAll("t1", Constants.DEFAULT_MAPPING_TYPE, "o.a");
+        waitForMappingUpdateOnAll("t1", "o.a");
 
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Validation failed for o['a']: Invalid string");
@@ -311,7 +310,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute("select id, new_col from t1 where id=0");
         @SuppressWarnings("unchecked")
         Map<String, Object> mapped = (Map<String, Object>)response.rows()[0][1];
-        assertEquals(0, mapped.get("a_date"));
+        assertEquals("1970-01-01", mapped.get("a_date"));
         assertEquals(127, mapped.get("an_int"));
         assertEquals(0x7fffffffffffffffL, mapped.get("a_long"));
         assertEquals(true, mapped.get("a_boolean"));
@@ -333,7 +332,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         Map<String, Object> selectedObject = (Map<String, Object>)response.rows()[0][0];
 
         assertThat((String)selectedObject.get("new_col"), is("a string"));
-        assertEquals(0, selectedObject.get("another_new_col"));
+        assertEquals("1970-01-01T00:00:00", selectedObject.get("another_new_col"));
     }
 
     @Test

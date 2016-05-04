@@ -41,13 +41,13 @@ import io.crate.operation.NodeOperation;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhase;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,7 +61,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.Mockito.mock;
 
 
-@ElasticsearchIntegrationTest.ClusterScope(randomDynamicTemplates = false, numDataNodes = 1)
+@ESIntegTestCase.ClusterScope(randomDynamicTemplates = false, numDataNodes = 1)
 public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     private static final String TEST_TABLE_NAME = "test_table";
@@ -103,10 +103,10 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 "  date timestamp" +
                 ") clustered into 2 shards partitioned by (date) with(number_of_replicas=0)", PARTITIONED_TABLE_NAME));
         ensureGreen();
-        execute(String.format("insert into %s (id, name, date) values (?, ?, ?)",
+        execute(String.format(Locale.ENGLISH, "insert into %s (id, name, date) values (?, ?, ?)",
                 PARTITIONED_TABLE_NAME),
                 new Object[]{1, "Ford", 0L});
-        execute(String.format("insert into %s (id, name, date) values (?, ?, ?)",
+        execute(String.format(Locale.ENGLISH, "insert into %s (id, name, date) values (?, ?, ?)",
                 PARTITIONED_TABLE_NAME),
                 new Object[]{2, "Trillian", 1L});
         ensureGreen();
@@ -117,8 +117,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 " doc integer" +
                 ") clustered into 2 shards with(number_of_replicas=0)", TEST_TABLE_NAME));
         ensureGreen();
-        execute(String.format("insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{1, 2});
-        execute(String.format("insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{3, 4});
+        execute(String.format(Locale.ENGLISH, "insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{1, 2});
+        execute(String.format(Locale.ENGLISH, "insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{3, 4});
         refresh();
     }
 
@@ -151,7 +151,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     @Test
     public void testCollectDocLevel() throws Throwable {
         List<Symbol> toCollect = Arrays.<Symbol>asList(testDocLevelReference, underscoreRawReference, underscoreIdReference);
-        CollectPhase collectNode = getCollectNode(toCollect, WhereClause.MATCH_ALL);
+        RoutedCollectPhase collectNode = getCollectNode(toCollect, WhereClause.MATCH_ALL);
         Bucket result = collect(collectNode);
         assertThat(result, containsInAnyOrder(
                 isRow(2, "{\"id\":1,\"doc\":2}", "1"),
@@ -168,16 +168,16 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 op.info(),
                 Arrays.<Symbol>asList(testDocLevelReference, Literal.newLiteral(2)))
         );
-        CollectPhase collectNode = getCollectNode(toCollect, whereClause);
+        RoutedCollectPhase collectNode = getCollectNode(toCollect, whereClause);
 
         Bucket result = collect(collectNode);
         assertThat(result, contains(isRow(2)));
     }
 
-    private CollectPhase getCollectNode(List<Symbol> toCollect, Routing routing, WhereClause whereClause) {
-        return new CollectPhase(
+    private RoutedCollectPhase getCollectNode(List<Symbol> toCollect, Routing routing, WhereClause whereClause) {
+        return new RoutedCollectPhase(
                 UUID.randomUUID(),
-                0,
+                1,
                 "docCollect",
                 routing,
                 RowGranularity.DOC,
@@ -188,7 +188,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         );
     }
 
-    private CollectPhase getCollectNode(List<Symbol> toCollect, WhereClause whereClause) {
+    private RoutedCollectPhase getCollectNode(List<Symbol> toCollect, WhereClause whereClause) {
         return getCollectNode(toCollect, routing(TEST_TABLE_NAME), whereClause);
     }
 
@@ -196,7 +196,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     public void testCollectWithPartitionedColumns() throws Throwable {
         Routing routing = docSchemaInfo.getTableInfo(PARTITIONED_TABLE_NAME).getRouting(WhereClause.MATCH_ALL, null);
         TableIdent tableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
-        CollectPhase collectNode = getCollectNode(
+        RoutedCollectPhase collectNode = getCollectNode(
                 Arrays.<Symbol>asList(
                         new Reference(new ReferenceInfo(new ReferenceIdent(tableIdent, "id"),
                                 RowGranularity.DOC,
@@ -219,7 +219,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         ));
     }
 
-    private Bucket collect(CollectPhase collectNode) throws Throwable {
+    private Bucket collect(RoutedCollectPhase collectNode) throws Throwable {
         ContextPreparer contextPreparer = internalCluster().getDataNodeInstance(ContextPreparer.class);
         JobContextService contextService = internalCluster().getDataNodeInstance(JobContextService.class);
         SharedShardContexts sharedShardContexts = new SharedShardContexts(internalCluster().getDataNodeInstance(IndicesService.class));
@@ -228,7 +228,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 "remoteNode");
 
         List<ListenableFuture<Bucket>> results = contextPreparer.prepareOnRemote(
-                collectNode.jobId(), ImmutableList.of(nodeOperation), builder, sharedShardContexts);
+                ImmutableList.of(nodeOperation), builder, sharedShardContexts);
         JobExecutionContext context = contextService.createContext(builder);
         context.start();
         return results.get(0).get(2, TimeUnit.SECONDS);

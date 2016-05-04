@@ -44,9 +44,8 @@ public class ThreadPools {
      * @throws RejectedExecutionException in case all threads are busy and overloaded.
      */
     public static void runWithAvailableThreads(ThreadPoolExecutor executor,
-                                               int poolSize,
                                                Collection<Runnable> runnableCollection) throws RejectedExecutionException {
-        int availableThreads = Math.max(poolSize - executor.getActiveCount(), 2);
+        int availableThreads = Math.max(executor.getMaximumPoolSize() - executor.getActiveCount(), 2);
         if (availableThreads < runnableCollection.size()) {
             Iterable<List<Runnable>> partition = Iterables.partition(runnableCollection,
                     runnableCollection.size() / availableThreads);

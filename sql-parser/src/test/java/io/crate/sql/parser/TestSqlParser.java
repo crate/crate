@@ -25,7 +25,9 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.sql.tree.*;
-import org.testng.annotations.Test;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Locale;
 
@@ -34,11 +36,14 @@ import static io.crate.sql.tree.QueryUtil.selectList;
 import static io.crate.sql.tree.QueryUtil.table;
 import static java.lang.String.format;
 import static java.util.Collections.nCopies;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class TestSqlParser
 {
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     @Test
     public void testPossibleExponentialBacktracking()
             throws Exception
@@ -98,117 +103,156 @@ public class TestSqlParser
                         Optional.<Expression>absent()));
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:1: no viable alternative at input '<EOF>'")
+    @Test
     public void testEmptyExpression()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:1: no viable alternative at input '<EOF>'");
+
         SqlParser.createExpression("");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:1: no viable alternative at input '<EOF>'")
+    @Test
     public void testEmptyStatement()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:1: no viable alternative at input '<EOF>'");
         SqlParser.createStatement("");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:7: mismatched input 'x' expecting EOF")
+    @Test
     public void testExpressionWithTrailingJunk()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:7: mismatched input 'x' expecting EOF");
         SqlParser.createExpression("1 + 1 x");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:1: no viable alternative at character '@'")
+    @Test
     public void testTokenizeErrorStartOfLine()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:1: no viable alternative at character '@'");
         SqlParser.createStatement("@select");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:25: no viable alternative at character '@'")
+    @Test
     public void testTokenizeErrorMiddleOfLine()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:25: no viable alternative at character '@'");
         SqlParser.createStatement("select * from foo where @what");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:20: mismatched character '<EOF>' expecting '''")
+    @Test
     public void testTokenizeErrorIncompleteToken()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:20: mismatched character '<EOF>' expecting '''");
         SqlParser.createStatement("select * from 'oops");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 3:1: mismatched input 'from' expecting EOF")
+    @Test
     public void testParseErrorStartOfLine()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 3:1: no viable alternative at input 'from'");
         SqlParser.createStatement("select *\nfrom x\nfrom");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 3:7: no viable alternative at input 'from'")
+    @Test
     public void testParseErrorMiddleOfLine()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 3:7: no viable alternative at input 'from'");
         SqlParser.createStatement("select *\nfrom x\nwhere from");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:14: no viable alternative at input '<EOF>'")
+    @Test
     public void testParseErrorEndOfInput()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:14: no viable alternative at input '<EOF>'");
         SqlParser.createStatement("select * from");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:16: no viable alternative at input '<EOF>'")
+    @Test
     public void testParseErrorEndOfInputWhitespace()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:16: no viable alternative at input '<EOF>'");
         SqlParser.createStatement("select * from  ");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:15: backquoted identifiers are not supported; use double quotes to quote identifiers")
+    @Test
     public void testParseErrorBackquotes()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:15: backquoted identifiers are not supported; use double quotes to quote identifiers");
         SqlParser.createStatement("select * from `foo`");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:19: backquoted identifiers are not supported; use double quotes to quote identifiers")
+    @Test
     public void testParseErrorBackquotesEndOfInput()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:19: backquoted identifiers are not supported; use double quotes to quote identifiers");
         SqlParser.createStatement("select * from foo `bar`");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:8: identifiers must not start with a digit; surround the identifier with double quotes")
+    @Test
     public void testParseErrorDigitIdentifiers()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:8: identifiers must not start with a digit; surround the identifier with double quotes");
         SqlParser.createStatement("select 1x from dual");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:15: identifiers must not contain a colon; use '@' instead of ':' for table links")
+    @Test
     public void testIdentifierWithColon()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:15: identifiers must not contain a colon; use '@' instead of ':' for table links");
         SqlParser.createStatement("select * from foo:bar");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:35: no viable alternative at input 'order'")
+    @Test
     public void testParseErrorDualOrderBy()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:35: no viable alternative at input 'order'");
         SqlParser.createStatement("select fuu from dual order by fuu order by fuu");
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:31: mismatched input 'order' expecting EOF")
+    @Test
     public void testParseErrorReverseOrderByLimit()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:31: mismatched input 'order' expecting EOF");
         SqlParser.createStatement("select fuu from dual limit 10 order by fuu");
     }
 
-    @Test(expectedExceptions =  ParsingException.class, expectedExceptionsMessageRegExp = "line 1:41: mismatched input 'order' expecting EOF")
+    @Test
     public void testParseErrorReverseOrderByLimitOffset()
     {
+        expectedException.expect( ParsingException.class);
+        expectedException.expectMessage("line 1:41: mismatched input 'order' expecting EOF");
         SqlParser.createStatement("select fuu from dual limit 10 offset 20 order by fuu");
     }
 
-    @Test(expectedExceptions =  ParsingException.class, expectedExceptionsMessageRegExp = "line 1:32: mismatched input 'order' expecting EOF")
+    @Test
     public void testParseErrorReverseOrderByOffset()
     {
+        expectedException.expect( ParsingException.class);
+        expectedException.expectMessage("line 1:32: mismatched input 'order' expecting EOF");
         SqlParser.createStatement("select fuu from dual offset 20 order by fuu");
     }
 
-    @Test(expectedExceptions =  ParsingException.class, expectedExceptionsMessageRegExp = "line 1:32: mismatched input 'limit' expecting EOF")
+    @Test
     public void testParseErrorReverseLimitOffset()
     {
+        expectedException.expect( ParsingException.class);
+        expectedException.expectMessage("line 1:32: mismatched input 'limit' expecting EOF");
         SqlParser.createStatement("select fuu from dual offset 20 limit 10");
     }
 
@@ -248,15 +292,19 @@ public class TestSqlParser
         assertExpression("CURRENT_TIMESTAMP", new CurrentTime(CurrentTime.Type.TIMESTAMP));
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:1: expression is too large \\(stack overflow while parsing\\)")
+    @Test
     public void testStackOverflowExpression()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:1: expression is too large (stack overflow while parsing)");
         SqlParser.createExpression(Joiner.on(" OR ").join(nCopies(2000, "x = y")));
     }
 
-    @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:1: statement is too large \\(stack overflow while parsing\\)")
+    @Test
     public void testStackOverflowStatement()
     {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:1: statement is too large (stack overflow while parsing)");
         SqlParser.createStatement("SELECT " + Joiner.on(" OR ").join(nCopies(2000, "x = y")));
     }
 

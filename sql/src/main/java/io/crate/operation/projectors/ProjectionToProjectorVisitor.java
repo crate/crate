@@ -28,6 +28,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
@@ -36,6 +37,7 @@ import io.crate.planner.projection.*;
 import io.crate.types.StringType;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -48,6 +50,8 @@ public class ProjectionToProjectorVisitor
         extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
 
     private final ClusterService clusterService;
+    private final Functions functions;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private ThreadPool threadPool;
     private final Settings settings;
     private final TransportActionProvider transportActionProvider;
@@ -59,6 +63,8 @@ public class ProjectionToProjectorVisitor
     private final ShardId shardId;
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        Functions functions,
+                                        IndexNameExpressionResolver indexNameExpressionResolver,
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
@@ -67,6 +73,8 @@ public class ProjectionToProjectorVisitor
                                         EvaluatingNormalizer normalizer,
                                         @Nullable ShardId shardId) {
         this.clusterService = clusterService;
+        this.functions = functions;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.threadPool = threadPool;
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
@@ -77,13 +85,15 @@ public class ProjectionToProjectorVisitor
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        Functions functions,
+                                        IndexNameExpressionResolver indexNameExpressionResolver,
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                         ImplementationSymbolVisitor symbolVisitor,
                                         EvaluatingNormalizer normalizer) {
-        this(clusterService, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor, normalizer, null);
+        this(clusterService, functions, indexNameExpressionResolver, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor, normalizer, null);
     }
 
     @Override
@@ -228,6 +238,8 @@ public class ProjectionToProjectorVisitor
                 IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         return new IndexWriterProjector(
                 clusterService,
+                functions,
+                indexNameExpressionResolver,
                 clusterService.state().metaData().settings(),
                 transportActionProvider,
                 indexNameResolver,
@@ -261,6 +273,8 @@ public class ProjectionToProjectorVisitor
         }
         return new ColumnIndexWriterProjector(
                 clusterService,
+                functions,
+                indexNameExpressionResolver,
                 clusterService.state().metaData().settings(),
                 IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
                 transportActionProvider,
@@ -295,25 +309,49 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitUpdateProjection(UpdateProjection projection, Context context) {
-        if (shardId == null) {
-            throw new UnsupportedOperationException("Update projection can only be executed on a shard");
-        }
-
-        ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor.Context();
-        symbolVisitor.process(projection.uidSymbol(), ctx);
-        assert ctx.collectExpressions().size() == 1;
+        checkShardLevel("Update projection can only be executed on a shard");
 
         return new UpdateProjector(
                 clusterService,
+                indexNameExpressionResolver,
                 settings,
                 shardId,
                 transportActionProvider,
                 bulkRetryCoordinatorPool,
-                ctx.collectExpressions().toArray(new CollectExpression[ctx.collectExpressions().size()])[0],
+                resolveUidCollectExpression(projection),
                 projection.assignmentsColumns(),
                 projection.assignments(),
                 projection.requiredVersion(),
                 context.jobId);
+    }
+
+    @Override
+    public Projector visitDeleteProjection(DeleteProjection projection, Context context) {
+        checkShardLevel("Delete projection can only be executed on a shard");
+
+        return new DeleteProjector(
+                clusterService,
+                indexNameExpressionResolver,
+                settings,
+                shardId,
+                transportActionProvider,
+                bulkRetryCoordinatorPool,
+                resolveUidCollectExpression(projection),
+                context.jobId);
+    }
+
+    private void checkShardLevel(String errorMessage) {
+        if (shardId == null) {
+            throw new UnsupportedOperationException(errorMessage);
+        }
+    }
+
+    private CollectExpression<Row, ?> resolveUidCollectExpression(DMLProjection projection) {
+        ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor.Context();
+        symbolVisitor.process(projection.uidSymbol(), ctx);
+        assert ctx.collectExpressions().size() == 1;
+
+        return ctx.collectExpressions().iterator().next();
     }
 
     @Override

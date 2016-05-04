@@ -33,10 +33,10 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResp
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.compress.CompressedString;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -50,7 +50,7 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1)
 public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
     private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
@@ -154,7 +154,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into dynamic_table (new, meta) values(['a', 'b', 'c'], 'hello')");
         execute("insert into dynamic_table (new) values(['d', 'e', 'f'])");
-        waitForConcreteMappingsOnAll("dynamic_table", Constants.DEFAULT_MAPPING_TYPE, "new", "meta");
+        waitForMappingUpdateOnAll("dynamic_table", "new", "meta");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.type")), is("array"));
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.inner.type")), is("string"));
@@ -168,7 +168,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into dynamic_table (person) values " +
                 "({name='Ford', addresses=[{city='West Country', country='GB'}]})");
         refresh();
-        waitForConcreteMappingsOnAll("dynamic_table", Constants.DEFAULT_MAPPING_TYPE, "person.name");
+        waitForMappingUpdateOnAll("dynamic_table", "person.name");
 
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.person.properties.addresses.type")), is("array"));
@@ -308,7 +308,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("update dynamic_table set name='Trillian', boo=true where name='Ford'");
         execute("refresh table dynamic_table");
 
-        waitForConcreteMappingsOnAll("dynamic_table", Constants.DEFAULT_MAPPING_TYPE, "boo");
+        waitForMappingUpdateOnAll("dynamic_table", "boo");
         execute("select * from dynamic_table");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.cols(), is(arrayContaining("boo", "id", "name")));
@@ -360,7 +360,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("update dynamic_table set name='Trillian', good=true where score > 0.0");
         execute("refresh table dynamic_table");
 
-        waitForConcreteMappingsOnAll("dynamic_table", Constants.DEFAULT_MAPPING_TYPE, "name");
+        waitForMappingUpdateOnAll("dynamic_table", "name");
         execute("select * from dynamic_table");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.cols(), is(arrayContaining("good", "id", "name", "score")));
@@ -381,9 +381,9 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
                 .execute().actionGet();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = response.getIndexTemplates().get(0);
-        CompressedString mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
-        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.uncompressed(), false);
+        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>)typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(String.valueOf(mapping.get("dynamic")), is(ColumnPolicy.STRICT.value()));
@@ -417,9 +417,9 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
                 .execute().actionGet();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = response.getIndexTemplates().get(0);
-        CompressedString mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
-        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.uncompressed(), false);
+        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>)typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(String.valueOf(mapping.get("dynamic")), is(ColumnPolicy.STRICT.value()));
@@ -453,9 +453,9 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
                 .execute().actionGet();
         assertThat(templateResponse.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = templateResponse.getIndexTemplates().get(0);
-        CompressedString mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
-        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.uncompressed(), false);
+        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>)typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(String.valueOf(mapping.get("dynamic")), is("true"));
@@ -560,21 +560,23 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testAlterPartitionedTable() throws Exception {
+    public void testAlterColumnPolicyOnPartitionedTableWithExistingPartitions() throws Exception {
         execute("create table dynamic_table (" +
                 "  id integer, " +
                 "  score double" +
                 ") partitioned by (score) with (number_of_replicas=0, column_policy='strict')");
         ensureYellow();
+        // create at least 2 partitions to test real multi partition logic (1 partition would behave similar to 1 normal table)
         execute("insert into dynamic_table (id, score) values (1, 10)");
+        execute("insert into dynamic_table (id, score) values (1, 20)");
         execute("refresh table dynamic_table");
         ensureYellow();
-        execute("alter table dynamic_table set (column_policy= 'dynamic')");
+        execute("alter table dynamic_table set (column_policy = 'dynamic')");
         waitNoPendingTasksOnAll();
         // After changing the column_policy it's possible to add new columns to existing and new
         // partitions
-        execute("insert into dynamic_table (id, score, comment) values (2,10,'this is a new column')");
-        execute("insert into dynamic_table (id, score, new_comment) values (2,5,'this is a new column on a new partition')");
+        execute("insert into dynamic_table (id, score, comment) values (2, 10, 'this is a new column')");
+        execute("insert into dynamic_table (id, score, new_comment) values (2, 5, 'this is a new column on a new partition')");
         execute("refresh table dynamic_table");
         ensureYellow();
         GetIndexTemplatesResponse response = client().admin().indices()
@@ -582,9 +584,9 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
                 .execute().actionGet();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = response.getIndexTemplates().get(0);
-        CompressedString mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
-        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.uncompressed(), false);
+        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>)typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(String.valueOf(mapping.get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));

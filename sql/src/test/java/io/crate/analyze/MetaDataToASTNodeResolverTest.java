@@ -34,7 +34,9 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -75,6 +77,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                     false, false,
                     new String[]{},
                     mock(ClusterService.class),
+                    new IndexNameExpressionResolver(Settings.EMPTY),
                     numberOfShards,
                     new BytesRef(numberOfReplicas),
                     tableParameters,
@@ -89,17 +92,18 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
         return newReferenceInfo(tableIdent, name, type, null, null, false);
     }
 
-    private static ReferenceInfo newReferenceInfo(TableIdent tableIdent, String name, DataType type, @Nullable List<String> path, @Nullable ColumnPolicy policy, Boolean partitionColumn) {
-        ReferenceInfo.Builder builder = new ReferenceInfo.Builder();
-        if (partitionColumn) {
-            builder.granularity(RowGranularity.PARTITION);
-        } else {
-            builder.granularity(RowGranularity.DOC);
-        }
-        builder.type(type);
-        if (policy != null) builder.columnPolicy(policy);
-        builder.ident(new ReferenceIdent(tableIdent, name, path));
-        return builder.build();
+    private static ReferenceInfo newReferenceInfo(TableIdent tableIdent,
+                                                  String name,
+                                                  DataType type,
+                                                  @Nullable List<String> path,
+                                                  @Nullable ColumnPolicy policy,
+                                                  Boolean partitionColumn) {
+        return new ReferenceInfo(
+                new ReferenceIdent(tableIdent, name, path),
+                partitionColumn ? RowGranularity.PARTITION : RowGranularity.DOC,
+                type,
+                policy == null ? ColumnPolicy.DYNAMIC : policy,
+                ReferenceInfo.IndexType.NOT_ANALYZED);
     }
 
     private static ImmutableMap<ColumnIdent, ReferenceInfo> referencesMap(List<ReferenceInfo> columns) {

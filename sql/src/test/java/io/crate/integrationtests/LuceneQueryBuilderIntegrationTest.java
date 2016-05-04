@@ -21,12 +21,14 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope (randomDynamicTemplates = false)
+@ESIntegTestCase.ClusterScope (randomDynamicTemplates = false, transportClientRatio = 0)
 public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
@@ -134,5 +136,16 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute("select * from shaped where within(point, shape) order by id");
         assertThat(response.rowCount(), is(1L));
 
+    }
+
+    @Test
+    public void testObjectEq() throws Exception {
+        execute("create table t (o object as (x int, y long))");
+        ensureYellow();
+
+        execute("insert into t (o) values ({x=10, y=20})");
+        execute("refresh table t");
+
+        assertThat(execute("select * from t where o = {x=10, y=20}").rowCount(), is(1L));
     }
 }

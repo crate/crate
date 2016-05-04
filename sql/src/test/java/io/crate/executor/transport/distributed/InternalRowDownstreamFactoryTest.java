@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.TreeMapBuilder;
-import io.crate.jobs.KeepAliveTimers;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.NodeOperation;
@@ -34,12 +33,13 @@ import io.crate.operation.Paging;
 import io.crate.operation.projectors.InternalRowDownstreamFactory;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,9 +56,9 @@ public class InternalRowDownstreamFactoryTest extends CrateUnitTest {
     @Before
     public void before() {
         rowDownstreamFactory = new InternalRowDownstreamFactory(
+                Settings.EMPTY,
                 new NoopClusterService(),
-                mock(TransportDistributedResultAction.class),
-                mock(KeepAliveTimers.class)
+                mock(TransportDistributedResultAction.class)
         );
     }
 
@@ -68,7 +68,7 @@ public class InternalRowDownstreamFactoryTest extends CrateUnitTest {
                 TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
                         .put("n1", TreeMapBuilder.<String, List<Integer>>newMapBuilder()
                                 .put("i1", Arrays.asList(1, 2)).map()).map());
-        CollectPhase collectPhase = new CollectPhase(
+        RoutedCollectPhase collectPhase = new RoutedCollectPhase(
                 jobId,
                 1,
                 "collect",

@@ -24,6 +24,7 @@ package io.crate.planner.projection;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.RowGranularity;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -51,6 +52,11 @@ public class AggregationProjection extends Projection {
     public AggregationProjection(List<Aggregation> aggregations) {
         assert aggregations != null;
         this.aggregations = aggregations;
+    }
+
+    @Override
+    public RowGranularity requiredGranularity() {
+        return RowGranularity.SHARD;
     }
 
     public List<Aggregation> aggregations() {
@@ -88,10 +94,7 @@ public class AggregationProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(aggregations.size());
-        for (Symbol symbol : aggregations) {
-            Symbol.toStream(symbol, out);
-        }
+        Symbol.toStream(aggregations, out);
     }
 
     @Override

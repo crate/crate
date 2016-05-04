@@ -22,26 +22,17 @@
 package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
-import io.crate.metadata.table.AbstractTableInfo;
+import io.crate.metadata.table.StaticTableInfo;
 import org.elasticsearch.cluster.ClusterService;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
-public class InformationTableInfo extends AbstractTableInfo {
+public class InformationTableInfo extends StaticTableInfo {
 
     private final ClusterService clusterService;
-    protected final TableIdent ident;
-    private final ImmutableList<ColumnIdent> primaryKeyIdentList;
-
-    private final ImmutableMap<ColumnIdent, ReferenceInfo> references;
-    private final ImmutableList<ReferenceInfo> columns;
 
     public static class Columns {
         public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
@@ -81,12 +72,6 @@ public class InformationTableInfo extends AbstractTableInfo {
                 ImmutableList.of("warmer"));
         public static final ColumnIdent TABLE_SETTINGS_WARMER_ENABLED = new ColumnIdent("settings",
                 ImmutableList.of("warmer", "enabled"));
-        public static final ColumnIdent TABLE_SETTINGS_GATEWAY = new ColumnIdent("settings",
-                ImmutableList.of("gateway"));
-        public static final ColumnIdent TABLE_SETTINGS_GATEWAY_LOCAL = new ColumnIdent("settings",
-                ImmutableList.of("gateway", "local"));
-        public static final ColumnIdent TABLE_SETTINGS_GATEWAY_LOCAL_SYNC = new ColumnIdent("settings",
-                ImmutableList.of("gateway", "local", "sync"));
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG = new ColumnIdent("settings",
                 ImmutableList.of("translog"));
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS = new ColumnIdent("settings",
@@ -99,6 +84,8 @@ public class InformationTableInfo extends AbstractTableInfo {
                 ImmutableList.of("translog", "disable_flush"));
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_INTERVAL = new ColumnIdent("settings",
                 ImmutableList.of("translog", "interval"));
+        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL = new ColumnIdent("settings",
+                ImmutableList.of("translog", "sync_interval"));
         public static final ColumnIdent TABLE_SETTINGS_REFRESH_INTERVAL = new ColumnIdent("settings",
                 ImmutableList.of("refresh_interval"));
         public static final ColumnIdent TABLE_SETTINGS_UNASSIGNED = new ColumnIdent("settings",
@@ -121,22 +108,8 @@ public class InformationTableInfo extends AbstractTableInfo {
                                    ImmutableList<ColumnIdent> primaryKeyIdentList,
                                    Map<ColumnIdent, ReferenceInfo> references,
                                    @Nullable ImmutableList<ReferenceInfo> columns) {
+        super(ident, references, columns, primaryKeyIdentList);
         this.clusterService = clusterService;
-        this.ident = ident;
-        this.primaryKeyIdentList = primaryKeyIdentList;
-        this.references = ImmutableMap.copyOf(references);
-        this.columns = columns != null ? columns : ImmutableList.copyOf(references.values());
-    }
-
-    @Nullable
-    @Override
-    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        return references.get(columnIdent);
-    }
-
-    @Override
-    public Collection<ReferenceInfo> columns() {
-        return columns;
     }
 
     @Override
@@ -146,21 +119,6 @@ public class InformationTableInfo extends AbstractTableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        return Routing.forTableOnNode(ident, clusterService.localNode().id());
-    }
-
-    @Override
-    public TableIdent ident() {
-        return ident;
-    }
-
-    @Override
-    public List<ColumnIdent> primaryKey() {
-        return primaryKeyIdentList;
-    }
-
-    @Override
-    public Iterator<ReferenceInfo> iterator() {
-        return references.values().iterator();
+        return Routing.forTableOnSingleNode(ident(), clusterService.localNode().id());
     }
 }

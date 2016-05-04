@@ -1,0 +1,343 @@
+.. highlight:: psql
+.. _information_schema:
+
+==================
+Information Schema
+==================
+
+The Information Schema is a special schema that contains virtual tables which
+are read-only and can be queried to get information about the state of the
+cluster.
+
+Tables
+======
+
+The information schema contains a table called `tables`.
+
+This table can be queried to get a list of all available tables and their
+settings like the ``number of shards`` or ``number of replicas``::
+
+    cr> select schema_name, table_name, number_of_shards, number_of_replicas
+    ... from information_schema.tables
+    ... where table_name not like 'my_table%'
+    ... order by schema_name asc, table_name asc;
+    +--------------------+-------------------+------------------+--------------------+
+    | schema_name        | table_name        | number_of_shards | number_of_replicas |
+    +--------------------+-------------------+------------------+--------------------+
+    | blob               | myblobs           |                3 |                  1 |
+    | doc                | documents         |                5 |                  1 |
+    | doc                | locations         |                2 |                  0 |
+    | doc                | partitioned_table |                5 |                  1 |
+    | doc                | quotes            |                2 |                  0 |
+    | information_schema | columns           |                1 |                  0 |
+    | information_schema | routines          |                1 |                  0 |
+    | information_schema | schemata          |                1 |                  0 |
+    | information_schema | table_constraints |                1 |                  0 |
+    | information_schema | table_partitions  |                1 |                  0 |
+    | information_schema | tables            |                1 |                  0 |
+    | sys                | checks            |                1 |                  0 |
+    | sys                | cluster           |                1 |                  0 |
+    | sys                | jobs              |                1 |                  0 |
+    | sys                | jobs_log          |                1 |                  0 |
+    | sys                | nodes             |                1 |                  0 |
+    | sys                | operations        |                1 |                  0 |
+    | sys                | operations_log    |                1 |                  0 |
+    | sys                | repositories      |                1 |                  0 |
+    | sys                | shards            |                1 |                  0 |
+    | sys                | snapshots         |                1 |                  0 |
+    +--------------------+-------------------+------------------+--------------------+
+    SELECT 21 rows in set (... sec)
+
+The table also contains additional information such as specified routing
+(:ref:`sql_ddl_sharding`) and partitioned by (:ref:`sql_ddl_partitioned_by`)
+columns::
+
+    cr> select table_name, clustered_by, partitioned_by, blobs_path
+    ... from information_schema.tables
+    ... where table_name not like 'my_table%'
+    ...   and (schema_name = 'doc' or schema_name = 'blob')
+    ... order by schema_name asc, table_name asc;
+    +-------------------+--------------+----------------+--------...-+
+    | table_name        | clustered_by | partitioned_by | blobs_path |
+    +-------------------+--------------+----------------+--------...-+
+    | myblobs           | digest       | NULL           | ...        |
+    | documents         | _id          | NULL           | NULL       |
+    | locations         | id           | NULL           | NULL       |
+    | partitioned_table | _id          | ["date"]       | NULL       |
+    | quotes            | id           | NULL           | NULL       |
+    +-------------------+--------------+----------------+--------...-+
+    SELECT 5 rows in set (... sec)
+
+
+Columns
+=======
+
+This table can be queried to get a list of all available columns of all tables and their
+definition like data type and ordinal position inside the table::
+
+    cr> select table_name, column_name, ordinal_position as pos, data_type
+    ... from information_schema.columns
+    ... where schema_name = 'doc' and table_name not like 'my_table%'
+    ... order by table_name asc, column_name asc;
+    +-------------------+--------------------------------+-----+--------------+
+    | table_name        | column_name                    | pos | data_type    |
+    +-------------------+--------------------------------+-----+--------------+
+    | documents         | body                           |   1 | string       |
+    | documents         | title                          |   2 | string       |
+    | locations         | date                           |   1 | timestamp    |
+    | locations         | description                    |   2 | string       |
+    | locations         | id                             |   3 | string       |
+    | locations         | information                    |   4 | object_array |
+    | locations         | information['evolution_level'] |   5 | short        |
+    | locations         | information['population']      |   6 | long         |
+    | locations         | kind                           |   7 | string       |
+    | locations         | name                           |   8 | string       |
+    | locations         | position                       |   9 | integer      |
+    | locations         | race                           |  10 | object       |
+    | locations         | race['description']            |  11 | string       |
+    | locations         | race['interests']              |  12 | string_array |
+    | locations         | race['name']                   |  13 | string       |
+    | partitioned_table | date                           |   1 | timestamp    |
+    | partitioned_table | id                             |   2 | long         |
+    | partitioned_table | title                          |   3 | string       |
+    | quotes            | id                             |   1 | integer      |
+    | quotes            | quote                          |   2 | string       |
+    +-------------------+--------------------------------+-----+--------------+
+    SELECT 20 rows in set (... sec)
+
+
+You can even query this tables' own columns (attention: this might lead to infinite recursion of your mind, beware!)::
+
+    cr> select column_name, data_type, ordinal_position
+    ... from information_schema.columns
+    ... where schema_name = 'information_schema'
+    ... and table_name = 'columns' order by ordinal_position asc;
+    +-----------------------+-----------+------------------+
+    | column_name           | data_type | ordinal_position |
+    +-----------------------+-----------+------------------+
+    | column_name           | string    |                1 |
+    | data_type             | string    |                2 |
+    | generation_expression | string    |                3 |
+    | is_generated          | boolean   |                4 |
+    | ordinal_position      | short     |                5 |
+    | schema_name           | string    |                6 |
+    | table_name            | string    |                7 |
+    +-----------------------+-----------+------------------+
+    SELECT 7 rows in set (... sec)
+
+.. note::
+
+  Columns are always sorted alphabetically in ascending order regardless of the order
+  they were defined on table creation. Thus the ``ordinal_position`` reflects the alphabetical
+  position.
+
+
+Table Constraints
+=================
+
+This table can be queried to get a list of all defined table constraints,
+their type, name and which table they are defined in.
+
+.. note::
+
+    Currently only ``PRIMARY_KEY`` constraints are supported.
+
+::
+
+    cr> select schema_name, table_name, constraint_name, constraint_type as type
+    ... from information_schema.table_constraints
+    ... where table_name = 'tables'
+    ...   or table_name = 'quotes'
+    ...   or table_name = 'documents'
+    ... order by schema_name desc, table_name desc limit 10;
+    +--------------------+------------+-------------------------------+-------------+
+    | schema_name        | table_name | constraint_name               | type        |
+    +--------------------+------------+-------------------------------+-------------+
+    | information_schema | tables     | ["schema_name", "table_name"] | PRIMARY_KEY |
+    | doc                | quotes     | ["id"]                        | PRIMARY_KEY |
+    | doc                | documents  | ["_id"]                       | PRIMARY_KEY |
+    +--------------------+------------+-------------------------------+-------------+
+    SELECT 3 rows in set (... sec)
+
+
+.. _is_table_partitions:
+
+Table Partitions
+================
+
+This table can be queried to get information about all partitioned tables,
+Each partition of a table is represented as one row. The row contains the
+information table name, schema name, partition ident, and the values of the
+partition. ``values`` is a key-value object with the 'partitioned by column'
+as key(s) and the corresponding value as value(s).
+
+For further information see :ref:`sql_ddl_partitioned_by`.
+
+.. hide:
+
+    cr> create table a_partitioned_table (id int, content string)
+    ... partitioned by (content);
+    CREATE OK (... sec)
+
+::
+
+    cr> insert into a_partitioned_table (id, content) values (1, 'content_a');
+    INSERT OK, 1 row affected (... sec)
+
+::
+
+    cr> alter table a_partitioned_table set (number_of_shards=4);
+    ALTER OK (... sec)
+
+::
+
+    cr> insert into a_partitioned_table (id, content) values (2, 'content_b');
+    INSERT OK, 1 row affected (... sec)
+
+The following example shows a table where the column 'content' of table
+'a_partitioned_table' has been used to partition the table. The table has two
+partitions. The partitions are introduced when data is inserted where
+'content' is 'content_a', and 'content_b'.::
+
+    cr> select table_name, schema_name as schema, partition_ident, "values"
+    ... from information_schema.table_partitions
+    ... order by table_name, partition_ident;
+    +---------------------+--------+--------------------+--------------------------+
+    | table_name          | schema | partition_ident    | values                   |
+    +---------------------+--------+--------------------+--------------------------+
+    | a_partitioned_table | doc    | 04566rreehimst2vc4 | {"content": "content_a"} |
+    | a_partitioned_table | doc    | 04566rreehimst2vc8 | {"content": "content_b"} |
+    +---------------------+--------+--------------------+--------------------------+
+    SELECT 2 rows in set (... sec)
+
+The second partition has been created
+after the number of shards for future partitions have been changed on the
+partitioned table, so they show ``4`` instead of ``5``::
+
+    cr> select table_name, partition_ident,
+    ... number_of_shards, number_of_replicas
+    ... from information_schema.table_partitions
+    ... order by table_name, partition_ident;
+    +---------------------+--------------------+------------------+--------------------+
+    | table_name          | partition_ident    | number_of_shards | number_of_replicas |
+    +---------------------+--------------------+------------------+--------------------+
+    | a_partitioned_table | 04566rreehimst2vc4 |                5 |                  1 |
+    | a_partitioned_table | 04566rreehimst2vc8 |                4 |                  1 |
+    +---------------------+--------------------+------------------+--------------------+
+    SELECT 2 rows in set (... sec)
+
+
+Table Settings
+==============
+
+Table settings specify configuration parameters for tables. Some settings can
+be set during Cluster runtime and others are only applied on cluster restart.
+This list of :ref:`conf_table_settings` shows detailed information of each
+parameter.
+Table parameters can be applied with ``CREATE TABLE`` on creation of a table.
+With ``ALTER TABLE`` they can be set on already existing tables.
+
+The following statement creates a new table and sets the refresh interval of
+shards to 500 ms and sets the shard allocation for primary shards only::
+
+    cr> create table parameterized_table (id int, content string)
+    ... with ("refresh_interval"=500, "routing.allocation.enable"='primaries');
+    CREATE OK (... sec)
+
+The settings can be verified by querying ``information_schema.tables``::
+
+    cr> select settings['routing']['allocation']['enable'] as alloc_enable,
+    ...   settings['refresh_interval'] as refresh_interval
+    ... from information_schema.tables
+    ... where table_name='parameterized_table';
+    +--------------+------------------+
+    | alloc_enable | refresh_interval |
+    +--------------+------------------+
+    | primaries    |              500 |
+    +--------------+------------------+
+    SELECT 1 row in set (... sec)
+
+
+On existing tables this needs to be done with ``ALTER TABLE`` statement::
+
+    cr> alter table parameterized_table
+    ... set ("routing.allocation.enable"='none');
+    ALTER OK (... sec)
+
+.. hide:
+
+    cr> drop table parameterized_table;
+    DROP OK (... sec)
+
+
+Routines
+========
+
+The routines table contains all custom analyzers, tokenizers, token-filters
+and char-filters and all custom analyzers created by ``CREATE ANALYZER``
+statements (see :ref:`sql-ddl-custom-analyzer`)::
+
+    cr> select routine_name, routine_type from information_schema.routines
+    ... group by routine_name, routine_type order by routine_name asc limit 5;
+    +----------------------+--------------+
+    | routine_name         | routine_type |
+    +----------------------+--------------+
+    | PathHierarchy        | TOKENIZER    |
+    | apostrophe           | TOKEN_FILTER |
+    | arabic               | ANALYZER     |
+    | arabic_normalization | TOKEN_FILTER |
+    | arabic_stem          | TOKEN_FILTER |
+    +----------------------+--------------+
+    SELECT 5 rows in set (... sec)
+
+For example you can use this table to list existing tokenizers like this::
+
+    cr> select routine_name from information_schema.routines
+    ... where routine_type='TOKENIZER'
+    ... order by routine_name asc limit 10;
+    +---------------+
+    | routine_name  |
+    +---------------+
+    | PathHierarchy |
+    | classic       |
+    | e2_mypattern  |
+    | edgeNGram     |
+    | edge_ngram    |
+    | keyword       |
+    | letter        |
+    | lowercase     |
+    | nGram         |
+    | ngram         |
+    +---------------+
+    SELECT 10 rows in set (... sec)
+
+Or get an overview of how many routines and routine types are available::
+
+    cr> select count(*), routine_type from information_schema.routines
+    ... group by routine_type order by routine_type;
+    +----------+--------------+
+    | count(*) | routine_type |
+    +----------+--------------+
+    |       48 | ANALYZER     |
+    |        5 | CHAR_FILTER  |
+    |       16 | TOKENIZER    |
+    |       55 | TOKEN_FILTER |
+    +----------+--------------+
+    SELECT 4 rows in set (... sec)
+
+Schemata
+========
+
+The schemata table lists all existing schemas. These schemas are always
+available: ``blob``, ``doc``, ``information_schema`` and ``sys``::
+
+    cr> select schema_name from information_schema.schemata order by schema_name;
+    +--------------------+
+    | schema_name        |
+    +--------------------+
+    | blob               |
+    | doc                |
+    | information_schema |
+    | sys                |
+    +--------------------+
+    SELECT 4 rows in set (... sec)

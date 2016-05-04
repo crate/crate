@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.*;
@@ -33,12 +34,13 @@ import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.executor.transport.TransportExecutor;
+import io.crate.executor.transport.TransportShardAction;
+import io.crate.executor.transport.TransportShardDeleteAction;
+import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.jobs.LocalReaper;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -47,6 +49,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.sql.parser.SqlParser;
+import io.crate.test.GroovyTestSanitizer;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -55,10 +58,10 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -68,35 +71,34 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.After;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
 
-public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrationTest {
+public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
+
+    static {
+        GroovyTestSanitizer.isGroovySanitized();
+    }
 
     protected final SQLTransportExecutor sqlExecutor;
 
     private final static ESLogger LOGGER = Loggers.getLogger(SQLTransportIntegrationTest.class);
 
     @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put("plugin.types", CrateCorePlugin.class.getName())
-                .build();
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        return pluginList(CrateCorePlugin.class);
     }
 
     protected long responseDuration;
@@ -107,10 +109,15 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
                 new SQLTransportExecutor.ClientProvider() {
                     @Override
                     public Client client() {
-                        return ElasticsearchIntegrationTest.client();
+                        return ESIntegTestCase.client();
                     }
                 }
         ));
+    }
+
+    @Override
+    protected double getPerTestTransportClientRatio() {
+        return 0.0d;
     }
 
     public SQLTransportIntegrationTest(SQLTransportExecutor sqlExecutor) {
@@ -120,18 +127,13 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
     @Override
     public Settings indexSettings() {
         // set number of replicas to 0 for getting a green cluster when using only one node
-        return ImmutableSettings.builder().put("number_of_replicas", 0).build();
-    }
-
-    @Override
-    public void waitForConcreteMappingsOnAll(String index, String type, String... fieldNames) throws Exception {
-        waitForMappingUpdateOnAll(index, fieldNames);
+        return Settings.builder().put("number_of_replicas", 0).build();
     }
 
     @After
     public void assertNoJobExecutionContextAreLeftOpen() throws Exception {
         final Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
-        final Field activeOperationsSb = TransportShardUpsertAction.class.getDeclaredField("activeOperations");
+        final Field activeOperationsSb = TransportShardAction.class.getDeclaredField("activeOperations");
 
         activeContexts.setAccessible(true);
         activeOperationsSb.setAccessible(true);
@@ -156,41 +158,38 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
                             throw Throwables.propagate(e);
                         }
                     }
+                    for (TransportShardDeleteAction action : internalCluster().getInstances(TransportShardDeleteAction.class)) {
+                        try {
+                            Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperationsSb.get(action);
+                            assertThat(operations.size(), is(0));
+                        } catch (IllegalAccessException e) {
+                            throw Throwables.propagate(e);
+                        }
+                    }
                 }
             }, 10L, TimeUnit.SECONDS);
         } catch (AssertionError e) {
             StringBuilder errorMessageBuilder = new StringBuilder();
-            for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
+            String[] nodeNames = internalCluster().getNodeNames();
+            for (String nodeName : nodeNames) {
+                JobContextService jobContextService = internalCluster().getInstance(JobContextService.class, nodeName);
                 try {
                     //noinspection unchecked
                     Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
-                    errorMessageBuilder.append(contexts.toString());
-                    errorMessageBuilder.append("\n");
-
-                    // prevent other tests from failing:
-                    for (JobExecutionContext jobExecutionContext : contexts.values()) {
-                        jobExecutionContext.kill();
+                    String contextsString = contexts.toString();
+                    if (!"{}".equals(contextsString)) {
+                        errorMessageBuilder.append("## node: ");
+                        errorMessageBuilder.append(nodeName);
+                        errorMessageBuilder.append("\n");
+                        errorMessageBuilder.append(contextsString);
+                        errorMessageBuilder.append("\n");
                     }
                     contexts.clear();
                 } catch (IllegalAccessException ex) {
                     throw Throwables.propagate(e);
                 }
             }
-            printStackDump(LOGGER);
             throw new AssertionError(errorMessageBuilder.toString(), e);
-        }
-    }
-
-    public void runJobContextReapers() throws Exception {
-
-        LocalReaper reaper = internalCluster().getInstance(LocalReaper.class);
-        Field activeContextsField = JobContextService.class.getDeclaredField("activeContexts");
-        activeContextsField.setAccessible(true);
-
-        for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
-            @SuppressWarnings("unchecked")
-            Collection<JobExecutionContext> activeContexts = ((ConcurrentMap<UUID, JobExecutionContext>)activeContextsField.get(jobContextService)).values();
-            reaper.killHangingJobs(TimeValue.timeValueSeconds(-1), activeContexts);
         }
     }
 
@@ -253,17 +252,31 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         return response;
     }
 
-    public Plan plan(String stmt) {
-        Analyzer analyzer = internalCluster().getInstance(Analyzer.class);
-        Planner planner = internalCluster().getInstance(Planner.class);
+    public static class PlanForNode {
+        private final Plan plan;
+        private final String nodeName;
 
-        ParameterContext parameterContext = new ParameterContext(new Object[0], new Object[0][], null);
-        return planner.plan(analyzer.analyze(SqlParser.createStatement(stmt), parameterContext), UUID.randomUUID());
+        private PlanForNode(Plan plan, String nodeName) {
+            this.plan = plan;
+            this.nodeName = nodeName;
+        }
     }
 
-    public ListenableFuture<List<TaskResult>> execute(Plan plan) {
-        TransportExecutor transportExecutor = internalCluster().getInstance(TransportExecutor.class);
-        Job job = transportExecutor.newJob(plan);
+    public PlanForNode plan(String stmt) {
+        String[] nodeNames = internalCluster().getNodeNames();
+        String nodeName = nodeNames[randomIntBetween(1, nodeNames.length) - 1];
+
+        Analyzer analyzer = internalCluster().getInstance(Analyzer.class, nodeName);
+        Planner planner = internalCluster().getInstance(Planner.class, nodeName);
+
+        ParameterContext parameterContext = new ParameterContext(new Object[0], new Object[0][], null);
+        Plan plan = planner.plan(analyzer.analyze(SqlParser.createStatement(stmt), parameterContext), UUID.randomUUID());
+        return new PlanForNode(plan, nodeName);
+    }
+
+    public ListenableFuture<List<TaskResult>> execute(PlanForNode planForNode) {
+        TransportExecutor transportExecutor = internalCluster().getInstance(TransportExecutor.class, planForNode.nodeName);
+        Job job = transportExecutor.newJob(planForNode.plan);
         List<? extends ListenableFuture<TaskResult>> futures = transportExecutor.execute(job);
         return Futures.allAsList(futures);
     }
@@ -332,7 +345,7 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
         IndexMetaData indexMetaData = metaData.iterator().next();
-        for (ObjectCursor<MappingMetaData> cursor: indexMetaData.mappings().values()) {
+        for (ObjectCursor<MappingMetaData> cursor: indexMetaData.getMappings().values()) {
             builder.field(cursor.value.type());
             builder.map(cursor.value.sourceAsMap());
         }
@@ -381,9 +394,9 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
         for (IndexMetaData indexMetaData : metaData) {
-            builder.startObject(indexMetaData.index(), XContentBuilder.FieldCaseConversion.NONE);
+            builder.startObject(indexMetaData.getIndex(), XContentBuilder.FieldCaseConversion.NONE);
             builder.startObject("settings");
-            Settings settings = indexMetaData.settings();
+            Settings settings = indexMetaData.getSettings();
             for (Map.Entry<String, String> entry : settings.getAsMap().entrySet()) {
                 builder.field(entry.getKey(), entry.getValue());
             }
@@ -403,10 +416,11 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
      *
      * @param source the body of the statement, a JSON String containing the "stmt" and the "args"
      * @param includeTypes include data types in response
+     * @param schema default schema
      * @return the Response as JSON String
      * @throws IOException
      */
-    protected String restSQLExecute(String source, boolean includeTypes) throws IOException {
+    protected String restSQLExecute(String source, boolean includeTypes, @Nullable String schema) throws IOException {
         XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
         builder.generator().usePrettyPrint();
         SQLXContentSourceContext context = new SQLXContentSourceContext();
@@ -416,21 +430,27 @@ public abstract class SQLTransportIntegrationTest extends ElasticsearchIntegrati
         SQLBaseResponse sqlResponse;
         Object[][] bulkArgs = context.bulkArgs();
         if (bulkArgs != null && bulkArgs.length > 0) {
-            SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client());
+            SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client(), SQLBulkAction.INSTANCE);
             requestBuilder.bulkArgs(context.bulkArgs());
             requestBuilder.stmt(context.stmt());
             requestBuilder.includeTypesOnResponse(includeTypes);
+            requestBuilder.setSchema(schema);
             sqlResponse = requestBuilder.execute().actionGet();
         } else {
-            SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client());
+            SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client(), SQLAction.INSTANCE);
             requestBuilder.args(context.args());
             requestBuilder.stmt(context.stmt());
             requestBuilder.includeTypesOnResponse(includeTypes);
+            requestBuilder.setSchema(schema);
             sqlResponse = requestBuilder.execute().actionGet();
         }
         sqlResponse.toXContent(builder, ToXContent.EMPTY_PARAMS);
         responseDuration = sqlResponse.duration();
         return builder.string();
+    }
+
+    protected String restSQLExecute(String source, boolean includeTypes) throws IOException {
+        return restSQLExecute(source, includeTypes, null);
     }
 
     protected String restSQLExecute(String source) throws IOException {

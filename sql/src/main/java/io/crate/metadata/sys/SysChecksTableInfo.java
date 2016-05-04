@@ -23,55 +23,45 @@ package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.ColumnRegistrar;
+import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
-import java.util.*;
 
 
 @Singleton
-public class SysChecksTableInfo extends SysTableInfo {
+public class SysChecksTableInfo extends StaticTableInfo {
 
-    public static final TableIdent IDENT = new TableIdent(SCHEMA, "checks");
-    private static final ImmutableList<ColumnIdent> primaryKeys = ImmutableList.of(new ColumnIdent("id"));
+    public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "checks");
+    private static final ImmutableList<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(Columns.ID);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
-    private final Map<ColumnIdent, ReferenceInfo> infos;
-    private final Set<ReferenceInfo> columns;
+    private final ClusterService clusterService;
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
         public static final ColumnIdent SEVERITY = new ColumnIdent("severity");
         public static final ColumnIdent DESCRIPTION = new ColumnIdent("description");
         public static final ColumnIdent PASSED = new ColumnIdent("passed");
-
     }
 
     @Inject
     protected SysChecksTableInfo(ClusterService clusterService) {
-        super(clusterService);
-        ColumnRegistrar registrar = new ColumnRegistrar(IDENT, GRANULARITY)
-            .register(Columns.ID, DataTypes.INTEGER)
-            .register(Columns.SEVERITY, DataTypes.INTEGER)
-            .register(Columns.DESCRIPTION, DataTypes.STRING)
-            .register(Columns.PASSED, DataTypes.BOOLEAN);
-        infos = registrar.infos();
-        columns = registrar.columns();
-    }
-
-    @Nullable
-    @Override
-    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        return infos.get(columnIdent);
-    }
-
-    @Override
-    public Collection<ReferenceInfo> columns() {
-        return columns;
+        super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
+                        .register(Columns.ID, DataTypes.INTEGER)
+                        .register(Columns.SEVERITY, DataTypes.INTEGER)
+                        .register(Columns.DESCRIPTION, DataTypes.STRING)
+                        .register(Columns.PASSED, DataTypes.BOOLEAN),
+                PRIMARY_KEYS);
+        this.clusterService = clusterService;
     }
 
     @Override
@@ -80,22 +70,7 @@ public class SysChecksTableInfo extends SysTableInfo {
     }
 
     @Override
-    public TableIdent ident() {
-        return IDENT;
-    }
-
-    @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        return Routing.forTableOnNode(IDENT, clusterService.localNode().id());
-    }
-
-    @Override
-    public List<ColumnIdent> primaryKey() {
-        return primaryKeys;
-    }
-
-    @Override
-    public Iterator<ReferenceInfo> iterator() {
-        return infos.values().iterator();
+        return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().id());
     }
 }

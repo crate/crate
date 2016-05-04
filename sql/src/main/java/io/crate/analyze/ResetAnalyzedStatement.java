@@ -40,4 +40,9 @@ public class ResetAnalyzedStatement implements AnalyzedStatement {
     public Set<String> settingsToRemove() {
         return settingsToRemove;
     }
+
+    @Override
+    public boolean isWriteOperation() {
+        return true;
+    }
 }

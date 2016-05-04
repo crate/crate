@@ -28,9 +28,8 @@ import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Set;
 
 public class BytesRefUtils {
@@ -58,48 +57,51 @@ public class BytesRefUtils {
             idx++;
         }
 
-        for (int r = 0; r < rows.length; r++) {
-            for (IntCursor stringColumn : stringColumns) {
-                Object value = rows[r][stringColumn.value];
-                if (value != null && value instanceof BytesRef) {
-                    rows[r][stringColumn.value] = ((BytesRef)value).utf8ToString();
-                }
+        for (Object[] row : rows) {
+            convertStringColumns(row, stringColumns);
+            convertStringCollectionColumns(row, stringCollectionColumns);
+        }
+    }
+
+    private static void convertStringCollectionColumns(Object[] row, IntArrayList stringCollectionColumns) {
+        for (IntCursor stringCollectionColumn : stringCollectionColumns) {
+            Object value = row[stringCollectionColumn.value];
+            if (value == null) {
+                continue;
             }
+            if (value instanceof Set) {
+                row[stringCollectionColumn.value] = setToStringArray(((Set<BytesRef>) value));
+            } else if (value instanceof BytesRef[]) {
+                row[stringCollectionColumn.value] = objectArrayToStringArray(((BytesRef[]) value));
+            } else if (value instanceof Object[]) {
+                row[stringCollectionColumn.value] = objectArrayToStringArray(((Object[]) value));
+            }
+        }
+    }
 
-            for (IntCursor stringCollectionColumn : stringCollectionColumns) {
-                Object value = rows[r][stringCollectionColumn.value];
-                if (value != null) {
-                    Iterator<BytesRef> iter = null;
-                    int size;
-                    if (value instanceof Set) {
-                        @SuppressWarnings("unchecked")
-                        Set<BytesRef> bytesRefSet = ((Set<BytesRef>) value);
-                        iter = bytesRefSet.iterator();
-                        size = bytesRefSet.size();
-                    } else if (value instanceof BytesRef[]) {
-                        BytesRef[] bytesRefArray = (BytesRef[])value;
-                        iter = Arrays.asList(bytesRefArray).iterator();
-                        size = bytesRefArray.length;
-                    } else if (value instanceof Object[]) {
-                        try {
-                            Object[] objectArray = (Object[]) value;
-                            BytesRef[] bytesRefArray = Arrays.copyOf(objectArray, objectArray.length, BytesRef[].class);
-                            iter = Arrays.asList(bytesRefArray).iterator();
-                            size = bytesRefArray.length;
-                        } catch (ArrayStoreException e) {
-                            continue;
-                        }
-                    } else {
-                        continue;
-                    }
+    private static String[] setToStringArray(Set<BytesRef> values) {
+        String[] strings = new String[values.size()];
+        int idx = 0;
+        for (BytesRef value : values) {
+            strings[idx] = value == null ? null : value.utf8ToString();
+            idx++;
+        }
+        return strings;
+    }
 
-                    String[] valuesString = new String[size];
-                    for (int i = 0; i < size; i++) {
-                        BytesRef bytesRef = iter.next();
-                        valuesString[i] = bytesRef == null ? null : bytesRef.utf8ToString();
-                    }
-                    rows[r][stringCollectionColumn.value] = valuesString;
-                }
+    private static String[] objectArrayToStringArray(Object[] values) {
+        String[] strings = new String[values.length];
+        for (int i = 0; i < strings.length; i++) {
+            strings[i] = BytesRefs.toString(values[i]);
+        }
+        return strings;
+    }
+
+    private static void convertStringColumns(Object[] row, IntArrayList stringColumns) {
+        for (IntCursor stringColumn : stringColumns) {
+            Object value = row[stringColumn.value];
+            if (value instanceof BytesRef) {
+                row[stringColumn.value] = ((BytesRef)value).utf8ToString();
             }
         }
     }

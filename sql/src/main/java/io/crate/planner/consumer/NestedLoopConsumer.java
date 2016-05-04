@@ -172,8 +172,8 @@ public class NestedLoopConsumer implements Consumer {
                     right = tmpRelation;
                 }
             }
-            Set<String> localExecutionNodes = ImmutableSet.of(clusterService.localNode().id());
-            Collection<String> nlExecutionNodes = localExecutionNodes;
+            Set<String> handlerNodes = ImmutableSet.of(clusterService.localNode().id());
+            Collection<String> nlExecutionNodes = handlerNodes;
 
             MergePhase leftMerge = null;
             MergePhase rightMerge = null;
@@ -251,13 +251,10 @@ public class NestedLoopConsumer implements Consumer {
                     rightMerge,
                     nlExecutionNodes
             );
-            if (isDistributed) {
-                nl.distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
-            }
             MergePhase localMergePhase = null;
             // TODO: build local merge phases somewhere else for any subplan
             if (isDistributed && context.isRoot()) {
-                localMergePhase = mergePhase(context, localExecutionNodes, nl, orderByBeforeSplit, postNLOutputs, true);
+                localMergePhase = mergePhase(context, handlerNodes, nl, orderByBeforeSplit, postNLOutputs, true);
                 assert localMergePhase != null : "local merge phase must not be null";
                 TopNProjection finalTopN = ProjectionBuilder.topNProjection(
                         postNLOutputs,
@@ -268,7 +265,7 @@ public class NestedLoopConsumer implements Consumer {
                 );
                 localMergePhase.addProjection(finalTopN);
             }
-            return new NestedLoop(nl, leftPlan, rightPlan, localMergePhase);
+            return new NestedLoop(nl, leftPlan, rightPlan, localMergePhase, handlerNodes);
         }
 
         private void addOutputsAndSymbolMap(Iterable<? extends Symbol> outputs,
@@ -367,9 +364,14 @@ public class NestedLoopConsumer implements Consumer {
         }
 
         @Override
+        public QueriedRelation visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation, MultiSourceSelect.Source context) {
+            return new QueriedTable(tableFunctionRelation, context.querySpec());
+        }
+
+        @Override
         protected QueriedTableRelation visitAnalyzedRelation(AnalyzedRelation relation,
                                                              MultiSourceSelect.Source source) {
-            throw new ValidationException("CROSS JOIN with sub queries is not supported");
+            throw new ValidationException("JOIN with sub queries is not supported");
         }
     }
 

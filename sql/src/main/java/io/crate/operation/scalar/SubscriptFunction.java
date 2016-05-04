@@ -23,7 +23,6 @@ package io.crate.operation.scalar;
 
 import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
@@ -58,26 +57,6 @@ public class SubscriptFunction extends Scalar<Object, Object[]> implements Dynam
         return info;
     }
 
-
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        final int size = symbol.arguments().size();
-        assert size == 2 : "invalid number of arguments";
-
-        if (anyNonLiterals(symbol.arguments())) {
-            return symbol;
-        }
-
-        final Symbol input = symbol.arguments().get(0);
-        final Symbol index = symbol.arguments().get(1);
-        final Object inputValue = ((Input) input).value();
-        final Object indexValue = ((Input) index).value();
-        if (inputValue == null || indexValue == null) {
-            return Literal.NULL;
-        }
-
-        return Literal.newLiteral(info.returnType(), evaluate(inputValue, indexValue));
-    }
 
     @Override
     public Object evaluate(Input[] args) {

@@ -11,6 +11,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class Function extends Symbol implements Cloneable {
 
@@ -20,7 +21,6 @@ public class Function extends Symbol implements Cloneable {
             return new Function();
         }
     };
-
     private List<Symbol> arguments;
     private FunctionInfo info;
 
@@ -69,26 +69,18 @@ public class Function extends Symbol implements Cloneable {
     public void readFrom(StreamInput in) throws IOException {
         info = new FunctionInfo();
         info.readFrom(in);
-
-        int numArguments = in.readVInt();
-        arguments = new ArrayList<>(numArguments);
-        for (int i = 0; i < numArguments; i++) {
-            arguments.add(Symbol.fromStream(in));
-        }
+        arguments = Symbol.listFromStream(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         info.writeTo(out);
-        out.writeVInt(arguments.size());
-        for (Symbol argument : arguments) {
-            Symbol.toStream(argument, out);
-        }
+        Symbol.toStream(arguments, out);
     }
 
     @Override
     public String toString() {
-        return String.format("%s(%s)", info.ident().name(), Joiner.on(",").join(arguments()));
+        return String.format(Locale.ENGLISH, "%s(%s)", info.ident().name(), Joiner.on(",").join(arguments()));
     }
 
     @Override

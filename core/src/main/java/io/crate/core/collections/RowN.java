@@ -21,6 +21,8 @@
 
 package io.crate.core.collections;
 
+import java.util.Arrays;
+
 public class RowN implements Row {
 
     private final int size;
@@ -56,5 +58,10 @@ public class RowN implements Row {
         Object[] result = new Object[size];
         System.arraycopy(cells, 0, result, 0, size);
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return "RowN{" + Arrays.toString(cells) + '}';
     }
 }

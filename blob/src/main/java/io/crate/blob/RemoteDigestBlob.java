@@ -22,7 +22,6 @@
 package io.crate.blob;
 
 import io.crate.common.Hex;
-import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
@@ -70,7 +69,7 @@ public class RemoteDigestBlob {
                 case 4:
                     return FAILED;
             }
-            throw new ElasticsearchIllegalArgumentException("No status match for [" + id + "]");
+            throw new IllegalArgumentException("No status match for [" + id + "]");
         }
     }
 

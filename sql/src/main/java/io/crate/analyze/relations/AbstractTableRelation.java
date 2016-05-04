@@ -86,12 +86,12 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
             }
             // for child fields of object arrays
             // return references of primitive types as array
-            referenceInfo = new ReferenceInfo.Builder()
-                    .ident(referenceInfo.ident())
-                    .columnPolicy(referenceInfo.columnPolicy())
-                    .granularity(referenceInfo.granularity())
-                    .type(new ArrayType(referenceInfo.type()))
-                    .build();
+            referenceInfo = new ReferenceInfo(
+                    referenceInfo.ident(),
+                    referenceInfo.granularity(),
+                    new ArrayType(referenceInfo.type()),
+                    referenceInfo.columnPolicy(),
+                    referenceInfo.indexType());
         }
         return referenceInfo;
     }

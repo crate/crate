@@ -39,7 +39,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.GroupProjection;
@@ -129,7 +129,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
                     Aggregation.Step.PARTIAL);
             groupProjection.setRequiredGranularity(RowGranularity.SHARD);
 
-            CollectPhase collectPhase = CollectPhase.forQueriedTable(
+            RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
                     context.plannerContext(),
                     table,
                     splitPoints.leaves(),

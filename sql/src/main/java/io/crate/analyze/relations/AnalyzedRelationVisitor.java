@@ -24,6 +24,7 @@ package io.crate.analyze.relations;
 import io.crate.analyze.*;
 
 import javax.annotation.Nullable;
+import java.util.Locale;
 
 public abstract class AnalyzedRelationVisitor<C, R> {
 
@@ -32,7 +33,7 @@ public abstract class AnalyzedRelationVisitor<C, R> {
     }
 
     protected R visitAnalyzedRelation(AnalyzedRelation relation, C context) {
-        throw new UnsupportedOperationException(String.format("relation \"%s\" is not supported", relation));
+        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "relation \"%s\" is not supported", relation));
     }
 
     public R visitQueriedTable(QueriedTable table, C context) {
@@ -73,5 +74,13 @@ public abstract class AnalyzedRelationVisitor<C, R> {
 
     public R visitTwoTableJoin(TwoTableJoin twoTableJoin, C context) {
         return visitAnalyzedRelation(twoTableJoin, context);
+    }
+
+    public R visitExplain(ExplainAnalyzedStatement explainAnalyzedStatement, C context) {
+        return visitAnalyzedRelation(explainAnalyzedStatement, context);
+    }
+
+    public R visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation, C context) {
+        return visitAnalyzedRelation(tableFunctionRelation, context);
     }
 }

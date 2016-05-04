@@ -26,10 +26,10 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.types.DataType;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.settings.NodeSettingsService;
 
@@ -94,12 +94,13 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
             this.logger = Loggers.getLogger(getClass());
             this.values = values;
             this.initialSettings = initialSettings;
+            applySettings(CrateSettings.SETTINGS, initialSettings);
         }
 
         @Override
         public void onRefreshSettings(Settings settings) {
-            applySettings(CrateSettings.CRATE_SETTINGS,
-                    ImmutableSettings.builder()
+            applySettings(CrateSettings.SETTINGS,
+                    Settings.builder()
                             .put(initialSettings)
                             .put(settings).build()
             );
@@ -129,21 +130,23 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
 
 
     private final ConcurrentHashMap<String, Object> values = new ConcurrentHashMap<>();
+    private final ClusterService clusterService;
 
     @Inject
-    public ClusterSettingsExpression(Settings settings, NodeSettingsService nodeSettingsService) {
-        applyDefaults(CrateSettings.CRATE_SETTINGS);
+    public ClusterSettingsExpression(Settings settings, NodeSettingsService nodeSettingsService, ClusterService clusterService) {
+        this.clusterService = clusterService;
+        setDefaultValues(CrateSettings.SETTINGS);
         ApplySettings applySettings = new ApplySettings(settings, values);
 
         nodeSettingsService.addListener(applySettings);
         addChildImplementations();
     }
 
-    private void applyDefaults(List<Setting> settings) {
+    private void setDefaultValues(List<Setting> settings) {
         for (Setting<?, ?> setting : settings) {
             String settingName = setting.settingName();
             values.put(settingName, setting.defaultValue());
-            applyDefaults(setting.children());
+            setDefaultValues(setting.children());
         }
     }
 
@@ -169,5 +172,8 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
         childImplementations.put(
                 CrateSettings.UDC.name(),
                 new NestedSettingExpression(CrateSettings.UDC, values));
+        childImplementations.put(
+                ClusterLoggingOverridesExpression.NAME,
+                new ClusterLoggingOverridesExpression(clusterService));
     }
 }

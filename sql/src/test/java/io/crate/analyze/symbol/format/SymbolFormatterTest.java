@@ -51,7 +51,6 @@ import static org.hamcrest.Matchers.is;
 public class SymbolFormatterTest extends CrateUnitTest {
 
     SqlExpressions sqlExpressions;
-    SymbolPrinter printer;
 
     public static final String TABLE_NAME = "formatter";
 
@@ -67,7 +66,6 @@ public class SymbolFormatterTest extends CrateUnitTest {
                 .put(QualifiedName.of(TABLE_NAME), new TableRelation(tableInfo))
                 .build();
         sqlExpressions = new SqlExpressions(sources);
-        printer = new SymbolPrinter(sqlExpressions.analysisMD().functions());
     }
 
     @Test

@@ -4,15 +4,10 @@ buildscript {
     repositories {
         jcenter()
     }
-
-    dependencies {
-        classpath 'eu.appsatori:gradle-fatjar-plugin:0.3'
-    }
 }
 
 apply plugin: 'distribution'
 apply plugin: 'java'
-apply plugin: 'eu.appsatori.fatjar'
 apply plugin: 'signing'
 apply plugin: 'maven'
 
@@ -21,7 +16,6 @@ group = "io.crate"
 
 
 configurations {
-    all*.exclude group: 'org.elasticsearch'
     compileNotTransitive {
         transitive = false
     }
@@ -33,9 +27,7 @@ evaluationDependsOn(':sql')
 evaluationDependsOn(':sql-parser')
 evaluationDependsOn(':blob')
 evaluationDependsOn(':udc')
-evaluationDependsOn(':client')
 evaluationDependsOn(':dns-discovery')
-evaluationDependsOn(':aws')
 
 dependencies {
     compile project(':core')
@@ -44,15 +36,11 @@ dependencies {
     compile project(':admin-ui')
     compile project(':blob')
     compile project(':udc')
-    compile project(':client')
     compile project(':dns-discovery')
-    compile project(':aws')
+    compile project(':es-discovery-multicast')
+    compile project(':es-cloud-aws')
 
-    testCompile ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.1.10') {
-        exclude group: 'junit', module: 'junit'
-    }
-    testCompile 'junit:junit:4.11'
-
+    testCompile project(':testing')
 
     compileNotTransitive project(':core')
     compileNotTransitive project(':es')
@@ -61,8 +49,10 @@ dependencies {
     compileNotTransitive project(':admin-ui')
     compileNotTransitive project(':blob')
     compileNotTransitive project(':udc')
-    compileNotTransitive project(':client')
     compileNotTransitive project(':dns-discovery')
+    compileNotTransitive project(':es-discovery-multicast')
+    compileNotTransitive project(':es-cloud-aws')
+
 }
 
 task release(dependsOn: 'distTar') << {
@@ -72,22 +62,6 @@ task release(dependsOn: 'distTar') << {
 task nightly(dependsOn: 'distTar') << {
     logger.info("nightly version: " + project(':core').getVersion.version);
 }
-
-
-fatJar {
-    dependsOn ':core:getVersion'
-    doFirst {
-        manifest.attributes 'Implementation-Version': project(':core').getVersion.version
-    }
-    manifest {
-        attributes 'Main-Class': 'io.crate.bootstrap.CrateF',
-        'Implementation-Title': 'Crate',
-        'Built-Date': new Date(),
-        'Built-JDK': System.getProperty('java.version'),
-        'Built-Gradle': gradle.gradleVersion
-    }
-}
-
 
 task writeBuildInfo (dependsOn: [':core:getVersion']) << {
     def hash = "git rev-parse HEAD".execute().in.text.trim()
@@ -123,7 +97,12 @@ task dist {
 
 task myJavadocs(type: Javadoc, dependsOn: processResources) {
     classpath = configurations.compile
-    source = sourceSets.main.allJava + project(':core').sourceSets.main.allJava + project(':sql').sourceSets.main.allJava + project(':sql-parser').sourceSets.main.allJava + project(':blob').sourceSets.main.allJava + project(':udc').sourceSets.main.allJava + project(':client').sourceSets.main.allJava
+    source = sourceSets.main.allJava +
+            project(':core').sourceSets.main.allJava +
+            project(':sql').sourceSets.main.allJava +
+            project(':sql-parser').sourceSets.main.allJava +
+            project(':blob').sourceSets.main.allJava +
+            project(':udc').sourceSets.main.allJava
 }
 
 task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
@@ -147,8 +126,7 @@ task sourceJar (type : Jar) {
             project(':sql').sourceSets.main.allJava +
             project(':sql-parser').sourceSets.main.allJava +
             project(':blob').sourceSets.main.allJava +
-            project(':udc').sourceSets.main.allJava +
-            project(':client').sourceSets.main.allJava)
+            project(':udc').sourceSets.main.allJava)
     manifest {
         attributes("Implementation-Title": "Crate.IO")
     }
@@ -176,7 +154,7 @@ install {
         mavenInstaller {
             pom.whenConfigured {
                 pom -> pom.dependencies.clear()
-                project.parent.subprojects.findAll{ it.name != 'app' && it.name != 'aws' }.each {
+                project.parent.subprojects.findAll{ it.name != 'app'}.each {
                     if (it.hasProperty('install')) {
                         pom.dependencies.addAll(it.install.repositories.mavenInstaller.pom.getEffectivePom().dependencies.findAll { it.groupId != 'io.crate'})
                     }
@@ -221,7 +199,7 @@ uploadArchives {
             }
             pom.whenConfigured {
                 pom -> pom.dependencies.clear()
-                project.parent.subprojects.findAll{ it.name != 'app' && it.name != 'aws' }.each {
+                project.parent.subprojects.findAll{ it.name != 'app' && it.name != 'sigar' }.each {
                     if (it.hasProperty('install')) {
                         pom.dependencies.addAll(it.install.repositories.mavenInstaller.pom.getEffectivePom().dependencies.findAll { it.groupId != 'io.crate'})
                     }
@@ -282,12 +260,13 @@ distZip {
 
 ext {
     downloadDir = new File(buildDir, 'downloads')
-    plugin_crateadmin_version = '0.17.0'
-    plugin_repository_hdfs_version = '2.1.1-1'
-    crash_version = '0.15.0'
+    plugin_crateadmin_version = '0.17.1'
+    crash_version = '0.16.0'
 }
 
 def rootDir = project.parent.projectDir
+
+def libs = project.configurations.runtime
 
 distributions {
     main {
@@ -301,10 +280,11 @@ distributions {
                 include 'CHANGES.txt'
             }
             into("lib") {
-                from project.configurations.runtime
+                from libs
                 exclude 'sigar-*.jar'
                 exclude 'crate-*.jar'
                 exclude 'es.jar'
+                exclude 'es-*.jar'
             }
             into("lib") {
                 from jar
@@ -343,90 +323,45 @@ jar {
 
     from(configurations.compileNotTransitive.collect { it.isDirectory() ? it : zipTree(it) }){
         exclude 'META-INF/**' // Don't let Gradle merge service files
-        // exclude overloaded ES classes
-        exclude 'org/elasticsearch/node/internal/InternalSettingsPreparer*'
     }
 
     // include service files from the buildDir
     from fileTree(buildDir).matching{ include 'META-INF/services/*' }
 }
 
-def download (String url, String name){
-    downloadDir.mkdirs()
-    def dest = new File(downloadDir, name)
-    ant.get(
-            src: url,
-            verbose: true,
-            usetimestamp: true,
-            skipexisting: true,
-            dest: dest
-    )
-    return dest;
-}
+task downloadPlugins (
+    dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip']) << {
 
-def extractTopfolder(File src, String trg){
     copy {
-        includeEmptyDirs = false
-        FileTree ft
-        if(src.name.endsWith('.zip')) {
-            ft = zipTree(src)
-        }
-        if(src.name.endsWith('.tar.gz')) {
-            ft = tarTree(src)
-        }
-        from(ft) {
-            eachFile { details ->
-                details.path =
-                    details.path.substring(details.relativePath.segments[0].length())
-            }
-        }
-        into trg
+        from(zipTree(project(':es-repository-hdfs').tasks.distZip.archivePath))
+        into 'plugins/elasticsearch-repository-hdfs'
+    }
+
+    copy {
+        from (project(':admin-ui').projectDir.path + '/build/crate-admin')
+        into 'plugins/crate-admin'
+    }
+
+    // copy sigar jar
+    copy {
+        from(project(':sigar').tasks.jar.archivePath)
+        into 'plugins/sigar'
+    }
+    copy {
+        from(project(':sigar').projectDir.path + "/lib")
+        into 'plugins/sigar/lib'
     }
 }
 
-task downloadPlugins << {
-    def dest = download(
-            "https://cdn.crate.io/downloads/releases/crate-admin-${plugin_crateadmin_version}.tar.gz",
-            "crate-admin-${plugin_crateadmin_version}.tar.gz"
-    )
-    extractTopfolder(dest, 'plugins/crate-admin/_site')
+downloadPlugins.outputs.file files('plugins')
 
-    dest = download(
-            "https://bintray.com/artifact/download/crate/crate/io/crate/crate-repository-hdfs/${plugin_repository_hdfs_version}/crate-repository-hdfs-${plugin_repository_hdfs_version}.jar",
-            "crate-repository-hdfs-${plugin_repository_hdfs_version}.jar"
-    )
-    def hdfsLib = new File(project.projectDir, 'plugins/hdfs/lib')
-    hdfsLib.mkdirs()
-    copy {
-        from dest
-        into 'plugins/hdfs'
-    }
 
-    // copy aws jar
-    copy {
-        from(project(':aws').tasks.jar.archivePath)
-        into 'plugins/aws'
-    }
-    // copy aws deps
-    def awsLib = new File(project.projectDir, 'plugins/aws/lib')
-    awsLib.mkdirs()
-    copy {
-        from(project(':aws').configurations.awsDeps)
-        into awsLib
-    }
-
-}
-downloadPlugins.outputs.dir files(
-    "$projectDir/plugins/crate-admin",
-    "$projectDir/plugins/hdfs",
-    "$projectDir/plugins/aws"
-)
-downloadPlugins.dependsOn(':aws:jar')
 
 task downloadCrash << {
     def dest = download(
-         "https://cdn.crate.io/downloads/releases/crash_standalone_${crash_version}",
-         "crash_standalone"
+        downloadDir,
+        "https://cdn.crate.io/downloads/releases/crash_standalone_${crash_version}",
+        "crash_standalone"
     )
 }
 
@@ -437,7 +372,7 @@ task(runDebug, dependsOn: 'classes', type: JavaExec) {
     debug = true
     enableAssertions = true
     classpath = sourceSets.main.runtimeClasspath
-    maxHeapSize = '512m'
+    systemProperties += ['es.path.home': "${project.buildDir}/$name"]
 }
 
 task(run, dependsOn: 'classes', type: JavaExec) {
@@ -445,7 +380,7 @@ task(run, dependsOn: 'classes', type: JavaExec) {
     debug = false
     enableAssertions = true
     classpath = sourceSets.main.runtimeClasspath
-    maxHeapSize = '512m'
+    systemProperties += ['es.path.home':"${project.buildDir}/$name"]
     systemProperties System.getProperties()
 }
 
@@ -461,9 +396,7 @@ test {
 
 sourceSets {
     test {
-        resources {
-            srcDir 'src/test/java'
-        }
+        output.resourcesDir = 'build/resources'
     }
 }
 

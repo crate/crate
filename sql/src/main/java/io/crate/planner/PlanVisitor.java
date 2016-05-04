@@ -30,6 +30,7 @@ import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
 import org.elasticsearch.common.Nullable;
@@ -80,6 +81,10 @@ public class PlanVisitor<C, R> {
         return visitPlan(killPlan, context);
     }
 
+    public R visitExplainPlan(ExplainPlan explainPlan, C context) {
+        return visitPlan(explainPlan, context);
+    }
+
     public R visitGenericShowPlan(GenericShowPlan genericShowPlan, C context) {
         return visitPlan(genericShowPlan, context);
     }
@@ -95,4 +100,5 @@ public class PlanVisitor<C, R> {
     public R visitCopyTo(CopyTo plan, C context) {
         return visitPlan(plan, context);
     }
+
 }

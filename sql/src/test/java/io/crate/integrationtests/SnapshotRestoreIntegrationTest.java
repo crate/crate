@@ -24,21 +24,22 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
-import io.crate.action.sql.TransportSQLAction;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.cluster.SnapshotsInProgress;
+import org.elasticsearch.cluster.metadata.SnapshotId;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.snapshots.SnapshotInfo;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
+import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-
 
 public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -53,7 +54,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.builder().put(super.nodeSettings(nodeOrdinal))
+        return Settings.builder().put(super.nodeSettings(nodeOrdinal))
                 .put("path.repo", TEMPORARY_FOLDER.getRoot().getAbsolutePath())
                 .build();
     }
@@ -67,10 +68,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     }
 
     @After
-    public void dropRepository() throws Exception {
-        execute("DROP REPOSITORY " + REPOSITORY_NAME);
-        assertThat(response.rowCount(), is(1L));
-
+    public void resetSettings() throws Exception {
         execute("reset GLOBAL cluster.routing.allocation.enable");
         waitNoPendingTasksOnAll();
     }
@@ -155,22 +153,27 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         // this test just verifies that no exception is thrown if wait_for_completion is false
         execute("CREATE SNAPSHOT my_repo.snapshot_no_wait ALL WITH (wait_for_completion=false)");
         assertThat(response.rowCount(), is(1L));
-        waitForSnapshotCompletion("snapshot_no_wait");
+        waitForCompletion(REPOSITORY_NAME, "snapshot_no_wait", TimeValue.timeValueSeconds(20));
     }
 
-    private void waitForSnapshotCompletion(final String snapshotName) throws Exception {
-        // wait for success so that @after dropRepository doesn't fail
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                SQLRequest request = new SQLRequest(
-                        "select count(*) from sys.snapshots where state = 'SUCCESS' and name = ?", $(snapshotName));
-                for (TransportSQLAction transportSQLAction : internalCluster().getInstances(TransportSQLAction.class)) {
-                    SQLResponse response = transportSQLAction.execute(request).actionGet(5, TimeUnit.SECONDS);
-                    assertThat(((long) response.rows()[0][0]), is(1L));
+    private SnapshotInfo waitForCompletion(String repository, String snapshot, TimeValue timeout) throws InterruptedException {
+        long start = System.currentTimeMillis();
+        SnapshotId snapshotId = new SnapshotId(repository, snapshot);
+        while (System.currentTimeMillis() - start < timeout.millis()) {
+            List<SnapshotInfo> snapshotInfos = client().admin().cluster().prepareGetSnapshots(repository).setSnapshots(snapshot).get().getSnapshots();
+            assertThat(snapshotInfos.size(), equalTo(1));
+            if (snapshotInfos.get(0).state().completed()) {
+                // Make sure that snapshot clean up operations are finished
+                ClusterStateResponse stateResponse = client().admin().cluster().prepareState().get();
+                SnapshotsInProgress snapshotsInProgress = stateResponse.getState().getMetaData().custom(SnapshotsInProgress.TYPE);
+                if (snapshotsInProgress == null || snapshotsInProgress.snapshot(snapshotId) == null) {
+                    return snapshotInfos.get(0);
                 }
             }
-        });
+            Thread.sleep(100);
+        }
+        fail("Timeout waiting for snapshot completion!");
+        return null;
     }
 
     @Test
@@ -194,7 +197,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Snapshot \"my_repo\".\"my_snapshot\" already exists");
-        execute("CREATE SNAPSHOT my_repo.my_snapshot ALL WITH (wait_for_completion=true)");
+        execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
     }
 
     @Test
@@ -227,12 +230,13 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
     @Test
     public void testCreateSnapshotInURLRepoFails() throws Exception {
+        // URL Repositories are always marked as read_only
         execute("CREATE REPOSITORY uri_repo TYPE url WITH (url=?)",
                 new Object[]{ TEMPORARY_FOLDER.newFolder().toURI().toString() });
         waitNoPendingTasksOnAll();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("URL repository doesn't support this operation");
+        expectedException.expectMessage("[uri_repo] cannot create snapshot in a readonly repository");
         execute("CREATE SNAPSHOT uri_repo.my_snapshot ALL WITH (wait_for_completion=true)");
     }
 
@@ -297,7 +301,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         execute("drop table my_parted_table");
         waitNoPendingTasksOnAll();
-        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_parted_table PARTITION (date='1970-01-01') with (" +
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_parted_table PARTITION (date=0) with (" +
                 "ignore_unavailable=false, " +
                 "wait_for_completion=true)");
 
@@ -333,6 +337,12 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         assertThat(TestingHelpers.printedTable(response.rows()), is("doc.my_table_1\ndoc.my_table_2\n"));
     }
 
+    /**
+     * Test to restore a concrete partitioned table.
+     *
+     * This requires a patch in ES in order to restore templates when concrete tables are passed as an restore argument:
+     * https://github.com/crate/elasticsearch/commit/3c14e74a3e50ea7d890f436db72ff18c2953ebc4
+     */
     @Test
     public void testRestoreOnlyOnePartitionedTable() throws Exception {
         createTable("my_parted_1", true);

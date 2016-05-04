@@ -21,102 +21,63 @@
 
 package io.crate.executor.transport.kill;
 
+import io.crate.executor.MultiActionListener;
 import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
-import io.crate.executor.transport.Transports;
 import io.crate.jobs.JobContextService;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-
 @Singleton
-public class TransportKillJobsNodeAction implements NodeAction<KillJobsRequest, KillResponse> {
+public class TransportKillJobsNodeAction extends AbstractComponent implements NodeAction<KillJobsRequest, KillResponse> {
 
     private static final String TRANSPORT_ACTION = "crate/sql/kill_jobs";
 
-    private JobContextService jobContextService;
-    private ClusterService clusterService;
-    private Transports transports;
+    private final JobContextService jobContextService;
+    private final ClusterService clusterService;
+    private final TransportService transportService;
 
     @Inject
-    public TransportKillJobsNodeAction(JobContextService jobContextService,
+    public TransportKillJobsNodeAction(Settings settings,
+                                       JobContextService jobContextService,
                                        ClusterService clusterService,
-                                       Transports transports,
                                        TransportService transportService) {
+        super(settings);
         this.jobContextService = jobContextService;
         this.clusterService = clusterService;
-        this.transports = transports;
-        transportService.registerHandler(TRANSPORT_ACTION, new NodeActionRequestHandler<KillJobsRequest, KillResponse>(this) {
-            @Override
-            public KillJobsRequest newInstance() {
-                return new KillJobsRequest();
-            }
-        });
+        this.transportService = transportService;
+
+        transportService.registerRequestHandler(TRANSPORT_ACTION,
+                KillJobsRequest.class,
+                ThreadPool.Names.GENERIC,
+                new NodeActionRequestHandler<KillJobsRequest, KillResponse>(this) { });
     }
 
-    public void executeKillOnAllNodes(KillJobsRequest request, final ActionListener<KillResponse> listener) {
+    public void executeKillOnAllNodes(KillJobsRequest request, ActionListener<KillResponse> listener) {
         DiscoveryNodes nodes = clusterService.state().nodes();
-        final AtomicInteger counter = new AtomicInteger(nodes.size());
-        final AtomicLong numKilled = new AtomicLong();
-        final AtomicReference<Throwable> lastFailure = new AtomicReference<>();
+        listener = new MultiActionListener<>(nodes.size(), KillResponse.MERGE_FUNCTION, listener);
 
-        ActionListener<KillResponse> killResponseActionListener = new ActionListener<KillResponse>() {
-            @Override
-            public void onResponse(KillResponse killResponse) {
-                numKilled.getAndAdd(killResponse.numKilled());
-                countdown();
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-                lastFailure.set(e);
-                countdown();
-            }
-
-            private void countdown() {
-                if (counter.decrementAndGet() == 0) {
-                    Throwable throwable = lastFailure.get();
-                    if (throwable == null) {
-                        listener.onResponse(new KillResponse(numKilled.get()));
-                    } else {
-                        listener.onFailure(throwable);
-                    }
-                }
-
-            }
-        };
         DefaultTransportResponseHandler<KillResponse> transportResponseHandler =
-                new DefaultTransportResponseHandler<KillResponse>(killResponseActionListener) {
+                new DefaultTransportResponseHandler<KillResponse>(listener) {
             @Override
             public KillResponse newInstance() {
                 return new KillResponse(0);
             }
         };
 
+        logger.trace("Sending {} to {}", request, nodes);
         for (DiscoveryNode node : nodes) {
-            transports.executeLocalOrWithTransport(
-                    this, node.id(), request, killResponseActionListener, transportResponseHandler);
+            transportService.sendRequest(node, TRANSPORT_ACTION, request, transportResponseHandler);
         }
-    }
-
-    @Override
-    public String actionName() {
-        return TRANSPORT_ACTION;
-    }
-
-    @Override
-    public String executorName() {
-        return ThreadPool.Names.MANAGEMENT;
     }
 
     @Override

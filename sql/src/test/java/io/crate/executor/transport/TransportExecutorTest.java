@@ -23,34 +23,26 @@ package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.DynamicReference;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.Job;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.task.KillTask;
-import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
-import io.crate.metadata.*;
-import io.crate.operation.operator.EqOperator;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.management.KillPlan;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
@@ -110,33 +102,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Bucket objects = result.get(0).get().rows();
 
         assertThat(objects.size(), is(2));
-    }
-
-    @Test
-    public void testESDeleteByQueryTask() throws Exception {
-        setup.setUpCharacters();
-
-        Function whereClause = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
-                DataTypes.BOOLEAN),
-                Arrays.asList(idRef, Literal.newLiteral(2)));
-
-        ESDeleteByQueryNode node = new ESDeleteByQueryNode(
-                1,
-                ImmutableList.of(new String[]{"characters"}),
-                ImmutableList.of(new WhereClause(whereClause)));
-        Plan plan = new IterablePlan(UUID.randomUUID(), node);
-        Job job = executor.newJob(plan);
-        ESDeleteByQueryTask task = (ESDeleteByQueryTask) job.tasks().get(0);
-
-        task.start();
-        TaskResult taskResult = task.result().get(0).get(2, TimeUnit.SECONDS);
-        Bucket rows = taskResult.rows();
-        assertThat(rows, contains(isRow(-1L)));
-
-        // verify deletion
-        execute("select * from characters where id = 2");
-        assertThat(response.rowCount(), is(0L));
     }
 
     @Test

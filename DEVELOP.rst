@@ -5,10 +5,10 @@ DEVELOPMENT
 Prerequisites
 =============
 
-Crate is written in Java_ 7, so a JDK needs to be installed. On OS X we
-recommend using `Oracle's Java`_ and OpenJDK_ on Linux Systems.
-We recommend installing Java 7 update 55 or later or Java 8 update 20 or later.
-Previous versions of Java 7 can cause data corruption and data loss.
+Crate is written in Java_, so a JDK needs to be installed. On OS X we recommend
+using `Oracle's Java`_ and OpenJDK_ on Linux Systems.
+
+It is recommended to use a recent Java 8 version.
 
 Writing Documentation
 =====================
@@ -18,17 +18,17 @@ using Sphinx_. The line length shall not exceed 80 characters. Most text
 editors support automatic line breaks at a certain line width if you don't want
 to insert line break manually ;)
 
-Sphinx_ requires Python_ 2.7 to be installed in addition to Java_. Make sure
-that there is a python executable called ``python2.7`` in the global system
+Sphinx_ requires Python_ 2.7 or 3 to be installed in addition to Java_. Make
+sure that there is a python executable called ``python`` in the global system
 ``$PATH`` (most distributions do that by default if Python is installed).
 
 Git checkout and submodules
 ===========================
 
-Clone the repository and initialize the submodule::
+Clone the repository and initialize all contained submodules::
 
-    $ git clone https://github.com/crate/crate.git && cd crate
-    $ git submodule update --init
+    $ git clone --recursive https://github.com/crate/crate.git
+    $ cd crate
 
 Gradlew - Building Crate and Documentation
 ==========================================
@@ -44,27 +44,29 @@ The documentation is maintained under the ``docs`` directory and
 written in ReStructuredText_ and processed with Sphinx_.
 
 Normally the documentation is built by `Read the Docs`_ and isn't part of the
-Crate distribution. However if you work on the documentation you can run
-sphinx directly, which can be done by just running ``bin/sphinx`` in the
-``docs`` directory. The output can then be found in the ``out/html`` and
-``out/text`` directories.
+Crate distribution. However if you work on the documentation you can run sphinx
+directly, which can be done by just running ``bin/sphinx`` in the ``blackbox``
+directory. The output can then be found in the ``docs/out/html`` and
+``docs/out/text`` directories.
 
-Before you can run ``bin/sphinx`` you need to setup a development environment
-by running `bootstrap.py` inside the ``docs`` directory::
+Before you can run ``blackbox/bin/sphinx`` you need to setup a development
+environment by running `bootstrap.py` inside the ``blackbox`` directory::
 
-    python bootstrap.py
+    
+    $ cd blackbox
+    $ python bootstrap.py
 
 And afterwards run buildout::
 
-    ./bin/buildout -N
+    $ ./bin/buildout -N
 
 To test that all examples in the documentation execute correctly run::
 
-    ./bin/test
+    $ ./bin/test
 
 Or if you want to test that a specific file executes correctly run::
 
-    ./bin/test -1vt <filename>
+    $ ./bin/test -1vt <filename>
 
 There is also a gradle task called ``itest`` which will execute all of the
 above steps.
@@ -169,74 +171,12 @@ files that can be opened in IntelliJ::
 Run/Debug Configurations
 ------------------------
 
-It is also possible to run Crate Data nodes directly from within IntelliJ. But
-before that can be done a bit of preparation is necessary.
+``gradlew idea`` will have created a Run/Debug configuration called ``Crate``.
+This configuration can be used to launch and debug Crate from within IntelliJ.
 
-First create the folders for the configuration and data::
-
-    for i in {1..2}; do mkdir -p sandbox/crate_$i/{config,data,plugins}; done
-
-Then create the configuration files for both nodes::
-
-    touch sandbox/crate_1/config/crate.yml
-    touch sandbox/crate_2/config/crate.yml
-
-And add the following settings::
-
-    node.name: local1
-
-    http.port: 19201
-    transport.tcp.port: 19301
-    network.host: localhost
-
-    multicast.enabled: false
-    discovery.zen.ping.unicast.hosts:
-      - 127.0.0.1:19301
-      - 127.0.0.1:19302
-
-.. note::
-
-    In the second files the port number and node name has to be changed.
-    19201 to 19202 and 19301 to 19302.
-
-In addition to the ``crate.yml`` file it is also recommended to create a logging
-configuration file for both nodes. To do so create the files
-``sandbox/crate_1/config/logging.yml`` and
-``sandbox/crate_2/config/logging.yml``.
-
-.. _minimum_logging_config:
-
-A minimal example for the logging configuration looks like this::
-
-    rootLogger: INFO, console
-    logger:
-      # log action execution errors for easier debugging
-      action: DEBUG
-      crate.elasticsearch.blob: TRACE
-
-    appender:
-      console:
-        type: console
-        layout:
-          type: consolePattern
-          conversionPattern: "[%d{ISO8601}][%-5p][%-25c] %m%n"
-
-In order for the admin interface to work please check out the crate admin
-repository::
-
-	https://github.com/crate/crate-admin
-
-After that the Run/Debug Configurations can be added within IntelliJ. Go to the
-`Run/Debug Configurations` window and add a new `Application` configuration
-(one for each node) with the following settings:
-
-+--------------------------+-----------------------------------------------+
-| Main class               | io.crate.bootstrap.CrateF                     |
-+--------------------------+-----------------------------------------------+
-| VM Options               | -Des.path.home=/full/path/to/sandbox/crate_1/ |
-+--------------------------+-----------------------------------------------+
-| Use classpath of module: | app                                           |
-+--------------------------+-----------------------------------------------+
+The ``home`` directory will be set to ``<project_root>/sandbox/crate`` and the
+configuration files for it can be found in
+``<project_root>/sandbox/crate/config``.
 
 Test Coverage
 --------------
@@ -253,7 +193,7 @@ Running `FindBugs`_ against our code base::
 
     ./gradlew findBugsMain
 
-the findbugs check will also be executed when running::
+The findbugs check will also be executed when running::
 
     ./gradlew check
 
@@ -278,10 +218,32 @@ will receive information where more detailed benchmark-results got stored.
 internal benchmarks
 -------------------
 
-Internal benchmarks are part of the SQL module and test a specific component or
-unit and can be run using::
+Internal benchmarks test specific components or units.
+
+We used to write them using JUnitBenchmarks, but the project has been
+deprecated in favor of `JMH`_.
+
+The benchmarks that were written using JUnitBenchmarks can still be run using::
 
     $ ./gradlew benchmarks
+
+But they should eventually be replaced with benchmarks that use `JMH`_.
+
+Jmh
+---
+
+`JMH`_ benchmarks can be executed using ``gradle``::
+
+    $ ./gradlew :core:jmh
+
+By default this will look for benchmarks inside ``<module>/src/jmh/java`` and
+execute them.
+Currently, the `JMH`_ plugin is only enabled at the `core` module.
+
+Results will be generated into ``$buildDir/reports/jmh``.
+
+If you're writing new benchmarks take a look at this `JMH introduction`_ and
+those `JMH samples`_.
 
 Preparing a new Release
 =======================
@@ -312,12 +274,12 @@ Crate::
 The resulting tarball and zip will reside in the folder
 ``./app/build/distributions``.
 
-Toubleshooting
-==============
+Troubleshooting
+===============
 
 If you just pulled some new commits using git and get strange compile errors in
 the SQL parser code it is probably necessary to re-generate the parser code as
-the grammer changed::
+the grammar changed::
 
     ./gradlew :sql-parser:compileJava
 
@@ -336,7 +298,7 @@ the grammer changed::
 
 .. _`Oracle's Java`: http://www.java.com/en/download/help/mac_install.xml
 
-.. _OpenJDK: http://openjdk.java.net/projects/jdk7/
+.. _OpenJDK: http://openjdk.java.net/projects/jdk8/
 
 .. _`Read the Docs`: http://readthedocs.org
 
@@ -346,4 +308,10 @@ the grammer changed::
 
 .. _`log4j`: http://logging.apache.org/log4j/2.x/
 
+.. _`JMH`: http://openjdk.java.net/projects/code-tools/jmh/
 
+.. _`jmh-gradle-plugin`: https://github.com/melix/jmh-gradle-plugin
+
+.. _`JMH introduction`: http://java-performance.info/jmh/
+
+.. _`JMH samples`: http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/

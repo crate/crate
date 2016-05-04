@@ -27,7 +27,7 @@ import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.*;
 import org.antlr.runtime.tree.CommonTree;
-import org.testng.annotations.Test;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,8 +39,6 @@ import static java.lang.String.format;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.*;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
 
 public class TestStatementBuilder {
 
@@ -290,6 +288,13 @@ public class TestStatementBuilder {
                 "phone 5",
                 "phone 6",
                 "phone 7");
+    }
+
+    @Test
+    public void testTableFunctions() throws Exception {
+        printStatement("select * from unnest([1, 2], ['Arthur', 'Marvin'])");
+        printStatement("select * from unnest(?, ?)");
+        printStatement("select * from open('/tmp/x')");
     }
 
     @Test
@@ -562,14 +567,14 @@ public class TestStatementBuilder {
             SqlParser.createExpression("{a=func('abc')");
             fail();
         } catch (ParsingException e) {
-            assertThat(e.getMessage(), is("line 1:4: no viable alternative at input 'func'"));
+            assertThat(e.getMessage(), is("line 1:4: mismatched input 'func' expecting '{'"));
         }
 
         try {
             SqlParser.createExpression("{b=identifier}");
             fail();
         } catch (ParsingException e) {
-            assertThat(e.getMessage(), is("line 1:4: no viable alternative at input 'identifier'"));
+            assertThat(e.getMessage(), is("line 1:4: mismatched input 'identifier' expecting '{'"));
         }
 
         try {
@@ -583,7 +588,7 @@ public class TestStatementBuilder {
             SqlParser.createExpression("{d=sub['script']}");
             fail();
         } catch (ParsingException e) {
-            assertThat(e.getMessage(), is("line 1:4: no viable alternative at input 'sub'"));
+            assertThat(e.getMessage(), is("line 1:4: mismatched input 'sub' expecting '{'"));
         }
     }
 
@@ -711,7 +716,7 @@ public class TestStatementBuilder {
         println("");
 
         // TODO: support formatting all statement types
-        if (statement instanceof Query || statement instanceof CreateTable) {
+        if (statement instanceof Query || statement instanceof CreateTable || statement instanceof CopyFrom) {
             println(SqlFormatter.formatSql(statement));
             println("");
             assertFormattedSql(statement);
@@ -743,7 +748,7 @@ public class TestStatementBuilder {
             sql = sql.replaceAll(format(":%s", i + 1), String.valueOf(values[i]));
         }
 
-        assertFalse(sql.matches("(?s).*:[0-9].*"), "Not all bind parameters were replaced: " + sql);
+        assertFalse("Not all bind parameters were replaced: " + sql, sql.matches("(?s).*:[0-9].*"));
 
         sql = fixTpchQuery(sql);
         printStatement(sql);

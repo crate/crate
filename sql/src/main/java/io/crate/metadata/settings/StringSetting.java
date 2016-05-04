@@ -24,26 +24,62 @@ package io.crate.metadata.settings;
 import com.google.common.base.Joiner;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nullable;
+import java.util.Locale;
 import java.util.Set;
 
-public abstract class StringSetting extends Setting<String, String> {
+public class StringSetting extends Setting<String, String> {
 
-    protected Set<String> allowedValues;
+    private final String name;
+    protected final Set<String> allowedValues;
+    private final boolean isRuntime;
 
-    protected StringSetting(Set<String> allowedValues) {
+    @Nullable
+    private final String defaultValue;
+    @Nullable
+    private final Setting<?, ?> parent;
+
+    public StringSetting(String name,
+                         @Nullable Set<String> allowedValues,
+                         boolean isRuntime,
+                         @Nullable String defaultValue,
+                         @Nullable  Setting<?, ?> parent) {
+
+        this.name = name;
         this.allowedValues = allowedValues;
+        this.isRuntime = isRuntime;
+        this.defaultValue = defaultValue;
+        this.parent = parent;
     }
 
-    protected StringSetting() {
-        this.allowedValues = null;
+    public StringSetting(String name, @javax.annotation.Nullable Set<String> allowedValues, boolean isRuntime) {
+        this(name, allowedValues, isRuntime, null, null);
+    }
+
+    public StringSetting(String name, boolean isRuntime) {
+        this(name, null, isRuntime, null, null);
+    }
+
+    @Override
+    public Setting parent() {
+        return parent;
+    }
+
+    @Override
+    public boolean isRuntime() {
+        return isRuntime;
+    }
+
+    @Override
+    public String name() {
+        return name;
     }
 
     @Override
     public String defaultValue() {
-        return "";
+        return defaultValue;
     }
 
     @Override
@@ -62,7 +98,7 @@ public abstract class StringSetting extends Setting<String, String> {
     @Nullable
     public String validate(String value) {
         if (allowedValues != null && !allowedValues.contains(value)) {
-            return String.format("'%s' is not an allowed value. Allowed values are: %s",
+            return String.format(Locale.ENGLISH, "'%s' is not an allowed value. Allowed values are: %s",
                     value, Joiner.on(", ").join(allowedValues)
 
             );

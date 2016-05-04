@@ -21,89 +21,26 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.test.cluster.NoopClusterService;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nonnull;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
 
 public class TransportsTest extends CrateUnitTest {
 
-
-    private ESLogger logger;
-    private String logLevel;
-
-    @Override
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        // mute WARN logging for this test
-        logger = Loggers.getLogger(Transports.class);
-        logLevel = logger.getLevel();
-        logger.setLevel("ERROR");
-    }
-
-    @Override
-    @After
-    public void tearDown() throws Exception {
-        super.tearDown();
-        logger.setLevel(logLevel);
-    }
-
-    @SuppressWarnings("unchecked")
     @Test
-    public void testEsRejectedExecutionExceptionCallsFailOnListener() throws Exception {
-        ThreadPool threadPool = mock(ThreadPool.class);
-        final String executorName = "dummy";
-        when(threadPool.executor(executorName)).thenReturn(new Executor() {
-            @Override
-            public void execute(@Nonnull Runnable command) {
-                throw new EsRejectedExecutionException();
-            }
-        });
-        Transports transports = new Transports(new NoopClusterService(), mock(TransportService.class), threadPool);
+    public void testOnFailureOnListenerIsCalledIfNodeIsNotInClusterState() throws Exception {
+        Transports transports = new Transports(new NoopClusterService(), mock(TransportService.class));
+        ActionListener actionListener = mock(ActionListener.class);
+        transports.sendRequest("actionName",
+            "invalid", mock(TransportRequest.class), actionListener, mock(TransportResponseHandler.class));
 
-        final SettableFuture<Boolean> failCalled = SettableFuture.create();
-        ActionListener listener = new ActionListener() {
-            @Override
-            public void onResponse(Object o) {
-                failCalled.set(false);
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-                failCalled.set(true);
-
-            }
-        };
-        NodeAction nodeAction = mock(NodeAction.class);
-        when(nodeAction.executorName()).thenReturn(executorName);
-        transports.executeLocalOrWithTransport(nodeAction, "noop_id", mock(TransportRequest.class), listener,
-                new DefaultTransportResponseHandler(listener) {
-            @Override
-            public TransportResponse newInstance() {
-                return mock(TransportResponse.class);
-            }
-        });
-
-        Boolean result = failCalled.get(100, TimeUnit.MILLISECONDS);
-        assertThat(result, is(true));
+        verify(actionListener, times(1)).onFailure(any(Throwable.class));
     }
 }

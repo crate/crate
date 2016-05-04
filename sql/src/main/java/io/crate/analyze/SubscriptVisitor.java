@@ -121,7 +121,7 @@ public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
 
     @Override
     protected Void visitExpression(Expression node, SubscriptContext context) {
-        throw new UnsupportedOperationException(String.format(
+        throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "Expression of type %s is not supported within a subscript expression",
                 node.getClass()));
     }

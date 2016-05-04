@@ -289,11 +289,19 @@ relationType returns [Relation value]
     | tableSubquery    { $value = $tableSubquery.value; }
     | joinedTable      { $value = $joinedTable.value; }
     | joinRelation     { $value = $joinRelation.value; }
+    | tableFunction    { $value = $tableFunction.value; }
     ;
 
 namedTable returns [Table value]
     : ^(TABLE qname ONLY) { $value = new Table($qname.value, true); }
     | ^(TABLE qname assignmentList?) { $value = new Table($qname.value, $assignmentList.value); }
+    ;
+
+tableFunction returns [TableFunction value]
+    : ^(TABLE_FUNCTION ident exprList)
+        {
+            $value = new TableFunction($ident.value, $exprList.value);
+        }
     ;
 
 repository returns [String value]
@@ -537,7 +545,7 @@ predicate returns [Expression value]
     | ^(IS_NOT_NULL expr)                 { $value = new IsNotNullPredicate($expr.value); }
     | ^(IN v=expr list=expr)              { $value = new InPredicate($v.value, $list.value); }
     | ^(EXISTS q=query)                   { $value = new ExistsPredicate($q.value); }
-    | ^(MATCH l=matchPredicateIdentList queryTerm=expr ident? genericProperties?) { $value = new MatchPredicate(l.value, $queryTerm.value, $ident.value, $genericProperties.value); }
+    | ^(MATCH l=matchPredicateIdentList queryTerm=expr ident? genericProperties?) { $value = new MatchPredicate($l.value, $queryTerm.value, $ident.value, $genericProperties.value); }
     ;
 
 matchPredicateIdentList returns [List<MatchPredicateColumnIdent> value = new ArrayList<>()]

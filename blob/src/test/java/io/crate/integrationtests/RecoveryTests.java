@@ -31,22 +31,21 @@ import io.crate.blob.v2.BlobIndices;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
 import io.crate.plugin.CrateCorePlugin;
+import io.crate.test.utils.Blobs;
+import io.crate.plugin.CrateCorePlugin;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.elasticsearch.ElasticsearchIllegalStateException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.node.internal.InternalNode;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.security.MessageDigest;
@@ -63,18 +62,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.core.IsEqual.equalTo;
 
-@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE, numDataNodes = 0)
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 0, numClientNodes = 0, transportClientRatio = 0)
 @ThreadLeakFilters(defaultFilters = true, filters = {RecoveryTests.RecoveryTestThreadFilter.class})
-public class RecoveryTests extends ElasticsearchIntegrationTest {
-
-    @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return ImmutableSettings.settingsBuilder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put("plugin.types", CrateCorePlugin.class.getName())
-                .put(InternalNode.HTTP_ENABLED, true)
-                .build();
-    }
+public class RecoveryTests extends BlobIntegrationTestBase {
 
     public static class RecoveryTestThreadFilter implements ThreadFilter {
         @Override
@@ -112,19 +102,8 @@ public class RecoveryTests extends ElasticsearchIntegrationTest {
         logger.addAppender(consoleAppender);
     }
 
-    private byte[] getDigest(String content) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-1");
-            digest.reset();
-            digest.update(content.getBytes());
-            return digest.digest();
-        } catch (NoSuchAlgorithmException e) {
-        }
-        return null;
-    }
-
     private String uploadFile(Client client, String content) {
-        byte[] digest = getDigest(content);
+        byte[] digest = Blobs.digest(content);
         String digestString = Hex.encodeHexString(digest);
         byte[] contentBytes = content.getBytes();
         logger.trace("Uploading {} digest {}", content, digestString);
@@ -151,7 +130,7 @@ public class RecoveryTests extends ElasticsearchIntegrationTest {
                                     startBlobRequest.transferId(), bytes, i,
                                     (i + 1) == content.length())
                     ).actionGet();
-                } catch (ElasticsearchIllegalStateException ex) {
+                } catch (IllegalStateException ex) {
                     Thread.interrupted();
                 }
             }
@@ -186,7 +165,7 @@ public class RecoveryTests extends ElasticsearchIntegrationTest {
         BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class, node1);
 
         logger.trace("--> creating test index ...");
-        Settings indexSettings = ImmutableSettings.builder()
+        Settings indexSettings = Settings.builder()
                 .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
                 .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
                 .build();

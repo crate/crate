@@ -21,46 +21,33 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
+import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.collect.CollectExpression;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.ShardId;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.BitSet;
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.atomic.AtomicReference;
 
-public class UpdateProjector extends AbstractProjector {
+public class UpdateProjector extends DMLProjector<ShardUpsertRequest> {
 
-    public static final int DEFAULT_BULK_SIZE = 1024;
-
-    private final AtomicReference<Throwable> upstreamFailure = new AtomicReference<>(null);
-
-    private final ShardId shardId;
-    private final CollectExpression<Row, ?> collectUidExpression;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
+    private final String[] assignmentsColumns;
     private final Symbol[] assignments;
     @Nullable
     private final Long requiredVersion;
-    private final Object lock = new Object();
-
-    private final BulkShardProcessor bulkShardProcessor;
 
     public UpdateProjector(ClusterService clusterService,
+                           IndexNameExpressionResolver indexNameExpressionResolver,
                            Settings settings,
                            ShardId shardId,
                            TransportActionProvider transportActionProvider,
@@ -70,10 +57,16 @@ public class UpdateProjector extends AbstractProjector {
                            Symbol[] assignments,
                            @Nullable Long requiredVersion,
                            UUID jobId) {
-        this.shardId = shardId;
-        this.collectUidExpression = collectUidExpression;
+        super(clusterService, settings, shardId, transportActionProvider, bulkRetryCoordinatorPool,
+                collectUidExpression, jobId);
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
+        this.assignmentsColumns = assignmentsColumns;
         this.assignments = assignments;
         this.requiredVersion = requiredVersion;
+    }
+
+    @Override
+    protected BulkShardProcessor<ShardUpsertRequest> createBulkShardProcessor(int bulkSize) {
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
                 CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
                 false,
@@ -82,9 +75,10 @@ public class UpdateProjector extends AbstractProjector {
                 null,
                 jobId
         );
-        this.bulkShardProcessor = new BulkShardProcessor(
+        return new BulkShardProcessor<>(
                 clusterService,
                 transportActionProvider.transportBulkCreateIndicesAction(),
+                indexNameExpressionResolver,
                 settings,
                 bulkRetryCoordinatorPool,
                 false,
@@ -96,55 +90,7 @@ public class UpdateProjector extends AbstractProjector {
     }
 
     @Override
-    public boolean setNextRow(Row row) {
-        final Uid uid;
-        synchronized (lock) {
-            // resolve the Uid
-            collectUidExpression.setNextRow(row);
-            uid = Uid.createUid(((BytesRef)collectUidExpression.value()).utf8ToString());
-        }
-        // routing is already resolved
-        bulkShardProcessor.addForExistingShard(shardId, uid.id(), assignments, null, null, requiredVersion);
-        return true;
-    }
-
-    @Override
-    public void finish() {
-        bulkShardProcessor.close();
-        collectUpdateResultsAndPassOverRowCount();
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        upstreamFailure.set(throwable);
-
-        if (throwable instanceof CancellationException) {
-            bulkShardProcessor.kill(throwable);
-        } else {
-            bulkShardProcessor.close();
-        }
-        collectUpdateResultsAndPassOverRowCount();
-    }
-
-    private void collectUpdateResultsAndPassOverRowCount() {
-        Futures.addCallback(bulkShardProcessor.result(), new FutureCallback<BitSet>() {
-            @Override
-            public void onSuccess(@Nullable BitSet result) {
-                assert result != null : "BulkShardProcessor result is null";
-                Throwable throwable = upstreamFailure.get();
-                if (throwable == null) {
-                    downstream.setNextRow(new Row1(Long.valueOf(result.cardinality())));
-                    downstream.finish();
-                } else {
-                    downstream.fail(throwable);
-                }
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                downstream.setNextRow(new Row1(0L));
-                downstream.fail(t);
-            }
-        });
+    protected ShardRequest.Item createItem(String id) {
+        return new ShardUpsertRequest.Item(id, assignments, null, requiredVersion);
     }
 }

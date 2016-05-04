@@ -39,7 +39,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.Planner;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
@@ -120,7 +120,7 @@ public class GlobalAggregateConsumer implements Consumer {
                 Aggregation.Step.PARTIAL);
 
 
-        CollectPhase collectPhase = CollectPhase.forQueriedTable(
+        RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
                 plannerContext,
                 table,
                 splitPoints.leaves(),

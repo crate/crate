@@ -21,35 +21,29 @@
 
 package io.crate.executor.transport;
 
-import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.Objects;
-import com.google.common.collect.Iterators;
-import io.crate.Constants;
 import io.crate.Streamer;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.doc.DocSysColumns;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
-import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.UUID;
 
-public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUpsertRequest> implements Iterable<ShardUpsertRequest.Item> {
+public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
-    @Nullable
-    private String routing;
-    private UUID jobId;
-    private int shardId;
-    private List<Item> items;
-    private IntArrayList locations;
     private boolean continueOnError = false;
     private boolean overwriteDuplicates = false;
     private Boolean isRawSourceInsert = null;
@@ -81,16 +75,11 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                               @Nullable Reference[] insertColumns,
                               @Nullable String routing,
                               UUID jobId) {
-        this.routing = routing;
-        this.jobId = jobId;
+        super(shardId, routing, jobId);
         assert updateColumns != null || insertColumns != null
                 : "Missing updateAssignments, whether for update nor for insert";
-        this.index = shardId.getIndex();
-        this.shardId = shardId.id();
-        locations = new IntArrayList();
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
-        items = new ArrayList<>();
         if (insertColumns != null) {
             insertValuesStreamer = new Streamer[insertColumns.length];
             for (int i = 0; i < insertColumns.length; i++) {
@@ -99,30 +88,9 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         }
     }
 
-    public List<Item> items() {
-        return items;
-    }
-
-    public IntArrayList itemIndices() {
-        return locations;
-    }
-
-    public ShardUpsertRequest add(int location,
-                                  String id,
-                                  @Nullable Symbol[] assignments,
-                                  @Nullable Object[] missingAssignments,
-                                  @Nullable Long version) {
-        locations.add(location);
-        items.add(new Item(id, assignments, missingAssignments, version, insertValuesStreamer));
-        return this;
-    }
-
-    public String type() {
-        return Constants.DEFAULT_MAPPING_TYPE;
-    }
-
-    public int shardId() {
-        return shardId;
+    public void add(int location, Item item) {
+        item.insertValuesStreamer(insertValuesStreamer);
+        super.add(location, item);
     }
 
     public String[] updateColumns() {
@@ -143,15 +111,6 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         return this;
     }
 
-    @Nullable
-    public String routing() {
-        return routing;
-    }
-
-    public UUID jobId() {
-        return jobId;
-    }
-
     public boolean continueOnError() {
         return continueOnError;
     }
@@ -170,35 +129,6 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         return this;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ShardUpsertRequest items1 = (ShardUpsertRequest) o;
-        return shardId == items1.shardId &&
-               continueOnError == items1.continueOnError &&
-               overwriteDuplicates == items1.overwriteDuplicates &&
-               validateGeneratedColumns == items1.validateGeneratedColumns &&
-               Objects.equal(routing, items1.routing) &&
-               Objects.equal(jobId, items1.jobId) &&
-               Objects.equal(items, items1.items) &&
-               Objects.equal(locations, items1.locations) &&
-               Arrays.equals(updateColumns, items1.updateColumns) &&
-               Arrays.equals(insertColumns, items1.insertColumns) &&
-               Arrays.equals(insertValuesStreamer, items1.insertValuesStreamer);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(routing, jobId, shardId, items, locations, continueOnError, overwriteDuplicates,
-                updateColumns, insertColumns, insertValuesStreamer, validateGeneratedColumns);
-    }
-
-    @Override
-    public Iterator<Item> iterator() {
-        return Iterators.unmodifiableIterator(items.iterator());
-    }
-
     public Boolean isRawSourceInsert() {
         if (isRawSourceInsert == null) {
             isRawSourceInsert =
@@ -210,9 +140,6 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        shardId = in.readInt();
-        routing = in.readOptionalString();
-        jobId = new UUID(in.readLong(), in.readLong());
         int assignmentsColumnsSize = in.readVInt();
         if (assignmentsColumnsSize > 0) {
             updateColumns = new String[assignmentsColumnsSize];
@@ -229,29 +156,19 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                 insertValuesStreamer[i] = insertColumns[i].valueType().streamer();
             }
         }
-        int size = in.readVInt();
-        locations = new IntArrayList(size);
-        items = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            locations.add(in.readVInt());
-            items.add(Item.readItem(in, insertValuesStreamer));
-        }
         continueOnError = in.readBoolean();
         overwriteDuplicates = in.readBoolean();
         validateGeneratedColumns = in.readBoolean();
+        readItems(in, locations.size());
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeInt(shardId);
-        out.writeOptionalString(routing);
-        out.writeLong(jobId.getMostSignificantBits());
-        out.writeLong(jobId.getLeastSignificantBits());
         // Stream References
         if (updateColumns != null) {
             out.writeVInt(updateColumns.length);
-            for(String column : updateColumns) {
+            for (String column : updateColumns) {
                 out.writeString(column);
             }
         } else {
@@ -259,29 +176,54 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         }
         if (insertColumns != null) {
             out.writeVInt(insertColumns.length);
-            for(Reference reference : insertColumns) {
+            for (Reference reference : insertColumns) {
                 Reference.toStream(reference, out);
             }
         } else {
             out.writeVInt(0);
         }
-        out.writeVInt(locations.size());
-        for (int i = 0; i < locations.size(); i++) {
-            out.writeVInt(locations.get(i));
-            items.get(i).writeTo(out);
-        }
         out.writeBoolean(continueOnError);
         out.writeBoolean(overwriteDuplicates);
         out.writeBoolean(validateGeneratedColumns);
+        writeItems(out);
+    }
+
+    @Override
+    protected Item readItem(StreamInput input) throws IOException {
+        return Item.readItem(input, insertValuesStreamer);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!super.equals(o)) return false;
+        if (this == o) return true;
+        if (getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        ShardUpsertRequest items = (ShardUpsertRequest) o;
+        return continueOnError == items.continueOnError &&
+               overwriteDuplicates == items.overwriteDuplicates &&
+               validateGeneratedColumns == items.validateGeneratedColumns &&
+               Objects.equal(isRawSourceInsert, items.isRawSourceInsert) &&
+               Arrays.equals(updateColumns, items.updateColumns) &&
+               Arrays.equals(insertColumns, items.insertColumns) &&
+               Arrays.equals(insertValuesStreamer, items.insertValuesStreamer);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(super.hashCode(), continueOnError, overwriteDuplicates, isRawSourceInsert, validateGeneratedColumns, updateColumns, insertColumns, insertValuesStreamer);
     }
 
     /**
      * A single update item.
      */
-    static class Item implements Streamable {
+    public static class Item extends ShardRequest.Item {
 
-        private String id;
         private long version = Versions.MATCH_ANY;
+        private VersionType versionType = VersionType.INTERNAL;
+        private IndexRequest.OpType opType = IndexRequest.OpType.INDEX;
+        @Nullable
+        private BytesReference source;
 
         /**
          * List of symbols used on update if document exist
@@ -301,18 +243,14 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         @Nullable
         private Streamer[] insertValuesStreamer;
 
-
-        Item(@Nullable Streamer[] insertValuesStreamer) {
-            this.insertValuesStreamer = insertValuesStreamer;
+        protected Item() {
         }
 
-        Item(String id,
-             @Nullable Symbol[] updateAssignments,
-             @Nullable Object[] insertValues,
-             @Nullable Long version,
-             @Nullable Streamer[] insertValuesStreamer) {
-            this(insertValuesStreamer);
-            this.id = id;
+        public Item(String id,
+                    @Nullable Symbol[] updateAssignments,
+                    @Nullable Object[] insertValues,
+                    @Nullable Long version) {
+            super(id);
             this.updateAssignments = updateAssignments;
             if (version != null) {
                 this.version = version;
@@ -320,16 +258,45 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
             this.insertValues = insertValues;
         }
 
-        public String id() {
-            return id;
+        public void insertValuesStreamer(@Nullable Streamer[] insertValuesStreamer) {
+            this.insertValuesStreamer = insertValuesStreamer;
         }
 
         public long version() {
             return version;
         }
 
-        public int retryOnConflict() {
-            return version == Versions.MATCH_ANY ? Constants.UPDATE_RETRY_ON_CONFLICT : 0;
+        public void version(long version) {
+            this.version = version;
+        }
+
+        public VersionType versionType() {
+            return versionType;
+        }
+
+        public void versionType(VersionType versionType) {
+            this.versionType = versionType;
+        }
+
+        public IndexRequest.OpType opType() {
+            return opType;
+        }
+
+        public void opType(IndexRequest.OpType opType) {
+            this.opType = opType;
+        }
+
+        @Nullable
+        public BytesReference source() {
+            return source;
+        }
+
+        public void source(BytesReference source) {
+            this.source = source;
+        }
+
+        public boolean retryOnConflict() {
+            return version == Versions.MATCH_ANY;
         }
 
         @Nullable
@@ -346,21 +313,26 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
+            if (!super.equals(o)) return false;
             Item item = (Item) o;
             return version == item.version &&
-                   Objects.equal(id, item.id) &&
-                   Arrays.deepEquals(updateAssignments, item.updateAssignments) &&
-                   Arrays.deepEquals(insertValues, item.insertValues) &&
+                   versionType == item.versionType &&
+                   opType == item.opType &&
+                   Objects.equal(source, item.source) &&
+                   Arrays.equals(updateAssignments, item.updateAssignments) &&
+                   Arrays.equals(insertValues, item.insertValues) &&
                    Arrays.equals(insertValuesStreamer, item.insertValuesStreamer);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(id, version, updateAssignments, insertValues, insertValuesStreamer);
+            return Objects.hashCode(super.hashCode(), version, versionType, opType, source, updateAssignments,
+                    insertValues, insertValuesStreamer);
         }
 
         static Item readItem(StreamInput in, @Nullable Streamer[] streamers) throws IOException {
-            Item item = new Item(streamers);
+            Item item = new Item();
+            item.insertValuesStreamer(streamers);
             item.readFrom(in);
             return item;
         }
@@ -382,8 +354,12 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                     insertValues[i] = insertValuesStreamer[i].readValueFrom(in);
                 }
             }
-
-            version = Versions.readVersion(in);
+            this.version = Version.readVersion(in).id;
+            versionType = VersionType.fromValue(in.readByte());
+            opType = IndexRequest.OpType.fromId(in.readByte());
+            if (in.readBoolean()) {
+                source = in.readBytesReference();
+            }
         }
 
         @Override
@@ -407,11 +383,18 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                 out.writeVInt(0);
             }
 
-            Versions.writeVersion(version, out);
+            Version.writeVersion(Version.fromId((int) version), out);
+            out.writeByte(versionType.getValue());
+            out.writeByte(opType.id());
+            boolean sourceAvailable = source != null;
+            out.writeBoolean(sourceAvailable);
+            if (sourceAvailable) {
+                out.writeBytesReference(source);
+            }
         }
     }
 
-    public static class Builder implements BulkShardProcessor.BulkRequestBuilder {
+    public static class Builder implements BulkShardProcessor.BulkRequestBuilder<ShardUpsertRequest> {
 
         private final TimeValue timeout;
         private final boolean overwriteDuplicates;
@@ -431,6 +414,7 @@ public class ShardUpsertRequest extends ShardReplicationOperationRequest<ShardUp
                        UUID jobId) {
             this(timeout, overwriteDuplicates, continueOnError, assignmentsColumns, missingAssignmentsColumns, jobId, true);
         }
+
         public Builder(TimeValue timeout,
                        boolean overwriteDuplicates,
                        boolean continueOnError,

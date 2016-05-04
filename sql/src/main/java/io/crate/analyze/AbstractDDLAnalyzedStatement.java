@@ -33,4 +33,9 @@ public abstract class AbstractDDLAnalyzedStatement implements AnalyzedStatement 
     public TableParameter tableParameter() {
         return tableParameter;
     }
+
+    @Override
+    public boolean isWriteOperation() {
+        return true;
+    }
 }

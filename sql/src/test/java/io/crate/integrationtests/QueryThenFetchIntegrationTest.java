@@ -30,6 +30,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
@@ -62,7 +63,7 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testThatErrorsInSearchResponseCallbackAreNotSwallowed() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(is("d != java.lang.String"));
+        expectedException.expectMessage(containsString("d != java.lang.String"));
 
         execute("create table t (s string) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();

@@ -69,7 +69,7 @@ public class AnyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(TestingHelpers.getColumn(response.rows(), 0), Matchers.<Object>arrayContaining("foo", "bar", "updated"));
 
         execute("delete from t where 'a%' like ANY (sa)");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), is(2L));
         execute("refresh table t");
 
         execute("select * from t");
@@ -105,5 +105,28 @@ public class AnyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), Is.is(2L));
         assertThat((Byte)response.rows()[0][0], Is.is((byte) 2));
         assertThat((Byte)response.rows()[1][0], Is.is((byte) 1));
+    }
+
+    @Test
+    public void testAnyOnArrayLiteralWithNullElements() throws Exception {
+        execute("create table t (s string)");
+        ensureYellow();
+        execute("insert into t (s) values ('foo'), (null)");
+        execute("refresh table t");
+        execute("select * from t where s = ANY (['foo', 'bar', null])");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("select * from t where s = ANY ([null])");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void testArrayReferenceOfDifferentTypeSoThatCastIsRequired() throws Exception {
+        execute("create table t (x array(short))");
+        ensureYellow();
+
+        execute("insert into t (x) values ([1, 2, 3, 4])");
+        execute("refresh table t");
+        execute("select * from t where 4 < ANY (x) ");
     }
 }

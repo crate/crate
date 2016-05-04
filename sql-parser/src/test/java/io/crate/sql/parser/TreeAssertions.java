@@ -31,8 +31,8 @@ import java.util.List;
 import static io.crate.sql.SqlFormatter.formatSql;
 import static io.crate.sql.parser.SqlParser.createStatement;
 import static java.lang.String.format;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public final class TreeAssertions
 {
@@ -40,11 +40,6 @@ public final class TreeAssertions
 
     public static void assertFormattedSql(Node expected)
     {
-        // TODO: support formatting all statement types
-        if (!(expected instanceof Query || expected instanceof CreateTable)) {
-            return;
-        }
-
         String formatted = formatSql(expected);
 
         // verify round-trip of formatting already-formatted SQL

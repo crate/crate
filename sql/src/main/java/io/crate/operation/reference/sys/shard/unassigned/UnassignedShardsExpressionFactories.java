@@ -118,6 +118,17 @@ public class UnassignedShardsExpressionFactories {
                         };
                     }
                 })
+                .put(SysShardsTableInfo.Columns.ROUTING_STATE, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowContextCollectorExpression create() {
+                        return new RowContextCollectorExpression<UnassignedShard, BytesRef>() {
+                            @Override
+                            public BytesRef value() {
+                                return row.state();
+                            }
+                        };
+                    }
+                })
                 .put(SysShardsTableInfo.Columns.ORPHAN_PARTITION, new RowCollectExpressionFactory() {
                     @Override
                     public RowContextCollectorExpression create() {

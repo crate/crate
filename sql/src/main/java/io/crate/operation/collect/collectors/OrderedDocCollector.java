@@ -29,14 +29,15 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
 import io.crate.lucene.QueryBuilderHelper;
 import io.crate.operation.Input;
-import io.crate.operation.merge.NumberedIterable;
+import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
-import org.apache.lucene.queries.BooleanFilter;
 import org.apache.lucene.search.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.lucene.MinimumScoreCollector;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.search.internal.ContextIndexSearcher;
 import org.elasticsearch.search.internal.SearchContext;
 
@@ -48,7 +49,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, AutoCloseable {
+public class OrderedDocCollector implements Callable<KeyIterable<ShardId, Row>>, AutoCloseable {
 
     private static final ESLogger LOGGER = Loggers.getLogger(OrderedDocCollector.class);
 
@@ -59,8 +60,8 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
     private final CollectorContext collectorContext;
     private final Sort sort;
     private final Collection<LuceneCollectorExpression<?>> expressions;
-    private final NumberedIterable<Row> empty;
-    private final int shardId;
+    private final KeyIterable<ShardId, Row> empty;
+    private final ShardId shardId;
     private final ScoreDocRowFunction rowFunction;
     private final DummyScorer scorer;
     private final ContextIndexSearcher searcher;
@@ -83,7 +84,7 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
                                List<Input<?>> inputs,
                                Collection<LuceneCollectorExpression<?>> expressions) {
         this.searchContext = searchContext;
-        this.shardId = searchContext.indexShard().shardId().id();
+        this.shardId = searchContext.indexShard().shardId();
         this.doDocsScores = doDocsScores;
         this.batchSize = batchSize;
         this.orderBy = orderBy;
@@ -98,7 +99,7 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
                 expressions,
                 scorer
         );
-        empty = new NumberedIterable<>(shardId, Collections.<Row>emptyList());
+        empty = new KeyIterable<>(shardId, Collections.<Row>emptyList());
         missingValues = new Object[orderBy.orderBySymbols().size()];
         for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
             missingValues[i] = LuceneMissingValue.missingValue(orderBy, i);
@@ -111,11 +112,11 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
      * </p>
      * On subsequent calls it will return more rows (max {@link #batchSize} or less.
      * These rows are always the rows that come after the last row of the previously returned rows
-     *
+     * <p/>
      * Basically, calling this function multiple times pages through the shard in batches.
      */
     @Override
-    public NumberedIterable<Row> call() throws Exception {
+    public KeyIterable<ShardId, Row> call() throws Exception {
         if (exhausted) {
             return empty;
         }
@@ -127,37 +128,43 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
 
     @Override
     public void close() {
-        searcher.finishStage(ContextIndexSearcher.Stage.MAIN_QUERY);
         searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
         searchContext.close();
     }
 
-    private NumberedIterable<Row> scoreDocToIterable(ScoreDoc[] scoreDocs) {
+    private KeyIterable<ShardId, Row> scoreDocToIterable(ScoreDoc[] scoreDocs) {
         exhausted = scoreDocs.length < batchSize;
         if (scoreDocs.length > 0) {
             lastDoc = (FieldDoc) scoreDocs[scoreDocs.length - 1];
         }
-        return new NumberedIterable<>(shardId, Iterables.transform(Arrays.asList(scoreDocs), rowFunction));
+        return new KeyIterable<>(shardId, Iterables.transform(Arrays.asList(scoreDocs), rowFunction));
     }
 
-    private NumberedIterable<Row> searchMore() throws IOException {
+    private KeyIterable<ShardId, Row> searchMore() throws IOException {
         if (exhausted) {
             LOGGER.trace("searchMore but EXHAUSTED");
             return empty;
         }
         LOGGER.debug("searchMore from [{}]", lastDoc);
-        TopDocs topDocs = searcher.searchAfter(lastDoc, query(lastDoc), null, batchSize, sort, doDocsScores, false);
+        TopDocs topDocs = searcher.searchAfter(lastDoc, query(lastDoc), batchSize, sort, doDocsScores, false);
         return scoreDocToIterable(topDocs.scoreDocs);
     }
 
-    private NumberedIterable<Row> initialSearch() throws IOException {
+    private KeyIterable<ShardId, Row> initialSearch() throws IOException {
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
             expression.setScorer(scorer);
         }
-        searcher.inStage(ContextIndexSearcher.Stage.MAIN_QUERY);
-        TopFieldDocs topFieldDocs = searcher.search(searchContext.query(), null, batchSize, sort, doDocsScores, false);
-        return scoreDocToIterable(topFieldDocs.scoreDocs);
+        TopFieldCollector topFieldCollector = TopFieldCollector.create(sort, batchSize, true, doDocsScores, doDocsScores);
+        Collector collector = topFieldCollector;
+        if (searchContext.minimumScore() != null) {
+            collector = new MinimumScoreCollector(collector, searchContext.minimumScore());
+        }
+        assert searchContext.queryCollectors().isEmpty() : "queryCollectors not supported";
+        assert searchContext.parsedPostFilter() == null : "parsedPostFilter not supported";
+
+        searcher.search(searchContext.query(), collector);
+        return scoreDocToIterable(topFieldCollector.topDocs().scoreDocs);
     }
 
     private Query query(FieldDoc lastDoc) {
@@ -165,15 +172,15 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
         if (query == null) {
             return searchContext.query();
         }
-        BooleanQuery searchAfterQuery = new BooleanQuery();
+        BooleanQuery.Builder searchAfterQuery = new BooleanQuery.Builder();
         searchAfterQuery.add(searchContext.query(), BooleanClause.Occur.MUST);
         searchAfterQuery.add(query, BooleanClause.Occur.MUST_NOT);
-        return searchAfterQuery;
+        return searchAfterQuery.build();
     }
 
     @Nullable
     public static Query nextPageQuery(FieldDoc lastCollected, OrderBy orderBy, Object[] missingValues) {
-        BooleanQuery query = new BooleanQuery();
+        BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
         for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
             Symbol order = orderBy.orderBySymbols().get(i);
             Object value = lastCollected.fields[i];
@@ -181,8 +188,8 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
                 boolean nullsFirst = orderBy.nullsFirst()[i] == null ? false : orderBy.nullsFirst()[i];
                 value = value.equals(missingValues[i]) ? null : value;
                 if (nullsFirst && value == null) {
-                   // no filter needed
-                   continue;
+                    // no filter needed
+                    continue;
                 }
                 QueryBuilderHelper helper = QueryBuilderHelper.forType(order.valueType());
                 String columnName = ((Reference) order).info().ident().columnIdent().fqn();
@@ -190,13 +197,14 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
                 Query orderQuery;
                 // nulls already gone, so they should be excluded
                 if (nullsFirst && value != null) {
-                    BooleanFilter booleanFilter = new BooleanFilter();
+                    BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
+                    booleanQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
                     if (orderBy.reverseFlags()[i]) {
-                        booleanFilter.add(helper.rangeFilter(columnName, null, value, false, true), BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(helper.rangeQuery(columnName, null, value, false, true), BooleanClause.Occur.MUST_NOT);
                     } else {
-                        booleanFilter.add(helper.rangeFilter(columnName, value, null, true, false), BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(helper.rangeQuery(columnName, value, null, true, false), BooleanClause.Occur.MUST_NOT);
                     }
-                    orderQuery = new FilteredQuery(new MatchAllDocsQuery(), booleanFilter);
+                    orderQuery = booleanQuery.build();
                 } else {
                     if (orderBy.reverseFlags()[i]) {
                         orderQuery = helper.rangeQuery(columnName, value, null, false, false);
@@ -204,9 +212,10 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
                         orderQuery = helper.rangeQuery(columnName, null, value, false, false);
                     }
                 }
-                query.add(orderQuery, BooleanClause.Occur.MUST);
+                queryBuilder.add(orderQuery, BooleanClause.Occur.MUST);
             }
         }
+        BooleanQuery query = queryBuilder.build();
         if (query.clauses().size() > 0) {
             return query;
         } else {
@@ -214,7 +223,7 @@ public class OrderedDocCollector implements Callable<NumberedIterable<Row>>, Aut
         }
     }
 
-    public int shardId() {
+    public ShardId shardId() {
         return shardId;
     }
 }

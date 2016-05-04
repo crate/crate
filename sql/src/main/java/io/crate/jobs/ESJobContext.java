@@ -27,6 +27,8 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -34,6 +36,8 @@ import java.util.List;
 import java.util.concurrent.Future;
 
 public class ESJobContext extends AbstractExecutionSubContext {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(ESJobContext.class);
 
     private final List<? extends ActionListener> listeners;
     private String operationName;
@@ -52,7 +56,7 @@ public class ESJobContext extends AbstractExecutionSubContext {
                         List<SettableFuture<TaskResult>> resultFutures,
                         TransportAction transportAction,
                         @Nullable FlatProjectorChain projectorChain) {
-        super(id);
+        super(id, LOGGER);
         this.operationName = operationName;
         this.requests = requests;
         this.listeners = listeners;
@@ -64,7 +68,7 @@ public class ESJobContext extends AbstractExecutionSubContext {
     @Override
     protected void innerPrepare() {
         if (projectorChain != null) {
-            projectorChain.prepare(this);
+            projectorChain.prepare();
         }
     }
 

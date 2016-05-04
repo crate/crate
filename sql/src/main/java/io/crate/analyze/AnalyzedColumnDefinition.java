@@ -25,11 +25,11 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import io.crate.Constants;
+import com.google.common.collect.Sets;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.sql.tree.Expression;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.unit.DistanceUnit;
@@ -49,18 +49,25 @@ public class AnalyzedColumnDefinition {
     private String analyzer;
     private String objectType = "true"; // dynamic = true
     private boolean isPrimaryKey = false;
-    private Settings analyzerSettings = ImmutableSettings.EMPTY;
-    private Settings geoSettings = ImmutableSettings.EMPTY;
+    private Settings analyzerSettings = Settings.EMPTY;
+    private Settings geoSettings = Settings.EMPTY;
 
     private List<AnalyzedColumnDefinition> children = new ArrayList<>();
     private boolean isIndex = false;
     private ArrayList<String> copyToTargets;
     private boolean isParentColumn;
 
+    private final static Set<String> UNSUPPORTED_PK_TYPES = Sets.newHashSet(
+            DataTypes.OBJECT.getName(),
+            DataTypes.GEO_POINT.getName(),
+            DataTypes.GEO_SHAPE.getName()
+    );
+
     @Nullable
     private String formattedGeneratedExpression;
     @Nullable
     private Expression generatedExpression;
+    private final static Set<String> NO_DOC_VALUES_SUPPORT = Sets.newHashSet("object", "geo_shape");
 
     public AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition parent) {
         this.parent = parent;
@@ -68,7 +75,7 @@ public class AnalyzedColumnDefinition {
 
     public void name(String name) {
         Preconditions.checkArgument(!name.startsWith("_"), "Column ident must not start with '_'");
-        if(Constants.INVALID_COLUMN_NAME_PREDICATE.apply(name)){
+        if(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply(name)){
             throw new InvalidColumnNameException(name);
         }
 
@@ -137,7 +144,6 @@ public class AnalyzedColumnDefinition {
     public boolean docValues() {
         return !isIndex()
                 && collectionType == null
-                && !dataType.equals("object")
                 && index().equals("not_analyzed");
     }
 
@@ -159,7 +165,7 @@ public class AnalyzedColumnDefinition {
 
     public Settings analyzerSettings() {
         if (!children().isEmpty()) {
-            ImmutableSettings.Builder builder = ImmutableSettings.builder();
+            Settings.Builder builder = Settings.builder();
             builder.put(analyzerSettings);
             for (AnalyzedColumnDefinition child : children()) {
                 builder.put(child.analyzerSettings());
@@ -172,16 +178,30 @@ public class AnalyzedColumnDefinition {
     public void validate() {
         if (analyzer != null && !analyzer.equals("not_analyzed") && !dataType.equals("string")) {
             throw new IllegalArgumentException(
-                    String.format("Can't use an Analyzer on column %s because analyzers are only allowed on columns of type \"string\".",
+                    String.format(Locale.ENGLISH, "Can't use an Analyzer on column %s because analyzers are only allowed on columns of type \"string\".",
                             ident.sqlFqn()
                     ));
         }
-        if (isPrimaryKey() && collectionType != null) {
-            throw new UnsupportedOperationException(
-                    String.format("Cannot use columns of type \"%s\" as primary key", collectionType));
+        if (isPrimaryKey()) {
+            ensureTypeCanBeUsedAsKey();
         }
         for (AnalyzedColumnDefinition child : children) {
             child.validate();
+        }
+    }
+
+    private void ensureTypeCanBeUsedAsKey() {
+        if (collectionType != null) {
+            throw new UnsupportedOperationException(
+                    String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", collectionType));
+        }
+        if (UNSUPPORTED_PK_TYPES.contains(dataType)) {
+            throw new UnsupportedOperationException(
+                    String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", dataType));
+        }
+        if (isArrayOrInArray()) {
+            throw new UnsupportedOperationException(
+                    String.format(Locale.ENGLISH, "Cannot use column \"%s\" as primary key within an array object", name));
         }
     }
 
@@ -192,10 +212,12 @@ public class AnalyzedColumnDefinition {
     public Map<String, Object> toMapping() {
         Map<String, Object> mapping = new HashMap<>();
 
-        mapping.put("doc_values", docValues());
         mapping.put("type", dataType());
-        mapping.put("index", index());
-        mapping.put("store", false);
+        if (!NO_DOC_VALUES_SUPPORT.contains(dataType)) {
+            mapping.put("doc_values", docValues());
+            mapping.put("index", index());
+            mapping.put("store", false);
+        }
 
         if (geoTree != null) {
             mapping.put("tree", geoTree);

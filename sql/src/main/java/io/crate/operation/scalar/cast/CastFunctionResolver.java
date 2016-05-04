@@ -39,28 +39,28 @@ public class CastFunctionResolver {
     public static final String TRY_CAST_PREFIX = "try_";
 
     public static class FunctionNames {
-        public static final String TO_STRING = "toString";
-        public static final String TO_INTEGER = "toInt";
-        public static final String TO_LONG = "toLong";
-        public static final String TO_TIMESTAMP = "toTimestamp";
-        public static final String TO_DOUBLE = "toDouble";
-        public static final String TO_BOOLEAN = "toBoolean";
-        public static final String TO_FLOAT = "toFloat";
-        public static final String TO_BYTE = "toByte";
-        public static final String TO_SHORT = "toShort";
-        public static final String TO_IP = "toIp";
+        public static final String TO_STRING = "to_string";
+        public static final String TO_INTEGER = "to_int";
+        public static final String TO_LONG = "to_long";
+        public static final String TO_TIMESTAMP = "to_timestamp";
+        public static final String TO_DOUBLE = "to_double";
+        public static final String TO_BOOLEAN = "to_boolean";
+        public static final String TO_FLOAT = "to_float";
+        public static final String TO_BYTE = "to_byte";
+        public static final String TO_SHORT = "to_short";
+        public static final String TO_IP = "to_ip";
 
-        public static final String TO_STRING_ARRAY = "toStringArray";
-        public static final String TO_LONG_ARRAY = "toLongArray";
-        public static final String TO_INTEGER_ARRAY = "toIntArray";
-        public static final String TO_DOUBLE_ARRAY = "toDoubleArray";
-        public static final String TO_BOOLEAN_ARRAY = "toBooleanArray";
-        public static final String TO_BYTE_ARRAY = "toByteArray";
-        public static final String TO_FLOAT_ARRAY = "toFloatArray";
-        public static final String TO_SHORT_ARRAY = "toShortArray";
-        public static final String TO_IP_ARRAY = "toIpArray";
-        public static final String TO_GEO_POINT = "toGeoPoint";
-        public static final String TO_GEO_SHAPE = "toGeoShape";
+        public static final String TO_STRING_ARRAY = "to_string_array";
+        public static final String TO_LONG_ARRAY = "to_long_array";
+        public static final String TO_INTEGER_ARRAY = "to_int_array";
+        public static final String TO_DOUBLE_ARRAY = "to_double_array";
+        public static final String TO_BOOLEAN_ARRAY = "to_boolean_array";
+        public static final String TO_BYTE_ARRAY = "to_byte_array";
+        public static final String TO_FLOAT_ARRAY = "to_float_array";
+        public static final String TO_SHORT_ARRAY = "to_short_array";
+        public static final String TO_IP_ARRAY = "to_ip_array";
+        public static final String TO_GEO_POINT = "to_geo_point";
+        public static final String TO_GEO_SHAPE = "to_geo_shape";
     }
 
     static final ImmutableMap<DataType, String> PRIMITIVE_FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()

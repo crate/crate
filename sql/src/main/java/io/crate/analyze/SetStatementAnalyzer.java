@@ -29,7 +29,7 @@ import io.crate.metadata.settings.Setting;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
 
@@ -39,12 +39,12 @@ public class SetStatementAnalyzer {
     private SetStatementAnalyzer() {}
 
     public static SetAnalyzedStatement analyze(SetStatement node, ParameterContext parameterContext) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
         for (Assignment assignment : node.assignments()) {
             String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(),
                     parameterContext.parameters());
 
-            SettingsApplier settingsApplier = CrateSettings.getSetting(settingsName);
+            SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(settingsName);
             for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
                 checkIfSettingIsRuntime(setting);
             }
@@ -74,7 +74,7 @@ public class SetStatementAnalyzer {
     }
 
     private static void checkIfSettingIsRuntime(String name) {
-        checkIfSettingIsRuntime(CrateSettings.CRATE_SETTINGS, name);
+        checkIfSettingIsRuntime(CrateSettings.SETTINGS, name);
     }
 
     private static void checkIfSettingIsRuntime(List<Setting> settings, String name) {
@@ -106,7 +106,7 @@ public class SetStatementAnalyzer {
         public Collection<String> visitObjectLiteral(ObjectLiteral node, String context) {
             Collection<String> settingNames = new ArrayList<>();
             for (Map.Entry<String, Expression> entry : node.values().entries()) {
-                String s = String.format("%s.%s", context, entry.getKey());
+                String s = String.format(Locale.ENGLISH, "%s.%s", context, entry.getKey());
                 if (entry.getValue() instanceof ObjectLiteral) {
                     settingNames.addAll(entry.getValue().accept(this, s));
                 } else {

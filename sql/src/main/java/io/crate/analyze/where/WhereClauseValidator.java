@@ -95,7 +95,7 @@ public abstract class WhereClauseValidator {
                 throw new UnsupportedOperationException(error);
             }
             Function function = context.functions.lastElement();
-            if(!requiredFunctionNames.contains(function.info().ident().name().toLowerCase())
+            if(!requiredFunctionNames.contains(function.info().ident().name().toLowerCase(Locale.ENGLISH))
                     || insideNotPredicate(context)) {
                 throw new UnsupportedOperationException(error);
             }

@@ -118,14 +118,16 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
         putHeader(SCHEMA_HEADER_KEY, schemaName);
     }
 
-    public Integer getRequestFlags() {
-        Integer flags;
+    public int getRequestFlags() {
         try {
-            flags = getHeader(FLAGS_HEADER_KEY);
+            Integer flags = getHeader(FLAGS_HEADER_KEY);
+            if (flags == null) {
+                return HEADER_FLAG_OFF;
+            }
+            return flags;
         } catch (ClassCastException ex) {
-            flags = HEADER_FLAG_OFF;
+            return HEADER_FLAG_OFF;
         }
-        return flags;
     }
 
     @Nullable

@@ -26,7 +26,30 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
-public abstract class ByteSizeSetting extends Setting<ByteSizeValue, String> {
+import javax.annotation.Nullable;
+
+public class ByteSizeSetting extends Setting<ByteSizeValue, String> {
+
+    private final String name;
+    private final ByteSizeValue defaultValue;
+    private final boolean isRuntime;
+    private final Setting<?, ?> parent;
+
+    public ByteSizeSetting(String name, ByteSizeValue defaultValue, boolean isRuntime) {
+        this(name, defaultValue, isRuntime, null);
+    }
+
+    public ByteSizeSetting(String name, ByteSizeValue defaultValue, boolean isRuntime, @Nullable  Setting<?, ?> parent) {
+        this.name = name;
+        this.defaultValue = defaultValue;
+        this.isRuntime = isRuntime;
+        this.parent = parent;
+    }
+
+    @Override
+    public Setting parent() {
+        return parent;
+    }
 
     public long maxValue() {
         return Long.MAX_VALUE;
@@ -42,11 +65,26 @@ public abstract class ByteSizeSetting extends Setting<ByteSizeValue, String> {
     }
 
     @Override
+    public String name() {
+        return name;
+    }
+
+    @Override
+    public ByteSizeValue defaultValue() {
+        return defaultValue;
+    }
+
+    @Override
     public String extract(Settings settings) {
         return extractByteSizeValue(settings).toString();
     }
 
-    public Long extractBytes(Settings settings) {
+    @Override
+    public boolean isRuntime() {
+        return isRuntime;
+    }
+
+    public long extractBytes(Settings settings) {
         return extractByteSizeValue(settings).bytes();
     }
 

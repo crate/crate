@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport;
 
+import io.crate.action.ActionListeners;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequest;
@@ -38,17 +39,7 @@ public abstract class NodeActionRequestHandler<TRequest extends TransportRequest
 
     @Override
     public void messageReceived(TRequest request, TransportChannel channel) throws Exception {
-        ActionListener<TResponse> actionListener = ResponseForwarder.forwardTo(channel);
+        ActionListener<TResponse> actionListener = ActionListeners.forwardTo(channel);
         nodeAction.nodeOperation(request, actionListener);
-    }
-
-    @Override
-    public String executor() {
-        return nodeAction.executorName();
-    }
-
-    @Override
-    public boolean isForceExecution() {
-        return false;
     }
 }

@@ -58,6 +58,36 @@ public final class SqlFormatter {
         }
 
         @Override
+        public Void visitCopyFrom(CopyFrom node, Integer indent) {
+            append(indent, "COPY ");
+            process(node.table(), indent);
+            append(indent, " FROM ");
+            process(node.path(), indent);
+            if (node.genericProperties().isPresent()) {
+                append(indent, " ");
+                process(node.genericProperties().get(), indent);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitRefreshStatement(RefreshStatement node, Integer indent) {
+            append(indent, "REFRESH TABLE ");
+            appendFlatNodeList(node.tables(), indent);
+            return null;
+        }
+
+        @Override
+        protected Void visitExplain(Explain node, Integer indent) {
+            append(indent, "EXPLAIN ");
+            for (ExplainOption explainOption : node.getOptions()) {
+                process(explainOption, indent);
+            }
+            process(node.getStatement(), indent);
+            return null;
+        }
+
+        @Override
         protected Void visitExpression(Expression node, Integer indent) {
             builder.append(formatExpression(node));
             return null;
@@ -211,13 +241,29 @@ public final class SqlFormatter {
         }
 
         @Override
+        public Void visitTableFunction(TableFunction node, Integer context) {
+            builder.append(node.name());
+            builder.append("(");
+            Iterator<Expression> iterator = node.arguments().iterator();
+            while (iterator.hasNext()) {
+                Expression expression = iterator.next();
+                process(expression, context);
+                if (iterator.hasNext()) {
+                    builder.append(", ");
+                }
+            }
+            builder.append(")");
+            return null;
+        }
+
+        @Override
         protected Void visitTable(Table node, Integer indent)  {
             if (node.excludePartitions()) {
                 builder.append("ONLY ");
             }
             builder.append(quoteIdentifierIfNeeded(node.getName().toString()));
             if (!node.partitionProperties().isEmpty()) {
-                builder.append("PARTITION (");
+                builder.append(" PARTITION (");
                 for (Assignment assignment : node.partitionProperties()) {
                     builder.append(assignment.columnName().toString());
                     builder.append("=");
@@ -545,8 +591,7 @@ public final class SqlFormatter {
         }
 
         private StringBuilder append(int indent, String value) {
-            return builder.append(indentString(indent))
-                    .append(value);
+            return builder.append(indentString(indent)).append(value);
         }
 
         private static String indentString(int indent)

@@ -21,12 +21,13 @@
 
 package io.crate.action.sql;
 
-import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.ActionListeners;
 import io.crate.analyze.*;
-import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.*;
 import org.elasticsearch.action.ActionListener;
@@ -37,6 +38,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -81,7 +83,7 @@ public class DDLStatementDispatcher {
 
         @Override
         protected ListenableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, UUID jobId) {
-            throw new UnsupportedOperationException(String.format("Can't handle \"%s\"", analyzedStatement));
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analyzedStatement));
         }
 
 
@@ -105,22 +107,13 @@ public class DDLStatementDispatcher {
             if (analysis.indexNames().isEmpty()) {
                 return Futures.immediateFuture(null);
             }
-            final SettableFuture<Long> future = SettableFuture.create();
             RefreshRequest request = new RefreshRequest(analysis.indexNames().toArray(
                     new String[analysis.indexNames().size()]));
             request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
-            transportActionProvider.transportRefreshAction().execute(request, new ActionListener<RefreshResponse>() {
-                @Override
-                public void onResponse(RefreshResponse refreshResponse) {
-                    future.set(null); // no row count
-                }
-
-                @Override
-                public void onFailure(Throwable e) {
-                    future.setException(e);
-                }
-            });
+            final SettableFuture<Long> future = SettableFuture.create();
+            ActionListener<RefreshResponse> listener = ActionListeners.wrap(future, Functions.<Long>constant(null));
+            transportActionProvider.transportRefreshAction().execute(request, listener);
             return future;
         }
 
@@ -175,18 +168,12 @@ public class DDLStatementDispatcher {
     }
 
     private ListenableFuture<Long> wrapRowCountFuture(ListenableFuture<?> wrappedFuture, final Long rowCount) {
-        final SettableFuture<Long> wrappingFuture = SettableFuture.create();
-        Futures.addCallback(wrappedFuture, new FutureCallback<Object>() {
+        return Futures.transform(wrappedFuture, new Function<Object, Long>() {
+            @Nullable
             @Override
-            public void onSuccess(@Nullable Object result) {
-                wrappingFuture.set(rowCount);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                wrappingFuture.setException(t);
+            public Long apply(@Nullable Object input) {
+                return rowCount;
             }
         });
-        return wrappingFuture;
     }
 }

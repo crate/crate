@@ -33,6 +33,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.ParseFieldMatcher;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 
 import javax.annotation.Nullable;
@@ -58,7 +59,6 @@ public class MatchPredicate implements FunctionImplementation<Function> {
     private static final DecimalFormat BOOST_FORMAT = new DecimalFormat("#.###", DecimalFormatSymbols.getInstance(Locale.ENGLISH));
     private static final Set<String> SUPPORTED_GEO_MATCH_TYPES = ImmutableSet.of("intersects", "disjoint", "within");
 
-    public static final BytesRef DEFAULT_MATCH_TYPE = new BytesRef(DEFAULT_MATCH_TYPE_STRING);
     public static final String NAME = "match";
     public static final FunctionIdent IDENT = new FunctionIdent(
             NAME,
@@ -67,13 +67,6 @@ public class MatchPredicate implements FunctionImplementation<Function> {
 
     public static final FunctionInfo INFO = new FunctionInfo(IDENT, DataTypes.BOOLEAN, FunctionInfo.Type.PREDICATE);
 
-
-    public static String fieldNameWithBoost(String fieldName, @Nullable Object boost) {
-        if (boost == null) {
-            return fieldName;
-        }
-        return String.format("%s^%s", fieldName, BOOST_FORMAT.format(boost));
-    }
 
     private static String defaultMatchType(DataType dataType) {
         String matchType = DATA_TYPE_TO_DEFAULT_MATCH_TYPE.get(dataType);
@@ -90,7 +83,7 @@ public class MatchPredicate implements FunctionImplementation<Function> {
         }
         if (columnType.equals(DataTypes.STRING)) {
             try {
-                MultiMatchQueryBuilder.Type.parse(matchType);
+                MultiMatchQueryBuilder.Type.parse(matchType, ParseFieldMatcher.STRICT);
                 return matchType;
             } catch (ElasticsearchParseException e) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,

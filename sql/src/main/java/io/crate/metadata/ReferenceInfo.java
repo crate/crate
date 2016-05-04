@@ -21,9 +21,9 @@
 
 package io.crate.metadata;
 
+import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -31,57 +31,27 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.Locale;
 
 public class ReferenceInfo implements Streamable {
 
-    public static Comparator<ReferenceInfo> COMPARE_BY_COLUMN_IDENT = new Comparator<ReferenceInfo>() {
+    public static final Comparator<ReferenceInfo> COMPARE_BY_COLUMN_IDENT = new Comparator<ReferenceInfo>() {
         @Override
         public int compare(ReferenceInfo o1, ReferenceInfo o2) {
             return o1.ident().columnIdent().compareTo(o2.ident().columnIdent());
         }
     };
 
-    public static class Builder {
-        private ReferenceIdent ident;
-        private DataType type;
-        private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC; // reflects default value of objects
-        private RowGranularity granularity;
-        private IndexType indexType = IndexType.NOT_ANALYZED; // reflects default behaviour
-
-        public Builder type(DataType type) {
-            this.type = type;
-            return this;
+    public static final Function<? super ReferenceInfo, ColumnIdent> TO_COLUMN_IDENT = new Function<ReferenceInfo, ColumnIdent>() {
+        @Nullable
+        @Override
+        public ColumnIdent apply(@Nullable ReferenceInfo input) {
+            return input == null ? null : input.ident.columnIdent();
         }
-
-        public Builder granularity(RowGranularity rowGranularity) {
-            this.granularity = rowGranularity;
-            return this;
-        }
-
-        public Builder ident(ReferenceIdent ident) {
-            this.ident = ident;
-            return this;
-        }
-
-        public Builder ident(TableIdent table, ColumnIdent column) {
-            this.ident = new ReferenceIdent(table, column);
-            return this;
-        }
-
-        public Builder columnPolicy(ColumnPolicy columnPolicy) {
-            this.columnPolicy = columnPolicy;
-            return this;
-        }
-
-        public ReferenceInfo build() {
-            Preconditions.checkNotNull(ident, "ident is null");
-            Preconditions.checkNotNull(granularity, "granularity is null");
-            Preconditions.checkNotNull(type, "type is null");
-            return new ReferenceInfo(ident, granularity, type, columnPolicy, indexType);
-        }
-    }
+    };
 
     public enum IndexType {
         ANALYZED,
@@ -89,7 +59,7 @@ public class ReferenceInfo implements Streamable {
         NO;
 
         public String toString() {
-            return name().toLowerCase();
+            return name().toLowerCase(Locale.ENGLISH);
         }
     }
 

@@ -21,217 +21,61 @@
 
 package io.crate.operation.scalar.regex;
 
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
-
-import static io.crate.testing.TestingHelpers.*;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import static io.crate.testing.TestingHelpers.isFunction;
+import static io.crate.testing.TestingHelpers.isLiteral;
 
 public class ReplaceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
-    public void testCompile() throws Exception {
-        final Literal<BytesRef> pattern = Literal.newLiteral("(ba)");
-        final Literal<BytesRef> replacement = Literal.newLiteral("Crate");
-        final BytesRef term = new BytesRef("foobarbequebaz bar");
-        final BytesRef expected = new BytesRef("fooCraterbequebaz bar");
-
-        List<Symbol> arguments = Arrays.<Symbol>asList(
-                createReference("text", DataTypes.STRING),
-                pattern,
-                replacement
-        );
-        Function function = createFunction(ReplaceFunction.NAME, DataTypes.STRING, arguments);
-        ReplaceFunction regexpImpl = (ReplaceFunction) functions.get(function.info().ident());
-
-        regexpImpl.compile(arguments);
-
-        assertThat(regexpImpl.regexMatcher(), instanceOf(RegexMatcher.class));
-        assertEquals(expected, regexpImpl.regexMatcher().replace(term, replacement.value()));
-
-        arguments = Arrays.<Symbol>asList(
-                createReference("text", DataTypes.STRING),
-                pattern,
-                replacement,
-                Literal.newLiteral("usn")
-        );
-        regexpImpl.compile(arguments);
-
-        assertThat(regexpImpl.regexMatcher(), instanceOf(RegexMatcher.class));
-        assertEquals(expected, regexpImpl.regexMatcher().replace(term, replacement.value()));
-    }
-
-    @Test
     public void testEvaluate() throws Exception {
-        final Literal<BytesRef> pattern = Literal.newLiteral("(ba)");
-        final Literal<BytesRef> replacement = Literal.newLiteral("Crate");
-        final BytesRef expected = new BytesRef("fooCraterbequebaz bar");
-
-        List<Symbol> arguments = Arrays.<Symbol>asList(
-                createReference("text", DataTypes.STRING),
-                pattern,
-                replacement
-        );
-        Function function = createFunction(ReplaceFunction.NAME, DataTypes.STRING, arguments);
-        ReplaceFunction regexpImpl = (ReplaceFunction) functions.get(function.info().ident());
-
-        regexpImpl.compile(arguments);
-
-        Input[] args = new Input[3];
-        args[0] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return new BytesRef("foobarbequebaz bar");
-            }
-        };
-        args[1] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return pattern.value();
-            }
-        };
-        args[2] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return replacement.value();
-            }
-        };
-
-        assertEquals(expected, regexpImpl.evaluate(args));
+        assertEvaluate(
+                "regexp_replace(name, '(ba)', 'Crate')",
+                "fooCraterbequebaz bar",
+                Literal.newLiteral("foobarbequebaz bar"));
     }
 
     @Test
     public void testEvaluateWithFlags() throws Exception {
-        final Literal<BytesRef> pattern = Literal.newLiteral("(ba)");
-        final Literal<BytesRef> replacement = Literal.newLiteral("Crate");
-        final Literal<BytesRef> flags = Literal.newLiteral("usn g");
-        final BytesRef expected = new BytesRef("fooCraterbequebaz bar");
-
-        List<Symbol> arguments = Arrays.<Symbol>asList(
-                createReference("text", DataTypes.STRING),
-                pattern,
-                replacement,
-                flags
-        );
-        Function function = createFunction(ReplaceFunction.NAME, DataTypes.STRING, arguments);
-        ReplaceFunction regexpImpl = (ReplaceFunction) functions.get(function.info().ident());
-
-        regexpImpl.compile(arguments);
-
-        Input[] args = new Input[4];
-        args[0] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return new BytesRef("foobarbequebaz bar");
-            }
-        };
-        args[1] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return pattern.value();
-            }
-        };
-        args[2] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return replacement.value();
-            }
-        };
-        args[3] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return flags.value();
-            }
-        };
-
-        assertEquals(expected, regexpImpl.evaluate(args));
+        assertEvaluate(
+                "regexp_replace(name, '(ba)', 'Crate', 'usn g')",
+                "fooCraterbequebaz bar",
+                Literal.newLiteral("foobarbequebaz bar"));
     }
 
     @Test
     public void testNormalizeSymbol() throws Exception {
-        final BytesRef expected = new BytesRef("fooCraterbequebaz bar");
-        List<Symbol> arguments = Arrays.<Symbol>asList(
-                Literal.newLiteral("foobarbequebaz bar"),
-                Literal.newLiteral("(ba)"),
-                Literal.newLiteral("Crate")
-        );
-        Function function = createFunction(ReplaceFunction.NAME, DataTypes.STRING, arguments);
-        ReplaceFunction regexpImpl = (ReplaceFunction) functions.get(function.info().ident());
-
-        Symbol result = regexpImpl.normalizeSymbol(function);
-        assertThat(result, isLiteral(expected.utf8ToString()));
-
-        arguments = Arrays.<Symbol>asList(
-                createReference("text", DataTypes.STRING),
-                Literal.newLiteral("(ba)"),
-                Literal.newLiteral("Crate")
-        );
-        function = createFunction(ReplaceFunction.NAME, DataTypes.STRING, arguments);
-        regexpImpl = (ReplaceFunction) functions.get(function.info().ident());
-
-        result = regexpImpl.normalizeSymbol(function);
-        assertThat(result, instanceOf(Function.class));
-        assertThat((Function)result, is(function));
+        assertNormalize("regexp_replace('foobarbequebaz bar', '(ba)', 'Crate')", isLiteral("fooCraterbequebaz bar"));
+        assertNormalize("regexp_replace(name, '(ba)', 'Crate')", isFunction(ReplaceFunction.NAME));
     }
 
     @Test
     public void testNormalizeSymbolWithFlags() throws Exception {
-        final BytesRef expected = new BytesRef("fooCraterbequebaz bar");
-        List<Symbol> arguments = Arrays.<Symbol>asList(
-                Literal.newLiteral("foobarbequebaz bar"),
-                Literal.newLiteral("(ba)"),
-                Literal.newLiteral("Crate"),
-                Literal.newLiteral("us n")
-        );
-        Function function = createFunction(ReplaceFunction.NAME, DataTypes.STRING, arguments);
-        ReplaceFunction regexpImpl = (ReplaceFunction) functions.get(function.info().ident());
-
-        Symbol result = regexpImpl.normalizeSymbol(function);
-        assertThat(result, isLiteral(expected.utf8ToString()));
+        assertNormalize("regexp_replace('foobarbequebaz bar', '(ba)', 'Crate', 'us n')", isLiteral("fooCraterbequebaz bar"));
     }
 
     @Test
     public void testNormalizeSymbolWithInvalidFlags() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("flags must be of type string");
-        List<Symbol> arguments = Arrays.<Symbol>asList(
-                Literal.newLiteral("foobar"),
-                Literal.newLiteral("foo"),
-                Literal.newLiteral("bar"),
-                Literal.newLiteral(1)
-        );
-        Function function = createFunction(ReplaceFunction.NAME, DataTypes.STRING, arguments);
-        functions.get(function.info().ident());
+
+        assertNormalize("regexp_replace('foobar', 'foo', 'bar', 1)", isLiteral(""));
     }
 
     @Test
     public void testNormalizeSymbolWithInvalidNumberOfArguments() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        Function function = createFunction(ReplaceFunction.NAME, DataTypes.STRING, Arrays.<Symbol>asList());
-        functions.get(function.info().ident());
+        expectedException.expect(UnsupportedOperationException.class);
+        assertNormalize("regexp_replace('foobar')", isLiteral(""));
     }
 
     @Test
     public void testNormalizeSymbolWithInvalidArgumentType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("replace argument must be of type string");
-        List<Symbol> arguments = Arrays.<Symbol>asList(
-                Literal.newLiteral("foobar"),
-                Literal.newLiteral(".*"),
-                Literal.newLiteral(1)
-        );
-        Function function = createFunction(ReplaceFunction.NAME, DataTypes.STRING, arguments);
-        functions.get(function.info().ident());
-    }
 
+        assertNormalize("regexp_replace('foobar', '.*', 1)", isLiteral(""));
+    }
 }

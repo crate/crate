@@ -28,6 +28,7 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -60,7 +61,6 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.monitor.network.NetworkService;
 import org.elasticsearch.node.service.NodeService;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
@@ -72,6 +72,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
@@ -87,7 +88,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         @Override
         protected void configure() {
             super.configure();
-            bind(NetworkService.class).toInstance(mock(NetworkService.class));
             bind(NodeService.class).toInstance(mock(NodeService.class));
         }
 
@@ -125,7 +125,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         @Override
         protected void bindFunctions() {
             super.bindFunctions();
-            functionBinder.addBinding(YEAR_FUNCTION_INFO.ident()).toInstance(new YearFunction());
             functionBinder.addBinding(new FunctionIdent(SleepScalarFunction.NAME, ImmutableList.<DataType>of(DataTypes.LONG)))
                     .toInstance(new SleepScalarFunction());
         }
@@ -529,8 +528,10 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertTrue(analysis.relation().querySpec().where().noMatch());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWhereInSelectDifferentDataTypeValueUncompatibleDataTypes() throws Exception {
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("cannot cast 'foo' to type long");
         analyze("select 'found' from users where 1 in (1, 'foo', 2)");
     }
 
@@ -1682,7 +1683,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(symbol, isFunction("extract_DAY_OF_MONTH"));
 
         Symbol argument = ((Function) symbol).arguments().get(0);
-        assertThat(argument, isFunction("toTimestamp"));
+        assertThat(argument, isFunction("to_timestamp"));
     }
 
     @Test
@@ -1884,5 +1885,44 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot GROUP BY 'shape': invalid data type 'geo_shape'");
         analyze("select count(*) from users group by shape");
+    }
+
+    @Test
+    public void testSelectStarFromUnnest() throws Exception {
+        SelectAnalyzedStatement stmt = analyze("select * from unnest([1, 2], ['Marvin', 'Trillian'])");
+        assertThat(stmt.relation().querySpec().outputs(), contains(isReference("col1"), isReference("col2")));
+    }
+
+    @Test
+    public void testSelectStarFromUnnestWithInvalidArguments() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("unnest expects arguments of type array. Got an argument of type 'long' at position 0 instead.");
+        analyze("select * from unnest(1, 'foo')");
+    }
+
+    @Test
+    public void testSelectStarFromUnnestWithNoArguments() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("unnest expects at least 1 argument of type array. Got 0");
+        analyze("select * from unnest()");
+    }
+
+    @Test
+    public void testSelectCol1FromUnnest() throws Exception {
+        SelectAnalyzedStatement stmt = analyze("select col1 from unnest([1, 2], ['Marvin', 'Trillian'])");
+        assertThat(stmt.relation().querySpec().outputs(), contains(isReference("col1")));
+    }
+
+    @Test
+    public void testCollectSetCanBeUsedInHaving() throws Exception {
+        SelectAnalyzedStatement stmt = analyze(
+                "select collect_set(recovery['size']['percent']), schema_name, table_name " +
+                "from sys.shards " +
+                "group by 2, 3 " +
+                "having collect_set(recovery['size']['percent']) != [100.0] " +
+                "order by 2, 3");
+        assertThat(stmt.relation().querySpec().having().isPresent(), is(true));
+        assertThat(stmt.relation().querySpec().having().get().query(),
+                isSQL("(NOT (collect_set(sys.shards.recovery['size']['percent']) = [100.0]))"));
     }
 }

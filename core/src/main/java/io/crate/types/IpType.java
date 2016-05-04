@@ -24,6 +24,8 @@ package io.crate.types;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.mapper.ip.IpFieldMapper;
 
+import java.util.Locale;
+
 public class IpType extends StringType {
 
     public final static int ID = 5;
@@ -52,7 +54,7 @@ public class IpType extends StringType {
         } else {
             Long longIp = ((Number)value).longValue();
             if (longIp < 0) {
-                throw new IllegalArgumentException(String.format("Failed to convert long value: %s to ipv4 address)",
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Failed to convert long value: %s to ipv4 address)",
                         longIp));
             }
             String strIp = IpFieldMapper.longToIp(longIp);

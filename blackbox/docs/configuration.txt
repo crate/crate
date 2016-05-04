@@ -1,0 +1,1712 @@
+.. highlight:: sh
+
+.. _configuration:
+
+=============
+Configuration
+=============
+
+Since Crate has sensible defaults, there is no configuration
+needed at all for basic operation.
+
+Crate is mainly configured via a configuration file, which is
+located at ``config/crate.yml``. The vanilla configuration file
+distributed with the package has all available settings as comments
+in it along with the according default value.
+
+The location of the config file can be specified upon startup like
+this::
+
+    sh$ ./bin/crate -Des.path.home=/path/to/config/directory
+
+Any option can be configured either by the config file or as system
+property. If using system properties the required prefix 'es.' will be
+ignored.
+
+For example, configuring the cluster name by using system properties
+will work this way::
+
+    sh$ ./bin/crate -Des.cluster.name=cluster
+
+.. highlight:: yaml
+
+This is exactly the same as setting the cluster name in the config
+file::
+
+    cluster.name = cluster
+
+Settings will get applied in the following order where the latter one
+will overwrite the prior one:
+
+ 1. internal defaults
+ 2. system properties
+ 3. options from config file
+ 4. command-line properties
+
+
+.. _conf_table_settings:
+
+Table Settings
+==============
+
+For more info about table creating syntax please refer to :ref:`ref-create-table`
+
+**number_of_replicas**
+  | *Default:*    ``1``
+  | *Runtime:*    ``yes``
+
+  Specifies the number or range of replicas each shard of a table should
+  have for normal operation.
+
+**refresh_interval**
+  | *Default:*   ``1000``
+  | *Runtime:*   ``yes``
+
+  Specifies the refresh interval of a shard in milliseconds.
+
+Blocks
+------
+
+**blocks.read_only**
+  | *Default:*   ``false``
+  | *Runtime:*   ``yes``
+
+  Disable/enable read-only table.
+
+**blocks.read**
+  | *Default:*   ``false``
+  | *Runtime:*   ``yes``
+
+  Disable/enable all the read operations.
+
+**blocks.write**
+  | *Default:*   ``false``
+  | *Runtime:*   ``yes``
+
+  Disable/enable all the write operations.
+
+**blocks.metadata**
+  | *Default:*   ``false``
+  | *Runtime:*   ``yes``
+
+  Disables/enables the table settings modifications.
+
+Translog
+--------
+
+  .. note::
+
+    The translog provides a persistent log of all operations that have not been
+    transferred (flushed) to disk. Whenever a record is inserted into a table
+    (or updated) that change is appended both to an in-memory buffer **and** the
+    translog. When the translog reaches a certain size
+    (see :ref:`flush.threshold.size <flush_threshold_size>`), or holds a certain
+    amount of operations (see :ref:`flush.threshold.ops <flush_threshold_ops>`), or
+    after a certain interval (see :ref:`flush.threshold.period <flush_threshold_period>`)
+    the translog is ``fsynced``, flushed to disk, and cleared.
+
+.. _flush_threshold_ops:
+
+**translog.flush_threshold_ops**
+  | *Default:*   ``unlimited``
+  | *Runtime:*   ``yes``
+
+  Sets the number of operations before flushing.
+
+.. _flush_threshold_size:
+
+**translog.flush_threshold_size**
+  | *Default:*   ``200mb``
+  | *Runtime:*   ``yes``
+
+  Sets size of transaction log prior to flushing.
+
+.. _flush_threshold_period:
+
+**translog.flush_threshold_period**
+  | *Default:*   ``30m``
+  | *Runtime:*   ``yes``
+
+  Sets period of no flushing after which force flush occurs.
+
+**translog.disable_flush**
+  | *Default:*    ``false``
+  | *Runtime:*   ``yes``
+
+  Disable/enable flushing.
+
+**translog.interval**
+  | *Default:*    ``5s``
+  | *Runtime:*   ``yes``
+
+  How often to check if a flush is needed, randomized between the interval
+  value and 2x the interval value.
+
+**translog.sync_interval**
+  | *Default:*    ``5s``
+  | *Runtime:*   ``no``
+
+  Setting ``index.translog.sync_interval`` controls the period after which the
+  translog is ``fsynced`` to disk (defaults to 5 s). When setting this
+  interval, please keep in mind that changes logged during this interval and
+  not synced to disk may get lost in case of a failure.
+
+Allocation
+----------
+
+**routing.allocation.enable**
+  | *Default:*    ``all``
+  | *Runtime:*   ``yes``
+  | *Allowed Values:*   ``all | primaries | new_primaries | none``
+
+  Controls shard allocation for a specific table.
+
+**routing.allocation.total_shards_per_node**
+  | *Default:*    ``-1``  (unbounded)
+  | *Runtime:*   ``yes``
+
+  Controls the total number of shards (replicas and primaries) allowed to be
+  allocated on a single node.
+
+Recovery
+--------
+
+**recovery.initial_shards**
+  | *Default:*    ``quorum``
+  | *Runtime:*   ``yes``
+
+  When using local gateway a particular shard is recovered only if there can be
+  allocated quorum of it’s copies in the cluster. See :ref:`initial_shards_ref`
+  for more info on the option.
+
+Warmer
+------
+
+**warmer.enabled**
+  | *Default:*    ``true``
+  | *Runtime:*   ``yes``
+
+  disable/enable table warming. Table warming allows to run registered queries
+  to warm up the table before it is available.
+
+Unassigned
+----------
+
+**unassigned.node_left.delayed_timeout**
+  | *Default:*  ``1m``
+  | *Runtime:*  ``yes``
+
+  Delay the allocation of replica shards which have become unassigned because
+  a node has left. It defaults to ``1m`` to give a node time to restart
+  completely (which can take some time when the node has lots of shards).
+  Setting the timeout to ``0`` will start allocation immediately. This setting
+  can be changed on runtime in order to increase/decrease the delayed allocation
+  if needed.
+
+Column Policy
+-------------
+
+**column_policy**
+  | *Default:*    ``dynamic``
+  | *Runtime:*   ``yes``
+
+  Specifies the column policy of the table.
+
+
+Node Specific Settings
+======================
+
+.. _cluster.name:
+
+**cluster.name**
+  | *Default:*    ``crate``
+  | *Runtime:*   ``no``
+
+  The name of the Crate cluster the node should join to.
+
+**node.name**
+  | *Runtime:* ``no``
+
+  The name of the node. If no name is configured a random one will be generated.
+
+.. note::
+
+   Node names must be unique in a Crate cluster.
+
+Node Types
+----------
+
+Crate supports different kinds of nodes. The following settings can be used
+to differentiate nodes upon startup:
+
+**node.master**
+  | *Default:* ``true``
+  | *Runtime:* ``no``
+
+  Whether or not this node is able to get elected as *master* node in the
+  cluster.
+
+**node.data**
+  | *Default:* ``true``
+  | *Runtime:* ``no``
+
+  Whether or not this node will store data.
+
+**node.client**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  Shorthand for: ``node.data=false`` and ``node.master=false``.
+
+
+**node.local**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  If set to ``true``, the node will use a *JVM-local*
+  transport and discovery. *Used primarily for testing purposes.*
+
+Examples
+~~~~~~~~
+
+A node by default is eligible as *master* and contains *data*.
+
+Nodes that only contain *data* but cannot become *master* will mainly execute
+and respond to queries:
+
+
+.. code-block::
+   yaml
+
+   node:
+     data: true
+     master: false
+
+
+*Master-only*-nodes that do not contain *data* but are able to become *master* can be used to
+separate cluster-management loads from the query execution loads:
+
+.. code-block::
+   yaml
+
+   node:
+     data: false
+     master: true
+
+Nodes that do not contain *data* and are not eligible as *master* are called
+*client*-nodes. They can be used to separate request handling loads:
+
+.. code-block::
+   yaml
+
+   node:
+     client: true
+
+Read-only node
+--------------
+
+**node.sql.read_only**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  If set to ``true``, the node will only allow SQL statements which
+  are resulting in read operations.
+
+.. _conf_hosts:
+
+Hosts
+-----
+
+.. _network.host:
+
+**network.host**
+  | *Default:*    ``0.0.0.0``
+  | *Runtime:*   ``no``
+
+  The IP address Crate will bind itself to. This setting sets
+  both the `network.bind_host`_ and `network.publish_host`_ values.
+
+.. _network.bind_host:
+
+**network.bind_host**
+  | *Default:*    ``0.0.0.0``
+  | *Runtime:*   ``no``
+
+  This setting determines to which address Crate should bind itself
+  to. To only bind to localhost, set it to any local address or ``_local_``.
+
+.. _network.publish_host:
+
+**network.publish_host**
+  | *Runtime:*   ``no``
+
+  This setting is used by a Crate node to publish its own address
+  to the rest of the cluster. Per default it is the first non local address.
+
+  To explicitly bind Crate to a specific interface use the interface
+  name between underscores. For example ``_eth0_``. This resolves to
+  the ip address of this interface. With ``_eth0:ipv{4,6}_`` you
+  explicitly listen on an ipv6 or ipv4 address.
+
+.. _conf_ports:
+
+Ports
+-----
+
+.. _http.port:
+
+**http.port**
+  | *Runtime:*   ``no``
+
+  This defines the TCP port range to which the Crate HTTP service will be bound to.
+  It defaults to ``4200-4300``. Always the first free port in this range is used. If this is set
+  to an integer value it is considered as an explicit single port.
+
+  The HTTP protocol is used for the REST endpoint which is used by all clients except the Java client.
+
+.. _http.publish_port:
+
+**http.publish_port**
+  | *Runtime:*   ``no``
+
+  The port HTTP clients should use to communicate with the node. It is necessary to
+  define this setting if the bound HTTP port (``http.port``)
+  of the node is not directly reachable from outside, e.g. running it
+  behind a firewall or inside a Docker container.
+
+.. _transport.tcp.port:
+
+**transport.tcp.port**
+  | *Runtime:*   ``no``
+
+  This defines the TCP port range to which the Crate transport service will be bound to.
+  It defaults to ``4300-4400``. Always the first free port in this range is used. If this is set
+  to an integer value it is considered as an explicit single port.
+
+  The transport protocol is used for internal node-to-node communication and also
+  by the Java client.
+
+.. _transport.publish_port:
+
+**transport.publish_port**
+  | *Runtime:*   ``no``
+
+  The port that the node publishes to the cluster for its own discovery. It is necessary to
+  define this setting when the bound tranport port (``transport.tcp.port``)
+  of the node is not directly reachable from outside, e.g. running it
+  behind a firewall or inside a Docker container.
+
+
+.. _conf-node-attributes:
+
+Node Attributes
+---------------
+
+It is possible to apply generic attributes to a node, with configuration settings
+like ``node.key: value``. These attributes can be used for customized shard allocation.
+
+See also :ref:`conf-routing-allocation-awareness` Settings.
+
+Paths
+-----
+
+**path.conf**
+  | *Runtime:* ``no``
+
+  Filesystem path to the directory containing the configuration files ``crate.yml``
+  and ``logging.yml``.
+
+**path.data**
+  | *Runtime:* ``no``
+
+  Filesystem path to the directory where this Crate node stores its data (table
+  data and cluster metadata).
+
+  This setting can contain a comma separated list of paths. In this case Crate will
+  stripe the data across both locations like in RAID 0.
+
+
+**path.work**
+  | *Runtime:* ``no``
+
+  Filesystem path to a directory holding temporary files created and used
+  during operation. This directory contains mostly internal files which should not
+  be tinkered with.
+
+**path.logs**
+  | *Runtime:* ``no``
+
+  Filesystem path to a directory where log files should be stored.
+  Can be used as a variable inside ``logging.yml``.
+
+  For example:
+
+  .. code-block::
+     yaml
+
+     appender:
+       file:
+         file: ${path.logs}/${cluster.name}.log
+
+.. _conf-path-repo:
+
+**path.repo**
+  | *Runtime:* ``no``
+
+  A list of filesystem or UNC paths where repositories of type
+  :ref:`ref-create-repository-types-fs` may be stored.
+
+  Without this setting a Crate user could write snapshot files to any directory
+  that is writable by the Crate process. To safeguard against this security issue,
+  the possible paths have to be whitelisted here.
+
+  See also :ref:`location <ref-create-repository-types-fs-location>` setting
+  of repository type ``fs``.
+
+Plugins
+-------
+
+**plugin.mandatory**
+  | *Runtime:* ``no``
+
+  A list of plugins that are required for a node to startup.
+  If any plugin listed here, the Crate node will fail to start.
+
+Memory
+------
+
+**bootstrap.mlockall**
+  | *Runtime:* ``no``
+  | *Default:* ``false``
+
+  Crate performs poorly when the JVM starts swapping: you should ensure that
+  it *never* swaps. If set to ``true``, Crate will use the ``mlockall`` system
+  call on startup to ensure that the memory pages of the Crate process
+  are locked into RAM.
+
+
+Garbage Collection
+------------------
+
+Crate logs if JVM garbage collection on different memory pools takes too long.
+The following settings can be used to adjust these timeouts:
+
+**monitor.jvm.gc.young.warn**
+  | *Default:* ``1000ms``
+  | *Runtime:* ``no``
+
+  Crate will log a warning message if it takes more than the configured timespan
+  to collect the *Eden Space* (heap).
+
+**monitor.jvm.gc.young.info**
+  | *Default:* ``1000ms``
+  | *Runtime:* ``no``
+
+  Crate will log an info message if it takes more than the configured timespan
+  to collect the *Eden Space* (heap).
+
+**monitor.jvm.gc.young.debug**
+  | *Default:* ``1000ms``
+  | *Runtime:* ``no``
+
+  Crate will log a debug message if it takes more than the configured timespan
+  to collect the *Eden Space* (heap).
+
+**monitor.jvm.gc.old.warn**
+  | *Default:* ``1000ms``
+  | *Runtime:* ``no``
+
+  Crate will log a warning message if it takes more than the configured timespan
+  to collect the *Old Gen* / *Tenured Gen* (heap).
+
+**monitor.jvm.gc.old.info**
+  | *Default:* ``1000ms``
+  | *Runtime:* ``no``
+
+  Crate will log an info message if it takes more than the configured timespan
+  to collect the *Old Gen* / *Tenured Gen* (heap).
+
+**monitor.jvm.gc.old.debug**
+  | *Default:* ``1000ms``
+  | *Runtime:* ``no``
+
+  Crate will log a debug message if it takes more than the configured timespan
+  to collect the *Old Gen* / *Tenured Gen* (heap).
+
+
+Elasticsearch HTTP REST API
+---------------------------
+
+**es.api.enabled**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  Enable or disable elasticsearch HTTP REST API.
+
+  .. warning::
+
+    Manipulating your data via elasticsearch API and not via SQL
+    might result in inconsistent data. You have been warned!
+
+Blobs
+-----
+
+**blobs.path**
+  | *Runtime:* ``no``
+
+  Path to a filesystem directory where to store blob data allocated for this node.
+
+  By default blobs will be stored under the same path as normal data.
+  A relative path value is interpreted as relative to ``CRATE_HOME``.
+
+.. _ref-configuration-repositories:
+
+Repositories
+------------
+
+Repositories are used to :ref:`backup <snapshot-restore>` a Crate cluster.
+
+**repositories.url.allowed_urls**
+  | *Runtime:* ``no``
+
+  This setting only applies to repositories of type
+  :ref:`ref-create-repository-types-url`.
+
+  With this setting a list of urls can be specified which are allowed to be
+  used if a repository of type ``url`` is created.
+
+  Wildcards are supported in the host, path, query and fragment parts.
+
+  This setting is a security measure to prevent access to arbitrary resources.
+
+  In addition, the supported protocols can be restricted using the
+  :ref:`repositories.url.supported_protocols
+  <conf-repositories-url-supported-protocols>` setting.
+
+.. _conf-repositories-url-supported-protocols:
+
+**repositories.url.supported_protocols**
+  | *Default:* ``http``, ``https``, ``ftp``, ``file`` and ``jar``
+  | *Runtime:* ``no``
+
+  A list of protocols that are supported by repositories of type
+  :ref:`ref-create-repository-types-url`.
+
+  The ``jar`` protocol is used to access the contents of jar files.
+  For more info, see the java `JarURLConnection documentation`_.
+
+See also the :ref:`path.repo <conf-path-repo>` Setting.
+
+
+.. _conf-cluster-settings:
+
+Cluster Wide Settings
+=====================
+
+All current applied cluster settings can be read by querying the
+:ref:`sys.cluster.settings <sys-cluster-settings>` column. Most
+cluster settings can be changed at runtime using the
+:ref:`SET/RESET<ddl-set-reset>` statement. This is documented at each setting.
+
+.. _conf_collecting_stats:
+
+Collecting Stats
+----------------
+.. _stats.enabled:
+
+**stats.enabled**
+  | *Default:*    ``false``
+  | *Runtime:*   ``yes``
+
+  A boolean indicating whether or not to collect statistical
+  information about the cluster.
+
+.. _stats. jobs_log_size:
+
+**stats.jobs_log_size**
+  | *Default:*   ``10000``
+  | *Runtime:*  ``yes``
+
+  The number of jobs kept in the ``sys.jobs_log`` table on each node
+  for performance analytics. Older entries will be deleted when the
+  ``jobs_log_size`` is reached. A single SQL statement results in a
+  job to be executed on the cluster. A higher number results in more
+  expressive results but also in more occupied RAM. Setting it to
+  ``0`` disables collecting job information.
+
+.. _stats.operations_log_size:
+
+**stats.operations_log_size**
+  | *Default:*   ``10000``
+  | *Runtime:*  ``yes``
+
+  The number of operations to keep in the ``sys.operations_log`` table
+  on each node for performance analytics. Older entries will be
+  deleted when the ``operations_log_size`` is reached. A job consists
+  of one or many operations. A higher number results in more
+  expressive results but also in more occupied RAM. Setting it to
+  ``0`` disables collecting operation information.
+
+.. _conf_usage_data_collector:
+
+Usage Data Collector
+--------------------
+
+The settings of the Usage Data Collector are read-only and cannot be set
+during runtime. Please refer to :ref:`usage_data_collector` to get further
+information about its usage.
+
+.. _udc_enabled:
+
+**udc.enabled**
+  | *Default:*  ``true``
+  | *Runtime:*  ``no``
+
+  ``true``: Enables the Usage Data Collector.
+
+  ``false``: Disables the Usage Data Collector.
+
+.. _cluster.udc.initial_delay:
+
+**udc.initial_delay**
+  | *Default:*  ``10m``
+  | *Runtime:*  ``no``
+
+  The delay for first ping after start-up.
+
+  This field expects a time value either as a long or double or
+  alternatively as a string literal with a time suffix.
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``)
+
+.. _cluster.udc.interval:
+
+**udc.interval**
+  | *Default:*  ``24h``
+  | *Runtime:*  ``no``
+
+  The interval a UDC ping is sent.
+
+  This field expects a time value either as a long or double or
+  alternatively as a string literal with a time suffix.
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``)
+
+.. _cluster.udc.url:
+
+**udc.url**
+  | *Default:*  ``https://udc.crate.io``
+  | *Runtime:*  ``no``
+
+  The URL the ping is sent to.
+
+.. _conf_graceful_stop:
+
+Graceful Stop
+-------------
+
+By default, when the Crate process stops it simply shuts down, possibly making some
+shards unavailable which leads to a *red* cluster state and lets some queries fail
+that required the now unavailable shards. In order to *safely* shutdown a Crate node,
+the graceful stop procedure can be used.
+
+The following cluster settings can be used to change the shutdown behaviour of
+nodes of the cluster:
+
+.. _cluster.graceful_stop.min_availability:
+
+**cluster.graceful_stop.min_availability**
+  | *Default:*   ``primaries``
+  | *Runtime:*  ``yes``
+  | *Allowed Values:*   ``none | primaries | full``
+
+  ``none``: No minimum data availability is required. The node may
+  shut down even if records are missing after shutdown.
+
+  ``primaries``: At least all primary shards need to be availabe after
+  the node has shut down. Replicas may be missing.
+
+  ``full``: All records and all replicas need to be available after
+  the node has shut down. Data availability is full.
+
+  .. note::
+
+    This option is ignored if there is only 1 node in a cluster!
+
+.. _cluster.graceful_stop.reallocate:
+
+**cluster.graceful_stop.reallocate**
+  | *Default:*   ``true``
+  | *Runtime:*  ``yes``
+
+  ``true``: The ``graceful stop`` command allows shards to be
+  reallocated before shutting down the node in order to ensure minimum
+  data availability set with ``min_availability``.
+
+  ``false``: The ``graceful stop`` command will fail if the cluster
+  would need to reallocate shards in order to ensure the minimum data
+  availability set with ``min_availability``.
+
+  .. note::
+
+    Make sure you have enough nodes and enough disk space for the reallocation.
+
+.. _cluster.graceful_stop.timeout:
+
+**cluster.graceful_stop.timeout**
+  | *Default:*   ``2h``
+  | *Runtime:*  ``yes``
+
+  Defines the maximum waiting time in milliseconds for the
+  reallocation process to finish. The ``force`` setting will define
+  the behaviour when the shutdown process runs into this timeout.
+
+  The timeout expects a time value either as a long or double or
+  alternatively as a string literal with a time suffix
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``)
+
+.. _cluster.graceful_stop.force:
+
+**cluster.graceful_stop.force**
+  | *Default:*   ``false``
+  | *Runtime:*  ``yes``
+
+  Defines whether ``graceful stop`` should force stopping of the node
+  if it runs into the timeout which is specified with the
+  `cluster.graceful_stop.timeout`_ setting.
+
+
+.. _conf_bulk_operations:
+
+Bulk Operations
+---------------
+
+SQL DML Statements involving a huge amount of rows
+like :ref:`copy_from`, :ref:`ref-insert` or :ref:`ref-update` can take an enormous
+amount of time and resources. The following settings change the behaviour of
+those queries.
+
+.. _bulk.request_timeout:
+
+**bulk.request_timeout**
+  | *Default:* ``1m``
+  | *Runtime:* ``yes``
+
+  Defines the timeout of internal shard-based requests involved
+  in the execution of SQL DML Statements over a huge amount of rows.
+
+
+Discovery
+---------
+.. _discovery.zen.minimum_master_nodes:
+
+**discovery.zen.minimum_master_nodes**
+  | *Default:*   ``1``
+  | *Runtime:*  ``yes``
+
+  Set to ensure a node sees N other master eligible nodes to be
+  considered operational within the cluster. It's recommended to set
+  it to a higher value than 1 when running more than 2 nodes in the cluster.
+
+.. _discovery.zen.ping_timeout:
+
+**discovery.zen.ping_timeout**
+  | *Default:*   ``3s``
+  | *Runtime:*  ``yes``
+
+  Set the time to wait for ping responses from other nodes when
+  discovering. Set this option to a higher value on a slow or congested network
+  to minimize discovery failures.
+
+.. _discovery.zen.publish_timeout:
+
+**discovery.zen.publish_timeout**
+  | *Default:*   ``30s``
+  | *Runtime:*  ``yes``
+
+  Time a node is waiting for responses from other nodes to a published
+  cluster state.
+
+.. _conf_discovery:
+
+Unicast Host Discovery
+~~~~~~~~~~~~~~~~~~~~~~
+
+**discovery.zen.ping.multicast.enabled**
+  | *Default:*  ``true``
+  | *Runtime:*  ``no``
+
+  Boolean value whether discovery via multicast is enabled or not.
+
+Crate has built-in support for several different mechanisms how unicast hosts
+for node discovery are obtained. The simplest mechanism is to specify the list
+of hosts in the configuration file.
+
+**discovery.zen.ping.unicast.hosts**
+  | *Default:*  ``not set``
+  | *Runtime:*  ``no``
+
+Currently there are two other discovery types: via DNS and via EC2 API.
+
+When a node starts up with one of these discovery types enabled, it performs
+a lookup using the settings for the specified mechanism listed below.
+The hosts and ports retrieved from the mechanism will be used to generate a
+list of unicast hosts for node discovery.
+
+The same lookup is also performed by all nodes in a cluster whenever the master
+is re-elected (see :ref:`storage_consistency_cluster_meta_data`).
+
+**disovery.type**
+  | *Default:*   ``not set``
+  | *Runtime:*   ``no``
+  | *Allowed Values:*  ``srv``, ``ec2``
+
+See also: :ref:`shared_nothing_discovery`.
+
+.. _conf_dns_discovery:
+
+Discovery via DNS
+*****************
+
+Crate has built-in support for discovery via DNS. To enable DNS discovery
+the ``discovery.type`` setting needs to be set to ``srv``.
+
+The order of the unicast hosts is defined by the priority, weight and name
+of each host defined in the SRV record. For example::
+
+    _crate._srv.example.com. 3600 IN SRV 2 20 4300 crate1.example.com.
+    _crate._srv.example.com. 3600 IN SRV 1 10 4300 crate2.example.com.
+    _crate._srv.example.com. 3600 IN SRV 2 10 4300 crate3.example.com.
+
+would result in a list of discovery nodes ordered like::
+
+    crate2.example.com:4300, crate3.example.com:4300, crate1.example.com:4300
+
+**discovery.srv.query**
+  | *Runtime:*  ``no``
+
+  The DNS query that is used to look up SRV records,
+  usually in the format ``_service._protocol.fqdn``
+  If not set, the service discovery will not be able to look up any
+  SRV records.
+
+**discovery.srv.resolver**
+  | *Runtime:*  ``no``
+
+  The hostname or IP of the DNS server used to resolve DNS records.
+  If this is not set, or the specified hostname/IP is not resolvable,
+  the default (system) resolver is used.
+  Optionally a custom port can be specified using the format ``hostname:port``.
+
+.. _conf_ec2_discovery:
+
+Discovery via EC2
+*****************
+
+Crate has built-in support for discovery via the EC2 API. To enable EC2
+discovery the ``discovery.type`` setting needs to be set to ``ec2``.
+
+**cloud.aws.access_key**
+  | *Runtime:*  ``no``
+
+  The access key id to identify the API calls.
+
+**cloud.aws.secret_key**
+  | *Runtime:*  ``no``
+
+  The secret key to identify the API calls.
+
+Note that the AWS credentials can also be provided by environment variables
+``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_KEY`` or via system properties
+``aws.accessKeyId`` and ``aws.secretKey``.
+
+Following settings control the discovery:
+
+.. _discovery_ec2_groups:
+
+**discovery.ec2.groups**
+  | *Runtime:*  ``no``
+
+  A list of security groups; either by id or name. Only instances with the
+  given group will be used for unicast host discovery.
+
+**discovery.ec2.any_group**
+  | *Runtime:*  ``no``
+  | *Default:*  ``true``
+
+  Defines whether all (``false``) or just any (``true``) security group must
+  be present for the instance to be used for discovery.
+
+.. _discovery_ec2_host_type:
+
+**discovery.ec2.host_type**
+  | *Runtime:*  ``no``
+  | *Default:*  ``private_ip``
+  | *Allowed Values:*  ``private_ip``, ``public_ip``, ``private_dns``, ``public_dns``
+
+  Defines via which host type to communicate with other instances.
+
+.. _discovery_ec2_zones:
+
+**discovery.ec2.availability_zones**
+  | *Runtime:*  ``no``
+
+  A list of availability zones. Only instances within the given availability
+  zone will be used for unicast host discovery.
+
+**discovery.ec2.ping_timeout**
+  | *Runtime:*  ``no``
+  | *Default:*  ``3s``
+
+  The timeout for pings of existing EC2 instances during discovery. If no time
+  suffix is specified, milliseconds are used.
+
+.. _discovery_ec2_tags:
+
+**discovery.ec2.tag.<name>**
+  | *Runtime:*  ``no``
+
+  EC2 instances for discovery can also be filtered by tags using the
+  ``discovery.ec2.tag.`` prefix plus the tag name.
+  E.g. to filter instances that have the ``environment`` tags with the value
+  ``dev`` your setting will look like: ``discovery.ec2.tag.environment: dev``.
+
+**cloud.aws.ec2.endpoint**
+  | *Runtime:*  ``no``
+
+  If you have your own compatible implementation of the EC2 API service you can
+  set the enpoint that should be used.
+
+
+.. _conf_routing:
+
+Routing Allocation
+------------------
+.. _cluster.routing.allocation.enable:
+
+**cluster.routing.allocation.enable**
+  | *Default:*   ``all``
+  | *Runtime:*  ``yes``
+  | *Allowed Values:* ``all | none | primaries | new_primaries``
+
+  ``all`` allows all shard allocations, the cluster can allocate all
+  kinds of shards.
+
+  ``none`` allows no shard allocations at all. No shard will be moved
+  or created.
+
+  ``primaries`` only primaries can be moved or created. This includes existing
+  primary shards.
+
+  ``new_primaries`` allows allocations for new primary shards
+  only. This means that for example a newly added node will not
+  allocate any replicas. However it is still possible to allocate new
+  primary shards for new indices. Whenever you want to perform a zero
+  downtime upgrade of your cluster you need to set this value before
+  gracefully stopping the first node and reset it to ``all`` after
+  starting the last updated node.
+
+.. note::
+
+  This allocation setting has no effect on recovery of primary shards!
+  Even when ``cluster.routing.allocation.enable`` is set to ``none``, nodes
+  will recover their unassigned local primary shards immediatelly after restart,
+  in case the ``recovery.initial_shards`` setting is satisfied.
+
+.. _cluster.routing.allocation.allow_rebalance:
+
+**cluster.routing.allocation.allow_rebalance**
+  | *Default:*   ``indices_all_active``
+  | *Runtime:*  ``yes``
+  | *Allowed Values:* ``always | indices_primary_active | indices_all_active``
+
+  Allow to control when rebalancing will happen based on the total
+  state of all the indices shards in the cluster. Defaulting to
+  ``indices_all_active`` to reduce chatter during initial recovery.
+
+.. _cluster.routing.allocation.cluster_concurrent_rebalance:
+
+**cluster.routing.allocation.cluster_concurrent_rebalance**
+  | *Default:*   ``2``
+  | *Runtime:*  ``yes``
+
+  Define how many concurrent rebalancing tasks are allowed cluster wide.
+
+.. _cluster.routing.allocation.node_initial_primaries_recoveries:
+
+**cluster.routing.allocation.node_initial_primaries_recoveries**
+  | *Default:*   ``4``
+  | *Runtime:*  ``yes``
+
+  Define the number of initial recoveries of primaries that are
+  allowed per node. Since most times local gateway is used, those
+  should be fast and we can handle more of those per node without
+  creating load.
+
+.. _cluster.routing.allocation.node_concurrent_recoveries:
+
+**cluster.routing.allocation.node_concurrent_recoveries**
+  | *Default:*   ``2``
+  | *Runtime:*  ``yes``
+    How many concurrent recoveries are allowed to happen on a node.
+
+
+.. _conf-routing-allocation-awareness:
+
+Awareness
+~~~~~~~~~
+
+Cluster allocation awareness allows to configure shard and replicas
+allocation across generic attributes associated with nodes.
+
+.. _cluster.routing.allocation.awareness.attributes:
+
+**cluster.routing.allocation.awareness.attributes**
+  | *Runtime:*  ``no``
+
+  Define node attributes which will be used to do awareness based on
+  the allocation of a shard and its replicas. For example, let's say
+  we have defined an attribute ``rack_id`` and we start 2 nodes with
+  ``node.rack_id`` set to rack_one, and deploy a single table with 5
+  shards and 1 replica. The table will be fully deployed on the
+  current nodes (5 shards and 1 replica each, total of 10 shards).
+
+  Now, if we start two more nodes, with ``node.rack_id`` set to
+  rack_two, shards will relocate to even the number of shards across
+  the nodes, but a shard and its replica will not be allocated in the
+  same rack_id value.
+
+  The awareness attributes can hold several values
+
+.. _cluster.routing.allocation.awareness.force.*.values:
+
+**cluster.routing.allocation.awareness.force.\*.values**
+  | *Runtime:*  ``no``
+
+  Attributes on which shard allocation will be forced. ``*`` is a
+  placeholder for the awareness attribute, which can be defined using
+  the `cluster.routing.allocation.awareness.attributes`_
+  setting. Let's say we configured an awareness attribute ``zone`` and
+  the values ``zone1, zone2`` here, start 2 nodes with ``node.zone``
+  set to ``zone1`` and create a table with 5 shards and 1
+  replica. The table will be created, but only 5 shards will be
+  allocated (with no replicas). Only when we start more shards with
+  ``node.zone`` set to ``zone2`` the replicas will be allocated.
+
+Balanced Shards
+~~~~~~~~~~~~~~~
+All these values are relative to one another. The first three are used
+to compose a three separate weighting functions into one. The cluster
+is balanced when no allowed action can bring the weights of each node
+closer together by more then the fourth setting. Actions might not be
+allowed, for instance, due to forced awareness or allocation filtering.
+
+.. _cluster.routing.allocation.balance.shard:
+
+**cluster.routing.allocation.balance.shard**
+  | *Default:*   ``0.45f``
+  | *Runtime:*  ``yes``
+
+  Defines the weight factor for shards allocated on a node
+  (float). Raising this raises the tendency to equalize the number of
+  shards across all nodes in the cluster.
+
+.. _cluster.routing.allocation.balance.index:
+
+**cluster.routing.allocation.balance.index**
+  | *Default:*   ``0.5f``
+  | *Runtime:*  ``yes``
+
+  Defines a factor to the number of shards per index allocated on a
+  specific node (float). Increasing this value raises the tendency to
+  equalize the number of shards per index across all nodes in the cluster.
+
+.. _cluster.routing.allocation.balance.primary:
+
+**cluster.routing.allocation.balance.primary**
+  | *Default:*   ``0.05f``
+  | *Runtime:*  ``yes``
+
+  Defines a weight factor for the number of primaries of a specific
+  index allocated on a node (float). Increasing this value raises the
+  tendency to equalize the number of primary shards across all nodes
+  in the cluster.
+
+.. _cluster.routing.allocation.balance.threshold:
+
+**cluster.routing.allocation.balance.threshold**
+  | *Default:*   ``1.0f``
+  | *Runtime:*  ``yes``
+
+  Minimal optimization value of operations that should be performed
+  (non negative float). Increasing this value will cause the cluster
+  to be less aggressive about optimising the shard balance.
+
+Cluster-Wide Allocation Filtering
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Allow to control the allocation of all shards based on include/exclude
+filters.
+E.g. this could be used to allocate all the new shards on the nodes
+with specific IP addresses or custom attributes.
+
+.. _cluster.routing.allocation.include.*:
+
+**cluster.routing.allocation.include.***
+  | *Runtime:*  ``no``
+
+  Place new shards only on nodes where one of the specified values
+  matches the attribute. e.g.:
+  cluster.routing.allocation.include.zone: "zone1,zone2"
+
+.. _cluster.routing.allocation.exclude.*:
+
+**cluster.routing.allocation.exclude.***
+  | *Runtime:*  ``no``
+
+  Place new shards only on nodes where none of the specified values
+  matches the attribute. e.g.:
+  cluster.routing.allocation.exclude.zone: "zone1"
+
+.. _cluster.routing.allocation.require.*:
+
+**cluster.routing.allocation.require.***
+  | *Runtime:*  ``no``
+
+  Used to specify a number of rules, which all MUST match for a node
+  in order to allocate a shard on it. This is in contrast to include
+  which will include a node if ANY rule matches.
+
+Disk-based Shard Allocation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _cluster.routing.allocation.disk.threshold_enabled:
+
+**cluster.routing.allocation.disk.threshold_enabled**
+  | *Default:*   ``true``
+  | *Runtime:*  ``yes``
+
+  Prevent shard allocation on nodes depending of the disk usage.
+
+.. _cluster.routing.allocation.disk.watermark.low:
+
+**cluster.routing.allocation.disk.watermark.low**
+  | *Default:*   ``85%``
+  | *Runtime:*  ``yes``
+
+  Defines the lower disk threshold limit for shard allocations. New
+  shards will not be allocated on nodes with disk usage greater
+  than this value. It can also be set to an absolute bytes value (like
+  e.g. ``500mb``) to prevent the cluster from allocating new shards on
+  node with less free disk space than this value.
+
+.. _cluster.routing.allocation.disk.watermark.high:
+
+**cluster.routing.allocation.disk.watermark.high**
+  | *Default:*   ``90%``
+  | *Runtime:*  ``yes``
+
+  Defines the higher disk threshold limit for shard allocations. The
+  cluster will attempt to relocate existing shards to another node if
+  the disk usage on a node rises above this value. It can also be set
+  to an absolute bytes value (like e.g. ``500mb``) to relocate shards
+  from nodes with less free disk space than this value.
+
+By default, the cluster will retrieve information about the disk usage
+of the nodes every 30 seconds. This can also be changed by setting the
+`cluster.info.update.interval`_ setting.
+
+Recovery
+--------
+.. _indices.recovery.concurrent_streams:
+
+**indices.recovery.concurrent_streams**
+  | *Default:*   ``3``
+  | *Runtime:*  ``yes``
+
+  Limits the number of open concurrent streams when recovering a shard
+  from a peer.
+
+.. _indices.recovery.file_chunk_size:
+
+**indices.recovery.file_chunk_size**
+  | *Default:*   ``512kb``
+  | *Runtime:*  ``yes``
+
+  Specifies the chunk size used to copy the shard data from the source
+  shard. It is compressed if `indices.recovery.compress`_ is set to ``true``.
+
+.. _indices.recovery.translog_ops:
+
+**indices.recovery.translog_ops**
+  | *Default:*   ``1000``
+  | *Runtime:*  ``yes``
+
+  Specifies how many transaction log lines should be transfered
+  between shards in a single request during the recovery process. If
+  `indices.recovery.translog_size`_ is reached first, value is ignored
+  for this request.
+
+.. _indices.recovery.translog_size:
+
+**indices.recovery.translog_size**
+  | *Default:*   ``512kb``
+  | *Runtime:*  ``yes``
+
+  Specifies how much data of the transaction log should be transfered
+  betweem shards in a single request during the recovery process. If
+  ``indices.recovery.translog_op`` is reached first, value is ignored
+  for this request.
+
+.. _indices.recovery.compress:
+
+**indices.recovery.compress**
+  | *Default:*   ``true``
+  | *Runtime:*  ``yes``
+
+  Define if transferred data should be compressed during the recovery
+  process. Setting it to ``false`` may lower the pressure on the CPU
+  while resulting in more data being transfererd over the network.
+
+.. _indices.recovery.max_bytes_per_sec:
+
+**indices.recovery.max_bytes_per_sec**
+  | *Default:*   ``40mb``
+  | *Runtime:*  ``yes``
+
+  Specifies the maximum number of bytes that can be transferred during
+  shard recovery per seconds. Limiting can be disabled by setting it
+  to ``0``. Similiar to `indices.recovery.concurrent_streams`_ this
+  setting allows to control the network usage of the recovery
+  process. Higher values may result in higher network utilization, but
+  also faster recovery process.
+
+.. _indices.recovery.retry_delay_state_sync:
+
+**indices.recovery.retry_delay_state_sync**
+  | *Default:*  ``500ms``
+  | *Runtime:*  ``yes``
+
+  Defines the time to wait after an issue caused by cluster state syncing
+  before retrying to recover.
+
+.. _indices.recovery.retry_delay_network:
+
+**indices.recovery.retry_delay_network**
+  | *Default:*  ``5s``
+  | *Runtime:*  ``yes``
+
+  Defines the time to wait after an issue caused by the network
+  before retrying to recover.
+
+.. _indices.recovery.retry_activity_timeout:
+
+**indices.recovery.retry_activity_timeout**
+  | *Default:*  ``15m``
+  | *Runtime:*  ``yes``
+
+  Defines the interval after which idle recoveries will be failed.
+
+.. _indices.recovery.retry_internal_action_timeout:
+
+**indices.recovery.retry_internal_action_timeout**
+  | *Default:*  ``15m``
+  | *Runtime:*  ``yes``
+
+  Defines the timeout for internal requests made as part of the
+  recovery.
+
+.. _indices.recovery.retry_internal_long_action_timeout:
+
+**indices.recovery.retry_internal_long_action_timeout**
+  | *Default:*  ``30m``
+  | *Runtime:*  ``yes``
+
+  Defines the timeout for internal requests made as part of the
+  recovery that are expected to take a long time. Defaults to twice
+  :ref:`retry_internal_action_timeout <indices.recovery.retry_internal_action_timeout>`.
+
+.. _indices.store.throttle:
+
+Store Level Throttling
+----------------------
+.. _indices.store.throttle.type:
+
+**indices.store.throttle.type**
+  | *Default:*   ``merge``
+  | *Runtime:*  ``yes``
+  | *Allowed Values:*  ``all | merge | none``
+
+  Allows to throttle ``merge`` (or ``all``) processes of the store module.
+
+.. _indices.store.throttle.max_bytes_per_sec:
+
+**indices.store.throttle.max_bytes_per_sec**
+  | *Default:*   ``20mb``
+  | *Runtime:*  ``yes``
+
+  If throttling is enabled by `indices.store.throttle.type`_, this
+  setting specifies the maximum bytes per second a store module
+  process can operate with.
+
+Query Circuit Breaker
+---------------------
+
+The Query circuit breaker will keep track of the used memory during
+the execution of a query. If a query consumes too much memory or if
+the cluster is already near its memory limit it will terminate the
+query to ensure the cluster keeps working.
+
+**indices.breaker.query.limit**
+  | *Default:*   ``60%``
+  | *Runtime:*   ``yes``
+
+  Specifies the limit for the query breaker. Provided values can
+  either be absolute values (intepreted as a number of bytes), byte
+  sizes (eg. 1mb) or percentage of the heap size (eg. 12%). A value of
+  ``-1`` disables breaking the circuit while still accounting memory usage.
+
+**indices.breaker.query.overhead**
+  | *Default:*   ``1.09``
+  | *Runtime:*   ``no``
+
+  A constant that all data estimations are multiplied with to
+  determine a final estimation.
+
+
+Field Data Circuit Breaker
+--------------------------
+
+The field data circuit breaker allows estimation of needed heap memory
+required for loading field data into memory. If a certain limit
+is reached an exception is raised.
+
+**indices.fielddata.breaker.limit**
+  | *Default:*   ``60%``
+  | *Runtime:*  ``yes``
+
+  Specifies the JVM heap limit for the fielddata breaker.
+
+**indices.fielddata.breaker.overhead**
+  | *Default:*   ``1.03``
+  | *Runtime:*  ``yes``
+
+  A constant that all field data estimations are multiplied with to
+  determine a final estimation.
+
+
+Request Circuit Breaker
+-----------------------
+
+The request circuit breaker allows an estimation of required heap memory
+per request. If a single request exceeds the specified amount of memory,
+an exception is raised.
+
+**indices.breaker.request.limit**
+  | *Default:*   ``40%``
+  | *Runtime:*  ``yes``
+
+  Specifies the JVM heap limit for the request circuit breaker.
+
+**indices.breaker.request.overhead**
+  | *Default:*   ``1.0``
+  | *Runtime:*  ``yes``
+
+  A constant that all request estimations are multiplied with to
+  determine a final estimation.
+
+
+Threadpools
+-----------
+Every node holds several thread pools to improve how threads are
+managed within a node. There are several pools, but the important ones include:
+
+    * index: For index/delete operations, defaults to fixed
+    * search: For count/search operations, defaults to fixed
+    * get: For queries that are optimized to do a direct lookup by primary key,
+      defaults to fixed
+    * bulk: For bulk operations, defaults to fixed
+    * refresh: For refresh operations, defaults to cache
+
+.. _threadpool.<threadpool>.type:
+
+**threadpool.<threadpool>.type**
+  | *Runtime:*  ``no``
+  | *Allowed Values:* ``fixed | cache``
+
+  ``fixed`` holds a fixed size of threads to handle the requests. It
+  also has a queue for pending requests if no threads are available.
+
+  ``cache`` will spawn a thread if there are pending requests (unbounded).
+
+Fixed Threadpool Settings
+~~~~~~~~~~~~~~~~~~~~~~~~~
+If the type of a threadpool is set to ``fixed`` there are a few
+optional settings.
+
+.. _threadpool.<threadpool>.size:
+
+**threadpool.<threadpool>.size**
+  | *Default index:*  ``<number-of-cores>``
+  | *Default search:*  ``<number-of-cores> * 3``
+  | *Default get:*  ``<number-of-cores>``
+  | *Default bulk:*  ``<number-of-cores>``
+  | *Runtime:*  ``no``
+
+  Number of threads.
+
+.. _threadpool.<threadpool>.queue_size:
+
+**threadpool.<threadpool>.queue_size**
+  | *Default index:*  ``200``
+  | *Default search:* ``1000``
+  | *Default get:* ``1000``
+  | *Default bulk:* ``50``
+  | *Runtime:*  ``no``
+
+  Size of the queue for pending requests. A value of ``-1`` sets it to
+  unbounded.
+
+Metadata
+--------
+
+.. _cluster.info.update.interval:
+
+**cluster.info.update.interval**
+  | *Default:*  ``30s``
+  | *Runtime:*  ``yes``
+
+  Defines how often the cluster collect metadata information
+  (e.g. disk usages etc.) if no concrete  event is triggered.
+
+Metadata Gateway
+~~~~~~~~~~~~~~~~
+
+  The gateway persists cluster meta data on disk every time the meta data
+  changes. This data is stored persistently across full cluster restarts and
+  recovered after nodes are started again.
+
+.. _gateway.expected_nodes:
+
+**gateway.expected_nodes**
+  | *Default:*   ``-1``
+  | *Runtime:*  ``no``
+
+  The setting ``gateway.expected_nodes`` defines the number of nodes that
+  should be waited for until the cluster state is recovered immediately.
+  The value of the setting should be equal to the number of nodes in the
+  cluster, because you only want the cluster state to be recovered after all
+  nodes are started.
+
+.. _gateway.recover_after_time:
+
+**gateway.recover_after_time**
+  | *Default:*   ``5m``
+  | *Runtime:*  ``no``
+
+  The ``gateway.recover_after_time`` setting defines the time to wait before
+  starting starting the recovery once the number of nodes defined in
+  ``gateway.recover_after_nodes`` are started. The setting is relevant if
+  ``gateway.recover_after_nodes`` is less than ``gateway.expected_nodes``.
+
+.. _gateway.recover_after_nodes:
+
+**gateway.recover_after_nodes**
+  | *Default:*   ``-1``
+  | *Runtime:*  ``no``
+
+  The ``gateway.recover_after_nodes`` setting defines the number of nodes that
+  need to be started before the cluster state recovery will start. Ideally the
+  value of the setting should be equal to the number of nodes in the cluster,
+  because you only want the cluster state to be recovered once all nodes are
+  started. However, the value must be bigger than the half of the expected
+  number of nodes in the cluster.
+
+
+Logging
+=======
+
+Crate comes, out of the box, with Log4j_ 1.2.x. It tries to simplify log4j
+configuration by using YAML to configure it. The logging configuration
+file is at ``config/logging.yml``.
+
+The yaml file is used to prepare a set of properties used for logging configuration
+using the `PropertyConfigurator`_ but without the tediously repeating ``log4j`` prefix.
+Here is a small example of a working logging configuration.
+
+.. code-block:: yaml
+
+    rootLogger: INFO, console
+
+    logger:
+      # log action execution errors for easier debugging
+      action: DEBUG
+
+
+    appender:
+      console:
+        type: console
+        layout:
+          type: consolePattern
+          conversionPattern: "[%d{ISO8601}][%-5p][%-25c] %m%n"
+
+And here is a snippet of the generated properties ready for use with log4j.
+You get the point.
+
+.. code-block:: yaml
+
+   log4j.rootLogger=INFO, console
+
+   log4j.logger.action=DEBUG
+
+   log4j.appender.console=org.elasticsearch.common.logging.log4j.ConsoleAppender
+   log4j.appender.console.layout=org.apache.log4j.PatternLayout
+   log4j.appender.console.layout.conversionPattern=[%d{ISO8601}][%-5p][%-25c] %m%n
+
+   ...
+
+Logger Settings
+---------------
+
+It's possible to set the log level of loggers at runtime. This is particularly
+useful when debugging problems and there is a need to increase the log level
+without wanting to restart nodes. Logging settings are cluster wide and
+override the logging configuration of nodes defined in their ``logging.yaml``.
+
+The :ref:`RESET<ref-set>` statement is also supported, however only with the
+limitation that the reset of the logging override only takes affect after
+cluster restart.
+
+To set the log level you can use the regular :ref:`SET<ref-set>` statement,
+for example:
+
+.. code-block:: sql
+
+  SET GLOBAL TRANSIENT "logger.action" = 'INFO';
+
+The logging setting consists of the prefix ``logger`` and a variable suffix
+which defines the name of the logger that the log level should be applied to.
+
+In addition to `hierarchical named loggers`_ you can also change the log level
+of the root logger using the ``_root`` suffix.
+
+In the example above the log level ``INFO`` is applied to the logger ``action``.
+
+Possible log levels are the same as for Log4j_: ``TRACE``, ``DEBUG``, ``INFO``,
+``WARN``, and ``ERROR``. They must be provided as string literals in the
+``SET`` statement.
+
+.. note::
+
+   Be careful using the ``TRACE`` log level because it's extremely verbose,
+   can obscure other important log messages and even fill up entire data disks
+   in some cases.
+
+It is also possible to inspect the current "logging overrides" in a cluster by
+querying the ``sys.cluster`` table
+(see :ref:`Cluster Settings<sys-cluster-settings>`).
+
+
+Environment Variables
+=====================
+
+.. _env-crate-home:
+
+CRATE_HOME
+----------
+
+Specifies the home directory of the installation, it is used to find
+default file paths like e.g. ``config/crate.yml`` or the default data
+directory location. This variable is usally defined at the
+by-distribution shipped start-up script. In most cases it is the
+parent directory of the directory containing the ``bin/crate`` executable.
+
+:CRATE_HOME: Home directory of Crate installation. Used to refer
+             to default config files, data locations, log files, etc.
+             All configured relative paths will use this directory as
+             a parent.
+
+CRATE_HEAP_SIZE
+---------------
+
+This variable specifies the amount of memory that can be used by the
+JVM.
+
+The value of the environment variable can be suffixed with ``g`` or ``m``. For
+example::
+
+    CRATE_HEAP_SIZE=4g
+
+Certain operations in Crate require a lot of records to be hold in
+memory at a time. If the amount of heap that can be allocated by the
+JVM is too low these operations would fail with an OutOfMemory exception.
+
+So it's important to choose a value high enough for the intended use-case.
+But there are two limitations:
+
+Use max. 50% of available RAM
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Be aware that there is also another user of memory besides Crate's
+HEAP: our underlying storage engine `Lucene`_. It leverages the
+underlying OS for caching in-memory data structures by
+design. `Lucene`_ indexes are split in several segment files, every
+file is immutable and will never change. This makes them super
+cache-friendly and the underlying OS will keep hot segments resident
+in memory for faster access. So if all system memory is assigned to
+Crate's HEAP, there won't be any left-over for `Lucene`_ which can
+cause serious performance impacts.
+
+.. note::
+
+   A good recommendation is to assign 50% of the available memory to
+   Crate's HEAP while leaving the other 50% free. It will not get
+   unused, `Lucene`_ will use whatever is left-over.
+
+Never use more than 30.5 Gigabyte
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to save on precious memory on x64 systems the Hotspot Java Virtual Machine
+uses a technique called `Compressed Ordinary object pointers (oops) <Compressed Oops>`_.
+
+These are pointers to java objects in the heap that only consume 32 Bit,
+which saves you lots of space.
+The actual native 64 bit pointers are computed by scaling the 32 bit value by a factor of 8
+and add it to a base heap address. This allows the JVM to address about 32 GB of heap.
+
+If you configure your heap to more than 32 GB `Compressed Oops`_ cannot be used anymore.
+In effect, there will be much less space available in the heap
+as object pointers now consume twice as much.
+
+This boundary should be considered an upper bound for the heap size of any JVM application.
+
+.. note::
+
+   In order to ensure that `Compressed Oops`_ are used no matter what JVM Crate runs on,
+   configuring the heap to a value less than or equal to *30.5 GB* (``30500m``) is suggested,
+   as some JVMs only support `Compressed Oops`_ up to that value.
+
+
+Running Crate on machines with huge RAM
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If hardware with much more RAM is available, it is suggested to run more than one Crate instance
+on that machine with each one having a heap size of around 30.5 GB (``30500m``).
+But still leave half of the available RAM to `Lucene`_.
+
+In this case consider adding: ``cluster.routing.allocation.same_shard.host: true``
+to your config. This will prevent allocating primary and replica
+of the same shard on the same machine even if more than one instances
+running on it.
+
+
+
+.. _YAML: http://en.wikipedia.org/wiki/YAML
+
+.. _Log4j: https://logging.apache.org/log4j/1.2/
+
+.. _`hierarchical named loggers`: https://logging.apache.org/log4j/1.2/manual.html
+
+.. _PropertyConfigurator: https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PropertyConfigurator.html
+
+.. _`JarURLConnection documentation`: http://docs.oracle.com/javase/8/docs/api/java/net/JarURLConnection.html
+
+.. _Lucene: https://lucene.apache.org/
+
+.. _`Compressed Oops`: https://wiki.openjdk.java.net/display/HotSpot/CompressedOops

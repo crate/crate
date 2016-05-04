@@ -39,10 +39,13 @@ import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.metadata.PartitionName;
+import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.projectors.ShardProjectorChain;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.Planner;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -51,14 +54,16 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexShardMissingException;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
-import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.repositories.RepositoryMissingException;
@@ -70,15 +75,13 @@ import org.elasticsearch.transport.NodeDisconnectedException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CancellationException;
+import java.io.IOException;
+import java.util.*;
 
 public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TResponse extends SQLBaseResponse>
         extends TransportAction<TRequest, TResponse> {
+
+    public static final String NODE_READ_ONLY_SETTING = "node.sql.read_only";
 
     private static final String KILLED_MESSAGE = "KILLED";
     private static final DataType[] EMPTY_TYPES = new DataType[0];
@@ -105,17 +108,18 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
     private final StatsTables statsTables;
     private volatile boolean disabled;
 
-    public TransportBaseSQLAction(ClusterService clusterService,
-                                  Settings settings,
-                                  String actionName,
-                                  ThreadPool threadPool,
-                                  Analyzer analyzer,
-                                  Planner planner,
-                                  Provider<Executor> executorProvider,
-                                  StatsTables statsTables,
-                                  ActionFilters actionFilters,
-                                  TransportKillJobsNodeAction transportKillJobsNodeAction) {
-        super(settings, actionName, threadPool, actionFilters);
+    protected TransportBaseSQLAction(ClusterService clusterService,
+                                     Settings settings,
+                                     String actionName,
+                                     ThreadPool threadPool,
+                                     Analyzer analyzer,
+                                     Planner planner,
+                                     Provider<Executor> executorProvider,
+                                     StatsTables statsTables,
+                                     ActionFilters actionFilters,
+                                     IndexNameExpressionResolver indexNameExpressionResolver,
+                                     TransportKillJobsNodeAction transportKillJobsNodeAction) {
+        super(settings, actionName, threadPool, actionFilters, indexNameExpressionResolver);
         this.clusterService = clusterService;
         this.analyzer = analyzer;
         this.planner = planner;
@@ -200,6 +204,9 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         try {
             Statement statement = statementCache.get(request.stmt());
             Analysis analysis = analyzer.analyze(statement, getParamContext(request));
+            if (analysis.analyzedStatement().isWriteOperation() && settings.getAsBoolean(NODE_READ_ONLY_SETTING, false)) {
+                throw new ReadOnlyException();
+            }
             processAnalysis(analysis, request, listener, attempt, jobId);
         } catch (Throwable e) {
             logger.debug("Error executing SQLRequest", e);
@@ -253,10 +260,10 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                     public void onFailure(final @Nonnull Throwable t) {
                         String message;
                         Throwable unwrappedException = Exceptions.unwrap(t);
-                        if (unwrappedException instanceof CancellationException) {
+                        if (unwrappedException instanceof InterruptedException) {
                             message = KILLED_MESSAGE;
                             logger.debug("KILLED: [{}]", request.stmt());
-                        } else if ((unwrappedException instanceof IndexShardMissingException || unwrappedException instanceof IllegalIndexShardStateException)
+                        } else if ((unwrappedException instanceof ShardNotFoundException || unwrappedException instanceof IllegalIndexShardStateException)
                                 && attempt <= MAX_SHARD_MISSING_RETRIES) {
                             logger.debug("FAILED ({}/{} attempts) - Retry: [{}]", attempt, MAX_SHARD_MISSING_RETRIES,  request.stmt());
 
@@ -271,6 +278,19 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                     }
 
                     private void killAndRetry(@Nonnull final Throwable t) {
+                        /**
+                         * retry should only be done for select operations or absolute write operations
+                         *
+                         * relative write operations (x = x + 1) must not be retried
+                         *  - if one shard was successful that operation would be executed twice.
+                         *
+                         * This is currently ensured by the fact that
+                         * {@link io.crate.operation.collect.sources.ShardCollectSource#getDocCollectors(JobCollectContext, RoutedCollectPhase, ShardProjectorChain, Map)}
+                         * doesn't raise shard errors but instead uses a remoteCollector as fallback
+                         *
+                         * ORDERED collect operations would raise shard failures, but currently there is no case where
+                         * ordered + relative write operations happen
+                         */
                         transportKillJobsNodeAction.executeKillOnAllNodes(
                                 new KillJobsRequest(Collections.singletonList(plan.jobId())), new ActionListener<KillResponse>() {
                                     @Override
@@ -295,18 +315,25 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
     private void tracePlan(Plan plan) {
         if (logger.isTraceEnabled()) {
-            PlanPrinter printer = new PlanPrinter();
-            logger.trace(printer.print(plan));
+            String json = null;
+            try {
+                json = JsonXContent.contentBuilder()
+                        .humanReadable(true)
+                        .prettyPrint()
+                        .value(PlanPrinter.objectMap(plan)).bytes().toUtf8();
+            } catch (IOException e) {
+                logger.error("Failed to print plan", e);
+            }
+            logger.trace(json);
         }
     }
-
 
     /**
      * Returns the cause throwable of a {@link org.elasticsearch.transport.RemoteTransportException}
      * and {@link org.elasticsearch.action.search.ReduceSearchPhaseException}.
      * Also transform throwable to {@link io.crate.exceptions.CrateException}.
      */
-    public Throwable esToCrateException(Throwable e) {
+    private Throwable esToCrateException(Throwable e) {
         e = Exceptions.unwrap(e);
 
         if (e instanceof IllegalArgumentException || e instanceof ParsingException) {
@@ -317,22 +344,22 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             return new DuplicateKeyException(
                     "A document with the same primary key exists already", e);
         } else if (e instanceof IndexAlreadyExistsException) {
-            return new TableAlreadyExistsException(((IndexAlreadyExistsException) e).index().name(), e);
+            return new TableAlreadyExistsException(((IndexAlreadyExistsException) e).getIndex(), e);
         } else if ((e instanceof InvalidIndexNameException)) {
             if (e.getMessage().contains("already exists as alias")) {
                 // treat an alias like a table as aliases are not officially supported
-                return new TableAlreadyExistsException(((InvalidIndexNameException) e).index().getName(),
+                return new TableAlreadyExistsException(((InvalidIndexNameException) e).getIndex(),
                         e);
             }
-            return new InvalidTableNameException(((InvalidIndexNameException) e).index().getName(), e);
+            return new InvalidTableNameException(((InvalidIndexNameException) e).getIndex(), e);
         } else if (e instanceof InvalidIndexTemplateException) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(((InvalidIndexTemplateException) e).name());
             return new InvalidTableNameException(partitionName.tableIdent().fqn(), e);
-        } else if (e instanceof IndexMissingException) {
-            return new TableUnknownException(((IndexMissingException) e).index().name(), e);
+        } else if (e instanceof IndexNotFoundException) {
+            return new TableUnknownException(((IndexNotFoundException) e).getIndex(), e);
         } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
             return new CircuitBreakingException(e.getMessage());
-        } else if (e instanceof CancellationException) {
+        } else if (e instanceof InterruptedException) {
             return new JobKilledException();
         } else if (e instanceof RepositoryMissingException) {
             return new RepositoryUnknownException(((RepositoryMissingException) e).repository());
@@ -351,7 +378,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
      * If concrete {@link org.elasticsearch.ElasticsearchException} is found, first transform it
      * to a {@link io.crate.exceptions.CrateException}
      */
-    public SQLActionException buildSQLActionException(Throwable e) {
+    private SQLActionException buildSQLActionException(Throwable e) {
         if (e instanceof SQLActionException) {
             return (SQLActionException) e;
         }
@@ -359,15 +386,14 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
         int errorCode = 5000;
         RestStatus restStatus = RestStatus.INTERNAL_SERVER_ERROR;
-        String message = e.getMessage();
-        StringWriter stackTrace = new StringWriter();
-        e.printStackTrace(new PrintWriter(stackTrace));
-
         if (e instanceof CrateException) {
             CrateException crateException = (CrateException) e;
             if (e instanceof ValidationException) {
                 errorCode = 4000 + crateException.errorCode();
                 restStatus = RestStatus.BAD_REQUEST;
+            } else if (e instanceof ForbiddenException) {
+                errorCode = 4030 + crateException.errorCode();
+                restStatus = RestStatus.FORBIDDEN;
             } else if (e instanceof ResourceUnknownException) {
                 errorCode = 4040 + crateException.errorCode();
                 restStatus = RestStatus.NOT_FOUND;
@@ -385,22 +411,21 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             restStatus = RestStatus.BAD_REQUEST;
         }
 
-        if (logger.isTraceEnabled()) {
-            message = stackTrace.toString();
-        }
-
+        String message = e.getMessage();
         if (message == null) {
             if (e instanceof CrateException && e.getCause() != null) {
                 e = e.getCause();   // use cause because it contains a more meaningful error in most cases
             }
             StackTraceElement[] stackTraceElements = e.getStackTrace();
             if (stackTraceElements.length > 0) {
-                message = String.format("%s in %s", e.getClass().getSimpleName(), stackTraceElements[0]);
+                message = String.format(Locale.ENGLISH, "%s in %s", e.getClass().getSimpleName(), stackTraceElements[0]);
             } else {
                 message = "Error in " + e.getClass().getSimpleName();
             }
+        } else {
+            message = e.getClass().getSimpleName() + ": " + message;
         }
-        return new SQLActionException(message, errorCode, restStatus, stackTrace.toString());
+        return new SQLActionException(message, errorCode, restStatus, e.getStackTrace());
     }
 
     public void enable() {

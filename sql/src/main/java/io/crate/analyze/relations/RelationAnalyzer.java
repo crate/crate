@@ -26,6 +26,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.*;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
@@ -39,9 +40,11 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.operation.operator.AndOperator;
 import io.crate.sql.tree.*;
 import io.crate.types.DataTypes;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -53,11 +56,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     private final static AggregationSearcher AGGREGATION_SEARCHER = new AggregationSearcher();
 
+    private final ClusterService clusterService;
     private final AnalysisMetaData analysisMetaData;
     private static final EnumSet<Join.Type> ALLOWED_JOIN_TYPES = EnumSet.of(Join.Type.CROSS, Join.Type.INNER);
 
     @Inject
-    public RelationAnalyzer(AnalysisMetaData analysisMetaData) {
+    public RelationAnalyzer(ClusterService clusterService, AnalysisMetaData analysisMetaData) {
+        this.clusterService = clusterService;
         this.analysisMetaData = analysisMetaData;
     }
 
@@ -94,7 +99,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             if (joinCriteria instanceof JoinOn) {
                 context.addJoinExpression(((JoinOn) joinCriteria).getExpression());
             } else {
-                throw new UnsupportedOperationException(String.format("join criteria %s not supported",
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
                         joinCriteria.getClass().getSimpleName()));
             }
         }
@@ -145,8 +150,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             } else if (source instanceof TableRelation) {
                 relation =  new QueriedTable((TableRelation) source, selectAnalysis.outputNames(), querySpec);
             } else {
-                throw new UnsupportedOperationException
-                        ("Only tables are allowed in the FROM clause, got: " + source);
+                throw new UnsupportedOperationException("Only tables are allowed in the FROM clause, got: " + source);
             }
             relation.normalize(analysisMetaData);
             return relation;
@@ -178,7 +182,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 if (!isAggregate(output)) {
                     throw new IllegalArgumentException(
                             SymbolFormatter.format("column '%s' must appear in the GROUP BY clause " +
-                                                       "or be used in an aggregation function", output));
+                                                   "or be used in an aggregation function", output));
                 }
             }
         }
@@ -330,7 +334,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             try {
                 longLiteral = io.crate.analyze.symbol.Literal.convert(symbol, DataTypes.LONG);
             } catch (ClassCastException | IllegalArgumentException e) {
-                throw new UnsupportedOperationException(String.format(
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                         "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printSimple(symbol), clause));
             }
             symbol = ordinalOutputReference(selectAnalysis.outputSymbols(), longLiteral, clause);
@@ -385,6 +389,33 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             tableRelation = new TableRelation(tableInfo);
         }
         context.addSourceRelation(tableInfo.ident().schema(), tableInfo.ident().name(), tableRelation);
+        return tableRelation;
+    }
+
+    @Override
+    public AnalyzedRelation visitTableFunction(TableFunction node, RelationAnalysisContext context) {
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                analysisMetaData, context.parameterContext(), new FieldProvider() {
+            @Override
+            public Symbol resolveField(QualifiedName qualifiedName, boolean forWrite) {
+                throw new UnsupportedOperationException("Can only resolve literals");
+            }
+
+            @Override
+            public Symbol resolveField(QualifiedName qualifiedName, @Nullable List path, boolean forWrite) {
+                throw new UnsupportedOperationException("Can only resolve literals");
+            }
+        }, null);
+
+        List<Symbol> arguments = new ArrayList<>(node.arguments().size());
+        for (Expression expression : node.arguments()) {
+            Symbol symbol = expressionAnalyzer.convert(expression, context.expressionAnalysisContext());
+            arguments.add(symbol);
+        }
+        TableFunctionImplementation tableFunction = analysisMetaData.functions().getTableFunctionSafe(node.name());
+        TableInfo tableInfo = tableFunction.createTableInfo(clusterService, Symbols.extractTypes(arguments));
+        TableRelation tableRelation = new TableFunctionRelation(tableInfo, node.name(), arguments);
+        context.addSourceRelation(node.name(), tableRelation);
         return tableRelation;
     }
 }

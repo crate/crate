@@ -26,12 +26,8 @@ import com.google.common.base.Optional;
 import io.crate.Constants;
 import org.apache.lucene.util.Counter;
 import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
-import org.elasticsearch.common.HasContext;
-import org.elasticsearch.common.HasContextAndHeaders;
-import org.elasticsearch.common.HasHeaders;
-import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.*;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.util.BigArrays;
@@ -39,13 +35,14 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.script.Template;
 import org.elasticsearch.search.Scroll;
+import org.elasticsearch.search.SearchService;
 import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.internal.DefaultSearchContext;
 import org.elasticsearch.search.internal.ShardSearchRequest;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Set;
 
 public class CrateSearchContext extends DefaultSearchContext {
@@ -59,20 +56,14 @@ public class CrateSearchContext extends DefaultSearchContext {
                               IndexService indexService,
                               final IndexShard indexShard,
                               ScriptService scriptService,
-                              CacheRecycler cacheRecycler,
                               PageCacheRecycler pageCacheRecycler,
                               BigArrays bigArrays,
                               Counter timeEstimateCounter,
-                              Optional<Scroll> scroll,
-                              long keepAlive) {
+                              Optional<Scroll> scroll) {
         super(id, new CrateSearchShardRequest(nowInMillis, scroll, indexShard),
                 shardTarget, engineSearcher, indexService,
-                indexShard, scriptService, cacheRecycler, pageCacheRecycler,
-                bigArrays, timeEstimateCounter);
-        if (scroll.isPresent()) {
-            scroll(scroll.get());
-        }
-        keepAlive(keepAlive);
+                indexShard, scriptService, pageCacheRecycler,
+                bigArrays, timeEstimateCounter, ParseFieldMatcher.STRICT, SearchService.NO_TIMEOUT);
         this.engineSearcher = engineSearcher;
     }
 
@@ -96,6 +87,15 @@ public class CrateSearchContext extends DefaultSearchContext {
             this.shardId = indexShard.shardId().id();
         }
 
+        @Override
+        public Boolean requestCache() {
+            return true;
+        }
+
+        @Override
+        public Template template() {
+           return new Template();
+        }
 
         @Override
         public String index() {
@@ -147,27 +147,7 @@ public class CrateSearchContext extends DefaultSearchContext {
         }
 
         @Override
-        public String templateName() {
-            return null;
-        }
-
-        @Override
-        public ScriptService.ScriptType templateType() {
-            return null;
-        }
-
-        @Override
-        public Map<String, Object> templateParams() {
-            return null;
-        }
-
-        @Override
         public BytesReference templateSource() {
-            return null;
-        }
-
-        @Override
-        public Boolean queryCache() {
             return null;
         }
 
@@ -177,7 +157,11 @@ public class CrateSearchContext extends DefaultSearchContext {
         }
 
         @Override
-        public boolean useSlowScroll() {
+        public void setProfile(boolean profile) {
+        }
+
+        @Override
+        public boolean isProfile() {
             return false;
         }
 
@@ -235,8 +219,8 @@ public class CrateSearchContext extends DefaultSearchContext {
         }
 
         @Override
-        public HasHeaders putHeader(String key, Object value) {
-            return null;
+        public <V> void putHeader(String key, V value) {
+
         }
 
         @Override

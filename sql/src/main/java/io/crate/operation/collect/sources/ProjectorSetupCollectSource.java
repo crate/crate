@@ -27,6 +27,7 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 
 import java.util.Collection;
 
@@ -52,7 +53,7 @@ public class ProjectorSetupCollectSource implements CollectSource {
                 downstream,
                 collectPhase.jobId()
         );
-        projectorChain.prepare(jobCollectContext);
+        projectorChain.prepare();
         return sourceDelegate.getCollectors(collectPhase, projectorChain.firstProjector(), jobCollectContext);
     }
 }

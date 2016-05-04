@@ -32,6 +32,7 @@ import io.crate.executor.Job;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.executor.task.DDLTask;
+import io.crate.executor.task.ExplainTask;
 import io.crate.executor.task.NoopTask;
 import io.crate.executor.transport.task.*;
 import io.crate.executor.transport.task.elasticsearch.*;
@@ -47,18 +48,26 @@ import io.crate.planner.IterablePlan;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
+import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -66,8 +75,12 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nullable;
 import java.util.*;
 
+@Singleton
 public class TransportExecutor implements Executor {
 
+    private static final ESLogger LOGGER = Loggers.getLogger(TransportExecutor.class);
+
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Functions functions;
     private final TaskCollectingVisitor planVisitor;
     private DDLStatementDispatcher ddlAnalysisDispatcherProvider;
@@ -91,6 +104,7 @@ public class TransportExecutor implements Executor {
                              JobContextService jobContextService,
                              ContextPreparer contextPreparer,
                              TransportActionProvider transportActionProvider,
+                             IndexNameExpressionResolver indexNameExpressionResolver,
                              ThreadPool threadPool,
                              Functions functions,
                              NestedReferenceResolver referenceResolver,
@@ -102,6 +116,7 @@ public class TransportExecutor implements Executor {
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
         this.transportActionProvider = transportActionProvider;
+        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.showStatementDispatcherProvider = showStatementDispatcherProvider;
@@ -114,6 +129,8 @@ public class TransportExecutor implements Executor {
         ImplementationSymbolVisitor globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
                 clusterService,
+                functions,
+                indexNameExpressionResolver,
                 threadPool,
                 settings,
                 transportActionProvider,
@@ -124,10 +141,8 @@ public class TransportExecutor implements Executor {
 
     @Override
     public Job newJob(Plan plan) {
-        final Job job = new Job(plan.jobId());
-        List<? extends Task> tasks = planVisitor.process(plan, job);
-        job.addTasks(tasks);
-        return job;
+        List<? extends Task> tasks = planVisitor.process(plan, plan.jobId());
+        return new Job(tasks);
     }
 
     @Override
@@ -137,7 +152,7 @@ public class TransportExecutor implements Executor {
 
     }
 
-    private List<? extends ListenableFuture<TaskResult>> execute(Collection<Task> tasks) {
+    private List<? extends ListenableFuture<TaskResult>> execute(Collection<? extends Task> tasks) {
         Task lastTask = null;
         assert tasks.size() > 0 : "need at least one task to execute";
         for (Task task : tasks) {
@@ -152,83 +167,88 @@ public class TransportExecutor implements Executor {
         return lastTask.result();
     }
 
-    class TaskCollectingVisitor extends PlanVisitor<Job, List<? extends Task>> {
+    class TaskCollectingVisitor extends PlanVisitor<UUID, List<? extends Task>> {
 
         @Override
-        public List<Task> visitIterablePlan(IterablePlan plan, Job job) {
+        public List<Task> visitIterablePlan(IterablePlan plan, UUID jobId) {
             List<Task> tasks = new ArrayList<>();
             for (PlanNode planNode : plan) {
-                tasks.addAll(planNode.accept(nodeVisitor, job.id()));
+                tasks.addAll(planNode.accept(nodeVisitor, jobId));
             }
             return tasks;
         }
 
         @Override
-        public List<Task> visitNoopPlan(NoopPlan plan, Job job) {
+        public List<Task> visitNoopPlan(NoopPlan plan, UUID jobId) {
             return ImmutableList.<Task>of(NoopTask.INSTANCE);
         }
 
         @Override
-        public List<? extends Task> visitUpsert(Upsert node, Job context) {
+        public List<? extends Task> visitExplainPlan(ExplainPlan explainPlan, UUID context) {
+            return ImmutableList.of(new ExplainTask(explainPlan));
+        }
+
+        @Override
+        public List<? extends Task> visitUpsert(Upsert node, UUID jobId) {
             List<Plan> nonIterablePlans = new ArrayList<>();
             List<Task> tasks = new ArrayList<>();
             for (Plan plan : node.nodes()) {
                 if (plan instanceof IterablePlan) {
-                    tasks.addAll(process(plan, context));
+                    tasks.addAll(process(plan, jobId));
                 } else {
                     nonIterablePlans.add(plan);
                 }
             }
             if (!nonIterablePlans.isEmpty()) {
                 tasks.add(executionPhasesTask(
-                        new Upsert(nonIterablePlans, context.id()), context, ExecutionPhasesTask.OperationType.BULK));
+                        new Upsert(nonIterablePlans, jobId), jobId, ExecutionPhasesTask.OperationType.BULK));
             }
             return tasks;
         }
 
         @Override
-        protected List<? extends Task> visitPlan(Plan plan, Job job) {
-            ExecutionPhasesTask task = executionPhasesTask(plan, job, ExecutionPhasesTask.OperationType.UNKNOWN);
+        protected List<? extends Task> visitPlan(Plan plan, UUID jobId) {
+            ExecutionPhasesTask task = executionPhasesTask(plan, jobId, ExecutionPhasesTask.OperationType.UNKNOWN);
             return ImmutableList.of(task);
         }
 
-        private ExecutionPhasesTask executionPhasesTask(Plan plan, Job job, ExecutionPhasesTask.OperationType operationType) {
+        private ExecutionPhasesTask executionPhasesTask(Plan plan, UUID jobId, ExecutionPhasesTask.OperationType operationType) {
             List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(
                     plan, clusterService.localNode().id());
+            LOGGER.debug("Created NodeOperationTrees from Plan: {}", nodeOperationTrees);
             return new ExecutionPhasesTask(
-                    job.id(),
+                    jobId,
                     clusterService,
                     contextPreparer,
                     jobContextService,
                     indicesService,
                     transportActionProvider.transportJobInitAction(),
+                    transportActionProvider.transportKillJobsNodeAction(),
                     nodeOperationTrees,
                     operationType
             );
         }
 
         @Override
-        public List<Task> visitKillPlan(KillPlan killPlan, Job job) {
+        public List<Task> visitKillPlan(KillPlan killPlan, UUID jobId) {
             Task task = killPlan.jobToKill().isPresent() ?
                     new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
-                            job.id(),
+                            jobId,
                             killPlan.jobToKill().get()) :
-                    new KillTask(clusterService,
-                            transportActionProvider.transportKillAllNodeAction(),
-                            job.id());
+                    new KillTask(transportActionProvider.transportKillAllNodeAction(), jobId);
             return ImmutableList.of(task);
         }
 
         @Override
-        public List<? extends Task> visitGenericShowPlan(GenericShowPlan genericShowPlan, Job job) {
-            return ImmutableList.<Task>of(new GenericShowTask(job.id(),
+        public List<? extends Task> visitGenericShowPlan(GenericShowPlan genericShowPlan, UUID jobId) {
+            return ImmutableList.<Task>of(new GenericShowTask(jobId,
                     showStatementDispatcherProvider,
                     genericShowPlan.statement()));
         }
 
         @Override
-        public List<? extends Task> visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, Job context) {
-            return ImmutableList.<Task>of(new DDLTask(context.id(),
+        public List<? extends Task> visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, UUID jobId) {
+            return ImmutableList.<Task>of(new DDLTask(jobId,
                     ddlAnalysisDispatcherProvider,
                     genericDDLPlan.statement()));
         }
@@ -258,15 +278,6 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public ImmutableList<Task> visitESDeleteByQueryNode(ESDeleteByQueryNode node, UUID jobId) {
-            return singleTask(new ESDeleteByQueryTask(
-                    jobId,
-                    node,
-                    transportActionProvider.transportDeleteByQueryAction(),
-                    jobContextService));
-        }
-
-        @Override
         public ImmutableList<Task> visitESDeleteNode(ESDeleteNode node, UUID jobId) {
             return singleTask(new ESDeleteTask(
                     jobId,
@@ -286,6 +297,7 @@ public class TransportExecutor implements Executor {
         public ImmutableList<Task> visitUpsertByIdNode(UpsertByIdNode node, UUID jobId) {
             return singleTask(new UpsertByIdTask(jobId,
                     clusterService,
+                    indexNameExpressionResolver,
                     clusterService.state().metaData().settings(),
                     transportActionProvider.transportShardUpsertActionDelegate(),
                     transportActionProvider.transportCreateIndexAction(),
@@ -321,7 +333,7 @@ public class TransportExecutor implements Executor {
         @Override
         protected ImmutableList<Task> visitPlanNode(PlanNode node, UUID jobId) {
             throw new UnsupportedOperationException(
-                    String.format("Can't generate job/task for planNode %s", node));
+                    String.format(Locale.ENGLISH, "Can't generate job/task for planNode %s", node));
         }
     }
 
@@ -464,11 +476,23 @@ public class TransportExecutor implements Executor {
                     previousPhase = currentBranch.phases.lastElement();
                 }
                 if (setDownstreamNodes) {
+                    assert saneConfiguration(executionPhase, previousPhase.executionNodes()) : String.format(Locale.ENGLISH,
+                            "NodeOperation with %s and %s as downstreams cannot work",
+                            ExecutionPhases.debugPrint(executionPhase), previousPhase.executionNodes());
+
                     nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, currentBranch.inputId, localNodeId));
                 } else {
                     nodeOperations.add(NodeOperation.withoutDownstream(executionPhase));
                 }
                 currentBranch.phases.add(executionPhase);
+            }
+
+            private boolean saneConfiguration(ExecutionPhase executionPhase, Collection<String> downstreamNodes) {
+                if (executionPhase instanceof UpstreamPhase && ((UpstreamPhase) executionPhase).distributionInfo().distributionType() ==
+                                                               DistributionType.SAME_NODE) {
+                    return downstreamNodes.isEmpty() || downstreamNodes.equals(executionPhase.executionNodes());
+                }
+                return true;
             }
 
             public void branch(byte inputId) {
@@ -564,7 +588,7 @@ public class TransportExecutor implements Executor {
 
         @Override
         protected Void visitPlan(Plan plan, NodeOperationTreeContext context) {
-            throw new UnsupportedOperationException(String.format("Can't create NodeOperationTree from plan %s", plan));
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't create NodeOperationTree from plan %s", plan));
         }
     }
 }

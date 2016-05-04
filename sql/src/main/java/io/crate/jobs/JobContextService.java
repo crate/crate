@@ -25,42 +25,21 @@ import io.crate.exceptions.ContextMissingException;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.BindingAnnotation;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.Callback;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Singleton
 public class JobContextService extends AbstractLifecycleComponent<JobContextService> {
 
-    @BindingAnnotation
-    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
-    @Retention(RetentionPolicy.RUNTIME)
-    public static @interface JobKeepAlive {}
-
-    @BindingAnnotation
-    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
-    @Retention(RetentionPolicy.RUNTIME)
-    public static @interface ReaperInterval {}
-
-
-    private final ThreadPool threadPool;
     private final StatsTables statsTables;
-    private final ScheduledFuture<?> keepAliveReaper;
     private final ConcurrentMap<UUID, JobExecutionContext> activeContexts =
             ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
@@ -68,33 +47,12 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     private final ReentrantReadWriteLock.ReadLock readLock = rwLock.readLock();
     private final ReentrantReadWriteLock.WriteLock writeLock = rwLock.writeLock();
 
-    private final TimeValue keepAlive;
-    private final Reaper reaperImpl;
-
     private final List<KillAllListener> killAllListeners = Collections.synchronizedList(new ArrayList<KillAllListener>());
 
     @Inject
-    public JobContextService(Settings settings,
-                             ThreadPool threadPool,
-                             StatsTables statsTables,
-                             Reaper reaper,
-                             @JobKeepAlive TimeValue keepAlive,
-                             @ReaperInterval TimeValue reaperInterval) {
+    public JobContextService(Settings settings, StatsTables statsTables) {
         super(settings);
-        this.threadPool = threadPool;
         this.statsTables = statsTables;
-        this.keepAlive = keepAlive;
-        this.reaperImpl = reaper;
-        if (keepAlive.micros() > 0) {
-            this.keepAliveReaper = threadPool.scheduleWithFixedDelay(new Runnable() {
-                @Override
-                public void run() {
-                    reaperImpl.killHangingJobs(JobContextService.this.keepAlive, activeContexts.values());
-                }
-            }, reaperInterval);
-        } else {
-            this.keepAliveReaper = null;
-        }
     }
 
     @Override
@@ -104,7 +62,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     @Override
     protected void doStop() throws ElasticsearchException {
         for (JobExecutionContext context : activeContexts.values()) {
-            context.close();
+            context.kill();
         }
     }
 
@@ -114,9 +72,6 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
 
     @Override
     protected void doClose() throws ElasticsearchException {
-        if (keepAliveReaper != null) {
-            keepAliveReaper.cancel(false);
-        }
     }
 
     public JobExecutionContext getContext(UUID jobId) {
@@ -133,7 +88,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     }
 
     public JobExecutionContext.Builder newBuilder(UUID jobId) {
-        return new JobExecutionContext.Builder(jobId, threadPool, statsTables);
+        return new JobExecutionContext.Builder(jobId, statsTables);
     }
 
     public JobExecutionContext createContext(JobExecutionContext.Builder contextBuilder) {

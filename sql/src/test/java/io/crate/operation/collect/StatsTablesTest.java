@@ -29,13 +29,13 @@ import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
 
 import static org.hamcrest.core.Is.is;
 
@@ -44,8 +44,8 @@ public class StatsTablesTest extends CrateUnitTest {
 
     @Test
     public void testSettingsChanges() {
-        NodeSettingsService nodeSettingsService = new NodeSettingsService(ImmutableSettings.EMPTY);
-        StatsTables stats = new StatsTables(ImmutableSettings.EMPTY, nodeSettingsService);
+        NodeSettingsService nodeSettingsService = new NodeSettingsService(Settings.EMPTY);
+        StatsTables stats = new StatsTables(Settings.EMPTY, nodeSettingsService);
 
         assertThat(stats.isEnabled(), is(false));
         assertThat(stats.lastJobsLogSize, is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
@@ -54,7 +54,7 @@ public class StatsTablesTest extends CrateUnitTest {
         // even though logSizes are > 0 it must be a NoopQueue because the stats are disabled
         assertThat(stats.jobsLog.get(), Matchers.instanceOf(NoopQueue.class));
 
-        stats.listener.onRefreshSettings(ImmutableSettings.builder()
+        stats.listener.onRefreshSettings(Settings.builder()
                 .put(CrateSettings.STATS_ENABLED.settingName(), true)
                 .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 200).build());
 
@@ -65,7 +65,7 @@ public class StatsTablesTest extends CrateUnitTest {
         assertThat(stats.jobsLog.get(), Matchers.instanceOf(BlockingEvictingQueue.class));
 
 
-        stats.listener.onRefreshSettings(ImmutableSettings.builder()
+        stats.listener.onRefreshSettings(Settings.builder()
                 .put(CrateSettings.STATS_ENABLED.settingName(), false).build());
 
         // logs got wiped:
@@ -75,14 +75,14 @@ public class StatsTablesTest extends CrateUnitTest {
 
     @Test
     public void testLogsArentWipedOnSizeChange() {
-        NodeSettingsService nodeSettingsService = new NodeSettingsService(ImmutableSettings.EMPTY);
-        Settings settings = ImmutableSettings.builder()
+        NodeSettingsService nodeSettingsService = new NodeSettingsService(Settings.EMPTY);
+        Settings settings = Settings.builder()
                 .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
         StatsTables stats = new StatsTables(settings, nodeSettingsService);
 
         stats.jobsLog.get().add(new JobContextLog(new JobContext(UUID.randomUUID(), "select 1", 1L), null));
 
-        stats.listener.onRefreshSettings(ImmutableSettings.builder()
+        stats.listener.onRefreshSettings(Settings.builder()
                 .put(CrateSettings.STATS_ENABLED.settingName(), true)
                 .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 200).build());
 
@@ -94,10 +94,34 @@ public class StatsTablesTest extends CrateUnitTest {
         stats.operationsLog.get().add(new OperationContextLog(
                 new OperationContext(1, UUID.randomUUID(), "foo", 3L), null));
 
-        stats.listener.onRefreshSettings(ImmutableSettings.builder()
+        stats.listener.onRefreshSettings(Settings.builder()
                 .put(CrateSettings.STATS_ENABLED.settingName(), true)
                 .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 1).build());
 
         assertThat(stats.operationsLog.get().size(), is(1));
+    }
+
+    @Test
+    public void testUniqueOperationIdsInOperationsTable() throws Exception {
+        NodeSettingsService nodeSettingsService = new NodeSettingsService(Settings.EMPTY);
+        Settings settings = Settings.builder()
+                .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
+        StatsTables stats = new StatsTables(settings, nodeSettingsService);
+
+        OperationContext ctxA = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L);
+        stats.operationStarted(ctxA.id, ctxA.jobId, ctxA.name);
+
+        OperationContext ctxB = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L);
+        stats.operationStarted(ctxB.id, ctxB.jobId, ctxB.name);
+
+        stats.operationFinished(ctxB.id, ctxB.jobId, null, -1);
+
+        BlockingQueue<OperationContextLog> queue = stats.operationsLog.get();
+        assertTrue(queue.contains(new OperationContextLog(ctxB, null)));
+        assertFalse(queue.contains(new OperationContextLog(ctxA, null)));
+
+        stats.operationFinished(ctxA.id, ctxA.jobId, null, -1);
+        assertTrue(queue.contains(new OperationContextLog(ctxA, null)));
+
     }
 }

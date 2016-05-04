@@ -9,18 +9,29 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
-@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE, numDataNodes = 2)
+import static org.hamcrest.core.Is.is;
+
+
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 2)
 public class BlobIntegrationTest extends BlobHttpIntegrationTest {
 
     private String uploadSmallBlob() throws IOException {
         String digest = "c520e6109835c876fd98636efec43dd61634b7d3";
-        put(blobUri(digest), StringUtils.repeat("a", 1500));
+        CloseableHttpResponse response = put(blobUri(digest), StringUtils.repeat("a", 1500));
+        assertThat(response.getStatusLine().getStatusCode(), is(201));
         return digest;
     }
 
@@ -200,6 +211,61 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     }
 
     @Test
+    public void testHeadRequestConnectionIsNotClosed() throws Exception {
+        Socket socket = new Socket(address.getAddress(), address.getPort());
+        socket.setKeepAlive(true);
+        socket.setSoTimeout(3000);
+
+        PrintWriter pw = new PrintWriter(socket.getOutputStream());
+        pw.print("HEAD /_blobs/invalid/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa HTTP/1.1\r\n");
+        pw.print("Host: localhost\r\n\r\n");
+        pw.flush();
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        int linesRead = 0;
+        while (linesRead < 4) {
+            String line = reader.readLine();
+            System.out.println(line);
+            linesRead++;
+        }
+
+        assertSocketIsConnected(socket);
+        pw.print("HEAD /_blobs/invalid/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa HTTP/1.1\r\n");
+        pw.print("Host: localhost\r\n\r\n");
+        pw.flush();
+        int read = reader.read();
+        assertThat(read, Matchers.greaterThan(-1));
+        assertSocketIsConnected(socket);
+    }
+
+    @Test
+    public void testResponseContainsCloseHeaderOnHttp10() throws Exception {
+        Socket socket = new Socket(address.getAddress(), address.getPort());
+        socket.setKeepAlive(false);
+        socket.setSoTimeout(3000);
+
+        PrintWriter pw = new PrintWriter(socket.getOutputStream());
+        pw.print("HEAD /_blobs/invalid/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa HTTP/1.0\r\n");
+        pw.print("Host: localhost\r\n\r\n");
+        pw.flush();
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        String line;
+        List<String> lines = new ArrayList<>();
+        while ((line = reader.readLine()) != null) {
+            lines.add(line);
+        }
+        assertThat(lines, Matchers.hasItem("Connection: close"));
+    }
+
+    private void assertSocketIsConnected(Socket socket) {
+        assertThat(socket.isConnected(), is(true));
+        assertThat(socket.isClosed(), is(false));
+        assertThat(socket.isInputShutdown(), is(false));
+        assertThat(socket.isOutputShutdown(), is(false));
+    }
+
+    @Test
     public void testEmptyFile() throws IOException {
         CloseableHttpResponse res = put(blobUri("da39a3ee5e6b4b0d3255bfef95601890afd80709"), "");
         assertEquals(res.getStatusLine().getStatusCode(), 201);
@@ -211,16 +277,23 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     }
 
     @Test
+    public void testGetInvalidDigest() throws Exception {
+        CloseableHttpResponse resp = get(blobUri("invlaid"));
+        assertThat(resp.getStatusLine().getStatusCode(), is(404));
+    }
+
+    @Test
     public void testIndexOnNonBlobTable() throws IOException {
         // this test works only if ES API is enabled
         HttpPut httpPut = new HttpPut(String.format(Locale.ENGLISH, "http://%s:%s/test_no_blobs/default/1",
                 address.getHostName(), address.getPort()));
-        String blobData = String.format("{\"content\": \"%s\"}", StringUtils.repeat("a", 1024 * 64));
+        String blobData = String.format(Locale.ENGLISH, "{\"content\": \"%s\"}", StringUtils.repeat("a", 1024 * 64));
         httpPut.setEntity(new StringEntity(blobData, ContentType.APPLICATION_OCTET_STREAM));
         CloseableHttpResponse res = httpClient.execute(httpPut);
         assertEquals(201, res.getStatusLine().getStatusCode());
         assertEquals("Created", res.getStatusLine().getReasonPhrase());
-        assertEquals("{\"_index\":\"test_no_blobs\",\"_type\":\"default\",\"_id\":\"1\",\"_version\":1,\"created\":true}",
+        assertEquals("{\"_index\":\"test_no_blobs\",\"_type\":\"default\"," +
+                     "\"_id\":\"1\",\"_version\":1,\"_shards\":{\"total\":1,\"successful\":1,\"failed\":0},\"created\":true}",
                 EntityUtils.toString(res.getEntity()));
     }
 }

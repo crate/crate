@@ -47,17 +47,6 @@ public abstract class RoundFunction extends Scalar<Number, Number> {
         module.register(new NoopRoundFunction(DataTypes.UNDEFINED));
     }
 
-    @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        Symbol argument = symbol.arguments().get(0);
-
-        if (argument.symbolType().isValueSymbol()) {
-            return Literal.newLiteral(info().returnType(), evaluate((Input) argument));
-        }
-
-        return symbol;
-    }
-
     static class FloatRoundFunction extends RoundFunction {
 
         private final static FunctionInfo INFO = new FunctionInfo(

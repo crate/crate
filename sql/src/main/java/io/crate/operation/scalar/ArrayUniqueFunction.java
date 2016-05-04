@@ -64,22 +64,6 @@ public class ArrayUniqueFunction extends Scalar<Object[], Object> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        if (anyNonLiterals(symbol.arguments())) {
-            return symbol;
-        }
-
-        Input[] argList = new Input[symbol.arguments().size()];
-        int counter = 0;
-        for(Symbol argSymbol : symbol.arguments()){
-            Input input  = (Input) argSymbol;
-            argList[counter++] = input;
-        }
-
-        return Literal.newLiteral(evaluate(argList), this.info().returnType());
-    }
-
-    @Override
     public Object[] evaluate(Input[] args) {
 
         DataType innerType   = ((ArrayType)this.info().returnType()).innerType();

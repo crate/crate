@@ -99,17 +99,6 @@ public abstract class LogFunction extends Scalar<Number,Number> {
         }
 
         @Override
-        public Symbol normalizeSymbol(Function symbol) {
-            assert (symbol.arguments().size() == 2);
-            Symbol base = symbol.arguments().get(0);
-            Symbol value = symbol.arguments().get(1);
-            if (value.symbolType().isValueSymbol() && base.symbolType().isValueSymbol()) {
-                return Literal.newLiteral(info.returnType(), evaluate((Input) base, (Input) value));
-            }
-            return symbol;
-        }
-
-        @Override
         public Number evaluate(Input<Number>... args) {
             assert args.length == 2;
             if (args[0].value() == null || args[1].value() == null) {
@@ -138,16 +127,6 @@ public abstract class LogFunction extends Scalar<Number,Number> {
 
         public Log10Function(FunctionInfo info) {
             super(info);
-        }
-
-        @Override
-        public Symbol normalizeSymbol(Function symbol) {
-            assert (symbol.arguments().size() == 1);
-            Symbol value = symbol.arguments().get(0);
-            if (value.symbolType().isValueSymbol()) {
-                return Literal.newLiteral(info.returnType(), evaluate((Input)value));
-            }
-            return symbol;
         }
 
         @Override

@@ -56,19 +56,19 @@ public class GeoJSONUtils {
 
     public static final ImmutableMap<String, String> GEOSJON_TYPES = ImmutableMap.<String, String>builder()
             .put(GEOMETRY_COLLECTION, GEOMETRY_COLLECTION)
-            .put(GEOMETRY_COLLECTION.toLowerCase(), GEOMETRY_COLLECTION)
+            .put(GEOMETRY_COLLECTION.toLowerCase(Locale.ENGLISH), GEOMETRY_COLLECTION)
             .put(POINT, POINT)
-            .put(POINT.toLowerCase(), POINT)
+            .put(POINT.toLowerCase(Locale.ENGLISH), POINT)
             .put(MULTI_POINT, MULTI_POINT)
-            .put(MULTI_POINT.toLowerCase(), MULTI_POINT)
+            .put(MULTI_POINT.toLowerCase(Locale.ENGLISH), MULTI_POINT)
             .put(LINE_STRING, LINE_STRING)
-            .put(LINE_STRING.toLowerCase(), LINE_STRING)
+            .put(LINE_STRING.toLowerCase(Locale.ENGLISH), LINE_STRING)
             .put(MULTI_LINE_STRING, MULTI_LINE_STRING)
-            .put(MULTI_LINE_STRING.toLowerCase(), MULTI_LINE_STRING)
+            .put(MULTI_LINE_STRING.toLowerCase(Locale.ENGLISH), MULTI_LINE_STRING)
             .put(POLYGON, POLYGON)
-            .put(POLYGON.toLowerCase(), POLYGON)
+            .put(POLYGON.toLowerCase(Locale.ENGLISH), POLYGON)
             .put(MULTI_POLYGON, MULTI_POLYGON)
-            .put(MULTI_POLYGON.toLowerCase(), MULTI_POLYGON)
+            .put(MULTI_POLYGON.toLowerCase(Locale.ENGLISH), MULTI_POLYGON)
             .build();
 
     private static final GeoJSONMapConverter GEOJSON_CONVERTER = new GeoJSONMapConverter();

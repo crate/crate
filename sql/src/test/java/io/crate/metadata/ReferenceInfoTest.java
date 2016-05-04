@@ -26,7 +26,7 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -55,7 +55,7 @@ public class ReferenceInfoTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         ReferenceInfo.toStream(referenceInfo, out);
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        StreamInput in = StreamInput.wrap(out.bytes());
         ReferenceInfo referenceInfo2 = ReferenceInfo.fromStream(in);
 
         assertThat(referenceInfo2, is(referenceInfo));

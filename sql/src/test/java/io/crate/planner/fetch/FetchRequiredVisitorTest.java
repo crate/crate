@@ -27,9 +27,10 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingHelpers;
-import io.crate.types.DataTypes;
+import io.crate.testing.SqlExpressions;
+import io.crate.testing.T3;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -40,11 +41,12 @@ import static org.hamcrest.Matchers.is;
 
 public class FetchRequiredVisitorTest extends CrateUnitTest {
 
-    private final Reference x = TestingHelpers.createReference("x", DataTypes.STRING);
-    private final Reference y = TestingHelpers.createReference("y", DataTypes.FLOAT);
-    private final Function myFun = TestingHelpers.createFunction("my_fun", DataTypes.STRING, x);
-    private final Function bothFun = TestingHelpers.createFunction("both", DataTypes.STRING, x, y);
-    private final Function myOtherFun = TestingHelpers.createFunction("my_other_fun", DataTypes.STRING, x);
+    private final SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES, T3.TR_1);
+    private final Function myFun = (Function) sqlExpressions.normalize(sqlExpressions.asSymbol("upper(a)"));
+    private final Function bothFun = (Function) sqlExpressions.normalize(sqlExpressions.asSymbol("cast(a as integer) + x"));
+    private final Function myOtherFun = (Function) sqlExpressions.normalize(sqlExpressions.asSymbol("lower(a)"));
+    private final Reference a = new Reference(T3.T1_INFO.getReferenceInfo(new ColumnIdent("a")));
+    private final Reference x = new Reference(T3.T1_INFO.getReferenceInfo(new ColumnIdent("x")));
 
 
     private FetchRequiredVisitor.Context context(List<Symbol> orderBySymbols) {
@@ -61,8 +63,8 @@ public class FetchRequiredVisitorTest extends CrateUnitTest {
 
     @Test
     public void testValidateWithoutFetchSymbols() throws Exception {
-        List<Symbol> orderBySymbols = ImmutableList.of(myFun, y);
-        List<Symbol> outputs = ImmutableList.of(myFun, y);
+        List<Symbol> orderBySymbols = ImmutableList.of(myFun, a);
+        List<Symbol> outputs = ImmutableList.of(myFun, a);
 
         FetchRequiredVisitor.Context context = context(orderBySymbols);
         assertThat(FetchRequiredVisitor.INSTANCE.process(outputs, context), is(false));
@@ -80,7 +82,7 @@ public class FetchRequiredVisitorTest extends CrateUnitTest {
     @Test
     public void testValidateWithFetchSymbolsUsedInOutPutFunction() throws Exception {
 
-        List<Symbol> orderBySymbols = ImmutableList.<Symbol>of(x, y);
+        List<Symbol> orderBySymbols = ImmutableList.<Symbol>of(a, x);
         List<Symbol> outputs = ImmutableList.<Symbol>of(bothFun);
         FetchRequiredVisitor.Context context = context(orderBySymbols);
         assertThat(FetchRequiredVisitor.INSTANCE.process(outputs, context), is(false));
@@ -89,7 +91,7 @@ public class FetchRequiredVisitorTest extends CrateUnitTest {
     @Test
     public void testValidateNoQueryOrOrderBy() throws Exception {
         List<Symbol> orderBySymbols = ImmutableList.of();
-        List<Symbol> outputs = ImmutableList.<Symbol>of(x, y);
+        List<Symbol> outputs = ImmutableList.<Symbol>of(a, x);
         FetchRequiredVisitor.Context context = context(orderBySymbols);
         assertThat(FetchRequiredVisitor.INSTANCE.process(outputs, context), is(true));
 

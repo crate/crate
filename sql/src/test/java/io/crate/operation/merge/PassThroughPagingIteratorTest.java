@@ -33,22 +33,22 @@ import static org.hamcrest.core.Is.is;
 
 public class PassThroughPagingIteratorTest extends CrateUnitTest {
 
-    private static <T> PassThroughPagingIterator<T> iter() {
-        return randomBoolean() ? PassThroughPagingIterator.<T>repeatable() : PassThroughPagingIterator.<T>oneShot();
+    private static <T> PassThroughPagingIterator<Integer, T> iter() {
+        return randomBoolean() ? PassThroughPagingIterator.<Integer, T>repeatable() : PassThroughPagingIterator.<Integer, T>oneShot();
     }
 
     @Test
     public void testHasNextCallWithoutMerge() throws Exception {
-        PassThroughPagingIterator<Object> iterator = iter();
+        PassThroughPagingIterator<Integer, Object> iterator = iter();
         assertThat(iterator.hasNext(), is(false));
     }
 
     @Test
     public void testInputIsPassedThrough() throws Exception {
-        PassThroughPagingIterator<String> iterator = iter();
+        PassThroughPagingIterator<Integer, String> iterator = iter();
         iterator.merge(Arrays.asList(
-                new NumberedIterable<>(0, Arrays.asList("a", "b", "c")),
-                new NumberedIterable<>(1, Arrays.asList("d", "e"))));
+                new KeyIterable<>(0, Arrays.asList("a", "b", "c")),
+                new KeyIterable<>(1, Arrays.asList("d", "e"))));
 
         iterator.finish();
         String[] objects = Iterators.toArray(iterator, String.class);
@@ -57,12 +57,12 @@ public class PassThroughPagingIteratorTest extends CrateUnitTest {
 
     @Test
     public void testInputIsPassedThroughWithSecondMergeCall() throws Exception {
-        PassThroughPagingIterator<String> iterator = iter();
+        PassThroughPagingIterator<Integer, String> iterator = iter();
         iterator.merge(Arrays.asList(
-                        new NumberedIterable<>(0, Arrays.asList("a", "b", "c")),
-                        new NumberedIterable<>(1, Arrays.asList("d", "e"))));
+                        new KeyIterable<>(0, Arrays.asList("a", "b", "c")),
+                        new KeyIterable<>(1, Arrays.asList("d", "e"))));
         iterator.merge(Collections.singletonList(
-                new NumberedIterable<>(1, Arrays.asList("f", "g"))));
+                new KeyIterable<>(1, Arrays.asList("f", "g"))));
         iterator.finish();
         String[] objects = Iterators.toArray(iterator, String.class);
         assertThat(objects, Matchers.arrayContaining("a", "b", "c", "d", "e", "f", "g"));

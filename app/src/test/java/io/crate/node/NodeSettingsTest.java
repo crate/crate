@@ -26,23 +26,23 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.varia.NullAppender;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.cli.Terminal;
+import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeBuilder;
-import org.elasticsearch.node.internal.InternalSettingsPreparer;
+import org.elasticsearch.node.internal.CrateSettingsPreparer;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 
 public class NodeSettingsTest {
@@ -54,6 +54,8 @@ public class NodeSettingsTest {
     protected Client client;
     private boolean loggingConfigured = false;
 
+    private final String CRATE_CONFIG_PATH = getClass().getResource("/crate").getPath();
+
     private void doSetup() throws IOException {
         // mute log4j warning by configuring a dummy logger
         if (!loggingConfigured) {
@@ -64,23 +66,22 @@ public class NodeSettingsTest {
             loggingConfigured = true;
         }
         tmp.create();
-        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
+        Settings.Builder builder = Settings.settingsBuilder()
             .put("node.name", "node-test")
             .put("node.data", true)
-            .put("index.store.type", "memory")
+            .put("index.store.type", "default")
             .put("index.store.fs.memory.enabled", "true")
-            .put("gateway.type", "none")
-            .put("path.data", new File(tmp.getRoot(), "data"))
-            .put("path.work", new File(tmp.getRoot(), "work"))
-            .put("path.logs", new File(tmp.getRoot(), "logs"))
+            .put("gateway.type", "default")
+            .put("path.home", CRATE_CONFIG_PATH)
             .put("index.number_of_shards", "1")
             .put("index.number_of_replicas", "0")
             .put("cluster.routing.schedule", "50ms")
             .put("node.local", true);
-        Tuple<Settings,Environment> settingsEnvironmentTuple = InternalSettingsPreparer.prepareSettings(builder.build(), true);
+
+        Terminal terminal = Terminal.DEFAULT;
+        Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal);
         node = NodeBuilder.nodeBuilder()
-            .settings(settingsEnvironmentTuple.v1())
-            .loadConfigSettings(false)
+            .settings(environment.settings())
             .build();
         node.start();
         client = node.client();
@@ -94,7 +95,7 @@ public class NodeSettingsTest {
             client = null;
         }
         if (node != null) {
-            node.stop();
+            Releasables.close(node);
             node = null;
         }
 
@@ -126,34 +127,23 @@ public class NodeSettingsTest {
 
     }
 
-    /**
-     * The location of the used config file might be defined with the system
-     * property crate.config. The configuration located at crate's default
-     * location will get ignored.
-     *
-     * @throws IOException
-     */
     @Test
-    public void testCustomYMLSettings() throws IOException {
-
-        File custom = new File("custom");
-        custom.mkdir();
-        File file = new File(custom, "custom.yml");
-        try (FileWriter customWriter = new FileWriter(file, false)) {
-            customWriter.write("cluster.name: custom");
-        }
-
-        System.setProperty("es.config", "custom/custom.yml");
-
+    public void testDefaultPaths() throws Exception {
         doSetup();
+        assertTrue(node.settings().get("path.data").endsWith("data"));
+        assertTrue(node.settings().get("path.logs").endsWith("logs"));
+    }
 
-        file.delete();
-        custom.delete();
-        System.clearProperty("es.config");
-
-        assertEquals("custom",
-            client.admin().cluster().prepareHealth().
-                setWaitForGreenStatus().execute().actionGet().getClusterName());
+    @Test
+    public void testCustomPaths() throws Exception {
+        File data1 = new File(tmp.getRoot(), "data1");
+        File data2 = new File(tmp.getRoot(), "data2");
+        System.setProperty("es.path.data", data1.getAbsolutePath() + "," + data2.getAbsolutePath());
+        doSetup();
+        String[] paths = node.settings().getAsArray("path.data");
+        assertTrue(paths[0].endsWith("data1"));
+        assertTrue(paths[1].endsWith("data2"));
+        System.clearProperty("es.path.data");
     }
 
     @Test

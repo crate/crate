@@ -27,7 +27,7 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.Locale;
 import java.util.Map;
@@ -88,7 +88,7 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Non-existing tokenizer '%s'", name));
             }
             // build
-            context.statement.tokenDefinition(name, ImmutableSettings.EMPTY);
+            context.statement.tokenDefinition(name, Settings.EMPTY);
         } else {
             // validate
             if (!context.statement.analyzerService().hasBuiltInTokenizer(name)) {
@@ -104,9 +104,9 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
             }
             // build
             // transform name as tokenizer is not publicly available
-            name = String.format("%s_%s", context.statement.ident(), name);
+            name = String.format(Locale.ENGLISH, "%s_%s", context.statement.ident(), name);
 
-            ImmutableSettings.Builder builder = ImmutableSettings.builder();
+            Settings.Builder builder = Settings.builder();
             for (Map.Entry<String, Expression> tokenizerProperty : properties.get().properties().entrySet()) {
                 GenericPropertiesConverter.genericPropertyToSetting(builder,
                         context.statement.getSettingsKey("index.analysis.tokenizer.%s.%s", name, tokenizerProperty.getKey()),
@@ -144,7 +144,7 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Non-existing built-in token-filter '%s'", name));
                 }
                 // build
-                context.statement.addTokenFilter(name, ImmutableSettings.EMPTY);
+                context.statement.addTokenFilter(name, Settings.EMPTY);
             } else {
                 // validate
                 if (!context.statement.analyzerService().hasBuiltInTokenFilter(name)) {
@@ -164,8 +164,8 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
 
                 // build
                 // transform name as token-filter is not publicly available
-                name = String.format("%s_%s", context.statement.ident(), name);
-                ImmutableSettings.Builder builder = ImmutableSettings.builder();
+                name = String.format(Locale.ENGLISH, "%s_%s", context.statement.ident(), name);
+                Settings.Builder builder = Settings.builder();
                 for (Map.Entry<String, Expression> tokenFilterProperty : properties.get().properties().entrySet()) {
                     GenericPropertiesConverter.genericPropertyToSetting(builder,
                             context.statement.getSettingsKey("index.analysis.filter.%s.%s", name, tokenFilterProperty.getKey()),
@@ -193,7 +193,7 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
                             "Non-existing built-in char-filter '%s'", name));
                 }
                 // build
-                context.statement.addCharFilter(name, ImmutableSettings.EMPTY);
+                context.statement.addCharFilter(name, Settings.EMPTY);
             } else {
                 String type = extractType(properties.get(), context.analysis.parameterContext());
                 if (!context.statement.analyzerService().hasBuiltInCharFilter(type)) {
@@ -205,8 +205,8 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
 
                 // build
                 // transform name as char-filter is not publicly available
-                name = String.format("%s_%s", context.statement.ident(), name);
-                ImmutableSettings.Builder builder = ImmutableSettings.builder();
+                name = String.format(Locale.ENGLISH, "%s_%s", context.statement.ident(), name);
+                Settings.Builder builder = Settings.builder();
                 for (Map.Entry<String, Expression> charFilterProperty: properties.get().properties().entrySet()) {
                     GenericPropertiesConverter.genericPropertyToSetting(builder,
                             context.statement.getSettingsKey("index.analysis.char_filter.%s.%s", name, charFilterProperty.getKey()),

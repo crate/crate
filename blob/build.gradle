@@ -2,11 +2,6 @@ apply plugin: 'java'
 
 archivesBaseName = 'crate-blob'
 
-// we do not want to have elasticsearch here, since we provide it in :es
-configurations {
-    all*.exclude group: 'org.elasticsearch'
-}
-
 dependencies {
     compile project(':es')
     compile project(':core')

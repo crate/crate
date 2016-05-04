@@ -300,11 +300,11 @@ public class ManyTableConsumer implements Consumer {
 
         private static boolean isUnsupportedStatement(MultiSourceSelect statement, ConsumerContext context) {
             if (statement.querySpec().groupBy().isPresent()) {
-                context.validationException(new ValidationException("GROUP BY on CROSS JOIN is not supported"));
+                context.validationException(new ValidationException("GROUP BY on JOINS is not supported"));
                 return true;
             }
             if (statement.querySpec().hasAggregates()) {
-                context.validationException(new ValidationException("AGGREGATIONS on CROSS JOIN is not supported"));
+                context.validationException(new ValidationException("AGGREGATIONS on JOINS is not supported"));
                 return true;
             }
 

@@ -123,12 +123,7 @@ public class Aggregation extends Symbol {
         toStep = Step.readFrom(in);
 
         valueType = DataTypes.fromStream(in);
-
-        int numInputs = in.readVInt();
-        inputs = new ArrayList<>(numInputs);
-        for (int i = 0; i < numInputs; i++) {
-            inputs.add(Symbol.fromStream(in));
-        }
+        inputs = Symbol.listFromStream(in);
     }
 
     @Override
@@ -139,10 +134,6 @@ public class Aggregation extends Symbol {
         Step.writeTo(toStep, out);
 
         DataTypes.toStream(valueType, out);
-
-        out.writeVInt(inputs.size());
-        for (Symbol input : inputs) {
-            Symbol.toStream(input, out);
-        }
+        Symbol.toStream(inputs, out);
     }
 }

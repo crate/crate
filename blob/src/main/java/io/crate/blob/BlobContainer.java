@@ -21,16 +21,18 @@
 
 package io.crate.blob;
 
+import com.google.common.base.Throwables;
 import io.crate.blob.exceptions.DigestNotFoundException;
 import io.crate.common.Hex;
-import org.elasticsearch.ElasticsearchIllegalStateException;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 public class BlobContainer {
@@ -45,7 +47,7 @@ public class BlobContainer {
 
     static {
         for (int i = 0; i < 256; i++) {
-            SUB_DIRS[i] = String.format("%02x", i & 0xFFFFF);
+            SUB_DIRS[i] = String.format(Locale.ENGLISH, "%02x", i & 0xFFFFF);
             PREFIXES[i] = (byte)i;
         }
     }
@@ -58,8 +60,19 @@ public class BlobContainer {
         this.baseDirectory = baseDirectory;
         this.tmpDirectory = new File(baseDirectory, "tmp");
         this.varDirectory = new File(baseDirectory, "var");
-        FileSystemUtils.mkdirs(this.varDirectory);
-        FileSystemUtils.mkdirs(this.tmpDirectory);
+        try {
+            Files.createDirectories(this.varDirectory.toPath());
+        } catch (IOException e) {
+            logger.error("Could not create 'var' path {}", this.varDirectory.getAbsolutePath());
+            Throwables.propagate(e);
+        }
+
+        try {
+            Files.createDirectories(this.tmpDirectory.toPath());
+        } catch (IOException e) {
+            logger.error("Could not create 'tmp' path {}", this.tmpDirectory.getAbsolutePath());
+            Throwables.propagate(e);
+        }
 
         createSubDirectories(this.varDirectory);
     }
@@ -80,7 +93,7 @@ public class BlobContainer {
 
     public interface FileVisitor {
 
-        public boolean visit(File file) throws IOException;
+        boolean visit(File file) throws IOException;
 
     }
 
@@ -114,7 +127,7 @@ public class BlobContainer {
         for(int i = 0; i < names.length; i ++){
             try {
                 digests[i] = Hex.decodeHex(names[i]);
-            } catch (ElasticsearchIllegalStateException ex) {
+            } catch (IllegalStateException ex) {
                 logger.error("Can't convert string {} to byte array", names[i]);
                 throw ex;
             }

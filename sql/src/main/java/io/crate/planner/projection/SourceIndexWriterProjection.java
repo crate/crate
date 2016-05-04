@@ -84,7 +84,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
         int currentInputIndex = primaryKeys.size();
 
-        idSymbols = new ArrayList<>(primaryKeys.size());
+        List<Symbol> idSymbols = new ArrayList<>(primaryKeys.size());
         for (int i = 0; i < primaryKeys.size(); i++) {
             InputColumn ic = new InputColumn(i, null);
             idSymbols.add(ic);
@@ -92,8 +92,9 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                 clusteredBySymbol = ic;
             }
         }
+        this.idSymbols = idSymbols;
 
-        partitionedBySymbols = new ArrayList<>(partitionedBy.size());
+        List<Symbol> partitionedBySymbols = new ArrayList<>(partitionedBy.size());
         for (int i = 0, length = partitionedBy.size(); i < length; i++) {
             int idx = primaryKeys.indexOf(partitionedBy.get(i));
             Symbol partitionSymbol;
@@ -114,6 +115,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             }
             partitionedBySymbols.add(partitionSymbol);
         }
+        this.partitionedBySymbols = partitionedBySymbols;
 
         if (clusteredByIdx == -1) {
             clusteredBySymbol = new InputColumn(currentInputIndex++, null);

@@ -56,19 +56,15 @@ public class GeneratedColumnComparisonReplacer {
             DateTruncFunction.NAME
     );
 
-    private final ComparisonReplaceVisitor comparisonReplaceVisitor;
-
-    public GeneratedColumnComparisonReplacer() {
-        this.comparisonReplaceVisitor = new ComparisonReplaceVisitor();
-    }
+    private static final ComparisonReplaceVisitor COMPARISON_REPLACE_VISITOR = new ComparisonReplaceVisitor();
 
     public Symbol replaceIfPossible(Symbol symbol, DocTableInfo tableInfo) {
-        return comparisonReplaceVisitor.addComparisons(symbol, tableInfo);
+        return COMPARISON_REPLACE_VISITOR.addComparisons(symbol, tableInfo);
     }
 
     private static class ComparisonReplaceVisitor extends ReplacingSymbolVisitor<ComparisonReplaceVisitor.Context> {
 
-        private static ReferenceReplacer REFERENCE_REPLACER = new ReferenceReplacer();
+        private final static ReferenceReplacer REFERENCE_REPLACER = new ReferenceReplacer();
 
         public static class Context {
             private final Multimap<ReferenceInfo, GeneratedReferenceInfo> referencedRefsToGeneratedColumn;
@@ -100,7 +96,7 @@ public class GeneratedColumnComparisonReplacer {
                 for (int i = 0; i < function.arguments().size(); i++) {
                     Symbol arg = function.arguments().get(i);
                     if (arg instanceof Reference) {
-                        reference = (Reference)arg;
+                        reference = (Reference) arg;
                     } else {
                         otherSide = arg;
                     }
@@ -129,24 +125,30 @@ public class GeneratedColumnComparisonReplacer {
         }
 
         @Nullable
-        private Function createAdditionalComparison(Function function, GeneratedReferenceInfo generatedReference, Symbol comparedAgainst) {
-            if (generatedReference != null && generatedReference.generatedExpression().symbolType().equals(SymbolType.FUNCTION)) {
+        private Function createAdditionalComparison(Function function,
+                                                    GeneratedReferenceInfo generatedReference,
+                                                    Symbol comparedAgainst) {
+            if (generatedReference != null &&
+                generatedReference.generatedExpression().symbolType().equals(SymbolType.FUNCTION)) {
 
-                Function generatedFunction = (Function)generatedReference.generatedExpression();
-                String operator = function.info().ident().name();
-                if (!operator.equals(EqOperator.NAME)) {
-                    if(!generatedFunction.info().comparisonReplacementPossible()) {
+                Function generatedFunction = (Function) generatedReference.generatedExpression();
+                String operatorName = function.info().ident().name();
+                if (!operatorName.equals(EqOperator.NAME)) {
+                    if (!generatedFunction.info().comparisonReplacementPossible()) {
                         return null;
                     }
                     // rewrite operator
                     if (ROUNDING_FUNCTIONS.contains(generatedFunction.info().ident().name())) {
-                        operator = ROUNDING_FUNCTION_MAPPING.get(operator);
+                        String replacedOperatorName = ROUNDING_FUNCTION_MAPPING.get(operatorName);
+                        if (replacedOperatorName != null) {
+                            operatorName = replacedOperatorName;
+                        }
                     }
                 }
 
                 Reference genColReference = new Reference(generatedReference);
                 Symbol wrapped = wrapInGenerationExpression(comparedAgainst, genColReference);
-                FunctionInfo comparisonFunctionInfo = new FunctionInfo(new FunctionIdent(operator,
+                FunctionInfo comparisonFunctionInfo = new FunctionInfo(new FunctionIdent(operatorName,
                         Arrays.asList(genColReference.info().type(), wrapped.valueType())), DataTypes.BOOLEAN);
                 return new Function(comparisonFunctionInfo, Arrays.asList(genColReference, wrapped));
 
@@ -156,7 +158,7 @@ public class GeneratedColumnComparisonReplacer {
 
         private Symbol wrapInGenerationExpression(Symbol wrapMeLikeItsHot, Reference generatedReference) {
             ReferenceReplacer.Context ctx = new ReferenceReplacer.Context(wrapMeLikeItsHot,
-                    ((GeneratedReferenceInfo)generatedReference.info()).referencedReferenceInfos().get(0));
+                    ((GeneratedReferenceInfo) generatedReference.info()).referencedReferenceInfos().get(0));
             return REFERENCE_REPLACER.process(((GeneratedReferenceInfo) generatedReference.info()).generatedExpression(), ctx);
         }
 
@@ -164,7 +166,8 @@ public class GeneratedColumnComparisonReplacer {
             Multimap<ReferenceInfo, GeneratedReferenceInfo> multiMap = HashMultimap.create();
 
             for (GeneratedReferenceInfo referenceInfo : tableInfo.generatedColumns()) {
-                if (referenceInfo.referencedReferenceInfos().size() == 1 && tableInfo.partitionedByColumns().contains(referenceInfo)) {
+                if (referenceInfo.referencedReferenceInfos().size() == 1 &&
+                    tableInfo.partitionedByColumns().contains(referenceInfo)) {
                     multiMap.put(referenceInfo.referencedReferenceInfos().get(0), referenceInfo);
                 }
             }

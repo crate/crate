@@ -29,8 +29,8 @@ import io.crate.types.StringType;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -81,16 +81,11 @@ public class PartitionName {
             return ImmutableList.of();
         }
         byte[] inputBytes = BASE32.decode(ident.toUpperCase(Locale.ROOT));
-        try (BytesStreamInput in = new BytesStreamInput(inputBytes)) {
+        try (StreamInput in = StreamInput.wrap(inputBytes)) {
             int size = in.readVInt();
             List<BytesRef> values = new ArrayList<>(size);
             for (int i = 0; i < size; i++) {
-                BytesRef value = StringType.INSTANCE.streamer().readValueFrom(in);
-                if (value == null) {
-                    values.add(null);
-                } else {
-                    values.add(value);
-                }
+                values.add(StringType.INSTANCE.streamer().readValueFrom(in));
             }
             return values;
         } catch (IOException e) {

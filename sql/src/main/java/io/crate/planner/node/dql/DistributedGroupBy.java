@@ -31,12 +31,12 @@ import java.util.UUID;
 
 public class DistributedGroupBy extends PlanAndPlannedAnalyzedRelation {
 
-    private final CollectPhase collectNode;
+    private final RoutedCollectPhase collectNode;
     private final MergePhase reducerMergeNode;
     private MergePhase localMergeNode;
     private final UUID id;
 
-    public DistributedGroupBy(CollectPhase collectNode, MergePhase reducerMergeNode, @Nullable MergePhase localMergeNode, UUID id) {
+    public DistributedGroupBy(RoutedCollectPhase collectNode, MergePhase reducerMergeNode, @Nullable MergePhase localMergeNode, UUID id) {
         this.collectNode = collectNode;
         this.reducerMergeNode = reducerMergeNode;
         this.localMergeNode = localMergeNode;
@@ -53,7 +53,7 @@ public class DistributedGroupBy extends PlanAndPlannedAnalyzedRelation {
         return id;
     }
 
-    public CollectPhase collectNode() {
+    public RoutedCollectPhase collectNode() {
         return collectNode;
     }
 

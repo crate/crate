@@ -21,20 +21,15 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Value;
-import io.crate.metadata.RowGranularity;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 
-public class UpdateProjection extends Projection {
+public class UpdateProjection extends DMLProjection {
 
     public static final ProjectionFactory<UpdateProjection> FACTORY = new ProjectionFactory<UpdateProjection>() {
         @Override
@@ -43,22 +38,17 @@ public class UpdateProjection extends Projection {
         }
     };
 
-    protected final static List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
-            new Value(DataTypes.LONG)  // number of rows updated
-    );
-
     private Symbol[] assignments;
     // All values of this list are expected to be a FQN columnIdent.
     private String[] assignmentsColumns;
     @Nullable
     private Long requiredVersion;
-    private Symbol uidSymbol;
 
     public UpdateProjection(Symbol uidSymbol,
                             String[] assignmentsColumns,
                             Symbol[] assignments,
                             @Nullable Long requiredVersion) {
-        this.uidSymbol = uidSymbol;
+        super(uidSymbol);
         this.assignmentsColumns = assignmentsColumns;
         this.assignments = assignments;
         this.requiredVersion = requiredVersion;
@@ -91,15 +81,6 @@ public class UpdateProjection extends Projection {
     }
 
     @Override
-    public List<? extends Symbol> outputs() {
-        return OUTPUTS;
-    }
-
-    public Symbol uidSymbol() {
-        return uidSymbol;
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -127,7 +108,7 @@ public class UpdateProjection extends Projection {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        uidSymbol = Symbol.fromStream(in);
+        super.readFrom(in);
         int assignmentColumnsSize = in.readVInt();
         assignmentsColumns = new String[assignmentColumnsSize];
         for (int i = 0; i < assignmentColumnsSize; i++) {
@@ -146,7 +127,7 @@ public class UpdateProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        Symbol.toStream(uidSymbol, out);
+        super.writeTo(out);
         out.writeVInt(assignmentsColumns.length);
         for (int i = 0; i < assignmentsColumns.length; i++) {
             out.writeString(assignmentsColumns[i]);
@@ -160,10 +141,5 @@ public class UpdateProjection extends Projection {
         } else {
             out.writeVLong(requiredVersion);
         }
-    }
-
-    @Override
-    public RowGranularity requiredGranularity() {
-        return RowGranularity.SHARD;
     }
 }

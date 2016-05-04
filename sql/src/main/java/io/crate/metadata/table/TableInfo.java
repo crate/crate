@@ -21,13 +21,13 @@
 
 package io.crate.metadata.table;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 public interface TableInfo extends Iterable<ReferenceInfo> {
 
@@ -51,6 +51,6 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
 
     List<ColumnIdent> primaryKey();
 
-    ImmutableMap<String, Object> tableParameters();
+    Map<String, Object> tableParameters();
 
 }

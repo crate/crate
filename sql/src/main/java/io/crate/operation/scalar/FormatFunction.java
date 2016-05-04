@@ -80,12 +80,6 @@ public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicF
     }
 
     @Override
-    public Symbol normalizeSymbol(Function function) {
-        assert (function.arguments().size() > 1);
-        return Scalar.evaluateIfLiterals(this, function);
-    }
-
-    @Override
     public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
         Preconditions.checkArgument(dataTypes.size() > 1 && dataTypes.get(0) == DataTypes.STRING);
         return new FormatFunction(createInfo(dataTypes));

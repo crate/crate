@@ -7,9 +7,10 @@ Development
 Prerequisites
 =============
 
-The Crate Data Java client is developed in Java_ 7, so a working Java
-7 virtual machine installation is required. We recommend using
-`Oracle's Java`_ on OSX and OpenJDK_ on Linux Systems.
+The Crate Java client requires a working `Java 8`_ virtual machine.
+We recommend using `Oracle's Java`_ on OSX and OpenJDK_ on Linux Systems.
+
+We recommend installing `Java 8`_ update 20 or later.
 
 Get the Source
 ==============
@@ -55,9 +56,6 @@ this::
 
 
 .. _Gradle: http://www.gradle.org/
-
-.. _Java: http://www.java.com/
-
 .. _`Oracle's Java`: http://www.java.com/en/download/help/mac_install.xml
-
-.. _OpenJDK: http://openjdk.java.net/projects/jdk7/
+.. _OpenJDK: http://openjdk.java.net/projects/jdk8/
+.. _`Java 8`: http://www.oracle.com/technetwork/java/javase/downloads/index.html

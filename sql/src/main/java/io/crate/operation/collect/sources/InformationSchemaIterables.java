@@ -47,9 +47,9 @@ public class InformationSchemaIterables {
     private final Supplier<Iterable<?>> routinesGetter;
 
     @Inject
-    protected InformationSchemaIterables(final Schemas schemas,
-                                         FulltextAnalyzerResolver ftResolver,
-                                         ClusterService clusterService) {
+    public InformationSchemaIterables(final Schemas schemas,
+                                      FulltextAnalyzerResolver ftResolver,
+                                      ClusterService clusterService) {
         this.schemas = Suppliers.<Iterable<?>>ofInstance(schemas);
         FluentIterable<TableInfo> tablesIterable = FluentIterable.from(schemas)
                 .transformAndConcat(new Function<SchemaInfo, Iterable<TableInfo>>() {

@@ -26,6 +26,7 @@ import io.crate.testing.SQLTransportExecutor;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import static com.google.common.collect.Maps.newHashMap;
@@ -136,15 +137,15 @@ public class Setup {
     }
 
     public void groupBySetup(String numericType) throws Exception {
-        transportExecutor.exec(String.format("create table characters (" +
-            " race string," +
-            " gender string," +
-            " age %s," +
-            " birthdate timestamp," +
-            " name string," +
-            " details object as (job string)," +
-            " details_ignored object(ignored)" +
-            ")", numericType));
+        transportExecutor.exec(String.format(Locale.ENGLISH, "create table characters (" +
+                                                             " race string," +
+                                                             " gender string," +
+                                                             " age %s," +
+                                                             " birthdate timestamp," +
+                                                             " name string," +
+                                                             " details object as (job string)," +
+                                                             " details_ignored object(ignored)" +
+                                                             ")", numericType));
         transportExecutor.ensureYellowOrGreen();
 
         Map<String, String> details = newHashMap();
@@ -268,7 +269,7 @@ public class Setup {
 
     public void setUpCharacters() {
         transportExecutor.exec("create table characters (id int primary key, name string, female boolean, details object)");
-        transportExecutor.ensureGreen();
+        transportExecutor.ensureYellowOrGreen();
         transportExecutor.execBulk("insert into characters (id, name, female) values (?, ?, ?)",
                 new Object[][]{
                         new Object[]{1, "Arthur", false},

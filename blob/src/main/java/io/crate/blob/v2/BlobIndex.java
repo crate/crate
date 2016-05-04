@@ -22,13 +22,12 @@
 package io.crate.blob.v2;
 
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.cluster.routing.operation.OperationRouting;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.settings.IndexSettings;
+import org.elasticsearch.index.settings.IndexSettingsService;
 import org.elasticsearch.index.shard.ShardId;
 
 public class BlobIndex extends AbstractIndexComponent {
@@ -38,10 +37,9 @@ public class BlobIndex extends AbstractIndexComponent {
     private final ClusterService clusterService;
 
     @Inject
-    BlobIndex(Index index, @IndexSettings Settings indexSettings,
-            OperationRouting operationRouting,
-            ClusterService clusterService) {
-        super(index, indexSettings);
+    public BlobIndex(Index index, IndexSettingsService indexSettingsService,
+              OperationRouting operationRouting, ClusterService clusterService) {
+        super(index, indexSettingsService.getSettings());
         this.operationRouting = operationRouting;
         this.clusterService = clusterService;
     }

@@ -29,6 +29,7 @@ import io.crate.types.DataTypes;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 public class ShowCreateTableAnalyzedStatement extends AbstractShowAnalyzedStatement {
 
@@ -36,7 +37,7 @@ public class ShowCreateTableAnalyzedStatement extends AbstractShowAnalyzedStatem
     private final List<Field> fields;
 
     public ShowCreateTableAnalyzedStatement(DocTableInfo tableInfo) {
-        String columnName = String.format("SHOW CREATE TABLE %s", tableInfo.ident().fqn());
+        String columnName = String.format(Locale.ENGLISH, "SHOW CREATE TABLE %s", tableInfo.ident().fqn());
         this.fields = Collections.singletonList(new Field(this, new OutputName(columnName), DataTypes.STRING));
         this.tableInfo = tableInfo;
     }
@@ -58,5 +59,10 @@ public class ShowCreateTableAnalyzedStatement extends AbstractShowAnalyzedStatem
     @Override
     public List<Field> fields() {
         return fields;
+    }
+
+    @Override
+    public boolean isWriteOperation() {
+        return false;
     }
 }

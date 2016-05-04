@@ -26,7 +26,6 @@ import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.Exceptions;
-import io.crate.jobs.ExecutionSubContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.operation.collect.StatsTables;
@@ -51,7 +50,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
     private static final String EXECUTOR_NAME = ThreadPool.Names.SEARCH;
     private static final String RESPONSE_EXECUTOR = ThreadPool.Names.SAME;
 
-    private Transports transports;
+    private final Transports transports;
     private final StatsTables statsTables;
     private final NodeFetchOperation nodeFetchOperation;
     private final CircuitBreaker circuitBreaker;
@@ -69,40 +68,27 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
         this.transports = transports;
         this.statsTables = statsTables;
         this.nodeFetchOperation = nodeFetchOperation;
-        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY_BREAKER);
+        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         this.jobContextService = jobContextService;
         this.threadPool = threadPool;
 
-        transportService.registerHandler(TRANSPORT_ACTION,
-                new NodeActionRequestHandler<NodeFetchRequest, NodeFetchResponse>(this) {
-                    @Override
-                    public NodeFetchRequest newInstance() {
-                        return new NodeFetchRequest();
-                    }
-                });
+        transportService.registerRequestHandler(TRANSPORT_ACTION,
+                NodeFetchRequest.class,
+                EXECUTOR_NAME,
+                new NodeActionRequestHandler<NodeFetchRequest, NodeFetchResponse>(this) { });
     }
 
     public void execute(String targetNode,
                         final IntObjectMap<Streamer[]> streamers,
                         final NodeFetchRequest request,
                         ActionListener<NodeFetchResponse> listener) {
-        transports.executeLocalOrWithTransport(this, targetNode, request, listener,
+        transports.sendRequest(TRANSPORT_ACTION, targetNode, request, listener,
                 new DefaultTransportResponseHandler<NodeFetchResponse>(listener, RESPONSE_EXECUTOR) {
                     @Override
                     public NodeFetchResponse newInstance() {
                         return NodeFetchResponse.forReceiveing(streamers);
                     }
                 });
-    }
-
-    @Override
-    public String actionName() {
-        return TRANSPORT_ACTION;
-    }
-
-    @Override
-    public String executorName() {
-        return EXECUTOR_NAME;
     }
 
     @Override
@@ -118,7 +104,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
             if (request.toFetch() == null) {
                 JobExecutionContext ctx = jobContextService.getContextOrNull(request.jobId());
                 if (ctx != null) {
-                    ExecutionSubContext fetchContext = ctx.getSubContextOrNull(request.fetchPhaseId());
+                    FetchContext fetchContext = ctx.getSubContextOrNull(request.fetchPhaseId());
                     if (fetchContext != null) {
                         fetchContext.close();
                     }
@@ -135,7 +121,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                 public void onFailure(Throwable t) {
                     fetchContext.kill(t);
                     fetchResponse.onFailure(t);
-                    statsTables.operationFinished(request.fetchPhaseId(), Exceptions.messageOf(t),
+                    statsTables.operationFinished(request.fetchPhaseId(), request.jobId(), Exceptions.messageOf(t),
                             ramAccountingContext.totalBytes());
                 }
 
@@ -147,7 +133,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                     NodeFetchResponse response = NodeFetchResponse.forSending(fetched);
                     fetchContext.close();
                     fetchResponse.onResponse(response);
-                    statsTables.operationFinished(request.fetchPhaseId(), null,
+                    statsTables.operationFinished(request.fetchPhaseId(), request.jobId(), null,
                             ramAccountingContext.totalBytes());
                 }
 
@@ -158,7 +144,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
             });
         } catch (Throwable t) {
             fetchResponse.onFailure(t);
-            statsTables.operationFinished(request.fetchPhaseId(), Exceptions.messageOf(t),
+            statsTables.operationFinished(request.fetchPhaseId(), request.jobId(), Exceptions.messageOf(t),
                     ramAccountingContext.totalBytes());
             ramAccountingContext.close();
         }

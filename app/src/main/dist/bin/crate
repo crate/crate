@@ -70,10 +70,6 @@ CRATE_HOME=`dirname "$SCRIPT"`/..
 # make CRATE_HOME absolute
 CRATE_HOME=`cd "$CRATE_HOME"; pwd`
 
-# define crate config file
-CRATE_CONFIG=$CRATE_HOME/config/crate.yml
-
-
 # If an include wasn't specified in the environment, then search for one...
 if [ "x$CRATE_INCLUDE" = "x" ]; then
     # Locations (in order) to use when searching for an include file.
@@ -123,13 +119,13 @@ launch_service()
     fi
 
     if [ "x$daemonized" = "x" ]; then
-        exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -Des.config="$CRATE_CONFIG" -cp "$CRATE_CLASSPATH" $props \
+        exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" $props \
                 io.crate.bootstrap.CrateF
         execval=$?
     else
         # Startup Crate, background it, and write the pid.
-        exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -Des.config="$CRATE_CONFIG" -cp "$CRATE_CLASSPATH" $props \
-                    io.crate.bootstrap.Crate <&- &
+        exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" $props \
+                    io.crate.bootstrap.CrateF -d <&- &
         execval=$?
         [ ! -z "$pidpath" ] && printf '%d' $! > "$pidpath"
     fi

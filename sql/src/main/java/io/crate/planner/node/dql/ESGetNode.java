@@ -36,6 +36,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.distribution.UpstreamPhase;
+import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
@@ -45,7 +46,7 @@ import java.util.List;
 import java.util.UUID;
 
 
-public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
+public class ESGetNode implements PlanNode, PlannedAnalyzedRelation {
 
     private final DocTableInfo tableInfo;
     private final QuerySpec querySpec;
@@ -143,16 +144,6 @@ public class ESGetNode implements DQLPlanNode, PlannedAnalyzedRelation {
                 .add("docKeys", docKeys)
                 .add("outputs", outputs)
                 .toString();
-    }
-
-    @Override
-    public boolean hasProjections() {
-        return false;
-    }
-
-    @Override
-    public List<Projection> projections() {
-        return null;
     }
 
     @Override

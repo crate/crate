@@ -22,30 +22,21 @@
 
 package io.crate.jobs;
 
+import io.crate.exceptions.JobKilledException;
 import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.concurrent.CancellationException;
 
-public abstract class AbstractExecutionSubContext implements ExecutionSubContext, ExecutionState {
+public abstract class AbstractExecutionSubContext implements ExecutionSubContext {
 
-    protected static final ESLogger LOGGER = Loggers.getLogger(AbstractExecutionSubContext.class);
-
+    protected final ESLogger logger;
     protected final SubExecutionContextFuture future = new SubExecutionContextFuture();
-    private final int id;
+    protected final int id;
 
-    protected KeepAliveListener keepAliveListener;
-    private volatile boolean isKilled = false;
-
-    protected AbstractExecutionSubContext(int id) {
+    protected AbstractExecutionSubContext(int id, ESLogger logger) {
         this.id = id;
-    }
-
-    @Override
-    public void keepAliveListener(KeepAliveListener listener) {
-        keepAliveListener = listener;
+        this.logger = logger;
     }
 
     public int id() {
@@ -58,7 +49,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     @Override
     final public void prepare() {
         if (!future.closed()) {
-            LOGGER.trace("preparing {}: {}", this, id);
+            logger.trace("preparing id={} ctx={}", id, this);
             try {
                 innerPrepare();
             } catch (Throwable t) {
@@ -73,7 +64,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     @Override
     final public void start() {
         if (!future.closed()) {
-            LOGGER.trace("starting {}: {}", this, id);
+            logger.trace("starting id={} ctx={}", id, this);
             try {
                 innerStart();
             } catch (Throwable t) {
@@ -87,14 +78,14 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
 
     protected boolean close(@Nullable Throwable t) {
         if (future.firstClose()) {
-            LOGGER.trace("closing {}: {}", this, id);
+            logger.trace("closing id={} ctx={}", id, this);
             try {
                 innerClose(t);
             } catch (Throwable t2) {
                 if (t == null) {
                     t = t2;
                 } else {
-                    LOGGER.warn("closing due to exception, but closing also throws exception", t2);
+                    logger.warn("closing due to exception, but closing also throws exception", t2);
                 }
             } finally {
                 cleanup();
@@ -105,7 +96,6 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
         return false;
     }
 
-    @Override
     final public void close() {
         close(null);
     }
@@ -117,17 +107,16 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     final public void kill(@Nullable Throwable t) {
         if (future.firstClose()) {
             if (t == null) {
-                t = new CancellationException();
+                t = new InterruptedException(JobKilledException.MESSAGE);
             }
-            LOGGER.trace("killing {}: {}", this, id);
+            logger.trace("killing id={} ctx={} cause={}", id, this, t);
             try {
                 innerKill(t);
             } catch (Throwable t2) {
-                LOGGER.warn("killing due to exception, but killing also throws exception", t2);
+                logger.warn("killing due to exception, but killing also throws exception", t2);
             } finally {
                 cleanup();
             }
-            isKilled = true;
             future.close(t);
         }
     }
@@ -137,11 +126,6 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
         return future;
     }
 
-    @Override
-    public boolean isKilled() {
-        return isKilled;
-    }
-
 
     /**
      * Hook to cleanup resources of this context. This is called in finally clauses on kill and close.
@@ -149,13 +133,5 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
      */
     protected void cleanup() {
 
-    }
-
-    /**
-     * by default is PASSIVE, as it does not trigger keep alive on execution context itself
-     */
-    @Override
-    public SubContextMode subContextMode() {
-        return SubContextMode.PASSIVE;
     }
 }

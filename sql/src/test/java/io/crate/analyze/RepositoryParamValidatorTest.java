@@ -22,15 +22,19 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.base.Optional;
 import io.crate.analyze.repositories.RepositoryParamValidator;
-import io.crate.analyze.repositories.TypeSettings;
+import io.crate.analyze.repositories.RepositorySettingsModule;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.GenericProperty;
+import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.hamcrest.Matchers.is;
 
 public class RepositoryParamValidatorTest extends CrateUnitTest {
 
@@ -38,18 +42,15 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
 
     @Before
     public void initValidator() throws Exception {
-        validator = new RepositoryParamValidator(
-                ImmutableMap.of(
-                        "fs", new TypeSettings(ImmutableSet.of("location"), ImmutableSet.<String>of()),
-                        "hdfs", new TypeSettings(ImmutableSet.<String>of(), ImmutableSet.of("path"))
-                        ));
+        validator = new ModulesBuilder()
+                .add(new RepositorySettingsModule()).createInjector().getInstance(RepositoryParamValidator.class);
     }
 
     @Test
     public void testValidate() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid repository type \"invalid_type\"");
-        validator.validate("invalid_type", ImmutableSettings.EMPTY);
+        validator.convertAndValidate("invalid_type", Optional.of(new GenericProperties()), ParameterContext.EMPTY);
     }
 
     @Test
@@ -57,24 +58,25 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
                 "The following required parameters are missing to create a repository of type \"fs\": [location]");
-        validator.validate("fs", ImmutableSettings.EMPTY);
+        validator.convertAndValidate("fs", Optional.of(new GenericProperties()), ParameterContext.EMPTY);
     }
 
     @Test
     public void testInvalidSetting() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid parameters specified: [yay]");
-        Settings settings = ImmutableSettings.builder()
-                .put("location", "foo")
-                .put("yay", "invalid").build();
-        validator.validate("fs", settings);
+        expectedException.expectMessage("setting 'yay' not supported");
+        GenericProperties genericProperties = new GenericProperties();
+        genericProperties.add(new GenericProperty("location", new StringLiteral("foo")));
+        genericProperties.add(new GenericProperty("yay", new StringLiteral("invalid")));
+        validator.convertAndValidate("fs", Optional.of(genericProperties), ParameterContext.EMPTY);
     }
 
     @Test
     public void testHdfsDynamicConfParam() throws Exception {
-        Settings settings = ImmutableSettings.builder()
-                .put("path", "/data")
-                .put("conf.foobar", "bar").build();
-        validator.validate("hdfs", settings);
+        GenericProperties genericProperties = new GenericProperties();
+        genericProperties.add(new GenericProperty("path", new StringLiteral("/data")));
+        genericProperties.add(new GenericProperty("conf.foobar", new StringLiteral("bar")));
+        Settings settings = validator.convertAndValidate("hdfs", Optional.of(genericProperties), ParameterContext.EMPTY);
+        assertThat(settings.get("conf.foobar"), is("bar"));
     }
 }

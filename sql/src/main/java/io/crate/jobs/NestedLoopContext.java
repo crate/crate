@@ -27,13 +27,17 @@ import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class NestedLoopContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext, ExecutionState {
+public class NestedLoopContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext {
+
+    private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopContext.class);
 
     private final AtomicInteger activeSubContexts = new AtomicInteger(0);
     private final NestedLoopPhase nestedLoopPhase;
@@ -46,15 +50,15 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
     private final ListenableRowReceiver leftRowReceiver;
     private final ListenableRowReceiver rightRowReceiver;
 
-    private volatile boolean isKilled;
     private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
-    public NestedLoopContext(NestedLoopPhase phase,
+    public NestedLoopContext(ESLogger logger,
+                             NestedLoopPhase phase,
                              FlatProjectorChain flatProjectorChain,
                              NestedLoopOperation nestedLoopOperation,
                              @Nullable PageDownstreamContext leftPageDownstreamContext,
                              @Nullable PageDownstreamContext rightPageDownstreamContext) {
-        super(phase.executionPhaseId());
+        super(phase.executionPhaseId(), logger);
 
         nestedLoopPhase = phase;
         this.flatProjectorChain = flatProjectorChain;
@@ -88,12 +92,8 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
     }
 
     @Override
-    public void keepAliveListener(KeepAliveListener listener) {
-    }
-
-    @Override
     protected void innerPrepare() {
-        flatProjectorChain.prepare(this);
+        flatProjectorChain.prepare();
     }
 
     @Override
@@ -130,22 +130,16 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
 
     @Override
     protected void innerKill(@Nullable Throwable t) {
-        isKilled = true;
         killSubContext(t, leftPageDownstreamContext, leftRowReceiver);
         killSubContext(t, rightPageDownstreamContext, rightRowReceiver);
     }
 
     private static void killSubContext(Throwable t, @Nullable PageDownstreamContext subContext, ListenableRowReceiver rowReceiver) {
         if (subContext == null) {
-            rowReceiver.fail(t);
+            rowReceiver.kill(t);
         } else {
             subContext.kill(t);
         }
-    }
-
-    @Override
-    public boolean isKilled() {
-        return isKilled;
     }
 
     @Override
@@ -155,6 +149,17 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
             return leftPageDownstreamContext;
         }
         return rightPageDownstreamContext;
+    }
+
+    @Override
+    public String toString() {
+        return "NestedLoopContext{" +
+               "id=" + id() +
+               ", activeSubContexts=" + activeSubContexts +
+               ", leftCtx=" + leftPageDownstreamContext +
+               ", rightCtx=" + rightPageDownstreamContext +
+               ", closed=" + future.closed() +
+               '}';
     }
 
     private class RemoveContextCallback implements FutureCallback<Object> {

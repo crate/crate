@@ -1,0 +1,1179 @@
+.. highlight:: psql
+.. _scalar:
+
+================
+Scalar Functions
+================
+
+Scalar functions return a single data value (not a table).
+
+.. note::
+
+    In DELETE statements scalar functions cannot be used in the WHERE
+    clause unless otherwise described in the function description below.
+
+    In the case it is stated below that the scalar function can always be used
+    in a WHERE clause it is still not possible to compare one scalar function
+    with another in DELETE statements.
+
+See below for a list of available scalar functions.
+
+
+String Functions
+================
+
+concat('first_arg', second_arg, [ parameter , ... ]) returns string
+-------------------------------------------------------------------
+
+The ``concat`` function takes two or more arguments and will return the text
+representations of all the arguments concatenated. NULL values are ignored.
+
+::
+
+    cr> select concat('foo', null, 'bar') from sys.cluster;
+    +----------------------------+
+    | concat('foo', null, 'bar') |
+    +----------------------------+
+    | foobar                     |
+    +----------------------------+
+    SELECT 1 row in set (... sec)
+
+
+There is also a special concat operator ``||`` which can also be used::
+
+    cr> select 'foo' || 'bar' from sys.cluster;
+    +----------------------+
+    | concat('foo', 'bar') |
+    +----------------------+
+    | foobar               |
+    +----------------------+
+    SELECT 1 row in set (... sec)
+
+
+format('format_string', parameter, [ parameter , ... ]) returns string
+----------------------------------------------------------------------
+
+The ``format`` function takes a format string and a variable number of
+arguments and returns a formatted string::
+
+    cr> select format('%s.%s', schema_name, table_name) from sys.shards
+    ... where table_name = 'locations'
+    ... limit 1;
+    +------------------------------------------+
+    | format('%s.%s', schema_name, table_name) |
+    +------------------------------------------+
+    | doc.locations                            |
+    +------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select format('%tY', date) from locations
+    ... group by format('%tY', date)
+    ... order by 1;
+    +---------------------+
+    | format('%tY', date) |
+    +---------------------+
+    |                1979 |
+    |                2013 |
+    +---------------------+
+    SELECT 2 rows in set (... sec)
+
+For details about the format string syntax see `formatter`_
+
+substr('string', from, [ count ]) returns string
+------------------------------------------------
+
+The ``substr`` function extracts a substring from a given string
+starting at character ``from``. It takes an optional argument ``count``
+which defines the length of the substring::
+
+    cr> select substr(name, 3, 2) from sys.nodes
+    ... limit 1;
+    +--------------------+
+    | substr(name, 3, 2) |
+    +--------------------+
+    | at                 |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar_char_length:
+
+char_length('string') returns integer
+-------------------------------------
+
+The ``char_length`` function returns the number of characters in the string.
+
+A multibyte character counts as a single character. This means if a string
+contains two bytes character it will be counted as a single character.
+
+Example::
+
+    cr> select char_length('crate.io') from sys.cluster;
+    +-------------------------+
+    | char_length('crate.io') |
+    +-------------------------+
+    |                       8 |
+    +-------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select char_length('©rate.io') from sys.cluster;
+    +-------------------------+
+    | char_length('©rate.io') |
+    +-------------------------+
+    |                       8 |
+    +-------------------------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar_bit_length:
+
+bit_length('string') returns integer
+------------------------------------
+
+The ``bit_length`` function returns the number of bits in the input string.
+
+.. note::
+
+    Crate.io internally uses UTF-8 encoded strings. This means that a single
+    character may be represented as single byte (e.g. most ascii characters)
+    or up to 4 bytes (e.g. emoji or other unicode characters).
+
+Example::
+
+    cr> select bit_length('crate.io') from sys.cluster;
+    +------------------------+
+    | bit_length('crate.io') |
+    +------------------------+
+    |                     64 |
+    +------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select bit_length('©rate.io') from sys.cluster;
+    +------------------------+
+    | bit_length('©rate.io') |
+    +------------------------+
+    |                     72 |
+    +------------------------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar_octet_length:
+
+octet_length('string') returns integer
+--------------------------------------
+
+The ``octet_length`` function returns the number of bytes (octets) in the input
+string.
+
+Example::
+
+    cr> select octet_length('crate.io') from sys.cluster;
+    +--------------------------+
+    | octet_length('crate.io') |
+    +--------------------------+
+    |                        8 |
+    +--------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select octet_length('©rate.io') from sys.cluster;
+    +--------------------------+
+    | octet_length('©rate.io') |
+    +--------------------------+
+    |                        9 |
+    +--------------------------+
+    SELECT 1 row in set (... sec)
+
+
+lower('string') returns string
+------------------------------
+
+The ``lower`` function transforms any upper case characters into their
+corresponding lower case versions. ``lower`` however does not perform
+locale-sensitive or context-sensitive mappings.
+
+::
+
+    cr> select lower('TransformMe') from sys.nodes
+    ... limit 1;
+    +----------------------+
+    | lower('TransformMe') |
+    +----------------------+
+    | transformme          |
+    +----------------------+
+    SELECT 1 row in set (... sec)
+
+
+upper('string') returns string
+------------------------------
+
+The ``upper`` function transforms any lower case characters into their
+corresponding upper case versions. ``upper`` however does not perform
+locale-sensitive or context-sensitive mappings.
+
+::
+
+    cr> select upper('TransformMe') from sys.nodes
+    ... limit 1;
+    +----------------------+
+    | upper('TransformMe') |
+    +----------------------+
+    | TRANSFORMME          |
+    +----------------------+
+    SELECT 1 row in set (... sec)
+
+
+Date/Time Functions
+===================
+
+.. _scalar-date-trunc:
+
+date_trunc('interval', ['timezone',] timestamp) returns timestamp
+-----------------------------------------------------------------
+
+The ``date_trunc`` function truncates a timestamp to a given interval
+for a specific timezone.
+
+Valid intervals are:
+
+* second
+
+* minute
+
+* hour
+
+* day
+
+* week
+
+* month
+
+* quarter
+
+* year
+
+Valid values for ``timezone`` are either the name of a time zone (for example
+'Europe/Vienna') or the UTC offset of a time zone (for example '+01:00').
+To get a complete overview of all possible values take a look at the
+`available time zones`_ supported by `Joda-Time`_.
+
+The following example shows how to use the date_trunc function to generate a
+day based histogram in the ``Europe/Moscow`` timezone::
+
+    cr> select
+    ... date_trunc('day', 'Europe/Moscow', date) as day,
+    ... count(*) as num_locations
+    ... from locations
+    ... group by date_trunc('day', 'Europe/Moscow', date)
+    ... order by date_trunc('day', 'Europe/Moscow', date);
+    +---------------+---------------+
+    | day           | num_locations |
+    +---------------+---------------+
+    | 308523600000  | 4             |
+    | 1367352000000 | 1             |
+    | 1373918400000 | 8             |
+    +---------------+---------------+
+    SELECT 3 rows in set (... sec)
+
+If the time zone is not specified, truncation is based on UTC time::
+
+    cr> select date_trunc('day', date) as day, count(*) as num_locations
+    ... from locations
+    ... group by date_trunc('day', date)
+    ... order by date_trunc('day', date);
+    +---------------+---------------+
+    | day           | num_locations |
+    +---------------+---------------+
+    | 308534400000  | 4             |
+    | 1367366400000 | 1             |
+    | 1373932800000 | 8             |
+    +---------------+---------------+
+    SELECT 3 rows in set (... sec)
+
+extract(field from source)
+--------------------------
+
+``extract`` is a special expression that translates to a function which
+retrieves subfields such as day, hour or minute from a timestamp.
+
+The return type depends on the used ``field``.
+
+synopsis
+........
+
+::
+
+    EXTRACT( field FROM expression )
+
+
+:field: an identifier which identifies the part of the timestamp that should be
+        extracted.
+:expression: an expression that resolves to a timestamp or is castable to
+             timestamp.
+
+
+::
+
+    cr> select extract(day from '2014-08-23') from sys.cluster;
+    +----------------------------------+
+    | EXTRACT('day' FROM '2014-08-23') |
+    +----------------------------------+
+    |                               23 |
+    +----------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+``source`` must be an expression that returns a timestamp. In case the
+expression has a different return type but is known to be castable to timestamp
+an implicit cast will be attempted.
+
+``field`` is an identifier that selects which part of the timestamp to extract.
+The following fields are supported:
+
+
+**CENTURY**
+  | *Return type:* ``integer``
+  | century of era
+
+  Returns the ISO representation which is a straight split of the date.
+  Year 2000 century 20 and year 2001 is also century 20. This is different
+  to the GregorianJulian (GJ) calendar system where 2001 would be century
+  21.
+
+**YEAR**
+  | *Return type:* ``integer``
+  | the year field
+
+**QUARTER**
+  | *Return type:* ``integer``
+  | the quarter of the year (1 - 4)
+
+**MONTH**
+  | *Return type:* ``integer``
+  | the month of the year
+
+**WEEK**
+  | *Return type:* ``integer``
+  | the week of the year
+
+**DAY**
+  | *Return type:* ``integer``
+  | the day of the month
+
+**DAY_OF_MONTH**
+  | *Return type:* ``integer``
+  | same as ``day``
+
+**DAY_OF_WEEK**
+  | *Return type:* ``integer``
+  | day of the week. Starting with Monday (1) to Sunday (7)
+
+**DOW**
+  | *Return type:* ``integer``
+  | same as ``day_of_week``
+
+**DAY_OF_YEAR**
+  | *Return type:* ``integer``
+  | the day of the year (1 - 365 / 366)
+
+**DOY**
+  | *Return type:* ``integer``
+  | same as ``day_of_year``
+
+**HOUR**
+  | *Return type:* ``integer``
+  | the hour field
+
+**MINUTE**
+  | *Return type:* ``integer``
+  | the minute field
+
+**SECOND**
+  | *Return type:* ``integer``
+  | the second field
+
+.. _`available time zones`: http://www.joda.org/joda-time/timezones.html
+
+.. _`Joda-Time`: http://www.joda.org/joda-time/
+
+
+CURRENT_TIMESTAMP
+-----------------
+
+The ``CURRENT_TIMESTAMP`` expression returns the timestamp in milliseconds
+since epoch at the time the SQL statement is handled. It is evaluated once per
+query while the query is analyzed, before actual execution.
+
+synopsis::
+
+    CURRENT_TIMESTAMP [ ( precision ) ]
+
+``precision`` must be a positive integer between 0 and 3. The default value is 3.
+It determines the number of fractional seconds to output. A value of 0 means the
+timestamp will have second precision, no fractional seconds (milliseconds) are given.
+
+.. note::
+
+   The ``CURRENT_TIMESTAMP`` will be evaluated  using javas
+   ``System.currentTimeMillis()``. So its actual result depends on the underlying
+   operating system.
+
+
+date_format([format_string, [timezone,]] timestamp) returns string
+------------------------------------------------------------------
+
+The ``date_format`` function formats a timestamp as string according to the
+(optional) format string.
+
+synopsis
+........
+
+::
+
+    DATE_FORMAT( [ format_string, [ timezone, ] ] timestamp )
+
+The only mandatory argument is the ``timestamp`` value to format.
+It can be any expression that is safely convertible to timestamp.
+
+Format
+......
+
+The syntax for the ``format_string`` is 100% compatible to the syntax of the
+`MySQL date_format`_ function. For reference, the format is listed in detail below [#MySQL-Docs]_ :
+
+.. csv-table:: date_format Format
+   :header: "Format Specifier", "Description"
+
+   %a,	"Abbreviated weekday name (Sun..Sat)"
+   %b,	"Abbreviated month name (Jan..Dec)"
+   %c,	"Month in year, numeric (0..12)"
+   %D,	"Day of month as ordinal number (1st, 2nd, ... 24th)"
+   %d,	"Day of month, padded to 2 digits (00..31)"
+   %e,	"Day of month (0..31)"
+   %f,	"Microseconds, padded to 6 digits (000000..999999)"
+   %H,	"Hour in 24-hour clock, padded to 2 digits (00..23)"
+   %h,	"Hour in 12-hour clock, padded to 2 digits (01..12)"
+   %I,	"Hour in 12-hour clock, padded to 2 digits (01..12)"
+   %i,	"Minutes, numeric (00..59)"
+   %j,	"Day of year, padded to 3 digits (001..366)"
+   %k,	"Hour in 24-hour clock (0..23)"
+   %l,	"Hour in 12-hour clock (1..12)"
+   %M,	"Month name (January..December)"
+   %m,	"Month in year, numeric, padded to 2 digits (00..12)"
+   %p,	"AM or PM"
+   %r,	"Time, 12-hour (hh:mm:ss followed by AM or PM)"
+   %S,	"Seconds, padded to 2 digits (00..59)"
+   %s,	"Seconds, padded to 2 digits (00..59)"
+   %T,	"Time, 24-hour (hh:mm:ss)"
+   %U,	"Week number, sunday as first day of the week, first week of the year (01) is the one starting in this year, week 00 starts in last year (00..53)"
+   %u,	"Week number, monday as first day of the week, first week of the year (01) is the one with at least 4 days in this year (00..53)"
+   %V,	"Week number, sunday as first day of the week, first week of the year (01) is the one starting in this year, uses the week number of the last year, if the week started in last year (01..53)"
+   %v,	"Week number, monday as first day of the week, first week of the year (01) is the one with at least 4 days in this year, uses the week number of the last year, if the week started in last year (01..53)"
+   %W,	"Weekday name (Sunday..Saturday)"
+   %w,	"Day of the week (0=Sunday..6=Saturday)"
+   %X,	"weekyear, sunday as first day of the week, numeric, four digits; used with %V"
+   %x,	"weekyear, monday as first day of the week, numeric, four digits; used with %v"
+   %Y,	"Year, numeric, four digits"
+   %y,	"Year, numeric, two digits"
+   %%,	"A literal '%' character"
+   %x,	"x, for any 'x' not listed above"
+
+If no ``format_string`` is given the default format will be used::
+
+    %Y-%m-%dT%H:%i:%s.%fZ
+
+::
+
+    cr> select date_format('1970-01-01') as epoque from sys.cluster;
+    +-----------------------------+
+    | epoque                      |
+    +-----------------------------+
+    | 1970-01-01T00:00:00.000000Z |
+    +-----------------------------+
+    SELECT 1 row in set (... sec)
+
+Timezone
+........
+
+Valid values for ``timezone`` are either the name of a time zone (for example
+'Europe/Vienna') or the UTC offset of a time zone (for example '+01:00').
+To get a complete overview of all possible values take a look at the
+`available time zones`_ supported by `Joda-Time`_.
+
+The ``timezone`` will be ``UTC`` if not provided::
+
+    cr> select date_format('%W the %D of %M %Y %H:%i %p', 0) as epoque from sys.cluster;
+    +-------------------------------------------+
+    | epoque                                    |
+    +-------------------------------------------+
+    | Thursday the 1st of January 1970 00:00 AM |
+    +-------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select date_format('%Y/%m/%d %H:%i', 'EST',  0) as est_epoque from sys.cluster;
+    +------------------+
+    | est_epoque       |
+    +------------------+
+    | 1969/12/31 19:00 |
+    +------------------+
+    SELECT 1 row in set (... sec)
+
+Geo Functions
+=============
+
+.. _scalar_distance:
+
+distance(geo_point1, geo_point2) returns double
+-----------------------------------------------
+
+The ``distance`` function can be used to calculate the distance between two
+points on earth. It uses the `Haversine formular`_ which gives great-circle
+distances between 2 points on a sphere based on their latitude and longitude.
+
+The return value is the distance in meters.
+
+Below is an example of the distance function where both points are specified
+using WKT. See :ref:`geo_point_data_type` for more information on the implicit
+type casting of geo points::
+
+    cr> select distance('POINT (10 20)', 'POINT (11 21)') from sys.cluster;
+    +--------------------------------------------+
+    | distance('POINT (10 20)', 'POINT (11 21)') |
+    +--------------------------------------------+
+    |                         152462.70754934277 |
+    +--------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+This scalar function can always be used in both the ``WHERE`` and ``ORDER BY``
+clauses. With the limitation that one of the arguments must be a literal and
+the other argument must be a column reference.
+
+.. note::
+
+    The algorithm of the calculation which is used when the distance function
+    is used as part of the result column list has a different precision than
+    what is stored inside the index which is utilized if the distance function
+    is part of a WHERE clause.
+
+    For example if `select distance(...)` returns 0.0 an equality check with
+    `where distance(...) = 0` might not yield anything at all due to the
+    precision difference.
+
+.. _scalar_within:
+
+within(shape1, shape2) returns boolean
+--------------------------------------
+
+The ``within`` function returns true if ``shape1`` is within ``shape2``. If
+that is not the case false is returned.
+
+``shape1`` can either be a ``geo_shape`` or a ``geo_point``. ``shape2`` must be
+a ``geo_shape``.
+
+Below is an example of the within function which makes use of the implicit type
+casting from strings to geo point and geo shapes::
+
+    cr> select within(
+    ...   'POINT (10 10)',
+    ...   'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))'
+    ... ) from sys.cluster;
+    +--------------------------------------------------------------------+
+    | within('POINT (10 10)', 'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))') |
+    +--------------------------------------------------------------------+
+    | TRUE                                                               |
+    +--------------------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+This function can always be used within the ``WHERE`` clause.
+
+.. _scalar_intersects:
+
+intersects(geo_shape, geo_shape) returns boolean
+------------------------------------------------
+
+The ``intersects`` function returns true if both argument shapes
+share some points or area, they *overlap*. This also includes two shapes
+where one lies :ref:`within <scalar_within>` the other.
+If ``false`` is returned, both shapes are considered *disjoint*.
+
+Example::
+
+    cr> select
+    ... intersects(
+    ...   {type='Polygon', coordinates=[
+    ...         [[13.4252, 52.7096],[13.9416, 52.0997],
+    ...          [12.7221, 52.1334],[13.4252, 52.7096]]]},
+    ...   'LINESTRING(13.9636 52.6763, 13.2275 51.9578,
+    ...               12.9199 52.5830, 11.9970 52.6830)'
+    ... ) as intersects,
+    ... intersects(
+    ...   {type='Polygon', coordinates=[
+    ...         [[13.4252, 52.7096],[13.9416, 52.0997],
+    ...          [12.7221, 52.1334],[13.4252, 52.7096]]]},
+    ...   'LINESTRING (11.0742 49.4538, 11.5686 48.1367)'
+    ... ) as disjoint
+    ... from sys.cluster;
+    +------------+----------+
+    | intersects | disjoint |
+    +------------+----------+
+    | TRUE       | FALSE    |
+    +------------+----------+
+    SELECT 1 row in set (... sec)
+
+Due to a limitation on the :ref:`geo_shape_data_type` datatype
+this function cannot be used in the :ref:`sql_reference_order_by`.
+
+Mathematical Functions
+======================
+
+All mathematical functions can be used within ``WHERE`` and
+``ORDER BY`` clauses.
+
+abs(number)
+-----------
+
+Returns the absolute value of the given number in the datatype of the given number::
+
+    cr> select abs(214748.0998), abs(0), abs(-214748) from sys.cluster;
+    +------------------+--------+--------------+
+    | abs(214748.0998) | abs(0) | abs(-214748) |
+    +------------------+--------+--------------+
+    |      214748.0998 |      0 |       214748 |
+    +------------------+--------+--------------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-ceil:
+
+ceil(number) returns long or integer
+------------------------------------
+
+Returns the smallest integer or long value that is not less than the argument.
+
+Return value will be of type integer if the input value is an integer or float.
+If the input value is of type long or double the return value will be of type
+long::
+
+    cr> select ceil(29.9) from sys.cluster;
+    +------------+
+    | ceil(29.9) |
+    +------------+
+    |         30 |
+    +------------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-floor:
+
+floor(number) returns long or integer
+-------------------------------------
+
+Returns the largest integer or long value that is not greater than the argument.
+
+Return value will be an integer if the input value is an integer or a float.
+If the input value is of type long or double the return value will be of type long.
+
+See below for an example::
+
+    cr> select floor(29.9) from sys.cluster;
+    +-------------+
+    | floor(29.9) |
+    +-------------+
+    |          29 |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+
+ln(number) returns double
+-------------------------
+
+Returns the natural logarithm of given ``number``.
+
+See below for an example::
+
+    cr> SELECT ln(1) FROM sys.cluster;
+    +-------+
+    | ln(1) |
+    +-------+
+    |   0.0 |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+.. note::
+
+    An error is returned for arguments which lead to undefined or illegal
+    results. E.g. ln(0) results in ``minus infinity``, and therefore, an
+    error is returned.
+
+
+log(x : number, b : number) returns double
+------------------------------------------
+
+Returns the logarithm of given ``x`` to base ``b``.
+
+See below for an example, which essentially is the same as above::
+
+    cr> SELECT log(100, 10) FROM sys.cluster;
+    +--------------+
+    | log(100, 10) |
+    +--------------+
+    |          2.0 |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+The second argument (``b``) is optional. If not present, base 10 is used::
+
+    cr> SELECT log(100) FROM sys.cluster;
+    +----------+
+    | log(100) |
+    +----------+
+    |      2.0 |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+.. note::
+
+    An error is returned for arguments which lead to undefined or illegal
+    results. E.g. log(0) results in ``minus infinity``, and therefore, an
+    error is returned.
+
+    The same is true for arguments which lead to a ``division by zero``, as
+    e.g. log(10, 1) does.
+
+
+random() returns double
+-----------------------
+
+The ``random`` function returns a random value in the range 0.0 <= X < 1.0.
+
+.. note::
+
+    Every call to ``random`` will yield a new random number.
+
+
+.. _scalar-round:
+
+round(number) returns long or integer
+-------------------------------------
+
+If the input is of type double or long the result is the closest long to the
+argument, with ties rounding up.
+
+If the input is of type float or integer the result is the closest integer to
+the argument, with ties rounding up.
+
+See below for an example::
+
+    cr> select round(42.2) from sys.cluster;
+    +-------------+
+    | round(42.2) |
+    +-------------+
+    |          42 |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+
+sqrt(number) returns double
+---------------------------
+
+Returns the square root of the argument.
+
+See below for an example::
+
+    cr> select sqrt(25.0) from sys.cluster;
+    +------------+
+    | sqrt(25.0) |
+    +------------+
+    |        5.0 |
+    +------------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-regexp:
+
+Regular Expression Functions
+============================
+
+The regular expression functions in crate use `Java Regular Expressions`_.
+See the api documentation for more details.
+
+.. note:
+
+   Be aware that, in contrast to the functions, the
+   :ref:`sql_ddl_regexp <regular expression operator>` is using
+   `Lucene Regular Expressions`_.
+
+.. _Lucene Regular Expressions: http://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
+
+.. _scalar-regexp-matches:
+
+regexp_matches(source, pattern [, flags]) returns string_array
+--------------------------------------------------------------
+
+This function uses the regular expression pattern in ``pattern``
+to match against the ``source`` string.
+
+If ``source`` matches, an array of the matched regular expression
+groups is returned.
+If no regular expression group was used, the whole pattern is used as
+a group.
+If ``source`` does not match, this function returns ``NULL``.
+
+A regular expression group is formed by a subexpression that is
+surrounded by parentheses.The position of a group is determined by the
+position of its opening parenthesis.
+For example when matching the pattern ``\b([A-Z])`` a match for the
+subexpression ``([A-Z])`` would create group No. 1. If you want to
+group stuff with parentheses, but without grouping, use ``(?...)``.
+
+For example matching the regular expression ``([Aa](.+)z)`` against
+``alcatraz``, results in these groups:
+
+ * group 1: ``alcatraz`` (from first to last parenthesis or whole pattern)
+ * group 2: ``lcatra`` (beginning at second parenthesis)
+
+The ``regexp_matches`` function will return all groups as a string array::
+
+    cr> select regexp_matches('alcatraz', '(a(.+)z)') as matched from sys.cluster;
+    +------------------------+
+    | matched                |
+    +------------------------+
+    | ["alcatraz", "lcatra"] |
+    +------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select regexp_matches('alcatraz', 'traz') as matched from sys.cluster;
+    +----------+
+    | matched  |
+    +----------+
+    | ["traz"] |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+Through array element access functionality, a group can be selected
+directly. See :ref:`sql_dql_object_arrays_select` for details.
+
+::
+
+    cr> select regexp_matches('alcatraz', '(a(.+)z)')[2] as second_group from sys.cluster;
+    +--------------+
+    | second_group |
+    +--------------+
+    | lcatra       |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. _scalar-regexp-matches-flags:
+
+Flags
+.....
+
+This function takes a number of flags as optional third parameter.
+These flags are given as a string containing any of the characters listed below.
+Order does not matter.
+
++-------+---------------------------------------------------------------------+
+| Flag  | Description                                                         |
++=======+=====================================================================+
+| i     | enable case insensitive matching                                    |
++-------+---------------------------------------------------------------------+
+| u     | enable unicode case folding when used together with ``i``           |
++-------+---------------------------------------------------------------------+
+| U     | enable unicode support for character classes like ``\W``            |
++-------+---------------------------------------------------------------------+
+| s     | make ``.`` match line terminators, too                              |
++-------+---------------------------------------------------------------------+
+| m     | make ``^`` and ``$`` match on the beginning or end of a line        |
+|       | too.                                                                |
++-------+---------------------------------------------------------------------+
+| x     | permit whitespace and line comments starting with ``#``             |
++-------+---------------------------------------------------------------------+
+| d     | only ``\n`` is considered a line-terminator when using ``^``, ``$`` |
+|       | and ``.``                                                           |
++-------+---------------------------------------------------------------------+
+
+
+Examples
+........
+
+::
+
+    cr> select regexp_matches('foobar', '^(a(.+)z)$') as matched from sys.cluster;
+    +---------+
+    | matched |
+    +---------+
+    | NULL    |
+    +---------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select regexp_matches('99 bottles of beer on the wall', '\d{2}\s(\w+).*', 'ixU')
+    ... as matched from sys.cluster;
+    +-------------+
+    | matched     |
+    +-------------+
+    | ["bottles"] |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+regexp_replace(source, pattern, replacement [, flags]) returns string
+---------------------------------------------------------------------
+
+``regexp_replace`` can be used to replace every (or only the first) occurence of
+a subsequence matching ``pattern`` in the ``source`` string with the ``replacement``
+string. If no subsequence in ``source`` matches the regular expression ``pattern``,
+``source`` is returned unchanged.
+
+``pattern`` is a java regular expression. For details on the regexp syntax,
+see `Java Regular Expressions`_.
+
+The ``replacement`` string may contain expressions like ``$N``
+where ``N`` is a digit between 0 and 9. It references the *N*\ th matched group of
+``pattern`` and the matching subsequence of that group will be inserted
+in the returned string. The expression ``$0`` will insert the whole matching
+``source``.
+
+Per default, only the first occurrence of a subsequence matching ``pattern``
+will be replaced. If all occurrences shall be replaced use the ``g`` flag.
+
+Flags
+.....
+
+``regexp_replace`` supports the same flags than ``regexp_matches``,
+see :ref:`regexp_matches Flags <scalar-regexp-matches-flags>` and additionally the ``g`` flag:
+
++-------+---------------------------------------------------------------------+
+| Flag  | Description                                                         |
++=======+=====================================================================+
+| g     | replace all occurrences of a subsequence matching ``pattern``,      |
+|       | not only the first                                                  |
++-------+---------------------------------------------------------------------+
+
+Examples
+........
+
+::
+
+   cr> select name, regexp_replace(name, '(\w+)\s(\w+)+', '$1 - $2') as replaced from locations
+   ... order by name limit 5;
+    +---------------------+-----------------------+
+    | name                | replaced              |
+    +---------------------+-----------------------+
+    |                     |                       |
+    | Aldebaran           | Aldebaran             |
+    | Algol               | Algol                 |
+    | Allosimanius Syneca | Allosimanius - Syneca |
+    | Alpha Centauri      | Alpha - Centauri      |
+    +---------------------+-----------------------+
+    SELECT 5 rows in set (... sec)
+
+::
+
+   cr> select regexp_replace('alcatraz', '(foo)(bar)+', '$1baz') as replaced
+   ... from sys.cluster;
+    +----------+
+    | replaced |
+    +----------+
+    | alcatraz |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+::
+
+   cr> select name, regexp_replace(name, '([A-Z]\w+) .+', '$1', 'ig') as replaced from locations
+   ... order by name limit 5;
+    +---------------------+--------------+
+    | name                | replaced     |
+    +---------------------+--------------+
+    |                     |              |
+    | Aldebaran           | Aldebaran    |
+    | Algol               | Algol        |
+    | Allosimanius Syneca | Allosimanius |
+    | Alpha Centauri      | Alpha        |
+    +---------------------+--------------+
+    SELECT 5 rows in set (... sec)
+
+
+Array Functions
+===============
+
+array_cat(first_array, second_array) returns array
+-------------------------------------------------------------------------
+
+The ``array_cat`` function concatenates two arrays into one array
+
+::
+
+    cr> select array_cat([1,2,3],[3,4,5,6]) from sys.cluster;
+    +-------------------------------+
+    | array_cat([1,2,3], [3,4,5,6]) |
+    +-------------------------------+
+    | [1, 2, 3, 3, 4, 5, 6]         |
+    +-------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+It can be used to append elements to array fields
+
+::
+
+    cr> create table array_cat_example (list array(integer));
+    CREATE OK (... sec)
+
+::
+
+    cr> insert into array_cat_example (list) values ([1,2,3]);
+    INSERT OK, 1 row affected (... sec)
+
+.. Hidden: refresh array_cat_example
+
+    cr> refresh table array_cat_example
+    REFRESH OK (... sec)
+
+::
+
+    cr> update array_cat_example set list = array_cat(list, [4, 5, 6]);
+    UPDATE OK, 1 row affected (... sec)
+
+.. Hidden: refresh array_cat_example
+
+    cr> refresh table array_cat_example
+    REFRESH OK (... sec)
+
+::
+
+    cr> select * from array_cat_example;
+    +--------------------+
+    | list               |
+    +--------------------+
+    | [1, 2, 3, 4, 5, 6] |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
+
+.. note::
+
+   Appending to arrays with array_cat in updates is handy,
+   but unfortunately not isolated. We use optimistic concurrency control
+   to ensure that your update operation used the latest state of the row.
+   But only 3 retry attempts are made by fetching the newest version again
+   and if they all fail, the query fails.
+
+
+You can also use the concat operator ``||`` with arrays
+
+::
+
+    cr> select [1,2,3] || [4,5,6] || [7,8,9] from sys.cluster;
+    +-------------------------------------------+
+    | concat(concat([1,2,3], [4,5,6]), [7,8,9]) |
+    +-------------------------------------------+
+    | [1, 2, 3, 4, 5, 6, 7, 8, 9]               |
+    +-------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+array_unique(first_array, [ second_array]) returns array
+-------------------------------------------------------------------
+
+The ``array_unique`` function merges two arrays into one array with unique elements
+
+::
+
+    cr> select array_unique([1,2,3],[3,4,5,6]) from sys.cluster;
+    +----------------------------------+
+    | array_unique([1,2,3], [3,4,5,6]) |
+    +----------------------------------+
+    | [1, 2, 3, 4, 5, 6]               |
+    +----------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+It can be used with one argument
+
+::
+
+    cr> select array_unique([1,2,3,3,4,5,6,7,5,6,9,10]) from sys.cluster;
+    +------------------------------------------+
+    | array_unique([1,2,3,3,4,5,6,7,5,6,9,10]) |
+    +------------------------------------------+
+    | [1, 2, 3, 4, 5, 6, 7, 9, 10]             |
+    +------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+array_difference(first_array, second_array) returns array
+-------------------------------------------------------------------
+
+The ``array_difference`` function removes elements from the first array that are contained in the second array.
+
+::
+
+    cr> select array_difference([1,2,3,4,5,6,7,8,9,10],[2,3,6,9,15]) from sys.cluster;
+    +--------------------------------------------------------+
+    | array_difference([1,2,3,4,5,6,7,8,9,10], [2,3,6,9,15]) |
+    +--------------------------------------------------------+
+    | [1, 4, 5, 7, 8, 10]                                    |
+    +--------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+It can be used to remove elements from array fields.
+
+::
+
+    cr> create table array_difference_example (list array(integer));
+    CREATE OK (... sec)
+
+::
+
+    cr> insert into array_difference_example (list) values ([1,2,3,4,5,6,7,8,9,10]);
+    INSERT OK, 1 row affected (... sec)
+
+.. Hidden: refresh array_difference_example
+
+    cr> refresh table array_difference_example
+    REFRESH OK (... sec)
+
+::
+
+    cr> update array_difference_example set list = array_difference(list, [6]);
+    UPDATE OK, 1 row affected (... sec)
+
+.. Hidden: refresh array_difference_example
+
+    cr> refresh table array_difference_example
+    REFRESH OK (... sec)
+
+::
+
+    cr> select * from array_difference_example;
+    +------------------------------+
+    | list                         |
+    +------------------------------+
+    | [1, 2, 3, 4, 5, 7, 8, 9, 10] |
+    +------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+.. rubric:: Footnotes
+
+.. [#MySQL-Docs] http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
+
+.. _`formatter`: http://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
+.. _Java Regular Expressions: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
+.. _`MySQL date_format`: http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
+.. _`Haversine formular`: https://en.wikipedia.org/wiki/Haversine_formula
+

@@ -29,7 +29,6 @@ import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
@@ -37,25 +36,24 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.reference.sys.cluster.ClusterNameExpression;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
 public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     private MapSideDataCollectOperation operation;
@@ -67,11 +65,11 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         functions = internalCluster().getInstance(Functions.class);
     }
 
-    private CollectPhase collectNode(Routing routing,
-                                     List<Symbol> toCollect,
-                                     RowGranularity rowGranularity,
-                                     WhereClause whereClause) {
-        return new CollectPhase(
+    private RoutedCollectPhase collectNode(Routing routing,
+                                           List<Symbol> toCollect,
+                                           RowGranularity rowGranularity,
+                                           WhereClause whereClause) {
+        return new RoutedCollectPhase(
                 UUID.randomUUID(),
                 0,
                 "dummy",
@@ -84,7 +82,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         );
     }
 
-    private CollectPhase collectNode(Routing routing, List<Symbol> toCollect, RowGranularity rowGranularity) {
+    private RoutedCollectPhase collectNode(Routing routing, List<Symbol> toCollect, RowGranularity rowGranularity) {
         return collectNode(routing, toCollect, rowGranularity, WhereClause.MATCH_ALL);
     }
 
@@ -94,17 +92,17 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         TableInfo tableInfo = schemas.getTableInfo(new TableIdent("sys", "cluster"));
         Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null);
         Reference clusterNameRef = new Reference(new ReferenceInfo(new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterNameExpression.NAME)), RowGranularity.CLUSTER, DataTypes.STRING));
-        CollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef), RowGranularity.CLUSTER);
+        RoutedCollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef), RowGranularity.CLUSTER);
         Bucket result = collect(collectNode);
         assertThat(result.size(), is(1));
         assertThat(((BytesRef) result.iterator().next().get(0)).utf8ToString(), Matchers.startsWith("SUITE-"));
     }
 
-    private Bucket collect(CollectPhase collectNode) throws Exception {
+    private Bucket collect(RoutedCollectPhase collectPhase) throws Exception {
         CollectingRowReceiver collectingProjector = new CollectingRowReceiver();
-        collectingProjector.prepare(mock(ExecutionState.class));
-        Collection<CrateCollector> collectors = operation.createCollectors(collectNode, collectingProjector, mock(JobCollectContext.class));
-        operation.launchCollectors(collectors);
+        collectingProjector.prepare();
+        Collection<CrateCollector> collectors = operation.createCollectors(collectPhase, collectingProjector, mock(JobCollectContext.class));
+        operation.launchCollectors(collectors, JobCollectContext.threadPoolName(collectPhase, clusterService().localNode().id()));
         return collectingProjector.result();
     }
 
@@ -124,7 +122,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Function whereClause = new Function(eqImpl.info(),
                 Arrays.asList(tableNameRef, Literal.newLiteral("shards")));
 
-        CollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
+        RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
         Bucket result = collect(collectNode);
         assertThat(TestingHelpers.printedTable(result), is("NULL| NULL| strict| 0| 1| NULL| sys| NULL| shards\n"));
     }
@@ -139,7 +137,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         for (ReferenceInfo info : tableInfo.columns()) {
             toCollect.add(new Reference(info));
         }
-        CollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC);
+        RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC);
         Bucket result = collect(collectNode);
 
         String expected = "id| string| NULL| false| 1| sys| cluster\n" +

@@ -2,11 +2,11 @@ package io.crate.jobs;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.planner.node.dml.UpsertByIdNode;
+import io.crate.test.CauseMatcher;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.junit.Before;
@@ -14,7 +14,6 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.*;
@@ -46,10 +45,10 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         // context is killed
         context.kill(null);
         // listener returns
-        ShardUpsertResponse response = mock(ShardUpsertResponse.class);
+        ShardResponse response = mock(ShardResponse.class);
         listener.getValue().onResponse(response);
 
-        expectedException.expectCause(TestingHelpers.cause(CancellationException.class));
+        expectedException.expectCause(CauseMatcher.cause(InterruptedException.class));
         context.future().get(500, TimeUnit.MILLISECONDS);
     }
 
@@ -57,7 +56,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
     public void testKillBeforeStart() throws Exception {
         context.prepare();
         context.kill(null);
-        expectedException.expectCause(TestingHelpers.cause(CancellationException.class));
+        expectedException.expectCause(CauseMatcher.cause(InterruptedException.class));
         context.future().get(500, TimeUnit.MILLISECONDS);
     }
 

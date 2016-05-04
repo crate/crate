@@ -27,6 +27,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.Locale;
+
 import static org.hamcrest.core.Is.is;
 
 
@@ -252,7 +254,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
         try {
             assertTrue(((String) response.rows()[0][0]).startsWith(expected));
         } catch (Throwable e) {
-            String msg = String.format("Row does not start with expected string:\n\nExpected: %s\nActual: %s\n", expected, response.rows()[0][0]);
+            String msg = String.format(Locale.ENGLISH, "Row does not start with expected string:\n\nExpected: %s\nActual: %s\n", expected, response.rows()[0][0]);
             throw new AssertionError(msg);
         }
     }
@@ -322,23 +324,23 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
     public void testShowTable() throws Exception {
         String tableName = "test";
         String schemaName = "my";
-        execute(String.format("create table %s.%s (id long, name string)", schemaName, tableName));
+        execute(String.format(Locale.ENGLISH, "create table %s.%s (id long, name string)", schemaName, tableName));
         execute("create table foo (id long, name string)");
 
         execute("show tables");
         assertThat(TestingHelpers.printedTable(response.rows()), is("foo\n" +
                                                                     "test\n"));
 
-        execute(String.format("show tables from %s", schemaName));
+        execute(String.format(Locale.ENGLISH, "show tables from %s", schemaName));
         assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
 
-        execute(String.format("show tables in %s", schemaName));
+        execute(String.format(Locale.ENGLISH, "show tables in %s", schemaName));
         assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
 
-        execute(String.format("show tables from %s like 'hello'", schemaName));
+        execute(String.format(Locale.ENGLISH, "show tables from %s like 'hello'", schemaName));
         assertEquals(0, response.rowCount());
 
-        execute(String.format("show tables from %s like '%%'" , schemaName));
+        execute(String.format(Locale.ENGLISH, "show tables from %s like '%%'" , schemaName));
         assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
 
         execute("show tables like '%es%'");
@@ -348,19 +350,19 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(TestingHelpers.printedTable(response.rows()), is("foo\n" +
                                                                     "test\n"));
 
-        execute(String.format("show tables where table_name = '%s'", tableName));
+        execute(String.format(Locale.ENGLISH, "show tables where table_name = '%s'", tableName));
         assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
 
         execute("show tables where table_name like '%es%'");
         assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
 
-        execute(String.format("show tables from %s where table_name like '%%es%%'", schemaName));
+        execute(String.format(Locale.ENGLISH, "show tables from %s where table_name like '%%es%%'", schemaName));
         assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
 
-        execute(String.format("show tables in %s where table_name like '%%es%%'", schemaName));
+        execute(String.format(Locale.ENGLISH, "show tables in %s where table_name like '%%es%%'", schemaName));
         assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
 
-        execute(String.format("show tables from %s where table_name = 'hello'", schemaName));
+        execute(String.format(Locale.ENGLISH, "show tables from %s where table_name = 'hello'", schemaName));
         assertEquals(0, response.rowCount());
     }
 

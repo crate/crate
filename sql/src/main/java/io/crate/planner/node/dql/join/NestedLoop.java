@@ -28,6 +28,8 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -64,6 +66,7 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
 
     @Nullable
     private final MergePhase localMerge;
+    private final boolean resultIsDistributed;
 
     /**
      * create a new NestedLoop
@@ -94,12 +97,14 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
     public NestedLoop(NestedLoopPhase nestedLoopPhase,
                       PlannedAnalyzedRelation left,
                       PlannedAnalyzedRelation right,
-                      @Nullable MergePhase localMerge) {
+                      @Nullable MergePhase localMerge,
+                      Collection<String> handlerNodes) {
         this.jobId = nestedLoopPhase.jobId();
         this.left = left;
         this.right = right;
         this.nestedLoopPhase = nestedLoopPhase;
         this.localMerge = localMerge;
+        this.resultIsDistributed = localMerge == null && !nestedLoopPhase.executionNodes().equals(handlerNodes);
     }
 
     public PlannedAnalyzedRelation left() {
@@ -125,7 +130,7 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
 
     @Override
     public boolean resultIsDistributed() {
-        return resultPhase().executionNodes().size() > 1;
+        return resultIsDistributed;
     }
 
     @Override

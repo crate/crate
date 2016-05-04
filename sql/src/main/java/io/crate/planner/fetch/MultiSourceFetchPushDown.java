@@ -75,16 +75,18 @@ public class MultiSourceFetchPushDown {
         for (Map.Entry<QualifiedName, MultiSourceSelect.Source> entry : statement.sources().entrySet()) {
             MultiSourceSelect.Source source = entry.getValue();
             if (!(source.relation() instanceof DocTableRelation)) {
+                int index = 0;
+                for (Symbol output : source.querySpec().outputs()) {
+                    RelationColumn rc = new RelationColumn(entry.getKey(), index++, output.valueType());
+                    mssOutputs.add(rc);
+                    mssOutputMap.put(output, rc);
+                    topLevelOutputMap.put(output, new InputColumn(mssOutputs.size() - 1, output.valueType()));
+                }
                 continue;
             }
 
             DocTableRelation rel = (DocTableRelation) source.relation();
-            HashSet<Field> canBeFetched = new HashSet<>();
-            for (Field field : statement.canBeFetched()) {
-                if (field.relation() == rel) {
-                    canBeFetched.add(field);
-                }
-            }
+            HashSet<Field> canBeFetched = filterByRelation(statement.canBeFetched(), rel);
             if (!canBeFetched.isEmpty()) {
                 RelationColumn docIdColumn = new RelationColumn(entry.getKey(), 0, DataTypes.LONG);
                 mssOutputs.add(docIdColumn);
@@ -92,7 +94,7 @@ public class MultiSourceFetchPushDown {
 
                 ArrayList<Symbol> qtOutputs = new ArrayList<>(
                         source.querySpec().outputs().size() - canBeFetched.size() + 1);
-                Reference docId = new Reference(((DocTableRelation) source.relation()).tableInfo().getReferenceInfo(DocSysColumns.DOCID));
+                Reference docId = new Reference(rel.tableInfo().getReferenceInfo(DocSysColumns.DOCID));
                 qtOutputs.add(docId);
 
                 for (Symbol output : source.querySpec().outputs()) {
@@ -140,6 +142,16 @@ public class MultiSourceFetchPushDown {
         if (statement.querySpec().orderBy().isPresent()) {
             MappingSymbolVisitor.inPlace().processInplace(statement.querySpec().orderBy().get().orderBySymbols(), mssOutputMap);
         }
+    }
+
+    private static HashSet<Field> filterByRelation(Set<Field> fields, DocTableRelation rel) {
+        HashSet<Field> filteredFields = new HashSet<>();
+        for (Field field : fields) {
+            if (field.relation() == rel) {
+                filteredFields.add(field);
+            }
+        }
+        return filteredFields;
     }
 
     private void allocateFetchedReference(FetchReference fr, DocTableRelation rel) {

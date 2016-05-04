@@ -22,18 +22,13 @@
 package io.crate.operation.scalar;
 
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.operation.Input;
-import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
-
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
@@ -41,75 +36,36 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluate() throws Exception {
-        final Literal<Object[]> term = Literal.newLiteral(
-                new BytesRef[]{ new BytesRef("Youri"), new BytesRef("Ruben") },
-                new ArrayType(DataTypes.STRING));
-        final Literal<Integer> termIndex = Literal.newLiteral(1);
-        final BytesRef expected = new BytesRef("Youri");
-
-        List<Symbol> arguments = Arrays.<Symbol>asList(
-                createReference("names", term.valueType()),
-                termIndex
-        );
-        Function function = createFunction(SubscriptFunction.NAME, DataTypes.STRING, arguments);
+        Function function = (Function) sqlExpressions.asSymbol("subscript(['Youri', 'Ruben'], cast(1 as integer))");
         SubscriptFunction subscriptFunction = (SubscriptFunction) functions.get(function.info().ident());
 
-        Input[] args = new Input[2];
-        args[0] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return term.value();
-            }
+        Input[] args = new Input[] {
+                ((Input) function.arguments().get(0)),
+                ((Input) function.arguments().get(1))
         };
-        args[1] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return termIndex.value();
-            }
-        };
-
+        BytesRef expected = new BytesRef("Youri");
         assertEquals(expected, subscriptFunction.evaluate(args));
     }
 
     @Test
     public void testNormalizeSymbol() throws Exception {
-        final Literal<Object[]> term = Literal.newLiteral(
-                new BytesRef[]{ new BytesRef("Youri"), new BytesRef("Ruben") },
-                new ArrayType(DataTypes.STRING));
-        final Literal<Integer> termIndex = Literal.newLiteral(1);
-        final BytesRef expected = new BytesRef("Youri");
-        List<Symbol> arguments = Arrays.<Symbol>asList(
-                term,
-                termIndex
-        );
-        Function function = createFunction(SubscriptFunction.NAME, DataTypes.STRING, arguments);
+        Function function = (Function) sqlExpressions.asSymbol("subscript(['Youri', 'Ruben'], cast(1 as integer))");
         SubscriptFunction subscriptFunction = (SubscriptFunction) functions.get(function.info().ident());
 
+        Symbol actual = subscriptFunction.normalizeSymbol(function);
+        assertThat(actual, isLiteral(new BytesRef("Youri")));
+
+
+        function = (Function) sqlExpressions.asSymbol("subscript(tags, cast(1 as integer))");
+
         Symbol result = subscriptFunction.normalizeSymbol(function);
-        assertThat(result, isLiteral(expected.utf8ToString()));
-
-        arguments = Arrays.<Symbol>asList(
-                createReference("text", term.valueType()),
-                termIndex
-        );
-        function = createFunction(SubscriptFunction.NAME, DataTypes.STRING, arguments);
-        subscriptFunction = (SubscriptFunction) functions.get(function.info().ident());
-
-        result = subscriptFunction.normalizeSymbol(function);
         assertThat(result, instanceOf(Function.class));
         assertThat((Function)result, is(function));
     }
 
     @Test
     public void testIndexOutOfRange() throws Exception {
-        final Literal<Object[]> term = Literal.newLiteral(
-                new BytesRef[]{ new BytesRef("Youri"), new BytesRef("Ruben") },
-                new ArrayType(DataTypes.STRING));
-        List<Symbol> arguments = Arrays.<Symbol>asList(
-                term,
-                Literal.newLiteral(3)
-        );
-        Function function = createFunction(SubscriptFunction.NAME, DataTypes.STRING, arguments);
+        Function function = (Function) sqlExpressions.asSymbol("subscript(['Youri', 'Ruben'], cast(3 as integer))");
         SubscriptFunction subscriptFunction = (SubscriptFunction) functions.get(function.info().ident());
 
         Symbol result = subscriptFunction.normalizeSymbol(function);

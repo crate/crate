@@ -46,7 +46,7 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
         this.jobId = jobId;
     }
 
-    BulkCreateIndicesRequest() {
+    public BulkCreateIndicesRequest() {
     }
 
     public Collection<String> indices() {

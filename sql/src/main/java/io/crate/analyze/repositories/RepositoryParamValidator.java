@@ -23,12 +23,19 @@
 package io.crate.analyze.repositories;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import io.crate.analyze.GenericPropertiesConverter;
+import io.crate.analyze.ParameterContext;
+import io.crate.analyze.SettingsApplier;
+import io.crate.analyze.SettingsAppliers;
+import io.crate.metadata.settings.StringSetting;
+import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -42,42 +49,36 @@ public class RepositoryParamValidator {
         typeSettings = repositoryTypeSettings;
     }
 
-    /**
-     * validates the type and settings
-     * @throws IllegalArgumentException if the type is invalid, required settings are missing or invalid settings are provided
-     */
-    public void validate(String type, Settings settings) throws IllegalArgumentException {
+    public Settings convertAndValidate(String type, Optional<GenericProperties> genericProperties, ParameterContext parameterContext) {
         TypeSettings typeSettings = this.typeSettings.get(type);
         if (typeSettings == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid repository type \"%s\"", type));
         }
+
+        Map<String, SettingsApplier> allSettings = typeSettings.all();
+
+        // create string settings applier for all dynamic settings
+        Optional<GenericProperties> dynamicProperties = typeSettings.dynamicProperties(genericProperties);
+        if (dynamicProperties.isPresent()) {
+            // allSettings are immutable by default, copy map
+            allSettings = Maps.newHashMap(allSettings);
+            for (String key : dynamicProperties.get().properties().keySet()) {
+                allSettings.put(key, new SettingsAppliers.StringSettingsApplier(new StringSetting(key, true)));
+            }
+        }
+
+        // convert and validate all settings
+        Settings settings = GenericPropertiesConverter.settingsFromProperties(
+                genericProperties, parameterContext, allSettings).build();
+
         Set<String> names = settings.getAsMap().keySet();
-        Sets.SetView<String> missingRequiredSettings = Sets.difference(typeSettings.required(), names);
+        Sets.SetView<String> missingRequiredSettings = Sets.difference(typeSettings.required().keySet(), names);
         if (!missingRequiredSettings.isEmpty()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "The following required parameters are missing to create a repository of type \"%s\": [%s]",
                     type, Joiner.on(", ").join(missingRequiredSettings)));
         }
 
-        Set<String> invalidSettings = removeDynamicHdfsConfSettings(type, Sets.difference(names, typeSettings.all()));
-        if (!invalidSettings.isEmpty()) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid parameters specified: [%s]",
-                    Joiner.on(", ").join(invalidSettings)));
-        }
-    }
-
-    private Set<String> removeDynamicHdfsConfSettings(String type, Sets.SetView<String> invalidSettings) {
-        // hdfs supports dynamic params conf.<key>
-        // don't want to fail just because of those
-        if (!invalidSettings.isEmpty() && type.equalsIgnoreCase("hdfs")) {
-            Set<String> newSet = new HashSet<>(invalidSettings.size());
-            for (String s : invalidSettings.immutableCopy()) {
-                if (!s.startsWith("conf.")) {
-                    newSet.add(s);
-                }
-            }
-            return newSet;
-        }
-        return invalidSettings;
+        return settings;
     }
 }

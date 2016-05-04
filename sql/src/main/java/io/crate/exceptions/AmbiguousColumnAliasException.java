@@ -21,10 +21,12 @@
 
 package io.crate.exceptions;
 
+import java.util.Locale;
+
 public class AmbiguousColumnAliasException extends ValidationException {
 
     public AmbiguousColumnAliasException(String alias) {
-        super(String.format("Column alias \"%s\" is ambiguous", alias));
+        super(String.format(Locale.ENGLISH, "Column alias \"%s\" is ambiguous", alias));
     }
 
     @Override

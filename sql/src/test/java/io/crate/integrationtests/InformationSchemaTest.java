@@ -29,7 +29,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -41,7 +41,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.*;
 
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     final static Joiner commaJoiner = Joiner.on(", ");
@@ -113,7 +113,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
         execute("select * from information_schema.routines");
-        assertEquals(115L, response.rowCount());
+        assertEquals(118L, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
@@ -220,7 +220,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables where schema_name='blob'");
         assertEquals(0L, response.rowCount());
 
-        execute("create blob table test clustered into 5 shards with (blobs_path='/tmp/blobs_path')");
+        String blobsPath = createTempDir().toAbsolutePath().toString();
+        execute("create blob table test clustered into 5 shards with (blobs_path=?)", new Object[]{blobsPath});
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas, " +
@@ -230,7 +231,10 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(5, response.rows()[0][1]);
         assertEquals("1", response.rows()[0][2]);
         assertEquals("digest", response.rows()[0][3]);
-        assertEquals("/tmp/blobs_path", response.rows()[0][4]);
+        assertEquals(blobsPath, response.rows()[0][4]);
+
+        // cleanup blobs path, tempDir hook will be deleted before table would be deleted, avoid error in log
+        execute("drop blob table test");
     }
 
     @Test
@@ -378,7 +382,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
             tokenizerNames[i] = (String)response.rows()[i][0];
         }
         assertEquals(
-                "classic, edgeNGram, edge_ngram, keyword, letter",
+                "PathHierarchy, classic, edgeNGram, edge_ngram, keyword",
                 Joiner.on(", ").join(tokenizerNames)
         );
     }
@@ -435,7 +439,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(332L, response.rowCount());
+        assertEquals(331L, response.rowCount());
     }
 
     @Test
@@ -830,7 +834,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                     "(3, 'content6')");
 
         } catch (SQLActionException e) {
-            assertThat(e.getMessage(), is("blocked by: [FORBIDDEN/8/index write (api)];"));
+            assertThat(e.getMessage(), containsString("blocked by: [FORBIDDEN/8/index write (api)];"));
         }
         refresh();
         execute("select * from my_table");

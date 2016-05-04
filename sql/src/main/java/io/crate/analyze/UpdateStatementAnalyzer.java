@@ -54,6 +54,7 @@ import org.elasticsearch.common.inject.Singleton;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 
@@ -102,7 +103,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                 analysis.parameterContext(), analysisMetaData);
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), relationAnalysisContext);
         if (Relations.isReadOnly(analyzedRelation)) {
-            throw new UnsupportedOperationException(String.format(
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "relation \"%s\" is read-only and cannot be updated", analyzedRelation));
         }
         assert analyzedRelation instanceof DocTableRelation : "sourceRelation must be a DocTableRelation";

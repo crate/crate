@@ -24,19 +24,15 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.repositories.RepositorySettingsModule;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.Input;
+import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Binder;
@@ -44,7 +40,6 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
 
@@ -206,110 +201,39 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             .clusteredBy("name")
             .build();
 
-    static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
-            new FunctionIdent("abs", Arrays.<DataType>asList(DataTypes.LONG)),
-            DataTypes.LONG);
-    static final FunctionInfo ADD_FUNCTION_INFO = new FunctionInfo(
-            new FunctionIdent("add", Arrays.<DataType>asList(DataTypes.LONG, DataTypes.LONG)),
-            DataTypes.LONG);
-    static final FunctionInfo YEAR_FUNCTION_INFO = new FunctionInfo(
-            new FunctionIdent("year", Arrays.<DataType>asList(DataTypes.TIMESTAMP)),
-            DataTypes.STRING);
     protected Injector injector;
     Analyzer analyzer;
 
 
     private ThreadPool threadPool;
 
-    static class AbsFunction extends Scalar<Long, Number> {
-
-        @Override
-        public Long evaluate(Input<Number>... args) {
-            if (args[0].value() == null) {
-                return null;
-            }
-            return Math.abs((args[0].value()).longValue());
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return ABS_FUNCTION_INFO;
-        }
-
-
-        @Override
-        public Symbol normalizeSymbol(Function symbol) {
-            if (symbol.arguments().get(0) instanceof Input) {
-                return Literal.newLiteral(evaluate((Input<Number>) symbol.arguments().get(0)));
-            }
-            return symbol;
-        }
-    }
-
-    static class AddTestFunction extends Scalar<Long, Number> {
-
-        @Override
-        public Long evaluate(Input<Number>... args) {
-            assert args.length == 2;
-            if (args[0].value() == null || args[1].value() == null) {
-                return null;
-            }
-            return args[0].value().longValue() + args[1].value().longValue();
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return ADD_FUNCTION_INFO;
-        }
-
-
-        @Override
-        public Symbol normalizeSymbol(Function symbol) {
-            assert symbol.arguments().size() == 2;
-            if (symbol.arguments().get(0) instanceof Input && symbol.arguments().get(1) instanceof Input) {
-                return Literal.newLiteral(evaluate((Input<Number>) symbol.arguments().get(0), (Input<Number>) symbol.arguments().get(1)));
-            }
-            return symbol;
-        }
-    }
-
-    static class YearFunction extends Scalar<String, Long> {
-
-        @Override
-        public String evaluate(Input<Long>... args) {
-            if (args == null || args.length == 0 || args[0] == null) {
-                return null;
-            }
-            return new DateTime(args[0]).year().getAsString();
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return YEAR_FUNCTION_INFO;
-        }
-
-        @Override
-        public Symbol normalizeSymbol(Function symbol) {
-            if (symbol.arguments().get(0) instanceof Input) {
-                return Literal.newLiteral(evaluate((Input<Long>) symbol.arguments().get(0)));
-            }
-            return symbol;
-        }
-    }
-
-    protected <T> T analyze(String statement) {
+    protected <T extends AnalyzedStatement> T analyze(String statement) {
         //noinspection unchecked
-        return (T) analyze(statement, new Object[0]);
+        return (T) analysis(statement).analyzedStatement();
     }
 
-    protected AnalyzedStatement analyze(String statement, Object[] params) {
-        return analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(params, new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+    protected <T extends AnalyzedStatement> T analyze(String statement, Object[] params) {
+        //noinspection unchecked
+        return (T) analysis(statement, params).analyzedStatement();
     }
 
-    protected AnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
+    protected <T extends AnalyzedStatement> T analyze(String statement, Object[][] bulkArgs) {
+        //noinspection unchecked
+        return (T) analysis(statement, bulkArgs).analyzedStatement();
+    }
+
+    protected Analysis analysis(String statement) {
+        return analysis(statement, new Object[0]);
+    }
+
+    protected Analysis analysis(String statement, Object[][] bulkArgs) {
         return analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+                new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME));
+    }
+
+    protected Analysis analysis(String statement, Object [] params) {
+        return analyzer.analyze(SqlParser.createStatement(statement),
+                new ParameterContext(params, new Object[0][], Schemas.DEFAULT_SCHEMA_NAME));
     }
 
     protected List<Module> getModules() {
@@ -322,6 +246,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
     public void prepareModules() throws Exception {
         threadPool = newMockedThreadPool();
         ModulesBuilder builder = new ModulesBuilder();
+        builder.add(new TableFunctionModule());
         builder.add(new Module() {
             @Override
             public void configure(Binder binder) {

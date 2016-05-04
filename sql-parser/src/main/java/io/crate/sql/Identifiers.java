@@ -24,42 +24,47 @@ package io.crate.sql;
 
 import io.crate.sql.parser.SqlParser;
 
-import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Identifiers {
+
+    private static final Pattern ESCAPE_REPLACE_RE = Pattern.compile("\"", Pattern.LITERAL);
+    private static final String ESCAPE_REPLACEMENT = Matcher.quoteReplacement("\"\"");
 
     /**
      * quote and escape the given identifier
      */
     public static String quote(String identifier) {
-        return String.format(Locale.ENGLISH, "\"%s\"", escape(identifier));
+        return "\"" + escape(identifier) + "\"";
     }
-
 
     /**
      * quote and escape identifier only if it needs to be quoted to be a valid identifier
      * i.e. when it contain a double-quote, has upper case letters or is a SQL keyword
      */
     public static String quoteIfNeeded(String identifier) {
-        if (identifier.contains("\"") || hasUpperCase(identifier) || isKeyWord(identifier)) {
+        if (areQuotesRequired(identifier)) {
             return quote(identifier);
         }
         return identifier;
     }
 
-    private static boolean hasUpperCase(String s) {
-        for (int i = 0; i < s.length(); i++) {
-            if (Character.isUpperCase(s.charAt(i))) {
+    private static boolean areQuotesRequired(String identifier) {
+        for (int i = 0; i < identifier.length(); i++) {
+            int cp = identifier.codePointAt(i);
+            if (cp == '"' || Character.isUpperCase(cp)) {
                 return true;
             }
         }
-        return false;
+        return isKeyWord(identifier);
     }
 
     private static boolean isKeyWord(String identifier) {
         if (identifier.length() < 1) {
             return false;
         }
+        // TODO: this is causing gazillion allocations and creates expensive exceptions. FIX THIS
         try {
             SqlParser.createIdentifier(identifier);
             return false;
@@ -73,6 +78,6 @@ public class Identifiers {
      * i.e. replace " with ""
      */
     public static String escape(String identifier) {
-        return identifier.replace("\"", "\"\"");
+        return ESCAPE_REPLACE_RE.matcher(identifier).replaceAll(ESCAPE_REPLACEMENT);
     }
 }

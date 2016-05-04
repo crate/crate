@@ -110,12 +110,12 @@ public class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
             return -1 * (Double)o;
         } else {
             throw new UnsupportedOperationException(
-                    String.format("Can't handle negative of %s.", node.getValue()));
+                    String.format(Locale.ENGLISH, "Can't handle negative of %s.", node.getValue()));
         }
     }
 
     @Override
     protected Object visitNode(Node node, Object[] context) {
-        throw new UnsupportedOperationException(String.format("Can't handle %s.", node));
+        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle %s.", node));
     }
 }

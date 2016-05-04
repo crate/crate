@@ -23,14 +23,16 @@ package io.crate.jobs;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.executor.transport.ShardUpsertResponse;
+import io.crate.metadata.PartitionName;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
@@ -39,7 +41,7 @@ import javax.annotation.Nullable;
 
 public class UpsertByIdContext extends AbstractExecutionSubContext {
 
-    private static final ESLogger logger = Loggers.getLogger(ExecutionSubContext.class);
+    private final static ESLogger LOGGER = Loggers.getLogger(UpsertByIdContext.class);
 
     private final ShardUpsertRequest request;
     private final UpsertByIdNode.Item item;
@@ -51,7 +53,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                              UpsertByIdNode.Item item,
                              SettableFuture<TaskResult> futureResult,
                              BulkRequestExecutor transportShardUpsertActionDelegate) {
-        super(id);
+        super(id, LOGGER);
         this.request = request;
         this.item = item;
         this.futureResult = futureResult;
@@ -60,15 +62,18 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
 
     @Override
     protected void innerStart() {
-        transportShardUpsertActionDelegate.execute(request, new ActionListener<ShardUpsertResponse>() {
+        transportShardUpsertActionDelegate.execute(request, new ActionListener<ShardResponse>() {
             @Override
-            public void onResponse(ShardUpsertResponse updateResponse) {
+            public void onResponse(ShardResponse updateResponse) {
                 if (future.closed()) {
                     return;
                 }
+                if (updateResponse.failure() != null) {
+                    onFailure(updateResponse.failure());
+                }
                 int location = updateResponse.itemIndices().get(0);
 
-                ShardUpsertResponse.Failure failure = updateResponse.failures().get(location);
+                ShardResponse.Failure failure = updateResponse.failures().get(location);
                 if (failure == null) {
                     futureResult.set(TaskResult.ONE_ROW);
                 } else {
@@ -94,6 +99,10 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                         && (e instanceof DocumentMissingException
                         || e instanceof VersionConflictEngineException)) {
                     // on updates, set affected row to 0 if document is not found or version conflicted
+                    futureResult.set(TaskResult.ZERO);
+                } else if (PartitionName.isPartition(request.index())
+                           && e instanceof IndexNotFoundException) {
+                    // index missing exception on a partition should never bubble, set affected row to 0
                     futureResult.set(TaskResult.ZERO);
                 } else {
                     futureResult.setException(e);

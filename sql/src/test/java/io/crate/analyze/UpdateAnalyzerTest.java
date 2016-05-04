@@ -96,13 +96,6 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(NESTED_CLUSTERED_BY_TABLE_IDENT.name())).thenReturn(NESTED_CLUSTERED_BY_TABLE_INFO);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
-
-        @Override
-        protected void bindFunctions() {
-            super.bindFunctions();
-            functionBinder.addBinding(ABS_FUNCTION_INFO.ident()).to(AbsFunction.class);
-            functionBinder.addBinding(ADD_FUNCTION_INFO.ident()).to(AddTestFunction.class);
-        }
     }
 
     @Override

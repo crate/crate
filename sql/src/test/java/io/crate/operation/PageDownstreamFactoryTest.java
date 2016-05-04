@@ -34,9 +34,7 @@ import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.jobs.ExecutionState;
 import io.crate.metadata.*;
-import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.TopN;
@@ -50,15 +48,12 @@ import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.collection.IsIterableContainingInOrder;
 import org.junit.After;
@@ -73,14 +68,17 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 public class PageDownstreamFactoryTest extends CrateUnitTest {
 
     private static final RamAccountingContext ramAccountingContext =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     private GroupProjection groupProjection;
     private Functions functions;
@@ -90,17 +88,8 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
     @Before
     @SuppressWarnings("unchecked")
     public void prepare() {
-        Injector injector = new ModulesBuilder()
-                .add(new AggregationImplModule())
-                .add(new AbstractModule() {
-                    @Override
-                    protected void configure() {
-                        bind(Client.class).toInstance(mock(Client.class));
-                    }
-                })
-                .createInjector();
         threadPool = new ThreadPool("testing");
-        functions = injector.getInstance(Functions.class);
+        functions = getFunctions();
         referenceResolver = new GlobalReferenceResolver(
                 Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
 
@@ -139,8 +128,9 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         BucketPage page = new BucketPage(Futures.immediateFuture(rows));
         final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
                 mock(ClusterService.class),
+                new IndexNameExpressionResolver(Settings.EMPTY),
                 threadPool,
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 mock(BulkRetryCoordinatorPool.class),
                 referenceResolver,
@@ -174,7 +164,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         Tuple<PageDownstream, FlatProjectorChain> downstreamFlatProjectorChainTuple =
                 pageDownstreamFactory.createMergeNodePageDownstream(
                         mergeNode, rowReceiver, randomBoolean(), ramAccountingContext, Optional.<Executor>absent());
-        downstreamFlatProjectorChainTuple.v2().prepare(mock(ExecutionState.class));
+        downstreamFlatProjectorChainTuple.v2().prepare();
         return downstreamFlatProjectorChainTuple.v1();
     }
 
@@ -185,8 +175,9 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
                 Arrays.<Projection>asList(groupProjection), DistributionInfo.DEFAULT_BROADCAST);
         final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
                 mock(ClusterService.class),
+                new IndexNameExpressionResolver(Settings.EMPTY),
                 threadPool,
-                ImmutableSettings.EMPTY,
+                Settings.EMPTY,
                 mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
                 mock(BulkRetryCoordinatorPool.class),
                 referenceResolver,

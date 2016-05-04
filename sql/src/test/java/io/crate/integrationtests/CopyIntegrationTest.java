@@ -21,11 +21,16 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.LifecycleScope;
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
+import io.crate.common.Hex;
+import io.crate.test.utils.Blobs;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.StringEntity;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -34,6 +39,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -42,12 +48,14 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 2, randomDynamicTemplates = false)
-public class CopyIntegrationTest extends SQLTransportIntegrationTest {
+@ESIntegTestCase.ClusterScope(numDataNodes = 2, randomDynamicTemplates = false)
+public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
     private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
     private String nestedArrayCopyFilePath = getClass().getResource("/essetup/data/nested_array").getPath();
@@ -110,10 +118,10 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         File tmpExport = folder.newFolder("tmpExport");
         execute("copy t to directory ?", new Object[]{tmpExport.getAbsolutePath()});
         assertThat(response.rowCount(), is(4L));
-        execute("copy t from ?", new Object[]{String.format("%s/*", tmpExport.getAbsolutePath())});
+        execute("copy t from ?", new Object[]{String.format(Locale.ENGLISH, "%s/*", tmpExport.getAbsolutePath())});
         assertThat(response.rowCount(), is(0L));
         execute("copy t from ? with (overwrite_duplicates = true, shared=true)",
-                new Object[]{String.format("%s/*", tmpExport.getAbsolutePath())});
+                new Object[]{String.format(Locale.ENGLISH, "%s/*", tmpExport.getAbsolutePath())});
         assertThat(response.rowCount(), is(4L));
         execute("refresh table t");
         execute("select count(*) from t");
@@ -308,7 +316,7 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute("copy singleshard to ?", new Object[] { uri });
         assertThat(response.rowCount(), is(1L));
         List<String> lines = Files.readAllLines(
-                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), UTF8);
+                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), StandardCharsets.UTF_8);
 
         assertThat(lines.size(), is(1));
         for (String line : lines) {
@@ -396,10 +404,10 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table singleshard");
 
         String uri = Paths.get(folder.getRoot().toURI()).resolve("testsingleshard.json").toUri().toString();
-        SQLResponse response = execute("copy singleshard (name, test['foo']) to ? with (format='json_object')", new Object[] { uri });
+        SQLResponse response = execute("copy singleshard (name, test['foo']) to ? with (format='json_object')", new Object[]{uri});
         assertThat(response.rowCount(), is(1L));
         List<String> lines = Files.readAllLines(
-                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), UTF8);
+                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), StandardCharsets.UTF_8);
 
         assertThat(lines.size(), is(1));
         for (String line : lines) {
@@ -444,9 +452,24 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCopyToWithGeneratedColumn() throws Exception {
+        execute("CREATE TABLE foo (\n" +
+                "day TIMESTAMP GENERATED ALWAYS AS date_trunc('day', timestamp),\n" +
+                "timestamp TIMESTAMP\n" +
+                ")\n" +
+                "PARTITIONED BY (day)");
+        ensureYellow();
+        execute("insert into foo ( timestamp) values (1454454000377)");
+        refresh();
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
+        SQLResponse response = execute("copy foo to DIRECTORY ?", new Object[]{uriTemplate});
+        assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
     public void testCopyToDirectoryPath() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(startsWith("Failed to open output: 'Output path is a directory: "));
+        expectedException.expectMessage(containsString("Failed to open output: 'Output path is a directory: "));
         execute("create table characters (" +
                 " race string," +
                 " gender string," +
@@ -482,5 +505,51 @@ public class CopyIntegrationTest extends SQLTransportIntegrationTest {
         response = execute("select count(*) from sys.shards where num_docs>0 and table_name='t'");
         assertThat((long) response.rows()[0][0], is(1L));
 
+    }
+
+    @Test
+    public void testCopyFromTwoHttpUrls() throws Exception {
+        execute("create blob table blobs with (number_of_replicas = 0)");
+        execute("create table names (id int primary key, name string) with (number_of_replicas = 0)");
+        ensureYellow();
+
+        String r1 = "{\"id\": 1, \"name\":\"Marvin\"}";
+        String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
+        String[] urls = { upload(r1), upload(r2) };
+
+        execute("copy names from ?", new Object[] { urls });
+        assertThat(response.rowCount(), is(2L));
+        execute("refresh table names");
+        execute("select name from names order by id");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("Marvin\nSlartibartfast\n"));
+    }
+
+    @Test
+    public void testCopyFromTwoUriMixedSchemaAndWildcardUse() throws Exception {
+        execute("create blob table blobs with (number_of_replicas = 0)");
+        execute("create table names (id int primary key, name string) with (number_of_replicas = 0)");
+
+        Path tmpDir = newTempDir(LifecycleScope.TEST);
+        File file = new File(tmpDir.toFile(), "names.json");
+        String r1 = "{\"id\": 1, \"name\": \"Arthur\"}";
+        String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
+
+        Files.write(file.toPath(), Collections.singletonList(r1), StandardCharsets.UTF_8);
+        String[] urls = { tmpDir.toAbsolutePath() + "/*.json", upload(r2) };
+
+        execute("copy names from ?", new Object[] { urls });
+        assertThat(response.rowCount(), is(2L));
+        execute("refresh table names");
+        execute("select name from names order by id");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("Arthur\nSlartibartfast\n"));
+    }
+
+    private String upload(String content) throws IOException {
+        String url = Blobs.url(address, "blobs", Hex.encodeHexString(Blobs.digest(content)));
+        HttpPut httpPut = new HttpPut(url);
+        httpPut.setEntity(new StringEntity(content));
+
+        httpClient.execute(httpPut);
+        return url;
     }
 }

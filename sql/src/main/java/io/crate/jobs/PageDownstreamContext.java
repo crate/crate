@@ -21,6 +21,7 @@
 
 package io.crate.jobs;
 
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
@@ -31,31 +32,17 @@ import io.crate.operation.PageDownstream;
 import io.crate.operation.PageResultListener;
 import io.crate.operation.projectors.FlatProjectorChain;
 import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Locale;
 
 public class PageDownstreamContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext {
 
-    private class SubContextModeResetListener implements PageResultListener {
-
-        @Override
-        public void needMore(boolean needMore) {
-            subContextMode = SubContextMode.PASSIVE;
-        }
-
-        @Override
-        public int buckedIdx() {
-            return 0;
-        }
-    }
-
-    private static final ESLogger LOGGER = Loggers.getLogger(PageDownstreamContext.class);
-
     private final Object lock = new Object();
+    private final String nodeName;
     private String name;
     private final PageDownstream pageDownstream;
     private final Streamer<?>[] streamer;
@@ -66,20 +53,20 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final BitSet exhausted;
     private final ArrayList<PageResultListener> listeners = new ArrayList<>();
 
-    private volatile SubContextMode subContextMode = SubContextMode.PASSIVE;
-    private final SubContextModeResetListener resetListener = new SubContextModeResetListener();
-
     @Nullable
     private final FlatProjectorChain projectorChain;
 
-    public PageDownstreamContext(int id,
+    public PageDownstreamContext(ESLogger logger,
+                                 String nodeName,
+                                 int id,
                                  String name,
                                  PageDownstream pageDownstream,
                                  Streamer<?>[] streamer,
                                  RamAccountingContext ramAccountingContext,
                                  int numBuckets,
                                  @Nullable FlatProjectorChain projectorChain) {
-        super(id);
+        super(id, logger);
+        this.nodeName = nodeName;
         this.name = name;
         this.pageDownstream = pageDownstream;
         this.streamer = streamer;
@@ -112,20 +99,20 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     }
 
     public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
-        subContextMode = SubContextMode.ACTIVE;
         synchronized (listeners) {
             listeners.add(pageResultListener);
-            listeners.add(resetListener);
         }
         synchronized (lock) {
-            LOGGER.trace("setBucket: {}", bucketIdx);
+            traceLog("method=setBucket", bucketIdx);
             if (allFuturesSet.get(bucketIdx)) {
-                pageDownstream.fail(new IllegalStateException("May not set the same bucket of a page more than once"));
+                pageDownstream.fail(new IllegalStateException(String.format(Locale.ENGLISH,
+                        "Same bucket of a page set more than once. node=%s method=setBucket phaseId=%d bucket=%d",
+                        nodeName, id, bucketIdx)));
                 return;
             }
 
             if (pageEmpty()) {
-                LOGGER.trace("calling nextPage");
+                logger.trace("calling nextPage method=setBucket", bucketIdx);
                 pageDownstream.nextPage(new BucketPage(bucketFutures), new ResultListenerBridgingConsumeListener());
             }
             setExhaustedUpstreams();
@@ -136,36 +123,50 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
             bucketFutures.get(bucketIdx).set(rows);
             allFuturesSet.set(bucketIdx);
 
-            clearPageIfFull();
+            clearPageIfFull(bucketIdx);
         }
 
+    }
+
+    private void traceLog(String msg, int bucketIdx) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("{} phaseId={} bucket={}", msg, id, bucketIdx);
+        }
+    }
+
+    private void traceLog(String msg, int bucketIdx, Throwable t) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("{} phaseId={} bucket={} throwable={}", msg, id, bucketIdx, t);
+        }
     }
 
     public synchronized void failure(int bucketIdx, Throwable throwable) {
         // can't trigger failure on pageDownstream immediately as it would remove the context which the other
         // upstreams still require
         synchronized (lock) {
-            LOGGER.trace("failure: bucket: {} {}", bucketIdx, throwable);
+            traceLog("method=failure", bucketIdx, throwable);
             if (allFuturesSet.get(bucketIdx)) {
-                pageDownstream.fail(new IllegalStateException("May not set the same bucket %d of a page more than once"));
+                pageDownstream.fail(new IllegalStateException(String.format(Locale.ENGLISH,
+                        "Same bucket of a page set more than once. node=%s method=failure phaseId=%d bucket=%d",
+                        nodeName, id(), bucketIdx)));
                 return;
             }
             if (pageEmpty()) {
-                LOGGER.trace("calling nextPage");
+                traceLog("calling nextPage. method=failure", bucketIdx);
                 pageDownstream.nextPage(new BucketPage(bucketFutures), new ResultListenerBridgingConsumeListener());
             }
             setExhaustedUpstreams();
 
-            LOGGER.trace("failure: {}", bucketIdx);
             exhausted.set(bucketIdx);
             bucketFutures.get(bucketIdx).setException(throwable);
             allFuturesSet.set(bucketIdx);
-            clearPageIfFull();
+            clearPageIfFull(bucketIdx);
         }
     }
 
-    private void clearPageIfFull() {
+    private void clearPageIfFull(int bucketIdx) {
         if (allFuturesSet.cardinality() == numBuckets) {
+            traceLog("page is full, clearing it", bucketIdx);
             allFuturesSet.clear();
             initBucketFutures();
         }
@@ -197,7 +198,6 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
         future.bytesUsed(ramAccountingContext.totalBytes());
         ramAccountingContext.close();
-        subContextMode = SubContextMode.PASSIVE;
     }
 
     @Override
@@ -208,13 +208,34 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     @Override
     protected void innerPrepare() {
         if (projectorChain != null) {
-            projectorChain.prepare(this);
+            projectorChain.prepare();
+        }
+    }
+
+    @Override
+    protected void innerStart() {
+        // E.g. If the upstreamPhase is a collectPhase for a partitioned table without any partitions
+        // there won't be any executionNodes for that collectPhase
+        // -> no upstreams -> just finish
+        if (numBuckets == 0) {
+            pageDownstream.nextPage(new BucketPage(Futures.immediateFuture(Bucket.EMPTY)), new ResultListenerBridgingConsumeListener());
         }
     }
 
     @Override
     public String name() {
         return name;
+    }
+
+    @Override
+    public String toString() {
+        return "PageDownstreamContext{" +
+               "id=" + id() +
+               ", numBuckets=" + numBuckets +
+               ", allFuturesSet=" + allFuturesSet +
+               ", exhausted=" + exhausted +
+               ", closed=" + future.closed() +
+               '}';
     }
 
     @Nullable
@@ -224,19 +245,16 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         return this;
     }
 
-    @Override
-    public SubContextMode subContextMode() {
-        return subContextMode;
-    }
-
     private class ResultListenerBridgingConsumeListener implements PageConsumeListener {
 
         @Override
         public void needMore() {
             boolean allExhausted = allExhausted();
-            LOGGER.trace("allExhausted: {}", allExhausted);
             synchronized (listeners) {
-                LOGGER.trace("calling needMore on all listeners({})", listeners.size());
+                if (logger.isTraceEnabled()) {
+                    logger.trace("phase={} allExhausted={}", id, allExhausted);
+                    logger.trace("calling needMore on all listeners({}) phase={}", listeners.size(), id);
+                }
                 for (PageResultListener listener : listeners) {
                     if (allExhausted) {
                         listener.needMore(false);
@@ -254,7 +272,9 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         @Override
         public void finish() {
             synchronized (listeners) {
-                LOGGER.trace("calling finish() on all listeners({})", listeners.size());
+                if (logger.isTraceEnabled()) {
+                    logger.trace("calling finish() on all listeners({}) phase={}", listeners.size(), id);
+                }
                 for (PageResultListener listener : listeners) {
                     listener.needMore(false);
                 }

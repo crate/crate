@@ -73,6 +73,21 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
     }
 
+    @Test
+    public void testInvalidPatternSyntax() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Dangling meta character '+' near index 0\n" +
+                                        "+1234567890\n" +
+                                        "^");
+        execute("create table phone (phone string) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into phone (phone) values (?)", new Object[][] {
+                new Object[]{"+1234567890"}
+        });
+        refresh();
+        execute("select * from phone where phone ~* '+1234567890'");
+    }
+
     /**
      * Test querying using regular expressions based on RegexpQuery,
      * which in turn is based on the fast finite-state automata
@@ -201,25 +216,17 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
     /**
      * Same as above, running through the same code path for DELETE expressions.
      *
-     * Making this possible requires patching ES => postponed.
-     *
-     * @see {@link io.crate.executor.transport.task.elasticsearch.ESQueryBuilder}
      * @see {@link org.elasticsearch.index.query.RegexpQueryParser}
      * @see {@link org.elasticsearch.index.mapper.core.AbstractFieldMapper#regexpQuery}
      */
     @Test
     public void testRegexpMatchQueryOperatorWithPcreViaElasticSearchForDelete() throws Exception {
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Using ~ with PCRE regular expressions currently not supported for this type of query");
-
         this.setup.setUpLocations();
         ensureGreen();
         refresh();
 
         execute("delete from locations where name ~ '(?i).*centauri.*'");
-        assertThat(response.rowCount(), is(-1L));
-
+        assertThat(response.rowCount(), is(1L));
     }
 
     /**
@@ -233,7 +240,7 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select * from sys.shards where table_name ~ '(?i)LOCATIONS' order by table_name");
         assertThat(response.rowCount(), is(2L));
-        assertThat((String) response.rows()[0][10], is("locations"));
+        assertThat((String) response.rows()[0][11], is("locations"));
     }
 
     @Test
@@ -244,7 +251,7 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select * from sys.shards where table_name ~* 'LOCATIONS' order by table_name");
         assertThat(response.rowCount(), is(2L));
-        assertThat((String) response.rows()[0][10], is("locations"));
+        assertThat((String) response.rows()[0][11], is("locations"));
     }
 
 }

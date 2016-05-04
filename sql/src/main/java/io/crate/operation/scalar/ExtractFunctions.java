@@ -38,6 +38,8 @@ import org.elasticsearch.common.joda.Joda;
 import org.joda.time.DateTimeField;
 import org.joda.time.chrono.ISOChronology;
 
+import java.util.Locale;
+
 public class ExtractFunctions {
 
     private final static ImmutableList<DataType> ARGUMENT_TYPES = ImmutableList.<DataType>of(DataTypes.TIMESTAMP);
@@ -101,12 +103,12 @@ public class ExtractFunctions {
             case TIMEZONE_MINUTE:
                 break;
         }
-        throw new UnsupportedOperationException(String.format("Extract( %s from <expression>) is not supported", field));
+        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Extract( %s from <expression>) is not supported", field));
     }
 
     private static FunctionInfo createFunctionInfo(Extract.Field field) {
         return new FunctionInfo(
-                new FunctionIdent(String.format(NAME_TMPL, field.toString()), ARGUMENT_TYPES),
+                new FunctionIdent(String.format(Locale.ENGLISH, NAME_TMPL, field.toString()), ARGUMENT_TYPES),
                 DataTypes.INTEGER,
                 FunctionInfo.Type.SCALAR
         );
@@ -125,16 +127,6 @@ public class ExtractFunctions {
             }
             assert value instanceof Long : "value of argument to extract must be of type long (timestamp)";
             return evaluate((Long) value);
-        }
-
-        @Override
-        public Symbol normalizeSymbol(Function symbol) {
-            assert symbol.arguments().size() == 1 : "extract only takes one argument";
-            Symbol arg = symbol.arguments().get(0);
-            if (arg.symbolType().isValueSymbol()) {
-                return Literal.newLiteral(evaluate(((Input) arg)));
-            }
-            return symbol;
         }
 
         @Override

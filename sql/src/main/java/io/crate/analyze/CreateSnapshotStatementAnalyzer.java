@@ -27,21 +27,21 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.PartitionUnknownException;
-import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.ResourceUnknownException;
 import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.CreateSnapshot;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.Table;
 import org.elasticsearch.cluster.metadata.SnapshotId;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
@@ -83,23 +83,8 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
         SnapshotId snapshotId = new SnapshotId(repositoryName.get().toString(), snapshotName);
 
         // validate and extract settings
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
-        // apply defaults
-        for (Map.Entry<String, SettingsApplier> entry : SETTINGS.entrySet()) {
-            builder.put(entry.getValue().getDefault());
-        }
-        if (node.properties().isPresent()) {
-
-            // apply given config
-            for (Map.Entry<String, Expression> entry : node.properties().get().properties().entrySet()) {
-                SettingsApplier settingsApplier = SETTINGS.get(entry.getKey());
-                if (settingsApplier == null) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", entry.getKey()));
-                }
-                settingsApplier.apply(builder, analysis.parameterContext().parameters(), entry.getValue());
-            }
-        }
-        Settings settings = builder.build();
+        Settings settings = GenericPropertiesConverter.settingsFromProperties(
+                node.properties(), analysis.parameterContext(), SETTINGS).build();
 
         boolean ignoreUnavailable = settings.getAsBoolean(IGNORE_UNAVAILABLE.name(), IGNORE_UNAVAILABLE.defaultValue());
 
@@ -112,7 +97,7 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
                 TableInfo tableInfo;
                 try {
                     tableInfo = schemas.getTableInfo(TableIdent.of(table, analysis.parameterContext().defaultSchema()));
-                } catch (SchemaUnknownException|TableUnknownException e) {
+                } catch (ResourceUnknownException e) {
                     if (ignoreUnavailable) {
                         LOGGER.info("ignoring: {}", e.getMessage());
                         continue;

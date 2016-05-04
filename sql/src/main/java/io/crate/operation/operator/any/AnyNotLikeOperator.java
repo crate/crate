@@ -29,7 +29,7 @@ import io.crate.operation.operator.OperatorModule;
 
 import java.util.regex.Pattern;
 
-public class AnyNotLikeOperator extends AbstractAnyLikeOperator<AnyNotLikeOperator> {
+public class AnyNotLikeOperator extends AbstractAnyLikeOperator {
 
     public static final String NAME = AnyOperator.OPERATOR_PREFIX + "not_like";
 

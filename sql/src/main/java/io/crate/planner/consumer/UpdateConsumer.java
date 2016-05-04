@@ -41,12 +41,12 @@ import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.UpdateProjection;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.routing.operation.plain.Preference;
+import org.elasticsearch.cluster.routing.Preference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -140,7 +140,7 @@ public class UpdateConsumer implements Consumer {
 
                 Planner.Context plannerContext = consumerContext.plannerContext();
                 Routing routing = plannerContext.allocateRouting(tableInfo, whereClause, Preference.PRIMARY.type());
-                CollectPhase collectPhase = new CollectPhase(
+                RoutedCollectPhase collectPhase = new RoutedCollectPhase(
                         plannerContext.jobId(),
                         plannerContext.nextExecutionPhaseId(),
                         "collect",

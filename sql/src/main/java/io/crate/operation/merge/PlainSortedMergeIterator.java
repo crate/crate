@@ -35,18 +35,18 @@ import static com.google.common.collect.Iterators.peekingIterator;
  *
  * And it also has a merge function with which additional backing iterators can be added to enable paging
  */
-class PlainSortedMergeIterator<T> extends UnmodifiableIterator<T> implements SortedMergeIterator<T> {
+class PlainSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow> implements SortedMergeIterator<TKey, TRow> {
 
-    final Queue<NumberedPeekingIterator<T>> queue;
-    NumberedPeekingIterator<T> lastUsedIter = null;
+    final Queue<NumberedPeekingIterator<TKey, TRow>> queue;
+    NumberedPeekingIterator<TKey, TRow> lastUsedIter = null;
     boolean leastExhausted = false;
-    private int exhausted;
+    private TKey exhausted;
 
-    public PlainSortedMergeIterator(Iterable<? extends NumberedIterable<T>> iterables, final Comparator<? super T> itemComparator) {
+    public PlainSortedMergeIterator(Iterable<? extends KeyIterable<TKey, TRow>> iterables, final Comparator<? super TRow> itemComparator) {
 
-        Comparator<PeekingIterator<T>> heapComparator = new Comparator<PeekingIterator<T>>() {
+        Comparator<PeekingIterator<TRow>> heapComparator = new Comparator<PeekingIterator<TRow>>() {
             @Override
-            public int compare(PeekingIterator<T> o1, PeekingIterator<T> o2) {
+            public int compare(PeekingIterator<TRow> o1, PeekingIterator<TRow> o2) {
                 return itemComparator.compare(o1.peek(), o2.peek());
             }
         };
@@ -54,11 +54,11 @@ class PlainSortedMergeIterator<T> extends UnmodifiableIterator<T> implements Sor
         addIterators(iterables);
     }
 
-    private void addIterators(Iterable<? extends NumberedIterable<T>> iterables) {
-        for (NumberedIterable<T> iterable : iterables) {
-            Iterator<T> rowIterator = iterable.iterator();
+    private void addIterators(Iterable<? extends KeyIterable<TKey, TRow>> iterables) {
+        for (KeyIterable<TKey, TRow> iterable : iterables) {
+            Iterator<TRow> rowIterator = iterable.iterator();
             if (rowIterator.hasNext()) {
-                queue.add(new NumberedPeekingIterator<T>(iterable.number(), peekingIterator(rowIterator)));
+                queue.add(new NumberedPeekingIterator<>(iterable.key(), peekingIterator(rowIterator)));
             }
         }
     }
@@ -75,14 +75,14 @@ class PlainSortedMergeIterator<T> extends UnmodifiableIterator<T> implements Sor
                 queue.add(lastUsedIter);
             } else {
                 leastExhausted = true;
-                exhausted = lastUsedIter.number;
+                exhausted = lastUsedIter.key;
             }
             lastUsedIter = null;
         }
     }
 
     @Override
-    public T next() {
+    public TRow next() {
         if (!hasNext()) {
             throw new NoSuchElementException();
         }
@@ -91,7 +91,7 @@ class PlainSortedMergeIterator<T> extends UnmodifiableIterator<T> implements Sor
     }
 
     @Override
-    public void merge(Iterable<? extends NumberedIterable<T>> numberedIterables) {
+    public void merge(Iterable<? extends KeyIterable<TKey, TRow>> numberedIterables) {
         if (lastUsedIter != null && lastUsedIter.hasNext()) {
             queue.add(lastUsedIter);
             lastUsedIter = null;
@@ -105,32 +105,32 @@ class PlainSortedMergeIterator<T> extends UnmodifiableIterator<T> implements Sor
     }
 
     @Override
-    public int exhaustedIterable() {
+    public TKey exhaustedIterable() {
         return exhausted;
     }
 
     @Override
-    public Iterable<T> repeat() {
+    public Iterable<TRow> repeat() {
         throw new UnsupportedOperationException("cannot repeat with " + getClass().getSimpleName());
     }
 
-    private static class NumberedPeekingIterator<T> implements PeekingIterator<T> {
+    private static class NumberedPeekingIterator<TKey, TRow> implements PeekingIterator<TRow> {
 
-        private final int number;
-        private final PeekingIterator<T> peekingIterator;
+        private final TKey key;
+        private final PeekingIterator<TRow> peekingIterator;
 
-        public NumberedPeekingIterator(int number, PeekingIterator<T> peekingIterator) {
-            this.number = number;
+        public NumberedPeekingIterator(TKey key, PeekingIterator<TRow> peekingIterator) {
+            this.key = key;
             this.peekingIterator = peekingIterator;
         }
 
         @Override
-        public T peek() {
+        public TRow peek() {
             return peekingIterator.peek();
         }
 
         @Override
-        public T next() {
+        public TRow next() {
             return peekingIterator.next();
         }
 

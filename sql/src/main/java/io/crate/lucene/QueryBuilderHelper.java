@@ -4,18 +4,16 @@ import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.queries.TermFilter;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.lucene.search.MatchNoDocsFilter;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.cache.filter.FilterCache;
 import org.elasticsearch.index.mapper.ip.IpFieldMapper;
 
 import javax.annotation.Nullable;
+import java.util.Locale;
 
 public abstract class QueryBuilderHelper {
 
@@ -58,18 +56,10 @@ public abstract class QueryBuilderHelper {
         if (dataType.equals(DataTypes.STRING)) {
             return stringQueryBuilder;
         }
-        throw new UnsupportedOperationException(String.format("type %s not supported", dataType));
+        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "type %s not supported", dataType));
     }
 
-    public abstract Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper);
     public abstract Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper);
-
-    public Filter eqFilter(String columnName, Object value) {
-        if (value == null) {
-            return new MatchNoDocsFilter();
-        }
-        return rangeFilter(columnName, value, value, true, true);
-    }
 
     public Query eq(String columnName, Object value) {
         if (value == null) {
@@ -78,16 +68,11 @@ public abstract class QueryBuilderHelper {
         return rangeQuery(columnName, value, value, true, true);
     }
 
-    public Query like(String columnName, Object value, @Nullable FilterCache filterCache) {
+    public Query like(String columnName, Object value, @Nullable QueryCache queryCache) {
         return eq(columnName, value);
     }
 
     static final class BooleanQueryBuilder extends QueryBuilderHelper {
-        @Override
-        public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            throw new UnsupportedOperationException("This type of comparison is not supported on boolean fields");
-        }
-
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
             throw new UnsupportedOperationException("This type of comparison is not supported on boolean fields");
@@ -114,10 +99,6 @@ public abstract class QueryBuilderHelper {
             return ((Number) value).floatValue();
         }
 
-        @Override
-        public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeFilter.newFloatRange(columnName, toFloat(from), toFloat(to), includeLower, includeUpper);
-        }
 
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
@@ -135,11 +116,6 @@ public abstract class QueryBuilderHelper {
                 return (Double) value;
             }
             return ((Number) value).doubleValue();
-        }
-
-        @Override
-        public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeFilter.newDoubleRange(columnName, toDouble(from), toDouble(to), includeLower, includeUpper);
         }
 
         @Override
@@ -161,11 +137,6 @@ public abstract class QueryBuilderHelper {
         }
 
         @Override
-        public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeFilter.newLongRange(columnName, toLong(from), toLong(to), includeLower, includeUpper);
-        }
-
-        @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
             return NumericRangeQuery.newLongRange(columnName, (Long)from, (Long)to, includeLower, includeUpper);
         }
@@ -181,11 +152,6 @@ public abstract class QueryBuilderHelper {
                 return (Integer) value;
             }
             return ((Number) value).intValue();
-        }
-
-        @Override
-        public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeFilter.newIntRange(columnName, toInt(from), toInt(to), includeLower, includeUpper);
         }
 
         @Override
@@ -218,11 +184,6 @@ public abstract class QueryBuilderHelper {
         }
 
         @Override
-        public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeFilter.newLongRange(columnName, parseValueOrNull(from), parseValueOrNull(to), includeLower, includeUpper);
-        }
-
-        @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
             return NumericRangeQuery.newLongRange(columnName, parseValueOrNull(from), parseValueOrNull(to), includeLower, includeUpper);
         }
@@ -234,22 +195,9 @@ public abstract class QueryBuilderHelper {
             }
             return new TermQuery(new Term(columnName, valueForSearch(value)));
         }
-
-        @Override
-        public Filter eqFilter(String columnName, Object value) {
-            if (value == null) {
-                return new MatchNoDocsFilter();
-            }
-            return new TermFilter(new Term(columnName, valueForSearch(value)));
-        }
     }
 
     static final class StringQueryBuilder extends QueryBuilderHelper {
-
-        @Override
-        public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return new TermRangeFilter(columnName, BytesRefs.toBytesRef(from), BytesRefs.toBytesRef(to), includeLower, includeUpper);
-        }
 
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
@@ -265,15 +213,7 @@ public abstract class QueryBuilderHelper {
         }
 
         @Override
-        public Filter eqFilter(String columnName, Object value) {
-            if (value == null) {
-                return new MatchNoDocsFilter();
-            }
-            return new TermFilter(new Term(columnName, (BytesRef) value));
-        }
-
-        @Override
-        public Query like(String columnName, Object value, @Nullable FilterCache filterCache) {
+        public Query like(String columnName, Object value, @Nullable QueryCache queryCache) {
             return new WildcardQuery(new Term(columnName, LuceneQueryBuilder.convertSqlLikeToLuceneWildcard(BytesRefs.toString(value))));
         }
     }

@@ -22,25 +22,43 @@
 
 package io.crate.analyze.repositories;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.SettingsApplier;
+import io.crate.analyze.SettingsAppliers;
+import io.crate.metadata.settings.ByteSizeSetting;
+import io.crate.sql.tree.GenericProperties;
 
-import java.util.Set;
+import java.util.Map;
 
 public class TypeSettings {
-    private static final Set<String> GENERIC = ImmutableSet.of("max_restore_bytes_per_sec", "max_snapshot_bytes_per_sec");
-    private final Set<String> required;
-    private final Set<String> all;
+    private static final Map<String, SettingsApplier> GENERIC = ImmutableMap.<String, SettingsApplier>builder()
+            .put("max_restore_bytes_per_sec", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("max_restore_bytes_per_sec", null, true)))
+            .put("max_snapshot_bytes_per_sec", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("max_snapshot_bytes_per_sec", null, true)))
+            .build();
 
-    public TypeSettings(Set<String> required, Set<String> optional) {
+    private final Map<String, SettingsApplier> required;
+    private final Map<String, SettingsApplier> all;
+
+    public TypeSettings(Map<String, SettingsApplier> required,
+                        Map<String, SettingsApplier> optional) {
         this.required = required;
-        this.all = ImmutableSet.<String>builder().addAll(required).addAll(optional).addAll(GENERIC).build();
+        this.all = ImmutableMap.<String, SettingsApplier>builder().putAll(required).putAll(optional).putAll(GENERIC).build();
     }
 
-    public Set<String> required() {
+    public Map<String, SettingsApplier> required() {
         return required;
     }
 
-    public Set<String> all() {
+    public Map<String, SettingsApplier> all() {
         return all;
+    }
+
+
+    /**
+     * Return possible dynamic GenericProperties which will not be validated.
+     */
+    public Optional<GenericProperties> dynamicProperties(Optional<GenericProperties> genericProperties) {
+        return Optional.absent();
     }
 }

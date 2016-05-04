@@ -23,6 +23,7 @@ package io.crate.operation;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
@@ -36,20 +37,23 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 
 public class NodeOperation implements Streamable {
 
     private static final ESLogger LOGGER = Loggers.getLogger(NodeOperation.class);
 
+    public static final int NO_DOWNSTREAM = Integer.MAX_VALUE;
+
     private ExecutionPhase executionPhase;
     private Collection<String> downstreamNodes;
-    private int downstreamExecutionPhaseId;
+    private int downstreamExecutionPhaseId = NO_DOWNSTREAM;
     private byte downstreamExecutionPhaseInputId;
 
-    private NodeOperation(ExecutionPhase executionPhase,
-                          Collection<String> downstreamNodes,
-                          int downstreamExecutionPhaseId,
-                          byte downstreamExecutionPhaseInputId) {
+    public NodeOperation(ExecutionPhase executionPhase,
+                         Collection<String> downstreamNodes,
+                         int downstreamExecutionPhaseId,
+                         byte downstreamExecutionPhaseInputId) {
         this.executionPhase = executionPhase;
         this.downstreamNodes = downstreamNodes;
         this.downstreamExecutionPhaseId = downstreamExecutionPhaseId;
@@ -89,9 +93,10 @@ public class NodeOperation implements Streamable {
                     inputId);
         } else {
             if (executionPhase instanceof UpstreamPhase) {
+                UpstreamPhase upstreamPhase = (UpstreamPhase) executionPhase;
                 if (executionPhase.executionNodes().size() == 1
                         && executionPhase.executionNodes().equals(downstreamExecutionPhase.executionNodes())) {
-                    ((UpstreamPhase) executionPhase).distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                    upstreamPhase.distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
                     LOGGER.trace("Phase uses SAME_NODE downstream, reason: ON DOWNSTRREAM NODE, executionNodes: {}, phase: {}", executionPhase.executionNodes(), executionPhase);
                 }
             }
@@ -143,7 +148,7 @@ public class NodeOperation implements Streamable {
 
     @Override
     public String toString() {
-        return "NodeOp{ " + executionPhase.executionPhaseId() + " " + executionPhase.name() +
+        return "NodeOp{ " + ExecutionPhases.debugPrint(executionPhase) +
                 ", downstreamNodes=" + downstreamNodes +
                 ", downstreamPhase=" + downstreamExecutionPhaseId +
                 ", downstreamInputId=" + downstreamExecutionPhaseInputId +

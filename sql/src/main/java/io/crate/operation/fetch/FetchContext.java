@@ -21,21 +21,22 @@
 
 package io.crate.operation.fetch;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.action.job.SharedShardContext;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.symbol.Reference;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.node.fetch.FetchPhase;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndexMissingException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -43,8 +44,9 @@ import java.util.*;
 
 public class FetchContext extends AbstractExecutionSubContext {
 
-    private final IntObjectOpenHashMap<Engine.Searcher> searchers = new IntObjectOpenHashMap<>();
-    private final IntObjectOpenHashMap<SharedShardContext> shardContexts = new IntObjectOpenHashMap<>();
+    private static final ESLogger LOGGER = Loggers.getLogger(FetchContext.class);
+    private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
+    private final IntObjectHashMap<SharedShardContext> shardContexts = new IntObjectHashMap<>();
     private final FetchPhase phase;
     private final String localNodeId;
     private final SharedShardContexts sharedShardContexts;
@@ -56,7 +58,7 @@ public class FetchContext extends AbstractExecutionSubContext {
                         String localNodeId,
                         SharedShardContexts sharedShardContexts,
                         Iterable<? extends Routing> routingIterable) {
-        super(phase.executionPhaseId());
+        super(phase.executionPhaseId(), LOGGER);
         this.phase = phase;
         this.localNodeId = localNodeId;
         this.sharedShardContexts = sharedShardContexts;
@@ -88,7 +90,9 @@ public class FetchContext extends AbstractExecutionSubContext {
             for (Map.Entry<String, List<Integer>> indexShardsEntry : indexShards.entrySet()) {
                 String index = indexShardsEntry.getKey();
                 Integer base = phase.bases().get(index);
-                assert base != null : "no readerId base found for " + index;
+                if (base == null) {
+                    continue;
+                }
                 TableIdent ident = index2TableIdent.get(index);
                 assert ident != null : "no tableIdent found for index " + index;
                 tableIdents.put(base, ident);
@@ -103,9 +107,9 @@ public class FetchContext extends AbstractExecutionSubContext {
                         if (tablesWithFetchRefs.contains(ident)) {
                             try {
                                 searchers.put(readerId, shardContext.searcher());
-                            } catch (IndexMissingException e) {
+                            } catch (IndexNotFoundException e) {
                                 if (!PartitionName.isPartition(index)) {
-                                    throw new TableUnknownException(index, e);
+                                    throw e;
                                 }
                             }
                         }

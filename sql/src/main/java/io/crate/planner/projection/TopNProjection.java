@@ -124,11 +124,7 @@ public class TopNProjection extends Projection {
         offset = in.readVInt();
         limit = in.readVInt();
 
-        int numOutputs = in.readVInt();
-        outputs = new ArrayList<>(numOutputs);
-        for (int i = 0; i < numOutputs; i++) {
-            outputs.add(Symbol.fromStream(in));
-        }
+        outputs = Symbol.listFromStream(in);
 
         int numOrderBy = in.readVInt();
 
@@ -155,10 +151,7 @@ public class TopNProjection extends Projection {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(offset);
         out.writeVInt(limit);
-        out.writeVInt(outputs.size());
-        for (Symbol symbol : outputs) {
-            Symbol.toStream(symbol, out);
-        }
+        Symbol.toStream(outputs, out);
         if (isOrdered()) {
             out.writeVInt(reverseFlags.length);
             for (boolean reverseFlag : reverseFlags) {

@@ -25,15 +25,12 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.analyze.WhereClause;
-import io.crate.jobs.JobContextService;
 import io.crate.lucene.LuceneQueryBuilder;
-import org.apache.lucene.search.Filter;
-import org.elasticsearch.cache.recycler.CacheRecycler;
+import org.apache.lucene.search.Query;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
@@ -51,30 +48,24 @@ public class SearchContextFactory {
     private LuceneQueryBuilder luceneQueryBuilder;
     private ClusterService clusterService;
     private final ScriptService scriptService;
-    private final CacheRecycler cacheRecycler;
     private final PageCacheRecycler pageCacheRecycler;
     private final BigArrays bigArrays;
     private final ThreadPool threadPool;
-    private final TimeValue jobKeepAlive;
-    private final ImmutableMap<String, Filter> EMPTY_NAMED_FILTERS = ImmutableMap.of();
+    private final ImmutableMap<String, Query> EMPTY_NAMED_FILTERS = ImmutableMap.of();
 
     @Inject
     public SearchContextFactory(LuceneQueryBuilder luceneQueryBuilder,
                                 ClusterService clusterService,
                                 ScriptService scriptService,
-                                CacheRecycler cacheRecycler,
                                 PageCacheRecycler pageCacheRecycler,
                                 BigArrays bigArrays,
-                                ThreadPool threadPool,
-                                @JobContextService.JobKeepAlive TimeValue jobKeepAlive) {
+                                ThreadPool threadPool) {
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.clusterService = clusterService;
         this.scriptService = scriptService;
-        this.cacheRecycler = cacheRecycler;
         this.pageCacheRecycler = pageCacheRecycler;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
-        this.jobKeepAlive = jobKeepAlive;
     }
 
     public CrateSearchContext createContext(
@@ -98,12 +89,10 @@ public class SearchContextFactory {
                 indexService,
                 indexshard,
                 scriptService,
-                cacheRecycler,
                 pageCacheRecycler,
                 bigArrays,
                 threadPool.estimatedTimeInMillisCounter(),
-                Optional.<Scroll>absent(),
-                jobKeepAlive.getMillis()
+                Optional.<Scroll>absent()
         );
         LuceneQueryBuilder.Context context = luceneQueryBuilder.convert(
                 whereClause,  indexService.mapperService(), indexService.fieldData(), indexService.cache());

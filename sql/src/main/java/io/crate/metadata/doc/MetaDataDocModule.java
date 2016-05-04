@@ -22,25 +22,18 @@
 package io.crate.metadata.doc;
 
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.array.ArrayMapperMetaMigration;
 import io.crate.metadata.table.SchemaInfo;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
-import org.elasticsearch.gateway.local.state.meta.LocalGatewayMetaMigrator;
 
 public class MetaDataDocModule extends AbstractModule {
 
     protected MapBinder<String, SchemaInfo> schemaBinder;
-    protected MapBinder<String, LocalGatewayMetaMigrator.LocalGatewayMetaDataMigration> migrations;
 
 
     @Override
     protected void configure() {
         schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
         schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).to(DocSchemaInfo.class).asEagerSingleton();
-
-        migrations = MapBinder.newMapBinder(binder(), String.class, LocalGatewayMetaMigrator.LocalGatewayMetaDataMigration.class);
-        migrations.addBinding("crate-arraymapper").to(ArrayMapperMetaMigration.class).asEagerSingleton();
     }
-
 }

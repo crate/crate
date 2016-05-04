@@ -21,30 +21,31 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.base.Function;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 
 import java.util.List;
 
-public class FunctionExtractor<T> implements FieldExtractor<T> {
+public class FunctionExtractor<T> implements Function<T, Object> {
 
     private final Scalar scalar;
-    private final List<FieldExtractor<T>> subExtractors;
+    private final List<Function<T, Object>> subExtractors;
 
-    public FunctionExtractor(Scalar scalar, List<FieldExtractor<T>> subExtractors) {
+    public FunctionExtractor(Scalar scalar, List<Function<T, Object>> subExtractors) {
         this.scalar = scalar;
         this.subExtractors = subExtractors;
     }
 
     @Override
-    public Object extract(final T response) {
+    public Object apply(final T response) {
         Input[] inputs = new Input[subExtractors.size()];
         int idx = 0;
-        for (final FieldExtractor<T> subExtractor : subExtractors) {
+        for (final Function<T, Object> subExtractor : subExtractors) {
             inputs[idx] = new Input() {
                 @Override
                 public Object value() {
-                    return subExtractor.extract(response);
+                    return subExtractor.apply(response);
                 }
             };
             idx++;

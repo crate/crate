@@ -26,5 +26,5 @@ import java.io.IOException;
 
 public interface FileInputFactory {
 
-    public FileInput create() throws IOException;
+    FileInput create() throws IOException;
 }

@@ -36,7 +36,6 @@ import org.elasticsearch.common.io.stream.Streamable;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 public class TableIdent implements Streamable {
@@ -93,11 +92,11 @@ public class TableIdent implements Streamable {
     }
 
     public String fqn() {
-        return String.format(Locale.ENGLISH, "%s.%s", schema, name);
+        return schema + "." + name;
     }
 
     public String sqlFqn() {
-        return String.format(Locale.ENGLISH, "%s.%s", Identifiers.quoteIfNeeded(schema), Identifiers.quoteIfNeeded(name));
+        return Identifiers.quoteIfNeeded(schema) + "." + Identifiers.quoteIfNeeded(name);
     }
 
     public String indexName() {
@@ -147,7 +146,7 @@ public class TableIdent implements Streamable {
 
     @Override
     public String toString() {
-        return String.format("%s.%s", schema, name);
+        return fqn();
     }
 
     @Override

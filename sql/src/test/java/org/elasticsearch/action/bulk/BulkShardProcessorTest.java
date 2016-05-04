@@ -22,8 +22,8 @@
 package org.elasticsearch.action.bulk;
 
 import io.crate.analyze.symbol.Reference;
+import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.executor.transport.ShardUpsertResponse;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -35,12 +35,14 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.cluster.routing.operation.OperationRouting;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 import org.mockito.*;
 
@@ -50,6 +52,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.isA;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -68,23 +71,24 @@ public class BulkShardProcessorTest extends CrateUnitTest {
     @Mock(answer = Answers.RETURNS_MOCKS)
     ClusterService clusterService;
 
+    @Mock
+    ThreadPool threadPool;
+
     @Test
     public void testNonEsRejectedExceptionDoesNotResultInRetryButAborts() throws Throwable {
         expectedException.expect(RuntimeException.class);
         expectedException.expectMessage("a random exception");
 
-        final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
-        BulkRequestExecutor transportShardBulkAction =
-                new BulkRequestExecutor() {
+        final AtomicReference<ActionListener<ShardResponse>> ref = new AtomicReference<>();
+        BulkRequestExecutor<ShardUpsertRequest> transportShardBulkAction =
+                new BulkRequestExecutor<ShardUpsertRequest>() {
                     @Override
-                    public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
+                    public void execute(ShardUpsertRequest request, ActionListener<ShardResponse> listener) {
                         ref.set(listener);
                     }
         };
 
-        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                ImmutableSettings.EMPTY
-        );
+        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(threadPool);
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
 
@@ -96,10 +100,11 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 new Reference[]{fooRef},
                 UUID.randomUUID()
         );
-        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
+        final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
-                ImmutableSettings.EMPTY,
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                Settings.EMPTY,
                 coordinatorPool,
                 false,
                 1,
@@ -107,12 +112,12 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 transportShardBulkAction,
                 UUID.randomUUID()
         );
-        bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null);
+        bulkShardProcessor.add("foo", new ShardUpsertRequest.Item("1", null, new Object[]{"bar1"}, null), null);
 
-        ActionListener<ShardUpsertResponse> listener = ref.get();
+        ActionListener<ShardResponse> listener = ref.get();
         listener.onFailure(new RuntimeException("a random exception"));
 
-        assertFalse(bulkShardProcessor.add("foo", "2", new Object[]{"bar2"}, null, null));
+        assertFalse(bulkShardProcessor.add("foo", new ShardUpsertRequest.Item("2", null, new Object[]{"bar2"}, null), null));
 
         try {
             bulkShardProcessor.result().get();
@@ -135,12 +140,12 @@ public class BulkShardProcessorTest extends CrateUnitTest {
 
         // listener will be executed 2 times, once for the successfully added row and once for the failure
         final CountDownLatch listenerLatch = new CountDownLatch(2);
-        final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
+        final AtomicReference<ActionListener<ShardResponse>> ref = new AtomicReference<>();
 
-        BulkRequestExecutor transportShardBulkAction =
-                new BulkRequestExecutor() {
+        BulkRequestExecutor<ShardUpsertRequest> transportShardBulkAction =
+                new BulkRequestExecutor<ShardUpsertRequest>() {
                     @Override
-                    public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
+                    public void execute(ShardUpsertRequest request, ActionListener<ShardResponse> listener) {
                         ref.set(listener);
                         listenerLatch.countDown();
                     }
@@ -149,9 +154,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
         when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardBulkAction);
 
-        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                ImmutableSettings.EMPTY
-        );
+        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(threadPool);
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
 
@@ -164,10 +167,11 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 UUID.randomUUID()
         );
 
-        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
+        final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
-                ImmutableSettings.EMPTY,
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                Settings.EMPTY,
                 coordinatorPool,
                 false,
                 1,
@@ -175,8 +179,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 transportShardBulkAction,
                 UUID.randomUUID()
         );
-        bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null);
-        final ActionListener<ShardUpsertResponse> listener = ref.get();
+        bulkShardProcessor.add("foo", new ShardUpsertRequest.Item("1", null, new Object[]{"bar1"}, null), null);
+        final ActionListener<ShardResponse> listener = ref.get();
 
         listener.onFailure(new EsRejectedExecutionException());
         // wait, failure retry lock is done in decoupled thread
@@ -197,7 +201,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                             latch.countDown();
                         }
                     }, 10, TimeUnit.MILLISECONDS);
-                    bulkShardProcessor.add("foo", "2", new Object[]{"bar2"}, null, null);
+                    bulkShardProcessor.add("foo", new ShardUpsertRequest.Item("2", null, new Object[]{"bar2"}, null), null);
                     hasBlocked.set(false);
                 }
             });
@@ -205,7 +209,6 @@ public class BulkShardProcessorTest extends CrateUnitTest {
             assertTrue(hadBlocked.get());
         } finally {
             scheduledExecutorService.shutdownNow();
-            bulkRetryCoordinator.close();
         }
     }
 
@@ -219,11 +222,11 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         mockShard(operationRouting, 3);
         when(clusterService.operationRouting()).thenReturn(operationRouting);
 
-        final AtomicReference<ActionListener<ShardUpsertResponse>> ref = new AtomicReference<>();
-        BulkRequestExecutor transportShardBulkAction =
-                new BulkRequestExecutor() {
+        final AtomicReference<ActionListener<ShardResponse>> ref = new AtomicReference<>();
+        BulkRequestExecutor<ShardUpsertRequest> transportShardBulkAction =
+                new BulkRequestExecutor<ShardUpsertRequest>() {
                     @Override
-                    public void execute(ShardUpsertRequest request, ActionListener<ShardUpsertResponse> listener) {
+                    public void execute(ShardUpsertRequest request, ActionListener<ShardResponse> listener) {
                         ref.set(listener);
                     }
                 };
@@ -231,9 +234,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
         when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardBulkAction);
 
-        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(
-                ImmutableSettings.EMPTY
-        );
+        BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(threadPool);
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
         when(coordinatorPool.coordinator(any(ShardId.class))).thenReturn(bulkRetryCoordinator);
 
@@ -246,10 +247,11 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 UUID.randomUUID()
         );
 
-        final BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
+        final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
                 clusterService,
                 mock(TransportBulkCreateIndicesAction.class),
-                ImmutableSettings.EMPTY,
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                Settings.EMPTY,
                 coordinatorPool,
                 false,
                 1,
@@ -257,13 +259,14 @@ public class BulkShardProcessorTest extends CrateUnitTest {
                 transportShardBulkAction,
                 UUID.randomUUID()
         );
-        assertThat(bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null), is(true));
-        bulkShardProcessor.kill(new CancellationException());
-        // A CancellationException is thrown
-        expectedException.expect(CancellationException.class);
+        assertThat(bulkShardProcessor.add("foo", new ShardUpsertRequest.Item("1", null, new Object[]{"bar1"}, null), null), is(true));
+        bulkShardProcessor.kill(new InterruptedException());
+        // A InterruptedException is thrown
+        expectedException.expect(ExecutionException.class);
+        expectedException.expectCause(isA(InterruptedException.class));
         bulkShardProcessor.result().get();
         // it's not possible to add more
-        assertThat(bulkShardProcessor.add("foo", "1", new Object[]{"bar1"}, null, null), is(false));
+        assertThat(bulkShardProcessor.add("foo", new ShardUpsertRequest.Item("1", null, new Object[]{"bar1"}, null), null), is(false));
     }
 
     private void mockShard(OperationRouting operationRouting, Integer shardId) {

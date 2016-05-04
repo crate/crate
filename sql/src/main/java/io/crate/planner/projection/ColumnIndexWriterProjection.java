@@ -21,8 +21,6 @@
 
 package io.crate.planner.projection;
 
-import com.carrotsearch.hppc.IntSet;
-import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
@@ -54,18 +52,13 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                 }
             };
 
-    protected ColumnIndexWriterProjection() {}
+    private ColumnIndexWriterProjection() {}
 
     /**
      *
      * @param tableIdent identifying the table to write to
-     * @param primaryKeys
      * @param columns the columnReferences of all the columns to be written in order of appearance
      * @param onDuplicateKeyAssignments reference to symbol map used for update on duplicate key
-     * @param primaryKeyIndices
-     * @param partitionedByIndices
-     * @param clusteredByIndex
-     * @param settings
      */
     public ColumnIndexWriterProjection(TableIdent tableIdent,
                                        @Nullable String partitionIdent,
@@ -73,27 +66,31 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        List<Reference>  columns,
                                        @Nullable
                                        Map<Reference, Symbol> onDuplicateKeyAssignments,
-                                       IntSet primaryKeyIndices,
-                                       IntSet partitionedByIndices,
+                                       List<Symbol> primaryKeySymbols,
+                                       List<ColumnIdent> partitionedByColumns,
+                                       List<Symbol> partitionedBySymbols,
                                        @Nullable ColumnIdent clusteredByColumn,
                                        int clusteredByIndex,
                                        Settings settings,
                                        boolean autoCreateIndices) {
         super(tableIdent, partitionIdent, primaryKeys, clusteredByColumn, settings, autoCreateIndices);
-        generateSymbols(primaryKeyIndices.toArray(), partitionedByIndices.toArray(), clusteredByIndex);
-
+        this.idSymbols = primaryKeySymbols;
+        this.partitionedBySymbols = partitionedBySymbols;
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
-        this.columnReferences = Lists.newArrayList(columns);
-        this.columnSymbols = new ArrayList<>(columns.size()-partitionedByIndices.size());
-
-        for (int i = 0; i < columns.size(); i++) {
-            if (!partitionedByIndices.contains(i)) {
-                this.columnSymbols.add(new InputColumn(i, columns.get(i).valueType()));
-            } else {
-                columnReferences.remove(i);
-            }
+        this.columnReferences = new ArrayList<>(columns);
+        this.columnSymbols = new ArrayList<>(columns.size() - partitionedBySymbols.size());
+        if (clusteredByIndex >= 0) {
+            clusteredBySymbol = new InputColumn(clusteredByIndex, null);
         }
 
+        for (int i = 0; i < columns.size(); i++) {
+            Reference ref = columns.get(i);
+            if (partitionedByColumns.contains(ref.ident().columnIdent())) {
+                columnReferences.remove(i);
+            } else {
+                this.columnSymbols.add(new InputColumn(i, ref.valueType()));
+            }
+        }
     }
 
     public List<Symbol> columnSymbols() {
@@ -148,11 +145,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         super.readFrom(in);
 
         if (in.readBoolean()) {
-            int length = in.readVInt();
-            columnSymbols = new ArrayList<>(length);
-            for (int i = 0; i < length; i++) {
-                columnSymbols.add(Symbol.fromStream(in));
-            }
+            columnSymbols = Symbol.listFromStream(in);
         }
         if (in.readBoolean()) {
             int length = in.readVInt();
@@ -179,10 +172,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             out.writeBoolean(false);
         } else {
             out.writeBoolean(true);
-            out.writeVInt(columnSymbols.size());
-            for (Symbol columnSymbol : columnSymbols) {
-                Symbol.toStream(columnSymbol, out);
-            }
+            Symbol.toStream(columnSymbols, out);
         }
         if (columnReferences == null) {
             out.writeBoolean(false);

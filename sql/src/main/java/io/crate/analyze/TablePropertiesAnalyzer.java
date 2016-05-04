@@ -35,7 +35,6 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
@@ -56,7 +55,7 @@ public class TablePropertiesAnalyzer {
                     .put(stripIndexPrefix(TableParameterInfo.FLUSH_DISABLE), TableParameterInfo.FLUSH_DISABLE)
                     .put(stripIndexPrefix(TableParameterInfo.TRANSLOG_INTERVAL), TableParameterInfo.TRANSLOG_INTERVAL)
                     .put(stripIndexPrefix(TableParameterInfo.ROUTING_ALLOCATION_ENABLE), TableParameterInfo.ROUTING_ALLOCATION_ENABLE)
-                    .put(stripIndexPrefix(TableParameterInfo.GATEWAY_LOCAL_SYNC), TableParameterInfo.GATEWAY_LOCAL_SYNC)
+                    .put(stripIndexPrefix(TableParameterInfo.TRANSLOG_SYNC_INTERVAL), TableParameterInfo.TRANSLOG_SYNC_INTERVAL)
                     .put(stripIndexPrefix(TableParameterInfo.TOTAL_SHARDS_PER_NODE), TableParameterInfo.TOTAL_SHARDS_PER_NODE)
                     .put(stripIndexPrefix(TableParameterInfo.RECOVERY_INITIAL_SHARDS), TableParameterInfo.RECOVERY_INITIAL_SHARDS)
                     .put(stripIndexPrefix(TableParameterInfo.WARMER_ENABLED), TableParameterInfo.WARMER_ENABLED)
@@ -91,7 +90,7 @@ public class TablePropertiesAnalyzer {
                     .put(TableParameterInfo.FLUSH_DISABLE, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.FLUSH_DISABLE))
                     .put(TableParameterInfo.TRANSLOG_INTERVAL, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.TRANSLOG_INTERVAL))
                     .put(TableParameterInfo.ROUTING_ALLOCATION_ENABLE, new SettingsAppliers.StringSettingsApplier(CrateTableSettings.ROUTING_ALLOCATION_ENABLE))
-                    .put(TableParameterInfo.GATEWAY_LOCAL_SYNC, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.GATEWAY_LOCAL_SYNC))
+                    .put(TableParameterInfo.TRANSLOG_SYNC_INTERVAL, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.TRANSLOG_SYNC_INTERVAL))
                     .put(TableParameterInfo.TOTAL_SHARDS_PER_NODE, new SettingsAppliers.IntSettingsApplier(CrateTableSettings.TOTAL_SHARDS_PER_NODE))
                     .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, new RecoveryInitialShardsApplier())
                     .put(TableParameterInfo.WARMER_ENABLED, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.WARMER_ENABLED))
@@ -196,7 +195,7 @@ public class TablePropertiesAnalyzer {
 
     protected static class NumberOfReplicasSettingApplier extends SettingsAppliers.AbstractSettingsApplier {
 
-        private static final Settings DEFAULT = ImmutableSettings.builder()
+        private static final Settings DEFAULT = Settings.builder()
                 .put(TableParameterInfo.NUMBER_OF_REPLICAS, 1)
                 .put(TableParameterInfo.AUTO_EXPAND_REPLICAS, false)
                 .build();
@@ -206,11 +205,11 @@ public class TablePropertiesAnalyzer {
         }
 
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder,
+        public void apply(Settings.Builder settingsBuilder,
                           Object[] parameters,
                           Expression expression) {
             Preconditions.checkArgument(!(expression instanceof ArrayLiteral),
-                    String.format("array literal not allowed for \"%s\"", ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.NUMBER_OF_REPLICAS)));
+                    String.format(Locale.ENGLISH, "array literal not allowed for \"%s\"", ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.NUMBER_OF_REPLICAS)));
 
             NumberOfReplicas numberOfReplicas;
             try {
@@ -232,22 +231,22 @@ public class TablePropertiesAnalyzer {
         }
 
         @Override
-        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+        public void applyValue(Settings.Builder settingsBuilder, Object value) {
             throw new UnsupportedOperationException("Not supported");
         }
     }
 
     private static class RefreshIntervalSettingApplier extends SettingsAppliers.AbstractSettingsApplier {
 
-        public static final Settings DEFAULT = ImmutableSettings.builder()
-                .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.defaultValue().millis()).build();
+        public static final Settings DEFAULT = Settings.builder()
+                .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.defaultValue().millis() + "ms").build();
 
         private RefreshIntervalSettingApplier() {
             super(ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.REFRESH_INTERVAL), DEFAULT);
         }
 
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder,
+        public void apply(Settings.Builder settingsBuilder,
                           Object[] parameters,
                           Expression expression) {
             Number refreshIntervalValue;
@@ -256,7 +255,7 @@ public class TablePropertiesAnalyzer {
             } catch (IllegalArgumentException e) {
                 throw invalidException(e);
             }
-            settingsBuilder.put(TableParameterInfo.REFRESH_INTERVAL, refreshIntervalValue.toString());
+            settingsBuilder.put(TableParameterInfo.REFRESH_INTERVAL, refreshIntervalValue.toString() + "ms");
         }
 
         @Override
@@ -265,7 +264,7 @@ public class TablePropertiesAnalyzer {
         }
 
         @Override
-        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+        public void applyValue(Settings.Builder settingsBuilder, Object value) {
             throw new UnsupportedOperationException("Not supported");
         }
     }
@@ -280,7 +279,7 @@ public class TablePropertiesAnalyzer {
                 "half"
         );
 
-        public static final Settings DEFAULT = ImmutableSettings.builder()
+        public static final Settings DEFAULT = Settings.builder()
                 .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, CrateTableSettings.RECOVERY_INITIAL_SHARDS.defaultValue())
                 .build();
 
@@ -290,7 +289,7 @@ public class TablePropertiesAnalyzer {
 
         @SuppressWarnings("SuspiciousMethodCalls")
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
             Object shardsRecoverySettings;
             try {
                 shardsRecoverySettings = ExpressionToNumberVisitor.convert(expression, parameters).intValue();
@@ -306,7 +305,7 @@ public class TablePropertiesAnalyzer {
 
     private static class NumberOfShardsSettingsApplier extends SettingsAppliers.AbstractSettingsApplier {
 
-        public static final Settings DEFAULT = ImmutableSettings.builder()
+        public static final Settings DEFAULT = Settings.builder()
                 .put(TableParameterInfo.NUMBER_OF_SHARDS, 5).build();
 
         private NumberOfShardsSettingsApplier() {
@@ -314,7 +313,7 @@ public class TablePropertiesAnalyzer {
         }
 
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder,
+        public void apply(Settings.Builder settingsBuilder,
                           Object[] parameters,
                           Expression expression) {
             int numberOfShardsValue = 0;
@@ -324,14 +323,14 @@ public class TablePropertiesAnalyzer {
                 throw invalidException(e);
             }
             if (numberOfShardsValue < 1) {
-                throw new IllegalArgumentException(String.format("%s must be greater than 0", name));
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "%s must be greater than 0", name));
             }
 
             settingsBuilder.put(TableParameterInfo.NUMBER_OF_SHARDS, numberOfShardsValue);
         }
 
         @Override
-        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+        public void applyValue(Settings.Builder settingsBuilder, Object value) {
             throw new UnsupportedOperationException("Not supported");
         }
 
@@ -344,11 +343,11 @@ public class TablePropertiesAnalyzer {
     private static class BlobPathSettingApplier extends SettingsAppliers.AbstractSettingsApplier {
 
         private BlobPathSettingApplier() {
-            super(ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.BLOBS_PATH), ImmutableSettings.EMPTY);
+            super(ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.BLOBS_PATH), Settings.EMPTY);
         }
 
         @Override
-        public void apply(ImmutableSettings.Builder settingsBuilder,
+        public void apply(Settings.Builder settingsBuilder,
                           Object[] parameters,
                           Expression expression) {
             String blobPath;
@@ -361,7 +360,7 @@ public class TablePropertiesAnalyzer {
         }
 
         @Override
-        public void applyValue(ImmutableSettings.Builder settingsBuilder, Object value) {
+        public void applyValue(Settings.Builder settingsBuilder, Object value) {
             throw new UnsupportedOperationException("Not supported");
         }
     }

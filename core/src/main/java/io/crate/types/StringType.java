@@ -35,6 +35,9 @@ public class StringType extends DataType<BytesRef> implements DataTypeFactory, S
 
     public static final int ID = 4;
     public static final StringType INSTANCE = new StringType();
+    public static final BytesRef T = new BytesRef("t");
+    public static final BytesRef F = new BytesRef("f");
+
     protected StringType() {}
 
     @Override
@@ -65,9 +68,9 @@ public class StringType extends DataType<BytesRef> implements DataTypeFactory, S
         }
         if (value instanceof Boolean) {
             if ((boolean)value) {
-                return new BytesRef("t");
+                return T;
             } else {
-                return new BytesRef("f");
+                return F;
             }
         }
         if (value instanceof Map || value.getClass().isArray()) {

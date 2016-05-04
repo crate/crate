@@ -70,7 +70,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     @Override
     protected CreateTableAnalyzedStatement visitNode(Node node, Context context) {
         throw new RuntimeException(
-                String.format("Encountered node %s but expected a CreateTable node", node));
+                String.format(Locale.ENGLISH, "Encountered node %s but expected a CreateTable node", node));
     }
 
     @Override

@@ -61,17 +61,6 @@ public class AbsFunction extends Scalar<Number, Number> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol) {
-        Symbol argument = symbol.arguments().get(0);
-
-        if (argument.symbolType().isValueSymbol()) {
-            return Literal.newLiteral(info().returnType(), evaluate((Input) argument));
-        }
-
-        return symbol;
-    }
-
-    @Override
     public Number evaluate(Input<Number>... args) {
         assert args.length == 1;
         Number value = args[0].value();

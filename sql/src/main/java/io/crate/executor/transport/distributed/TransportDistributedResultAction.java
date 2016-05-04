@@ -68,32 +68,21 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
         this.transports = transports;
         this.jobContextService = jobContextService;
         scheduler = threadPool.scheduler();
-        transportService.registerHandler(DISTRIBUTED_RESULT_ACTION, new NodeActionRequestHandler<DistributedResultRequest, DistributedResultResponse>(this) {
-            @Override
-            public DistributedResultRequest newInstance() {
-                return new DistributedResultRequest();
-            }
-        });
+
+        transportService.registerRequestHandler(DISTRIBUTED_RESULT_ACTION,
+                DistributedResultRequest.class,
+                ThreadPool.Names.GENERIC,
+                new NodeActionRequestHandler<DistributedResultRequest, DistributedResultResponse>(this) { });
     }
 
     public void pushResult(String node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
-        transports.executeLocalOrWithTransport(this, node, request, listener,
+        transports.sendRequest(DISTRIBUTED_RESULT_ACTION, node, request, listener,
                 new DefaultTransportResponseHandler<DistributedResultResponse>(listener, EXECUTOR_NAME) {
                     @Override
                     public DistributedResultResponse newInstance() {
                         return new DistributedResultResponse();
                     }
                 });
-    }
-
-    @Override
-    public String actionName() {
-        return DISTRIBUTED_RESULT_ACTION;
-    }
-
-    @Override
-    public String executorName() {
-        return EXECUTOR_NAME;
     }
 
     @Override

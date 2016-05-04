@@ -24,10 +24,9 @@ package io.crate.integrationtests;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.Constants;
 import io.crate.action.sql.*;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,7 +39,7 @@ import java.util.concurrent.ExecutionException;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
 public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTest {
 
     @Rule
@@ -174,7 +173,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         assertThat(res.results()[0].rowCount(), is(1L));
         assertThat(res.results()[1].rowCount(), is(1L));
 
-        waitForConcreteMappingsOnAll("foo", Constants.DEFAULT_MAPPING_TYPE, "bar");
+        waitForMappingUpdateOnAll("foo", "bar");
         execute("select data_type from information_schema.columns where table_name = 'foo' and column_name = 'bar'");
         assertThat((String) response.rows()[0][0], is("long_array"));
     }

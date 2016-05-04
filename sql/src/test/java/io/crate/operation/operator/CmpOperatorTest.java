@@ -101,8 +101,7 @@ public class CmpOperatorTest extends CrateUnitTest {
     @Test
     public void testNormalizeSymbolWithNull() throws Exception {
         Literal literal = (Literal)normalize(op_gt_string, Literal.NULL, Literal.newLiteral("aa"));
-        assertNull(literal.value());
-        assertEquals(DataTypes.UNDEFINED, literal.valueType());
+        assertThat(literal, isLiteral(null, DataTypes.BOOLEAN));
     }
 
     @Test

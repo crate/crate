@@ -21,9 +21,11 @@
 
 package io.crate.executor.transport.task;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.ActionListeners;
 import io.crate.executor.JobTask;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
@@ -31,67 +33,35 @@ import io.crate.executor.transport.kill.KillAllRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class KillTask extends JobTask {
 
-    private final SettableFuture<TaskResult> result;
+    private static final Function<KillResponse, TaskResult> RESPONSE_TO_TASK_RESULT = new Function<KillResponse, TaskResult>() {
+        @Nullable
+        @Override
+        public TaskResult apply(@Nullable KillResponse input) {
+            return input == null ? null : new RowCountResult(input.numKilled());
+        }
+    };
     private final List<ListenableFuture<TaskResult>> results;
-    private ClusterService clusterService;
-    private TransportKillAllNodeAction nodeAction;
+    private final TransportKillAllNodeAction nodeAction;
+    private final ActionListener<KillResponse> actionListener;
 
-    public KillTask(ClusterService clusterService,
-                    TransportKillAllNodeAction nodeAction,
-                    UUID jobId) {
+    public KillTask(TransportKillAllNodeAction nodeAction, UUID jobId) {
         super(jobId);
-        this.clusterService = clusterService;
         this.nodeAction = nodeAction;
-        result = SettableFuture.create();
+        SettableFuture<TaskResult> result = SettableFuture.create();
         results = ImmutableList.of((ListenableFuture<TaskResult>) result);
+        actionListener = ActionListeners.wrap(result, RESPONSE_TO_TASK_RESULT);
     }
 
     @Override
     public void start() {
-        DiscoveryNodes nodes = clusterService.state().nodes();
-        KillAllRequest request = new KillAllRequest();
-        final AtomicInteger counter = new AtomicInteger(nodes.size());
-        final AtomicLong numKilled = new AtomicLong(0);
-        final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
-
-        for (DiscoveryNode node : nodes) {
-            nodeAction.execute(node.id(), request, new ActionListener<KillResponse>() {
-                @Override
-                public void onResponse(KillResponse killResponse) {
-                    numKilled.addAndGet(killResponse.numKilled());
-                    countdown();
-                }
-
-                @Override
-                public void onFailure(Throwable e) {
-                    lastThrowable.set(e);
-                    countdown();
-                }
-
-                private void countdown() {
-                    if (counter.decrementAndGet() == 0) {
-                        Throwable throwable = lastThrowable.get();
-                        if (throwable == null) {
-                            result.set(new RowCountResult(numKilled.get()));
-                        } else {
-                            result.setException(throwable);
-                        }
-                    }
-                }
-            });
-        }
+        nodeAction.broadcast(new KillAllRequest(), actionListener);
     }
 
     @Override

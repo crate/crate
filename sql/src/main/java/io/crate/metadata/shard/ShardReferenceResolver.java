@@ -22,7 +22,7 @@
 package io.crate.metadata.shard;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
@@ -75,7 +75,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                 } else {
                     LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, tableIdent.fqn());
                 }
-            } catch (TableUnknownException e) {
+            } catch (ResourceUnknownException e) {
                 LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, tableIdent.fqn());
             }
         }

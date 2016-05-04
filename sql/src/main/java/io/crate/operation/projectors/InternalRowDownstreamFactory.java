@@ -24,33 +24,37 @@ package io.crate.operation.projectors;
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.executor.transport.distributed.*;
-import io.crate.jobs.KeepAliveTimers;
 import io.crate.operation.NodeOperation;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.StreamerVisitor;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.UUID;
 
 @Singleton
-public class InternalRowDownstreamFactory implements RowDownstreamFactory {
+public class InternalRowDownstreamFactory extends AbstractComponent implements RowDownstreamFactory {
 
     private final ClusterService clusterService;
     private final TransportDistributedResultAction transportDistributedResultAction;
-    private final KeepAliveTimers keepAliveTimers;
+    private final ESLogger distributingDownstreamLogger;
 
     @Inject
-    public InternalRowDownstreamFactory(ClusterService clusterService,
-                                        TransportDistributedResultAction transportDistributedResultAction,
-                                        KeepAliveTimers keepAliveTimers) {
+    public InternalRowDownstreamFactory(Settings settings,
+                                        ClusterService clusterService,
+                                        TransportDistributedResultAction transportDistributedResultAction) {
+        super(settings);
         this.clusterService = clusterService;
         this.transportDistributedResultAction = transportDistributedResultAction;
-        this.keepAliveTimers = keepAliveTimers;
+        distributingDownstreamLogger = Loggers.getLogger(DistributingDownstream.class, settings);
     }
 
     public RowReceiver createDownstream(NodeOperation nodeOperation,
@@ -58,7 +62,8 @@ public class InternalRowDownstreamFactory implements RowDownstreamFactory {
                                         UUID jobId,
                                         int pageSize) {
         Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
-        assert !ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes());
+        assert !ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())
+                : "trying to build a DistributingDownstream but nodeOperation has a directResponse downstream";
         assert nodeOperation.downstreamNodes().size() > 0 : "must have at least one downstream";
 
         // TODO: set bucketIdx properly
@@ -84,6 +89,7 @@ public class InternalRowDownstreamFactory implements RowDownstreamFactory {
         }
 
         return new DistributingDownstream(
+                distributingDownstreamLogger,
                 jobId,
                 multiBucketBuilder,
                 nodeOperation.downstreamExecutionPhaseId(),
@@ -91,10 +97,8 @@ public class InternalRowDownstreamFactory implements RowDownstreamFactory {
                 bucketIdx,
                 nodeOperation.downstreamNodes(),
                 transportDistributedResultAction,
-                keepAliveTimers,
                 streamers,
                 pageSize
         );
-
     }
 }

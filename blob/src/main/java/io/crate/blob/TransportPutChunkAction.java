@@ -23,19 +23,23 @@ package io.crate.blob;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.action.support.replication.TransportShardReplicationOperationAction;
+import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportPutChunkAction extends TransportShardReplicationOperationAction<PutChunkRequest, PutChunkReplicaRequest, PutChunkResponse> {
+public class TransportPutChunkAction extends TransportReplicationAction<PutChunkRequest, PutChunkReplicaRequest, PutChunkResponse> {
 
     private final BlobTransferTarget transferTarget;
 
@@ -47,20 +51,14 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
                                    ThreadPool threadPool,
                                    ShardStateAction shardStateAction,
                                    BlobTransferTarget transferTarget,
-                                   ActionFilters actionFilters) {
+                                   MappingUpdatedAction mappingUpdatedAction,
+                                   ActionFilters actionFilters,
+                                   IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, PutChunkAction.NAME, transportService, clusterService,
-                indicesService, threadPool, shardStateAction, actionFilters);
+                indicesService, threadPool, shardStateAction, mappingUpdatedAction, actionFilters,
+                indexNameExpressionResolver, PutChunkRequest.class, PutChunkReplicaRequest.class, ThreadPool.Names.INDEX);
+
         this.transferTarget = transferTarget;
-    }
-
-    @Override
-    protected PutChunkRequest newRequestInstance() {
-        return new PutChunkRequest();
-    }
-
-    @Override
-    protected PutChunkReplicaRequest newReplicaRequestInstance() {
-        return new PutChunkReplicaRequest();
     }
 
     @Override
@@ -69,20 +67,22 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
     }
 
     @Override
-    protected String executor() {
-        return ThreadPool.Names.INDEX;
+    protected void resolveRequest(MetaData metaData, String concreteIndex, PutChunkRequest request) {
+        ShardIterator shardIterator = clusterService.operationRouting().indexShards(
+                clusterService.state(), concreteIndex, null, null, request.digest());
+        request.setShardId(shardIterator.shardId());
     }
 
     @Override
-    protected Tuple<PutChunkResponse, PutChunkReplicaRequest> shardOperationOnPrimary(ClusterState clusterState,
-                                                                                      PrimaryOperationRequest shardRequest) {
-        final PutChunkRequest request = shardRequest.request;
+    protected Tuple<PutChunkResponse, PutChunkReplicaRequest> shardOperationOnPrimary(MetaData metaData,
+                                                                                      PutChunkRequest request) throws Throwable {
         PutChunkResponse response = newResponseInstance();
         transferTarget.continueTransfer(request, response);
 
-        final PutChunkReplicaRequest replicaRequest = newReplicaRequestInstance();
+        final PutChunkReplicaRequest replicaRequest = new PutChunkReplicaRequest();
+        replicaRequest.setShardId(request.shardId());
         replicaRequest.transferId = request.transferId();
-        replicaRequest.sourceNodeId = clusterState.getNodes().localNode().getId();
+        replicaRequest.sourceNodeId = clusterService.localNode().id();
         replicaRequest.currentPos = request.currentPos();
         replicaRequest.content = request.content();
         replicaRequest.isLast = request.isLast();
@@ -91,20 +91,9 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
     }
 
     @Override
-    protected void shardOperationOnReplica(ReplicaOperationRequest shardRequest) {
-        final PutChunkReplicaRequest request = shardRequest.request;
+    protected void shardOperationOnReplica(PutChunkReplicaRequest shardRequest) {
         PutChunkResponse response = newResponseInstance();
-        transferTarget.continueTransfer(request, response, shardRequest.shardId.id());
-    }
-
-    @Override
-    protected ShardIterator shards(ClusterState clusterState, InternalRequest request) throws ElasticsearchException {
-        return clusterService.operationRouting()
-            .indexShards(clusterService.state(),
-                    request.concreteIndex(),
-                    null,
-                    null,
-                    request.request().digest());
+        transferTarget.continueTransfer(shardRequest, response, shardRequest.shardId().id());
     }
 
     @Override

@@ -1,8 +1,4 @@
 .DS_Store
-.idea/
-*.iml
-*.ipr
-*.iws
 .classpath
 .project
 .settings
@@ -20,3 +16,9 @@ data/
 /reports
 config/logging.yml
 
+# intellij files
+.idea/
+*.iml
+*.ipr
+*.iws
+build-idea/

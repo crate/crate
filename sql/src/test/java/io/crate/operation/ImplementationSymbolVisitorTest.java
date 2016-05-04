@@ -32,6 +32,7 @@ import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -54,7 +55,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
 
     private ImplementationSymbolVisitor visitor;
 
-    static class MultiplyFunction extends Scalar<Long, Object> {
+    public static class MultiplyFunction extends Scalar<Long, Object> {
 
         public final static String NAME = "dummy_multiply";
         public static FunctionInfo INFO = new FunctionInfo(
@@ -100,6 +101,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
     public void setupVisitor() {
         Injector injector = new ModulesBuilder().add(
                 new AggregationImplModule(),
+                new TableFunctionModule(),
                 new TestScalarFunctionModule()
         ).createInjector();
 

@@ -24,6 +24,7 @@ package io.crate.sql.tree;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,7 +62,7 @@ public class GenericProperties extends Node {
     }
 
     public Map<String, Expression> properties() {
-        return properties;
+        return Collections.unmodifiableMap(properties);
     }
 
     public Expression get(String key) {

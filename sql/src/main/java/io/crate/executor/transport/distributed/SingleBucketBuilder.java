@@ -28,7 +28,6 @@ import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.StreamBucket;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.Requirements;
@@ -76,7 +75,12 @@ public class SingleBucketBuilder implements RowReceiver {
     }
 
     @Override
-    public void prepare(ExecutionState executionState) {
+    public void kill(Throwable throwable) {
+        bucketFuture.setException(throwable);
+    }
+
+    @Override
+    public void prepare() {
     }
 
     @Override

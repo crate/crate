@@ -21,14 +21,16 @@
 
 package io.crate.exceptions;
 
+import java.util.Locale;
+
 public class InvalidTableNameException extends ValidationException {
 
     public InvalidTableNameException(String tableName, Throwable e) {
-        super(String.format("table name \"%s\" is invalid.", tableName), e);
+        super(String.format(Locale.ENGLISH, "table name \"%s\" is invalid.", tableName), e);
     }
 
     public InvalidTableNameException(String tableName) {
-        super(String.format("table name \"%s\" is invalid.", tableName));
+        super(String.format(Locale.ENGLISH, "table name \"%s\" is invalid.", tableName));
     }
 
     @Override

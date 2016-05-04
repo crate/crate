@@ -25,7 +25,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.Bucket;
@@ -34,16 +33,22 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.Sorted;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
+import io.crate.operation.aggregation.impl.AggregationImplModule;
+import io.crate.operation.operator.OperatorModule;
+import io.crate.operation.predicate.PredicateModule;
+import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.sql.Identifiers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.*;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.powermock.api.mockito.PowerMockito;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
@@ -129,37 +134,13 @@ public class TestingHelpers {
         return MAP_JOINER.join(Sorted.sortRecursive(map));
     }
 
-    /**
-     * @deprecated use {@link SqlExpressions} instead
-     */
-    @Deprecated
-    public static Function createFunction(String functionName, DataType returnType, Symbol... arguments) {
-        return createFunction(functionName, returnType, Arrays.asList(arguments), true, false);
-    }
-
-    /**
-     * @deprecated use {@link SqlExpressions} instead
-     */
-    @Deprecated
-    public static Function createFunction(String functionName, DataType returnType, List<Symbol> arguments) {
-        return createFunction(functionName, returnType, arguments, true, false);
-    }
-
-    /**
-     * @deprecated use {@link SqlExpressions} instead
-     */
-    @Deprecated
-    public static Function createFunction(String functionName,
-                                          DataType returnType,
-                                          List<Symbol> arguments,
-                                          boolean deterministic,
-                                          boolean comparisonReplacementPossible) {
-        List<DataType> dataTypes = Symbols.extractTypes(arguments);
-        return new Function(
-                new FunctionInfo(new FunctionIdent(functionName, dataTypes), returnType, FunctionInfo.Type.SCALAR,
-                        deterministic, comparisonReplacementPossible),
-                arguments
-        );
+    public static Functions getFunctions() {
+        return new ModulesBuilder()
+                .add(new AggregationImplModule())
+                .add(new PredicateModule())
+                .add(new TableFunctionModule())
+                .add(new ScalarFunctionModule())
+                .add(new OperatorModule()).createInjector().getInstance(Functions.class);
     }
 
     public static Reference createReference(String columnName, DataType dataType) {
@@ -509,19 +490,8 @@ public class TestingHelpers {
         return column;
     }
 
-    /**
-     * @deprecated use {@link SqlExpressions} instead
-     */
-    @Deprecated
-    public static WhereClause whereClause(String opname, Symbol left, Symbol right) {
-        return new WhereClause(new Function(new FunctionInfo(
-                new FunctionIdent(opname, Arrays.asList(left.valueType(), right.valueType())), DataTypes.BOOLEAN),
-                Arrays.asList(left, right)
-        ));
-    }
-
     public static ThreadPool newMockedThreadPool() {
-        ThreadPool threadPool = PowerMockito.mock(ThreadPool.class);
+        ThreadPool threadPool = Mockito.mock(ThreadPool.class);
         final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         doAnswer(new Answer() {
@@ -586,39 +556,6 @@ public class TestingHelpers {
                 description.appendText(SQLPrinter.print(item));
             }
         };
-    }
-
-    private static class CauseMatcher extends TypeSafeMatcher<Throwable> {
-
-        private final Class<? extends Throwable> type;
-        private final String expectedMessage;
-
-        public CauseMatcher(Class<? extends Throwable> type, @Nullable String expectedMessage) {
-            this.type = type;
-            this.expectedMessage = expectedMessage;
-        }
-
-        @Override
-        protected boolean matchesSafely(Throwable item) {
-            return item.getClass().isAssignableFrom(type)
-                   && (null == expectedMessage || item.getMessage().contains(expectedMessage));
-        }
-
-        @Override
-        public void describeTo(Description description) {
-            description.appendText("expects type ").appendValue(type);
-            if (expectedMessage != null) {
-                description.appendText(" and a message ").appendValue(expectedMessage);
-            }
-        }
-    }
-
-    public static Matcher<Throwable> cause(Class<? extends Throwable> type) {
-        return cause(type, null);
-    }
-
-    public static Matcher<Throwable> cause(Class<? extends Throwable> type, String expectedMessage) {
-        return new CauseMatcher(type, expectedMessage);
     }
 
     public static Object[][] range(int from, int to) {
@@ -702,7 +639,7 @@ public class TestingHelpers {
 
     public static Map<String, Object> jsonMap(String json) {
         try {
-            return JsonXContent.jsonXContent.createParser(json).mapAndClose();
+            return JsonXContent.jsonXContent.createParser(json).map();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

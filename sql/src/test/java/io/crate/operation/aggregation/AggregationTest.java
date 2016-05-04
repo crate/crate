@@ -27,40 +27,25 @@ import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Row;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
-import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
+
+import static io.crate.testing.TestingHelpers.getFunctions;
 
 public abstract class AggregationTest extends CrateUnitTest {
 
     protected static final RamAccountingContext ramAccountingContext =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.Name.FIELDDATA));
+            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     protected Functions functions;
 
-    class AggregationTestModule extends AbstractModule {
-
-        @Override
-        protected void configure() {
-            bind(Functions.class).asEagerSingleton();
-        }
-    }
-
     @Before
     public void prepare() throws Exception {
-        Injector injector = new ModulesBuilder().add(
-                new AggregationTestModule(),
-                new AggregationImplModule()
-        ).createInjector();
-
-        functions = injector.getInstance(Functions.class);
+        functions = getFunctions();
     }
 
     public Object[][] executeAggregation(String name, DataType dataType, Object[][] data) throws Exception {

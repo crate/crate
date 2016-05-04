@@ -47,10 +47,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.TableStatsService;
 import io.crate.planner.distribution.DistributionType;
-import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.FetchProjection;
@@ -75,7 +72,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.*;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -264,8 +262,8 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         NestedLoop plan = plan("select * from information_schema.tables, information_schema .columns " +
                                "where tables.schema_name = columns.schema_name " +
                                "and tables.table_name = columns.table_name limit 10");
-        assertThat(((CollectAndMerge) plan.left()).collectPhase().nodePageSizeHint(), nullValue());
-        assertThat(((CollectAndMerge) plan.right()).collectPhase().nodePageSizeHint(), nullValue());
+        assertThat(((RoutedCollectPhase) ((CollectAndMerge) plan.left()).collectPhase()).nodePageSizeHint(), nullValue());
+        assertThat(((RoutedCollectPhase) ((CollectAndMerge) plan.right()).collectPhase()).nodePageSizeHint(), nullValue());
     }
 
     @Test
@@ -284,7 +282,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
         NestedLoop plan = plan("select u1.name, u2.name from users u1, users u2 order by u1.name, u2.name");
 
-        assertThat(plan.left().resultPhase(), instanceOf(CollectPhase.class));
+        assertThat(plan.left().resultPhase(), instanceOf(RoutedCollectPhase.class));
         CollectAndMerge leftPlan = (CollectAndMerge) plan.left().plan();
         CollectPhase collectPhase = leftPlan.collectPhase();
         assertThat(collectPhase.projections().size(), is(0));
@@ -294,27 +292,24 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testNodePageSizePushDown() throws Exception {
         NestedLoop plan = plan("select u1.name from users u1, users u2 order by 1 limit 1000");
-        CollectPhase cpL = ((CollectAndMerge) plan.left().plan()).collectPhase();
+        RoutedCollectPhase cpL = ((RoutedCollectPhase) ((CollectAndMerge) plan.left().plan()).collectPhase());
         assertThat(cpL.nodePageSizeHint(), is(750));
 
-        CollectPhase cpR = ((CollectAndMerge) plan.right().plan()).collectPhase();
+        RoutedCollectPhase cpR = ((RoutedCollectPhase) ((CollectAndMerge) plan.right().plan()).collectPhase());
         assertThat(cpR.nodePageSizeHint(), is(750));
     }
 
     @Test
     public void testCrossJoinWithGroupBy() throws Exception {
         expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("GROUP BY on CROSS JOIN is not supported");
+        expectedException.expectMessage("GROUP BY on JOINS is not supported");
         plan("select u1.name, count(*) from users u1, users u2 group by u1.name");
     }
 
     @Test
     public void testAggregationOnCrossJoin() throws Exception {
         expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("AGGREGATIONS on CROSS JOIN is not supported");
-        // TODO: once fetch is supported for cross joins, reset query to:
-        // select min(u1.name) from users u1, users u2
-
+        expectedException.expectMessage("AGGREGATIONS on JOINS is not supported");
         plan("select min(u1.name) from users u1, users u2");
     }
 

@@ -21,6 +21,7 @@
 
 package io.crate.action.sql;
 
+import io.crate.action.ActionListeners;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.core.collections.Bucket;
@@ -29,7 +30,6 @@ import io.crate.core.collections.Row;
 import io.crate.executor.BytesRefUtils;
 import io.crate.executor.Executor;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.ResponseForwarder;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.Planner;
@@ -37,13 +37,14 @@ import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
+import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nullable;
@@ -54,7 +55,7 @@ import java.util.List;
 public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLResponse> {
 
     @Inject
-    protected TransportSQLAction(
+    public TransportSQLAction(
             ClusterService clusterService,
             Settings settings,
             ThreadPool threadPool,
@@ -64,11 +65,13 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
             TransportService transportService,
             StatsTables statsTables,
             ActionFilters actionFilters,
+            IndexNameExpressionResolver indexNameExpressionResolver,
             TransportKillJobsNodeAction transportKillJobsNodeAction) {
         super(clusterService, settings, SQLAction.NAME, threadPool,
                 analyzer, planner, executor, statsTables, actionFilters,
-                transportKillJobsNodeAction);
-        transportService.registerHandler(SQLAction.NAME, new TransportHandler());
+                indexNameExpressionResolver, transportKillJobsNodeAction);
+
+        transportService.registerRequestHandler(SQLAction.NAME, SQLRequest.class, ThreadPool.Names.SAME, new TransportHandler());
     }
 
     @Override
@@ -124,24 +127,11 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
         );
     }
 
-    private class TransportHandler extends BaseTransportRequestHandler<SQLRequest> {
-
-        @Override
-        public SQLRequest newInstance() {
-            return new SQLRequest();
-        }
-
+    private class TransportHandler implements TransportRequestHandler<SQLRequest> {
         @Override
         public void messageReceived(SQLRequest request, final TransportChannel channel) throws Exception {
-            // no need for a threaded listener
-            request.listenerThreaded(false);
-            ActionListener<SQLResponse> listener = ResponseForwarder.forwardTo(channel);
+            ActionListener<SQLResponse> listener = ActionListeners.forwardTo(channel);
             execute(request, listener);
-        }
-
-        @Override
-        public String executor() {
-            return ThreadPool.Names.SAME;
         }
     }
 }

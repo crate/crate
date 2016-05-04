@@ -25,7 +25,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.jobs.ExecutionState;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.operation.projectors.Requirement;
@@ -45,8 +44,11 @@ public class NestedLoopOperation implements RowUpstream {
     private final LeftRowReceiver left;
     private final RightRowReceiver right;
 
-    private RowReceiver downstream;
+    private final int phaseId;
+    private final RowReceiver downstream;
     private volatile boolean downstreamWantsMore = true;
+    private volatile boolean paused;
+    private volatile Throwable upstreamFailure = null;
 
     /**
      * state of the left and right side.
@@ -70,7 +72,8 @@ public class NestedLoopOperation implements RowUpstream {
 
     private final AtomicBoolean leadAcquired = new AtomicBoolean(false);
 
-    public NestedLoopOperation(RowReceiver rowReceiver) {
+    public NestedLoopOperation(int phaseId, RowReceiver rowReceiver) {
+        this.phaseId = phaseId;
         this.downstream = rowReceiver;
         downstream.setUpstream(this);
         left = new LeftRowReceiver();
@@ -87,11 +90,13 @@ public class NestedLoopOperation implements RowUpstream {
 
     @Override
     public void pause() {
+        paused = true;
         right.upstream.pause();
     }
 
     @Override
     public void resume(boolean async) {
+        paused = false;
         right.upstream.resume(async);
     }
 
@@ -151,7 +156,13 @@ public class NestedLoopOperation implements RowUpstream {
         }
 
         @Override
-        public void prepare(ExecutionState executionState) {
+        public void prepare() {
+        }
+
+        @Override
+        public void kill(Throwable throwable) {
+            killBoth(throwable);
+            downstream.kill(throwable);
         }
 
         @Override
@@ -178,11 +189,23 @@ public class NestedLoopOperation implements RowUpstream {
             }
             finishThisSide();
             if (otherState == State.FINISHED) {
-                downstream.finish();
+                Throwable upstreamFailure = NestedLoopOperation.this.upstreamFailure;
+                if (upstreamFailure == null) {
+                    downstream.finish();
+                } else {
+                    downstream.fail(upstreamFailure);
+                }
             } else {
                 otherUpstream.resume(false);
             }
         }
+    }
+
+    private void killBoth(Throwable throwable) {
+        left.finished.setException(throwable);
+        left.state.set(State.FINISHED);
+        right.finished.setException(throwable);
+        right.state.set(State.FINISHED);
     }
 
     private class LeftRowReceiver extends AbstractRowReceiver {
@@ -194,7 +217,7 @@ public class NestedLoopOperation implements RowUpstream {
         public boolean setNextRow(Row row) {
             assert !done : "shouldn't receive a row if finished";
             State rightState = right.state.get();
-            LOGGER.trace("LEFT downstream received a row {}, rightState: {}", row, rightState);
+            LOGGER.trace("[{}] LEFT downstream received a row {}, rightState: {}", phaseId, row, rightState);
             switch (rightState) {
                 case LEAD_ELECTION:
                     if (leadAcquired.compareAndSet(false, true)) {
@@ -226,7 +249,7 @@ public class NestedLoopOperation implements RowUpstream {
                         state.set(State.PAUSED);
                         return right.resume(rightState);
                     }
-                    LOGGER.trace("LEFT: done, returning false");
+                    LOGGER.trace("[{}] LEFT: done, returning false", phaseId);
                     done = true;
                     return false;
                 default:
@@ -236,14 +259,14 @@ public class NestedLoopOperation implements RowUpstream {
 
         @Override
         public void finish() {
-            LOGGER.trace("LEFT downstream finished");
+            LOGGER.trace("[{}] LEFT upstream called finish", phaseId);
             finish(right.state, right.upstream);
         }
 
         @Override
         public void fail(Throwable throwable) {
-            downstream.fail(throwable);
-            finished.setException(throwable);
+            upstreamFailure = throwable;
+            finish(right.state, right.upstream);
         }
 
         @Override
@@ -275,14 +298,14 @@ public class NestedLoopOperation implements RowUpstream {
             }
 
             State leftState = left.state.get();
-            LOGGER.trace("RIGHT: left state: {}", leftState);
+            LOGGER.trace("[{}] RIGHT: left state: {}", phaseId, leftState);
             switch (leftState) {
                 case LEAD_ELECTION:
                     if (leadAcquired.compareAndSet(false, true)) {
                         lastRow = rightRow;
                         upstream.pause();
                         state.set(State.PAUSED);
-                        LOGGER.trace("RIGHT: pausing, left doesn't has any rows yet. Left state: {}", leftState);
+                        LOGGER.trace("[{}] RIGHT: pausing, left doesn't has any rows yet. Left state: {}", phaseId, leftState);
                         return true;
                     } else {
                         return handlePauseOrFinished(rightRow, waitForStateChange(left.state));
@@ -313,7 +336,7 @@ public class NestedLoopOperation implements RowUpstream {
             boolean wantsMore = downstream.setNextRow(combinedRow);
             assert downstreamWantsMore : "shouldn't emit rows if downstream doesn't need anymore";
             if (!wantsMore) {
-                LOGGER.trace("downstream doesn't need any more rows");
+                LOGGER.trace("[{}] downstream doesn't need any more rows", phaseId);
             }
             downstreamWantsMore = wantsMore;
             return wantsMore;
@@ -321,7 +344,7 @@ public class NestedLoopOperation implements RowUpstream {
 
         @Override
         public void finish() {
-            LOGGER.trace("RIGHT downstream finished");
+            LOGGER.trace("[{}] RIGHT upstream called finish", phaseId);
 
             leftIsSuspended = false;
             finish(left.state, left.upstream);
@@ -329,8 +352,9 @@ public class NestedLoopOperation implements RowUpstream {
 
         @Override
         public void fail(Throwable throwable) {
-            downstream.fail(throwable);
-            finished.setException(throwable);
+            upstreamFailure = throwable;
+            leftIsSuspended = true;
+            finish(left.state, left.upstream);
         }
 
         @Override
@@ -341,24 +365,27 @@ public class NestedLoopOperation implements RowUpstream {
         boolean resume(State rightState) {
             if (lastRow != null) {
                 boolean wantMore = emitRow(lastRow);
+                lastRow = null;
+                if (paused) {
+                    return wantMore;
+                }
                 if (!wantMore) {
-                    LOGGER.trace("LEFT - right resume - downstream doesn't need any more rows, return false");
+                    LOGGER.trace("[{}] LEFT - right resume - downstream doesn't need any more rows, return false", phaseId);
                     upstream.resume(false);
                     return false;
                 }
-                lastRow = null;
             }
 
             if (rightState == State.FINISHED) {
                 if (receivedRows) {
-                    LOGGER.trace("repeat right");
+                    LOGGER.trace("[{}] repeat right", phaseId);
                     upstream.repeat();
                 } else {
-                    LOGGER.trace("LEFT - resume right - right finished and no rows: return false");
+                    LOGGER.trace("[{}] LEFT - resume right - right finished and no rows: return false", phaseId);
                     return false;
                 }
             } else {
-                LOGGER.trace("resume right on {}", upstream);
+                LOGGER.trace("[{}] resume right on {}", phaseId, upstream);
                 upstream.resume(false);
             }
             return true;

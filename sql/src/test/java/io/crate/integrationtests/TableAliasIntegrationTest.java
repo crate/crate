@@ -25,14 +25,16 @@ import io.crate.action.sql.SQLActionException;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.Locale;
+
 import static org.hamcrest.core.Is.is;
 
-@ElasticsearchIntegrationTest.ClusterScope(numDataNodes = 1, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
 public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
@@ -41,7 +43,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
     private String tableAliasSetup() throws Exception {
         String tableName = "mytable";
         String tableAlias = "mytablealias";
-        execute(String.format("create table %s (id integer primary key, " +
+        execute(String.format(Locale.ENGLISH, "create table %s (id integer primary key, " +
                         "content string)",
                 tableName
         ));
@@ -163,7 +165,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("The table 'doc.mytablealias' already exists.");
 
-        execute(String.format("create table %s (content string index off)", tableAlias));
+        execute(String.format(Locale.ENGLISH, "create table %s (content string index off)", tableAlias));
     }
 
     @Test
@@ -171,7 +173,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("doc.mytablealias is an alias and hence not dropable.");
-        execute(String.format("drop table %s", tableAlias));
+        execute(String.format(Locale.ENGLISH, "drop table %s", tableAlias));
     }
 
     @Test
@@ -180,7 +182,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("doc.mytablealias is an alias. Write, Drop or Alter operations are not supported");
 
-        execute(String.format("copy %s from '/tmp/file.json'", tableAlias));
+        execute(String.format(Locale.ENGLISH, "copy %s from '/tmp/file.json'", tableAlias));
 
     }
 
@@ -191,7 +193,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("doc.mytablealias is an alias. Write, Drop or Alter operations are not supported");
 
         execute(
-                String.format("insert into %s (id, content) values (?, ?)", tableAlias),
+                String.format(Locale.ENGLISH, "insert into %s (id, content) values (?, ?)", tableAlias),
                 new Object[]{1, "bla"}
         );
     }
@@ -202,7 +204,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("relation \"DocTableRelation{table=doc.mytablealias}\" is read-only and cannot be updated");
 
-        execute(String.format("update %s set id=?, content=?", tableAlias), new Object[]{1, "bla"});
+        execute(String.format(Locale.ENGLISH, "update %s set id=?, content=?", tableAlias), new Object[]{1, "bla"});
     }
 
     @Test
@@ -211,7 +213,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("relation \"DocTableRelation{table=doc.mytablealias}\" is read-only and cannot be deleted");
 
-        execute(String.format("delete from %s where id=?", tableAlias), new Object[]{1});
+        execute(String.format(Locale.ENGLISH, "delete from %s where id=?", tableAlias), new Object[]{1});
     }
 
 

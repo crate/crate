@@ -21,10 +21,12 @@
 
 package io.crate.exceptions;
 
+import java.util.Locale;
+
 public class ColumnUnknownException extends ResourceUnknownException {
 
     public ColumnUnknownException(String columnName) {
-        super(String.format("Column %s unknown", columnName));
+        super(String.format(Locale.ENGLISH, "Column %s unknown", columnName));
     }
 
     @Override

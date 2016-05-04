@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -28,7 +30,11 @@ import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
+import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
@@ -37,22 +43,21 @@ import io.crate.sql.tree.InsertFromSubquery;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 @Singleton
-public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
+public class InsertFromSubQueryAnalyzer {
 
+    private final AnalysisMetaData analysisMetaData;
     private final RelationAnalyzer relationAnalyzer;
+
 
     private static class ValuesResolver implements ValuesAwareExpressionAnalyzer.ValuesResolver {
 
         private final DocTableRelation targetTableRelation;
         private final List<Reference> targetColumns;
 
-        public ValuesResolver(DocTableRelation targetTableRelation, List<Reference> targetColumns) {
+        ValuesResolver(DocTableRelation targetTableRelation, List<Reference> targetColumns) {
             this.targetTableRelation = targetTableRelation;
             this.targetColumns = targetColumns;
         }
@@ -72,13 +77,15 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
     }
 
     @Inject
-    protected InsertFromSubQueryAnalyzer(AnalysisMetaData analysisMetaData, RelationAnalyzer relationAnalyzer) {
-        super(analysisMetaData);
+    public InsertFromSubQueryAnalyzer(AnalysisMetaData analysisMetaData, RelationAnalyzer relationAnalyzer) {
+        this.analysisMetaData = analysisMetaData;
         this.relationAnalyzer = relationAnalyzer;
     }
 
-    @Override
-    public AbstractInsertAnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, Analysis analysis) {
+
+    public AnalyzedStatement analyze(InsertFromSubquery node, Analysis analysis) {
+        analysis.expectsAffectedRows(true);
+
         DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
@@ -86,8 +93,6 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
 
         QueriedRelation source = (QueriedRelation) relationAnalyzer.analyze(node.subQuery(), analysis);
-        InsertFromSubQueryAnalyzedStatement insertStatement =
-                new InsertFromSubQueryAnalyzedStatement(source, tableInfo);
 
         // We forbid using limit/offset or order by until we've implemented ES paging support (aka 'scroll')
         // TODO: move this to the consumer
@@ -96,37 +101,84 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
                     "supported on insert using a sub-query");
         }
 
-        int numInsertColumns = node.columns().size() == 0 ? tableInfo.columns().size() : node.columns().size();
-        int maxInsertValues = Math.max(numInsertColumns, source.fields().size());
-        handleInsertColumns(node, maxInsertValues, insertStatement);
+        List<Reference> targetColumns = new ArrayList<>(resolveTargetColumns(node.columns(), tableInfo, source.fields().size()));
+        validateColumnsAndAddCastsIfNecessary(targetColumns, source.querySpec());
 
-        validateMatchingColumns(insertStatement, source.querySpec());
-
+        Map<Reference, Symbol> onDuplicateKeyAssignments = null;
         if (!node.onDuplicateKeyAssignments().isEmpty()) {
-            processUpdateAssignments(
+            onDuplicateKeyAssignments = processUpdateAssignments(
                     tableRelation,
-                    insertStatement,
-                    analysis,
+                    targetColumns,
+                    analysis.parameterContext(),
                     fieldProvider,
                     node.onDuplicateKeyAssignments());
         }
 
-        return insertStatement;
+        return new InsertFromSubQueryAnalyzedStatement(
+                source,
+                tableInfo,
+                targetColumns,
+                onDuplicateKeyAssignments);
+    }
+
+    private static Collection<Reference> resolveTargetColumns(Collection<String> targetColumnNames,
+                                                              DocTableInfo targetTable,
+                                                              int numSourceColumns) {
+        if (targetColumnNames.isEmpty()) {
+            return targetColumnsFromTargetTable(targetTable, numSourceColumns);
+        }
+        LinkedHashSet<Reference> columns = new LinkedHashSet<>(targetColumnNames.size());
+        for (String targetColumnName : targetColumnNames) {
+            ColumnIdent columnIdent = new ColumnIdent(targetColumnName);
+            ReferenceInfo referenceInfo = targetTable.getReferenceInfo(columnIdent);
+            Reference targetReference;
+            if (referenceInfo == null) {
+                DynamicReference reference = targetTable.getDynamic(columnIdent, true);
+                if (reference == null) {
+                    throw new ColumnUnknownException(targetColumnName);
+                }
+                targetReference = reference;
+            } else {
+                targetReference = new Reference(referenceInfo);
+            }
+            if (!columns.add(targetReference)) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", targetColumnName));
+            }
+        }
+        return columns;
+    }
+
+
+    private static Collection<Reference> targetColumnsFromTargetTable(DocTableInfo targetTable, int numSourceColumns) {
+        List<Reference> columns = new ArrayList<>(targetTable.columns().size());
+        int idx = 0;
+        for (ReferenceInfo referenceInfo : targetTable.columns()) {
+            if (idx > numSourceColumns) {
+                break;
+            }
+            columns.add(new Reference(referenceInfo));
+            idx++;
+        }
+        return columns;
     }
 
     /**
      * validate that result columns from subquery match explicit insert columns
      * or complete table schema
      */
-    private void validateMatchingColumns(InsertFromSubQueryAnalyzedStatement context, QuerySpec querySpec) {
-        if (context.columns().size() != querySpec.outputs().size()) {
-            throw new IllegalArgumentException("Number of columns in insert statement and subquery differ");
+    private static void validateColumnsAndAddCastsIfNecessary(List<Reference> targetColumns,
+                                                              QuerySpec querySpec) {
+        if (targetColumns.size() != querySpec.outputs().size()) {
+            Joiner commaJoiner = Joiner.on(", ");
+            throw new IllegalArgumentException(String.format("Number of target columns (%s) of insert statement doesn't match number of source columns (%s)",
+                    commaJoiner.join(Iterables.transform(targetColumns, Reference.TO_COLUMN_NAME)),
+                    commaJoiner.join(Iterables.transform(querySpec.outputs(), SymbolPrinter.FUNCTION))));
         }
 
-        int failedCastPosition = querySpec.castOutputs(Iterators.transform(context.columns().iterator(), Symbols.TYPES_FUNCTION));
+        int failedCastPosition = querySpec.castOutputs(Iterators.transform(targetColumns.iterator(), Symbols.TYPES_FUNCTION));
         if (failedCastPosition >= 0) {
             Symbol failedSource = querySpec.outputs().get(failedCastPosition);
-            Reference failedTarget = context.columns().get(failedCastPosition);
+            Reference failedTarget = targetColumns.get(failedCastPosition);
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Type of subquery column %s (%s) does not match is not convertable to the type of table column %s (%s)",
                     failedSource,
@@ -137,21 +189,21 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
         }
     }
 
-    private void processUpdateAssignments(DocTableRelation tableRelation,
-                                          InsertFromSubQueryAnalyzedStatement statement,
-                                          Analysis analysis,
-                                          FieldProvider fieldProvider,
-                                          List<Assignment> assignments) {
+    private Map<Reference, Symbol> processUpdateAssignments(DocTableRelation tableRelation,
+                                                            List<Reference> targetColumns,
+                                                            ParameterContext parameterContext,
+                                                            FieldProvider fieldProvider,
+                                                            List<Assignment> assignments) {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData, analysis.parameterContext(), fieldProvider, tableRelation);
+                analysisMetaData, parameterContext, fieldProvider, tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas(), new EvaluatingNormalizer(
                 analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver(), tableRelation, false));
 
-        ValuesResolver valuesResolver = new ValuesResolver(tableRelation, statement.columns());
+        ValuesResolver valuesResolver = new ValuesResolver(tableRelation, targetColumns);
         ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
-                analysisMetaData, analysis.parameterContext(), fieldProvider, valuesResolver);
+                analysisMetaData, parameterContext, fieldProvider, valuesResolver);
 
         Map<Reference, Symbol> updateAssignments = new HashMap<>(assignments.size());
         for (Assignment assignment : assignments) {
@@ -168,6 +220,6 @@ public class InsertFromSubQueryAnalyzer extends AbstractInsertAnalyzer {
             updateAssignments.put(columnName, assignmentExpression);
         }
 
-        statement.onDuplicateKeyAssignments(updateAssignments);
+        return updateAssignments;
     }
 }

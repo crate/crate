@@ -25,18 +25,15 @@ import com.google.common.base.Function;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.operation.ThreadPools;
-import io.crate.operation.collect.EngineSearcher;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.lucene.Lucene;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -85,10 +82,10 @@ public class InternalCountOperation implements CountOperation {
                 });
             }
         }
+        MergePartialCountFunction mergeFunction =  new MergePartialCountFunction();
         ListenableFuture<List<Long>> listListenableFuture = ThreadPools.runWithAvailableThreads(
-                executor, corePoolSize, callableList, new MergePartialCountFunction());
-
-        return Futures.transform(listListenableFuture, new MergePartialCountFunction());
+                executor, corePoolSize, callableList, mergeFunction);
+        return Futures.transform(listListenableFuture, mergeFunction);
     }
 
     @Override
@@ -96,21 +93,21 @@ public class InternalCountOperation implements CountOperation {
         IndexService indexService;
         try {
             indexService = indicesService.indexServiceSafe(index);
-        } catch (IndexMissingException e) {
+        } catch (IndexNotFoundException e) {
             if (PartitionName.isPartition(index)) {
                 return 0L;
             }
-            throw new TableUnknownException(index, e);
+            throw e;
         }
 
         IndexShard indexShard = indexService.shardSafe(shardId);
-        try (Engine.Searcher searcher = EngineSearcher.getSearcherWithRetry(indexShard, "count-operation", null)) {
+        try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
                     whereClause, indexService.mapperService(), indexService.fieldData(), indexService.cache());
             if (Thread.interrupted()) {
                 throw new InterruptedException();
             }
-            return Lucene.count(searcher.searcher(), queryCtx.query());
+            return searcher.searcher().count(queryCtx.query());
         }
     }
 

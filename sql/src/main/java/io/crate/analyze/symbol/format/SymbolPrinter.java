@@ -22,8 +22,11 @@
 
 package io.crate.analyze.symbol.format;
 
+import com.google.common.base.*;
 import io.crate.analyze.relations.RelationPrinter;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Function;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.operation.operator.InOperator;
@@ -70,9 +73,16 @@ public class SymbolPrinter {
         }
     };
 
+    public static final com.google.common.base.Function<? super Symbol, String> FUNCTION = new com.google.common.base.Function<Symbol, String>() {
+        @Nullable
+        @Override
+        public String apply(@Nullable Symbol input) {
+            return input == null ? null : INSTANCE.printSimple(input);
+        }
+    };
+
     public enum Style {
         SIMPLE(SymbolPrinterContext.DEFAULT_MAX_DEPTH, SymbolPrinterContext.DEFAULT_FULL_QUALIFIED, SymbolPrinterContext.DEFAULT_FAIL_IF_MAX_DEPTH_REACHED),
-        DEFAULT(SymbolPrinterContext.DEFAULT_MAX_DEPTH, SymbolPrinterContext.DEFAULT_FULL_QUALIFIED, SymbolPrinterContext.DEFAULT_FAIL_IF_MAX_DEPTH_REACHED),
         PARSEABLE(100, true, true),
         FULL_QUALIFIED(SymbolPrinterContext.DEFAULT_MAX_DEPTH, true, false),
         PARSEABLE_NOT_QUALIFIED(100, false, true);
@@ -271,7 +281,7 @@ public class SymbolPrinter {
                 context.builder.append(symbol.info().ident().tableIdent().sqlFqn())
                         .append(DOT);
             }
-            context.builder.append(symbol.info().ident().columnIdent().sqlFqn());
+            context.builder.append(symbol.info().ident().columnIdent().quotedOutputName());
             return null;
         }
 
@@ -290,7 +300,11 @@ public class SymbolPrinter {
                 context.builder.append(RelationPrinter.INSTANCE.process(field.relation(), null))
                         .append(DOT);
             }
-            context.builder.append(field.path().outputName());
+            if (field.path() instanceof ColumnIdent) {
+                context.builder.append(((ColumnIdent) field.path()).quotedOutputName());
+            } else {
+                context.builder.append(field.path().outputName());
+            }
             return null;
         }
 

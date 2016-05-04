@@ -37,7 +37,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -134,23 +133,40 @@ public class AnalyzedTableElements {
     public List<String> primaryKeys() {
         if (primaryKeys == null) {
             primaryKeys = new ArrayList<>();
-            for (AnalyzedColumnDefinition column : columns) {
-                if (column.isPrimaryKey()) {
-                    primaryKeys.add(column.ident().fqn());
-                }
-            }
             primaryKeys.addAll(additionalPrimaryKeys);
+            for (AnalyzedColumnDefinition column : columns) {
+                addPrimaryKeys(primaryKeys, column);
+            }
         }
         return primaryKeys;
     }
 
+    private static void addPrimaryKeys(List<String> primaryKeys, AnalyzedColumnDefinition column) {
+        if (column.isPrimaryKey()) {
+            String fqn = column.ident().fqn();
+            checkPrimaryKeyAlreadyDefined(primaryKeys, fqn);
+            primaryKeys.add(fqn);
+        }
+        for (AnalyzedColumnDefinition analyzedColumnDefinition : column.children()) {
+            addPrimaryKeys(primaryKeys, analyzedColumnDefinition);
+        }
+    }
+
+    private static void checkPrimaryKeyAlreadyDefined(List<String> primaryKeys, String columnName) {
+        if (primaryKeys.contains(columnName)) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Column \"%s\" appears twice in primary key constraint", columnName));
+        }
+    }
+
     public void addPrimaryKey(String fqColumnName) {
+        checkPrimaryKeyAlreadyDefined(additionalPrimaryKeys, fqColumnName);
         additionalPrimaryKeys.add(fqColumnName);
     }
 
     public void add(AnalyzedColumnDefinition analyzedColumnDefinition) {
         if (columnIdents.contains(analyzedColumnDefinition.ident())) {
-            throw new IllegalArgumentException(String.format(
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "column \"%s\" specified more than once", analyzedColumnDefinition.ident().sqlFqn()));
         }
         columnIdents.add(analyzedColumnDefinition.ident());
@@ -162,7 +178,7 @@ public class AnalyzedTableElements {
     }
 
     public Settings settings() {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings.Builder builder = Settings.builder();
         for (AnalyzedColumnDefinition column : columns) {
             builder.put(column.analyzerSettings());
         }
@@ -274,6 +290,8 @@ public class AnalyzedTableElements {
                 throw new ColumnUnknownException(columnIdent.sqlFqn());
             }
         }
+        // will collect both column constraint and additional defined once and check for duplicates
+        primaryKeys();
     }
 
     private void validateIndexDefinitions() {

@@ -46,14 +46,14 @@ public class IndexReferenceInfo extends ReferenceInfo {
     };
 
     public static class Builder {
-        private ReferenceIdent ident;
+        private final ReferenceIdent ident;
         private IndexType indexType = IndexType.ANALYZED;
         private List<ReferenceInfo> columns = new ArrayList<>();
         private String analyzer = null;
 
-        public Builder ident(ReferenceIdent ident) {
+        public Builder(ReferenceIdent ident) {
+            Preconditions.checkNotNull(ident, "ident is null");
             this.ident = ident;
-            return this;
         }
 
         public Builder indexType(IndexType indexType) {
@@ -72,7 +72,6 @@ public class IndexReferenceInfo extends ReferenceInfo {
         }
 
         public IndexReferenceInfo build() {
-            Preconditions.checkNotNull(ident, "ident is null");
             return new IndexReferenceInfo(ident, indexType, columns, analyzer);
         }
     }
