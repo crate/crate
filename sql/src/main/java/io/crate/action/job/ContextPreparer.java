@@ -159,8 +159,8 @@ public class ContextPreparer extends AbstractComponent {
             return innerPreparer.process(phase, preparerContext);
         } catch (Throwable t) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Couldn't create executionContexts from\n" +
-                    "NodeOperations: %s\n" +
+                    "Couldn't create executionContexts from%n" +
+                    "NodeOperations: %s%n" +
                     "target-sources: %s", preparerContext.opCtx.nodeOperationMap, preparerContext.opCtx.targetToSourceMap), t);
         }
     }
