@@ -1075,7 +1075,7 @@ public class LuceneQueryBuilder {
             return function;
         }
 
-        private static Filter genericFunctionFilter(Function function, Context context) {
+        private static Query genericFunctionFilter(Function function, Context context) {
             if (function.valueType() != DataTypes.BOOLEAN) {
                 raiseUnsupported(function);
             }
@@ -1155,7 +1155,13 @@ public class LuceneQueryBuilder {
                 if (o == null || getClass() != o.getClass()) return false;
                 if (!super.equals(o)) return false;
                 FunctionFilter that = (FunctionFilter) o;
+                if (getBoost() != that.getBoost()) return false;
                 return Objects.equals(function, that.function);
+            }
+
+            @Override
+            public int hashCode() {
+                return Float.floatToIntBits(getBoost()) ^ function.hashCode();
             }
 
             @Override
