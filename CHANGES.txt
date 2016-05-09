@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Made sure orphaned contexts are cleaned up eventually after a coordinator
+   node dies.
+
  - Improved retry logic of bulk inserts/updates in order to prevent stack
    overflows caused by recursive retry calls that could lead to hanging updates
    and imports using ``copy from``.

@@ -56,11 +56,12 @@ public class JobExecutionContextTest extends CrateUnitTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+    private String coordinatorNode = "dummyNode";
 
     @Test
     public void testAddTheSameContextTwiceThrowsAnError() throws Exception {
         JobExecutionContext.Builder builder =
-                new JobExecutionContext.Builder(UUID.randomUUID(), mock(StatsTables.class));
+                new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, mock(StatsTables.class));
         builder.addSubContext(new AbstractExecutionSubContextTest.TestingExecutionSubContext());
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("ExecutionSubContext for 0 already added");
@@ -70,7 +71,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
     @Test
     public void testKillPropagatesToSubContexts() throws Exception {
         JobExecutionContext.Builder builder =
-                new JobExecutionContext.Builder(UUID.randomUUID(), mock(StatsTables.class));
+                new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, mock(StatsTables.class));
 
 
         AbstractExecutionSubContextTest.TestingExecutionSubContext ctx1 = new AbstractExecutionSubContextTest.TestingExecutionSubContext(1);
@@ -91,7 +92,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
     public void testErrorMessageIsIncludedInStatsTableOnFailure() throws Exception {
         StatsTables statsTables = mock(StatsTables.class);
         JobExecutionContext.Builder builder =
-                new JobExecutionContext.Builder(UUID.randomUUID(), statsTables);
+                new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, statsTables);
 
         SubExecutionContextFuture future = new SubExecutionContextFuture();
         ExecutionSubContext executionSubContext = mock(ExecutionSubContext.class);
@@ -114,7 +115,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
 
         JobExecutionContext.Builder builder =
-                new JobExecutionContext.Builder(UUID.randomUUID(), mock(StatsTables.class));
+                new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, mock(StatsTables.class));
 
         JobCollectContext jobCollectContext = new JobCollectContext(
                 collectPhase,
@@ -155,7 +156,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
         subContexts.setAccessible(true);
 
         JobExecutionContext.Builder builder =
-                new JobExecutionContext.Builder(UUID.randomUUID(), mock(StatsTables.class));
+                new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, mock(StatsTables.class));
         SlowKillExecutionSubContext slowKillExecutionSubContext = new SlowKillExecutionSubContext();
         builder.addSubContext(slowKillExecutionSubContext);
         final JobExecutionContext jobExecutionContext = builder.build();

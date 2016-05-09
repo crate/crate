@@ -42,6 +42,7 @@ import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -93,7 +94,7 @@ public class RemoteCollectorTest {
         transportKillJobsNodeAction = mock(TransportKillJobsNodeAction.class);
         rowReceiver = new CollectingRowReceiver();
 
-        JobContextService jobContextService = new JobContextService(Settings.EMPTY, mock(StatsTables.class));
+        JobContextService jobContextService = new JobContextService(Settings.EMPTY, new NoopClusterService(), mock(StatsTables.class));
         remoteCollector = new RemoteCollector(
             jobId,
             "localNode",

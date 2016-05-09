@@ -34,13 +34,14 @@ import java.util.UUID;
 public class JobRequest extends TransportRequest {
 
     private UUID jobId;
+    private String coordinatorNodeId;
     private Collection<? extends NodeOperation> nodeOperations;
 
-    public JobRequest() {
-    }
+    public JobRequest() {}
 
-    public JobRequest(UUID jobId, Collection<? extends NodeOperation> nodeOperations) {
+    public JobRequest(UUID jobId, String coordinatorNodeId, Collection<? extends NodeOperation> nodeOperations) {
         this.jobId = jobId;
+        this.coordinatorNodeId = coordinatorNodeId;
         this.nodeOperations = nodeOperations;
     }
 
@@ -52,11 +53,16 @@ public class JobRequest extends TransportRequest {
         return nodeOperations;
     }
 
+    public String coordinatorNodeId() {
+        return coordinatorNodeId;
+    }
+
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
 
         jobId = new UUID(in.readLong(), in.readLong());
+        coordinatorNodeId = in.readString();
 
         int numNodeOperations = in.readVInt();
         ArrayList<NodeOperation> nodeOperations = new ArrayList<>(numNodeOperations);
@@ -72,6 +78,7 @@ public class JobRequest extends TransportRequest {
 
         out.writeLong(jobId.getMostSignificantBits());
         out.writeLong(jobId.getLeastSignificantBits());
+        out.writeString(coordinatorNodeId);
 
         out.writeVInt(nodeOperations.size());
         for (NodeOperation nodeOperation : nodeOperations) {

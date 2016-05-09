@@ -270,7 +270,7 @@ class ExecutionPhasesTask extends JobTask {
             localNodeOperations = Collections.emptyList();
         }
 
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId(), localNodeId);
         Tuple<List<ExecutionSubContext>, List<ListenableFuture<Bucket>>> onHandler =
             contextPreparer.prepareOnHandler(localNodeOperations, builder, handlerPhases, new SharedShardContexts(indicesService));
         JobExecutionContext localJobContext = jobContextService.createContext(builder);
@@ -290,17 +290,18 @@ class ExecutionPhasesTask extends JobTask {
             }
         }
 
-        sendJobRequests(operationByServer, pageDownstreamContexts, handlerPhases, bucketIdx, initializationTracker);
+        sendJobRequests(localNodeId, operationByServer, pageDownstreamContexts, handlerPhases, bucketIdx, initializationTracker);
     }
 
-    private void sendJobRequests(Map<String, Collection<NodeOperation>> operationByServer,
+    private void sendJobRequests(String localNodeId,
+                                 Map<String, Collection<NodeOperation>> operationByServer,
                                  List<PageDownstreamContext> pageDownstreamContexts,
                                  List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
                                  int bucketIdx,
                                  InitializationTracker initializationTracker) {
         for (Map.Entry<String, Collection<NodeOperation>> entry : operationByServer.entrySet()) {
             String serverNodeId = entry.getKey();
-            JobRequest request = new JobRequest(jobId(), entry.getValue());
+            JobRequest request = new JobRequest(jobId(), localNodeId, entry.getValue());
             if (hasDirectResponse) {
                 transportJobAction.execute(serverNodeId, request,
                     new SetBucketAction(pageDownstreamContexts, bucketIdx, initializationTracker));

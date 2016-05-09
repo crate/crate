@@ -35,6 +35,7 @@ import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobModule;
+import io.crate.jobs.transport.NodeDisconnectJobMonitorService;
 import io.crate.lucene.CrateIndexModule;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.blob.MetaDataBlobModule;
@@ -112,6 +113,7 @@ public class SQLPlugin extends Plugin {
         return ImmutableList.<Class<? extends LifecycleComponent>>of(
             DecommissioningService.class,
             BulkRetryCoordinatorPool.class,
+            NodeDisconnectJobMonitorService.class,
             JobContextService.class);
     }
 

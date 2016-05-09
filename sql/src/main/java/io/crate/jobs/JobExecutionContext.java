@@ -21,6 +21,7 @@
 
 package io.crate.jobs;
 
+import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
@@ -44,6 +45,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class JobExecutionContext {
 
     private static final ESLogger LOGGER = Loggers.getLogger(JobExecutionContext.class);
+    public static final Function<? super JobExecutionContext,UUID> TO_ID = new Function<JobExecutionContext, UUID>() {
+        @Nullable
+        @Override
+        public UUID apply(@Nullable JobExecutionContext input) {
+            return input == null ? null : input.jobId();
+        }
+    };
 
     private final UUID jobId;
     private final ConcurrentMap<Integer, ExecutionSubContext> subContexts = new ConcurrentHashMap<>();
@@ -52,18 +60,21 @@ public class JobExecutionContext {
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final ArrayList<SubExecutionContextFuture> futures;
     private final ListenableFuture<List<SubExecutionContextFuture.State>> chainedFuture;
-    private StatsTables statsTables;
+    private final String coordinatorNodeId;
+    private final StatsTables statsTables;
     private volatile Throwable failure;
     private volatile Callback<JobExecutionContext> closeCallback;
 
     public static class Builder {
 
         private final UUID jobId;
+        private final String coordinatorNode;
         private final StatsTables statsTables;
         private final LinkedHashMap<Integer, ExecutionSubContext> subContexts = new LinkedHashMap<>();
 
-        Builder(UUID jobId, StatsTables statsTables) {
+        Builder(UUID jobId, String coordinatorNode, StatsTables statsTables) {
             this.jobId = jobId;
+            this.coordinatorNode = coordinatorNode;
             this.statsTables = statsTables;
         }
 
@@ -90,14 +101,16 @@ public class JobExecutionContext {
         }
 
         JobExecutionContext build() {
-            return new JobExecutionContext(jobId, statsTables, subContexts);
+            return new JobExecutionContext(jobId, coordinatorNode, statsTables, subContexts);
         }
     }
 
 
     private JobExecutionContext(UUID jobId,
+                                String coordinatorNodeId,
                                 StatsTables statsTables,
                                 LinkedHashMap<Integer, ExecutionSubContext> subContexts) {
+        this.coordinatorNodeId = coordinatorNodeId;
         orderedContextIds = Lists.newArrayList(subContexts.keySet());
         this.jobId = jobId;
         this.statsTables = statsTables;
@@ -128,6 +141,10 @@ public class JobExecutionContext {
 
     public UUID jobId() {
         return jobId;
+    }
+
+    public String coordinatorNodeId() {
+        return coordinatorNodeId;
     }
 
     private void prepare(){

@@ -35,10 +35,8 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -49,7 +47,7 @@ import static org.mockito.Mockito.mock;
 public class ESJobContextTaskTest extends CrateUnitTest {
 
     private final JobContextService jobContextService = new JobContextService(
-            Settings.EMPTY, mock(StatsTables.class));
+            Settings.EMPTY, new NoopClusterService(), mock(StatsTables.class));
 
     private JobTask createTask(UUID jobId) {
         EsJobContextTask task = new EsJobContextTask(jobId, 1, 1, jobContextService);

@@ -133,7 +133,7 @@ public class RemoteCollector implements CrateCollector {
             }
             transportJobAction.execute(
                 remoteNode,
-                new JobRequest(jobId, Collections.singletonList(nodeOperation)),
+                new JobRequest(jobId, localNode, Collections.singletonList(nodeOperation)),
                 new ActionListener<JobResponse>() {
                     @Override
                     public void onResponse(JobResponse jobResponse) {
@@ -154,7 +154,7 @@ public class RemoteCollector implements CrateCollector {
     }
 
     private JobExecutionContext.Builder createPageDownstreamContext() {
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId, localNode);
 
         PassThroughPagingIterator<Void, Row> pagingIterator;
         if (rowReceiver.requirements().contains(Requirement.REPEAT)) {

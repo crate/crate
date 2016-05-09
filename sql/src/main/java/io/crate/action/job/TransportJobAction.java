@@ -80,7 +80,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
     @Override
     public void nodeOperation(final JobRequest request, final ActionListener<JobResponse> actionListener) {
-        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(request.jobId());
+        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(request.jobId(), request.coordinatorNodeId());
 
         SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
         List<ListenableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnRemote(

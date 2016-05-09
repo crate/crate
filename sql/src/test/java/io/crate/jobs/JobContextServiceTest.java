@@ -30,11 +30,9 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,6 +44,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
@@ -59,7 +58,7 @@ public class JobContextServiceTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        jobContextService  = new JobContextService(Settings.EMPTY, mock(StatsTables.class));
+        jobContextService  = new JobContextService(Settings.EMPTY, new NoopClusterService(), mock(StatsTables.class));
     }
 
     @After
@@ -76,6 +75,20 @@ public class JobContextServiceTest extends CrateUnitTest {
         builder1.addSubContext(subContext);
         JobExecutionContext ctx1 = jobContextService.createContext(builder1);
         assertThat(ctx1.getSubContext(1), is(subContext));
+    }
+
+    @Test
+    public void testGetContextsByCoordinatorNode() throws Exception {
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID());
+        builder.addSubContext(new DummySubContext(1));
+
+        JobExecutionContext ctx = jobContextService.createContext(builder);
+        Iterable<JobExecutionContext> contexts = jobContextService.getContextsByCoordinatorNode("wrongNodeId");
+
+        assertThat(contexts.iterator().hasNext(), is(false));
+
+        contexts = jobContextService.getContextsByCoordinatorNode("noop_id");
+        assertThat(contexts, contains(ctx));
     }
 
     @Test
@@ -233,21 +246,4 @@ public class JobContextServiceTest extends CrateUnitTest {
         return jobContextService.createContext(builder1);
     }
 
-    protected static class DummySubContext extends AbstractExecutionSubContext {
-
-        private static final ESLogger LOGGER = Loggers.getLogger(DummySubContext.class);
-
-        public DummySubContext() {
-            this(1);
-        }
-
-        public DummySubContext(int id) {
-            super(id, LOGGER);
-        }
-
-        @Override
-        public String name() {
-            return "dummy " + id();
-        }
-    }
 }
