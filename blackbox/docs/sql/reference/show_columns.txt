@@ -1,4 +1,3 @@
-.. highlight:: psql
 .. _ref-show-columns:
 
 ============
@@ -12,7 +11,7 @@ Synopsis
 
 ::
 
-    SHOW COLUMNS {FROM | IN} table_name [FROM | IN schema_name] [LIKE 'pattern' | WHERE expression]
+    SHOW COLUMNS { FROM | IN } table_name [ FROM | IN schema_name ] [ LIKE 'pattern' | WHERE expression ]
 
 Description
 ===========

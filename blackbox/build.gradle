@@ -24,11 +24,11 @@ task unpackDistTar (dependsOn: project(':app').distTar) << {
 }
 
 task buildout (type:Exec, dependsOn: bootstrap) {
-    commandLine "$projectDir/bin/buildout", '-N', 'install', 'test', 'hdfs-test'
+    commandLine "$projectDir/bin/buildout", 'install', 'test', 'sphinx'
 }
 
 task buildoutHadoop(type:Exec, dependsOn: buildout) {
-    commandLine "$projectDir/bin/buildout", 'install', 'hadoop'
+    commandLine "$projectDir/bin/buildout", 'install', 'hadoop', 'hdfs-test'
 }
 
 task lessLogging (dependsOn: unpackDistTar) << {

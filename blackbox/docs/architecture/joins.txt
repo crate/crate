@@ -80,14 +80,12 @@ The **nested loop** join is the simplest join algorithm. One of the relations
 is nominated as the inner relation and the other as the outer relation. Each
 tuple of the outer relation is compared with each tuple of the inner relation
 and if the join condition is satisfied, the tuples of the relation *L* and *R* are
-concatenated and added into the new relation.
+concatenated and added into the new relation::
 
-.. code-block:: python
-
-  for each tuple l ∈ L do
-      for each tuple r ∈ R do
-          if l.a Θ r.b
-              put tuple(l, r) in Q
+    for each tuple l ∈ L do
+        for each tuple r ∈ R do
+            if l.a Θ r.b
+                put tuple(l, r) in Q
 
 *Listing 1. Nested loop join algorithm.*
 
