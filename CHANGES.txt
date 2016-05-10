@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - `+HeapDumpOnOutOfMemoryError` is no longer set by default.
+   It can still be set using the JAVA_OPTS environment variable.
+
  - Made sure orphaned contexts are cleaned up eventually after a coordinator
    node dies.
 

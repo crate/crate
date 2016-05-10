@@ -56,12 +56,6 @@ REM JAVA_OPTS=%JAVA_OPTS% -XX:+PrintTenuringDistribution
 REM JAVA_OPTS=%JAVA_OPTS% -XX:+PrintGCApplicationStoppedTime
 REM JAVA_OPTS=%JAVA_OPTS% -Xloggc:/var/log/crate/gc.log
 
-REM Causes the JVM to dump its heap on OutOfMemory.
-set JAVA_OPTS=%JAVA_OPTS% -XX:+HeapDumpOnOutOfMemoryError
-REM The path to the heap dump location, note directory must exists and have enough
-REM space for a full heap dump.
-REM JAVA_OPTS=%JAVA_OPTS% -XX:HeapDumpPath=$CRATE_HOME/logs/heapdump.hprof
-
 REM Ensure UTF-8 encoding by default (e.g. filenames)
 set JAVA_OPTS=%JAVA_OPTS% -Dfile.encoding=UTF-8
 
