@@ -84,6 +84,10 @@ public class NodeDisconnectJobMonitorService
     @Override
     public void onNodeDisconnected(final DiscoveryNode node) {
         final Collection<JobExecutionContext> contexts = jobContextService.getContextsByCoordinatorNode(node.id());
+        if (contexts.isEmpty()) {
+            return;
+        }
+
         threadPool.schedule(DELAY, ThreadPool.Names.GENERIC, new Runnable() {
             @Override
             public void run() {
