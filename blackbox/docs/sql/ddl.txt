@@ -649,7 +649,9 @@ This creates a custom analyzer called ``myanalyzer``. It uses the built-in
 :ref:`mapping-charfilter` char-filter.
 
 It is possible to further customize the built-in token filters, char-filters or
-tokenizers::
+tokenizers:
+
+.. code-block:: sql
 
     cr> create ANALYZER myanalyzer_customized (
     ...   TOKENIZER whitespace,
