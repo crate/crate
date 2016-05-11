@@ -94,14 +94,16 @@ public class JobExecutionContextTest extends CrateUnitTest {
         JobExecutionContext.Builder builder =
                 new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, statsTables);
 
-        SubExecutionContextFuture future = new SubExecutionContextFuture();
-        ExecutionSubContext executionSubContext = mock(ExecutionSubContext.class);
-        when(executionSubContext.future()).thenReturn(future);
+        ExecutionSubContext executionSubContext = new AbstractExecutionSubContext(0, logger) {
+            @Override
+            public String name() {
+                return "dummy";
+            }
+        };
         builder.addSubContext(executionSubContext);
         builder.build();
 
-        future.close(new IllegalStateException("dummy"));
-
+        executionSubContext.kill(new IllegalStateException("dummy"));
         verify(statsTables).operationFinished(anyInt(), any(UUID.class), eq("dummy"), anyLong());
     }
 

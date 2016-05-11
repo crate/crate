@@ -24,15 +24,16 @@ package io.crate.jobs;
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
+import io.crate.concurrent.CompletionState;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.exceptions.Exceptions;
+import io.crate.concurrent.CompletionListenable;
+import io.crate.concurrent.CompletionListener;
+import io.crate.concurrent.CompletionMultiListener;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.util.Callback;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -42,7 +43,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class JobExecutionContext {
+public class JobExecutionContext implements CompletionListenable {
 
     private static final ESLogger LOGGER = Loggers.getLogger(JobExecutionContext.class);
     public static final Function<? super JobExecutionContext,UUID> TO_ID = new Function<JobExecutionContext, UUID>() {
@@ -58,12 +59,11 @@ public class JobExecutionContext {
     private final AtomicInteger numSubContexts = new AtomicInteger();
     private final List<Integer> orderedContextIds;
     private final AtomicBoolean closed = new AtomicBoolean(false);
-    private final ArrayList<SubExecutionContextFuture> futures;
-    private final ListenableFuture<List<SubExecutionContextFuture.State>> chainedFuture;
     private final String coordinatorNodeId;
     private final StatsTables statsTables;
+    private final SettableFuture<Void> finishedFuture = SettableFuture.create();
+    private CompletionListener listener = CompletionListener.NO_OP;
     private volatile Throwable failure;
-    private volatile Callback<JobExecutionContext> closeCallback;
 
     public static class Builder {
 
@@ -115,24 +115,15 @@ public class JobExecutionContext {
         this.jobId = jobId;
         this.statsTables = statsTables;
 
-        this.futures = new ArrayList<>(subContexts.size());
         for (Map.Entry<Integer, ExecutionSubContext> entry : subContexts.entrySet()) {
             addContext(entry.getKey(), entry.getValue());
         }
-        this.chainedFuture = Futures.successfulAsList(this.futures);
-    }
-
-    void setCloseCallback(Callback<JobExecutionContext> contextCallback) {
-        assert closeCallback == null;
-        this.closeCallback = contextCallback;
     }
 
     private void addContext(int subContextId, ExecutionSubContext subContext) {
         if (subContexts.put(subContextId, subContext) == null) {
             int currentSubContextSize = numSubContexts.incrementAndGet();
-            SubExecutionContextFuture future = subContext.future();
-            future.addCallback(new RemoveSubContextCallback(subContextId));
-            futures.add(future);
+            subContext.addListener(new RemoveSubContextListener(subContextId));
             LOGGER.trace("adding subContext {}, now there are {} subContexts", subContextId, currentSubContextSize);
         } else {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "subContext %d is already present", subContextId));
@@ -143,7 +134,7 @@ public class JobExecutionContext {
         return jobId;
     }
 
-    public String coordinatorNodeId() {
+    String coordinatorNodeId() {
         return coordinatorNodeId;
     }
 
@@ -190,12 +181,12 @@ public class JobExecutionContext {
     }
 
     public long kill() {
-        long numKilled = 0L;
+        int numKilled = 0;
         if (!closed.getAndSet(true)) {
             LOGGER.trace("kill called on JobExecutionContext {}", jobId);
 
             if (numSubContexts.get() == 0) {
-                callCloseCallback();
+                finish();
             } else {
                 for (ExecutionSubContext executionSubContext : subContexts.values()) {
                     // kill will trigger the ContextCallback onClose too
@@ -205,21 +196,32 @@ public class JobExecutionContext {
                 }
             }
         }
+
         try {
-            chainedFuture.get();
+            // synchronous wait for all contexts to be killed
+            finishedFuture.get();
             int currentNumSubContexts = numSubContexts.get();
             assert currentNumSubContexts == 0: "unexpected subContexts there: " +  currentNumSubContexts;
         } catch (Exception e) {
             throw Throwables.propagate(e);
         }
+
         return numKilled;
     }
 
-    private void callCloseCallback() {
-        if (closeCallback == null) {
-            return;
+    private void finish() {
+        if (failure != null) {
+            listener.onFailure(failure);
+        } else {
+            listener.onSuccess(null);
         }
-        closeCallback.handle(this);
+        // this future is only needed to make kill() synchronous
+        finishedFuture.set(null);
+    }
+
+    @Override
+    public void addListener(CompletionListener listener) {
+        this.listener = CompletionMultiListener.merge(this.listener, listener);
     }
 
     @Override
@@ -231,11 +233,11 @@ public class JobExecutionContext {
                 '}';
     }
 
-    private class RemoveSubContextCallback implements FutureCallback<SubExecutionContextFuture.State> {
+    private class RemoveSubContextListener implements CompletionListener {
 
         private final int id;
 
-        private RemoveSubContextCallback(int id) {
+        private RemoveSubContextListener(int id) {
             this.id = id;
         }
 
@@ -243,14 +245,14 @@ public class JobExecutionContext {
             ExecutionSubContext removed = subContexts.remove(id);
             assert removed != null;
             if (numSubContexts.decrementAndGet() == 0){
-                callCloseCallback();
+                finish();
                 return RemoveSubContextPosition.LAST;
             }
             return RemoveSubContextPosition.UNKNOWN;
         }
 
         @Override
-        public void onSuccess(@Nullable SubExecutionContextFuture.State state) {
+        public void onSuccess(@Nullable CompletionState state) {
             assert state != null;
             statsTables.operationFinished(id, jobId, null, state.bytesUsed());
             remove();

@@ -22,6 +22,7 @@
 
 package io.crate.jobs;
 
+import io.crate.concurrent.CompletionListener;
 import io.crate.exceptions.JobKilledException;
 import org.elasticsearch.common.logging.ESLogger;
 
@@ -121,17 +122,16 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
         }
     }
 
-    @Override
-    final public SubExecutionContextFuture future() {
-        return future;
-    }
-
-
     /**
      * Hook to cleanup resources of this context. This is called in finally clauses on kill and close.
      * This hook might be called more than one time, therefore it should be idempotent.
      */
     protected void cleanup() {
 
+    }
+
+    @Override
+    public void addListener(final CompletionListener listener) {
+        future.addCallback(listener);
     }
 }

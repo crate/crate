@@ -24,6 +24,7 @@ package io.crate.jobs;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.WhereClause;
+import io.crate.concurrent.ContextCompletionListener;
 import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.operation.count.CountOperation;
 import io.crate.test.CauseMatcher;
@@ -34,7 +35,6 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyMap;
@@ -51,24 +51,28 @@ public class CountContextTest extends CrateUnitTest {
         when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(future);
 
         CountContext countContext = new CountContext(1, countOperation, new CollectingRowReceiver(), null, WhereClause.MATCH_ALL);
+        ContextCompletionListener listener = new ContextCompletionListener();
+        countContext.addListener(listener);
         countContext.prepare();
         countContext.start();
         future.set(1L);
-        assertTrue(countContext.future().closed());
+        assertTrue(countContext.future.closed());
         // assure that there was no exception
-        countContext.future().get(500, TimeUnit.MILLISECONDS);
+        listener.get();
 
         // on error
         future = SettableFuture.create();
         when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(future);
 
         countContext = new CountContext(2, countOperation, new CollectingRowReceiver(), null, WhereClause.MATCH_ALL);
+        listener = new ContextCompletionListener();
+        countContext.addListener(listener);
         countContext.prepare();
         countContext.start();
         future.setException(new UnknownUpstreamFailure());
-        assertTrue(countContext.future().closed());
+        assertTrue(countContext.future.closed());
         expectedException.expectCause(CauseMatcher.cause(UnknownUpstreamFailure.class));
-        countContext.future().get(500, TimeUnit.MILLISECONDS);
+        listener.get();
     }
 
     @Test
@@ -83,7 +87,7 @@ public class CountContextTest extends CrateUnitTest {
         countContext.kill(null);
 
         verify(future, times(1)).cancel(true);
-        assertTrue(countContext.future().closed());
+        assertTrue(countContext.future.closed());
     }
 
     private static class FakeCountOperation implements CountOperation {

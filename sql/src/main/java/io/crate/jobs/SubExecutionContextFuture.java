@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.concurrent.CompletionState;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -36,24 +37,16 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @ParametersAreNonnullByDefault
-public class SubExecutionContextFuture implements ListenableFuture<SubExecutionContextFuture.State> {
+public class SubExecutionContextFuture implements ListenableFuture<CompletionState> {
 
-    public static class State {
-        private volatile long bytesUsed = -1;
-
-        public long bytesUsed() {
-            return bytesUsed;
-        }
-    }
-
-    private final SettableFuture<State> internalFuture = SettableFuture.create();
+    private final SettableFuture<CompletionState> internalFuture = SettableFuture.create();
     private final AtomicBoolean closeCalled = new AtomicBoolean(false);
-    private final State state = new State();
+    private final CompletionState state = new CompletionState();
 
     /**
      * @return true if this is the first call to this method
      */
-    public boolean firstClose() {
+    boolean firstClose() {
         return !closeCalled.getAndSet(true);
     }
 
@@ -65,7 +58,7 @@ public class SubExecutionContextFuture implements ListenableFuture<SubExecutionC
     }
 
     public void bytesUsed(long bytes) {
-        state.bytesUsed = bytes;
+        state.bytesUsed(bytes);
     }
 
     public boolean close(@Nullable Throwable t) {
@@ -76,17 +69,17 @@ public class SubExecutionContextFuture implements ListenableFuture<SubExecutionC
         }
     }
 
-    public void addCallback(FutureCallback<? super State> callback) {
+    public void addCallback(FutureCallback<? super CompletionState> callback) {
         Futures.addCallback(internalFuture, callback);
     }
 
     @Override
-    public State get() throws InterruptedException, ExecutionException {
+    public CompletionState get() throws InterruptedException, ExecutionException {
         return internalFuture.get();
     }
 
     @Override
-    public State get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public CompletionState get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return internalFuture.get(timeout, unit);
     }
 

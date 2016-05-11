@@ -21,24 +21,27 @@
 
 package io.crate.jobs;
 
+import io.crate.concurrent.CompletionListenable;
+import io.crate.concurrent.CompletionListener;
+
 import javax.annotation.Nullable;
 
-public interface ExecutionSubContext {
+public interface ExecutionSubContext extends CompletionListenable {
 
 
     /**
      * In the prepare phase implementations of this interface can allocate any resources.
      *
-     * In this phase failures must not be propagated to downstream phases directly, but instead are required to be set on the
-     * {@link ExecutionSubContext#future()}.
+     * In this phase failures must not be propagated to downstream phases directly, but instead
+     * {@link CompletionListener#onFailure(Throwable)} must be called.
      */
     void prepare();
 
     /**
      * In the start phase implementations of this interface are required to start any executors.
      *
-     * In this phase failures must not be propagated to downstream phases directly, but instead are required to be
-     * set on the {@link ExecutionSubContext#future()}.
+     * In this phase failures must not be propagated to downstream phases directly, but instead
+     * {@link CompletionListener#onFailure(Throwable)} must be called.
      *
      * However, it is ok for the started executors to use their downstreams to propagate failures.
      */
@@ -47,8 +50,6 @@ public interface ExecutionSubContext {
     void kill(@Nullable Throwable throwable);
 
     String name();
-
-    SubExecutionContextFuture future();
 
     int id();
 }

@@ -1,6 +1,7 @@
 package io.crate.jobs;
 
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.concurrent.ContextCompletionListener;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
@@ -14,8 +15,6 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
-import java.util.concurrent.TimeUnit;
-
 import static org.mockito.Mockito.*;
 
 public class UpsertByIdContextTest extends CrateUnitTest {
@@ -24,15 +23,16 @@ public class UpsertByIdContextTest extends CrateUnitTest {
     public BulkRequestExecutor delegate;
 
     private UpsertByIdContext context;
-    private SettableFuture<TaskResult> future;
+    private ContextCompletionListener completionListener;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
         ShardUpsertRequest request = mock(ShardUpsertRequest.class);
         UpsertByIdNode.Item item = mock(UpsertByIdNode.Item.class);
-        future = SettableFuture.create();
-        context = new UpsertByIdContext(1, request, item, future, delegate);
+        context = new UpsertByIdContext(1, request, item, SettableFuture.<TaskResult>create(), delegate);
+        completionListener = new ContextCompletionListener();
+        context.addListener(completionListener);
     }
 
     @Test
@@ -49,7 +49,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         listener.getValue().onResponse(response);
 
         expectedException.expectCause(CauseMatcher.cause(InterruptedException.class));
-        context.future().get(500, TimeUnit.MILLISECONDS);
+        completionListener.get();
     }
 
     @Test
@@ -57,7 +57,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         context.prepare();
         context.kill(null);
         expectedException.expectCause(CauseMatcher.cause(InterruptedException.class));
-        context.future().get(500, TimeUnit.MILLISECONDS);
+        completionListener.get();
     }
 
     @Test

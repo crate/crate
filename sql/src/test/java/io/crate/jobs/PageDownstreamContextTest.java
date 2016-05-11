@@ -21,11 +21,12 @@
 
 package io.crate.jobs;
 
-import com.google.common.util.concurrent.FutureCallback;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.concurrent.CompletionState;
 import io.crate.core.collections.Row1;
 import io.crate.core.collections.SingleRowBucket;
+import io.crate.concurrent.CompletionListener;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.PageResultListener;
 import io.crate.operation.projectors.FlatProjectorChain;
@@ -39,6 +40,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.is;
@@ -82,16 +84,17 @@ public class PageDownstreamContextTest extends CrateUnitTest {
 
         PageDownstreamContext ctx = new PageDownstreamContext(Loggers.getLogger(PageDownstreamContext.class), "n1",
                 1, "dummy", downstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
+
         final AtomicReference<Throwable> throwable = new AtomicReference<>();
 
-        ctx.future().addCallback(new FutureCallback<SubExecutionContextFuture.State>() {
+        ctx.addListener(new CompletionListener() {
             @Override
-            public void onSuccess(SubExecutionContextFuture.State result) {
+            public void onSuccess(@Nullable CompletionState state) {
 
             }
 
             @Override
-            public void onFailure(@Nonnull  Throwable t) {
+            public void onFailure(@Nonnull Throwable t) {
                 assertTrue(throwable.compareAndSet(null, t));
             }
         });

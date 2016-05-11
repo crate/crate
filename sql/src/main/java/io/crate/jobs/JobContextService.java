@@ -21,7 +21,9 @@
 
 package io.crate.jobs;
 
+import io.crate.concurrent.CompletionState;
 import io.crate.exceptions.ContextMissingException;
+import io.crate.concurrent.CompletionListener;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.ClusterService;
@@ -29,9 +31,9 @@ import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.Callback;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
@@ -116,7 +118,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         JobExecutionContext newContext = contextBuilder.build();
         readLock.lock();
         try {
-            newContext.setCloseCallback(new JobContextCallback());
+            newContext.addListener(new JobContextListener(jobId));
             JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
             if (existing != null) {
                 throw new IllegalArgumentException(
@@ -175,15 +177,31 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         return numKilled;
     }
 
-    private class JobContextCallback implements Callback<JobExecutionContext> {
-        @Override
-        public void handle(JobExecutionContext context) {
-            activeContexts.remove(context.jobId());
+    private class JobContextListener implements CompletionListener {
+
+        private UUID jobId;
+
+        public JobContextListener(UUID jobId) {
+            this.jobId = jobId;
+        }
+
+        private void remove(@Nullable Throwable throwable) {
+            activeContexts.remove(jobId);
             if (logger.isTraceEnabled()) {
                 logger.trace("JobExecutionContext closed for job {} removed it -" +
-                                " {} executionContexts remaining",
-                        context.jobId(), activeContexts.size());
+                             " {} executionContexts remaining",
+                    throwable, jobId, activeContexts.size());
             }
+        }
+
+        @Override
+        public void onSuccess(@Nullable CompletionState state) {
+            remove(null);
+        }
+
+        @Override
+        public void onFailure(@Nonnull Throwable throwable) {
+            remove(throwable);
         }
     }
 

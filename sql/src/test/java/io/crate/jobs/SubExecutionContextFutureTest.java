@@ -24,6 +24,7 @@ package io.crate.jobs;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.concurrent.CompletionState;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -48,7 +49,7 @@ public class SubExecutionContextFutureTest {
         // cancel on one future causes the other futures to be canceled too
         f1.close(new InterruptedException());
 
-        ListenableFuture<List<SubExecutionContextFuture.State>> asList = Futures.allAsList(f1, f2);
+        ListenableFuture<List<CompletionState>> asList = Futures.allAsList(f1, f2);
         asList.get();
     }
 }
