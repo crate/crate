@@ -38,6 +38,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.*;
 import org.jboss.netty.handler.codec.http.*;
+import org.jboss.netty.handler.stream.ChunkedFile;
 import org.jboss.netty.util.CharsetUtil;
 
 import java.io.IOException;
@@ -70,14 +71,18 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
     private final Matcher blobsMatcher = BLOBS_PATTERN.matcher("");
     private final BlobService blobService;
     private final BlobIndices blobIndices;
+    private final boolean sslEnabled;
+    private final String scheme;
     private HttpMessage currentMessage;
     private ChannelHandlerContext ctx;
 
     private RemoteDigestBlob digestBlob;
 
-    public HttpBlobHandler(BlobService blobService, BlobIndices blobIndices) {
+    public HttpBlobHandler(BlobService blobService, BlobIndices blobIndices, boolean sslEnabled) {
         this.blobService = blobService;
         this.blobIndices = blobIndices;
+        this.sslEnabled = sslEnabled;
+        this.scheme = sslEnabled ? "https://" : "http://";
     }
 
 
@@ -94,9 +99,10 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
                 simpleResponse(HttpResponseStatus.BAD_GATEWAY);
                 return true;
             }
+
             if (redirectAddress != null) {
                 LOGGER.trace("redirectAddress: {}", redirectAddress);
-                sendRedirect(redirectAddress);
+                sendRedirect(scheme + redirectAddress);
                 return true;
             }
         }
@@ -349,8 +355,15 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
             HttpHeaders.setContentLength(response, raf.length());
             setDefaultGetHeaders(response);
             LOGGER.trace("HttpResponse: {}", response);
-            ctx.getChannel().write(response);
-            ChannelFuture writeFuture = transferFile(digest, raf, 0, raf.length());
+            Channel channel = ctx.getChannel();
+            channel.write(response);
+            ChannelFuture writeFuture;
+            if (sslEnabled) {
+                // Cannot use zero-copy with HTTPS.
+                writeFuture = channel.write(new ChunkedFile(raf, 0, raf.length(), 8192));
+            } else {
+                writeFuture = transferFile(digest, raf, 0, raf.length());
+            }
             if (!HttpHeaders.isKeepAlive(request)) {
                 writeFuture.addListener(ChannelFutureListener.CLOSE);
             }
@@ -368,6 +381,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
     private ChannelFuture transferFile(final String digest, RandomAccessFile raf, long position, long count)
         throws IOException
     {
+
         final FileRegion region = new DefaultFileRegion(raf.getChannel(), position, count);
         ChannelFuture writeFuture = ctx.getChannel().write(region);
         writeFuture.addListener(new ChannelFutureProgressListener() {

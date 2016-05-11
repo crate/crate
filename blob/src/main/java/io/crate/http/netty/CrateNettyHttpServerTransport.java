@@ -33,6 +33,7 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.http.netty.NettyHttpServerTransport;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.handler.stream.ChunkedWriteHandler;
 
 import java.util.Map;
 
@@ -59,7 +60,7 @@ public class CrateNettyHttpServerTransport extends NettyHttpServerTransport {
     protected void doStart() {
         super.doStart();
 
-        final String httpAddress = "http://" + boundAddress.publishAddress().getHost() + ":" + boundAddress.publishAddress().getPort();
+        final String httpAddress = boundAddress.publishAddress().getHost() + ":" + boundAddress.publishAddress().getPort();
         discoveryNodeService.addCustomAttributeProvider(new DiscoveryNodeService.CustomAttributesProvider() {
             @Override
             public Map<String, String> buildAttributes() {
@@ -70,24 +71,33 @@ public class CrateNettyHttpServerTransport extends NettyHttpServerTransport {
 
     @Override
     public ChannelPipelineFactory configureServerChannelPipelineFactory() {
-        return new CrateHttpChannelPipelineFactory(this, detailedErrorsEnabled);
+        return new CrateHttpChannelPipelineFactory(this, false, detailedErrorsEnabled);
     }
 
-    private static class CrateHttpChannelPipelineFactory extends HttpChannelPipelineFactory {
+    protected static class CrateHttpChannelPipelineFactory extends HttpChannelPipelineFactory {
 
         private final CrateNettyHttpServerTransport transport;
+        private final boolean sslEnabled;
 
-        public CrateHttpChannelPipelineFactory(CrateNettyHttpServerTransport transport, boolean detailedErrorsEnabled) {
+        public CrateHttpChannelPipelineFactory(CrateNettyHttpServerTransport transport,
+                                               boolean sslEnabled,
+                                               boolean detailedErrorsEnabled) {
             super(transport, detailedErrorsEnabled);
             this.transport = transport;
+            this.sslEnabled = sslEnabled;
         }
 
         @Override
         public ChannelPipeline getPipeline() throws Exception {
             ChannelPipeline pipeline = super.getPipeline();
 
-            HttpBlobHandler blobHandler = new HttpBlobHandler(transport.blobService, transport.blobIndices);
+            HttpBlobHandler blobHandler = new HttpBlobHandler(transport.blobService, transport.blobIndices, sslEnabled);
             pipeline.addBefore("aggregator", "blob_handler", blobHandler);
+
+            if (sslEnabled) {
+                // required for blob support with ssl enabled (zero copy doesn't work with https)
+                pipeline.addBefore("blob_handler", "chunkedWriter", new ChunkedWriteHandler());
+            }
             return pipeline;
         }
     }
