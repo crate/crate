@@ -27,7 +27,7 @@ import io.crate.blob.*;
 import io.crate.blob.v2.BlobIndexModule;
 import io.crate.blob.v2.BlobIndicesModule;
 import io.crate.blob.v2.BlobShardModule;
-import io.crate.http.netty.NettyHttpServerTransport;
+import io.crate.http.netty.CrateNettyHttpServerTransport;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
@@ -89,7 +89,7 @@ public class BlobPlugin extends Plugin {
     }
 
     public void onModule(HttpServerModule module){
-        module.setHttpServerTransport(NettyHttpServerTransport.class, "crate");
+        module.setHttpServerTransport(CrateNettyHttpServerTransport.class, "crate");
     }
 
     public void onModule(ActionModule module) {
