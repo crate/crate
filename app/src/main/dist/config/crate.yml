@@ -36,8 +36,8 @@
 
 # most cloud environments don't support multicast discovery
 #discovery.zen.ping:
-#  - multicast.enabled: false
-#  - unicast.hosts:
+#  multicast.enabled: false
+#  unicast.hosts:
 #    - host1:4300
 #    - host2:4300
 
@@ -271,8 +271,8 @@
 
 
 #path:
-#  - logs: /var/log/crate
-#  - data: /var/lib/crate
+#  logs: /var/log/crate
+#  data: /var/lib/crate
 
 
 #################################### Plugin ###################################
