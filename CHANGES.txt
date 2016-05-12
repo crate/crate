@@ -11,13 +11,6 @@ Unreleased
  - Made sure orphaned contexts are cleaned up eventually after a coordinator
    node dies.
 
- - Improved retry logic of bulk inserts/updates in order to prevent stack
-   overflows caused by recursive retry calls that could lead to hanging updates
-   and imports using ``copy from``.
-
- - Fixed a race condition that could lead to relative write operations (`x = x
-   + 1`) to be executed twice.
-
  - Load ``crate.yml`` explicitly and do not allow any other extension than
    ``yml`` for the configuration file.
 
@@ -27,14 +20,8 @@ Unreleased
  - Renamed all scalar function names to lowercase (CamelCase names
    were transformed to lowercase using `_` as word boundary)
 
- - Fixed an issue that prevented generated columns to work correctly
-   with arrays.
-
  - Fixed a NPE at the `substr` scalar function when using column
    references as from/to arguments containing null values.
-
- - Fixed an issue that could lead to stuck queries if a node dropped out of the
-   cluster.
 
  - NOTE: Upgrading to this Crate version is only supported from >= 0.52
 
@@ -64,35 +51,11 @@ Unreleased
 
  - The log level of loggers can now be set at runtime via the ``SET`` statement.
 
- - Fix: Changing the column policy on a partitioned table throws an
-   exception if more than 1 partition exists.
-
- - Fix: Altering a setting on an empty partitioned table is changing
-   the setting on all exising tables.
-
- - Fix: Throw proper error if a column is used twice in primary key constraint.
-
- - Fix: Improved error handling to make sure JOIN queries don't get stuck on
-   shard failures.
-
- - Fix bug which could cause the MATCH predicate in WHERE clause for
-   partitioned tables to fail. This happens in cases when a column ident of the
-   MATCH predicate is not a primary key column.
-
- - Fix: While restoring a snapshot with multiple indices inside,
-   selecting concrete indices can result in a wrong index being restored.
-
- - Fix: Insert by query into a table with nested primary keys or
-   nested partitioned by columns defined did not work.
-
- - Fix: `hdfs` specific settings `conf.*` were not recognized on
-   repository creation but silently ignored.
-
  - Improved validation of geo point data type; now it is not possible any more
    to insert invalid latitude or longitude in array literals.
 
  - Nodes can be configured now to allow only SQL statemens resulting
-   in read operations using new setting ``node.sql.read_only`.
+   in read operations using new setting ``node.sql.read_only``.
 
  - Improved bulk insert/update and copy-from performance when replicas
    are configured.
@@ -140,6 +103,54 @@ Unreleased
  - Exposed setting the default schema via HTTP header.
 
  - added `lower`` and `upper`` string functions
+
+2016/05/12 0.54.9
+=================
+
+ - Improved retry logic of bulk inserts/updates in order to prevent stack
+   overflows caused by recursive retry calls that could lead to hanging updates
+   and imports using ``copy from``.
+
+ - Fixed a race condition that could lead to relative write operations (`x = x
+   + 1`) to be executed twice.
+
+ - In certain cases settings provided via ``-Des.`` system properties could
+   be overridden by the ``crate.yml`` provided in ``$CRATE_HOME/config``
+
+ - Fixed an issue that prevented generated columns to work correctly
+   with arrays.
+
+ - Restrict creation of tables having the primary key constraint within
+   an array column type or its children.
+   with arrays.
+
+ - Fixed an issue that could lead to the `internal_action_long_timeout` and
+   `recovery_activity_timeout` settings to be reset to a wrong default value on
+   a setting update
+
+ - Fixed an issue that could lead to stuck queries if a node dropped out of the
+   cluster.
+
+ - Fix: Changing the column policy on a partitioned table throws an
+   exception if more than 1 partition exists.
+
+ - Fix: Altering a setting on an empty partitioned table is changing
+   the setting on all exising tables.
+
+ - Fix: Throw proper error if a column is used twice in primary key constraint.
+
+ - Fix: Improved error handling to make sure JOIN queries don't get stuck on
+   shard failures.
+
+ - Fix bug which could cause the MATCH predicate in WHERE clause for
+   partitioned tables to fail. This happens in cases when a column ident of the
+   MATCH predicate is not a primary key column.
+
+ - Fix: While restoring a snapshot with multiple indices inside,
+   selecting concrete indices can result in a wrong index being restored.
+
+ - Fix: Insert by query into a table with nested primary keys or
+   nested partitioned by columns defined did not work.
 
 2016/04/08 0.54.8
 =================
