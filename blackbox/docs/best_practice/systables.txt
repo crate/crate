@@ -22,7 +22,7 @@ severity::
 
     cr> SELECT description FROM sys.checks WHERE NOT passed ORDER BY severity DESC;
     +---------...-+
-    | description |      
+    | description |
     +---------...-+...
     +---------...-+
     SELECT ... in set (... sec)
@@ -57,10 +57,10 @@ executed::
     SELECT ... in set (... sec)
 
 Once you identified the dedicated job UUID, you can kill that job with
-the **KILL** command. A single job is splitted into several operations
-which run, depending on the query, on distributed nodes of your
-cluster. The table has also a system column **_node** indicating on
-which node Crate actually executes the operation::
+the **KILL** command. A single job is split into several operations which
+run, depending on the query, on distributed nodes of your cluster.
+The table has also a system column **_node** indicating on which node
+Crate actually executes the operation::
 
     cr> SELECT _node['name'], _node['hostname'], * FROM sys.operations;
     +---------------+------------------...+----+---------------...+---------+---------------+------------+
@@ -68,7 +68,7 @@ which node Crate actually executes the operation::
     +---------------+------------------...+----+---------------...+---------+---------------+------------+
     ...
     +---------------+------------------...+----+---------------...+---------+---------------+------------+
-    SELECT ... in set (... sec)    
+    SELECT ... in set (... sec)
 
 Find out more about the **_node** system column in the next
 sections. If there are no current jobs nor operations that are causing
@@ -104,7 +104,7 @@ its CPU is overloaded or it has an outdated Java version::
     +-------+--------...+------------------------...+
     ...
     +-------+--------...+------------------------...+
-    SELECT ... in set (... sec)    
+    SELECT ... in set (... sec)
 
 To list all nodes using more than 98 per cent of the memory, type::
 
@@ -196,9 +196,9 @@ progress of that operation with the **recovery** object. To monitor the progress
 
 It lists pairs of rows, in which the first row denotes the destination shard and the second row the source shard.
 Each row contains the shard's hostname, id and the recovery percentage of the transferred shard.
-When the shard starts relocating, a new shard entry appears in the **sys.shards** table with a 
+When the shard starts relocating, a new shard entry appears in the **sys.shards** table with a
 **routing_state** of `INITIALIZING`. The **state** of this row is `RECOVERING`. Meanwhile, the value of
-**routing_state** of the source row switches from `STARTED` to `RELOCATING` until the transfer is done. 
+**routing_state** of the source row switches from `STARTED` to `RELOCATING` until the transfer is done.
 After that, the source row is deleted from **sys.shards** automatically.
 
 To find out on which specific node a shard is stored, also use the
@@ -235,7 +235,7 @@ you forgot where you store your snapshots::
     | name | settings | type |
     +------+----------+------+
     +------+----------+------+
-    SELECT ... in set (... sec)    
+    SELECT ... in set (... sec)
 
 might come in handy. To actually recover data, first determine which
 snapshot to restore. Suppose you make nightly backups, the command::

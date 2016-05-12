@@ -16,3 +16,4 @@ This is a collection of best practice examples how to use Crate in the wild.
    ec2_setup
    s3_setup
    crate_ami
+   systables

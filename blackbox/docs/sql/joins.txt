@@ -4,6 +4,8 @@
 Joins
 =====
 
+.. _cross-joins:
+
 Cross Joins
 -----------
 

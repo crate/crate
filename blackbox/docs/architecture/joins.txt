@@ -82,7 +82,7 @@ tuple of the outer relation is compared with each tuple of the inner relation
 and if the join condition is satisfied, the tuples of the relation *L* and *R* are
 concatenated and added into the new relation.
 
-.. code-block:: math
+.. code-block:: python
 
   for each tuple l ∈ L do
       for each tuple r ∈ R do
@@ -141,7 +141,7 @@ Optimization
 
 Crate implements joins using a nested loop - which means that the
 runtime complexity grows exponentially (O(n*m)). Specifically
-for :ref:`cross joins` this results in large amounts of data sent over
+for :ref:`cross-joins` this results in large amounts of data sent over
 the network and loaded into memory at the handler node. Crate reduces
 the volume of data transferred by employing Query Then Fetch: First,
 filtering and ordering are applied (if possible where the data is
