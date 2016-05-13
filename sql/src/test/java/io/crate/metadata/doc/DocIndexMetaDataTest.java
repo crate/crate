@@ -872,15 +872,16 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                 new IndexNameExpressionResolver(Settings.EMPTY),
                 functions);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
-            new ReferenceInfos(
-                    ImmutableMap.<String, SchemaInfo>of("doc", docSchemaInfo),
-                    clusterService,
-                    new IndexNameExpressionResolver(Settings.EMPTY),
-                    threadPool,
-                    indexTemplateActionProvider,
-                    functions),
-            new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class)),
-            mock(AnalysisMetaData.class)
+                new ReferenceInfos(
+                        ImmutableMap.<String, SchemaInfo>of("doc", docSchemaInfo),
+                        clusterService,
+                        new IndexNameExpressionResolver(Settings.EMPTY),
+                        threadPool,
+                        indexTemplateActionProvider,
+                        functions),
+                new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class)),
+                mock(AnalysisMetaData.class),
+                new NumberOfShards(clusterService)
         );
 
         Analysis analysis = new Analysis(new ParameterContext(new Object[0], new Object[0][], null));

@@ -169,7 +169,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("select schema_name, table_name, number_of_shards, number_of_replicas, clustered_by, partitioned_by " +
                 "from information_schema.tables where schema_name='my_schema' and table_name='parted'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("my_schema| parted| 5| 0| _id| [month]\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("my_schema| parted| 4| 0| _id| [month]\n"));
 
         // no other tables with that name, e.g. partitions considered as tables or such
         execute("select schema_name, table_name from information_schema.tables where table_name like '%parted%'");

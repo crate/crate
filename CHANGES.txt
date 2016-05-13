@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - The default number of shards is calculated dynamically upon the table
+   creation.
+
  - `+HeapDumpOnOutOfMemoryError` is no longer set by default.
    It can still be set using the JAVA_OPTS environment variable.
 

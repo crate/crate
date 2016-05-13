@@ -413,14 +413,14 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     public void testCopyToDirectoryOnPartitionedTableWithoutPartitionClause() throws Exception {
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = executor.exec("copy parted to DIRECTORY ?", uriTemplate);
-        assertThat(response.rowCount(), is(5L));
+        assertThat(response.rowCount(), is(4L));
 
-        List<String> lines = new ArrayList<>(5);
+        List<String> lines = new ArrayList<>(4);
         DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
         for (Path entry : stream) {
             lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
         }
-        assertThat(lines.size(), is(5));
+        assertThat(lines.size(), is(4));
         for (String line : lines) {
             // date column included in output
             if (!line.contains("1388534400000")) {

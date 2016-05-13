@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.analyze.NumberOfShards;
 import io.crate.testing.TestingHelpers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -163,13 +164,14 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 " id long," +
                 " date timestamp" +
                 ") " +
+                "clustered into 4 shards " +
                 "partitioned by (\"date\")");
         execute("show create table test");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                 "   \"date\" TIMESTAMP,\n" +
                 "   \"id\" LONG\n" +
                 ")\n" +
-                "CLUSTERED INTO 5 SHARDS\n" +
+                "CLUSTERED INTO 4 SHARDS\n" +
                 "PARTITIONED BY (\"date\")\n" +
                 "WITH (");
     }

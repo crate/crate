@@ -247,7 +247,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "clustered_by, partitioned_by from INFORMATION_SCHEMA.Tables where schema_name = 'doc'");
         assertEquals(1L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
-        assertEquals(5, response.rows()[0][1]);
+        assertEquals(4, response.rows()[0][1]);
         assertEquals("1", response.rows()[0][2]);
         assertEquals("id", response.rows()[0][3]);
         assertArrayEquals(new String[]{"id"}, (String[]) response.rows()[0][4]);

@@ -36,6 +36,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -122,9 +124,9 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         assertEquals(3L, response.rowCount());
         assertEquals(10L, response.rows()[0][0]);
         assertEquals("blobs", response.rows()[0][1]);
-        assertEquals(10L, response.rows()[1][0]);
+        assertEquals(8L, response.rows()[1][0]);
         assertEquals("characters", response.rows()[1][1]);
-        assertEquals(10L, response.rows()[2][0]);
+        assertEquals(8L, response.rows()[2][0]);
         assertEquals("quotes", response.rows()[2][1]);
     }
 
@@ -133,21 +135,21 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
         SQLResponse response = transportExecutor.exec(
             "select id, size from sys.shards " +
             "where table_name = 'characters'");
-        assertEquals(10L, response.rowCount());
+        assertEquals(8L, response.rowCount());
     }
 
     @Test
     public void testSelectStarWhereTable() throws Exception {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name = 'characters'");
-        assertEquals(10L, response.rowCount());
+        assertEquals(8L, response.rowCount());
         assertEquals(12, response.cols().length);
     }
 
     @Test
     public void testSelectStarAllTables() throws Exception {
         SQLResponse response = transportExecutor.exec("select * from sys.shards");
-        assertEquals(30L, response.rowCount());
+        assertEquals(26L, response.rowCount());
         assertEquals(12, response.cols().length);
         assertThat(response.cols(), arrayContaining(
                 "id",
@@ -168,7 +170,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     public void testSelectStarLike() throws Exception {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name like 'charact%'");
-        assertEquals(10L, response.rowCount());
+        assertEquals(8L, response.rowCount());
         assertEquals(12, response.cols().length);
     }
 
@@ -176,7 +178,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     public void testSelectStarNotLike() throws Exception {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name not like 'quotes%'");
-        assertEquals(20L, response.rowCount());
+        assertEquals(18L, response.rowCount());
         assertEquals(12, response.cols().length);
     }
 
@@ -184,7 +186,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     public void testSelectStarIn() throws Exception {
         SQLResponse response = transportExecutor.exec(
             "select * from sys.shards where table_name in ('characters')");
-        assertEquals(10L, response.rowCount());
+        assertEquals(8L, response.rowCount());
         assertEquals(12, response.cols().length);
     }
 
@@ -198,11 +200,10 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     @Test
     public void testSelectOrderBy() throws Exception {
         SQLResponse response = transportExecutor.exec("select * from sys.shards order by table_name");
-        assertEquals(30L, response.rowCount());
-        String[] tableNames = {"blobs", "characters", "quotes"};
+        assertEquals(26L, response.rowCount());
+        List<String> tableNames = Arrays.asList("blobs", "characters", "quotes");
         for (int i = 0; i < response.rowCount(); i++) {
-            int idx = i/10;
-            assertEquals(tableNames[idx], response.rows()[i][11]);
+            assertThat(tableNames.contains(response.rows()[i][11]), is(true));
         }
     }
 
@@ -215,7 +216,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     @Test
     public void testSelectWhereBoolean() throws Exception {
         SQLResponse response = transportExecutor.exec("select * from sys.shards where \"primary\" = false");
-        assertEquals(15L, response.rowCount());
+        assertEquals(13L, response.rowCount());
     }
 
     @Test
@@ -234,14 +235,14 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     public void testSelectGlobalCount() throws Exception {
         SQLResponse response = transportExecutor.exec("select count(*) from sys.shards");
         assertEquals(1L, response.rowCount());
-        assertEquals(30L, response.rows()[0][0]);
+        assertEquals(26L, response.rows()[0][0]);
     }
 
     @Test
     public void testSelectGlobalCountAndOthers() throws Exception {
         SQLResponse response = transportExecutor.exec("select count(*), max(table_name) from sys.shards");
         assertEquals(1L, response.rowCount());
-        assertEquals(30L, response.rows()[0][0]);
+        assertEquals(26L, response.rows()[0][0]);
         assertEquals("quotes", response.rows()[0][1]);
     }
 
@@ -302,7 +303,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
                 "from sys.shards " +
                 "group by table_name " +
                 "having table_name = 'quotes'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("10\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("8\n"));
     }
 
     @Test

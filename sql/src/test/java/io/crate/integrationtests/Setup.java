@@ -255,7 +255,6 @@ public class Setup {
         transportExecutor.exec("insert into parted (id, date) values (2, '2014-01-01')");
         transportExecutor.exec("insert into parted (id, date) values (3, '2014-02-01')");
         transportExecutor.exec("insert into parted (id, date) values (4, '2014-02-01')");
-        transportExecutor.exec("insert into parted (id, date) values (5, '2014-02-01')");
         transportExecutor.exec("refresh table parted");
     }
 

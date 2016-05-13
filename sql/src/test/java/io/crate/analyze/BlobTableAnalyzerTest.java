@@ -140,6 +140,14 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testCreateBlobTableDefaultNumberOfShards() {
+        CreateBlobTableAnalyzedStatement analysis = analyze("create blob table screenshots");
+        assertThat(analysis.tableIdent().name(), is("screenshots"));
+        assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
+        assertThat(analysis.tableParameter().settings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(6));
+    }
+
+    @Test
     public void testCreateBlobTableRaisesErrorIfAlreadyExists() throws Exception {
         expectedException.expect(TableAlreadyExistsException.class);
         analyze("create blob table myblobs");

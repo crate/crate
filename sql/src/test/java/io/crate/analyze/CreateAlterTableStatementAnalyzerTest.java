@@ -133,6 +133,29 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testCreateTableWithDefaultNumberOfShards() throws Exception {
+        CreateTableAnalyzedStatement analysis = analyze("create table foo (id integer primary key, name string)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS), is("6"));
+    }
+
+    @Test
+    public void testCreateTableWithDefaultNumberOfShardsWithClusterByClause() throws Exception {
+        CreateTableAnalyzedStatement analysis = analyze(
+                "create table foo (id integer primary key) clustered by (id)"
+        );
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS), is("6"));
+    }
+
+    @Test
+    public void testCreateTableNumberOfShardsProvidedInClusteredClause() throws Exception {
+        CreateTableAnalyzedStatement analysis = analyze(
+                "create table foo (id integer primary key) " +
+                "clustered by (id) into 8 shards"
+        );
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS), is("8"));
+    }
+
+    @Test
     public void testCreateTableWithRefreshInterval() throws Exception {
         CreateTableAnalyzedStatement analysis = analyze(
                 "CREATE TABLE foo (id int primary key, content string) " +
