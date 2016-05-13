@@ -25,8 +25,6 @@ package io.crate.integrationtests;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import io.crate.blob.v2.BlobIndices;
-import io.crate.plugin.CrateCorePlugin;
-import io.crate.rest.CrateRestFilter;
 import io.crate.test.utils.Blobs;
 import org.apache.http.Header;
 import org.apache.http.client.methods.*;
@@ -35,6 +33,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -43,8 +42,8 @@ import org.junit.Before;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Iterator;
-import java.util.Locale;
+import java.net.URI;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -99,7 +98,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         return executeAndDefaultAssertions(httpPut);
     }
 
-    private CloseableHttpResponse executeAndDefaultAssertions(HttpUriRequest request) throws IOException {
+    protected CloseableHttpResponse executeAndDefaultAssertions(HttpUriRequest request) throws IOException {
         CloseableHttpResponse resp = httpClient.execute(request);
         assertThat(resp.containsHeader("Connection"), is(false));
         return resp;
@@ -166,24 +165,40 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         return executeAndDefaultAssertions(httpDelete);
     }
 
-    public int getNumberOfRedirects(String uri, InetSocketAddress address) throws IOException {
+    public List<String> getRedirectLocations(CloseableHttpClient client, String uri, InetSocketAddress address) throws IOException {
         CloseableHttpResponse response = null;
-        int redirects = 0;
-
         try {
             HttpClientContext context = HttpClientContext.create();
             HttpHead httpHead = new HttpHead(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
-            response = httpClient.execute(httpHead, context);
-            // get all redirection locations
-            if (context.getRedirectLocations() != null) {
-                redirects = context.getRedirectLocations().size();
+            response = client.execute(httpHead, context);
+
+            List<URI> redirectLocations = context.getRedirectLocations();
+            if (redirectLocations == null) {
+                // client might not follow redirects automatically
+                if (response.containsHeader("location")) {
+                    List<String> redirects = new ArrayList<>(1);
+                    for (Header location : response.getHeaders("location")) {
+                        redirects.add(location.getValue());
+                    }
+                    return redirects;
+                }
+                return Collections.emptyList();
             }
+
+            List<String> redirects = new ArrayList<>(1);
+            for (URI redirectLocation : redirectLocations) {
+                redirects.add(redirectLocation.toString());
+            }
+            return redirects;
         } finally {
             if (response != null) {
-                response.close();
+                IOUtils.closeWhileHandlingException(response);
             }
         }
-        return redirects;
+    }
+
+    public int getNumberOfRedirects(String uri, InetSocketAddress address) throws IOException {
+        return getRedirectLocations(httpClient, uri, address).size();
     }
 
 }

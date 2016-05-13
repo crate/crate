@@ -1,0 +1,98 @@
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
+
+package io.crate.integrationtests;
+
+import io.crate.testing.SslDummyPlugin;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
+
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 2)
+public class BlobSslEnabledITest extends BlobHttpIntegrationTest {
+
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        List<Class<? extends Plugin>> plugins = new ArrayList<>();
+        plugins.add(SslDummyPlugin.class);
+        return plugins;
+    }
+
+    private String uploadSmallBlob() throws IOException {
+        String digest = "c520e6109835c876fd98636efec43dd61634b7d3";
+        CloseableHttpResponse response = put(blobUri(digest), StringUtils.repeat("a", 1500));
+        assertThat(response.getStatusLine().getStatusCode(), is(201));
+        return digest;
+    }
+
+    @Test
+    public void testRedirectContainsHttpsScheme() throws Exception {
+        String blobUri = blobUri(uploadSmallBlob());
+        CloseableHttpClient client = HttpClients.custom().disableRedirectHandling().build();
+        List<String> redirectLocations = getRedirectLocations(client, blobUri, address);
+        if (redirectLocations.isEmpty()) {
+            redirectLocations = getRedirectLocations(client, blobUri, address2);
+        }
+        String uri = redirectLocations.iterator().next();
+        assertThat(uri, startsWith("https"));
+    }
+
+    @Test
+    public void testGetBlob() throws Exception {
+        // this test verifies that the non-zero-copy code path in the HttpBlobHandler works
+        String digest = uploadSmallBlob();
+        String blobUri = blobUri(digest);
+
+        // can't follow redirects because ssl isn't really enabled
+        // -> figure out the node that really has the blob
+
+        CloseableHttpClient client = HttpClients.custom().disableRedirectHandling().build();
+        List<String> redirectLocations = getRedirectLocations(client, blobUri, address);
+        InetSocketAddress correctAddress;
+        if (redirectLocations.isEmpty()) {
+            correctAddress = address;
+        } else {
+            correctAddress = address2;
+        }
+
+        HttpGet httpGet = new HttpGet(String.format(Locale.ENGLISH,
+            "http://%s:%s/_blobs/%s", correctAddress.getHostName(), correctAddress.getPort(), blobUri));
+
+        CloseableHttpResponse response = client.execute(httpGet);
+        assertEquals(1500, response.getEntity().getContentLength());
+    }
+}

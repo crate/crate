@@ -195,7 +195,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
         HttpHeaders.setContentLength(response, 0);
 
-        if (!HttpHeaders.isKeepAlive(currentMessage)) {
+        if (currentMessage == null || !HttpHeaders.isKeepAlive(currentMessage)) {
             response.headers().set(CONNECTION, "close");
         }
         return response;
