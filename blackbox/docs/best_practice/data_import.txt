@@ -56,10 +56,11 @@ Shards & Replicas
 .................
 
 If you do not set the number of shards and/or number of replicas,
-the default configuration will be used, which is:
+the default configuration will be used:
 
 :shards:
-  5
+  Depends on the number of data-nodes in the cluster
+  (see :ref:`ref_clustered_clause`)
 :replicas:
   1
 
