@@ -181,7 +181,17 @@ The optional CLUSTERED clause specifies how a table should be
 distributed accross a cluster.
 
 :num_shards: specifies the number of shards a table is stored in.
-    Must be greater than 0; the default is 5.
+    Must be greater than 0. If no number is specified a default value is
+    applied. The calculated value of ``num_shards`` is equal to twice the
+    number of data-nodes in the cluster.
+
+    ``num_shards = num_data_nodes * 2``
+
+.. note::
+  The mininum value of ``num_shards`` is set to ``4``. This means if the
+  calculation of ``num_shards`` does not exceeds its minimum it applies the
+  minimum value to each table or partition as default.
+
 
 :routing_column: allows to explicitly specify a column or field on
     which basis rows are sharded. All rows having the same value in

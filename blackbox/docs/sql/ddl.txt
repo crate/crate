@@ -253,9 +253,10 @@ Sharding
 Number of Shards
 ----------------
 
-Crate supports sharding natively, it even uses *5* shards by default if not further defined.
-The number of shards can be defined by using the ``CLUSTERED INTO <number> SHARDS`` statement on
-table creation. Example::
+Crate supports sharding natively (see :ref:`ref_clustered_clause`). The default
+value depends on the current number of data-nodes in the cluster and uses them
+for its calculation. The number of shards can be defined by using the
+``CLUSTERED INTO <number> SHARDS`` statement on table creation. Example::
 
     cr> create table my_table5 (
     ...   first_column int
@@ -419,14 +420,14 @@ which is exactly the same as::
     cr> drop table my_table13;
     DROP OK (... sec)
 
-New columns added to ``dynamic`` tables are, once added, usable as usual 
+New columns added to ``dynamic`` tables are, once added, usable as usual
 columns. One can retrieve them, sort by them and use them in where clauses.
 
 .. warning::
-    The mapping update is processed asynchrously on multiple nodes. If a new 
-    field gets added to the local mapping of two shards, these shards are sending 
-    their mapping to the master. If this mapping update gets delivered later 
-    than the next query on the previously added column, it will result 
+    The mapping update is processed asynchrously on multiple nodes. If a new
+    field gets added to the local mapping of two shards, these shards are sending
+    their mapping to the master. If this mapping update gets delivered later
+    than the next query on the previously added column, it will result
     in a ``ColumnUnknownException``.
 
 .. _sql_ddl_partitioned_by:
