@@ -27,9 +27,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import io.crate.exceptions.JobKilledException;
 import io.crate.jobs.JobContextService;
-import io.crate.jobs.KillAllListener;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
@@ -89,8 +87,7 @@ import static org.elasticsearch.common.settings.Settings.settingsBuilder;
  */
 @Singleton
 public class TransportBulkCreateIndicesAction
-        extends TransportMasterNodeAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse>
-        implements KillAllListener {
+        extends TransportMasterNodeAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse> {
 
     public static final String NAME = "indices:admin/bulk_create";
 
@@ -104,9 +101,6 @@ public class TransportBulkCreateIndicesAction
     private final MetaDataCreateIndexService createIndexService;
     private final Environment environment;
 
-    private final Object pendingLock = new Object();
-    private final Queue<PendingOperation> pendingOperations = new ArrayDeque<>();
-    private volatile int activeOperations = 0;
     private volatile long lastKillAllEvent = System.nanoTime();
 
     @Inject
@@ -132,8 +126,6 @@ public class TransportBulkCreateIndicesAction
         this.allocationService = allocationService;
         this.createIndexService = createIndexService;
 
-        jobContextService.addListener(this);
-
         if (indexTemplateFilters.isEmpty()) {
             this.indexTemplateFilter = DEFAULT_INDEX_TEMPLATE_FILTER;
         } else {
@@ -157,41 +149,16 @@ public class TransportBulkCreateIndicesAction
         return new BulkCreateIndicesResponse();
     }
 
-    private void triggerNext() {
-        PendingOperation pendingOperation = null;
-        synchronized (pendingLock) {
-            activeOperations--;
-            if (activeOperations == 0) {
-                pendingOperation = pendingOperations.poll();
-            }
-        }
-
-        if (pendingOperation == null) {
-            return;
-        }
-        masterOperation(pendingOperation.request, clusterService.state(), pendingOperation.responseListener);
-    }
-
     @Override
     protected void masterOperation(final BulkCreateIndicesRequest request,
                                    final ClusterState state,
-                                   final ActionListener<BulkCreateIndicesResponse> responseListener) throws ElasticsearchException {
+                                   final ActionListener<BulkCreateIndicesResponse> listener) throws ElasticsearchException {
 
         if (request.indices().isEmpty()) {
-            responseListener.onResponse(new BulkCreateIndicesResponse(true));
+            listener.onResponse(new BulkCreateIndicesResponse(true));
             return;
         }
 
-        synchronized (pendingLock) {
-            if (activeOperations > 0) {
-                pendingOperations.add(new PendingOperation(request, responseListener));
-                return;
-            }
-            activeOperations++;
-        }
-        final long timeStart = System.nanoTime();
-
-        final ActionListener<BulkCreateIndicesResponse> listener = new PendingTriggeringActionListener(responseListener);
         final ActionListener<ClusterStateUpdateResponse> stateUpdateListener = new ActionListener<ClusterStateUpdateResponse>() {
             @Override
             public void onResponse(ClusterStateUpdateResponse clusterStateUpdateResponse) {
@@ -203,15 +170,10 @@ public class TransportBulkCreateIndicesAction
                 listener.onFailure(e);
             }
         };
-        if (timeStart <= lastKillAllEvent) {
-            responseListener.onFailure(new InterruptedException(JobKilledException.MESSAGE));
-            return;
-        }
         createIndices(request, stateUpdateListener);
     }
 
-    ClusterState executeCreateIndices(ClusterState currentState,
-                                      BulkCreateIndicesRequest request) throws Exception {
+    ClusterState executeCreateIndices(ClusterState currentState, BulkCreateIndicesRequest request) throws Exception {
         /**
          * This code is more or less the same as the stuff in {@link MetaDataCreateIndexService}
          * but optimized for bulk operation without separate mapping/alias/index settings.
@@ -507,66 +469,10 @@ public class TransportBulkCreateIndicesAction
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, Iterables.toArray(request.indices(), String.class));
     }
 
-    @Override
-    public void killAllJobs(long timestamp) {
-        lastKillAllEvent = timestamp;
-        synchronized (pendingLock) {
-            PendingOperation pendingOperation;
-            while ( (pendingOperation = pendingOperations.poll()) != null) {
-                pendingOperation.responseListener.onFailure(new InterruptedException(JobKilledException.MESSAGE));
-            }
-        }
-    }
-
-    @Override
-    public void killJob(UUID jobId) {
-        synchronized (pendingLock) {
-            Iterator<PendingOperation> it = pendingOperations.iterator();
-            while (it.hasNext()) {
-                PendingOperation pendingOperation = it.next();
-                if (pendingOperation.request.jobId().equals(jobId)) {
-                    pendingOperation.responseListener.onFailure(new InterruptedException(JobKilledException.MESSAGE));
-                    it.remove();
-                }
-            }
-        }
-    }
-
     private static class DefaultIndexTemplateFilter implements IndexTemplateFilter {
         @Override
         public boolean apply(CreateIndexClusterStateUpdateRequest request, IndexTemplateMetaData template) {
             return Regex.simpleMatch(template.template(), request.index());
-        }
-    }
-
-    static class PendingOperation {
-
-        private final BulkCreateIndicesRequest request;
-        private final ActionListener<BulkCreateIndicesResponse> responseListener;
-
-        public PendingOperation(BulkCreateIndicesRequest request, ActionListener<BulkCreateIndicesResponse> responseListener) {
-            this.request = request;
-            this.responseListener = responseListener;
-        }
-    }
-
-    private class PendingTriggeringActionListener implements ActionListener<BulkCreateIndicesResponse> {
-        private final ActionListener<BulkCreateIndicesResponse> responseListener;
-
-        public PendingTriggeringActionListener(ActionListener<BulkCreateIndicesResponse> responseListener) {
-            this.responseListener = responseListener;
-        }
-
-        @Override
-        public void onResponse(BulkCreateIndicesResponse bulkCreateIndicesRequest) {
-            triggerNext();
-            responseListener.onResponse(bulkCreateIndicesRequest);
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            triggerNext();
-            responseListener.onFailure(e);
         }
     }
 }

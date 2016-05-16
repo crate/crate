@@ -30,7 +30,6 @@ import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.InvalidIndexNameException;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,8 +37,6 @@ import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.lang.reflect.Field;
-import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.UUID;
 
@@ -59,41 +56,6 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
     public void prepare() {
         MockitoAnnotations.initMocks(this);
         action = internalCluster().getInstance(TransportBulkCreateIndicesAction.class, internalCluster().getMasterName());
-    }
-
-    @Test
-    public void testKillAllCancelsPendingOperations() throws Exception {
-        Field pendingOperations = TransportBulkCreateIndicesAction.class.getDeclaredField("pendingOperations");
-        pendingOperations.setAccessible(true);
-        ArrayDeque<TransportBulkCreateIndicesAction.PendingOperation> operations =
-                (ArrayDeque<TransportBulkCreateIndicesAction.PendingOperation>)pendingOperations.get(action);
-
-        operations.add(new TransportBulkCreateIndicesAction.PendingOperation(
-                new BulkCreateIndicesRequest(ImmutableList.<String>of(), UUID.randomUUID()), responseActionListener));
-        operations.add(new TransportBulkCreateIndicesAction.PendingOperation(
-                new BulkCreateIndicesRequest(ImmutableList.<String>of(), UUID.randomUUID()), responseActionListener));
-        action.killAllJobs(System.nanoTime());
-
-        assertThat(operations.size(), is(0));
-    }
-
-    @Test
-    public void testKillSinglePendingOperation() throws NoSuchFieldException, IllegalAccessException {
-        Field pendingOperation = TransportBulkCreateIndicesAction.class.getDeclaredField("pendingOperations");
-        pendingOperation.setAccessible(true);
-        ArrayDeque<TransportBulkCreateIndicesAction.PendingOperation> operations =
-                (ArrayDeque<TransportBulkCreateIndicesAction.PendingOperation>) pendingOperation.get(action);
-
-        UUID firtsOperation = UUID.randomUUID();
-        UUID secondOperation = UUID.randomUUID();
-        operations.add(new TransportBulkCreateIndicesAction.PendingOperation(
-                new BulkCreateIndicesRequest(ImmutableList.<String>of(), firtsOperation), responseActionListener));
-        operations.add(new TransportBulkCreateIndicesAction.PendingOperation(
-                new BulkCreateIndicesRequest(ImmutableList.<String>of(), secondOperation), responseActionListener));
-        operations.add(new TransportBulkCreateIndicesAction.PendingOperation(
-                new BulkCreateIndicesRequest(ImmutableList.<String>of(), firtsOperation), responseActionListener));
-        action.killJob(firtsOperation);
-        assertThat(operations.size(), is(1));
     }
 
     @Test
@@ -171,10 +133,5 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
             assertThat(indicesExistsResponse.isExists(), is(false)); // if one name is invalid no index is created
             throw t;
         }
-    }
-
-    @After
-    public void cleanUp() throws Exception {
-        action.killAllJobs(System.nanoTime());
     }
 }
