@@ -20,8 +20,6 @@
  */
 package io.crate.analyze;
 
-import io.crate.Constants;
-import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -43,6 +41,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     private final Schemas schemas;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private final AnalysisMetaData analysisMetaData;
+    private final NumberOfShards numberOfShards;
 
     static class Context {
         Analysis analysis;
@@ -61,10 +60,12 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     @Inject
     public CreateTableStatementAnalyzer(Schemas schemas,
                                         FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                        AnalysisMetaData analysisMetaData) {
+                                        AnalysisMetaData analysisMetaData,
+                                        NumberOfShards numberOfShards) {
         this.schemas = schemas;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.analysisMetaData = analysisMetaData;
+        this.numberOfShards = numberOfShards;
     }
 
     @Override
@@ -96,6 +97,10 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
 
         // update table settings
         context.statement.tableParameter().settingsBuilder().put(context.statement.analyzedTableElements().settings());
+        context.statement.tableParameter().settingsBuilder().put(
+                IndexMetaData.SETTING_NUMBER_OF_SHARDS,
+                numberOfShards.defaultNumberOfShards()
+        );
 
         for (CrateTableOption option : node.crateTableOptions()) {
             process(option, context);
@@ -110,13 +115,13 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     }
 
     @Override
-    public CreateTableAnalyzedStatement visitClusteredBy(ClusteredBy node, Context context) {
-        if (node.column().isPresent()) {
+    public CreateTableAnalyzedStatement visitClusteredBy(ClusteredBy clusteredBy, Context context) {
+        if (clusteredBy.column().isPresent()) {
             ColumnIdent routingColumn = ColumnIdent.fromPath(
-                    ExpressionToStringVisitor.convert(node.column().get(), context.analysis.parameterContext().parameters()));
+                    ExpressionToStringVisitor.convert(clusteredBy.column().get(), context.analysis.parameterContext().parameters()));
 
-            for(AnalyzedColumnDefinition column: context.statement.analyzedTableElements().partitionedByColumns){
-                if(column.ident().equals(routingColumn)){
+            for (AnalyzedColumnDefinition column : context.statement.analyzedTableElements().partitionedByColumns) {
+                if (column.ident().equals(routingColumn)) {
                     throw new IllegalArgumentException(CLUSTERED_BY_IN_PARTITIONED_ERROR);
                 }
             }
@@ -131,18 +136,10 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
 
             context.statement.routing(routingColumn);
         }
-
-        int numShards;
-        if (node.numberOfShards().isPresent()) {
-            numShards = ExpressionToNumberVisitor.convert(node.numberOfShards().get(),
-                    context.analysis.parameterContext().parameters()).intValue();
-            if (numShards < 1) {
-                throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
-            }
-        } else {
-            numShards = Constants.DEFAULT_NUM_SHARDS;
-        }
-        context.statement.tableParameter().settingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
+        context.statement.tableParameter().settingsBuilder().put(
+                IndexMetaData.SETTING_NUMBER_OF_SHARDS,
+                numberOfShards.fromClusteredByClause(clusteredBy, context.analysis.parameterContext().parameters())
+        );
         return context.statement;
     }
 

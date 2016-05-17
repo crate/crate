@@ -25,9 +25,9 @@ settings like the ``number of shards`` or ``number of replicas``::
     | schema_name        | table_name        | number_of_shards | number_of_replicas |
     +--------------------+-------------------+------------------+--------------------+
     | blob               | myblobs           |                3 |                  1 |
-    | doc                | documents         |                5 |                  1 |
+    | doc                | documents         |                4 |                  1 |
     | doc                | locations         |                2 |                  0 |
-    | doc                | partitioned_table |                5 |                  1 |
+    | doc                | partitioned_table |                4 |                  1 |
     | doc                | quotes            |                2 |                  0 |
     | information_schema | columns           |                1 |                  0 |
     | information_schema | routines          |                1 |                  0 |
@@ -186,7 +186,7 @@ For further information see :ref:`sql_ddl_partitioned_by`.
 
 ::
 
-    cr> alter table a_partitioned_table set (number_of_shards=4);
+    cr> alter table a_partitioned_table set (number_of_shards=5);
     ALTER OK (... sec)
 
 ::
@@ -212,7 +212,7 @@ partitions. The partitions are introduced when data is inserted where
 
 The second partition has been created
 after the number of shards for future partitions have been changed on the
-partitioned table, so they show ``4`` instead of ``5``::
+partitioned table, so they show ``5`` instead of ``4``::
 
     cr> select table_name, partition_ident,
     ... number_of_shards, number_of_replicas
@@ -221,8 +221,8 @@ partitioned table, so they show ``4`` instead of ``5``::
     +---------------------+--------------------+------------------+--------------------+
     | table_name          | partition_ident    | number_of_shards | number_of_replicas |
     +---------------------+--------------------+------------------+--------------------+
-    | a_partitioned_table | 04566rreehimst2vc4 |                5 |                  1 |
-    | a_partitioned_table | 04566rreehimst2vc8 |                4 |                  1 |
+    | a_partitioned_table | 04566rreehimst2vc4 |                4 |                  1 |
+    | a_partitioned_table | 04566rreehimst2vc8 |                5 |                  1 |
     +---------------------+--------------------+------------------+--------------------+
     SELECT 2 rows in set (... sec)
 

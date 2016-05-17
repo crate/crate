@@ -21,11 +21,8 @@
 
 package io.crate.analyze;
 
-import io.crate.Constants;
-import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
-import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
@@ -36,10 +33,12 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private final Schemas schemas;
+    private final NumberOfShards numberOfShards;
 
     @Inject
-    public CreateBlobTableStatementAnalyzer(Schemas schemas) {
+    public CreateBlobTableStatementAnalyzer(Schemas schemas, NumberOfShards numberOfShards) {
         this.schemas = schemas;
+        this.numberOfShards = numberOfShards;
     }
 
     @Override
@@ -48,22 +47,16 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
         TableIdent tableIdent = tableToIdent(node.name());
         statement.table(tableIdent, schemas);
 
+        int numShards;
         if (node.clusteredBy().isPresent()) {
-            ClusteredBy clusteredBy = node.clusteredBy().get();
-
-            int numShards;
-            if (clusteredBy.numberOfShards().isPresent()) {
-                numShards = ExpressionToNumberVisitor.convert(clusteredBy.numberOfShards().get(),
-                        analysis.parameterContext().parameters()).intValue();
-                if (numShards < 1) {
-                    throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
-                }
-            } else {
-                numShards = Constants.DEFAULT_NUM_SHARDS;
-            }
-            statement.tableParameter().settingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
+            numShards = numberOfShards.fromClusteredByClause(
+                    node.clusteredBy().get(),
+                    analysis.parameterContext().parameters()
+            );
+        } else {
+            numShards = numberOfShards.defaultNumberOfShards();
         }
-
+        statement.tableParameter().settingsBuilder().put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, numShards);
 
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.

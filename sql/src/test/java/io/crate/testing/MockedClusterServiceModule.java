@@ -67,6 +67,12 @@ public class MockedClusterServiceModule extends AbstractModule {
         when(state.nodes()).thenReturn(discoveryNodes);
         when(clusterService.state()).thenReturn(state);
 
+        ImmutableOpenMap.Builder<String, DiscoveryNode> dataNodesbuilder = ImmutableOpenMap.builder();
+        dataNodesbuilder.put("dataNode1", mock(DiscoveryNode.class));
+        dataNodesbuilder.put("dataNode2", mock(DiscoveryNode.class));
+        dataNodesbuilder.put("dataNode3", mock(DiscoveryNode.class));
+        when(discoveryNodes.dataNodes()).thenReturn(dataNodesbuilder.build());
+
         DiscoveryNode node = mock(DiscoveryNode.class);
         when(discovery.localNode()).thenReturn(node);
         when(node.getId()).thenReturn("node-id-1");

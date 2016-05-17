@@ -69,13 +69,12 @@ the other table::
     +------+--------------+--------------------+
     | s.id | s.table_name | t.number_of_shards |
     +------+--------------+--------------------+
-    |    0 | employees    |                  5 |
-    |    1 | employees    |                  5 |
-    |    2 | employees    |                  5 |
-    |    3 | employees    |                  5 |
-    |    4 | employees    |                  5 |
+    |    0 | employees    |                  4 |
+    |    1 | employees    |                  4 |
+    |    2 | employees    |                  4 |
+    |    3 | employees    |                  4 |
     +------+--------------+--------------------+
-    SELECT 5 rows in set (... sec)
+    SELECT 4 rows in set (... sec)
 
 Join Conditions
 ...............

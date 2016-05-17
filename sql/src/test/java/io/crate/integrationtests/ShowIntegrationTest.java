@@ -169,7 +169,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 "   \"date\" TIMESTAMP,\n" +
                 "   \"id\" LONG\n" +
                 ")\n" +
-                "CLUSTERED INTO 5 SHARDS\n" +
+                "CLUSTERED INTO 4 SHARDS\n" +
                 "PARTITIONED BY (\"date\")\n" +
                 "WITH (");
     }
