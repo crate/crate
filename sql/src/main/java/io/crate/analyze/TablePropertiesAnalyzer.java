@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.core.NumberOfReplicas;
 import io.crate.metadata.settings.CrateTableSettings;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.tree.ArrayLiteral;

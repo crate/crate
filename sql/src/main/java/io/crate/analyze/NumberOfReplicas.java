@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.core;
+package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;

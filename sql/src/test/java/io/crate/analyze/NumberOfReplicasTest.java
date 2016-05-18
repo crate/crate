@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.core;
+package io.crate.analyze;
 
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
