@@ -50,17 +50,16 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
     protected String[] cols;
     protected DataType[] colTypes;
     protected boolean includeTypes;
-    protected long requestStartedTime;
-    protected Long duration;
+    private int duration;
 
     public SQLBaseResponse() {} // used for serialization
 
-    public SQLBaseResponse(String[] cols, DataType[] colTypes, boolean includeTypes, long requestStartedTime) {
+    public SQLBaseResponse(String[] cols, DataType[] colTypes, boolean includeTypes, int duration) {
         assert cols.length == colTypes.length : "cols and colTypes differ";
         this.cols = cols;
         this.colTypes = colTypes;
         this.includeTypes = includeTypes;
-        this.requestStartedTime = requestStartedTime;
+        this.duration = duration;
     }
 
     public String[] cols(){
@@ -83,14 +82,7 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
         this.includeTypes = includeTypes;
     }
 
-    public long duration() {
-        if (duration == null) {
-            if (requestStartedTime > 0) {
-                duration = System.currentTimeMillis() - requestStartedTime;
-            } else {
-                duration = -1L;
-            }
-        }
+    public int duration() {
         return duration;
     }
 
@@ -124,8 +116,8 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         cols = in.readStringArray();
-        requestStartedTime = in.readVLong();
         includeTypes = in.readBoolean();
+        duration = in.readVInt();
         if (includeTypes) {
             int numColTypes = in.readVInt();
             colTypes = new DataType[numColTypes];
@@ -141,8 +133,8 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeStringArray(cols);
-        out.writeVLong(requestStartedTime);
         out.writeBoolean(includeTypes);
+        out.writeVInt(duration);
         if (includeTypes) {
             out.writeVInt(colTypes.length);
             for (DataType colType : colTypes) {

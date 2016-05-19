@@ -98,7 +98,7 @@ public class TableStatsServiceTest extends CrateUnitTest  {
                         new Object[][] { row },
                         new DataType[] {DataTypes.LONG, DataTypes.STRING, DataTypes.STRING},
                         1L,
-                        1L,
+                        1,
                         false
                 ));
                 numRequests.incrementAndGet();

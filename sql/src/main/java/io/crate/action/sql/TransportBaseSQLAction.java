@@ -140,7 +140,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
      * @param types       an array of types of the output columns,
      *                    if not null it must be of the same length as <code>outputNames</code>
      */
-    protected abstract TResponse emptyResponse(TRequest request, String[] outputNames, @Nullable DataType[] types);
+    protected abstract TResponse emptyResponse(TRequest request, int duration, String[] outputNames, @Nullable DataType[] types);
 
     /**
      * create an instance of SQLBaseResponse from a plan and a TaskResult
@@ -154,7 +154,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                                                           DataType[] outputTypes,
                                                           List<TaskResult> result,
                                                           boolean expectsAffectedRows,
-                                                          TRequest request);
+                                                          TRequest request,
+                                                          int duration);
 
     /**
      * create an instance of SQLBaseResponse
@@ -163,7 +164,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
      * @param analysis the analysis for the result
      * @param request  the request that created which issued the execution
      */
-    private TResponse createResponseFromResult(@Nullable List<TaskResult> result, Analysis analysis, TRequest request) {
+    private TResponse createResponseFromResult(@Nullable List<TaskResult> result, Analysis analysis, TRequest request, long startTime) {
         String[] outputNames;
         DataType[] outputTypes;
         if (analysis.expectsAffectedRows()) {
@@ -179,10 +180,11 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                 outputTypes[i] = field.valueType();
             }
         }
+        int duration = (int)((System.nanoTime() - startTime) / 1_000_000);
         if (result == null) {
-            return emptyResponse(request, outputNames, outputTypes);
+            return emptyResponse(request, duration, outputNames, outputTypes);
         } else {
-            return createResponseFromResult(outputNames, outputTypes, result, analysis.expectsAffectedRows(), request);
+            return createResponseFromResult(outputNames, outputTypes, result, analysis.expectsAffectedRows(), request, duration);
         }
 
     }
@@ -191,11 +193,12 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
     protected void doExecute(TRequest request, ActionListener<TResponse> listener) {
         logger.debug("{}", request);
         UUID jobId = UUID.randomUUID();
+        long startTime = System.nanoTime();
         statsTables.jobStarted(jobId, request.stmt());
-        doExecute(request, listener, 1, jobId);
+        doExecute(request, listener, 1, jobId, startTime);
     }
 
-    private void doExecute(TRequest request, ActionListener<TResponse> listener, final int attempt, UUID jobId) {
+    private void doExecute(TRequest request, ActionListener<TResponse> listener, final int attempt, UUID jobId, long startTime) {
         statsTables.activeRequestsInc();
         if (disabled) {
             sendResponse(listener, new NodeDisconnectedException(clusterService.localNode(), actionName));
@@ -207,7 +210,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             if (analysis.analyzedStatement().isWriteOperation() && settings.getAsBoolean(NODE_READ_ONLY_SETTING, false)) {
                 throw new ReadOnlyException();
             }
-            processAnalysis(analysis, request, listener, attempt, jobId);
+            processAnalysis(analysis, request, listener, attempt, jobId, startTime);
         } catch (Throwable e) {
             logger.debug("Error executing SQLRequest", e);
             sendResponse(listener, buildSQLActionException(e));
@@ -225,18 +228,20 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         statsTables.activeRequestsDec();
     }
 
-    private void processAnalysis(Analysis analysis, TRequest request, ActionListener<TResponse> listener, final int attempt, UUID jobId) {
+    private void processAnalysis(Analysis analysis, TRequest request, ActionListener<TResponse> listener,
+                                 final int attempt, UUID jobId, long startTime) {
         final Plan plan = planner.plan(analysis, jobId);
         assert plan != null;
         tracePlan(plan);
-        executePlan(analysis, plan, listener, request, attempt);
+        executePlan(analysis, plan, listener, request, attempt, startTime);
     }
 
     private void executePlan(final Analysis analysis,
                              final Plan plan,
                              final ActionListener<TResponse> listener,
                              final TRequest request,
-                             final int attempt) {
+                             final int attempt,
+                             final long startTime) {
         Executor executor = executorProvider.get();
         Job job = executor.newJob(plan);
 
@@ -247,7 +252,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                     public void onSuccess(@Nullable List<TaskResult> result) {
                         TResponse response;
                         try {
-                            response = createResponseFromResult(result, analysis, request);
+                            response = createResponseFromResult(result, analysis, request, startTime);
                         } catch (Throwable e) {
                             sendResponse(listener, buildSQLActionException(e));
                             return;
@@ -296,7 +301,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                                     @Override
                                     public void onResponse(KillResponse killResponse) {
                                         logger.debug("Killed {} jobs before Retry", killResponse.numKilled());
-                                        doExecute(request, listener, attempt + 1, plan.jobId());
+                                        doExecute(request, listener, attempt + 1, plan.jobId(), startTime);
                                     }
 
                                     @Override

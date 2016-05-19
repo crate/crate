@@ -59,7 +59,6 @@ public class SQLBulkRequest extends SQLBaseRequest {
         super.readFrom(in);
 
         stmt = in.readString();
-        creationTime = in.readVLong();
         includeTypesOnResponse = in.readBoolean();
 
         int bulkArgsLength = in.readVInt();
@@ -82,7 +81,6 @@ public class SQLBulkRequest extends SQLBaseRequest {
         super.writeTo(out);
 
         out.writeString(stmt);
-        out.writeVLong(creationTime);
         out.writeBoolean(includeTypesOnResponse);
 
         out.writeVInt(bulkArgs.length);
@@ -99,7 +97,6 @@ public class SQLBulkRequest extends SQLBaseRequest {
     public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("stmt", stmt)
-                .add("bulkArgs", Arrays.asList(bulkArgs))
-                .add("creationTime", creationTime).toString();
+                .add("bulkArgs", Arrays.asList(bulkArgs)).toString();
     }
 }

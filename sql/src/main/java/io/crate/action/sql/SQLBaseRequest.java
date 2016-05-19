@@ -43,7 +43,7 @@ import java.io.IOException;
  *
  *
  * this abstract base class provides the shared components
- * {@link #stmt()}, {@link #creationTime()} and {@link #includeTypesOnResponse()}
+ * {@link #stmt()} and {@link #includeTypesOnResponse()}
  * which both concrete classes use.
  *
  * (not using links for TransportSQLAction as they're not included for the client and would case an error under oraclejdk8)
@@ -58,16 +58,12 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
     public static final int HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT = 1;
 
     protected String stmt;
-    protected long creationTime;
     protected boolean includeTypesOnResponse = false;
 
-    public SQLBaseRequest() {
-        this.creationTime = System.currentTimeMillis();
-    }
+    public SQLBaseRequest() {}
 
     public SQLBaseRequest(String stmt) {
         this.stmt = stmt;
-        this.creationTime = System.currentTimeMillis();
     }
 
     /**
@@ -100,12 +96,6 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
         return includeTypesOnResponse;
     }
 
-    /**
-     * the system time in millis when the request was created.
-     */
-    public long creationTime() {
-        return creationTime;
-    }
 
     public void setDefaultSchema(String schemaName) {
         if (schemaName == null) {

@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed the `creationTime` property from `SQL(Bulk)Request` and changed the
+   `duration` property on `SQL(Bulk)Response` to return the server-side
+   duration instead of the full round-trip duration.
+
  - The default number of shards is calculated dynamically upon the table
    creation.
 

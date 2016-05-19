@@ -38,7 +38,6 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static com.google.common.collect.Maps.newHashMap;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.core.Is.is;
 
 public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
@@ -60,7 +59,6 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("update test set message='b' where message = 'hello'");
 
         assertEquals(3, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
 
         execute("select message from test where message='b'");
@@ -505,7 +503,6 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("update test set message='bar1' where pk_col='123'");
         assertEquals(1, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
 
         execute("select message from test where pk_col='123'");

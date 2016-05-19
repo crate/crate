@@ -101,20 +101,17 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(3, response.rows()[0][1]);
         assertEquals("10", response.rows()[0][2]);
         assertEquals("id", response.rows()[0][3]);
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
+        assertThat(response.duration(), greaterThanOrEqualTo(0));
 
         execute("select * from information_schema.columns where table_name='quotes'");
         assertEquals(2L, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
 
         execute("select * from information_schema.table_constraints where schema_name='doc' and table_name='quotes'");
         assertEquals(1L, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
         execute("select * from information_schema.routines");
         assertEquals(118L, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
     @Test

@@ -83,7 +83,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select \"_id\" as b, \"_version\" as a from test");
         assertArrayEquals(new String[]{"b", "a"}, response.cols());
         assertEquals(1, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
     @Test
@@ -690,7 +689,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select pk_col, message from test where pk_col='124'");
         assertEquals(1, response.rowCount());
         assertEquals("124", response.rows()[0][0]);
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
     @Test
@@ -704,7 +702,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("SELECT * FROM test WHERE pk_col='1' OR pk_col='2'");
         assertEquals(2, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
         execute("SELECT * FROM test WHERE pk_col=? OR pk_col=?", new Object[]{"1", "2"});
         assertEquals(2, response.rowCount());
@@ -732,7 +729,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("SELECT pk_col, message FROM test WHERE pk_col='4' OR pk_col='3'");
         assertEquals(1, response.rowCount());
         assertThat(Arrays.asList(response.rows()[0]), hasItems(new Object[]{"3", "baz"}));
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
         execute("SELECT pk_col, message FROM test WHERE pk_col='4' OR pk_col='99'");
         assertEquals(0, response.rowCount());
@@ -749,7 +745,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("SELECT * FROM test WHERE pk_col IN (?,?,?)", new Object[]{"1", "2", "3"});
         assertEquals(3, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
     @Test
@@ -759,7 +754,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
         execute("update test set message='new' WHERE pk_col='1' or pk_col='2' or pk_col='4'");
         assertThat(response.rowCount(), is(2L));
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
         execute("SELECT distinct message FROM test");
         assertThat(response.rowCount(), is(2L));

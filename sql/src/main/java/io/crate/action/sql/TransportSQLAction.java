@@ -82,13 +82,14 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
 
     @Override
     public SQLResponse emptyResponse(SQLRequest request,
+                                     int duration,
                                      String[] outputNames,
                                      @Nullable DataType[] types) {
         return new SQLResponse(outputNames,
                 TaskResult.EMPTY_OBJS,
                 types,
                 0L,
-                request.creationTime(),
+                duration,
                 request.includeTypesOnResponse());
     }
 
@@ -97,7 +98,8 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
                                                    DataType[] outputTypes,
                                                    List<TaskResult> result,
                                                    boolean expectsAffectedRows,
-                                                   SQLRequest request) {
+                                                   SQLRequest request,
+                                                   int duration) {
         assert result.size() == 1;
         TaskResult taskResult = result.get(0);
         Bucket rows = taskResult.rows();
@@ -122,7 +124,7 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
                 objs,
                 outputTypes,
                 rowCount,
-                request.creationTime(),
+                duration,
                 request.includeTypesOnResponse()
         );
     }

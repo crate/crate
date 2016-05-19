@@ -40,10 +40,10 @@ public class SQLBulkResponse extends SQLBaseResponse {
 
     public SQLBulkResponse(String[] outputNames,
                            Result[] results,
-                           long requestCreationTime,
+                           int duration,
                            DataType[] colTypes,
                            boolean includeTypes) {
-        super(outputNames, colTypes, includeTypes, requestCreationTime);
+        super(outputNames, colTypes, includeTypes, duration);
         this.results = results;
     }
 

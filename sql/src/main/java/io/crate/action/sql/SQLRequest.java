@@ -82,7 +82,6 @@ public class SQLRequest extends SQLBaseRequest {
         for (int i = 0; i < length; i++) {
             args[i] = in.readGenericValue();
         }
-        creationTime = in.readVLong();
         includeTypesOnResponse = in.readBoolean();
     }
 
@@ -95,7 +94,6 @@ public class SQLRequest extends SQLBaseRequest {
         for (int i = 0; i < args.length; i++) {
             out.writeGenericValue(args[i]);
         }
-        out.writeVLong(creationTime);
         out.writeBoolean(includeTypesOnResponse);
     }
 
@@ -103,7 +101,6 @@ public class SQLRequest extends SQLBaseRequest {
     public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("stmt", stmt)
-                .add("args", Arrays.asList(args))
-                .add("creationTime", creationTime).toString();
+                .add("args", Arrays.asList(args)).toString();
     }
 }

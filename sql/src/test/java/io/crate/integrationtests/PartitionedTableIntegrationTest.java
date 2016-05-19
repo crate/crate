@@ -127,7 +127,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
         execute("copy quotes from ?", new Object[]{uriPath});
         assertEquals(3L, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
+        assertThat(response.duration(), greaterThanOrEqualTo(0));
         refresh();
         ensureYellow();
 

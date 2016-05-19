@@ -22,8 +22,8 @@
 package io.crate.action.sql;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -39,7 +39,6 @@ public class SQLRequestTest extends CrateUnitTest {
                 "select * from users",
                 new Object[] { "arg1", "arg2" }
         );
-        request.creationTime = 0;
         request.includeTypesOnResponse(true);
 
 
@@ -47,7 +46,7 @@ public class SQLRequestTest extends CrateUnitTest {
         request.writeTo(out);
 
         byte[] expectedBytes = new byte[]
-                {0,19,115,101,108,101,99,116,32,42,32,102,114,111,109,32,117,115,101,114,115,2,0,4,97,114,103,49,0,4,97,114,103, 50, 0, 1};
+                {0,19,115,101,108,101,99,116,32,42,32,102,114,111,109,32,117,115,101,114,115,2,0,4,97,114,103,49,0,4,97,114,103, 50, 1};
         assertThat(out.bytes().toBytes(), is(expectedBytes));
     }
 
@@ -55,7 +54,7 @@ public class SQLRequestTest extends CrateUnitTest {
     @Test
     public void testSerializationReadFrom() throws Exception {
         byte[] buf = new byte[]
-                {0,19,115,101,108,101,99,116,32,42,32,102,114,111,109,32,117,115,101,114,115,2,0,4,97,114,103,49,0,4,97,114,103, 50, 0, 1};
+                {0,19,115,101,108,101,99,116,32,42,32,102,114,111,109,32,117,115,101,114,115,2,0,4,97,114,103,49,0,4,97,114,103, 50, 1};
         StreamInput in = StreamInput.wrap(buf);
         SQLRequest request = new SQLRequest();
         request.readFrom(in);

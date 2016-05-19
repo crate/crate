@@ -44,9 +44,9 @@ public class SQLResponse extends SQLBaseResponse {
                        Object[][] rows,
                        DataType[] dataTypes,
                        long rowCount,
-                       long requestStartedTime,
+                       int duration,
                        boolean includeTypes) {
-        super(cols, dataTypes, includeTypes, requestStartedTime);
+        super(cols, dataTypes, includeTypes, duration);
         this.rows = rows;
         this.rowCount = rowCount;
     }
@@ -109,7 +109,6 @@ public class SQLResponse extends SQLBaseResponse {
                 rows[i][j] = in.readGenericValue();
             }
         }
-        requestStartedTime = in.readVLong();
         includeTypes = in.readBoolean();
         if (includeTypes) {
             int numColumnTypes = in.readInt();
@@ -136,7 +135,6 @@ public class SQLResponse extends SQLBaseResponse {
                 out.writeGenericValue(rows[i][j]);
             }
         }
-        out.writeVLong(requestStartedTime);
         out.writeBoolean(includeTypes);
         if (includeTypes) {
             out.writeInt(colTypes.length);

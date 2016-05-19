@@ -58,7 +58,6 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("insert into test (\"firstName\", \"lastName\") values('Youri', 'Zoon')");
         assertEquals(1, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
 
         execute("select * from test where \"firstName\" = 'Youri'");

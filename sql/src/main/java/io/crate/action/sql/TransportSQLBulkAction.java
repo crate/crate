@@ -73,13 +73,13 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
     }
 
     @Override
-    protected SQLBulkResponse emptyResponse(SQLBulkRequest request, String[] outputNames, @Nullable DataType[] types) {
+    protected SQLBulkResponse emptyResponse(SQLBulkRequest request, int duration, String[] outputNames, @Nullable DataType[] types) {
         return new SQLBulkResponse(
-                outputNames,
-                SQLBulkResponse.EMPTY_RESULTS,
-                request.creationTime(),
-                types,
-                request.includeTypesOnResponse());
+            outputNames,
+            SQLBulkResponse.EMPTY_RESULTS,
+            duration,
+            types,
+            request.includeTypesOnResponse());
     }
 
     @Override
@@ -87,7 +87,8 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
                                                        DataType[] dataTypes,
                                                        List<TaskResult> result,
                                                        boolean expectsAffectedRows,
-                                                       SQLBulkRequest request) {
+                                                       SQLBulkRequest request,
+                                                       int duration) {
         assert expectsAffectedRows : "bulk operations only works with statements that return rowcounts";
         SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[result.size()];
         for (int i = 0, resultSize = result.size(); i < resultSize; i++) {
@@ -96,7 +97,7 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
             results[i] = new SQLBulkResponse.Result(taskResult.errorMessage(), taskResult.rowCount());
         }
         return new SQLBulkResponse(
-                outputNames, results, request.creationTime(), dataTypes, request.includeTypesOnResponse());
+                outputNames, results, duration, dataTypes, request.includeTypesOnResponse());
     }
 
     private class TransportHandler implements TransportRequestHandler<SQLBulkRequest> {
