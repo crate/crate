@@ -45,6 +45,7 @@ public class SrvDiscoveryIntegrationTest extends ESIntegTestCase {
         Lookup.setDefaultCache(new MockedZoneCache("crate.internal."), DClass.IN);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return pluginList(SrvPlugin.class);

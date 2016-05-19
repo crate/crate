@@ -42,6 +42,7 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
                 .build();
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return pluginList(CrateCorePlugin.class);
