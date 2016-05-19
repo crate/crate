@@ -171,18 +171,36 @@ public class TransportBulkCreateIndicesAction
     }
 
     private void triggerNext() {
-        PendingOperation pendingOperation = null;
+        PendingOperation pendingOperation;
         synchronized (pendingLock) {
             activeOperations--;
-            if (activeOperations == 0) {
-                pendingOperation = pendingOperations.poll();
-            }
+            trace("triggerNext", activeOperations, pendingOperations.size());
+            pendingOperation = pendingOperations.poll();
         }
 
         if (pendingOperation == null) {
+            trace("pendingOperation=null");
             return;
         }
+        trace("masterOperationFromPending");
         masterOperation(pendingOperation.request, clusterService.state(), pendingOperation.responseListener);
+    }
+
+    private void trace(String action, Collection<String> indices, int activeOperations, int numPending) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("action={} indices={} activeOperations={} numPending={}", action, indices, activeOperations, numPending);
+        }
+    }
+    private void trace(String action, int activeOperations, int numPending) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("action={} activeOperations={} numPending={}", action, activeOperations, numPending);
+        }
+    }
+
+    private void trace(String action) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("action={}", action);
+        }
     }
 
     @Override
@@ -194,10 +212,10 @@ public class TransportBulkCreateIndicesAction
             responseListener.onResponse(new BulkCreateIndicesResponse(true));
             return;
         }
-
         synchronized (pendingLock) {
             if (activeOperations > 0) {
-                pendingOperations.add(new PendingOperation(request, responseListener));
+                trace("queueRequest", request.indices(), activeOperations, pendingOperations.size());
+                tryMerge(pendingOperations, request, responseListener);
                 return;
             }
             activeOperations++;
@@ -211,6 +229,7 @@ public class TransportBulkCreateIndicesAction
         try {
             tryAcquireLocksAndRemoveExistingIndices(state, locked, unlocked, 0L);
         } catch (InterruptedException e) {
+            trace("tryAcquireLocksInterrupt");
             unlockIndices(locked);
             listener.onFailure(e);
             return;
@@ -221,6 +240,7 @@ public class TransportBulkCreateIndicesAction
                 locked.clear();  // locks are already unlocked;
 
                 if (!unlocked.isEmpty()) {
+                    trace("tryAcquireLocksAndCreateIndicesThreaded");
                     tryAcquireLocksAndCreateIndicesThreaded(
                             timeStart, request, clusterService.state(), locked, unlocked, this);
                 } else {
@@ -236,21 +256,57 @@ public class TransportBulkCreateIndicesAction
 
         if (locked.isEmpty() && unlocked.isEmpty()) {
             // all indices already existed?
+            trace("lockedAndUnlockedEmpty");
             listener.onResponse(new BulkCreateIndicesResponse(true));
             return;
         }
 
         if (timeStart <= lastKillAllEvent) {
+            trace("killAllEvent");
             unlockIndices(locked);
-            responseListener.onFailure(new CancellationException());
+            listener.onFailure(new CancellationException());
             return;
         }
         if (!locked.isEmpty()) {
+            trace("createIndices");
             createIndices(request, locked, stateUpdateListener);
         } else {
+            trace("noLocksAcquired");
             tryAcquireLocksAndCreateIndicesThreaded(timeStart, request, state, locked, unlocked, stateUpdateListener);
         }
     }
+
+    private void tryMerge(Queue<PendingOperation> pendingOperations,
+                          BulkCreateIndicesRequest request,
+                          final ActionListener<BulkCreateIndicesResponse> responseListener) {
+        Iterator<PendingOperation> it = pendingOperations.iterator();
+        while (it.hasNext()) {
+            final PendingOperation pendingOperation = it.next();
+            if (pendingOperation.request.jobId().equals(request.jobId())) {
+                it.remove();
+                Set<String> indices = new HashSet<>(pendingOperation.request.indices());
+                indices.addAll(request.indices());
+                pendingOperations.add(new PendingOperation(new BulkCreateIndicesRequest(indices, request.jobId()), new ActionListener<BulkCreateIndicesResponse>() {
+                    @Override
+                    public void onResponse(BulkCreateIndicesResponse bulkCreateIndicesResponse) {
+                        pendingOperation.responseListener.onResponse(bulkCreateIndicesResponse);
+                        responseListener.onResponse(bulkCreateIndicesResponse);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable e) {
+                        pendingOperation.responseListener.onFailure(e);
+                        responseListener.onFailure(e);
+                    }
+                }));
+
+                return;
+            }
+        }
+
+        pendingOperations.add(new PendingOperation(request, responseListener));
+    }
+
     private void tryAcquireLocksAndCreateIndicesThreaded(final long timeStart,
                                                          final BulkCreateIndicesRequest request,
                                                          final ClusterState state,
@@ -275,8 +331,10 @@ public class TransportBulkCreateIndicesAction
                         tryAcquireLocksAndRemoveExistingIndices(state, locked, unlocked, 0);
                         if (locked.isEmpty() && !unlocked.isEmpty()) {
                             long remainingTimeout = timeout - elapsed;
+                            trace("threadNoLocks");
                             tryAcquireLocksAndRemoveExistingIndices(state, locked, unlocked, remainingTimeout);
                         } else {
+                            trace("createIndicesFromTread");
                             createIndices(request, locked, stateUpdateListener);
                         }
                     } catch (InterruptedException e) {
@@ -465,38 +523,45 @@ public class TransportBulkCreateIndicesAction
     private void createIndices(final BulkCreateIndicesRequest request,
                                final Map<Semaphore, Collection<String>> lockedIndices,
                                ActionListener<ClusterStateUpdateResponse> listener) {
-        clusterService.submitStateUpdateTask("create-indices [" +  "], cause [" +  "]", Priority.URGENT,
-                new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
+        try {
+            clusterService.submitStateUpdateTask("create-indices [" + "], cause [" + "]", Priority.URGENT,
+                    new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
 
-            @Override
-            protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
-                return new ClusterStateUpdateResponse(acknowledged);
-            }
+                        @Override
+                        protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
+                            return new ClusterStateUpdateResponse(acknowledged);
+                        }
 
-            @Override
-            public void onAllNodesAcked(@Nullable Throwable t) {
-                unlockIndices(lockedIndices);
-                super.onAllNodesAcked(t);
-            }
+                        @Override
+                        public void onAllNodesAcked(@Nullable Throwable t) {
+                            trace("onAllNodesAcked");
+                            unlockIndices(lockedIndices);
+                            super.onAllNodesAcked(t);
+                        }
 
-            @Override
-            public void onAckTimeout() {
-                unlockIndices(lockedIndices);
-                super.onAckTimeout();
-            }
+                        @Override
+                        public void onAckTimeout() {
+                            trace("onAckTimeout");
+                            unlockIndices(lockedIndices);
+                            super.onAckTimeout();
+                        }
 
-            @Override
-            public void onFailure(String source, Throwable t) {
-                unlockIndices(lockedIndices);
-                super.onFailure(source, t);
-            }
+                        @Override
+                        public void onFailure(String source, Throwable t) {
+                            trace("onFailure");
+                            unlockIndices(lockedIndices);
+                            super.onFailure(source, t);
+                        }
 
-            @Override
-            public ClusterState execute(ClusterState currentState) throws Exception {
-                return executeCreateIndices(currentState, request);
-            }
-        });
-
+                        @Override
+                        public ClusterState execute(ClusterState currentState) throws Exception {
+                            return executeCreateIndices(currentState, request);
+                        }
+                    });
+        } catch (Throwable t) {
+            logger.error("submitStateUpdateTask error", t);
+            listener.onFailure(t);
+        }
     }
 
     private void addMappingFromMappingsFile(Map<String, Map<String, Object>> mappings, File mappingsDir, BulkCreateIndicesRequest request) {
@@ -705,14 +770,14 @@ public class TransportBulkCreateIndicesAction
 
         @Override
         public void onResponse(BulkCreateIndicesResponse bulkCreateIndicesRequest) {
-            triggerNext();
             responseListener.onResponse(bulkCreateIndicesRequest);
+            triggerNext();
         }
 
         @Override
         public void onFailure(Throwable e) {
-            triggerNext();
             responseListener.onFailure(e);
+            triggerNext();
         }
     }
 }
