@@ -1,12 +1,10 @@
 plugins {
     id "de.undercouch.download" version "2.1.0"
 }
+apply from: "$rootDir/gradle/javaModule.gradle"
+apply plugin: 'idea'
 
 description = 'Elasticsearch HDFS Repository'
-
-apply plugin: 'idea'
-apply plugin: 'java'
-apply plugin: 'maven'
 
 configurations {
     hadoop1

@@ -1,0 +1,10 @@
+apply plugin: "java"
+apply plugin: "maven"
+
+repositories {
+    mavenCentral()
+}
+
+sourceCompatibility = "7"
+targetCompatibility = "7"
+

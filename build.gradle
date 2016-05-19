@@ -104,9 +104,6 @@ allprojects {
     }
 
     group = 'io.crate'
-    repositories {
-        mavenCentral()
-    }
 
     findbugs {
         ignoreFailures = true
@@ -158,7 +155,10 @@ allprojects {
     }
 
     idea {
-       module {
+        project {
+           languageLevel "7"
+        }
+        module {
            inheritOutputDirs = false
            outputDir = file('build-idea/classes/main')
            testOutputDir = file('build-idea/classes/test')
@@ -301,7 +301,6 @@ idea {
     }
 
     project {
-        languageLevel = 'JDK_1_7'
         vcs = 'Git'
 
         ipr {

@@ -7,9 +7,8 @@ buildscript {
 }
 
 apply plugin: 'distribution'
-apply plugin: 'java'
+apply from: "$rootDir/gradle/javaModule.gradle"
 apply plugin: 'signing'
-apply plugin: 'maven'
 
 archivesBaseName = 'crate-app'
 group = "io.crate"

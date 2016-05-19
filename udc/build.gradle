@@ -1,11 +1,5 @@
-apply plugin: 'java'
-
+apply from: "$rootDir/gradle/javaModule.gradle"
 archivesBaseName = 'crate-udc'
-
-
-repositories {
-    mavenCentral()
-}
 
 dependencies {
     compile project(':es')

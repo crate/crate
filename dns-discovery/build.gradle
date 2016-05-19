@@ -1,4 +1,4 @@
-apply plugin: 'java'
+apply from: "$rootDir/gradle/javaModule.gradle"
 
 archivesBaseName = 'crate-dns-discovery'
 group = 'io.crate'

@@ -1,6 +1,6 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
 apply plugin: 'me.champeau.gradle.jmh'
-apply plugin: 'java'
-apply plugin: 'maven'
 apply plugin: 'de.thetaphi.forbiddenapis'
 
 archivesBaseName = 'crate-core'

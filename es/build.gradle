@@ -1,9 +1,4 @@
-apply plugin: 'java'
-apply plugin: 'maven'
-
-repositories {
-    mavenCentral()
-}
+apply from: "$rootDir/gradle/javaModule.gradle"
 
 tasks.withType(JavaCompile) {
     options.compilerArgs << '-XDignore.symbol.file'

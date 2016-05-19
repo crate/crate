@@ -1,19 +1,11 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
 apply plugin: 'idea'
-apply plugin: 'java'
-apply plugin: 'maven'
 
 dependencies {
     compile project(':es')
     compile 'com.amazonaws:aws-java-sdk-ec2:1.10.33'
     compile 'com.amazonaws:aws-java-sdk-s3:1.10.33'
 }
-
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-}
-
 
 def pluginDir = project(":es").file('upstream/plugins/cloud-aws')
 
