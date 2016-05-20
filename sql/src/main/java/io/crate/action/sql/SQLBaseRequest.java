@@ -57,8 +57,8 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
     public static final int HEADER_FLAG_OFF = 0;
     public static final int HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT = 1;
 
-    protected String stmt;
-    protected boolean includeTypesOnResponse = false;
+    private String stmt;
+    private boolean includeTypesOnResponse = false;
 
     public SQLBaseRequest() {}
 
@@ -138,12 +138,14 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        // don't serialize shared fields from BULK/SINGLE request because they have different serialization order
+        stmt = in.readString();
+        includeTypesOnResponse = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        // don't serialize shared fields from BULK/SINGLE request because they have different serialization order
+        out.writeString(stmt);
+        out.writeBoolean(includeTypesOnResponse);
     }
 }

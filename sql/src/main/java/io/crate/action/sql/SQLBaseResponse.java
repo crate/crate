@@ -47,9 +47,9 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
         static final XContentBuilderString ERROR_MESSAGE = new XContentBuilderString("error_message");
     }
 
-    protected String[] cols;
-    protected DataType[] colTypes;
-    protected boolean includeTypes;
+    private String[] cols;
+    private DataType[] colTypes;
+    private boolean includeTypes;
     private int duration;
 
     public SQLBaseResponse() {} // used for serialization
@@ -101,7 +101,7 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
         builder.field(Fields.DURATION, duration());
     }
 
-    public static void toXContentNestedDataType(XContentBuilder builder, DataType dataType) throws IOException {
+    private static void toXContentNestedDataType(XContentBuilder builder, DataType dataType) throws IOException {
         if (dataType instanceof CollectionType) {
             builder.startArray();
             builder.value(dataType.id());

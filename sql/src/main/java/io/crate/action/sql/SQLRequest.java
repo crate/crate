@@ -75,32 +75,27 @@ public class SQLRequest extends SQLBaseRequest {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-
-        stmt = in.readString();
         int length = in.readVInt();
         args = new Object[length];
         for (int i = 0; i < length; i++) {
             args[i] = in.readGenericValue();
         }
-        includeTypesOnResponse = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
 
-        out.writeString(stmt);
         out.writeVInt(args.length);
         for (int i = 0; i < args.length; i++) {
             out.writeGenericValue(args[i]);
         }
-        out.writeBoolean(includeTypesOnResponse);
     }
 
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("stmt", stmt)
+                .add("stmt", stmt())
                 .add("args", Arrays.asList(args)).toString();
     }
 }

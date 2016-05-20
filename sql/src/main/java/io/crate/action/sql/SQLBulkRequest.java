@@ -58,9 +58,6 @@ public class SQLBulkRequest extends SQLBaseRequest {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
 
-        stmt = in.readString();
-        includeTypesOnResponse = in.readBoolean();
-
         int bulkArgsLength = in.readVInt();
         if (bulkArgsLength == 0) {
             bulkArgs = EMPTY_BULK_ARGS;
@@ -80,9 +77,6 @@ public class SQLBulkRequest extends SQLBaseRequest {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
 
-        out.writeString(stmt);
-        out.writeBoolean(includeTypesOnResponse);
-
         out.writeVInt(bulkArgs.length);
         for (int i = 0, bulkArgsLength = bulkArgs.length; i < bulkArgsLength; i++) {
             Object[] bulkArg = bulkArgs[i];
@@ -96,7 +90,7 @@ public class SQLBulkRequest extends SQLBaseRequest {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("stmt", stmt)
+                .add("stmt", stmt())
                 .add("bulkArgs", Arrays.asList(bulkArgs)).toString();
     }
 }

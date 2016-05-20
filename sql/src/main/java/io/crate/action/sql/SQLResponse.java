@@ -22,11 +22,11 @@
 package io.crate.action.sql;
 
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -57,10 +57,10 @@ public class SQLResponse extends SQLBaseResponse {
         writeSharedAttributes(builder);
         builder.startArray(Fields.ROWS);
         if (rows != null) {
-            for (int i = 0; i < rows.length; i++) {
+            for (Object[] row : rows) {
                 builder.startArray();
-                for (int j = 0; j < cols.length; j++) {
-                    builder.value(rows[i][j]);
+                for (int j = 0, len = cols().length; j < len; j++) {
+                    builder.value(row[j]);
                 }
                 builder.endArray();
             }
@@ -93,62 +93,47 @@ public class SQLResponse extends SQLBaseResponse {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        // don't user super.readFrom to stay binary backward compatible
-        in.readBoolean(); // headers in TransportResponse
+        super.readFrom(in);
 
         boolean negative = in.readBoolean();
         rowCount = in.readVLong();
         if (negative) {
             rowCount = -rowCount;
         }
-        cols = in.readStringArray();
+
+        int numCols = cols().length;
         int numRows = in.readInt();
-        rows = new Object[numRows][cols.length];
+        rows = new Object[numRows][numCols];
         for (int i = 0; i < numRows; i++) {
-            for (int j = 0; j < cols.length; j++) {
+            for (int j = 0; j < numCols; j++) {
                 rows[i][j] = in.readGenericValue();
             }
-        }
-        includeTypes = in.readBoolean();
-        if (includeTypes) {
-            int numColumnTypes = in.readInt();
-            colTypes = new DataType[numColumnTypes];
-            for (int i = 0; i < numColumnTypes; i++) {
-                colTypes[i] = DataTypes.fromStream(in);
-            }
-        } else {
-            colTypes = EMPTY_TYPES;
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        // don't user super.writeTo to stay binary backward compatible
+        super.writeTo(out);
 
-        out.writeBoolean(false); // headers in TransportResponse
         out.writeBoolean(rowCount < 0);
         out.writeVLong(Math.abs(rowCount));
-        out.writeStringArray(cols);
         out.writeInt(rows.length);
-        for (int i = 0; i < rows.length ; i++) {
-            for (int j = 0; j < cols.length; j++) {
-                out.writeGenericValue(rows[i][j]);
+        for (Object[] row : rows) {
+            for (int j = 0, len = cols().length; j < len; j++) {
+                out.writeGenericValue(row[j]);
             }
         }
-        out.writeBoolean(includeTypes);
-        if (includeTypes) {
-            out.writeInt(colTypes.length);
-            for (int i = 0; i < colTypes.length; i++) {
-                DataTypes.toStream(colTypes[i], out);
-            }
-        }
+    }
+
+    private static String arrayToString(@Nullable Object[] array) {
+        return array == null ? null : Arrays.toString(array);
     }
 
     @Override
     public String toString() {
         return "SQLResponse{" +
-                "cols=" + ((cols!=null) ? Arrays.toString(cols): null) +
-                "colTypes=" + ((colTypes !=null) ? Arrays.toString(colTypes): null) +
+                "cols=" + arrayToString(cols()) +
+                "colTypes=" + arrayToString(columnTypes()) +
                 ", rows=" + ((rows!=null) ? rows.length: -1)  +
                 ", rowCount=" + rowCount  +
                 ", duration=" + duration()  +
