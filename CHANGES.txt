@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that prevented altering a partitioned table by adding a new
+   column if the table already contains an array column.
+
 2016/05/12 0.54.9
 =================
 

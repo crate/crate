@@ -1260,6 +1260,24 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    public void testAlterPartitionedTableWithArrayInRootFields() {
+        execute("create table foo (a integer, b ARRAY(OBJECT)) partitioned by(a)");
+        ensureYellow();
+        execute("insert into foo (a) values (?)", new Object[]{1});
+        execute("refresh table foo");
+        ensureGreen();
+
+        execute("alter table foo add column c string");
+
+        execute("select column_name " +
+                "from information_schema.columns " +
+                "where schema_name = 'doc' and table_name = 'foo' " +
+                "order by column_name asc");
+
+        assertThat(TestingHelpers.printedTable(response.rows()), is("a\nb\nc\n"));
+    }
+
+    @Test
     public void testAlterPartitionTable() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");

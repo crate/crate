@@ -262,7 +262,11 @@ public class ArrayMapper implements ArrayValueMapperParser, Mapper {
 
     @Override
     public void merge(Mapper mergeWith, MergeContext mergeContext) throws MergeMappingException {
-        innerMapper.merge(mergeWith, mergeContext);
+        if (mergeWith instanceof ArrayMapper) {
+            innerMapper.merge(((ArrayMapper) mergeWith).innerMapper, mergeContext);
+        } else {
+            innerMapper.merge(mergeWith, mergeContext);
+        }
     }
 
     @Override
