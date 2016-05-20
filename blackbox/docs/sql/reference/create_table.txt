@@ -183,14 +183,16 @@ distributed accross a cluster.
 :num_shards: specifies the number of shards a table is stored in.
     Must be greater than 0. If not provided the number of shards is calculated
     based on the number of currently active data nodes with the following
-    formula::
+    formula:
+
+::
 
     num_shards = max(4, num_data_nodes * 2)
 
 .. note::
-  The minimum value of ``num_shards`` is set to ``4``. This means if the
-  calculation of ``num_shards`` does not exceeds its minimum it applies the
-  minimum value to each table or partition as default.
+    The minimum value of ``num_shards`` is set to ``4``. This means if the
+    calculation of ``num_shards`` does not exceeds its minimum it applies the
+    minimum value to each table or partition as default.
 
 :routing_column: allows to explicitly specify a column or field on
     which basis rows are sharded. All rows having the same value in
