@@ -149,6 +149,13 @@ public class IndexWriterProjector extends AbstractProjector {
         bulkShardProcessor.kill(throwable);
     }
 
+    @Override
+    public void kill(Throwable throwable) {
+        failed.set(true);
+        super.kill(throwable);
+        bulkShardProcessor.kill(throwable);
+    }
+
     private static class MapInput implements Input<BytesRef> {
 
         private final Input<Map<String, Object>> sourceInput;

@@ -107,4 +107,11 @@ abstract class DMLProjector<Request extends ShardRequest> extends AbstractProjec
             bulkShardProcessor.close();
         }
     }
+
+    @Override
+    public void kill(Throwable throwable) {
+        failed.set(true);
+        super.kill(throwable);
+        bulkShardProcessor.kill(throwable);
+    }
 }
