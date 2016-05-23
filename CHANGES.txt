@@ -7,6 +7,7 @@ Unreleased
 
  - Fixed a `ClassCastException` that occurred if the left side of a `IN`
    predicate was a function.
+ - Added links to Cluster check documentation. 
 
  - Removed the `creationTime` property from `SQL(Bulk)Request` and changed the
    `duration` property on `SQL(Bulk)Response` to return the server-side

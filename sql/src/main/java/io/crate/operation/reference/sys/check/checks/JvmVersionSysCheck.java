@@ -37,7 +37,7 @@ public class JvmVersionSysCheck extends AbstractSysCheck {
             " java version. Java 7 is deprecated since version 0.55.0. Please update to Java 8 (>= update 20) runtime environment.";
 
     public JvmVersionSysCheck() {
-        super(ID, new BytesRef(DESCRIPTION), Severity.MEDIUM);
+        super(ID, DESCRIPTION, Severity.MEDIUM);
     }
 
     @Override

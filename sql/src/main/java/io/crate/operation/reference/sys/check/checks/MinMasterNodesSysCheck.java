@@ -45,7 +45,7 @@ public class MinMasterNodesSysCheck extends AbstractSysCheck {
     private static final int ID = 1;
     private static final String DESCRIPTION = "The setting 'discovery.zen.minimum_master_nodes' " +
             "must not be less than half + 1 of eligible master nodes in the cluster. " +
-            "It should be set to (number_master_nodes / 2) + 1";
+            "It should be set to (number_master_nodes / 2) + 1.";
 
     private static final ReferenceInfo MIN_MASTER_NODES_REFERENCE_INFO = new ReferenceInfo(
             new ReferenceIdent(
@@ -59,7 +59,7 @@ public class MinMasterNodesSysCheck extends AbstractSysCheck {
 
     @Inject
     public MinMasterNodesSysCheck(ClusterService clusterService, NestedReferenceResolver nestedReferenceResolver) {
-        super(ID, new BytesRef(DESCRIPTION), Severity.HIGH);
+        super(ID, DESCRIPTION, Severity.HIGH);
         this.clusterService = clusterService;
         this.nestedReferenceResolver = nestedReferenceResolver;
     }

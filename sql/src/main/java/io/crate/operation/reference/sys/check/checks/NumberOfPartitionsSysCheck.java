@@ -44,7 +44,7 @@ public class NumberOfPartitionsSysCheck extends AbstractSysCheck {
 
     @Inject
     public NumberOfPartitionsSysCheck(ReferenceInfos referenceInfos) {
-        super(ID, new BytesRef(DESCRIPTION), Severity.MEDIUM);
+        super(ID, DESCRIPTION, Severity.MEDIUM);
         this.referenceInfos = referenceInfos;
     }
 

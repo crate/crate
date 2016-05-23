@@ -40,7 +40,7 @@ public class RecoveryExpectedNodesSysCheck extends AbstractSysCheck {
 
     @Inject
     public RecoveryExpectedNodesSysCheck(ClusterService clusterService, Settings settings) {
-        super(ID, new BytesRef(DESCRIPTION), Severity.HIGH);
+        super(ID, DESCRIPTION, Severity.HIGH);
         this.clusterService = clusterService;
         this.settings = settings;
     }

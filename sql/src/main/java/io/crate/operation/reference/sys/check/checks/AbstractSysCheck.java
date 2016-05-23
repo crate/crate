@@ -25,13 +25,20 @@ import org.apache.lucene.util.BytesRef;
 
 public abstract class AbstractSysCheck implements SysCheck {
 
+    private static final String LINK_PATTERN = "https://cr8.is/d-check-";
+
     private final int id;
     private final BytesRef description;
     private final Severity severity;
 
-    public AbstractSysCheck(int id, BytesRef description, Severity severity) {
+
+    public AbstractSysCheck(int id, String description, Severity severity) {
+        StringBuilder linkedDescriptionBuilder = new StringBuilder(description);
+        linkedDescriptionBuilder.append(" ");
+        linkedDescriptionBuilder.append(LINK_PATTERN + id);
+        this.description = new BytesRef(linkedDescriptionBuilder.toString());
+
         this.id = id;
-        this.description = description;
         this.severity = severity;
     }
 
