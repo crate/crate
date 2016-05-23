@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a `ClassCastException` that occurred if the left side of a `IN`
+   predicate was a function.
+
  - Improved performance of queries like `COPY FROM` which can create a lot of
    partitions
 

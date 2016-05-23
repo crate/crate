@@ -146,4 +146,16 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
 
         assertThat(execute("select * from t where o = {x=10, y=20}").rowCount(), is(1L));
     }
+
+    @Test
+    public void testFunctionWhereIn() throws Exception {
+        execute("create table t (x string) with (number_of_replicas = 0)");
+        ensureYellow();
+
+        execute("insert into t (x) values ('x'), ('y')");
+        execute("refresh table t");
+
+        execute("select * from t where concat(x, '') in ('x', 'y')");
+        assertThat(response.rowCount(), is(2L));
+    }
 }
