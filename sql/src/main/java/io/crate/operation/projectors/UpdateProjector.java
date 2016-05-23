@@ -115,6 +115,14 @@ public class UpdateProjector extends AbstractProjector {
     }
 
     @Override
+    public void kill(Throwable throwable) {
+        upstreamFailure.set(throwable);
+        super.kill(throwable);
+        bulkShardProcessor.kill(throwable);
+        collectUpdateResultsAndPassOverRowCount();
+    }
+
+    @Override
     public void fail(Throwable throwable) {
         upstreamFailure.set(throwable);
 

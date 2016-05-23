@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved the `KILL` behaviour for `COPY` and `UPDATE` statements
+
  - Fixed a `ClassCastException` that occurred if the left side of a `IN`
    predicate was a function.
 
