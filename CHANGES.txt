@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a `ClassCastException` that occurred if the left side of a `IN`
+   predicate was a function.
+
  - Removed the `creationTime` property from `SQL(Bulk)Request` and changed the
    `duration` property on `SQL(Bulk)Response` to return the server-side
    duration instead of the full round-trip duration.

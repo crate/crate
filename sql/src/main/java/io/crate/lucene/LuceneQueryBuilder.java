@@ -279,11 +279,10 @@ public class LuceneQueryBuilder {
                     // 1 = any (array_col) - simple eq
                     assert collectionSymbol instanceof Reference: "no reference found in ANY expression";
                     return applyArrayReference((Reference)collectionSymbol, (Literal)left, context);
-                } else if (collectionSymbol.symbolType().isValueSymbol()) {
-                    assert left instanceof Reference : "no reference found in ANY expression";
+                } else if (left instanceof Reference && collectionSymbol.symbolType().isValueSymbol()) {
                     return applyArrayLiteral((Reference)left, (Literal)collectionSymbol, context);
                 } else {
-                    // should never get here - 2 literal arguments must have been normalized away yet
+                    // might be the case if the left side is a function -> will fallback to (slow) generic function filter
                     return null;
                 }
             }
