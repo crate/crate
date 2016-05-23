@@ -248,14 +248,15 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                         return existing.routing;
                     }
                 }
+                routing = tableInfo.getRouting(where, preference);
                 // ensure all routings of this table are allocated
                 for (TableRouting existingRouting : existingRoutings) {
                     if (!existingRouting.nodesAllocated) {
                         allocateRoutingNodes(tableInfo.ident(), existingRouting.routing.locations());
                         existingRouting.nodesAllocated = true;
+                        routing = existingRouting.routing;
                     }
                 }
-                routing = tableInfo.getRouting(where, preference);
                 if (!allocateRoutingNodes(tableInfo.ident(), routing.locations())) {
                     throw new UnsupportedOperationException(
                             "Nodes of existing routing are not allocated, routing rebuild needed");

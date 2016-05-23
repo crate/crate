@@ -322,6 +322,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select more.name, less.name, (more.salary - less.salary) from employees as more, employees as less " +
                 "where more.salary > less.salary "+
+                "and more.salary >= 600 "+
                 "order by more.salary desc, less.salary desc");
         assertThat(printedTable(response.rows()), is("" +
                 "Douglas Adams| Trillian| 200.0\n" +

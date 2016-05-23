@@ -10,6 +10,9 @@ Unreleased
 
  - Improved performance of queries like `COPY FROM` which can create a lot of
    partitions
+ 
+ - Fixed an issue that cause a routing error if a condition is used in 
+   the where-clause of a filtered self-join statement on tables with replicas.
 
  - Fixed an issue that prevented altering a partitioned table by adding a new
    column if the table already contains an array column.
