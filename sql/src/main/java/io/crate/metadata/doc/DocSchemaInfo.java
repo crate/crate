@@ -271,7 +271,6 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     @Override
     public synchronized void clusterChanged(ClusterChangedEvent event) {
         if (event.metaDataChanged()) {
-            cache.invalidateAll(event.indicesDeleted());
 
             // search for aliases of deleted and created indices, they must be invalidated also
             for (String index : event.indicesDeleted()) {
@@ -303,7 +302,9 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                 String indexName = getIndexName(tableName);
 
                 IndexMetaData newIndexMetaData = event.state().getMetaData().index(indexName);
-                if (newIndexMetaData != null && event.indexMetaDataChanged(newIndexMetaData)) {
+                if (newIndexMetaData == null) {
+                    cache.invalidate(tableName);
+                } else if (event.indexMetaDataChanged(newIndexMetaData)) {
                     cache.invalidate(tableName);
                     // invalidate aliases of changed indices
                     invalidateAliases(newIndexMetaData.aliases());

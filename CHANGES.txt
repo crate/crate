@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a bug which prevented complete deletion of tables in custom
+   schemas.
+
  - Improved the `KILL` behaviour for `COPY` and `UPDATE` statements
 
  - Fixed a `ClassCastException` that occurred if the left side of a `IN`
