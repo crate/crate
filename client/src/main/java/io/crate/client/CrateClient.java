@@ -33,6 +33,7 @@ import org.elasticsearch.cluster.ClusterNameModule;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -86,6 +87,7 @@ public class CrateClient {
         this.settings = builder.build();
 
         threadPool = new ThreadPool(this.settings);
+        NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry();
 
         ModulesBuilder modules = new ModulesBuilder();
         modules.add(new CrateClientModule());
@@ -95,7 +97,7 @@ public class CrateClient {
         modules.add(new SettingsModule(this.settings));
 
         modules.add(new ClusterNameModule(this.settings));
-        modules.add(new TransportModule(this.settings));
+        modules.add(new TransportModule(this.settings, namedWriteableRegistry));
         modules.add(new CircuitBreakerModule(this.settings));
 
         Injector injector = modules.createInjector();
