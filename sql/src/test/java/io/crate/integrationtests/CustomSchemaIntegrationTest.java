@@ -22,11 +22,18 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.hamcrest.core.Is;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.is;
 
 public class CustomSchemaIntegrationTest extends SQLTransportIntegrationTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testInformationSchemaTablesReturnCorrectTablesIfCustomSchemaIsSimilarToTableName() throws Exception {
@@ -92,6 +99,20 @@ public class CustomSchemaIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select id from custom.t where id in (2,4) order by id");
         assertThat(TestingHelpers.printedTable(response.rows()), is("2\n4\n"));
-
     }
+
+    @Test
+    public void testSelectFromDroppedTableWithMoreThanOneTableInSchema() {
+        execute("create table custom.foo (id integer)");
+        execute("create table custom.bar (id integer)");
+        ensureYellow();
+
+        assertThat(client().admin().indices().exists(new IndicesExistsRequest("custom.foo")).actionGet().isExists(), Is.is(true));
+        execute("drop table custom.foo");
+        assertThat(client().admin().indices().exists(new IndicesExistsRequest("custom.foo")).actionGet().isExists(), Is.is(false));
+
+        expectedException.expectMessage("Table 'custom.foo' unknown");
+        execute("select * from custom.foo");
+    }
+
 }
