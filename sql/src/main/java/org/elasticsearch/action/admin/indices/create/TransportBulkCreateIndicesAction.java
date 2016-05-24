@@ -27,16 +27,13 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import io.crate.jobs.JobContextService;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
-import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.*;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
@@ -45,6 +42,7 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
+import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
@@ -100,12 +98,24 @@ public class TransportBulkCreateIndicesAction
     private final AllocationService allocationService;
     private final MetaDataCreateIndexService createIndexService;
     private final Environment environment;
-
-    private volatile long lastKillAllEvent = System.nanoTime();
+    private final ClusterStateTaskExecutor<BulkCreateIndicesRequest> executor = new ClusterStateTaskExecutor<BulkCreateIndicesRequest>() {
+        @Override
+        public BatchResult<BulkCreateIndicesRequest> execute(ClusterState currentState, List<BulkCreateIndicesRequest> tasks) throws Exception {
+            BatchResult.Builder<BulkCreateIndicesRequest> builder = BatchResult.builder();
+            for (BulkCreateIndicesRequest request : tasks) {
+                try {
+                    currentState = executeCreateIndices(currentState, request);
+                    builder.success(request);
+                } catch (Throwable t) {
+                    builder.failure(request, t);
+                }
+            }
+            return builder.build(currentState);
+        }
+    };
 
     @Inject
     public TransportBulkCreateIndicesAction(Settings settings,
-                                            JobContextService jobContextService,
                                             TransportService transportService,
                                             Environment environment,
                                             ClusterService clusterService,
@@ -295,20 +305,23 @@ public class TransportBulkCreateIndicesAction
     }
 
     private void createIndices(final BulkCreateIndicesRequest request,
-                               ActionListener<ClusterStateUpdateResponse> listener) {
-        clusterService.submitStateUpdateTask("create-indices [" +  "], cause [" +  "]",
-                new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
+                               final ActionListener<ClusterStateUpdateResponse> listener) {
 
-            @Override
-            protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
-                return new ClusterStateUpdateResponse(acknowledged);
-            }
+        clusterService.submitStateUpdateTask("bulk-create-indices",
+            request,
+            BasicClusterStateTaskConfig.create(Priority.NORMAL, request.masterNodeTimeout()),
+            executor,
+            new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
+                @Override
+                public ClusterState execute(ClusterState currentState) throws Exception {
+                    return executeCreateIndices(currentState, request);
+                }
 
-            @Override
-            public ClusterState execute(ClusterState currentState) throws Exception {
-                return executeCreateIndices(currentState, request);
-            }
-        });
+                @Override
+                protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
+                    return new ClusterStateUpdateResponse(acknowledged);
+                }
+            });
     }
 
     private void addMappingFromMappingsFile(Map<String, Map<String, Object>> mappings, File mappingsDir, BulkCreateIndicesRequest request) {
