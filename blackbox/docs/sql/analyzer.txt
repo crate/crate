@@ -253,10 +253,10 @@ max_token_length
 
 .. _edgengram-tokenizer:
 
-edgeNGram
+edge ngram
 ---------
 
-``type='edge_ngram'`` or ``type='edgeNGram'``
+``type='edge_ngram'``
 
 This tokenizer is very similar to :ref:`ngram-tokenizer` but only keeps n-grams which start at
 the beginning of a token.
@@ -317,7 +317,7 @@ It divides text at non-letters and converts them to lower case.
 ngram
 -----
 
-``type='ngram'`` or ``type='nGram'``
+``type='ngram'``
 
 Parameters
 ..........
@@ -513,7 +513,7 @@ language
 ngram
 -----
 
-``type='ngram'`` or ``type='nGram'``
+``type='ngram'``
 
 Parameters
 ..........
@@ -530,7 +530,7 @@ max_gram
 edge ngram
 ----------
 
-``type='edgeNGram'`` or ``type='edge_ngram'``
+``type='edge_ngram'``
 
 Parameters
 ..........

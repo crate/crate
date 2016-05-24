@@ -29,7 +29,7 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 
 public abstract class NodeActionRequestHandler<TRequest extends TransportRequest, TResponse extends TransportResponse>
-        implements TransportRequestHandler<TRequest> {
+        extends TransportRequestHandler<TRequest> {
 
     private final NodeAction<TRequest, TResponse> nodeAction;
 

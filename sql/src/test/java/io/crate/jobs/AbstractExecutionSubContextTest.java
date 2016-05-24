@@ -22,7 +22,7 @@
 
 package io.crate.jobs;
 
-import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.base.Throwables;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.logging.ESLogger;

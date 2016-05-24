@@ -66,7 +66,7 @@ public class BlobHeadRequestHandler {
         transportService.registerRequestHandler(Actions.PUT_BLOB_HEAD_CHUNK, PutBlobHeadChunkRequest.class, ThreadPool.Names.GENERIC, new PutBlobHeadChunkHandler());
     }
 
-    private class GetBlobHeadHandler implements TransportRequestHandler<GetBlobHeadRequest> {
+    private class GetBlobHeadHandler extends TransportRequestHandler<GetBlobHeadRequest> {
         /**
          * this is method is called on the recovery source node
          * the target is requesting the head of a file it got a PutReplicaChunkRequest for.
@@ -95,7 +95,7 @@ public class BlobHeadRequestHandler {
 
 
 
-    class PutBlobHeadChunkHandler implements TransportRequestHandler<PutBlobHeadChunkRequest> {
+    class PutBlobHeadChunkHandler extends TransportRequestHandler<PutBlobHeadChunkRequest> {
         /**
          * called when the target node in a recovery receives a PutBlobHeadChunkRequest
          */
@@ -108,7 +108,7 @@ public class BlobHeadRequestHandler {
         }
     }
 
-    class GetTransferInfoHandler implements TransportRequestHandler<BlobInfoRequest> {
+    class GetTransferInfoHandler extends TransportRequestHandler<BlobInfoRequest> {
         @Override
         public void messageReceived(BlobInfoRequest request, TransportChannel channel) throws Exception {
             final BlobTransferStatus transferStatus = blobTransferTarget.getActiveTransfer(request.transferId);

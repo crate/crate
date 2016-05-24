@@ -33,7 +33,7 @@ import java.util.UUID;
 /**
  * Base Request Class for Blob Transfers
  */
-public abstract class BlobTransferRequest<T extends ReplicationRequest>
+public abstract class BlobTransferRequest<T extends ReplicationRequest<T>>
     extends ReplicationRequest<T>
     implements IPutChunkRequest
 {

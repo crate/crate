@@ -22,7 +22,7 @@
 
 package io.crate.executor.transport;
 
-import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.Iterables;
+import com.google.common.collect.Iterables;
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntObjectHashMap;

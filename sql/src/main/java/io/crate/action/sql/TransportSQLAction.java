@@ -68,8 +68,9 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
             IndexNameExpressionResolver indexNameExpressionResolver,
             TransportKillJobsNodeAction transportKillJobsNodeAction) {
         super(clusterService, settings, SQLAction.NAME, threadPool,
-                analyzer, planner, executor, statsTables, actionFilters,
-                indexNameExpressionResolver, transportKillJobsNodeAction);
+            analyzer, planner, executor, statsTables, actionFilters,
+            indexNameExpressionResolver, transportKillJobsNodeAction,
+            transportService.getTaskManager());
 
         transportService.registerRequestHandler(SQLAction.NAME, SQLRequest.class, ThreadPool.Names.SAME, new TransportHandler());
     }
@@ -129,7 +130,7 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
         );
     }
 
-    private class TransportHandler implements TransportRequestHandler<SQLRequest> {
+    private class TransportHandler extends TransportRequestHandler<SQLRequest> {
         @Override
         public void messageReceived(SQLRequest request, final TransportChannel channel) throws Exception {
             ActionListener<SQLResponse> listener = ActionListeners.forwardTo(channel);

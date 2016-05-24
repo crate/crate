@@ -22,14 +22,14 @@
 
 package org.apache.lucene.index;
 
+import java.io.IOException;
+import java.util.Iterator;
+
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.VirtualMethod;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
-
-import java.io.IOException;
-import java.util.Iterator;
 
 /**
  * A {@link FilterLeafReader} that can be used to apply
@@ -38,7 +38,7 @@ import java.util.Iterator;
 public class AssertingLeafReader extends FilterLeafReader {
 
     private static void assertThread(String object, Thread creationThread) {
-        // CRATE PATCH: pause/resume logic in crate can cause thread switches
+        // CRATE PATCH: pause/resume logic in crate can cause thread switches 
         /*
         if (creationThread != Thread.currentThread()) {
             throw new AssertionError(object + " are only supposed to be consumed in "
@@ -61,7 +61,7 @@ public class AssertingLeafReader extends FilterLeafReader {
             public void onClose(Object ownerCoreCacheKey) throws IOException {
                 final Object expectedKey = getCoreCacheKey();
                 assert expectedKey == ownerCoreCacheKey
-                        : "Core closed listener called on a different key " + expectedKey + " <> " + ownerCoreCacheKey;
+                    : "Core closed listener called on a different key " + expectedKey + " <> " + ownerCoreCacheKey;
             }
         });
     }

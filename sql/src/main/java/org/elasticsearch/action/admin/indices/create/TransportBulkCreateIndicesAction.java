@@ -221,7 +221,7 @@ public class TransportBulkCreateIndicesAction
             // first, add the default mapping
             if (mappings.containsKey(MapperService.DEFAULT_MAPPING)) {
                 try {
-                    mapperService.merge(MapperService.DEFAULT_MAPPING, new CompressedXContent(XContentFactory.jsonBuilder().map(mappings.get(MapperService.DEFAULT_MAPPING)).string()), false, false);
+                    mapperService.merge(MapperService.DEFAULT_MAPPING, new CompressedXContent(XContentFactory.jsonBuilder().map(mappings.get(MapperService.DEFAULT_MAPPING)).string()), MapperService.MergeReason.MAPPING_UPDATE, false);
                 } catch (Exception e) {
                     removalReason = "failed on parsing default mapping on index creation";
                     throw new MapperParsingException("mapping [" + MapperService.DEFAULT_MAPPING + "]", e);
@@ -233,7 +233,7 @@ public class TransportBulkCreateIndicesAction
                 }
                 try {
                     // apply the default here, its the first time we parse it
-                    mapperService.merge(entry.getKey(), new CompressedXContent(XContentFactory.jsonBuilder().map(entry.getValue()).string()), true, false);
+                    mapperService.merge(entry.getKey(), new CompressedXContent(XContentFactory.jsonBuilder().map(entry.getValue()).string()), MapperService.MergeReason.MAPPING_UPDATE, false);
                 } catch (Exception e) {
                     removalReason = "failed on parsing mappings on index creation";
                     throw new MapperParsingException("mapping [" + entry.getKey() + "]", e);

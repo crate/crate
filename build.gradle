@@ -8,7 +8,7 @@ buildscript {
 }
 
 plugins {
-     id 'me.champeau.gradle.jmh' version '0.2.0'
+    id 'me.champeau.gradle.jmh' version '0.2.0'
 }
 
 
