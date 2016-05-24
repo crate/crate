@@ -155,9 +155,6 @@ allprojects {
     }
 
     idea {
-        project {
-           languageLevel "7"
-        }
         module {
            inheritOutputDirs = false
            outputDir = file('build-idea/classes/main')
