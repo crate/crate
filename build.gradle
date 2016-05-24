@@ -28,7 +28,7 @@ def download (File downloadDir, String url, String name){
 ext {
     versions = [
         // update this value when elasticsearch is updated
-        elasticsearch: "2.2.2"
+        elasticsearch: "2.3.3"
     ]
 }
 

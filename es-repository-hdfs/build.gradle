@@ -74,7 +74,7 @@ configurations.all {
 }
 
 task downloadUpstreamSources (type: Download) {
-    def upstreamCommit = 'v2.2.1'
+    def upstreamCommit = 'v2.3.2'
     src "https://github.com/elastic/elasticsearch-hadoop/archive/${upstreamCommit}.zip"
     dest file("${buildDir}/downloads/elasticsearch-hadoop-${upstreamCommit}.zip")
     overwrite false
