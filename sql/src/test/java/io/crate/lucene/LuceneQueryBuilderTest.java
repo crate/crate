@@ -110,7 +110,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                 .startObject("shape").field("type", "geo_shape").endObject()
                 .endObject()
                 .endObject().endObject();
-        mapperService.merge("default", new CompressedXContent(xContentBuilder.bytes()), true, true);
+        mapperService.merge("default", new CompressedXContent(xContentBuilder.bytes()), MapperService.MergeReason.MAPPING_UPDATE, true);
 
         when(searchContext.mapperService()).thenReturn(mapperService);
 

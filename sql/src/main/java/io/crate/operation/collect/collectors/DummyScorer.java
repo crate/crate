@@ -22,6 +22,7 @@
 
 package io.crate.operation.collect.collectors;
 
+import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Scorer;
 
 import java.io.IOException;
@@ -49,27 +50,17 @@ class DummyScorer extends Scorer {
     }
 
     @Override
-    public int advance(int target) throws IOException {
-        return 0;
-    }
-
-    @Override
     public int freq() throws IOException {
         return 0;
     }
 
     @Override
+    public DocIdSetIterator iterator() {
+        return null;
+    }
+
+    @Override
     public int docID() {
-        return 0;
-    }
-
-    @Override
-    public int nextDoc() throws IOException {
-        return 0;
-    }
-
-    @Override
-    public long cost() {
         return 0;
     }
 }

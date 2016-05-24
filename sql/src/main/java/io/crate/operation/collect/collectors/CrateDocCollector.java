@@ -315,9 +315,11 @@ public class CrateDocCollector implements CrateCollector {
     private static class DefaultBulkScorer extends BulkScorer {
 
         private final Scorer scorer;
+        private final DocIdSetIterator iterator;
 
         public DefaultBulkScorer(Scorer scorer) {
             this.scorer = scorer;
+            this.iterator = scorer.iterator();
         }
 
         @Override
@@ -325,7 +327,7 @@ public class CrateDocCollector implements CrateCollector {
             // TODO: figure out if min/max can be used to optimize this and still work correctly with pause/resume
             // and also check if twoPhaseIterator can be used
             collector.setScorer(scorer);
-            for (int doc = scorer.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = scorer.nextDoc()) {
+            for (int doc = iterator.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = iterator.nextDoc()) {
                 if (acceptDocs == null || acceptDocs.get(doc)) {
                     collector.collect(doc);
                 }
@@ -335,7 +337,7 @@ public class CrateDocCollector implements CrateCollector {
 
         @Override
         public long cost() {
-            return scorer.cost();
+            return iterator.cost();
         }
     }
 }

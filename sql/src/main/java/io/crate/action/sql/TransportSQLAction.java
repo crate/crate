@@ -42,6 +42,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequestHandler;
@@ -68,8 +69,9 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
             IndexNameExpressionResolver indexNameExpressionResolver,
             TransportKillJobsNodeAction transportKillJobsNodeAction) {
         super(clusterService, settings, SQLAction.NAME, threadPool,
-                analyzer, planner, executor, statsTables, actionFilters,
-                indexNameExpressionResolver, transportKillJobsNodeAction);
+            analyzer, planner, executor, statsTables, actionFilters,
+            indexNameExpressionResolver, transportKillJobsNodeAction,
+            transportService.getTaskManager());
 
         transportService.registerRequestHandler(SQLAction.NAME, SQLRequest.class, ThreadPool.Names.SAME, new TransportHandler());
     }
@@ -129,7 +131,7 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
         );
     }
 
-    private class TransportHandler implements TransportRequestHandler<SQLRequest> {
+    private class TransportHandler extends TransportRequestHandler<SQLRequest> {
         @Override
         public void messageReceived(SQLRequest request, final TransportChannel channel) throws Exception {
             ActionListener<SQLResponse> listener = ActionListeners.forwardTo(channel);

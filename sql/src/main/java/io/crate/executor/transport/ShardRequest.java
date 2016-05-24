@@ -39,7 +39,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
-public abstract class ShardRequest<T extends ReplicationRequest, I extends ShardRequest.Item>
+public abstract class ShardRequest<T extends ReplicationRequest<T>, I extends ShardRequest.Item>
         extends ReplicationRequest<T> implements Iterable<I> {
 
     @Nullable

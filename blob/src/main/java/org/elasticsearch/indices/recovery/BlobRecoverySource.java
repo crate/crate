@@ -142,7 +142,7 @@ public class BlobRecoverySource extends AbstractComponent {
         }
     }
 
-    class StartRecoveryTransportRequestHandler implements TransportRequestHandler<StartRecoveryRequest> {
+    class StartRecoveryTransportRequestHandler extends TransportRequestHandler<StartRecoveryRequest> {
         @Override
         public void messageReceived(final StartRecoveryRequest request, final TransportChannel channel) throws Exception {
             RecoveryResponse response = recover(request);
