@@ -70,6 +70,7 @@ import org.elasticsearch.repositories.RepositoryMissingException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.snapshots.InvalidSnapshotNameException;
 import org.elasticsearch.snapshots.SnapshotMissingException;
+import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.NodeDisconnectedException;
 
@@ -118,8 +119,9 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                                      StatsTables statsTables,
                                      ActionFilters actionFilters,
                                      IndexNameExpressionResolver indexNameExpressionResolver,
-                                     TransportKillJobsNodeAction transportKillJobsNodeAction) {
-        super(settings, actionName, threadPool, actionFilters, indexNameExpressionResolver);
+                                     TransportKillJobsNodeAction transportKillJobsNodeAction,
+                                     TaskManager taskManager) {
+        super(settings, actionName, threadPool, actionFilters, indexNameExpressionResolver, taskManager);
         this.clusterService = clusterService;
         this.analyzer = analyzer;
         this.planner = planner;

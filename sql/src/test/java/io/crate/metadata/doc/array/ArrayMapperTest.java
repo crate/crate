@@ -112,6 +112,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         assertThat(
                 mapper.mappingSource().string(),
                 is("{\"type\":{" +
+                        "\"_timestamp\":{\"enabled\":false}," +
                         "\"properties\":{" +
                             "\"array_field\":{" +
                                 "\"type\":\"array\"," +

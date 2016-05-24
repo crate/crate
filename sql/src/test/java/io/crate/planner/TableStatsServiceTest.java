@@ -41,12 +41,14 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -79,7 +81,7 @@ public class TableStatsServiceTest extends CrateUnitTest  {
                 mock(Analyzer.class),
                 mock(Planner.class),
                 mock(Provider.class),
-                mock(TransportService.class),
+                mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
                 mock(StatsTables.class),
                 new ActionFilters(ImmutableSet.<ActionFilter>of()),
                 mock(IndexNameExpressionResolver.class),

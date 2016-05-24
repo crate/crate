@@ -45,6 +45,7 @@ import org.elasticsearch.common.inject.spi.Message;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.RepositoryException;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -105,14 +106,14 @@ public class RepositoryServiceTest extends CrateUnitTest {
         IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(Settings.EMPTY);
         TransportDeleteRepositoryAction deleteRepositoryAction = new TransportDeleteRepositoryAction(
                 Settings.EMPTY,
-                mock(TransportService.class),
+                mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
                 clusterService,
                 mock(RepositoriesService.class),
                 threadPool,
                 actionFilters,
                 indexNameExpressionResolver) {
             @Override
-            protected void doExecute(DeleteRepositoryRequest request, ActionListener<DeleteRepositoryResponse> listener) {
+            protected void doExecute(Task task, DeleteRepositoryRequest request, ActionListener<DeleteRepositoryResponse> listener) {
                 listener.onResponse(mock(DeleteRepositoryResponse.class));
             }
         };
@@ -120,14 +121,14 @@ public class RepositoryServiceTest extends CrateUnitTest {
 
         TransportPutRepositoryAction putRepo = new TransportPutRepositoryAction(
                 Settings.EMPTY,
-                mock(TransportService.class),
+                mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
                 clusterService,
                 mock(RepositoriesService.class),
                 threadPool,
                 actionFilters,
                 indexNameExpressionResolver) {
             @Override
-            protected void doExecute(PutRepositoryRequest request, ActionListener<PutRepositoryResponse> listener) {
+            protected void doExecute(Task task, PutRepositoryRequest request, ActionListener<PutRepositoryResponse> listener) {
                 listener.onFailure(new RepositoryException(request.name(), "failure"));
             }
         };

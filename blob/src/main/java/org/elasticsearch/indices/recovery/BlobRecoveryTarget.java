@@ -102,7 +102,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
         transportService.registerRequestHandler(Actions.FINALIZE_RECOVERY, BlobFinalizeRecoveryRequest.class, ThreadPool.Names.GENERIC, new FinalizeRecoveryRequestHandler());
     }
 
-    class StartRecoveryRequestHandler implements TransportRequestHandler<BlobStartRecoveryRequest> {
+    class StartRecoveryRequestHandler extends TransportRequestHandler<BlobStartRecoveryRequest> {
         @Override
         public void messageReceived(BlobStartRecoveryRequest request, TransportChannel channel) throws Exception {
 
@@ -129,7 +129,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
     }
 
 
-    class TransferChunkRequestHandler implements TransportRequestHandler<BlobRecoveryChunkRequest> {
+    class TransferChunkRequestHandler extends TransportRequestHandler<BlobRecoveryChunkRequest> {
         @Override
         public void messageReceived(BlobRecoveryChunkRequest request, TransportChannel channel) throws Exception {
 
@@ -185,7 +185,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
     }
 
 
-    class StartPrefixSyncRequestHandler implements TransportRequestHandler<BlobStartPrefixSyncRequest> {
+    class StartPrefixSyncRequestHandler extends TransportRequestHandler<BlobStartPrefixSyncRequest> {
         @Override
         public void messageReceived(BlobStartPrefixSyncRequest request, TransportChannel channel) throws Exception {
             BlobRecoveryStatus status = onGoingRecoveries.get(request.recoveryId());
@@ -204,7 +204,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
     }
 
 
-    private class StartTransferRequestHandler implements TransportRequestHandler<BlobRecoveryStartTransferRequest> {
+    private class StartTransferRequestHandler extends TransportRequestHandler<BlobRecoveryStartTransferRequest> {
         @Override
         public void messageReceived(BlobRecoveryStartTransferRequest request, TransportChannel channel) throws Exception {
             BlobRecoveryStatus status = onGoingRecoveries.get(request.recoveryId());
@@ -251,7 +251,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
         }
     }
 
-    private class DeleteFileRequestHandler implements TransportRequestHandler<BlobRecoveryDeleteRequest> {
+    private class DeleteFileRequestHandler extends TransportRequestHandler<BlobRecoveryDeleteRequest> {
         @Override
         public void messageReceived(BlobRecoveryDeleteRequest request, TransportChannel channel) throws Exception {
             BlobRecoveryStatus status = onGoingRecoveries.get(request.recoveryId());
@@ -265,7 +265,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
         }
     }
 
-    private class FinalizeRecoveryRequestHandler implements TransportRequestHandler<BlobFinalizeRecoveryRequest> {
+    private class FinalizeRecoveryRequestHandler extends TransportRequestHandler<BlobFinalizeRecoveryRequest> {
         @Override
         public void messageReceived(BlobFinalizeRecoveryRequest request, TransportChannel channel) throws Exception {
 
