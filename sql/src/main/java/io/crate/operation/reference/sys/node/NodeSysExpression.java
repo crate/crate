@@ -32,13 +32,10 @@ import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
-import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.node.service.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
 
 public class NodeSysExpression extends NestedObjectExpression {
 
@@ -47,12 +44,6 @@ public class NodeSysExpression extends NestedObjectExpression {
     private final JvmService jvmService;
     private final NodeEnvironment nodeEnvironment;
     private final ExtendedNodeInfo extendedNodeInfo;
-
-    private static final Collection EXPRESSIONS_WITH_OS_STATS = Arrays.asList(
-            SysNodesTableInfo.SYS_COL_MEM,
-            SysNodesTableInfo.SYS_COL_LOAD,
-            SysNodesTableInfo.SYS_COL_OS
-    );
 
     @Inject
     public NodeSysExpression(ClusterService clusterService,
@@ -88,27 +79,32 @@ public class NodeSysExpression extends NestedObjectExpression {
 
     @Override
     public ReferenceImplementation getChildImplementation(String name) {
-        if (EXPRESSIONS_WITH_OS_STATS.contains(name)) {
-            OsStats osStats = osService.stats();
-            if (SysNodesTableInfo.SYS_COL_MEM.equals(name)) {
-                return new NodeMemoryExpression(osStats);
-            } else if (SysNodesTableInfo.SYS_COL_LOAD.equals(name)) {
+        switch (name) {
+            case SysNodesTableInfo.SYS_COL_MEM:
+                return new NodeMemoryExpression(osService.stats());
+
+            case SysNodesTableInfo.SYS_COL_LOAD:
                 return new NodeLoadExpression(extendedNodeInfo.osStats());
-            } else if (SysNodesTableInfo.SYS_COL_OS.equals(name)) {
+
+            case SysNodesTableInfo.SYS_COL_OS:
                 return new NodeOsExpression(extendedNodeInfo.osStats());
-            }
-        } else if (SysNodesTableInfo.SYS_COL_PROCESS.equals(name)) {
-            try {
-                return new NodeProcessExpression(nodeService.stats().getProcess(), extendedNodeInfo.processCpuStats());
-            } catch (IOException e) {
-                // This is a bug in ES method signature, IOException is never thrown
-            }
-        } else if (SysNodesTableInfo.SYS_COL_HEAP.equals(name)) {
-            return new NodeHeapExpression(jvmService.stats());
-        } else if (SysNodesTableInfo.SYS_COL_NETWORK.equals(name)) {
-            return new NodeNetworkExpression(extendedNodeInfo.networkStats());
-        } else if (SysNodesTableInfo.SYS_COL_FS.equals(name)) {
-            return new NodeFsExpression(extendedNodeInfo.fsStats(nodeEnvironment));
+
+            case SysNodesTableInfo.SYS_COL_PROCESS:
+                try {
+                    return new NodeProcessExpression(nodeService.stats().getProcess(), extendedNodeInfo.processCpuStats());
+                } catch (IOException e) {
+                    // This is a bug in ES method signature, IOException is never thrown
+                }
+                break;
+
+            case SysNodesTableInfo.SYS_COL_HEAP:
+                return new NodeHeapExpression(jvmService.stats());
+
+            case SysNodesTableInfo.SYS_COL_NETWORK:
+                return new NodeNetworkExpression(extendedNodeInfo.networkStats());
+
+            case SysNodesTableInfo.SYS_COL_FS:
+                return new NodeFsExpression(extendedNodeInfo.fsStats(nodeEnvironment));
         }
         return super.getChildImplementation(name);
     }
