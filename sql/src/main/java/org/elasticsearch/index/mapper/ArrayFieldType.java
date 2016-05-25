@@ -42,15 +42,16 @@ class ArrayFieldType extends MappedFieldType {
 
     private final MappedFieldType innerFieldType;
 
-    protected ArrayFieldType(ArrayFieldType ref) {
+    private ArrayFieldType(ArrayFieldType ref) {
         super(ref);
         this.innerFieldType = ref.innerFieldType;
     }
 
-    public ArrayFieldType(MappedFieldType innerFieldType) {
+    ArrayFieldType(MappedFieldType innerFieldType) {
         this.innerFieldType = innerFieldType;
     }
 
+    @SuppressWarnings("CloneDoesntCallSuperClone")
     @Override
     public MappedFieldType clone() {
         return new ArrayFieldType(this);
@@ -61,10 +62,12 @@ class ArrayFieldType extends MappedFieldType {
         return ArrayMapper.CONTENT_TYPE;
     }
 
-
     @Override
     public void checkCompatibility(MappedFieldType other, List<String> conflicts, boolean strict) {
-        innerFieldType.checkCompatibility(other, conflicts, strict);
+        super.checkCompatibility(other, conflicts, strict);
+        if (other instanceof ArrayFieldType) {
+            innerFieldType.checkCompatibility(((ArrayFieldType) other).innerFieldType, conflicts, strict);
+        }
     }
 
     @Override
