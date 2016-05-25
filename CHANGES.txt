@@ -5,6 +5,22 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to 0.18.0 which contains following changes:
+
+    - Cluster check include now clickable links
+
+    - Load additional links in menu dynamically from news feed
+
+    - Fixed an issue which caused rendering errors in the node list if the cluster
+      contains multiple nodes with the same name
+      note: changes the url to the detail view of single nodes
+
+    - Added UTM tokens to links that link to the Crate.IO blog
+
+    - Updated news feed URL
+
+    - Label the master node in the cluster node list
+
  - Fixed a bug which prevented complete deletion of tables in custom
    schemas.
 
