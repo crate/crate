@@ -23,9 +23,9 @@ package io.crate.operation.reference.sys.node;
 
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
-import io.crate.monitor.ExtendedNodeInfo;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.Discovery;
@@ -45,6 +45,7 @@ public class NodeSysExpression extends NestedObjectExpression {
     private final NodeService nodeService;
     private final OsService osService;
     private final JvmService jvmService;
+    private final NodeEnvironment nodeEnvironment;
     private final ExtendedNodeInfo extendedNodeInfo;
 
     private static final Collection EXPRESSIONS_WITH_OS_STATS = Arrays.asList(
@@ -65,9 +66,8 @@ public class NodeSysExpression extends NestedObjectExpression {
         this.nodeService = nodeService;
         this.osService = osService;
         this.jvmService = jvmService;
+        this.nodeEnvironment = nodeEnvironment;
         this.extendedNodeInfo = extendedNodeInfo;
-        childImplementations.put(SysNodesTableInfo.SYS_COL_FS,
-                new NodeFsExpression(extendedNodeInfo.fsStats(nodeEnvironment)));
         childImplementations.put(SysNodesTableInfo.SYS_COL_HOSTNAME,
                 new NodeHostnameExpression(clusterService));
         childImplementations.put(SysNodesTableInfo.SYS_COL_REST_URL,
@@ -107,6 +107,8 @@ public class NodeSysExpression extends NestedObjectExpression {
             return new NodeHeapExpression(jvmService.stats());
         } else if (SysNodesTableInfo.SYS_COL_NETWORK.equals(name)) {
             return new NodeNetworkExpression(extendedNodeInfo.networkStats());
+        } else if (SysNodesTableInfo.SYS_COL_FS.equals(name)) {
+            return new NodeFsExpression(extendedNodeInfo.fsStats(nodeEnvironment));
         }
         return super.getChildImplementation(name);
     }
