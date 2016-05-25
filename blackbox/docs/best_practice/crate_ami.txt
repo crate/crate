@@ -162,14 +162,15 @@ Attached Devices
 To add a block device mapping before launching an instance, it is possible to
 use the ``block-device-mappings`` parameter with the ``run-instances`` command.
 In this case ``ephemeral1`` will be added as an instance store volume with the
-device name ``/dev/sdc``.
+device name ``/dev/sdc``. For additional info see
+`device naming on linux instances`_.
 
 .. code-block:: bash
 
     $ aws ec2 run-instances --image-id ami-544c1923 --count 1 --instance-type m3.medium --block-device-mappings "[{\"DeviceName\": \"/dev/sdc\",\"VirtualName\":\"ephemeral1\"}]"
 
 .. note::
-    Note that the data stored on ephemeral disks is nor permanent and only
+    Note that the data stored on ephemeral disks is not permanent and only
     persists during the lifetime of an instance.
 
 If no block device mapping is configured on the EC2 instance, the default data
@@ -183,3 +184,4 @@ directory of Crate is set to ``/var/lib/crate``. The data paths are set in
 .. _Amazon Linux: https://aws.amazon.com/amazon-linux-ami/
 .. _multi node setup: https://crate.io/docs/scale/multi_node_setup/
 .. _IAM roles: http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
+.. _device naming on linux instances: http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/device_naming.html
