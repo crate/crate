@@ -11,9 +11,14 @@ env:
     - JAVA7_HOME="/usr/lib/jvm/java-7-oracle"
     - _JAVA_OPTIONS="-Xmx1g -XX:MaxPermSize=256m"
 
+
+before_cache:
+    - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
 cache:
   directories:
     - $HOME/.m2
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
 
 notifications:
   email: false
