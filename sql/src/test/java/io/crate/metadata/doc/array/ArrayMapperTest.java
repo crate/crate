@@ -50,7 +50,7 @@ import java.io.IOException;
 
 import static org.hamcrest.Matchers.*;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, randomDynamicTemplates = false)
 public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
     public static final String INDEX = "my_index";
@@ -112,7 +112,6 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         assertThat(
                 mapper.mappingSource().string(),
                 is("{\"type\":{" +
-                        "\"_timestamp\":{\"enabled\":false}," +
                         "\"properties\":{" +
                             "\"array_field\":{" +
                                 "\"type\":\"array\"," +
@@ -221,7 +220,8 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         assertThat(mapper.mappers().smartNameFieldMapper("array_field.s"), instanceOf(StringFieldMapper.class));
         assertThat(
                 mapper.mappingSource().string(),
-                is("{\"type\":{\"properties\":{" +
+                is("{\"type\":{" +
+                   "\"properties\":{" +
                         "\"array_field\":{" +
                           "\"type\":\"array\"," +
                           "\"inner\":{" +
@@ -276,7 +276,8 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         String mappingSourceString = new CompressedXContent(mapper, XContentType.JSON, ToXContent.EMPTY_PARAMS).string();
         assertThat(
                 mappingSourceString,
-                is("{\"type\":{\"properties\":{" +
+                is("{\"type\":{" +
+                   "\"properties\":{" +
                         "\"array_field\":{" +
                             "\"type\":\"array\"," +
                             "\"inner\":{" +
