@@ -276,7 +276,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     public void testCountWithGroupByNullArgs() throws Exception {
         SQLResponse response = executor.exec("select count(*), race from characters group by race", new Object[]{null});
         assertEquals(3, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0));
     }
 
     @Test

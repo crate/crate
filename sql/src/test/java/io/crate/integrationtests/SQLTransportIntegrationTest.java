@@ -101,7 +101,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return pluginList(CrateCorePlugin.class);
     }
 
-    protected long responseDuration;
+    protected float responseDuration;
     protected SQLResponse response;
 
     public SQLTransportIntegrationTest() {

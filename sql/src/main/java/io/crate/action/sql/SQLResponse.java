@@ -44,7 +44,7 @@ public class SQLResponse extends SQLBaseResponse {
                        Object[][] rows,
                        DataType[] dataTypes,
                        long rowCount,
-                       int duration,
+                       float duration,
                        boolean includeTypes) {
         super(cols, dataTypes, includeTypes, duration);
         this.rows = rows;

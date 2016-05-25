@@ -50,11 +50,11 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
     private String[] cols;
     private DataType[] colTypes;
     private boolean includeTypes;
-    private int duration;
+    private float duration;
 
     public SQLBaseResponse() {} // used for serialization
 
-    public SQLBaseResponse(String[] cols, DataType[] colTypes, boolean includeTypes, int duration) {
+    public SQLBaseResponse(String[] cols, DataType[] colTypes, boolean includeTypes, float duration) {
         assert cols.length == colTypes.length : "cols and colTypes differ";
         this.cols = cols;
         this.colTypes = colTypes;
@@ -82,7 +82,7 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
         this.includeTypes = includeTypes;
     }
 
-    public int duration() {
+    public float duration() {
         return duration;
     }
 
@@ -117,7 +117,7 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
         super.readFrom(in);
         cols = in.readStringArray();
         includeTypes = in.readBoolean();
-        duration = in.readVInt();
+        duration = in.readFloat();
         if (includeTypes) {
             int numColTypes = in.readVInt();
             colTypes = new DataType[numColTypes];
@@ -134,7 +134,7 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
         super.writeTo(out);
         out.writeStringArray(cols);
         out.writeBoolean(includeTypes);
-        out.writeVInt(duration);
+        out.writeFloat(duration);
         if (includeTypes) {
             out.writeVInt(colTypes.length);
             for (DataType colType : colTypes) {

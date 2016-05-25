@@ -57,7 +57,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testCreateTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string) " +
                 "clustered into 5 shards with (number_of_replicas = 1)");
-        assertThat(response.duration(), greaterThanOrEqualTo(0));
         ensureYellow();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
@@ -95,7 +94,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table test (id int primary key, content string) " +
                 "clustered into 5 shards " +
                 "with (refresh_interval=0, number_of_replicas = 0)");
-        assertThat(response.duration(), greaterThanOrEqualTo(0));
         ensureYellow();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
@@ -545,7 +543,6 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("drop table test");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.duration(), greaterThanOrEqualTo(0));
         assertFalse(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
     }

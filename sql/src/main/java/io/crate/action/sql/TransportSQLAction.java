@@ -82,7 +82,7 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
 
     @Override
     public SQLResponse emptyResponse(SQLRequest request,
-                                     int duration,
+                                     float duration,
                                      String[] outputNames,
                                      @Nullable DataType[] types) {
         return new SQLResponse(outputNames,
@@ -99,7 +99,7 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
                                                    List<TaskResult> result,
                                                    boolean expectsAffectedRows,
                                                    SQLRequest request,
-                                                   int duration) {
+                                                   float duration) {
         assert result.size() == 1;
         TaskResult taskResult = result.get(0);
         Bucket rows = taskResult.rows();

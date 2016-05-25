@@ -140,7 +140,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
      * @param types       an array of types of the output columns,
      *                    if not null it must be of the same length as <code>outputNames</code>
      */
-    protected abstract TResponse emptyResponse(TRequest request, int duration, String[] outputNames, @Nullable DataType[] types);
+    protected abstract TResponse emptyResponse(TRequest request, float duration, String[] outputNames, @Nullable DataType[] types);
 
     /**
      * create an instance of SQLBaseResponse from a plan and a TaskResult
@@ -155,7 +155,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                                                           List<TaskResult> result,
                                                           boolean expectsAffectedRows,
                                                           TRequest request,
-                                                          int duration);
+                                                          float duration);
 
     /**
      * create an instance of SQLBaseResponse
@@ -180,7 +180,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                 outputTypes[i] = field.valueType();
             }
         }
-        int duration = (int)((System.nanoTime() - startTime) / 1_000_000);
+        float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
         if (result == null) {
             return emptyResponse(request, duration, outputNames, outputTypes);
         } else {

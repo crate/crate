@@ -101,7 +101,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(3, response.rows()[0][1]);
         assertEquals("10", response.rows()[0][2]);
         assertEquals("id", response.rows()[0][3]);
-        assertThat(response.duration(), greaterThanOrEqualTo(0));
 
         execute("select * from information_schema.columns where table_name='quotes'");
         assertEquals(2L, response.rowCount());

@@ -40,7 +40,7 @@ public class SQLBulkResponse extends SQLBaseResponse {
 
     public SQLBulkResponse(String[] outputNames,
                            Result[] results,
-                           int duration,
+                           float duration,
                            DataType[] colTypes,
                            boolean includeTypes) {
         super(outputNames, colTypes, includeTypes, duration);

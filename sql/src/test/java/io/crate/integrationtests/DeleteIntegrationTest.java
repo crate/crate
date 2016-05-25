@@ -39,7 +39,6 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         execute("delete from test");
         assertEquals(1, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0));
         refresh();
         execute("select \"_id\" from test");
         assertEquals(0, response.rowCount());
@@ -141,7 +140,6 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("delete from test where pk_col='123'");
         assertEquals(1, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0));
         refresh();
 
         execute("select * from test where pk_col='123'");
@@ -158,7 +156,6 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("DELETE FROM test WHERE pk_col IN (?, ?, ?)", new Object[]{"1", "2", "4"});
-        assertThat(response.duration(), greaterThanOrEqualTo(0));
         refresh();
 
         execute("SELECT pk_col FROM test");
@@ -173,7 +170,6 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test (pk_col, message) values ('1', 'foo'), ('2', 'bar'), ('3', 'baz')");
         refresh();
         execute("DELETE FROM test WHERE pk_col=? or pk_col=? or pk_col=?", new Object[]{"1", "2", "4"});
-        assertThat(response.duration(), greaterThanOrEqualTo(0));
         refresh();
         execute("SELECT pk_col FROM test");
         assertThat(response.rowCount(), is(1L));

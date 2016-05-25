@@ -73,7 +73,7 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
     }
 
     @Override
-    protected SQLBulkResponse emptyResponse(SQLBulkRequest request, int duration, String[] outputNames, @Nullable DataType[] types) {
+    protected SQLBulkResponse emptyResponse(SQLBulkRequest request, float duration, String[] outputNames, @Nullable DataType[] types) {
         return new SQLBulkResponse(
             outputNames,
             SQLBulkResponse.EMPTY_RESULTS,
@@ -88,7 +88,7 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
                                                        List<TaskResult> result,
                                                        boolean expectsAffectedRows,
                                                        SQLBulkRequest request,
-                                                       int duration) {
+                                                       float duration) {
         assert expectsAffectedRows : "bulk operations only works with statements that return rowcounts";
         SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[result.size()];
         for (int i = 0, resultSize = result.size(); i < resultSize; i++) {

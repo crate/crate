@@ -192,7 +192,7 @@ public class SQLResponseTest extends CrateUnitTest {
         resp.writeTo(out);
 
         byte[] expectedBytes = new byte[]
-            {0, 2, 4, 99, 111, 108, 49, 4, 99, 111, 108, 50, 1, 0, 2, 4, 4, 0, 2, 0, 0, 0, 2, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 50, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 50};
+            {0, 2, 4, 99, 111, 108, 49, 4, 99, 111, 108, 50, 1, 0, 0, 0, 0, 2, 4, 4, 0, 2, 0, 0, 0, 2, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 50, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 50};
         byte[] bytes = out.bytes().toBytes();
         assertThat(bytes, is(expectedBytes));
     }
@@ -200,7 +200,7 @@ public class SQLResponseTest extends CrateUnitTest {
     @Test
     public void testSerializationReadFrom() throws Exception {
         byte[] buf = new byte[]
-            {0, 2, 4, 99, 111, 108, 49, 4, 99, 111, 108, 50, 1, 0, 2, 4, 4, 0, 2, 0, 0, 0, 2, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 50, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 50};
+            {0, 2, 4, 99, 111, 108, 49, 4, 99, 111, 108, 50, 1, 0, 0, 0, 0, 2, 4, 4, 0, 2, 0, 0, 0, 2, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 50, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 50};
         StreamInput in = StreamInput.wrap(buf);
         SQLResponse resp = new SQLResponse();
         resp.readFrom(in);
@@ -213,6 +213,6 @@ public class SQLResponseTest extends CrateUnitTest {
 
         assertThat(resp.columnTypes(), is(new DataType[] { DataTypes.STRING, DataTypes.STRING }));
         assertThat(resp.rowCount(), is(2L));
-        assertThat(resp.duration(), is(0));
+        assertThat(resp.duration(), is(0f));
     }
 }
