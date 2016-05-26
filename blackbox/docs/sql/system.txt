@@ -922,7 +922,7 @@ The table schema is the following:
 |                  | check for the setting has passed.|             |
 +------------------+----------------------------------+-------------+
 
-There are currently four checks:
+Currently Crate checks the following:
 
 +------------------+------------------------------------+
 |       id         |           Check name               |
@@ -936,6 +936,8 @@ There are currently four checks:
 | 4                | Recovery after time.               |
 +------------------+------------------------------------+
 | 5                | Number of partitions.              |
++------------------+------------------------------------+
+| 6                | Java 7 deprecation warning.        |
 +------------------+------------------------------------+
 
 Settings checks:
@@ -1002,6 +1004,12 @@ results
     |  5 |        2 | The total number of partitions of one or more partitioned tables should not be greater than 1000. A large amount of shards can significantly reduce performance. https://cr8.is/d-check-5 | TRUE   |
     +----+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+
     SELECT 1 row in set (... sec)
+
+Java 7 deprecation warning
+..........................
+Starting with Crate 0.55.0 using Java 7 runtime environment is deprecated. Please
+update to Java 8 (>= update 20). See also
+`here <https://crate.io/docs/reference/en/latest/installation.html#java-jvm-version>`_ .
 
 .. _sys-repositories:
 
