@@ -798,6 +798,102 @@ See below for an example::
     SELECT 1 row in set (... sec)
 
 
+sin(number) returns double
+--------------------------
+
+Returns the sine of the argument.
+
+See below for an example::
+
+    cr> SELECT sin(1) FROM sys.cluster;
+    +--------------------+
+    |             sin(1) |
+    +--------------------+
+    | 0.8414709848078965 |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
+
+asin(number) returns double
+---------------------------
+
+Returns the arcsine of the argument.
+
+See below for an example::
+
+    cr> SELECT asin(1) FROM sys.cluster;
+    +--------------------+
+    |            asin(1) |
+    +--------------------+
+    | 1.5707963267948966 |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
+
+cos(number) returns double
+--------------------------
+
+Returns the cosine of the argument.
+
+See below for an example::
+
+    cr> SELECT cos(1) FROM sys.cluster;
+    +--------------------+
+    |             cos(1) |
+    +--------------------+
+    | 0.5403023058681398 |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
+
+acos(number) returns double
+---------------------------
+
+Returns the arccosine of the argument.
+
+See below for an example::
+
+    cr> SELECT acos(-1) FROM sys.cluster;
+    +-------------------+
+    |          acos(-1) |
+    +-------------------+
+    | 3.141592653589793 |
+    +-------------------+
+    SELECT 1 row in set (... sec)
+
+
+tan(number) returns double
+--------------------------
+
+Returns the tangent of the argument.
+
+See below for an example::
+
+    cr> SELECT tan(1) FROM sys.cluster;
+    +--------------------+
+    |             tan(1) |
+    +--------------------+
+    | 1.5574077246549023 |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
+
+atan(number) returns double
+---------------------------
+
+Returns the arctangent of the argument.
+
+See below for an example::
+
+    cr> SELECT atan(1) FROM sys.cluster;
+    +--------------------+
+    |            atan(1) |
+    +--------------------+
+    | 0.7853981633974483 |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-regexp:
 
 Regular Expression Functions

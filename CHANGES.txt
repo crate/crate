@@ -12,7 +12,7 @@ Unreleased
    Added the ability to acknowledge failing checks on this new
    `sys.node_checks` table.
 
- - Fix in Cloud AWS plugin: Use the current region of the instance if no EC2 
+ - Fix in Cloud AWS plugin: Use the current region of the instance if no EC2
    region is specified in the configuration.
 
  - Fixed a validation issue that allowed setting a primary key column value to
@@ -43,6 +43,9 @@ Unreleased
    a `DELETE-BY-QUERY` operation is applied.
 
  - Upgraded Elasticsearch to 2.3.3
+
+ - Implemented trigonometric scalar functions
+   (sin(), cos(), tan(), asin(), acos() & atan()).
 
  - Updated crate-admin to 0.18.0 which contains following changes:
 
@@ -272,7 +275,7 @@ Unreleased
 
  - Fixed a NPE that occurred if a table was created using the ES API with a
    mapping that uses ``copy_to`` but does not define ``_meta.indices``.
- 
+
  - Fixed a NPE that could occur if a system table was joined with a regular
    user table.
 
