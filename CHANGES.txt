@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Implemented sin() scalar function.
+
  - Updated crate-admin to 0.18.0 which contains following changes:
 
     - Cluster check include now clickable links

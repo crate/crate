@@ -798,6 +798,22 @@ See below for an example::
     SELECT 1 row in set (... sec)
 
 
+sin(number) returns double
+--------------------------
+
+Returns the sine of the argument.
+
+See below for an example::
+
+    cr> SELECT sin(1) FROM sys.cluster;
+    +--------------------+
+    |             sin(1) |
+    +--------------------+
+    | 0.8414709848078965 |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-regexp:
 
 Regular Expression Functions
