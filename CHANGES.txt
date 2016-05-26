@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Implemented trigonometric scalar functions
+   (sin(), cos(), tan(), asin(), acos() & atan()).
+
  - Updated crate-admin to 0.18.0 which contains following changes:
 
     - Cluster check include now clickable links
@@ -28,7 +31,7 @@ Unreleased
 
  - Fixed a `ClassCastException` that occurred if the left side of a `IN`
    predicate was a function.
- - Added links to Cluster check documentation. 
+ - Added links to Cluster check documentation.
 
  - Removed the `creationTime` property from `SQL(Bulk)Request` and changed the
    `duration` property on `SQL(Bulk)Response` to return the server-side
@@ -113,7 +116,7 @@ Unreleased
 
  - Added support for the ``unnest`` table function
 
- - Implemented cluster check for installed java version 
+ - Implemented cluster check for installed java version
 
  - removed wrong behaving CrateClient feature which allowed to load
    client settings from a configuration file.
@@ -256,7 +259,7 @@ Unreleased
 
  - Fixed a NPE that occurred if a table was created using the ES API with a
    mapping that uses ``copy_to`` but does not define ``_meta.indices``.
- 
+
  - Fixed a NPE that could occur if a system table was joined with a regular
    user table.
 
