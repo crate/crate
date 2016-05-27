@@ -60,6 +60,7 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -78,20 +79,20 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
 
     protected static Routing shardRouting(String tableName) {
         return new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-                .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(1, 2)).map())
-                .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(3, 4)).map())
-                .map());
+            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(1, 2)).map())
+            .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(3, 4)).map())
+            .map());
     }
 
     private static final Routing PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.parted.04232chj", Arrays.asList(1, 2)).map())
-            .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
-            .map());
+        .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.parted.04232chj", Arrays.asList(1, 2)).map())
+        .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
+        .map());
 
     private static final Routing CLUSTERED_PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g",  Arrays.asList(1, 2)).map())
-            .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g",  Arrays.asList(3)).map())
-            .map());
+        .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g", Arrays.asList(1, 2)).map())
+        .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g", Arrays.asList(3)).map())
+        .map());
 
 
     protected ClusterService clusterService;
@@ -106,14 +107,15 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
     public void prepare() throws Exception {
         threadPool = TestingHelpers.newMockedThreadPool();
         Injector injector = new ModulesBuilder()
-                .add(new AggregationImplModule())
-                .add(new ScalarFunctionModule())
-                .add(new TableFunctionModule())
-                .add(new PredicateModule())
-                .add(new OperatorModule())
-                .add(new RepositorySettingsModule())
-                .add(new TestModule())
-                .createInjector();
+            .add(new AggregationImplModule())
+            .add(new ScalarFunctionModule())
+            .add(new TableFunctionModule())
+            .add(new PredicateModule())
+            .add(new OperatorModule())
+            .add(new RepositorySettingsModule())
+            .add(new SettingsModule(Settings.EMPTY))
+            .add(new TestModule())
+            .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
 
@@ -129,15 +131,15 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
     private void bindGeneratedColumnTable(Functions functions) {
         TableIdent generatedPartitionedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted_generated");
         TableInfo generatedPartitionedTableInfo = new TestingTableInfo.Builder(
-                generatedPartitionedTableIdent, PARTED_ROUTING)
-                .add("ts", DataTypes.TIMESTAMP, null)
-                .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true)
-                .addPartitions(
-                        new PartitionName("parted_generated", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                        new PartitionName("parted_generated", Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
-                .build(functions);
+            generatedPartitionedTableIdent, PARTED_ROUTING)
+            .add("ts", DataTypes.TIMESTAMP, null)
+            .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true)
+            .addPartitions(
+                new PartitionName("parted_generated", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+                new PartitionName("parted_generated", Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
+            .build(functions);
         when(schemaInfo.getTableInfo(generatedPartitionedTableIdent.name()))
-                .thenReturn(generatedPartitionedTableInfo);
+            .thenReturn(generatedPartitionedTableInfo);
     }
 
     class TestModule extends MetaDataModule {
@@ -161,69 +163,71 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
             super.bindSchemas();
             TableIdent userTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users");
             TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, shardRouting("users"))
-                    .add("name", DataTypes.STRING, null)
-                    .add("id", DataTypes.LONG, null)
-                    .add("date", DataTypes.TIMESTAMP, null)
-                    .add("text", DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED)
-                    .add("no_index", DataTypes.STRING, null, ReferenceInfo.IndexType.NO)
-                    .addPrimaryKey("id")
-                    .clusteredBy("id")
-                    .build();
+                .add("name", DataTypes.STRING, null)
+                .add("id", DataTypes.LONG, null)
+                .add("date", DataTypes.TIMESTAMP, null)
+                .add("text", DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED)
+                .add("no_index", DataTypes.STRING, null, ReferenceInfo.IndexType.NO)
+                .addPrimaryKey("id")
+                .clusteredBy("id")
+                .build();
             TableIdent charactersTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "characters");
             TableInfo charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, shardRouting("characters"))
-                    .add("name", DataTypes.STRING, null)
-                    .add("id", DataTypes.STRING, null)
-                    .addPrimaryKey("id")
-                    .clusteredBy("id")
-                    .build();
+                .add("name", DataTypes.STRING, null)
+                .add("id", DataTypes.STRING, null)
+                .addPrimaryKey("id")
+                .clusteredBy("id")
+                .build();
             TableIdent partedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted");
             TableInfo partedTableInfo = TestingTableInfo.builder(partedTableIdent, PARTED_ROUTING)
-                    .add("name", DataTypes.STRING, null)
-                    .add("id", DataTypes.STRING, null)
-                    .add("date", DataTypes.TIMESTAMP, null, true)
-                    .addPartitions(
-                            new PartitionName("parted", new ArrayList<BytesRef>(){{add(null);}}).asIndexName(), // TODO: invalid partition: null not valid as part of primary key
-                            new PartitionName("parted", Arrays.asList(new BytesRef("0"))).asIndexName(),
-                            new PartitionName("parted", Arrays.asList(new BytesRef("123"))).asIndexName()
-                    )
-                    .addPrimaryKey("id")
-                    .addPrimaryKey("date")
-                    .clusteredBy("id")
-                    .build();
+                .add("name", DataTypes.STRING, null)
+                .add("id", DataTypes.STRING, null)
+                .add("date", DataTypes.TIMESTAMP, null, true)
+                .addPartitions(
+                    new PartitionName("parted", new ArrayList<BytesRef>() {{
+                        add(null);
+                    }}).asIndexName(), // TODO: invalid partition: null not valid as part of primary key
+                    new PartitionName("parted", Arrays.asList(new BytesRef("0"))).asIndexName(),
+                    new PartitionName("parted", Arrays.asList(new BytesRef("123"))).asIndexName()
+                )
+                .addPrimaryKey("id")
+                .addPrimaryKey("date")
+                .clusteredBy("id")
+                .build();
             TableIdent emptyPartedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "empty_parted");
             TableInfo emptyPartedTableInfo = TestingTableInfo.builder(partedTableIdent, shardRouting("empty_parted"))
-                    .add("name", DataTypes.STRING, null)
-                    .add("id", DataTypes.STRING, null)
-                    .add("date", DataTypes.TIMESTAMP, null, true)
-                    .addPrimaryKey("id")
-                    .addPrimaryKey("date")
-                    .clusteredBy("id")
-                    .build();
-            TableIdent multiplePartitionedTableIdent= new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "multi_parted");
+                .add("name", DataTypes.STRING, null)
+                .add("id", DataTypes.STRING, null)
+                .add("date", DataTypes.TIMESTAMP, null, true)
+                .addPrimaryKey("id")
+                .addPrimaryKey("date")
+                .clusteredBy("id")
+                .build();
+            TableIdent multiplePartitionedTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "multi_parted");
             TableInfo multiplePartitionedTableInfo = new TestingTableInfo.Builder(
-                    multiplePartitionedTableIdent, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
-                    .add("id", DataTypes.INTEGER, null)
-                    .add("date", DataTypes.TIMESTAMP, null, true)
-                    .add("num", DataTypes.LONG, null)
-                    .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
-                    .add("obj", DataTypes.STRING, Arrays.asList("name"), true)
-                            // add 3 partitions/simulate already done inserts
-                    .addPartitions(
-                            new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395874800000"), new BytesRef("0"))).asIndexName(),
-                            new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).asIndexName(),
-                            new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).asIndexName())
-                    .build();
+                multiplePartitionedTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+                .add("id", DataTypes.INTEGER, null)
+                .add("date", DataTypes.TIMESTAMP, null, true)
+                .add("num", DataTypes.LONG, null)
+                .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
+                .add("obj", DataTypes.STRING, Arrays.asList("name"), true)
+                // add 3 partitions/simulate already done inserts
+                .addPartitions(
+                    new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395874800000"), new BytesRef("0"))).asIndexName(),
+                    new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).asIndexName(),
+                    new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).asIndexName())
+                .build();
             TableIdent clusteredByPartitionedIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "clustered_parted");
             TableInfo clusteredByPartitionedTableInfo = new TestingTableInfo.Builder(
-                    multiplePartitionedTableIdent, CLUSTERED_PARTED_ROUTING)
-                    .add("id", DataTypes.INTEGER, null)
-                    .add("date", DataTypes.TIMESTAMP, null, true)
-                    .add("city", DataTypes.STRING, null)
-                    .clusteredBy("city")
-                    .addPartitions(
-                            new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                            new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
-                    .build();
+                multiplePartitionedTableIdent, CLUSTERED_PARTED_ROUTING)
+                .add("id", DataTypes.INTEGER, null)
+                .add("date", DataTypes.TIMESTAMP, null, true)
+                .add("city", DataTypes.STRING, null)
+                .clusteredBy("city")
+                .addPartitions(
+                    new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+                    new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
+                .build();
             when(schemaInfo.getTableInfo(charactersTableIdent.name())).thenReturn(charactersTableInfo);
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(partedTableIdent.name())).thenReturn(partedTableInfo);
@@ -236,7 +240,7 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
             schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(mockBlobSchemaInfo());
         }
 
-        private SchemaInfo mockBlobSchemaInfo(){
+        private SchemaInfo mockBlobSchemaInfo() {
             BlobSchemaInfo blobSchemaInfo = mock(BlobSchemaInfo.class);
             BlobTableInfo tableInfo = mock(BlobTableInfo.class);
             when(blobSchemaInfo.getTableInfo("screenshots")).thenReturn(tableInfo);
@@ -245,18 +249,18 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
 
         private SchemaInfo mockSysSchemaInfo() {
             MetaData metaData = MetaData.builder()
-                    .put(IndexMetaData.builder("parted").settings(settings(Version.CURRENT)).numberOfShards(2).numberOfReplicas(0))
-                    .build();
+                .put(IndexMetaData.builder("parted").settings(settings(Version.CURRENT)).numberOfShards(2).numberOfReplicas(0))
+                .build();
             RoutingTable routingTable = RoutingTable.builder()
-                    .addAsNew(metaData.index("parted")).build();
+                .addAsNew(metaData.index("parted")).build();
             ClusterState state = ClusterState
-                    .builder(org.elasticsearch.cluster.ClusterName.DEFAULT)
-                    .metaData(metaData)
-                    .routingTable(routingTable)
-                    .build();
+                .builder(org.elasticsearch.cluster.ClusterName.DEFAULT)
+                .metaData(metaData)
+                .routingTable(routingTable)
+                .build();
 
             state = ClusterState.builder(state).nodes(
-                    DiscoveryNodes.builder().put(newNode("nodeOne")).put(newNode("nodeTwo")).localNodeId("nodeOne")).build();
+                DiscoveryNodes.builder().put(newNode("nodeOne")).put(newNode("nodeTwo")).localNodeId("nodeOne")).build();
 
             AllocationService allocationService = createAllocationService();
             routingTable = allocationService.reroute(state, "test!").routingTable();
@@ -269,12 +273,12 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
 
     protected <T extends Plan> T plan(String statement) {
         //noinspection unchecked: for testing this is fine
-        return (T)planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
+        return (T) planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
+            new ParameterContext(new Object[0], new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
     }
 
     protected Plan plan(String statement, Object[][] bulkArgs) {
         return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
+            new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
     }
 }

@@ -25,8 +25,11 @@ import com.google.common.base.Optional;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.sql.tree.*;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.DeprecationLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Locale;
@@ -34,13 +37,16 @@ import java.util.Map;
 
 @Singleton
 public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
-        CreateAnalyzerAnalyzedStatement, CreateAnalyzerStatementAnalyzer.Context> {
+    CreateAnalyzerAnalyzedStatement, CreateAnalyzerStatementAnalyzer.Context> {
 
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
+    private final DeprecationLogger deprecationLogger;
+
     @Inject
-    public CreateAnalyzerStatementAnalyzer(FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+    public CreateAnalyzerStatementAnalyzer(FulltextAnalyzerResolver fulltextAnalyzerResolver, Settings settings) {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
+        deprecationLogger = new DeprecationLogger(Loggers.getLogger(CreateAnalyzerStatementAnalyzer.class, settings));
     }
 
     public CreateAnalyzerAnalyzedStatement analyze(Node node, Analysis analysis) {
@@ -48,7 +54,7 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
         return super.process(node, new Context(analysis));
     }
 
-    static class Context{
+    static class Context {
 
         Analysis analysis;
         CreateAnalyzerAnalyzedStatement statement;
@@ -60,6 +66,11 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
 
     @Override
     public CreateAnalyzerAnalyzedStatement visitCreateAnalyzer(CreateAnalyzer node, Context context) {
+        String underscoreIdent = Strings.toUnderscoreCase(node.ident());
+        if (!underscoreIdent.equalsIgnoreCase(node.ident())) {
+            deprecationLogger.deprecated("Deprecated analyzer name [{}], use [{}] instead", node.ident(), underscoreIdent);
+        }
+
         context.statement = new CreateAnalyzerAnalyzedStatement(fulltextAnalyzerResolver);
         context.statement.ident(node.ident());
 
@@ -79,6 +90,10 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
         String name = tokenizer.ident();
         Optional<io.crate.sql.tree.GenericProperties> properties = tokenizer.properties();
 
+        String underscoreName = Strings.toUnderscoreCase(name);
+        if (!underscoreName.equalsIgnoreCase(name)) {
+            deprecationLogger.deprecated("Deprecated tokenizer name [{}], use [{}] instead", name, underscoreName);
+        }
 
         if (!properties.isPresent()) {
             // use a builtin tokenizer without parameters
@@ -97,7 +112,7 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
                 if (!context.statement.analyzerService().hasBuiltInTokenizer(evaluatedType)) {
                     // only builtin tokenizers can be extended, for now
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                            "Non-existing built-in tokenizer type '%s'", evaluatedType));
+                        "Non-existing built-in tokenizer type '%s'", evaluatedType));
                 }
             } else {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "tokenizer name '%s' is reserved", name));
@@ -109,13 +124,12 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
             Settings.Builder builder = Settings.builder();
             for (Map.Entry<String, Expression> tokenizerProperty : properties.get().properties().entrySet()) {
                 GenericPropertiesConverter.genericPropertyToSetting(builder,
-                        context.statement.getSettingsKey("index.analysis.tokenizer.%s.%s", name, tokenizerProperty.getKey()),
-                        tokenizerProperty.getValue(),
-                        context.analysis.parameterContext());
+                    context.statement.getSettingsKey("index.analysis.tokenizer.%s.%s", name, tokenizerProperty.getKey()),
+                    tokenizerProperty.getValue(),
+                    context.analysis.parameterContext());
             }
             context.statement.tokenDefinition(name, builder.build());
         }
-
 
         return null;
     }
@@ -123,9 +137,9 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
     @Override
     public CreateAnalyzerAnalyzedStatement visitGenericProperty(GenericProperty property, Context context) {
         GenericPropertiesConverter.genericPropertyToSetting(context.statement.genericAnalyzerSettingsBuilder(),
-                context.statement.getSettingsKey("index.analysis.analyzer.%s.%s", context.statement.ident(), property.key()),
-                property.value(),
-                context.analysis.parameterContext()
+            context.statement.getSettingsKey("index.analysis.analyzer.%s.%s", context.statement.ident(), property.key()),
+            property.value(),
+            context.analysis.parameterContext()
         );
         return null;
     }
@@ -137,7 +151,12 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
             String name = tokenFilterNode.ident();
             Optional<GenericProperties> properties = tokenFilterNode.properties();
 
-            // use a builtin tokenfilter without parameters
+            String underscoreName = Strings.toUnderscoreCase(name);
+            if (!underscoreName.equalsIgnoreCase(name)) {
+                deprecationLogger.deprecated("Deprecated token_filter name [{}], use [{}] instead", name, underscoreName);
+            }
+
+            // use a builtin token-filter without parameters
             if (!properties.isPresent()) {
                 // validate
                 if (!context.statement.analyzerService().hasBuiltInTokenFilter(name)) {
@@ -153,12 +172,12 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
                     if (!context.statement.analyzerService().hasBuiltInTokenFilter(evaluatedType)) {
                         // only builtin token-filters can be extended, for now
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                "Non-existing built-in token-filter type '%s'", evaluatedType));
+                            "Non-existing built-in token-filter type '%s'", evaluatedType));
                     }
                 } else {
                     if (properties.get().get("type") != null) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                "token-filter name '%s' is reserved, 'type' property forbidden here", name));
+                            "token-filter name '%s' is reserved, 'type' property forbidden here", name));
                     }
                 }
 
@@ -168,9 +187,9 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
                 Settings.Builder builder = Settings.builder();
                 for (Map.Entry<String, Expression> tokenFilterProperty : properties.get().properties().entrySet()) {
                     GenericPropertiesConverter.genericPropertyToSetting(builder,
-                            context.statement.getSettingsKey("index.analysis.filter.%s.%s", name, tokenFilterProperty.getKey()),
-                            tokenFilterProperty.getValue(),
-                            context.analysis.parameterContext());
+                        context.statement.getSettingsKey("index.analysis.filter.%s.%s", name, tokenFilterProperty.getKey()),
+                        tokenFilterProperty.getValue(),
+                        context.analysis.parameterContext());
                 }
                 context.statement.addTokenFilter(name, builder.build());
             }
@@ -185,12 +204,17 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
             String name = charFilterNode.ident();
             Optional<GenericProperties> properties = charFilterNode.properties();
 
-            // use a builtin tokenfilter without parameters
+            String underscoreName = Strings.toUnderscoreCase(name);
+            if (!underscoreName.equalsIgnoreCase(name)) {
+                deprecationLogger.deprecated("Deprecated char_filter name [{}], use [{}] instead", name, underscoreName);
+            }
+
+            // use a builtin char-filter without parameters
             if (!properties.isPresent()) {
                 // validate
                 if (!context.statement.analyzerService().hasBuiltInCharFilter(name)) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                            "Non-existing built-in char-filter '%s'", name));
+                        "Non-existing built-in char-filter '%s'", name));
                 }
                 // build
                 context.statement.addCharFilter(name, Settings.EMPTY);
@@ -199,19 +223,19 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
                 if (!context.statement.analyzerService().hasBuiltInCharFilter(type)) {
                     // only builtin char-filters can be extended, for now
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                            "Non-existing built-in char-filter" +
-                            " type '%s'", type));
+                        "Non-existing built-in char-filter" +
+                        " type '%s'", type));
                 }
 
                 // build
                 // transform name as char-filter is not publicly available
                 name = String.format(Locale.ENGLISH, "%s_%s", context.statement.ident(), name);
                 Settings.Builder builder = Settings.builder();
-                for (Map.Entry<String, Expression> charFilterProperty: properties.get().properties().entrySet()) {
+                for (Map.Entry<String, Expression> charFilterProperty : properties.get().properties().entrySet()) {
                     GenericPropertiesConverter.genericPropertyToSetting(builder,
-                            context.statement.getSettingsKey("index.analysis.char_filter.%s.%s", name, charFilterProperty.getKey()),
-                            charFilterProperty.getValue(),
-                            context.analysis.parameterContext());
+                        context.statement.getSettingsKey("index.analysis.char_filter.%s.%s", name, charFilterProperty.getKey()),
+                        charFilterProperty.getValue(),
+                        context.analysis.parameterContext());
                 }
                 context.statement.addCharFilter(name, builder.build());
             }
