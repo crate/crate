@@ -28,6 +28,7 @@ import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.metadata.*;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataType;
@@ -38,7 +39,6 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -195,5 +195,10 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
 
     public ImmutableMap<String, Object> tableParameters() {
         return tableParameters;
+    }
+
+    @Override
+    public Set<Operation> supportedOperations() {
+        return Operation.READ_ONLY;
     }
 }

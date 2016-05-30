@@ -39,6 +39,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.DefaultTraversalVisitor;
@@ -99,9 +100,9 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext(
                 analysis.parameterContext(), analysisMetaData);
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), relationAnalysisContext);
-        if (Relations.isReadOnly(analyzedRelation)) {
+        if (!Relations.supportsOperation(analyzedRelation, Operation.UPDATE)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "relation \"%s\" is read-only and cannot be updated", analyzedRelation));
+                    "relation \"%s\" doesn't support update operations", analyzedRelation));
         }
         assert analyzedRelation instanceof DocTableRelation : "sourceRelation must be a DocTableRelation";
         DocTableRelation tableRelation = ((DocTableRelation) analyzedRelation);

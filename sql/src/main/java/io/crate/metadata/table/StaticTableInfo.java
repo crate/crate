@@ -89,4 +89,9 @@ public abstract class StaticTableInfo implements TableInfo {
     public Iterator<ReferenceInfo> iterator() {
         return columnMap.values().iterator();
     }
+
+    @Override
+    public Set<Operation> supportedOperations() {
+        return Operation.READ_ONLY;
+    }
 }

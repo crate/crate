@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface TableInfo extends Iterable<ReferenceInfo> {
 
@@ -53,4 +54,5 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
 
     Map<String, Object> tableParameters();
 
+    Set<Operation> supportedOperations();
 }

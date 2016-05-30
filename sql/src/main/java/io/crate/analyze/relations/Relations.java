@@ -23,36 +23,37 @@ package io.crate.analyze.relations;
 
 import io.crate.analyze.QueriedTable;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 
 public class Relations {
 
-    private static final IsReadOnlyVisitor IS_READ_ONLY_VISITOR = new IsReadOnlyVisitor();
+    private static final SupportsOperationVisitor SUPPORTS_OPERATION_VISITOR = new SupportsOperationVisitor();
 
-    public static boolean isReadOnly(AnalyzedRelation relation) {
-        return IS_READ_ONLY_VISITOR.process(relation, null);
+    public static boolean supportsOperation(AnalyzedRelation relation, Operation operation) {
+        return SUPPORTS_OPERATION_VISITOR.process(relation, operation);
     }
 
-    private static class IsReadOnlyVisitor extends AnalyzedRelationVisitor<Void, Boolean> {
+    private static class SupportsOperationVisitor extends AnalyzedRelationVisitor<Operation, Boolean> {
 
         @Override
-        protected Boolean visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
-            return true;
+        protected Boolean visitAnalyzedRelation(AnalyzedRelation relation, Operation operation) {
+            return false;
         }
 
         @Override
-        public Boolean visitQueriedDocTable(QueriedDocTable table, Void context) {
-            return process(table.tableRelation(), context);
+        public Boolean visitQueriedDocTable(QueriedDocTable table, Operation operation) {
+            return process(table.tableRelation(), operation);
         }
 
         @Override
-        public Boolean visitQueriedTable(QueriedTable table, Void context) {
-            return process(table.tableRelation(), context);
+        public Boolean visitQueriedTable(QueriedTable table, Operation operation) {
+            return table.tableRelation().tableInfo().supportedOperations().contains(operation);
         }
 
         @Override
-        public Boolean visitDocTableRelation(DocTableRelation relation, Void context) {
+        public Boolean visitDocTableRelation(DocTableRelation relation, Operation operation) {
             DocTableInfo tableInfo = relation.tableInfo();
-            return tableInfo.isAlias() && !tableInfo.isPartitioned();
+            return tableInfo.supportedOperations().contains(operation) && (tableInfo.isPartitioned() || !tableInfo.isAlias());
         }
     }
 }
