@@ -1315,15 +1315,4 @@ public class LuceneQueryBuilder {
             return input;
         }
     }
-
-    @SuppressWarnings("unchecked")
-    private static BytesRef[] getBytesRefs(Collection values, TermBuilder termBuilder) {
-        BytesRef[] terms = new BytesRef[values.size()];
-        int i = 0;
-        for (Object value : values) {
-            terms[i] = termBuilder.term(value);
-            i++;
-        }
-        return terms;
-    }
 }
