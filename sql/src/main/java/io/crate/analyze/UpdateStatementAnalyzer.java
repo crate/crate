@@ -27,12 +27,10 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.*;
-import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
@@ -55,6 +53,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 
 @Singleton
@@ -178,7 +177,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                 expressionAnalyzer.convert(node.expression(), expressionAnalysisContext));
         try {
             value = valueNormalizer.normalizeInputForReference(value, reference);
-            ensureUpdateIsAllowed(tableRelation.tableInfo(), ident, value);
+            ensureUpdateIsAllowed(tableRelation.tableInfo(), ident);
         } catch (IllegalArgumentException | UnsupportedOperationException e) {
             throw new ColumnValidationException(ident.sqlFqn(), e);
         }
@@ -186,24 +185,24 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         nestedAnalyzedStatement.addAssignment(reference, value);
     }
 
-    public static void ensureUpdateIsAllowed(DocTableInfo tableInfo, ColumnIdent column, Symbol value) {
+    public static void ensureUpdateIsAllowed(DocTableInfo tableInfo, ColumnIdent column) {
         if (tableInfo.clusteredBy() != null) {
-            ensureNotUpdated(column, value, tableInfo.clusteredBy(),
+            ensureNotUpdated(column, tableInfo.clusteredBy(),
                     "Updating a clustered-by column is not supported");
         }
         for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
-            ensureNotUpdated(column, value, pkIdent, "Updating a primary key is not supported");
+            ensureNotUpdated(column, pkIdent, "Updating a primary key is not supported");
         }
 
         List<GeneratedReferenceInfo> generatedReferenceInfos = tableInfo.generatedColumns();
 
         for (ColumnIdent partitionIdent : tableInfo.partitionedBy()) {
-            ensureNotUpdated(column, value, partitionIdent, "Updating a partitioned-by column is not supported");
+            ensureNotUpdated(column, partitionIdent, "Updating a partitioned-by column is not supported");
             int idx = generatedReferenceInfos.indexOf(tableInfo.getReferenceInfo(partitionIdent));
             if (idx >= 0) {
                 GeneratedReferenceInfo generatedReferenceInfo = generatedReferenceInfos.get(idx);
                 for (ReferenceInfo referenceInfo : generatedReferenceInfo.referencedReferenceInfos()) {
-                    ensureNotUpdated(column, value, referenceInfo.ident().columnIdent(),
+                    ensureNotUpdated(column, referenceInfo.ident().columnIdent(),
                             "Updating a column which is referenced in a partitioned by generated column expression is not supported");
                 }
             }
@@ -211,18 +210,9 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     }
 
     private static void ensureNotUpdated(ColumnIdent columnUpdated,
-                                         Symbol newValue,
                                          ColumnIdent protectedColumnIdent,
                                          String errorMessage) {
-        if (columnUpdated.equals(protectedColumnIdent)) {
-            throw new UnsupportedOperationException(errorMessage);
-        }
-        if (protectedColumnIdent.isChildOf(columnUpdated)) {
-            if (newValue.valueType().equals(DataTypes.OBJECT)
-                    && newValue.symbolType().isValueSymbol()
-                    && StringObjectMaps.fromMapByPath((Map) ((Literal) newValue).value(), protectedColumnIdent.path()) == null) {
-                return;
-            }
+        if (columnUpdated.equals(protectedColumnIdent) || protectedColumnIdent.isChildOf(columnUpdated)) {
             throw new UnsupportedOperationException(errorMessage);
         }
     }
