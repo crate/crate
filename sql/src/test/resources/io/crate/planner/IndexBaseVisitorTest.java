@@ -22,7 +22,7 @@
 
 package io.crate.planner;
 
-import com.carrotsearch.ant.tasks.junit4.dependencies.com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList;
 import io.crate.planner.fetch.IndexBaseVisitor;
 import org.junit.Test;
 
