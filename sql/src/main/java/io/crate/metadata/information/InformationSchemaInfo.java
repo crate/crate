@@ -62,11 +62,6 @@ public class InformationSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public boolean systemSchema() {
-        return true;
-    }
-
-    @Override
     public void invalidateTableCache(String tableName) {
     }
 

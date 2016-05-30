@@ -87,7 +87,6 @@ public class ReferenceInfosTest {
         when(tableInfo.ident()).thenReturn(tableIdent);
         when(schemaInfo.getTableInfo(tableIdent.name())).thenReturn(tableInfo);
         when(schemaInfo.name()).thenReturn(tableIdent.schema());
-        when(schemaInfo.systemSchema()).thenReturn(true);
 
         Schemas schemas = getReferenceInfos(schemaInfo);
         schemas.getWritableTable(tableIdent);
@@ -106,7 +105,6 @@ public class ReferenceInfosTest {
         when(schemaInfo.name()).thenReturn(tableIdent.schema());
         when(tableInfo.isAlias()).thenReturn(true);
 
-        when(schemaInfo.systemSchema()).thenReturn(false);
 
         Schemas schemas = getReferenceInfos(schemaInfo);
         schemas.getWritableTable(tableIdent);

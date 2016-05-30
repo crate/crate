@@ -265,11 +265,6 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     }
 
     @Override
-    public boolean systemSchema() {
-        return false;
-    }
-
-    @Override
     public void invalidateTableCache(String tableName) {
         cache.invalidate(tableName);
     }

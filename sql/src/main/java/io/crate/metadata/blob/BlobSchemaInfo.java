@@ -118,11 +118,6 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
     }
 
     @Override
-    public boolean systemSchema() {
-        return true;
-    }
-
-    @Override
     public void invalidateTableCache(String tableName) {
         cache.invalidate(tableName);
     }
