@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/05/30 0.55.0
+=================
+
  - Upgraded Elasticsearch to 2.3.3
 
  - Updated crate-admin to 0.18.0 which contains following changes:
