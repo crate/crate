@@ -216,7 +216,7 @@ public class InsertFromSubQueryAnalyzer {
                     columnName);
 
             UpdateStatementAnalyzer.ensureUpdateIsAllowed(
-                    tableRelation.tableInfo(), columnName.ident().columnIdent(), assignmentExpression);
+                    tableRelation.tableInfo(), columnName.ident().columnIdent());
             updateAssignments.put(columnName, assignmentExpression);
         }
 

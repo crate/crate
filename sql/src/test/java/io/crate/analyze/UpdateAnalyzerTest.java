@@ -47,10 +47,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
@@ -76,6 +73,15 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
             .add("bla", DataTypes.STRING, null)
             .isAlias(true).build();
 
+    private final static TableIdent NESTED_PK = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "t_nested_pk");
+    private final static TableInfo TI_NESTED_PK = new TestingTableInfo.Builder(
+        NESTED_PK, SHARD_ROUTING)
+        .add("o", DataTypes.OBJECT)
+        .add("o", DataTypes.INTEGER, Collections.singletonList("x"))
+        .add("o", DataTypes.INTEGER, Collections.singletonList("y"))
+        .addPrimaryKey("o.x")
+        .build();
+
     static TableInfo partedGeneratedColumnTableInfo;
     static TableInfo nestedPartedGeneratedColumnTableInfo;
 
@@ -94,6 +100,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                     .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name())).thenReturn(DEEPLY_NESTED_TABLE_INFO);
             when(schemaInfo.getTableInfo(NESTED_CLUSTERED_BY_TABLE_IDENT.name())).thenReturn(NESTED_CLUSTERED_BY_TABLE_INFO);
+            when(schemaInfo.getTableInfo(NESTED_PK.name())).thenReturn(TI_NESTED_PK);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }
@@ -364,6 +371,12 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Test( expected = ColumnValidationException.class )
     public void testUpdatePartitionedByColumn() throws Exception {
         analyze("update parted set date = 1395874800000");
+    }
+
+    @Test
+    public void testUpdatePrimaryKeyIfNestedDoesNotWork() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        analyze("update t_nested_pk set o = {y=10}");
     }
 
     @Test

@@ -29,6 +29,9 @@ Unreleased
  - BREAKING: Tables are not refreshed automatically anymore before and after
    a `DELETE-BY-QUERY` operation is applied.
 
+ - Fixed a validation issue that allowed setting a primary key column value to
+   null
+
  - Upgraded Elasticsearch to 2.3.3
 
  - Updated crate-admin to 0.18.0 which contains following changes:
