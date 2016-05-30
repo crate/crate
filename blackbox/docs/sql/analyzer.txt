@@ -254,7 +254,7 @@ max_token_length
 .. _edgengram-tokenizer:
 
 edge ngram
----------
+----------
 
 ``type='edge_ngram'``
 
