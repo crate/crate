@@ -304,7 +304,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 onDupKeyAssignments[i] = assignmentExpression;
 
                 UpdateStatementAnalyzer.ensureUpdateIsAllowed(
-                        tableRelation.tableInfo(), columnName.ident().columnIdent(), onDupKeyAssignments[i]);
+                        tableRelation.tableInfo(), columnName.ident().columnIdent());
                 if (valuesResolver.assignmentColumns.size() == i) {
                     valuesResolver.assignmentColumns.add(columnName.ident().columnIdent().fqn());
                 }
