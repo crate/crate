@@ -215,8 +215,6 @@ public class InsertFromSubQueryAnalyzer {
                     valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
                     columnName);
 
-            UpdateStatementAnalyzer.ensureUpdateIsAllowed(
-                    tableRelation.tableInfo(), columnName.ident().columnIdent());
             updateAssignments.put(columnName, assignmentExpression);
         }
 

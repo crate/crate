@@ -27,7 +27,9 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReferenceInfo;
 import io.crate.metadata.Path;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
@@ -35,6 +37,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
@@ -90,6 +93,9 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         if (HIDDEN_COLUMNS.contains(ci)) {
             return null;
         }
+        if (operation == Operation.UPDATE) {
+            ensureColumnCanBeUpdated(ci);
+        }
         ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(ci);
         if (referenceInfo == null) {
             referenceInfo = tableInfo.indexColumn(ci);
@@ -105,6 +111,40 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         referenceInfo = checkNestedArray(ci, referenceInfo);
         // TODO: check allocated fields first?
         return allocate(ci, new Reference(referenceInfo));
+    }
+
+    /**
+     * @throws io.crate.exceptions.ColumnValidationException if the column cannot be updated
+     */
+    private void ensureColumnCanBeUpdated(ColumnIdent ci) {
+        if (ci.isSystemColumn()) {
+            throw new ColumnValidationException(ci.toString(), "Updating a system column is not supported");
+        }
+        if (tableInfo.clusteredBy() != null) {
+            ensureNotUpdated(ci, tableInfo.clusteredBy(), "Updating a clustered-by column is not supported");
+        }
+        for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
+            ensureNotUpdated(ci, pkIdent, "Updating a primary key is not supported");
+        }
+        List<GeneratedReferenceInfo> generatedReferenceInfos = tableInfo.generatedColumns();
+
+        for (ColumnIdent partitionIdent : tableInfo.partitionedBy()) {
+            ensureNotUpdated(ci, partitionIdent, "Updating a partitioned-by column is not supported");
+            int idx = generatedReferenceInfos.indexOf(tableInfo.getReferenceInfo(partitionIdent));
+            if (idx >= 0) {
+                GeneratedReferenceInfo generatedReferenceInfo = generatedReferenceInfos.get(idx);
+                for (ReferenceInfo referenceInfo : generatedReferenceInfo.referencedReferenceInfos()) {
+                    ensureNotUpdated(ci, referenceInfo.ident().columnIdent(),
+                        "Updating a column which is referenced in a partitioned by generated column expression is not supported");
+                }
+            }
+        }
+    }
+
+    private static void ensureNotUpdated(ColumnIdent columnUpdated, ColumnIdent protectedColumnIdent, String errorMessage) {
+        if (columnUpdated.equals(protectedColumnIdent) || protectedColumnIdent.isChildOf(columnUpdated)) {
+            throw new ColumnValidationException(columnUpdated.toString(), errorMessage);
+        }
     }
 
     public void validateOrderBy(Optional<OrderBy> orderBy) {

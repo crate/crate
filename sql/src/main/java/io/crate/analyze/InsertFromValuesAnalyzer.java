@@ -292,6 +292,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             valuesResolver.columns = context.columns();
             Symbol[] onDupKeyAssignments = new Symbol[assignments.size()];
             valuesResolver.assignmentColumns = new ArrayList<>(assignments.size());
+            expressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
             for (int i = 0; i < assignments.size(); i++) {
                 Assignment assignment = assignments.get(i);
                 Reference columnName = tableRelation.resolveField(
@@ -304,8 +305,6 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 assignmentExpression = valuesAwareExpressionAnalyzer.normalize(assignmentExpression);
                 onDupKeyAssignments[i] = assignmentExpression;
 
-                UpdateStatementAnalyzer.ensureUpdateIsAllowed(
-                        tableRelation.tableInfo(), columnName.ident().columnIdent());
                 if (valuesResolver.assignmentColumns.size() == i) {
                     valuesResolver.assignmentColumns.add(columnName.ident().columnIdent().fqn());
                 }

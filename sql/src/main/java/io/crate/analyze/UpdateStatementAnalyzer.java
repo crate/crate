@@ -34,11 +34,9 @@ import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReferenceInfo;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Assignment;
@@ -137,13 +135,11 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement =
                     new UpdateAnalyzedStatement.NestedAnalyzedStatement(whereClause);
 
-
-
             for (Assignment assignment : node.assignements()) {
                 analyzeAssignment(
                         assignment,
                         nestedAnalyzedStatement,
-                        tableRelation,
+                        tableRelation.tableInfo(),
                         expressionAnalyzer,
                         columnExpressionAnalyzer,
                         expressionAnalysisContext
@@ -154,22 +150,18 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         return new UpdateAnalyzedStatement(tableRelation, nestedAnalyzedStatements);
     }
 
-    public void analyzeAssignment(Assignment node,
-                                  UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement,
-                                  DocTableRelation tableRelation,
-                                  ExpressionAnalyzer expressionAnalyzer,
-                                  ExpressionAnalyzer columnExpressionAnalyzer,
-                                  ExpressionAnalysisContext expressionAnalysisContext) {
+    private void analyzeAssignment(Assignment node,
+                                   UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement,
+                                   TableInfo tableInfo,
+                                   ExpressionAnalyzer expressionAnalyzer,
+                                   ExpressionAnalyzer columnExpressionAnalyzer,
+                                   ExpressionAnalysisContext expressionAnalysisContext) {
         // unknown columns in strict objects handled in here
         Reference reference = (Reference) columnExpressionAnalyzer.normalize(
                 columnExpressionAnalyzer.convert(node.columnName(), expressionAnalysisContext));
 
         final ColumnIdent ident = reference.info().ident().columnIdent();
-        if (ident.name().startsWith("_")) {
-            throw new IllegalArgumentException("Updating system columns is not allowed");
-        }
-
-        if (hasMatchingParent(tableRelation.tableInfo(), reference.info(), IS_OBJECT_ARRAY)) {
+        if (hasMatchingParent(tableInfo, reference.info(), IS_OBJECT_ARRAY)) {
             // cannot update fields of object arrays
             throw new IllegalArgumentException("Updating fields of object arrays is not supported");
         }
@@ -177,7 +169,6 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                 expressionAnalyzer.convert(node.expression(), expressionAnalysisContext));
         try {
             value = valueNormalizer.normalizeInputForReference(value, reference);
-            ensureUpdateIsAllowed(tableRelation.tableInfo(), ident);
         } catch (IllegalArgumentException | UnsupportedOperationException e) {
             throw new ColumnValidationException(ident.sqlFqn(), e);
         }
@@ -185,37 +176,6 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         nestedAnalyzedStatement.addAssignment(reference, value);
     }
 
-    public static void ensureUpdateIsAllowed(DocTableInfo tableInfo, ColumnIdent column) {
-        if (tableInfo.clusteredBy() != null) {
-            ensureNotUpdated(column, tableInfo.clusteredBy(),
-                    "Updating a clustered-by column is not supported");
-        }
-        for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
-            ensureNotUpdated(column, pkIdent, "Updating a primary key is not supported");
-        }
-
-        List<GeneratedReferenceInfo> generatedReferenceInfos = tableInfo.generatedColumns();
-
-        for (ColumnIdent partitionIdent : tableInfo.partitionedBy()) {
-            ensureNotUpdated(column, partitionIdent, "Updating a partitioned-by column is not supported");
-            int idx = generatedReferenceInfos.indexOf(tableInfo.getReferenceInfo(partitionIdent));
-            if (idx >= 0) {
-                GeneratedReferenceInfo generatedReferenceInfo = generatedReferenceInfos.get(idx);
-                for (ReferenceInfo referenceInfo : generatedReferenceInfo.referencedReferenceInfos()) {
-                    ensureNotUpdated(column, referenceInfo.ident().columnIdent(),
-                            "Updating a column which is referenced in a partitioned by generated column expression is not supported");
-                }
-            }
-        }
-    }
-
-    private static void ensureNotUpdated(ColumnIdent columnUpdated,
-                                         ColumnIdent protectedColumnIdent,
-                                         String errorMessage) {
-        if (columnUpdated.equals(protectedColumnIdent) || protectedColumnIdent.isChildOf(columnUpdated)) {
-            throw new UnsupportedOperationException(errorMessage);
-        }
-    }
 
     private boolean hasMatchingParent(TableInfo tableInfo, ReferenceInfo info, Predicate<ReferenceInfo> parentMatchPredicate) {
         ColumnIdent parent = info.ident().columnIdent().getParent();

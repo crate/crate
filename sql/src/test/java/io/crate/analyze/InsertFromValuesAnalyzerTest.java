@@ -982,22 +982,22 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testUpdateOnPartitionedColumnShouldRaiseAnError() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Updating a partitioned-by column is not supported");
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for date: Updating a partitioned-by column is not supported");
         analyze("insert into parted (id) values (1) on duplicate key update date = 0");
     }
 
     @Test
     public void testUpdateOnPrimaryKeyColumnShouldRaiseAnError() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Updating a primary key is not supported");
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for id: Updating a primary key is not supported");
         analyze("insert into nested_pk (id, o) values (1, {b=1}) on duplicate key update id = 10");
     }
 
     @Test
     public void testUpdateOnClusteredByColumnShouldRaiseAnError() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Updating a clustered-by column is not supported");
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for id: Updating a clustered-by column is not supported");
         analyze("insert into users (id) values (1) on duplicate key update id = 10");
     }
 

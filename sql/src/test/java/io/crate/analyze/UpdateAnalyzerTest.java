@@ -353,18 +353,23 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         assertThat(((Object[]) friendsLiteral.value()).length, is(0));
     }
 
-    @Test( expected = IllegalArgumentException.class )
+    @Test
     public void testUpdateSystemColumn() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for _id: Updating a system column is not supported");
         analyze("update users set _id=1");
     }
 
-    @Test( expected = ColumnValidationException.class )
+    @Test
     public void testUpdatePrimaryKey() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
         analyze("update users set id=1");
     }
 
-    @Test( expected = ColumnValidationException.class )
+    @Test
     public void testUpdateClusteredBy() throws Exception {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for id: Updating a clustered-by column is not supported");
         analyze("update users_clustered_by_only set id=1");
     }
 
