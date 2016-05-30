@@ -33,6 +33,7 @@ import io.crate.exceptions.UnavailableShardsException;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.TableColumn;
 import io.crate.metadata.table.ColumnPolicy;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
@@ -402,6 +403,11 @@ public class DocTableInfo implements TableInfo, ShardedTable {
 
     public ImmutableMap<String, Object> tableParameters() {
         return tableParameters;
+    }
+
+    @Override
+    public Set<Operation> supportedOperations() {
+        return Operation.ALL;
     }
 
     public String getAnalyzerForColumnIdent(ColumnIdent ident) {

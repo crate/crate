@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.Node;
@@ -102,9 +103,9 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                 context.parameterContext(), analysisMetaData);
 
         AnalyzedRelation analyzedRelation = relationAnalyzer.process(node.getRelation(), relationAnalysisContext);
-        if (Relations.isReadOnly(analyzedRelation)) {
+        if (!Relations.supportsOperation(analyzedRelation, Operation.DELETE)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "relation \"%s\" is read-only and cannot be deleted", analyzedRelation));
+                    "relation \"%s\" doesn't support delete operations", analyzedRelation));
         }
         assert analyzedRelation instanceof DocTableRelation;
         DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;
