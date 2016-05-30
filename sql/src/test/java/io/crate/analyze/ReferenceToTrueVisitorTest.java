@@ -27,6 +27,7 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Path;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -72,8 +73,8 @@ public class ReferenceToTrueVisitorTest extends CrateUnitTest {
         }
 
         @Override
-        public Field getWritableField(Path path) throws UnsupportedOperationException {
-            return null;
+        public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
+            return getField(path);
         }
 
         @Override

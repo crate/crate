@@ -24,18 +24,19 @@ package io.crate.analyze.relations;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
+import io.crate.metadata.table.Operation;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
 public interface AnalyzedRelation {
 
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context);
+    <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context);
 
     @Nullable
-    public Field getField(Path path);
+    Field getField(Path path);
 
-    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException;
+    Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException;
 
-    public List<Field> fields();
+    List<Field> fields();
 }

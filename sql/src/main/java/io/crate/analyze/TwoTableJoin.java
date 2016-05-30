@@ -29,6 +29,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
@@ -95,8 +96,8 @@ public class TwoTableJoin implements QueriedRelation {
     }
 
     @Override
-    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField is not supported");
+    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        throw new UnsupportedOperationException("getField is not supported");
     }
 
     @Override

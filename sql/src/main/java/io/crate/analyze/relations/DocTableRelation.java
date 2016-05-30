@@ -32,6 +32,7 @@ import io.crate.metadata.Path;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 
 import javax.annotation.Nullable;
 
@@ -80,15 +81,11 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
     @Nullable
     @Override
     public Field getField(Path path) {
-        return getField(path, false);
+        return getField(path, Operation.READ);
     }
 
     @Override
-    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
-        return getField(path, true);
-    }
-
-    private Field getField(Path path, boolean forWrite) {
+    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
         ColumnIdent ci = toColumnIdent(path);
         if (HIDDEN_COLUMNS.contains(ci)) {
             return null;
@@ -97,7 +94,7 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         if (referenceInfo == null) {
             referenceInfo = tableInfo.indexColumn(ci);
             if (referenceInfo == null) {
-                DynamicReference dynamic = tableInfo.getDynamic(ci, forWrite);
+                DynamicReference dynamic = tableInfo.getDynamic(ci, operation == Operation.INSERT || operation == Operation.UPDATE);
                 if (dynamic == null) {
                     return null;
                 } else {

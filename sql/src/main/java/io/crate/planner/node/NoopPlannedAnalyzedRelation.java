@@ -27,6 +27,7 @@ import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
+import io.crate.metadata.table.Operation;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -63,8 +64,8 @@ public class NoopPlannedAnalyzedRelation implements PlannedAnalyzedRelation {
     }
 
     @Override
-    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
-        return relation.getWritableField(path);
+    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        return relation.getField(path, operation);
     }
 
     @Override

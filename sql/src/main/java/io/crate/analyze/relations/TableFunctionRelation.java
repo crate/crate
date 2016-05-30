@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 
 import java.util.List;
@@ -55,7 +56,10 @@ public class TableFunctionRelation extends TableRelation {
     }
 
     @Override
-    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
+    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        if (operation == Operation.READ) {
+            return getField(path);
+        }
         throw new UnsupportedOperationException("Table functions don't support write operations");
     }
 }

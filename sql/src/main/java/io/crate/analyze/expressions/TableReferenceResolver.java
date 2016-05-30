@@ -28,6 +28,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReferenceInfo;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
@@ -46,12 +47,12 @@ public class TableReferenceResolver implements FieldProvider<Reference> {
     }
 
     @Override
-    public Reference resolveField(QualifiedName qualifiedName, boolean forWrite) {
-        return resolveField(qualifiedName, null, forWrite);
+    public Reference resolveField(QualifiedName qualifiedName, Operation operation) {
+        return resolveField(qualifiedName, null, operation);
     }
 
     @Override
-    public Reference resolveField(QualifiedName qualifiedName, @Nullable List<String> path, boolean forWrite) {
+    public Reference resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
         List<String> parts = qualifiedName.getParts();
         ColumnIdent columnIdent = new ColumnIdent(parts.get(parts.size() - 1), path);
         if (parts.size() != 1) {

@@ -24,6 +24,7 @@ package io.crate.analyze.relations;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
@@ -43,11 +44,11 @@ public class NameFieldProvider implements FieldProvider<Field> {
         this.relation = relation;
     }
 
-    public Field resolveField(QualifiedName qualifiedName, boolean forWrite) {
-        return resolveField(qualifiedName, null, forWrite);
+    public Field resolveField(QualifiedName qualifiedName, Operation operation) {
+        return resolveField(qualifiedName, null, operation);
     }
 
-    public Field resolveField(QualifiedName qualifiedName, @Nullable List<String> path, boolean forWrite) {
+    public Field resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
         List<String> parts = qualifiedName.getParts();
         ColumnIdent columnIdent = new ColumnIdent(parts.get(parts.size() - 1), path);
         if(parts.size() != 1){
@@ -56,12 +57,7 @@ public class NameFieldProvider implements FieldProvider<Field> {
                     "A column must not have a schema or a table here.", qualifiedName));
         }
 
-        Field field;
-        if(forWrite){
-            field = relation.getWritableField(columnIdent);
-        } else {
-            field = relation.getField(columnIdent);
-        }
+        Field field = relation.getField(columnIdent, operation);
         if(field == null){
             throw new ColumnUnknownException(columnIdent.sqlFqn());
         }

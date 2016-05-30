@@ -39,6 +39,7 @@ import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.operation.operator.AndOperator;
@@ -397,12 +398,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData, context.parameterContext(), new FieldProvider() {
             @Override
-            public Symbol resolveField(QualifiedName qualifiedName, boolean forWrite) {
+            public Symbol resolveField(QualifiedName qualifiedName, Operation operation) {
                 throw new UnsupportedOperationException("Can only resolve literals");
             }
 
             @Override
-            public Symbol resolveField(QualifiedName qualifiedName, @Nullable List path, boolean forWrite) {
+            public Symbol resolveField(QualifiedName qualifiedName, @Nullable List path, Operation operation) {
                 throw new UnsupportedOperationException("Can only resolve literals");
             }
         }, null);

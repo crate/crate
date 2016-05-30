@@ -25,6 +25,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
@@ -47,11 +48,11 @@ public class FullQualifedNameFieldProvider implements FieldProvider<Field> {
         this.sources = sources;
     }
 
-    public Field resolveField(QualifiedName qualifiedName, boolean forWrite) {
-        return resolveField(qualifiedName, null, forWrite);
+    public Field resolveField(QualifiedName qualifiedName, Operation operation) {
+        return resolveField(qualifiedName, null, operation);
     }
 
-    public Field resolveField(QualifiedName qualifiedName, @Nullable List<String> path, boolean forWrite) {
+    public Field resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
         List<String> parts = qualifiedName.getParts();
         String columnSchema = null;
         String columnTableName = null;
@@ -102,11 +103,7 @@ public class FullQualifedNameFieldProvider implements FieldProvider<Field> {
             tableNameMatched = true;
 
             Field newField;
-            if (forWrite) {
-                newField = sourceRelation.getWritableField(columnIdent);
-            } else {
-                newField = sourceRelation.getField(columnIdent);
-            }
+            newField = sourceRelation.getField(columnIdent, operation);
             if (newField != null) {
                 if (lastField != null) {
                     throw new AmbiguousColumnException(columnIdent);

@@ -42,6 +42,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.table.Operation;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.AnyEqOperator;
@@ -93,7 +94,7 @@ public class ExpressionAnalyzer {
     private final Functions functions;
     private final ParameterContext parameterContext;
     private final InnerExpressionAnalyzer innerAnalyzer;
-    private boolean forWrite = false;
+    private Operation operation = Operation.READ;
 
     private static final Pattern SUBSCRIPT_SPLIT_PATTERN = Pattern.compile("^([^\\.\\[]+)(\\.*)([^\\[]*)(\\['.*'\\])");
 
@@ -198,9 +199,8 @@ public class ExpressionAnalyzer {
         return context.allocateFunction(functionInfo, arguments);
     }
 
-
-    public void resolveWritableFields(boolean value) {
-        forWrite = value;
+    public void setResolveFieldsOperation(Operation operation) {
+        this.operation = operation;
     }
 
     static Symbol castIfNeededOrFail(Symbol symbolToCast, DataType targetType) {
@@ -405,7 +405,7 @@ public class ExpressionAnalyzer {
             Symbol subscriptSymbol;
             Expression subscriptExpression = subscriptContext.expression();
             if (subscriptContext.qName() != null && subscriptExpression == null) {
-                subscriptSymbol = fieldProvider.resolveField(subscriptContext.qName(), subscriptContext.parts(), forWrite);
+                subscriptSymbol = fieldProvider.resolveField(subscriptContext.qName(), subscriptContext.parts(), operation);
             } else if (subscriptExpression != null) {
                 subscriptSymbol = subscriptExpression.accept(this, context);
             } else {
@@ -584,7 +584,7 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
             try {
-                return fieldProvider.resolveField(node.getName(), null, forWrite);
+                return fieldProvider.resolveField(node.getName(), null, operation);
             } catch (ColumnUnknownException exception) {
                 if ((parameterContext.headerFlags() & SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT) == SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT) {
                     String quotedSubscriptLiteral = getQuotedSubscriptLiteral(node.getName().toString());

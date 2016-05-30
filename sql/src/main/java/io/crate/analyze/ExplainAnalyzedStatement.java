@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
+import io.crate.metadata.table.Operation;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
@@ -65,8 +66,8 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     }
 
     @Override
-    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField is not supported");
+    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        throw new UnsupportedOperationException("getField is not supported");
     }
 
     @Override

@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
+import io.crate.metadata.table.Operation;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -77,8 +78,8 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
     }
 
     @Override
-    public Field getWritableField(Path path) throws UnsupportedOperationException {
-        throw new UnsupportedOperationException("SelectAnalyzedStatement is not writable");
+    public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
+        throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is not implemented");
     }
 
     @Override

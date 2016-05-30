@@ -26,6 +26,7 @@ import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
+import io.crate.metadata.table.Operation;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -49,8 +50,8 @@ public abstract class PlanAndPlannedAnalyzedRelation implements PlannedAnalyzedR
     }
 
     @Override
-    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField is not supported");
+    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        throw new UnsupportedOperationException("getField is not supported");
     }
 
     @Override

@@ -35,6 +35,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
@@ -222,7 +223,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         }
 
         @Override
-        public Field getWritableField(Path path) throws UnsupportedOperationException {
+        public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
             return getField(path);
         }
 

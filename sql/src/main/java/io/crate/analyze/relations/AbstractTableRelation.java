@@ -31,6 +31,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -97,8 +98,11 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
     }
 
     @Override
-    public Field getWritableField(Path path) throws ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField() not implemented on TableRelation");
+    public Field getField(Path path, Operation operation) throws ColumnUnknownException {
+        if (operation == Operation.READ) {
+            return getField(path);
+        }
+        throw new UnsupportedOperationException("getField is only supported for read operations on TableRelation");
     }
 
 

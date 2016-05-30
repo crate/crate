@@ -33,6 +33,7 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -179,8 +180,8 @@ public class ESGetNode implements PlanNode, PlannedAnalyzedRelation {
     }
 
     @Override
-    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField() not implemented on ESGetNode");
+    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        throw new UnsupportedOperationException("getField() not implemented on ESGetNode");
     }
 
     @Override

@@ -31,6 +31,7 @@ import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.operation.scalar.SubscriptObjectFunction;
 import io.crate.planner.projection.builder.InputCreatingVisitor;
 import io.crate.types.DataType;
@@ -183,7 +184,7 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
 
     @Nullable
     @Override
-    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
+    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
         return null;
     }
 

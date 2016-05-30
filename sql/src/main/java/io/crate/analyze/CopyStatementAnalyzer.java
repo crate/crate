@@ -44,6 +44,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.StringSetting;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.projection.WriterProjection;
 import io.crate.sql.tree.*;
@@ -94,7 +95,7 @@ public class CopyStatementAnalyzer {
                     analysis.parameterContext().parameters());
         }
 
-        Context context = new Context(analysisMetaData, analysis.parameterContext(), tableRelation, true);
+        Context context = new Context(analysisMetaData, analysis.parameterContext(), tableRelation, Operation.INSERT);
         Predicate<DiscoveryNode> nodeFilters = Predicates.alwaysTrue();
         Settings settings = Settings.EMPTY;
         if (node.genericProperties().isPresent()) {
@@ -139,7 +140,7 @@ public class CopyStatementAnalyzer {
         }
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 
-        Context context = new Context(analysisMetaData, analysis.parameterContext(), tableRelation, false);
+        Context context = new Context(analysisMetaData, analysis.parameterContext(), tableRelation, Operation.READ);
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
                 node.genericProperties(), analysis.parameterContext(), SETTINGS_APPLIERS).build();
 
@@ -290,14 +291,14 @@ public class CopyStatementAnalyzer {
         public Context(AnalysisMetaData analysisMetaData,
                        ParameterContext parameterContext,
                        DocTableRelation tableRelation,
-                       boolean forWrite) {
+                       Operation operation) {
             expressionAnalysisContext = new ExpressionAnalysisContext();
             expressionAnalyzer = new ExpressionAnalyzer(
                     analysisMetaData,
                     parameterContext,
                     new NameFieldProvider(tableRelation),
                     tableRelation);
-            expressionAnalyzer.resolveWritableFields(forWrite);
+            expressionAnalyzer.setResolveFieldsOperation(operation);
         }
 
         public Symbol processExpression(Expression expression) {

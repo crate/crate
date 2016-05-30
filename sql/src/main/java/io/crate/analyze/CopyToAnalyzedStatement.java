@@ -33,6 +33,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
+import io.crate.metadata.table.Operation;
 import io.crate.planner.projection.WriterProjection;
 import org.elasticsearch.common.settings.Settings;
 
@@ -115,8 +116,8 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement imple
 
     @Nullable
     @Override
-    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("CopyToAnalyzedStatement is not writable");
+    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        throw new UnsupportedOperationException("getField not implemented on CopyToAnalyzedStatement");
     }
 
     @Override

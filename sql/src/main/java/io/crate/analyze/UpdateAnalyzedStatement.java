@@ -29,6 +29,7 @@ import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
+import io.crate.metadata.table.Operation;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -97,8 +98,8 @@ public class UpdateAnalyzedStatement implements AnalyzedRelation, AnalyzedStatem
     }
 
     @Override
-    public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("UpdateAnalyzedStatement is not writable");
+    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        throw new UnsupportedOperationException("getField on UpdateAnalyzedStatement is not implemented");
     }
 
     @Override

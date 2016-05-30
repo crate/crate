@@ -110,7 +110,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);
         ExpressionAnalyzer columnExpressionAnalyzer =
                 new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), columnFieldProvider, tableRelation);
-        columnExpressionAnalyzer.resolveWritableFields(true);
+        columnExpressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
 
         assert Iterables.getOnlyElement(relationAnalysisContext.sources().values()) == tableRelation;
         FieldProvider fieldProvider = new FullQualifedNameFieldProvider(relationAnalysisContext.sources());

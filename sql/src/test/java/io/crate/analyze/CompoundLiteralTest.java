@@ -32,6 +32,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
 import io.crate.metadata.*;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.sql.parser.ParsingException;
@@ -129,7 +130,7 @@ public class CompoundLiteralTest extends CrateUnitTest {
         }
 
         @Override
-        public Field getWritableField(Path path) throws UnsupportedOperationException {
+        public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
             return null;
         }
 
