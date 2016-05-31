@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLResponse;
 import io.crate.operation.reference.sys.check.SysCheck.Severity;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
@@ -47,9 +48,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
         int setMinimumMasterNodes = numberOfMasterNodes() / 2;
         execute("set global discovery.zen.minimum_master_nodes=?", new Object[]{setMinimumMasterNodes});
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
-        assertThat(response.hasRowCount(), is(true));
-        assertThat((Integer) response.rows()[0][0], is(Severity.HIGH.value()));
-        assertThat((Boolean) response.rows()[0][1], is(false));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("3| false\n"));
     }
 
     @Test
@@ -57,9 +56,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
         int setMinimumMasterNodes = numberOfMasterNodes() / 2 + 1;
         execute("set global discovery.zen.minimum_master_nodes=?", new Object[]{setMinimumMasterNodes});
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
-        assertThat(response.hasRowCount(), is(true));
-        assertThat((Integer) response.rows()[0][0], is(Severity.HIGH.value()));
-        assertThat((Boolean) response.rows()[0][1], is(true));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("3| true\n"));
     }
 
     private int numberOfMasterNodes() {
@@ -74,9 +71,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into foo.bar (id) values (?)", new Object[] {1});
         execute("insert into bar (id) values (?)", new Object[] {1});
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{2});
-        assertThat(response.hasRowCount(), is(true));
-        assertThat((Integer) response.rows()[0][0], is(Severity.MEDIUM.value()));
-        assertThat((Boolean) response.rows()[0][1], is(true));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2| true\n"));
     }
 
     @After
