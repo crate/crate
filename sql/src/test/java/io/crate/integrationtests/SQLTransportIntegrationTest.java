@@ -94,8 +94,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     protected final SQLTransportExecutor sqlExecutor;
 
-    private final static ESLogger LOGGER = Loggers.getLogger(SQLTransportIntegrationTest.class);
-
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return pluginList(CrateCorePlugin.class);
