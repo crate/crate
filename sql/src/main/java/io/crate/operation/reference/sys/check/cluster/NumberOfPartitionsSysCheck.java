@@ -20,21 +20,21 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.check.checks;
+package io.crate.operation.reference.sys.check.cluster;
 
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.apache.lucene.util.BytesRef;
+import io.crate.operation.reference.sys.check.AbstractSysCheck;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 @Singleton
 public class NumberOfPartitionsSysCheck extends AbstractSysCheck {
 
-    private static final int ID = 5;
+    private static final int ID = 2;
     private static final String DESCRIPTION =
             "The total number of partitions of one or more partitioned tables should" +
             " not be greater than 1000. A large amount of shards can significantly reduce performance.";

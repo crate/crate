@@ -30,7 +30,8 @@ import io.crate.metadata.information.*;
 import io.crate.metadata.sys.*;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.information.InformationSchemaExpressionFactories;
-import io.crate.operation.reference.sys.check.checks.SysCheck;
+import io.crate.operation.reference.sys.check.SysCheck;
+import io.crate.operation.reference.sys.check.SysNodeCheck;
 import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
@@ -62,6 +63,7 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
         tableFactories.put(SysOperationsTableInfo.IDENT, getSysOperationExpressions());
         tableFactories.put(SysOperationsLogTableInfo.IDENT, getSysOperationLogExpressions());
         tableFactories.put(SysChecksTableInfo.IDENT, getSysChecksExpressions());
+        tableFactories.put(SysNodeChecksTableInfo.IDENT, getSysNodeChecksExpressions());
         tableFactories.put(SysRepositoriesTableInfo.IDENT, getSysRepositoriesExpressions());
         tableFactories.put(SysSnapshotsTableInfo.IDENT, getSysSnapshotsExpressions());
 
@@ -373,6 +375,66 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
                     }
                 })
                 .build();
+    }
+
+    private ImmutableMap<ColumnIdent,RowCollectExpressionFactory> getSysNodeChecksExpressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
+            .put(SysNodeChecksTableInfo.Columns.ID, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<SysNodeCheck, Integer>() {
+                        @Override
+                        public Integer value() {
+                            return row.id();
+                        }
+                    };
+                }
+            })
+            .put(SysNodeChecksTableInfo.Columns.NODE_ID, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<SysNodeCheck, BytesRef>() {
+                        @Override
+                        public BytesRef value() {
+                            return row.nodeId();
+                        }
+                    };
+                }
+            })
+            .put(SysNodeChecksTableInfo.Columns.DESCRIPTION, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<SysNodeCheck, BytesRef>() {
+                        @Override
+                        public BytesRef value() {
+                            return row.description();
+                        }
+                    };
+                }
+            })
+            .put(SysNodeChecksTableInfo.Columns.SEVERITY, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<SysNodeCheck, Integer>() {
+                        @Override
+                        public Integer value() {
+                            return row.severity().value();
+                        }
+                    };
+                }
+            })
+            .put(SysNodeChecksTableInfo.Columns.PASSED, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<SysNodeCheck, Boolean>() {
+                        @Override
+                        public Boolean value() {
+                            return row.validate();
+                        }
+                    };
+                }
+            })
+            .build();
     }
 
     private ImmutableMap<ColumnIdent, RowCollectExpressionFactory> getSysRepositoriesExpressions() {
