@@ -32,8 +32,8 @@ import io.crate.core.collections.Row;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.reference.sys.check.SysChecker;
-import io.crate.operation.reference.sys.check.SysNodeChecker;
+import io.crate.operation.reference.sys.check.SysCheck;
+import io.crate.operation.reference.sys.check.SysNodeCheck;
 import io.crate.operation.reference.sys.repositories.SysRepositories;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.distribution.DistributionInfo;
@@ -65,8 +65,8 @@ public class SystemCollectSourceTest {
             mock(Functions.class),
             mock(StatsTables.class, Answers.RETURNS_MOCKS.get()),
             mock(InformationSchemaIterables.class, Answers.RETURNS_MOCKS.get()),
-            mock(SysChecker.class),
-            mock(SysNodeChecker.class),
+            Collections.<SysCheck>emptySet(),
+            Collections.<SysNodeCheck>emptySet(),
             mock(SysRepositories.class),
             mock(SysSnapshots.class));
 
