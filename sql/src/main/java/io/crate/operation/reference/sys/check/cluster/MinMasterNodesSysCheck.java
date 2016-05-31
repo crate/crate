@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.sys.check.checks;
+package io.crate.operation.reference.sys.check.cluster;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
@@ -29,9 +29,9 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.SysClusterTableInfo;
+import io.crate.operation.reference.sys.check.AbstractSysCheck;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
