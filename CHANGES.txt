@@ -5,6 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix in Cloud AWS plugin: Use the current region of the instance if no EC2 
+   region is specified in the configuration.
+
+ - Fixed a validation issue that allowed setting a primary key column value to
+   null
+
 2016/05/30 0.55.0
 =================
 
