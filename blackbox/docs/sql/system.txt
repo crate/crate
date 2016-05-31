@@ -922,23 +922,21 @@ The table schema is the following:
 |                  | check for the setting has passed.|             |
 +------------------+----------------------------------+-------------+
 
-Currently Crate checks the following:
+Example query::
 
-+------------------+------------------------------------+
-|       id         |           Check name               |
-+==================+====================================+
-| 1                | Minimum master nodes.              |
-+------------------+------------------------------------+
-| 2                | Recovery expected nodes.           |
-+------------------+------------------------------------+
-| 3                | Recovery after nodes.              |
-+------------------+------------------------------------+
-| 4                | Recovery after time.               |
-+------------------+------------------------------------+
-| 5                | Number of partitions.              |
-+------------------+------------------------------------+
-| 6                | Java 7 deprecation warning.        |
-+------------------+------------------------------------+
+  cr> select id, description from sys.checks order by id;
+  +----+--------------------------------------------------------------...-+
+  | id | description                                                      |
+  +----+--------------------------------------------------------------...-+
+  |  1 | The setting 'discovery.zen.minimum_master_nodes' must not be ... |
+  |  2 | The value of the cluster setting 'gateway.expected_nodes' mus... |
+  |  3 | The value of the cluster setting 'gateway.recover_after_nodes... |
+  |  4 | The value of the cluster setting 'gateway.recover_after_time'... |
+  |  5 | The total number of partitions of one or more partitioned tab... |
+  |  6 | Crate is running with ... java version. Java 7 is deprecated ... |
+  +----+--------------------------------------------------------------...-+
+  SELECT 6 rows in set (... sec)
+
 
 Settings checks:
 ----------------
