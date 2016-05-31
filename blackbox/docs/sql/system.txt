@@ -14,6 +14,7 @@ real-time information about the cluster, its nodes and their shards:
  * :ref:`sys.jobs <sys-jobs>`
  * :ref:`sys.jobs_log <sys-logs>`
  * :ref:`sys.nodes <sys-nodes>`
+ * :ref:`sys.node_checks <sys-node-checks>`
  * :ref:`sys.operations <sys-operations>`
  * :ref:`sys.operations_log <sys-logs>`
  * :ref:`sys.repositories <sys-repositories>`
@@ -546,6 +547,93 @@ at query time. Use the probe timestamp to get the time of the collect. When anal
 cpu usage over time, always use ``process['probe_timestamp']`` to calculate the time difference
 between 2 probes.
 
+.. _sys-node-checks:
+
+Node Checks
+===========
+
+The table ``sys.node_checks`` exposes a list of internal node checks and
+results of their validation.
+
+The table schema is the following:
+
++------------------+----------------------------------+-------------+
+|       Name       |           Description            | Return Type |
++==================+==================================+=============+
+| id               | The unique check id.             | Integer     |
++------------------+----------------------------------+-------------+
+| node_id          | The unique node id.              | String      |
++------------------+----------------------------------+-------------+
+| severity         | The level of severity.           | Integer     |
+|                  | The higher the value of the      |             |
+|                  | field the higher severity.       |             |
++------------------+----------------------------------+-------------+
+| description      | The description message for the  | String      |
+|                  | setting check.                   |             |
++------------------+----------------------------------+-------------+
+| passed           | The flag determines whether the  | Boolean     |
+|                  | check for the setting has passed.|             |
++------------------+----------------------------------+-------------+
+| acknowledged     | The flag determines whether the  | Boolean     |
+|                  | check for this setting has been  |             |
+|                  | acknowledged by the user in      |             |
+|                  | order to ignored the value of    |             |
+|                  | `passed` column.                 |             |
++------------------+----------------------------------+-------------+
+
+Example query::
+
+  cr> select id, node_id, description from sys.node_checks order by id, node_id;
+  +----+---------+--------------------------------------------------------------...-+
+  | id | node_id | description                                                      |
+  +----+---------+--------------------------------------------------------------...-+
+  |  1 | ...     | The value of the cluster setting 'gateway.expected_nodes' mus... |
+  |  2 | ...     | The value of the cluster setting 'gateway.recover_after_nodes... |
+  |  3 | ...     | The value of the cluster setting 'gateway.recover_after_time'... |
+  |  4 | ...     | Crate is running with ... java version. Java 7 is deprecated ... |
+  +----+---------+--------------------------------------------------------------...-+
+  SELECT 4 rows in set (... sec)
+
+Description of checked node settings
+------------------------------------
+
+Recovery expected nodes
+.......................
+
+The check for the :ref:`gateway.expected_nodes
+<gateway.expected_nodes>` setting checks that the number of nodes that
+should be waited for the immediate cluster state recovery, must be
+equal to the maximum number of data and master nodes in the cluster.
+
+Recovery after nodes
+....................
+
+The check for the :ref:`gateway.recover_after_nodes
+<gateway.recover_after_nodes>` verifies that the number of started
+nodes before the cluster starts must be greater than the half of the
+expected number of nodes and equal/less than number of nodes in the cluster.
+
+::
+
+  (E / 2) < R <= E
+
+where ``R`` is the number of recovery nodes, ``E`` is the number of expected
+nodes.
+
+Recovery after time
+...................
+
+The check for the :ref:`gateway.recover_after_time
+<gateway.recover_after_time>` settings verifies that the time before
+recovery starts must not be less than default value of ``5m``.
+
+Java 7 deprecation warning
+..........................
+
+Starting with Crate 0.55.0 using Java 7 runtime environment is
+deprecated. Please update to Java 8 (>= update 20). See also `here
+<https://crate.io/docs/reference/en/latest/installation.html#java-jvm-version>`_.
+
 .. _sys-shards:
 
 Shards
@@ -929,13 +1017,9 @@ Example query::
   | id | description                                                      |
   +----+--------------------------------------------------------------...-+
   |  1 | The setting 'discovery.zen.minimum_master_nodes' must not be ... |
-  |  2 | The value of the cluster setting 'gateway.expected_nodes' mus... |
-  |  3 | The value of the cluster setting 'gateway.recover_after_nodes... |
-  |  4 | The value of the cluster setting 'gateway.recover_after_time'... |
-  |  5 | The total number of partitions of one or more partitioned tab... |
-  |  6 | Crate is running with ... java version. Java 7 is deprecated ... |
+  |  2 | The total number of partitions of one or more partitioned tab... |
   +----+--------------------------------------------------------------...-+
-  SELECT 6 rows in set (... sec)
+  SELECT 2 rows in set (... sec)
 
 
 Settings checks:
@@ -956,43 +1040,12 @@ where ``N`` is the number of nodes in the cluster, and ``M`` is the value of
 the setting :ref:`discovery.zen.minimum_master_nodes
 <discovery.zen.minimum_master_nodes>`.
 
-Recovery expected nodes
-.......................
-The check for the :ref:`gateway.expected_nodes <gateway.expected_nodes>`
-setting checks that the number of nodes that should be waited for the
-immediate cluster state recovery, must be equal to the maximum number of data
-and master nodes in the cluster.
-
-Recovery after nodes
-....................
-The check for the :ref:`gateway.recover_after_nodes
-<gateway.recover_after_nodes>` verifies that the number of started nodes before
-the cluster starts must be greater than the half of the expected number of
-nodes and equal/less than number of nodes in the cluster.
-::
-
-  (E / 2) < R <= E
-
-where ``R`` is the number of recovery nodes, ``E`` is the number of expected
-nodes.
-
-Recovery after time
-...................
-The check for the :ref:`gateway.recover_after_time
-<gateway.recover_after_time>` settings verifies that the time before recovery
-starts must not be less than default value of ``5m``.
-
 Number of partitions
 ....................
 This check warns if any :ref:`partitioned table <partitioned_tables>` has more
 than 1000 partitions to detect the usage of a high cardinality field for
 partitioning.
 
-Java 7 deprecation warning
-..........................
-Starting with Crate 0.55.0 using Java 7 runtime environment is deprecated. Please
-update to Java 8 (>= update 20). See also
-`here <https://crate.io/docs/reference/en/latest/installation.html#java-jvm-version>`_ .
 
 .. _sys-repositories:
 
