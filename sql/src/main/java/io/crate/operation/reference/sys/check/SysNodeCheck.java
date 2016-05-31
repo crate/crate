@@ -30,4 +30,6 @@ public interface SysNodeCheck extends SysCheck {
      * Returns the unique id of the checked node.
      */
     BytesRef nodeId();
+
+    boolean acknowledged();
 }

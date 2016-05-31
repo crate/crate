@@ -30,10 +30,12 @@ public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements S
     private final ClusterService clusterService;
 
     private BytesRef nodeId;
+    private boolean acknowledged;
 
     public AbstractSysNodeCheck(int id, String description, Severity severity, ClusterService clusterService) {
         super(id, description, severity);
         this.clusterService = clusterService;
+        acknowledged = false;
     }
 
     @Override
@@ -42,5 +44,10 @@ public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements S
             nodeId = new BytesRef(clusterService.localNode().id());
         }
         return nodeId;
+    }
+
+    @Override
+    public boolean acknowledged() {
+        return acknowledged;
     }
 }

@@ -434,6 +434,17 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
                     };
                 }
             })
+            .put(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<SysNodeCheck, Boolean>() {
+                        @Override
+                        public Boolean value() {
+                            return row.acknowledged();
+                        }
+                    };
+                }
+            })
             .build();
     }
 

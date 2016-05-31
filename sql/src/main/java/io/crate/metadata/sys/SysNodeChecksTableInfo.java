@@ -58,6 +58,7 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
         public static final ColumnIdent SEVERITY = new ColumnIdent("severity");
         public static final ColumnIdent DESCRIPTION = new ColumnIdent("description");
         public static final ColumnIdent PASSED = new ColumnIdent("passed");
+        public static final ColumnIdent ACKNOWLEDGED = new ColumnIdent("acknowledged");
     }
 
     @Inject
@@ -67,7 +68,8 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
                 .register(SysNodeChecksTableInfo.Columns.NODE_ID, DataTypes.STRING)
                 .register(SysNodeChecksTableInfo.Columns.SEVERITY, DataTypes.INTEGER)
                 .register(SysNodeChecksTableInfo.Columns.DESCRIPTION, DataTypes.STRING)
-                .register(SysNodeChecksTableInfo.Columns.PASSED, DataTypes.BOOLEAN),
+                .register(SysNodeChecksTableInfo.Columns.PASSED, DataTypes.BOOLEAN)
+                .register(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED, DataTypes.BOOLEAN),
             PRIMARY_KEYS);
         this.clusterService = clusterService;
     }
