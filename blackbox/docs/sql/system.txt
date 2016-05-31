@@ -585,14 +585,14 @@ The table schema is the following:
 Example query::
 
   cr> select id, node_id, description from sys.node_checks order by id, node_id;
-  +----+---------+--------------------------------------------------------------...-+
-  | id | node_id | description                                                      |
-  +----+---------+--------------------------------------------------------------...-+
-  |  1 | ...     | The value of the cluster setting 'gateway.expected_nodes' mus... |
-  |  2 | ...     | The value of the cluster setting 'gateway.recover_after_nodes... |
-  |  3 | ...     | The value of the cluster setting 'gateway.recover_after_time'... |
-  |  4 | ...     | Crate is running with ... java version. Java 7 is deprecated ... |
-  +----+---------+--------------------------------------------------------------...-+
+  +----+---------...-+--------------------------------------------------------------...-+
+  | id | node_id     | description                                                      |
+  +----+---------...-+--------------------------------------------------------------...-+
+  |  1 | ...         | The value of the cluster setting 'gateway.expected_nodes' mus... |
+  |  2 | ...         | The value of the cluster setting 'gateway.recover_after_nodes... |
+  |  3 | ...         | The value of the cluster setting 'gateway.recover_after_time'... |
+  |  4 | ...         | Crate is running with ... java version. Java 7 is deprecated ... |
+  +----+---------...-+--------------------------------------------------------------...-+
   SELECT 4 rows in set (... sec)
 
 .. _sys-node-checks-ack:
@@ -617,7 +617,7 @@ label goes green again), we must acknowledge this check by updating
 it's ``acknowledged`` flag::
 
   cr> update sys.node_checks set acknowledged = true where id = 1;
-  UPDATE 1 row affected (... sec)
+  UPDATE OK, 1 row affected (... sec)
 
 .. note::
 
