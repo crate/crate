@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLResponse;
 import io.crate.operation.reference.sys.check.SysCheck;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
@@ -43,4 +44,15 @@ public class SysNodeCheckerIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Integer) response.rows()[3][0], is(SysCheck.Severity.MEDIUM.value()));
     }
 
+    @Test
+    public void testUpdateAcknowledge() throws Exception {
+        // gateway.expected_nodes is -1 in the test setup so this test always fails
+        SQLResponse resp = execute("select id, passed from sys.node_checks where passed = false");
+        execute("update sys.node_checks set acknowledged = true where id = ?", resp.rows()[0]);
+
+        execute("select id, passed, acknowledged from sys.node_checks where id = ?", resp.rows()[0]);
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("1| false| true\n" +
+               "1| false| true\n"));
+    }
 }

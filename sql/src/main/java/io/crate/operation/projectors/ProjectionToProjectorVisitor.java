@@ -29,15 +29,20 @@ import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.expressions.WritableExpression;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
+import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.planner.projection.*;
 import io.crate.types.StringType;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -52,7 +57,7 @@ public class ProjectionToProjectorVisitor
     private final ClusterService clusterService;
     private final Functions functions;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
-    private ThreadPool threadPool;
+    private final ThreadPool threadPool;
     private final Settings settings;
     private final TransportActionProvider transportActionProvider;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
@@ -367,6 +372,32 @@ public class ProjectionToProjectorVisitor
                 projection.nodeReaders(),
                 projection.readerIndices(),
                 projection.indicesToIdents());
+    }
+
+    @Override
+    public Projector visitSysUpdateProjection(SysUpdateProjection projection, Context context) {
+        Map<Reference, Symbol> assignments = projection.assignments();
+
+        CollectInputSymbolVisitor<RowCollectExpression<?, ?>> inputSymbolVisitor =
+            new CollectInputSymbolVisitor<>(functions, RowContextReferenceResolver.INSTANCE);
+        CollectInputSymbolVisitor.Context readCtx = inputSymbolVisitor.newContext();
+        CollectInputSymbolVisitor.Context writeCtx = inputSymbolVisitor.newContext();
+
+        List<Tuple<WritableExpression, Input<?>>> assignmentExpressions = new ArrayList<>(assignments.size());
+        for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
+            Reference ref = e.getKey();
+
+            Input<?> targetCol = inputSymbolVisitor.process(ref, writeCtx);
+            if (!(targetCol instanceof WritableExpression)) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Column \"%s\" cannot be updated", ref.ident().columnIdent()));
+            }
+
+            Input<?> sourceInput = inputSymbolVisitor.process(e.getValue(), readCtx);
+            assignmentExpressions.add(
+                new Tuple<WritableExpression, Input<?>>(((WritableExpression) targetCol), sourceInput));
+        }
+        return new SysUpdateProjector(assignmentExpressions, readCtx.docLevelExpressions());
     }
 
     @Override

@@ -20,18 +20,18 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.check;
+package io.crate.metadata.expressions;
 
-import org.apache.lucene.util.BytesRef;
-
-public interface SysNodeCheck extends SysCheck {
+/**
+ * WritableExpression that presents a column of a table
+ * @param <TRow>
+ * @param <TValue>
+ */
+public interface WritableExpression<TRow, TValue> {
 
     /**
-     * Returns the unique id of the checked node.
+     * @param row The current row to which the given value should be applied
+     *            This isn't of type {@link io.crate.core.collections.Row} but the untransformed "raw value"
      */
-    BytesRef nodeId();
-
-    boolean acknowledged();
-
-    void acknowledged(boolean value);
+    void updateValue(TRow row, TValue value);
 }

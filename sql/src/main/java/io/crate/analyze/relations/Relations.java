@@ -51,6 +51,11 @@ public class Relations {
         }
 
         @Override
+        public Boolean visitTableRelation(TableRelation tableRelation, Operation operation) {
+            return tableRelation.tableInfo.supportedOperations().contains(operation);
+        }
+
+        @Override
         public Boolean visitDocTableRelation(DocTableRelation relation, Operation operation) {
             DocTableInfo tableInfo = relation.tableInfo();
             return tableInfo.supportedOperations().contains(operation) && (tableInfo.isPartitioned() || !tableInfo.isAlias());
