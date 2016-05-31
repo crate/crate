@@ -578,7 +578,8 @@ The table schema is the following:
 |                  | check for this setting has been  |             |
 |                  | acknowledged by the user in      |             |
 |                  | order to ignored the value of    |             |
-|                  | `passed` column.                 |             |
+|                  | `passed` column. This column can |             |
+|                  | be *updated*.                    |             |
 +------------------+----------------------------------+-------------+
 
 Example query::
@@ -593,6 +594,36 @@ Example query::
   |  4 | ...     | Crate is running with ... java version. Java 7 is deprecated ... |
   +----+---------+--------------------------------------------------------------...-+
   SELECT 4 rows in set (... sec)
+
+.. _sys-node-checks-ack:
+
+Acknowledge failed checks
+-------------------------
+
+It is possible to acknowledge every check by updating the
+``acknowledged`` column. By doing this, specially Crate's built-in
+Admin-UI won't complain anymore about failing checks.
+
+Imagine we've added a new node to our cluster, but as the
+:ref:`gateway.expected_nodes <gateway.expected_nodes>` column can only
+be set via config-file or command-line argument, the check for this
+setting will not pass on the already running nodes until the
+config-file or command-line argument on these nodes is updated and the
+nodes are restarted (which is not what we want on a healthy well
+running cluster).
+
+In order to make the Admin-UI accept a failing check (so the checks
+label goes green again), we must acknowledge this check by updating
+it's ``acknowledged`` flag::
+
+  cr> update sys.node_checks set acknowledged = true where id = 1;
+  UPDATE 1 row affected (... sec)
+
+.. note::
+
+    Updates on this column are transient, so changed values are lost
+    after the affected node is restarted.
+
 
 Description of checked node settings
 ------------------------------------
