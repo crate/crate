@@ -26,7 +26,7 @@ import org.apache.lucene.util.BytesRef;
 
 public abstract class AbstractSysCheck implements SysCheck {
 
-    private static final String LINK_PATTERN = "https://cr8.is/d-check-";
+    private static final String LINK_PATTERN = "https://cr8.is/d-cluster-check-";
 
     private final int id;
     private final BytesRef description;
@@ -34,7 +34,11 @@ public abstract class AbstractSysCheck implements SysCheck {
 
 
     public AbstractSysCheck(int id, String description, Severity severity) {
-        String linkedDescriptionBuilder = description + " " + LINK_PATTERN + id;
+        this(id, description, severity, LINK_PATTERN);
+    }
+
+    AbstractSysCheck(int id, String description, Severity severity, String linkPattern) {
+        String linkedDescriptionBuilder = description + " " + linkPattern + id;
         this.description = new BytesRef(linkedDescriptionBuilder);
 
         this.id = id;
