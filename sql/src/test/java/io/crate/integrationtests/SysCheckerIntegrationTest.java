@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLResponse;
-import io.crate.operation.reference.sys.check.checks.SysCheck.Severity;
+import io.crate.operation.reference.sys.check.SysCheck.Severity;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
@@ -32,19 +32,14 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
-public class SysCheckerIntegrtionTest extends SQLTransportIntegrationTest {
+public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testChecksPresenceAndSeverityLevels() throws Exception {
         SQLResponse response = execute("select severity, passed from sys.checks order by id asc");
-        assertThat(response.rowCount(), equalTo(6L));
+        assertThat(response.rowCount(), equalTo(2L));
         assertThat((Integer) response.rows()[0][0], is(Severity.HIGH.value()));
-        assertThat((Integer) response.rows()[1][0], is(Severity.HIGH.value()));
-        assertThat((Integer) response.rows()[2][0], is(Severity.HIGH.value()));
-        assertThat((Integer) response.rows()[3][0], is(Severity.MEDIUM.value()));
-        assertThat((Integer) response.rows()[4][0], is(Severity.MEDIUM.value()));
-        assertThat((Integer) response.rows()[5][0], is(Severity.MEDIUM.value()));
-
+        assertThat((Integer) response.rows()[1][0], is(Severity.MEDIUM.value()));
     }
 
     @Test
@@ -52,6 +47,7 @@ public class SysCheckerIntegrtionTest extends SQLTransportIntegrationTest {
         int setMinimumMasterNodes = numberOfMasterNodes() / 2;
         execute("set global discovery.zen.minimum_master_nodes=?", new Object[]{setMinimumMasterNodes});
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
+        assertThat(response.hasRowCount(), is(true));
         assertThat((Integer) response.rows()[0][0], is(Severity.HIGH.value()));
         assertThat((Boolean) response.rows()[0][1], is(false));
     }
@@ -61,6 +57,7 @@ public class SysCheckerIntegrtionTest extends SQLTransportIntegrationTest {
         int setMinimumMasterNodes = numberOfMasterNodes() / 2 + 1;
         execute("set global discovery.zen.minimum_master_nodes=?", new Object[]{setMinimumMasterNodes});
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
+        assertThat(response.hasRowCount(), is(true));
         assertThat((Integer) response.rows()[0][0], is(Severity.HIGH.value()));
         assertThat((Boolean) response.rows()[0][1], is(true));
     }
@@ -76,7 +73,8 @@ public class SysCheckerIntegrtionTest extends SQLTransportIntegrationTest {
         execute("create table bar (id int) partitioned by (id)");
         execute("insert into foo.bar (id) values (?)", new Object[] {1});
         execute("insert into bar (id) values (?)", new Object[] {1});
-        SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{5});
+        SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{2});
+        assertThat(response.hasRowCount(), is(true));
         assertThat((Integer) response.rows()[0][0], is(Severity.MEDIUM.value()));
         assertThat((Boolean) response.rows()[0][1], is(true));
     }

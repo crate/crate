@@ -40,7 +40,9 @@ import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
+import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.operation.reference.sys.check.SysChecker;
+import io.crate.operation.reference.sys.check.SysNodeCheck;
 import io.crate.operation.reference.sys.repositories.SysRepositories;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.node.dql.CollectPhase;
@@ -66,32 +68,34 @@ public class SystemCollectSource implements CollectSource {
                                Functions functions,
                                StatsTables statsTables,
                                InformationSchemaIterables informationSchemaIterables,
-                               SysChecker sysChecker,
+                               Set<SysCheck> sysChecks,
+                               Set<SysNodeCheck> sysNodeChecks,
                                SysRepositories sysRepositories,
                                SysSnapshots sysSnapshots) {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextReferenceResolver.INSTANCE);
 
         iterableGetters = ImmutableMap.<String, Supplier<Iterable<?>>>builder()
-                .put(InformationSchemataTableInfo.IDENT.fqn(), informationSchemaIterables.schemas())
-                .put(InformationTablesTableInfo.IDENT.fqn(), informationSchemaIterables.tables())
-                .put(InformationPartitionsTableInfo.IDENT.fqn(), informationSchemaIterables.partitions())
-                .put(InformationColumnsTableInfo.IDENT.fqn(), informationSchemaIterables.columns())
-                .put(InformationTableConstraintsTableInfo.IDENT.fqn(), informationSchemaIterables.constraints())
-                .put(InformationRoutinesTableInfo.IDENT.fqn(), informationSchemaIterables.routines())
-                .put(SysJobsTableInfo.IDENT.fqn(), statsTables.jobsGetter())
-                .put(SysJobsLogTableInfo.IDENT.fqn(), statsTables.jobsLogGetter())
-                .put(SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter())
-                .put(SysOperationsLogTableInfo.IDENT.fqn(), statsTables.operationsLogGetter())
-                .put(SysChecksTableInfo.IDENT.fqn(), sysChecker)
-                .put(SysRepositoriesTableInfo.IDENT.fqn(), sysRepositories)
-                .put(SysSnapshotsTableInfo.IDENT.fqn(), sysSnapshots)
-                .build();
+            .put(InformationSchemataTableInfo.IDENT.fqn(), informationSchemaIterables.schemas())
+            .put(InformationTablesTableInfo.IDENT.fqn(), informationSchemaIterables.tables())
+            .put(InformationPartitionsTableInfo.IDENT.fqn(), informationSchemaIterables.partitions())
+            .put(InformationColumnsTableInfo.IDENT.fqn(), informationSchemaIterables.columns())
+            .put(InformationTableConstraintsTableInfo.IDENT.fqn(), informationSchemaIterables.constraints())
+            .put(InformationRoutinesTableInfo.IDENT.fqn(), informationSchemaIterables.routines())
+            .put(SysJobsTableInfo.IDENT.fqn(), statsTables.jobsGetter())
+            .put(SysJobsLogTableInfo.IDENT.fqn(), statsTables.jobsLogGetter())
+            .put(SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter())
+            .put(SysOperationsLogTableInfo.IDENT.fqn(), statsTables.operationsLogGetter())
+            .put(SysChecksTableInfo.IDENT.fqn(), new SysChecker(sysChecks))
+            .put(SysNodeChecksTableInfo.IDENT.fqn(), new SysChecker(sysNodeChecks))
+            .put(SysRepositoriesTableInfo.IDENT.fqn(), sysRepositories)
+            .put(SysSnapshotsTableInfo.IDENT.fqn(), sysSnapshots)
+            .build();
         this.discoveryService = discoveryService;
     }
 
     public Iterable<Row> toRowsIterable(RoutedCollectPhase collectPhase, Iterable<?> iterable) {
         WhereClause whereClause = collectPhase.whereClause();
-        if (whereClause.noMatch()){
+        if (whereClause.noMatch()) {
             return Collections.emptyList();
         }
 
@@ -114,8 +118,8 @@ public class SystemCollectSource implements CollectSource {
 
         @SuppressWarnings("unchecked")
         Iterable<Row> rows = Iterables.filter(
-                Iterables.transform(iterable, InputRow.toInputRowFunction(ctx.topLevelInputs(), ctx.docLevelExpressions())),
-                InputCondition.asPredicate(condition));
+            Iterables.transform(iterable, InputRow.toInputRowFunction(ctx.topLevelInputs(), ctx.docLevelExpressions())),
+            InputCondition.asPredicate(condition));
 
         if (orderBy == null) {
             return rows;
@@ -138,6 +142,6 @@ public class SystemCollectSource implements CollectSource {
         Supplier<Iterable<?>> iterableGetter = iterableGetters.get(table);
         assert iterableGetter != null : "iterableGetter for " + table + " must exist";
         return ImmutableList.<CrateCollector>of(
-                new RowsCollector(downstream, toRowsIterable(collectPhase, iterableGetter.get())));
+            new RowsCollector(downstream, toRowsIterable(collectPhase, iterableGetter.get())));
     }
 }

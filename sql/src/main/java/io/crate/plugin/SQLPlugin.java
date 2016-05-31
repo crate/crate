@@ -54,6 +54,7 @@ import io.crate.operation.merge.MergeOperationModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.reference.sys.check.SysChecksModule;
+import io.crate.operation.reference.sys.check.SysNodeChecksModule;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
@@ -143,6 +144,7 @@ public class SQLPlugin extends Plugin {
         modules.add(new TableFunctionModule());
         modules.add(new BulkModule());
         modules.add(new SysChecksModule());
+        modules.add(new SysNodeChecksModule());
         modules.add(new RepositorySettingsModule());
         return modules;
     }
