@@ -8,6 +8,33 @@ Unreleased
  - Fixed a validation issue that allowed setting a primary key column value to
    null
 
+2016/05/30 0.55.0
+=================
+
+ - BREAKING: Units are now required for time or byte based settings in the
+   `crate.yml` configuration file. Nodes won't start otherwise.
+
+ - BREAKING: The `gateway.local.sync` setting has been renamed to
+   `translog.sync_interval`.
+
+ - BREAKING: It is no longer possible to specify the location of the config
+   file with the `CONF_FILE` environment variable, or the `-Des.config`,
+   `-Des.default.config`, or `-Delasticsearch.config` parameters.
+   The config file must now be named `crate.yml` and must be located in the
+   default `config/` directory, in the directory specified in the `CONF_DIR`
+   environmental variable, or the one specified in the `-Des.path.home`
+   parameter.
+
+ - BREAKING: Crate will die now on all plugin loading errors.
+
+ - BREAKING: Column names may not contain the `.` character anymore.
+
+ - BREAKING: Tables are not refreshed automatically anymore before and after
+   a `DELETE-BY-QUERY` operation is applied.
+
+ - Fixed a validation issue that allowed setting a primary key column value to
+   null
+
  - Upgraded Elasticsearch to 2.3.3
 
  - Updated crate-admin to 0.18.0 which contains following changes:
@@ -29,11 +56,12 @@ Unreleased
  - Fixed a bug which prevented complete deletion of tables in custom
    schemas.
 
- - Improved the `KILL` behaviour for `COPY`, `UPDATE` and `DELETE` statements
+ - Improved the `KILL` behaviour for `COPY`, `UPDATE` and `DELETE` statements.
 
  - Fixed a `ClassCastException` that occurred if the left side of a `IN`
    predicate was a function.
- - Added links to Cluster check documentation. 
+
+ - Added links to Cluster check documentation.
 
  - Removed the `creationTime` property from `SQL(Bulk)Request` and changed the
    `duration` property on `SQL(Bulk)Response` to return the server-side
@@ -64,23 +92,7 @@ Unreleased
 
  - NOTE: Upgrading to this Crate version is only supported from >= 0.52
 
- - Upgraded Elasticsearch to 2.2.2
-
- - BREAKING: Units are now required for time or byte based settings in the
-   `crate.yml` configuration file. Nodes won't start otherwise.
-
- - Removed the `bulk.partition_creation_timeout` setting
-
- - BREAKING: The `gateway.local.sync` setting has been renamed to
-   `translog.sync_interval`
-
- - BREAKING: It is no longer possible to specify the location of the config
-   file with the `CONF_FILE` environment variable, or the `-Des.config`,
-   `-Des.default.config`, or `-Delasticsearch.config` parameters.
-   The config file must now be named `crate.yml` and must be located in the
-   default `config/` directory, in the directory specified in the `CONF_DIR`
-   environmental variable, or the one specified in the `-Des.path.home`
-   parameter.
+ - Removed the `bulk.partition_creation_timeout` setting.
 
  - Removed internal migration code that ensured schema backward compatibility
    to Crate versions <= 0.45
@@ -93,7 +105,7 @@ Unreleased
  - Improved validation of geo point data type; now it is not possible any more
    to insert invalid latitude or longitude in array literals.
 
- - Nodes can be configured now to allow only SQL statemens resulting
+ - Nodes can be configured now to allow only SQL statements resulting
    in read operations using new setting ``node.sql.read_only``.
 
  - Improved bulk insert/update and copy-from performance when replicas
@@ -105,43 +117,33 @@ Unreleased
  - Removed the ``jobs.keep_alive_timeout`` setting and all related logic.
    This means it is no longer possible to enable automatic job termination.
 
- - Added a ``node_filters`` option to ``COPY FROM``
+ - Added a ``node_filters`` option to ``COPY FROM``.
 
- - Add support for ``COPY FROM`` to ``EXPLAIN``
-
- - Fixed a NPE that occurred if a invalid formatted digest was used to request
-   a blob.
+ - Add support for ``COPY FROM`` to ``EXPLAIN``.
 
  - The ``COPY FROM`` statement now also accepts an array of strings as URI.
 
  - Added support for schemes supported by the used JVM's `URL` implementation
    for ``COPY FROM``. These usually include``http``, ``https``, ``ftp`` and
-    ``jar``.
+   ``jar``.
 
- - Added support for the ``unnest`` table function
+ - Added support for the ``unnest`` table function.
 
- - Implemented cluster check for installed java version 
+ - Implemented cluster check for installed java version.
 
  - removed wrong behaving CrateClient feature which allowed to load
    client settings from a configuration file.
 
  - Crate will now recognize settings defined by crate plugins.
 
- - BREAKING CHANGE: Crate will die now on all plugin loading errors
-
  - Implemented the EXPLAIN command for SELECT statements.
-
- - BREAKING CHANGE: Tables are not refreshed automatically anymore
-   before and after a `DELETE-BY-QUERY` operation is applied.
 
  - Removed the limitation that the WHERE clause couldn't contain
    certain expressions in `DELETE` statements
 
- - BREAKING CHANGE: column names may not contain the `.` character anymore
-
  - Exposed setting the default schema via HTTP header.
 
- - added `lower`` and `upper`` string functions
+ - Added `lower`` and `upper`` string functions.
 
 2016/05/12 0.54.9
 =================
