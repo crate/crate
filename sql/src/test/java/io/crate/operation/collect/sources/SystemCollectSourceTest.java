@@ -33,6 +33,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.reference.sys.check.SysChecker;
+import io.crate.operation.reference.sys.check.SysNodeChecker;
 import io.crate.operation.reference.sys.repositories.SysRepositories;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.distribution.DistributionInfo;
@@ -60,31 +61,32 @@ public class SystemCollectSourceTest {
     @Test
     public void testOrderBySymbolsDoNotAppearTwiceInRows() throws Exception {
         SystemCollectSource collectSource = new SystemCollectSource(
-                mock(DiscoveryService.class),
-                mock(Functions.class),
-                mock(StatsTables.class, Answers.RETURNS_MOCKS.get()),
-                mock(InformationSchemaIterables.class, Answers.RETURNS_MOCKS.get()),
-                mock(SysChecker.class),
-                mock(SysRepositories.class),
-                mock(SysSnapshots.class));
+            mock(DiscoveryService.class),
+            mock(Functions.class),
+            mock(StatsTables.class, Answers.RETURNS_MOCKS.get()),
+            mock(InformationSchemaIterables.class, Answers.RETURNS_MOCKS.get()),
+            mock(SysChecker.class),
+            mock(SysNodeChecker.class),
+            mock(SysRepositories.class),
+            mock(SysSnapshots.class));
 
         Reference shardId = new Reference(new ReferenceInfo(
-                new ReferenceIdent(new TableIdent("sys", "shards"), "id"), RowGranularity.SHARD, DataTypes.INTEGER));
+            new ReferenceIdent(new TableIdent("sys", "shards"), "id"), RowGranularity.SHARD, DataTypes.INTEGER));
 
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
-                UUID.randomUUID(),
-                1,
-                "collect",
-                new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()),
-                RowGranularity.SHARD,
-                Collections.<Symbol>singletonList(shardId),
-                ImmutableList.<Projection>of(),
-                WhereClause.MATCH_ALL,
-                DistributionInfo.DEFAULT_BROADCAST
+            UUID.randomUUID(),
+            1,
+            "collect",
+            new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()),
+            RowGranularity.SHARD,
+            Collections.<Symbol>singletonList(shardId),
+            ImmutableList.<Projection>of(),
+            WhereClause.MATCH_ALL,
+            DistributionInfo.DEFAULT_BROADCAST
         );
-        collectPhase.orderBy(new OrderBy(Collections.<Symbol>singletonList(shardId), new boolean[] { false }, new Boolean[] { null }));
+        collectPhase.orderBy(new OrderBy(Collections.<Symbol>singletonList(shardId), new boolean[]{false}, new Boolean[]{null}));
         Iterable<Row> rows = collectSource.toRowsIterable(collectPhase, Collections.singletonList(
-                new UnassignedShard(new ShardId("foo", 1), mock(ClusterService.class), true, ShardRoutingState.UNASSIGNED)));
+            new UnassignedShard(new ShardId("foo", 1), mock(ClusterService.class), true, ShardRoutingState.UNASSIGNED)));
         Row next = rows.iterator().next();
         assertThat(next.size(), is(1));
     }

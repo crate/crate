@@ -41,6 +41,7 @@ import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.check.SysChecker;
+import io.crate.operation.reference.sys.check.SysNodeChecker;
 import io.crate.operation.reference.sys.repositories.SysRepositories;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.node.dql.CollectPhase;
@@ -67,6 +68,7 @@ public class SystemCollectSource implements CollectSource {
                                StatsTables statsTables,
                                InformationSchemaIterables informationSchemaIterables,
                                SysChecker sysChecker,
+                               SysNodeChecker sysNodeChecker,
                                SysRepositories sysRepositories,
                                SysSnapshots sysSnapshots) {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextReferenceResolver.INSTANCE);
@@ -83,6 +85,7 @@ public class SystemCollectSource implements CollectSource {
                 .put(SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter())
                 .put(SysOperationsLogTableInfo.IDENT.fqn(), statsTables.operationsLogGetter())
                 .put(SysChecksTableInfo.IDENT.fqn(), sysChecker)
+                .put(SysNodeChecksTableInfo.IDENT.fqn(), sysNodeChecker)
                 .put(SysRepositoriesTableInfo.IDENT.fqn(), sysRepositories)
                 .put(SysSnapshotsTableInfo.IDENT.fqn(), sysSnapshots)
                 .build();
