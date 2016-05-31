@@ -82,7 +82,7 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
     }
 
     @Override
-    protected Context newContext() {
+    public Context newContext() {
         return new Context();
     }
 

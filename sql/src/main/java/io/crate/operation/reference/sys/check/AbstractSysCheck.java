@@ -58,5 +58,4 @@ public abstract class AbstractSysCheck implements SysCheck {
     }
 
     public abstract boolean validate();
-
 }

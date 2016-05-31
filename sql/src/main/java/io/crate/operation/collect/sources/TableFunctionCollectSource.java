@@ -36,10 +36,7 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.operation.BaseImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
-import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.collect.InputCollectExpression;
-import io.crate.operation.collect.JobCollectContext;
-import io.crate.operation.collect.RowsCollector;
+import io.crate.operation.collect.*;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.planner.node.dql.CollectPhase;
@@ -83,8 +80,8 @@ public class TableFunctionCollectSource implements CollectSource {
             topLevelInputs.add(implementationVisitor.process(symbol, context));
         }
         Iterable<Row> rows = Iterables.transform(
-                tableFunctionSafe.execute(inputs),
-                InputRow.toInputRowFunction(topLevelInputs, context.collectExpressions));
+            tableFunctionSafe.execute(inputs),
+            new ValueAndInputRow<Row>(topLevelInputs, context.collectExpressions));
         OrderBy orderBy = phase.orderBy();
         if (orderBy != null) {
             rows = SystemCollectSource.sortRows(Iterables.transform(rows, Row.MATERIALIZE), phase);

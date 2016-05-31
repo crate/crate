@@ -24,24 +24,21 @@ package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
-import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.ColumnRegistrar;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.EnumSet;
+import java.util.Set;
 
 @Singleton
 public class SysNodeChecksTableInfo extends StaticTableInfo {
@@ -51,6 +48,7 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
     private final ClusterService clusterService;
+    private final static Set<Operation> SUPPORTED_OPERATIONS = EnumSet.of(Operation.READ, Operation.UPDATE);
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
@@ -82,5 +80,10 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return Routing.forTableOnAllNodes(IDENT, clusterService.state().nodes());
+    }
+
+    @Override
+    public Set<Operation> supportedOperations() {
+        return SUPPORTED_OPERATIONS;
     }
 }

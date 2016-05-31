@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.metadata.*;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.expressions.WriteableRowContextExpression;
 import io.crate.metadata.information.*;
 import io.crate.metadata.sys.*;
 import io.crate.operation.reference.ReferenceResolver;
@@ -36,8 +37,8 @@ import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
-import io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsExpressionFactories;
 import io.crate.operation.reference.sys.repositories.SysRepository;
+import io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsExpressionFactories;
 import io.crate.operation.reference.sys.snapshot.SysSnapshot;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Singleton;
@@ -367,6 +368,7 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
                     @Override
                     public RowCollectExpression create() {
                         return new RowContextCollectorExpression<SysCheck, Boolean>() {
+
                             @Override
                             public Boolean value() {
                                 return row.validate();
@@ -437,7 +439,12 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
             .put(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED, new RowCollectExpressionFactory() {
                 @Override
                 public RowCollectExpression create() {
-                    return new RowContextCollectorExpression<SysNodeCheck, Boolean>() {
+                    return new WriteableRowContextExpression<SysNodeCheck, Boolean, Boolean>() {
+                        @Override
+                        public void updateValue(SysNodeCheck sysCheck, Boolean value) {
+                            sysCheck.acknowledged(value);
+                        }
+
                         @Override
                         public Boolean value() {
                             return row.acknowledged();

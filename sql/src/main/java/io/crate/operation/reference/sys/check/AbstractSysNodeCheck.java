@@ -51,4 +51,9 @@ public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements S
     public boolean acknowledged() {
         return acknowledged;
     }
+
+    @Override
+    public void acknowledged(boolean value) {
+        acknowledged = value;
+    }
 }

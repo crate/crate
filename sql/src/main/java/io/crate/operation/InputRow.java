@@ -21,12 +21,9 @@
 
 package io.crate.operation;
 
-import com.google.common.base.Function;
 import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
-import io.crate.operation.collect.CollectExpression;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public class InputRow implements Row {
@@ -57,31 +54,5 @@ public class InputRow implements Row {
         return "InputRow{" +
                 "inputs=" + inputs +
                 '}';
-    }
-
-
-    public static <T> Function<T, Row> toInputRowFunction(List<Input<?>> inputs,
-                                                          Iterable<? extends CollectExpression<T, ?>> expressions) {
-        return new SetNextRowFunction<>(inputs, expressions);
-    }
-
-    private static class SetNextRowFunction<T> implements Function<T, Row> {
-
-        private final Iterable<? extends CollectExpression<T, ?>> expressions;
-        private final InputRow inputRow;
-
-        public SetNextRowFunction(List<Input<?>> inputs, Iterable<? extends CollectExpression<T, ?>> expressions) {
-            this.inputRow = new InputRow(inputs);
-            this.expressions = expressions;
-        }
-
-        @Nullable
-        @Override
-        public Row apply(@Nullable T input) {
-            for (CollectExpression<T, ?> expression : expressions) {
-                expression.setNextRow(input);
-            }
-            return inputRow;
-        }
     }
 }

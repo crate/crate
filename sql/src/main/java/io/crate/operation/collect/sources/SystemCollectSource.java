@@ -34,7 +34,6 @@ import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.information.*;
 import io.crate.metadata.sys.*;
 import io.crate.operation.Input;
-import io.crate.operation.InputRow;
 import io.crate.operation.collect.*;
 import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.RowReceiver;
@@ -55,6 +54,8 @@ import java.util.*;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
+ *
+ * System tables are generally represented as Iterable of some type and are converted on-the-fly to {@link Row}
  */
 public class SystemCollectSource implements CollectSource {
 
@@ -118,7 +119,7 @@ public class SystemCollectSource implements CollectSource {
 
         @SuppressWarnings("unchecked")
         Iterable<Row> rows = Iterables.filter(
-            Iterables.transform(iterable, InputRow.toInputRowFunction(ctx.topLevelInputs(), ctx.docLevelExpressions())),
+            Iterables.transform(iterable, new ValueAndInputRow<>(ctx.topLevelInputs(), ctx.docLevelExpressions())),
             InputCondition.asPredicate(condition));
 
         if (orderBy == null) {

@@ -73,5 +73,9 @@ public class ProjectionVisitor<C, R> {
     public R visitFetchProjection(FetchProjection projection, C context) {
         return visitProjection(projection, context);
     }
+
+    public R visitSysUpdateProjection(SysUpdateProjection projection, C context) {
+        return visitProjection(projection, context);
+    }
 }
 

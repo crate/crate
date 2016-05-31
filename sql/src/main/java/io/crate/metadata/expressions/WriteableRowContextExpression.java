@@ -20,18 +20,11 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.check;
+package io.crate.metadata.expressions;
 
-import org.apache.lucene.util.BytesRef;
+import io.crate.metadata.RowContextCollectorExpression;
 
-public interface SysNodeCheck extends SysCheck {
-
-    /**
-     * Returns the unique id of the checked node.
-     */
-    BytesRef nodeId();
-
-    boolean acknowledged();
-
-    void acknowledged(boolean value);
+public abstract class WriteableRowContextExpression<TRow, TValue, TReturnValue>
+    extends RowContextCollectorExpression<TRow, TReturnValue>
+    implements WritableExpression<TRow, TValue> {
 }

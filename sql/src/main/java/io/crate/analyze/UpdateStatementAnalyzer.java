@@ -102,31 +102,38 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "relation \"%s\" doesn't support update operations", analyzedRelation));
         }
-        assert analyzedRelation instanceof DocTableRelation : "sourceRelation must be a DocTableRelation";
-        DocTableRelation tableRelation = ((DocTableRelation) analyzedRelation);
 
+        FieldResolver fieldResolver = (FieldResolver) analyzedRelation;
         FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);
         ExpressionAnalyzer columnExpressionAnalyzer =
-                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), columnFieldProvider, tableRelation);
+                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), columnFieldProvider, fieldResolver);
         columnExpressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
 
-        assert Iterables.getOnlyElement(relationAnalysisContext.sources().values()) == tableRelation;
+        assert Iterables.getOnlyElement(relationAnalysisContext.sources().values()) == analyzedRelation;
         FieldProvider fieldProvider = new FullQualifedNameFieldProvider(relationAnalysisContext.sources());
         ExpressionAnalyzer expressionAnalyzer =
-                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), fieldProvider, tableRelation);
+                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), fieldProvider, fieldResolver);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         int numNested = 1;
         if (analysis.parameterContext().bulkParameters.length > 0) {
             numNested = analysis.parameterContext().bulkParameters.length;
         }
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
+
+        WhereClauseAnalyzer whereClauseAnalyzer = null;
+        if (analyzedRelation instanceof DocTableRelation) {
+            whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, ((DocTableRelation) analyzedRelation));
+        }
+        TableInfo tableInfo = ((AbstractTableRelation) analyzedRelation).tableInfo();
+
         List<UpdateAnalyzedStatement.NestedAnalyzedStatement> nestedAnalyzedStatements = new ArrayList<>(numNested);
         for (int i = 0; i < numNested; i++) {
             analysis.parameterContext().setBulkIdx(i);
 
             WhereClause whereClause = expressionAnalyzer.generateWhereClause(node.whereClause(), expressionAnalysisContext);
-            whereClause = whereClauseAnalyzer.analyze(whereClause);
+            if (whereClauseAnalyzer != null) {
+                whereClause = whereClauseAnalyzer.analyze(whereClause);
+            }
 
             if (!whereClause.docKeys().isPresent() && Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION)) {
                 throw VERSION_SEARCH_EX;
@@ -139,7 +146,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                 analyzeAssignment(
                         assignment,
                         nestedAnalyzedStatement,
-                        tableRelation.tableInfo(),
+                        tableInfo,
                         expressionAnalyzer,
                         columnExpressionAnalyzer,
                         expressionAnalysisContext
@@ -147,7 +154,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             }
             nestedAnalyzedStatements.add(nestedAnalyzedStatement);
         }
-        return new UpdateAnalyzedStatement(tableRelation, nestedAnalyzedStatements);
+        return new UpdateAnalyzedStatement(analyzedRelation, nestedAnalyzedStatements);
     }
 
     private void analyzeAssignment(Assignment node,

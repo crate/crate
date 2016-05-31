@@ -21,6 +21,10 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.analyze.symbol.Field;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.Path;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 
 public class TableRelation extends AbstractTableRelation<TableInfo> {
@@ -34,4 +38,17 @@ public class TableRelation extends AbstractTableRelation<TableInfo> {
         return visitor.visitTableRelation(this, context);
     }
 
+    @Override
+    public Field getField(Path path, Operation operation) throws ColumnUnknownException {
+        switch (operation) {
+            case READ:
+            case UPDATE:
+                return getField(path);
+            case INSERT:
+            case DELETE:
+                throw new UnsupportedOperationException("getField is only supported for read or update operations on TableRelation");
+            default:
+                throw new AssertionError("new unhandled operation");
+        }
+    }
 }

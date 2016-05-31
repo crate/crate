@@ -97,15 +97,6 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         return referenceInfo;
     }
 
-    @Override
-    public Field getField(Path path, Operation operation) throws ColumnUnknownException {
-        if (operation == Operation.READ) {
-            return getField(path);
-        }
-        throw new UnsupportedOperationException("getField is only supported for read operations on TableRelation");
-    }
-
-
     protected static ColumnIdent toColumnIdent(Path path) {
         try {
             return (ColumnIdent) path;

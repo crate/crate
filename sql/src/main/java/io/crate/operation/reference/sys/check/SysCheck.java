@@ -67,5 +67,4 @@ public interface SysCheck {
      * @return {@true} if validation is passed.
      */
     boolean validate();
-
 }
