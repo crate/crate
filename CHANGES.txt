@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - BREAKING: Moved some `sys.checks` into a new `sys.node_checks` table as
+   those checks were actually node specific.
+   Added the ability to acknowledge failing checks on this new
+   `sys.node_checks` table.
+
  - Fix in Cloud AWS plugin: Use the current region of the instance if no EC2 
    region is specified in the configuration.
 
