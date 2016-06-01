@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Update crate-admin to 0.18.0 (0.55.0 didn't include 0.18 but 0.17)
+
  - Fix in Cloud AWS plugin: Use the current region of the instance if no EC2 
    region is specified in the configuration.
 
