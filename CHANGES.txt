@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Update crate-admin to 0.18.0 (0.55.0 didn't include 0.18 but 0.17)
+
  - BREAKING: Moved some `sys.checks` into a new `sys.node_checks` table as
    those checks were actually node specific.
    Added the ability to acknowledge failing checks on this new
