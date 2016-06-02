@@ -25,8 +25,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.sql.DDLStatementDispatcher;
+import io.crate.action.sql.FetchProperties;
 import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.ParameterContext;
 import io.crate.executor.Executor;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
@@ -43,6 +45,7 @@ import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.RowGranularity;
+import io.crate.operation.HandlerOperations;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
@@ -94,6 +97,7 @@ public class TransportExecutor implements Executor {
     private final ContextPreparer contextPreparer;
     private final TransportActionProvider transportActionProvider;
     private final IndicesService indicesService;
+    private final HandlerOperations handlerOperations;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
     private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
@@ -114,6 +118,7 @@ public class TransportExecutor implements Executor {
                              ShowStatementDispatcher showStatementDispatcherProvider,
                              ClusterService clusterService,
                              IndicesService indicesService,
+                             HandlerOperations handlerOperations,
                              BulkRetryCoordinatorPool bulkRetryCoordinatorPool) {
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
@@ -124,6 +129,7 @@ public class TransportExecutor implements Executor {
         this.showStatementDispatcherProvider = showStatementDispatcherProvider;
         this.clusterService = clusterService;
         this.indicesService = indicesService;
+        this.handlerOperations = handlerOperations;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         plan2TaskVisitor = new TaskCollectingVisitor();
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
@@ -141,8 +147,8 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public ListenableFuture<TaskResult> execute(Plan plan) {
-        return plan2TaskVisitor.process(plan, null).execute();
+    public ListenableFuture<TaskResult> execute(Plan plan, ParameterContext parameterContext) {
+        return plan2TaskVisitor.process(plan, parameterContext).execute();
     }
 
     @Override
@@ -151,41 +157,43 @@ public class TransportExecutor implements Executor {
         return task.executeBulk();
     }
 
-    private class TaskCollectingVisitor extends PlanVisitor<Void, Task> {
+    private class TaskCollectingVisitor extends PlanVisitor<ParameterContext, Task> {
 
         @Override
-        public Task visitNoopPlan(NoopPlan plan, Void context) {
+        public Task visitNoopPlan(NoopPlan plan, ParameterContext context) {
             return NoopTask.INSTANCE;
         }
 
         @Override
-        public Task visitExplainPlan(ExplainPlan explainPlan, Void context) {
+        public Task visitExplainPlan(ExplainPlan explainPlan, ParameterContext context) {
             return new ExplainTask(explainPlan);
         }
 
         @Override
-        protected Task visitPlan(Plan plan, Void context) {
-            return executionPhasesTask(plan);
+        protected Task visitPlan(Plan plan, ParameterContext context) {
+            return executionPhasesTask(plan, context);
         }
 
-        private ExecutionPhasesTask executionPhasesTask(Plan plan) {
+        private ExecutionPhasesTask executionPhasesTask(Plan plan, ParameterContext context) {
             List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(
                     plan, clusterService.localNode().id());
             LOGGER.debug("Created NodeOperationTrees from Plan: {}", nodeOperationTrees);
             return new ExecutionPhasesTask(
-                    plan.jobId(),
-                    clusterService,
-                    contextPreparer,
-                    jobContextService,
-                    indicesService,
-                    transportActionProvider.transportJobInitAction(),
-                    transportActionProvider.transportKillJobsNodeAction(),
-                    nodeOperationTrees
+                plan.jobId(),
+                clusterService,
+                contextPreparer,
+                jobContextService,
+                indicesService,
+                transportActionProvider.transportJobInitAction(),
+                transportActionProvider.transportKillJobsNodeAction(),
+                handlerOperations,
+                nodeOperationTrees,
+                context == null ? FetchProperties.DEFAULT : context.fetchProperties()
             );
         }
 
         @Override
-        public Task visitGetPlan(ESGet plan, Void context) {
+        public Task visitGetPlan(ESGet plan, ParameterContext context) {
             return new ESGetTask(
                 functions,
                 globalProjectionToProjectionVisitor,
@@ -196,14 +204,14 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitDropTablePlan(DropTablePlan plan, Void context) {
+        public Task visitDropTablePlan(DropTablePlan plan, ParameterContext context) {
             return new DropTableTask(plan,
                 transportActionProvider.transportDeleteIndexTemplateAction(),
                 transportActionProvider.transportDeleteIndexAction());
         }
 
         @Override
-        public Task visitKillPlan(KillPlan killPlan, Void context) {
+        public Task visitKillPlan(KillPlan killPlan, ParameterContext context) {
             return killPlan.jobToKill().isPresent() ?
                     new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
                             killPlan.jobId(),
@@ -212,27 +220,27 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitGenericShowPlan(GenericShowPlan genericShowPlan, Void context) {
+        public Task visitGenericShowPlan(GenericShowPlan genericShowPlan, ParameterContext context) {
             return new GenericShowTask(genericShowPlan.jobId(), showStatementDispatcherProvider, genericShowPlan.statement());
         }
 
         @Override
-        public Task visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, Void context) {
+        public Task visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, ParameterContext context) {
             return new DDLTask(genericDDLPlan.jobId(), ddlAnalysisDispatcherProvider, genericDDLPlan.statement());
         }
 
         @Override
-        public Task visitESClusterUpdateSettingsPlan(ESClusterUpdateSettingsPlan plan, Void context) {
+        public Task visitESClusterUpdateSettingsPlan(ESClusterUpdateSettingsPlan plan, ParameterContext context) {
             return new ESClusterUpdateSettingsTask(plan, transportActionProvider.transportClusterUpdateSettingsAction());
         }
 
         @Override
-        public Task visitESDelete(ESDelete plan, Void context) {
+        public Task visitESDelete(ESDelete plan, ParameterContext context) {
             return new ESDeleteTask(plan, transportActionProvider.transportDeleteAction(), jobContextService);
         }
 
         @Override
-        public Task visitUpsertById(UpsertById plan, Void context) {
+        public Task visitUpsertById(UpsertById plan, ParameterContext context) {
             return new UpsertByIdTask(
                 plan,
                 clusterService,
@@ -246,7 +254,7 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitESDeletePartition(ESDeletePartition plan, Void context) {
+        public Task visitESDeletePartition(ESDeletePartition plan, ParameterContext context) {
             return new ESDeletePartitionTask(plan, transportActionProvider.transportDeleteIndexAction());
         }
     }

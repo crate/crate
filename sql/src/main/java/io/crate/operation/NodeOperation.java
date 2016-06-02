@@ -23,7 +23,6 @@ package io.crate.operation;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
@@ -37,7 +36,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 
 public class NodeOperation implements Streamable {
 

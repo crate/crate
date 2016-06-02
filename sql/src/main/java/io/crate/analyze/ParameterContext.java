@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.FetchProperties;
 import io.crate.action.sql.SQLBaseRequest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -34,7 +35,7 @@ import static io.crate.analyze.symbol.Literal.newLiteral;
 public class ParameterContext {
 
     public static final ParameterContext EMPTY = new ParameterContext(
-            new Object[0], new Object[0][], null, SQLBaseRequest.HEADER_FLAG_OFF);
+            new Object[0], new Object[0][], null, SQLBaseRequest.HEADER_FLAG_OFF, FetchProperties.DEFAULT);
 
     final Object[] parameters;
 
@@ -42,15 +43,20 @@ public class ParameterContext {
 
     @Nullable
     private final String defaultSchema;
+    private final FetchProperties fetchProperties;
 
     private int currentIdx = 0;
 
     private final int headerFlags;
 
-    public ParameterContext(Object[] parameters, Object[][] bulkParameters,
-                            @Nullable String defaultSchema, int headerFlags) {
+    public ParameterContext(Object[] parameters,
+                            Object[][] bulkParameters,
+                            @Nullable String defaultSchema,
+                            int headerFlags,
+                            FetchProperties fetchProperties) {
         this.parameters = parameters;
         this.defaultSchema = defaultSchema;
+        this.fetchProperties = fetchProperties;
         if (bulkParameters.length > 0) {
             validateBulkParams(bulkParameters);
         }
@@ -58,8 +64,10 @@ public class ParameterContext {
         this.headerFlags = headerFlags;
     }
 
-    public ParameterContext(Object[] parameters, Object[][] bulkParameters, @Nullable String defaultSchema) {
-        this(parameters, bulkParameters, defaultSchema, SQLBaseRequest.HEADER_FLAG_OFF);
+    public ParameterContext(Object[] parameters,
+                            Object[][] bulkParameters,
+                            @Nullable String defaultSchema) {
+        this(parameters, bulkParameters, defaultSchema, SQLBaseRequest.HEADER_FLAG_OFF, FetchProperties.DEFAULT);
     }
 
     public int headerFlags() {
@@ -69,6 +77,10 @@ public class ParameterContext {
     @Nullable
     public String defaultSchema() {
         return defaultSchema;
+    }
+
+    public FetchProperties fetchProperties() {
+        return fetchProperties;
     }
 
     private void validateBulkParams(Object[][] bulkParams) {

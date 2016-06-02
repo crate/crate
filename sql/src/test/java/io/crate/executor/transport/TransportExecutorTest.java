@@ -22,6 +22,7 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
@@ -51,7 +52,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Planner.Context ctx = newPlannerContext();
         Plan plan = newGetNode("characters", outputs, "2", ctx.nextExecutionPhaseId());
 
-        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        Bucket rows = executor.execute(plan, ParameterContext.EMPTY).get(5, TimeUnit.SECONDS).rows();
         assertThat(rows, contains(isRow(2, "Ford")));
     }
 
@@ -63,7 +64,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new ReferenceIdent(new TableIdent(null, "characters"), "foo"), RowGranularity.DOC));
         Planner.Context ctx = newPlannerContext();
         Plan plan = newGetNode("characters", outputs, "2", ctx.nextExecutionPhaseId());
-        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        Bucket rows = executor.execute(plan, ParameterContext.EMPTY).get(5, TimeUnit.SECONDS).rows();
         assertThat(rows, contains(isRow(2, null)));
     }
 
@@ -73,13 +74,13 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         Planner.Context ctx = newPlannerContext();
         Plan plan = newGetNode("characters", outputs, asList("1", "2"), ctx.nextExecutionPhaseId());
-        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        Bucket rows = executor.execute(plan, ParameterContext.EMPTY).get(5, TimeUnit.SECONDS).rows();
         assertThat(rows.size(), is(2));
     }
 
     @Test
     public void testKillTask() throws Exception {
-        executor.execute(new KillPlan(UUID.randomUUID())).get(5, TimeUnit.SECONDS);
+        executor.execute(new KillPlan(UUID.randomUUID()), ParameterContext.EMPTY).get(5, TimeUnit.SECONDS);
     }
 
     protected Planner.Context newPlannerContext() {

@@ -104,7 +104,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).nodeReaders(), notNullValue());
         assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).readerIndices(), notNullValue());
 
-        ListenableFuture<TaskResult> result = executor.execute(plan);
+        ListenableFuture<TaskResult> result = executor.execute(plan, ParameterContext.EMPTY);
 
         final List<Object[]> resultingRows = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(1);
