@@ -27,28 +27,43 @@ request is automatically routed to the next server::
 Executing Queries
 =================
 
-The ``CrateClient`` exposes various ``sql`` methods that can be called with
-different arguments to execute SQL statements.
+In order to execute queries a ``cursor`` has to be retrieved from the client::
 
-The simplest variant only takes a ``String``::
+    CursorProperties properties = CursorProperties.builder()
+        .setDefaultSchema("doc")
+        .setFetchSize(100)
+        .build();
+    Cursor cursor = client.cursor(properties); // properties are optional
 
-    ActionFuture<SQLResponse> respFuture = client.sql("SELECT * FROM sys.nodes");
+This cursor can then be used to execute a SQL statement::
 
-Calling the ``sql`` method won't block but instead execute asynchronous and
-return a ``Future``.
+    ActionFuture<SQLResponse> respFuture = cursor.execute("select * from t");
 
-In order to get the actual result ``actionGet`` or ``get`` has to be called on
+This operation will execute asynchronous and return a ``Future`` as result. In
+order to get the actual response ``actionGet`` or ``get`` has to be called on
 the future::
 
     SQLResponse response = respFuture.actionGet();
 
 ``actionGet`` will block until the result is available.
 
-To avoid blocking there is another ``sql`` variant which takes an
-``ActionListener`` as additional argument. This ``ActionListener`` acts as a
-callback which will be called once the result is ready::
+The number of rows that are returned as part of the ``SQLResponse`` is limited
+by the ``fetchSize``.
 
-    client.sql("select name from sys.cluster", new ActionListener<SQLResponse>() {
+If more rows are required the ``cursor`` can be used to fetch more data::
+
+    ActionFuture<FetchResult> fetchResultFuture = cursor.fetchNextBatch();
+
+
+Non-blocking
+------------
+
+To avoid blocking all methods that return a ``Future`` have a second variant
+that takes an ``ActionListener`` as additional argument. This
+``ActionListener`` acts as a callback which will be called once the result is
+ready::
+
+    cursor.execute("select name from sys.cluster", new ActionListener<SQLResponse>() {
         @Override
         public void onResponse(SQLResponse sqlResponse) {
             System.out.println(sqlResponse);
