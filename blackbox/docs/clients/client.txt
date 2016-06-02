@@ -24,69 +24,80 @@ request is automatically routed to the next server::
     );
 
 
-Selecting Data
-==============
+Executing Queries
+=================
 
-Using the ``sql()`` method on the client class you can execute
-simple SQL statements::
+The ``CrateClient`` exposes various ``sql`` methods that can be called with
+different arguments to execute SQL statements.
 
-    SQLResponse response = client.sql("SELECT * FROM sys.nodes").actionGet()
+The simplest variant only takes a ``String``::
 
-Retrieving the returned columns using the ``cols()`` method::
+    ActionFuture<SQLResponse> respFuture = client.sql("SELECT * FROM sys.nodes");
 
-    System.out.println(Arrays.toString(response.cols()));
+Calling the ``sql`` method won't block but instead execute asynchronous and
+return a ``Future``.
 
-will print::
+In order to get the actual result ``actionGet`` or ``get`` has to be called on
+the future::
 
-    ["id", "name", "hostname", "rest_url", "port", "load", "mem", "heap",
-    "fs", "version", "thread_pools"]
+    SQLResponse response = respFuture.actionGet();
 
-Retrieving the returned rows using the ``rows()`` method::
+``actionGet`` will block until the result is available.
 
-    for (Object[] row: r.rows()){
-        System.out.println(Arrays.toString(row));
-    }
+To avoid blocking there is another ``sql`` variant which takes an
+``ActionListener`` as additional argument. This ``ActionListener`` acts as a
+callback which will be called once the result is ready::
 
-will print (something like)::
+    client.sql("select name from sys.cluster", new ActionListener<SQLResponse>() {
+        @Override
+        public void onResponse(SQLResponse sqlResponse) {
+            System.out.println(sqlResponse);
+        }
 
-    ["UhT82pZnQ3qT5EGasqs-nw", "host1", "host1.example.com", ...]
-    ["aAKieK6zQDKX4iGkqHgM6Q", "host2", "host2.example.com", ...]
-    ...
+        @Override
+        public void onFailure(Throwable e) {
+        }
+    });
 
 
 SQLRequest Class
 ================
 
-By default, the column data types are not serialized. In order to retrieve
-these, one must define it in the ``SQLRequest`` or ``SQLBulkRequest`` (see
-:ref:`java_client_bulk`) object::
+The ``SQLRequest`` is the object that is sent to the Crate server. It contains
+the SQL statement and optional additional arguments or settings.
 
-    SQLRequest request = new SQLRequest("SELECT name FROM sys.nodes");
+The ``sql(String statement)`` and ``sql(String statement,
+ActionListener<SQLResponse>)`` methods mentioned before are shortcuts for two
+additional ``sql`` methods:
 
-If you want to retrieve the types of the columns in the ``SQLResponse``
-or ``SQLBulkResponse`` object you'll need to set ``includeTypesOnResponse``::
+ - ``sql(SQLRequest statement) -> ActionFuture<SQLResponse>``
+ - ``sql(SQLRequest statement, ActionListener<SQLResponse>) -> void``
 
-    request.includeTypesOnResponse(true);
 
-Now you're able to call ``sql()`` using the request object as its argument::
+Creating a ``SQLRequest`` directly without using the shortcut methods has the
+advantage that additional features can be used. These features are described
+below.
 
-    SQLResponse response = client.sql(request).actionGet()
 
 .. note::
 
-   Queries are executed asynchronously. ``client.sql("...")`` will return a
-   ``Future<SQLResponse>`` and code execution is only blocked if
-   ``.actionGet()`` is called on it.
+    Most of the methods and properties described here are also applicable to
+    the SQLBulkRequest class described further below.
 
+Arguments and Parameter Substitution
+------------------------------------
 
-Get the data type of the first column::
+Instead of `inlining` values in the SQL statement it is possible to use
+placeholders within the statement and provide the values separately.
 
-    DataType dataType = r.columnTypes()[0]
-    System.out.print(dataType.getName())
+This feature should always be used to prevent `SQL Injection`_, and benefit
+from improved performance.
 
-will print::
+Here is an example that shows how to use it::
 
-    "string"
+    SQLRequest request = new SQLRequest(
+        "select * from sys.nodes where name = ?", new Object[] { "node1" });
+    client.sql(request).actionGet();
 
 
 Default Schema
@@ -97,36 +108,41 @@ default to ``doc``. In order to overwrite that default it is possible to set
 the default schema name on the ``SQLRequest``::
 
     SQLRequest request = new SQLRequest("select * from t");
-    request.setDefaultSchema('custom_schema');
+    request.setDefaultSchema("custom_schema");
 
 This will then return the results from ``custom_schema.t`` instead of
 ``doc.t``.
 
-.. note::
+Request Column Data Types
+-------------------------
 
-    This is also supported on the SQLBulkRequest class that is described
-    further below.
+By default the ``SQLResponse`` won't contain the data types of the result
+columns. To retrieve them a flag can be set on the ``SQLRequest``::
+
+    SQLRequest request = new SQLRequest("SELECT name FROM sys.nodes");
+    request.includeTypesOnResponse(true);
 
 
-Parameter Substitution
-======================
+SQLResponse Class
+=================
 
-To prevent `SQL Injection`_ and for convenience reasons one always
-should use parameter substitution when querying data.
+The ``SQLResponse`` represents the result of a SQL statement.
 
-In order to perform parameter substitution you can use the
-``SQLRequest`` or the ``SQLBulkRequest`` (see :ref:`java_client_bulk`) class
-again.
+It contains the following properties:
 
-Here we'll create a table ``foo`` first and then insert data using parameter
-substitution::
-
-    client.sql("CREATE TABLE foo (id int primary key, name string)").actionGet()
-
-    String stmt = "INSERT INTO foo (id, name) VALUES (?, ?)";
-    Object[] args = new Object[]{1, "bar"};
-
-    SQLRequest request = new SQLRequest(stmt, args);
+=============== ===============================================================
+Property        Description
+=============== ===============================================================
+``cols()``      Return the column names as ``String[]``
+``colTypes()``  Return the types of the columns as ``DataType[]``. The types
+                are only available if the ``SQLRequest`` explicitly requested
+                the types.
+``duration()``  Return the time it took on the server to process the statement
+                in ms as ``float``.
+``rowCount()``  Return the number of rows that the response contains as
+                ``long``. Might be ``-1`` if it is unknown.
+``rows()``      Return the rows as ``Object[][]``
+=============== ===============================================================
 
 
 Data Type Mapping
