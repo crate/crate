@@ -54,6 +54,7 @@ import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.UUID;
 
 
 @Singleton
@@ -86,21 +87,21 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
     @Override
     public ParameterContext getParamContext(SQLRequest request) {
         return new ParameterContext(
-                request.args(), SQLBulkRequest.EMPTY_BULK_ARGS, request.getDefaultSchema(), request.getRequestFlags());
+                request.args(), SQLBulkRequest.EMPTY_BULK_ARGS, request.getDefaultSchema(), request.getRequestFlags(), request.fetchProperties());
     }
 
     @Override
     void executePlan(Executor executor,
                      final Analysis analysis,
-                     Plan plan,
+                     final Plan plan,
                      final ActionListener<SQLResponse> listener,
                      final SQLRequest request,
                      final long startTime) {
 
-        Futures.addCallback(executor.execute(plan), new FutureCallback<TaskResult>() {
+        Futures.addCallback(executor.execute(plan, analysis.parameterContext()), new FutureCallback<TaskResult>() {
             @Override
             public void onSuccess(@Nullable TaskResult result) {
-                listener.onResponse(createResponse(analysis, request, result, startTime));
+                listener.onResponse(createResponse(plan.jobId(), analysis, request, result, startTime));
             }
 
             @Override
@@ -110,7 +111,11 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
         });
     }
 
-    private SQLResponse createResponse(Analysis analysis, SQLRequest request, @Nullable TaskResult result, long startTime) {
+    private SQLResponse createResponse(UUID jobId,
+                                       Analysis analysis,
+                                       SQLRequest request,
+                                       @Nullable TaskResult result,
+                                       long startTime) {
         Bucket bucket = result == null ? Bucket.EMPTY : result.rows();
         Object[][] rows;
         String[] outputNames = EMPTY_NAMES;
@@ -146,7 +151,8 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
             outputTypes,
             rowCount,
             duration,
-            request.includeTypesOnResponse()
+            request.includeTypesOnResponse(),
+            jobId
         );
     }
 

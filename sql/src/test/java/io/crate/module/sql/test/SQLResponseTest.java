@@ -35,6 +35,7 @@ import org.skyscreamer.jsonassert.JSONAssert;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
 
@@ -115,16 +116,41 @@ public class SQLResponseTest extends CrateUnitTest {
         BytesStreamOutput o = new BytesStreamOutput();
         SQLResponse r1, r2;
 
-        r1 = new SQLResponse();
-        r1.cols(new String[]{});
-        r1.colTypes(new DataType[]{});
-        r1.rows(new Object[][]{new String[]{}});
+        r1 = new SQLResponse(
+            new String[] {},
+            new Object[][]{new String[]{}},
+            new DataType[] {},
+            0L,
+            10.f,
+            false,
+            new UUID(20L, 24L));
 
         r1.writeTo(o);
 
         r2 = new SQLResponse();
         r2.readFrom(StreamInput.wrap(o.bytes()));
 
+
+        assertArrayEquals(r1.cols(), r2.cols());
+        assertArrayEquals(r1.columnTypes(), r2.columnTypes());
+        assertArrayEquals(r1.rows(), r2.rows());
+        assertEquals(r1.rowCount(), r2.rowCount());
+        assertThat(r1.duration(), is(r2.duration()));
+
+        o.reset();
+        r1 = new SQLResponse(
+            new String[] {"a", "b"},
+            new Object[][]{new String[]{"va", "vb"}},
+            new DataType[] {DataTypes.STRING, DataTypes.STRING},
+            2L,
+            10.f,
+            true,
+            new UUID(20L, 24L));
+
+        r1.writeTo(o);
+
+        r2 = new SQLResponse();
+        r2.readFrom(StreamInput.wrap(o.bytes()));
 
         assertArrayEquals(r1.cols(), r2.cols());
         assertArrayEquals(r1.columnTypes(), r2.columnTypes());
@@ -132,42 +158,7 @@ public class SQLResponseTest extends CrateUnitTest {
         assertEquals(r1.rowCount(), r2.rowCount());
 
         o.reset();
-        r1 = new SQLResponse();
-        r1.cols(new String[]{"a", "b"});
-        r1.colTypes(new DataType[]{StringType.INSTANCE, StringType.INSTANCE});
-        r1.includeTypes(true);
-        r1.rows(new Object[][]{new String[]{"va", "vb"}});
-
-        r1.writeTo(o);
-
-        r2 = new SQLResponse();
-        r2.readFrom(StreamInput.wrap(o.bytes()));
-
-        assertArrayEquals(r1.cols(), r2.cols());
-        assertArrayEquals(r1.columnTypes(), r2.columnTypes());
-        assertArrayEquals(r1.rows(), r2.rows());
-        assertEquals(r1.rowCount(), r2.rowCount());
-
-        o.reset();
-
-        r1 = new SQLResponse();
-        r1.cols(new String[]{"a", "b"});
-        r1.colTypes(new DataType[0]);
-        r1.rows(new Object[][]{new String[]{"ab","ba"}, new String[]{"ba", "ab"}});
-        r1.rowCount(2L);
-
-        r1.writeTo(o);
-
-        r2 = new SQLResponse();
-        r2.readFrom(StreamInput.wrap(o.bytes()));
-
-        assertArrayEquals(r1.cols(), r2.cols());
-        assertArrayEquals(r1.columnTypes(), r2.columnTypes());
-        assertArrayEquals(r1.rows(), r2.rows());
-        assertEquals(r1.rowCount(), r2.rowCount());
     }
-
-
 
 
     /**
@@ -177,22 +168,23 @@ public class SQLResponseTest extends CrateUnitTest {
     @Test
     public void testSerializationWriteTo() throws Exception {
         SQLResponse resp = new SQLResponse(
-                new String[] {"col1", "col2"},
-                new Object[][] {
-                        new Object[] {"row1_col1", "row1_col2"},
-                        new Object[] {"row2_col1", "row2_col2"}
-                },
-                new DataType[] { DataTypes.STRING, DataTypes.STRING },
-                2L,
-                0,
-                true
+            new String[] {"col1", "col2"},
+            new Object[][] {
+                    new Object[] {"row1_col1", "row1_col2"},
+                    new Object[] {"row2_col1", "row2_col2"}
+            },
+            new DataType[] { DataTypes.STRING, DataTypes.STRING },
+            2L,
+            0,
+            true,
+            new UUID(20L, 24L)
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
         resp.writeTo(out);
 
         byte[] expectedBytes = new byte[]
-            {0, 2, 4, 99, 111, 108, 49, 4, 99, 111, 108, 50, 1, 0, 0, 0, 0, 2, 4, 4, 0, 2, 0, 0, 0, 2, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 50, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 50};
+            {0, 2, 4, 99, 111, 108, 49, 4, 99, 111, 108, 50, 1, 0, 0, 0, 0, 2, 4, 4, 0, 0, 0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 24, 0, 2, 0, 0, 0, 2, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 50, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 50};
         byte[] bytes = out.bytes().toBytes();
         assertThat(bytes, is(expectedBytes));
     }
@@ -200,7 +192,7 @@ public class SQLResponseTest extends CrateUnitTest {
     @Test
     public void testSerializationReadFrom() throws Exception {
         byte[] buf = new byte[]
-            {0, 2, 4, 99, 111, 108, 49, 4, 99, 111, 108, 50, 1, 0, 0, 0, 0, 2, 4, 4, 0, 2, 0, 0, 0, 2, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 50, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 50};
+            {0, 2, 4, 99, 111, 108, 49, 4, 99, 111, 108, 50, 1, 0, 0, 0, 0, 2, 4, 4, 0, 0, 0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 24, 0, 2, 0, 0, 0, 2, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 49, 95, 99, 111, 108, 50, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 49, 0, 9, 114, 111, 119, 50, 95, 99, 111, 108, 50};
         StreamInput in = StreamInput.wrap(buf);
         SQLResponse resp = new SQLResponse();
         resp.readFrom(in);
@@ -214,5 +206,6 @@ public class SQLResponseTest extends CrateUnitTest {
         assertThat(resp.columnTypes(), is(new DataType[] { DataTypes.STRING, DataTypes.STRING }));
         assertThat(resp.rowCount(), is(2L));
         assertThat(resp.duration(), is(0f));
+        assertThat(resp.cursorId(), is(new UUID(20L, 24L)));
     }
 }

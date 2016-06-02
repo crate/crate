@@ -22,7 +22,12 @@ def coreIncludes = ['io/crate/Streamer*',
                     "io/crate/geo/GeoJSONUtils*",
                     "io/crate/types/**"]
 
-def sqlIncludes = ["io/crate/action/sql/SQL*"]
+def sqlIncludes = [
+    "io/crate/action/sql/SQL*",
+    "io/crate/action/sql/Fetch*",
+    "io/crate/action/sql/fetch/Fetch*",
+    "io/crate/action/sql/fetch/SQLFetchAction*",
+]
 
 task depClasses(type: Copy, dependsOn: [':core:compileJava', ':sql:compileJava']) {
     duplicatesStrategy 'fail'

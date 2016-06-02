@@ -31,15 +31,13 @@ import io.crate.action.job.ContextPreparer;
 import io.crate.action.job.JobRequest;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.action.job.TransportJobAction;
+import io.crate.action.sql.FetchProperties;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.*;
-import io.crate.operation.NodeOperation;
-import io.crate.operation.NodeOperationTree;
-import io.crate.operation.QueryResultRowDownstream;
-import io.crate.operation.RowCountResultRowDownstream;
+import io.crate.operation.*;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
@@ -59,9 +57,11 @@ public class ExecutionPhasesTask extends JobTask {
     static final ESLogger LOGGER = Loggers.getLogger(ExecutionPhasesTask.class);
 
     private final TransportJobAction transportJobAction;
+    private final HandlerOperations handlerOperations;
+    private final FetchProperties fetchProperties;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final List<NodeOperationTree> nodeOperationTrees;
-    private final ClusterService clusterService;
+    private final String localNodeId;
     private ContextPreparer contextPreparer;
     private final JobContextService jobContextService;
     private final IndicesService indicesService;
@@ -75,15 +75,20 @@ public class ExecutionPhasesTask extends JobTask {
                                IndicesService indicesService,
                                TransportJobAction transportJobAction,
                                TransportKillJobsNodeAction transportKillJobsNodeAction,
-                               List<NodeOperationTree> nodeOperationTrees) {
+                               HandlerOperations handlerOperations,
+                               List<NodeOperationTree> nodeOperationTrees,
+                               FetchProperties fetchProperties) {
         super(jobId);
-        this.clusterService = clusterService;
         this.contextPreparer = contextPreparer;
         this.jobContextService = jobContextService;
         this.indicesService = indicesService;
         this.transportJobAction = transportJobAction;
+        this.handlerOperations = handlerOperations;
+        this.fetchProperties = fetchProperties;
         this.transportKillJobsNodeAction = transportKillJobsNodeAction;
         this.nodeOperationTrees = nodeOperationTrees;
+
+        this.localNodeId = clusterService.localNode().id();
 
         for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
             for (NodeOperation nodeOperation : nodeOperationTree.nodeOperations()) {
@@ -103,14 +108,22 @@ public class ExecutionPhasesTask extends JobTask {
         InitializationTracker initializationTracker = new InitializationTracker(operationByServer.size());
 
         SettableFuture<TaskResult> result = SettableFuture.create();
+        RowReceiver rowReceiver;
+        if (fetchProperties.closeContext()) {
+            rowReceiver = new QueryResultRowDownstream(result);
+        } else {
+            ClientPagingReceiver clientPagingReceiver = new ClientPagingReceiver(fetchProperties, result);
+            handlerOperations.register(jobId(), fetchProperties.cursorKeepAlive(), clientPagingReceiver);
+            rowReceiver = clientPagingReceiver;
+        }
         RowReceiver receiver = new InterceptingRowReceiver(
             jobId(),
-            new QueryResultRowDownstream(result),
+            rowReceiver,
             initializationTracker,
             transportKillJobsNodeAction);
         Tuple<ExecutionPhase, RowReceiver> handlerPhase = new Tuple<>(nodeOperationTree.leaf(), receiver);
         try {
-            setupContext(operationByServer, Collections.singletonList(handlerPhase), initializationTracker);
+            setupContext( operationByServer, Collections.singletonList(handlerPhase), initializationTracker);
         } catch (Throwable throwable) {
             result.setException(throwable);
         }
@@ -153,11 +166,11 @@ public class ExecutionPhasesTask extends JobTask {
         return results;
     }
 
+
     private void setupContext(Map<String, Collection<NodeOperation>> operationByServer,
                               List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
                               InitializationTracker initializationTracker) throws Throwable {
 
-        String localNodeId = clusterService.localNode().id();
         Collection<NodeOperation> localNodeOperations = operationByServer.remove(localNodeId);
         if (localNodeOperations == null) {
             localNodeOperations = Collections.emptyList();

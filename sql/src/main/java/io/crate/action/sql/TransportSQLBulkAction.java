@@ -75,7 +75,12 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
     @Override
     public ParameterContext getParamContext(SQLBulkRequest request) {
         return new ParameterContext(
-                SQLRequest.EMPTY_ARGS, request.bulkArgs(), request.getDefaultSchema(), request.getRequestFlags());
+            SQLRequest.EMPTY_ARGS,
+            request.bulkArgs(),
+            request.getDefaultSchema(),
+            request.getRequestFlags(),
+            FetchProperties.DEFAULT // fetchProperties are irrelevant because bulk-operations don't support fetch
+        );
     }
 
     @Override
