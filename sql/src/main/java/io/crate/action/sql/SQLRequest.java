@@ -35,6 +35,7 @@ public class SQLRequest extends SQLBaseRequest {
 
     public final static Object[] EMPTY_ARGS = new Object[0];
     private Object[] args;
+    private Integer fetchSize = null;
 
     public SQLRequest() {} // used for serialization
 
@@ -46,6 +47,17 @@ public class SQLRequest extends SQLBaseRequest {
     public SQLRequest(String stmt, Object[] args) {
         super(stmt);
         args(args);
+    }
+
+    /**
+     * Set the fetchSize. The fetchSize is the maximum number of rows which the {@link SQLResponse} will contain.
+     */
+    public void fetchSize(int fetchSize) {
+        this.fetchSize = fetchSize;
+    }
+
+    public int fetchSize() {
+        return fetchSize;
     }
 
     /**
@@ -75,6 +87,7 @@ public class SQLRequest extends SQLBaseRequest {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+        fetchSize = in.readOptionalVInt();
         int length = in.readVInt();
         args = new Object[length];
         for (int i = 0; i < length; i++) {
@@ -86,6 +99,7 @@ public class SQLRequest extends SQLBaseRequest {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
 
+        out.writeOptionalVInt(fetchSize);
         out.writeVInt(args.length);
         for (int i = 0; i < args.length; i++) {
             out.writeGenericValue(args[i]);

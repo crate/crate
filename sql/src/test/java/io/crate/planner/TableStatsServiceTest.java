@@ -41,7 +41,6 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
@@ -50,6 +49,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
 
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -96,12 +96,13 @@ public class TableStatsServiceTest extends CrateUnitTest  {
                     row = new Object[] { 4L, "foo", "bar"};
                 }
                 listener.onResponse(new SQLResponse(
-                        new String[] {"cast(sum(num_docs) as long)", "schema_name", "table_name"},
-                        new Object[][] { row },
-                        new DataType[] {DataTypes.LONG, DataTypes.STRING, DataTypes.STRING},
-                        1L,
-                        1,
-                        false
+                    new String[] {"cast(sum(num_docs) as long)", "schema_name", "table_name"},
+                    new Object[][] { row },
+                    new DataType[] {DataTypes.LONG, DataTypes.STRING, DataTypes.STRING},
+                    1L,
+                    1,
+                    false,
+                    UUID.randomUUID()
                 ));
                 numRequests.incrementAndGet();
             }
