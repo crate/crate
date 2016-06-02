@@ -6,9 +6,11 @@ import os
 import shutil
 import re
 import tempfile
+import glob
 from . import process_test
 from .paths import crate_path, project_path
 from .ports import GLOBAL_PORT_POOL
+from .java_repl import JavaRepl
 from crate.crash.command import CrateCmd
 from crate.crash.printer import PrintWrapper, ColorPrinter
 from crate.client import connect
@@ -33,6 +35,13 @@ class CrateTestCmd(CrateCmd):
             self.execute(stmt)
 
 cmd = CrateTestCmd(is_tty=False)
+jars = [project_path('blackbox', 'tmp', 'crateClient', 'crate-client.jar')]
+jars += glob.glob(crate_path('lib', '*.jar'))
+java_repl = JavaRepl(
+    java_repl_jar=project_path('blackbox', 'parts', 'java_repl', 'javarepl.jar'),
+    jars=jars,
+    port=GLOBAL_PORT_POOL.get()
+)
 
 
 def wait_for_schema_update(schema, table, column):
@@ -70,11 +79,19 @@ def crash_transform(s):
     return u'cmd.stmt({0})'.format(repr(s.strip().rstrip(';')))
 
 
+def java_transform(s):
+    s = s.replace(':4300', ':{0}'.format(CRATE_TRANSPORT_PORT))
+    return u'java_repl.execute({0})'.format(repr(s.strip()))
+
+
 bash_parser = zc.customdoctests.DocTestParser(
     ps1='sh\$', comment_prefix='#', transform=bash_transform)
 
 crash_parser = zc.customdoctests.DocTestParser(
     ps1='cr>', comment_prefix='#', transform=crash_transform)
+
+java_parser = zc.customdoctests.DocTestParser(
+    ps1='jv>', comment_prefix='//', transform=java_transform)
 
 
 class ConnectingCrateLayer(CrateLayer):
@@ -344,6 +361,8 @@ def setUpTutorials(test):
 
 def setUp(test):
     test.globs['cmd'] = cmd
+    test.globs['java_repl'] = java_repl
+    java_repl.setUp()
     test.globs['wait_for_schema_update'] = wait_for_schema_update
 
 
@@ -447,5 +466,14 @@ def test_suite():
                                  encoding='utf-8')
         s.layer = empty_layer
         docs_suite.addTest(s)
+
+    s = doctest.DocFileSuite('../../clients/client.txt', parser=java_parser,
+                             setUp=setUp,
+                             tearDown=java_repl.tearDown,
+                             optionflags=doctest.NORMALIZE_WHITESPACE |
+                             doctest.ELLIPSIS,
+                             encoding='utf-8')
+    s.layer = empty_layer
+    docs_suite.addTest(s)
     suite.addTests(docs_suite)
     return suite

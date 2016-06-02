@@ -1,6 +1,8 @@
 def crateDist = file("$projectDir/tmp/crate/")
+def crateClient = file("$projectDir/tmp/crateClient/")
 
 evaluationDependsOn(':app')
+evaluationDependsOn(':client')
 evaluationDependsOn(':es-repository-hdfs')
 
 task bootstrap (type:Exec) {
@@ -10,7 +12,7 @@ task bootstrap (type:Exec) {
     commandLine 'python', "$projectDir/bootstrap.py"
 }
 
-task unpackDistTar (dependsOn: project(':app').distTar) << {
+task unpackDistTar (dependsOn: [project(':app').distTar, project(':client').jar]) << {
     copy {
         includeEmptyDirs = false
         from(tarTree(project(':app').distTar.archivePath)) {
@@ -21,10 +23,14 @@ task unpackDistTar (dependsOn: project(':app').distTar) << {
         }
         into crateDist
     }
+    copy {
+        from(project(':client').jar)
+        into crateClient
+    }
 }
 
 task buildout (type:Exec, dependsOn: bootstrap) {
-    commandLine "$projectDir/bin/buildout", 'install', 'test', 'sphinx'
+    commandLine "$projectDir/bin/buildout", 'install', 'test', 'sphinx', 'java_repl'
 }
 
 task buildoutHadoop(type:Exec, dependsOn: buildout) {

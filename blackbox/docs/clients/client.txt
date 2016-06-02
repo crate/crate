@@ -15,14 +15,11 @@ Since Crate is a clustered database it is recommended to specify all the hosts
 of the cluster. This way if a server is unavailable the host is skipped and the
 request is automatically routed to the next server::
 
+    jv> import io.crate.client.CrateClient;
+    jv> import io.crate.action.sql.*;
+    jv> import org.elasticsearch.action.*;
 
-    import io.crate.client.CrateClient;
-
-    CrateClient client = new CrateClient(
-        "host1.example.com:4300",
-        "host2.example.com:4300"
-    );
-
+    jv> CrateClient client = new CrateClient("localhost:4300");
 
 Executing Queries
 =================
@@ -32,7 +29,7 @@ different arguments to execute SQL statements.
 
 The simplest variant only takes a ``String``::
 
-    ActionFuture<SQLResponse> respFuture = client.sql("SELECT * FROM sys.nodes");
+    jv> ActionFuture<SQLResponse> respFuture = client.sql("SELECT * FROM sys.nodes");
 
 Calling the ``sql`` method won't block but instead execute asynchronous and
 return a ``Future``.
@@ -40,7 +37,7 @@ return a ``Future``.
 In order to get the actual result ``actionGet`` or ``get`` has to be called on
 the future::
 
-    SQLResponse response = respFuture.actionGet();
+    jv> SQLResponse response = respFuture.actionGet();
 
 ``actionGet`` will block until the result is available.
 
@@ -48,16 +45,16 @@ To avoid blocking there is another ``sql`` variant which takes an
 ``ActionListener`` as additional argument. This ``ActionListener`` acts as a
 callback which will be called once the result is ready::
 
-    client.sql("select name from sys.cluster", new ActionListener<SQLResponse>() {
-        @Override
-        public void onResponse(SQLResponse sqlResponse) {
-            System.out.println(sqlResponse);
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-        }
-    });
+    jv> client.sql("select name from sys.cluster", new ActionListener<SQLResponse>() {
+    ...    @Override
+    ...    public void onResponse(SQLResponse sqlResponse) {
+    ...        System.out.println(sqlResponse);
+    ...    }
+    ...
+    ...    @Override
+    ...    public void onFailure(Throwable e) {
+    ...    }
+    ... });
 
 
 SQLRequest Class
@@ -95,9 +92,9 @@ from improved performance.
 
 Here is an example that shows how to use it::
 
-    SQLRequest request = new SQLRequest(
-        "select * from sys.nodes where name = ?", new Object[] { "node1" });
-    client.sql(request).actionGet();
+    jv> SQLRequest request = new SQLRequest(
+    ...     "select * from sys.nodes where name = ?", new Object[] { "node1" });
+    jv> client.sql(request).actionGet();
 
 
 Default Schema
@@ -107,8 +104,8 @@ In case the schema name isn't set explicitly in the statement Crate will
 default to ``doc``. In order to overwrite that default it is possible to set
 the default schema name on the ``SQLRequest``::
 
-    SQLRequest request = new SQLRequest("select * from t");
-    request.setDefaultSchema("custom_schema");
+    jv> SQLRequest request = new SQLRequest("select * from t");
+    jv> request.setDefaultSchema("custom_schema");
 
 This will then return the results from ``custom_schema.t`` instead of
 ``doc.t``.
@@ -119,8 +116,8 @@ Request Column Data Types
 By default the ``SQLResponse`` won't contain the data types of the result
 columns. To retrieve them a flag can be set on the ``SQLRequest``::
 
-    SQLRequest request = new SQLRequest("SELECT name FROM sys.nodes");
-    request.includeTypesOnResponse(true);
+    jv> SQLRequest request = new SQLRequest("SELECT name FROM sys.nodes");
+    jv> request.includeTypesOnResponse(true);
 
 
 SQLResponse Class
@@ -201,15 +198,17 @@ one record and needs to match the specified parameters of a statement.
 The following example describes how to issue an insert bulk operation and
 insert three records at once::
 
-    String stmt = "INSERT INTO foo (id, name) VALUES (?, ?)";
-    Object[][] bulkArgs = new Object[][] {
-        {1, "I am Batman!"},
-        {2, "Deadpool"},
-        {3, "Nancy Callahan"}
-    };
+    jv> client.sql("create table foo (id int primary key, name string)").actionGet();
 
-    SQLBulkRequest request = new SQLBulkRequest(stmt, bulkArgs);
-    client.bulkSql(request).actionGet();
+    jv> String stmt = "INSERT INTO foo (id, name) VALUES (?, ?)";
+    jv> Object[][] bulkArgs = new Object[][] {
+    ...     {1, "I am Batman!"},
+    ...     {2, "Deadpool"},
+    ...     {3, "Nancy Callahan"}
+    ... };
+
+    jv> SQLBulkRequest request = new SQLBulkRequest(stmt, bulkArgs);
+    jv> client.bulkSql(request).actionGet();
 
 .. note::
 
