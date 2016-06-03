@@ -35,7 +35,10 @@ import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.ExplainTask;
 import io.crate.executor.task.NoopTask;
 import io.crate.executor.transport.task.*;
-import io.crate.executor.transport.task.elasticsearch.*;
+import io.crate.executor.transport.task.elasticsearch.ESClusterUpdateSettingsTask;
+import io.crate.executor.transport.task.elasticsearch.ESDeletePartitionTask;
+import io.crate.executor.transport.task.elasticsearch.ESDeleteTask;
+import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NestedReferenceResolver;
@@ -284,13 +287,6 @@ public class TransportExecutor implements Executor {
                     node,
                     transportActionProvider.transportDeleteAction(),
                     jobContextService));
-        }
-
-        @Override
-        public ImmutableList<Task> visitESCreateTemplateNode(ESCreateTemplateNode node, UUID jobId) {
-            return singleTask(new ESCreateTemplateTask(jobId,
-                    node,
-                    transportActionProvider.transportPutIndexTemplateAction()));
         }
 
         @Override

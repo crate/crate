@@ -52,10 +52,6 @@ public class PlanNodeVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
-    public R visitESCreateTemplateNode(ESCreateTemplateNode node, C context) {
-        return visitPlanNode(node, context);
-    }
-
     public R visitDropTableNode(DropTableNode node, C context) {
         return visitPlanNode(node, context);
     }
