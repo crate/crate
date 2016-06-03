@@ -110,14 +110,9 @@ public class DropTableTask extends JobTask {
         return resultList;
     }
 
-    @Override
-    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException("upstreamResult not supported");
-    }
-
     private void warnNotAcknowledged() {
         if (logger.isWarnEnabled()) {
-            logger.warn("Dropping table {} ");
+            logger.warn("Dropping table {} was not acknowledged. This could lead to inconsistent state.", tableInfo.ident());
         }
     }
 

@@ -95,9 +95,4 @@ public class ESDeletePartitionTask extends JobTask {
     public List<? extends ListenableFuture<TaskResult>> result() {
         return results;
     }
-
-    @Override
-    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException("not supported");
-    }
 }

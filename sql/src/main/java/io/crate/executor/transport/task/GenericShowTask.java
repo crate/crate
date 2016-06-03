@@ -59,9 +59,4 @@ public class GenericShowTask implements Task {
     public List<? extends ListenableFuture<TaskResult>> result() {
         return results;
     }
-
-    @Override
-    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException("GenericShowTask doesn't support upstreamResults");
-    }
 }

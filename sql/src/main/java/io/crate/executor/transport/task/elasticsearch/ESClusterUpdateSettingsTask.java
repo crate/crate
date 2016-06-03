@@ -35,7 +35,6 @@ import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSet
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
 public class ESClusterUpdateSettingsTask extends JobTask {
@@ -74,12 +73,5 @@ public class ESClusterUpdateSettingsTask extends JobTask {
     @Override
     public List<? extends ListenableFuture<TaskResult>> result() {
         return results;
-    }
-
-    @Override
-    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
-                        getClass().getSimpleName()));
     }
 }

@@ -305,9 +305,4 @@ public class UpsertByIdTask extends JobTask {
     public List<? extends ListenableFuture<TaskResult>> result() {
         return resultList;
     }
-
-    @Override
-    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException("UpsertByIdTask can't have an upstream result");
-    }
 }

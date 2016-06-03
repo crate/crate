@@ -33,11 +33,7 @@ import java.util.List;
  * create a task, call {@linkplain #start()} and wait for the futures returned
  * by {@linkplain #result()} to return the result or raise an exception.
  *
- * If tasks are chained, it is necessary to call {@linkplain #upstreamResult(java.util.List)}
- * with the result of the former task, so the current task can itself wait for
- * the upstream result if necessary before it starts its execution.
  *
- * @see io.crate.executor.TaskExecutor
  * @see io.crate.executor.Job
  *
  */
@@ -54,10 +50,4 @@ public interface Task {
      * This method may be called before {@linkplain #start()} is called.
      */
     List<? extends ListenableFuture<TaskResult>> result();
-
-    /**
-     * let this class get to know the result of the former ("upstream") task
-     * @param result the result of the "upstream" task.
-     */
-    void upstreamResult(List<? extends ListenableFuture<TaskResult>> result);
 }

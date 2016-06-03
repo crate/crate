@@ -60,9 +60,4 @@ public class ExplainTask implements Task {
     public List<? extends ListenableFuture<TaskResult>> result() {
         return results;
     }
-
-    @Override
-    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException("ExplainTask doesn't support upstreamResults");
-    }
 }

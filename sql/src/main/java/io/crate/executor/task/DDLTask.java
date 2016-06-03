@@ -73,9 +73,4 @@ public class DDLTask extends JobTask {
     public List<? extends ListenableFuture<TaskResult>> result() {
         return results;
     }
-
-    @Override
-    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException("DDLTask doesn't support upstreamResults");
-    }
 }

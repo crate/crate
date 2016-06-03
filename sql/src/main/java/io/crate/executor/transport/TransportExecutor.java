@@ -159,10 +159,6 @@ public class TransportExecutor implements Executor {
         Task lastTask = null;
         assert tasks.size() > 0 : "need at least one task to execute";
         for (Task task : tasks) {
-            // chaining tasks
-            if (lastTask != null) {
-                task.upstreamResult(lastTask.result());
-            }
             task.start();
             lastTask = task;
         }
@@ -170,7 +166,7 @@ public class TransportExecutor implements Executor {
         return lastTask.result();
     }
 
-    class TaskCollectingVisitor extends PlanVisitor<UUID, List<? extends Task>> {
+    private class TaskCollectingVisitor extends PlanVisitor<UUID, List<? extends Task>> {
 
         @Override
         public List<Task> visitIterablePlan(IterablePlan plan, UUID jobId) {

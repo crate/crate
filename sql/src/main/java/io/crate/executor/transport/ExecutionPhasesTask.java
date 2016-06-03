@@ -328,11 +328,6 @@ class ExecutionPhasesTask extends JobTask {
         return results;
     }
 
-    @Override
-    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException("ExecutionNodesTask doesn't support upstreamResult");
-    }
-
     private static class FailureOnlyResponseListener implements ActionListener<JobResponse> {
 
         private final List<Tuple<ExecutionPhase, RowReceiver>> rowReceivers;

@@ -36,7 +36,6 @@ import org.elasticsearch.action.support.TransportAction;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
 public class EsJobContextTask extends JobTask {
@@ -84,12 +83,5 @@ public class EsJobContextTask extends JobTask {
     final public List<? extends ListenableFuture<TaskResult>> result() {
         assert results.size() > 0 : "Result list is empty, sub-class muss add at least one";
         return results;
-    }
-
-    @Override
-    final public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
-        throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "upstreamResult not supported on %s",
-                        getClass().getSimpleName()));
     }
 }
