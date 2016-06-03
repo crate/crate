@@ -22,7 +22,6 @@
 package io.crate.operation.collect;
 
 import com.google.common.base.Supplier;
-import com.twitter.jsr166e.LongAdder;
 import io.crate.core.collections.BlockingEvictingQueue;
 import io.crate.core.collections.NoopQueue;
 import io.crate.metadata.settings.CrateSettings;
@@ -59,10 +58,10 @@ public class StatsTables {
     private final static BlockingQueue<OperationContextLog> NOOP_OPERATIONS_LOG = NoopQueue.instance();
     private final static BlockingQueue<JobContextLog> NOOP_JOBS_LOG = NoopQueue.instance();
 
-    protected final Map<UUID, JobContext> jobsTable = new ConcurrentHashMap<>();
-    protected final Map<Tuple<Integer, UUID>, OperationContext> operationsTable = new ConcurrentHashMap<>();
-    protected final AtomicReference<BlockingQueue<JobContextLog>> jobsLog = new AtomicReference<>(NOOP_JOBS_LOG);
-    protected final AtomicReference<BlockingQueue<OperationContextLog>> operationsLog = new AtomicReference<>(NOOP_OPERATIONS_LOG);
+    private final Map<UUID, JobContext> jobsTable = new ConcurrentHashMap<>();
+    private final Map<Tuple<Integer, UUID>, OperationContext> operationsTable = new ConcurrentHashMap<>();
+    final AtomicReference<BlockingQueue<JobContextLog>> jobsLog = new AtomicReference<>(NOOP_JOBS_LOG);
+    final AtomicReference<BlockingQueue<OperationContextLog>> operationsLog = new AtomicReference<>(NOOP_OPERATIONS_LOG);
 
     private final JobsLogIterableGetter jobsLogIterableGetter;
     private final JobsIterableGetter jobsIterableGetter;
@@ -70,23 +69,9 @@ public class StatsTables {
     private final OperationsLogIterableGetter operationsLogIterableGetter;
 
     protected final NodeSettingsService.Listener listener = new NodeSettingListener();
-    protected volatile int lastOperationsLogSize;
-    protected volatile int lastJobsLogSize;
-    protected volatile boolean lastIsEnabled;
-
-    private final LongAdder activeRequests = new LongAdder();
-
-    public void activeRequestsInc() {
-        activeRequests.increment();
-    }
-
-    public void activeRequestsDec() {
-        activeRequests.decrement();
-    }
-
-    public long activeRequests() {
-        return activeRequests.longValue();
-    }
+    volatile int lastOperationsLogSize;
+    volatile int lastJobsLogSize;
+    private volatile boolean lastIsEnabled;
 
     @Inject
     public StatsTables(Settings settings, NodeSettingsService nodeSettingsService) {

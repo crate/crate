@@ -198,14 +198,12 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         final UUID jobId = UUID.randomUUID();
         long startTime = System.nanoTime();
         statsTables.jobStarted(jobId, request.stmt());
-        statsTables.activeRequestsInc();
 
         ActionListener<TResponse> wrappedListener = new ActionListener<TResponse>() {
             @Override
             public void onResponse(TResponse tResponse) {
                 listener.onResponse(tResponse);
                 statsTables.jobFinished(jobId, null);
-                statsTables.activeRequestsDec();
             }
 
             @Override
@@ -213,7 +211,6 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                 SQLActionException e = buildSQLActionException(t);
                 listener.onFailure(e);
                 statsTables.jobFinished(jobId, e.getMessage());
-                statsTables.activeRequestsDec();
             }
         };
         doExecute(request, wrappedListener, 1, jobId, startTime);
