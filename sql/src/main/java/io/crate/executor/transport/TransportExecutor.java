@@ -57,7 +57,10 @@ import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
-import io.crate.planner.node.ddl.*;
+import io.crate.planner.node.ddl.DropTableNode;
+import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
+import io.crate.planner.node.ddl.ESDeletePartitionNode;
+import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
@@ -276,11 +279,6 @@ public class TransportExecutor implements Executor {
     }
 
     class NodeVisitor extends PlanNodeVisitor<UUID, Task> {
-
-        @Override
-        public Task visitGenericDDLNode(GenericDDLNode node, UUID jobId) {
-            return new DDLTask(jobId, ddlAnalysisDispatcherProvider, node.analyzedStatement());
-        }
 
         @Override
         public Task visitESDeleteNode(ESDeleteNode node, UUID jobId) {

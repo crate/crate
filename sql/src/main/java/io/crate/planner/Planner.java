@@ -44,7 +44,6 @@ import io.crate.planner.consumer.UpdateConsumer;
 import io.crate.planner.fetch.IndexBaseVisitor;
 import io.crate.planner.node.ddl.DropTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
-import io.crate.planner.node.ddl.GenericDDLNode;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertByIdNode;
@@ -354,13 +353,13 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
-    protected Plan visitDDLAnalyzedStatement(AbstractDDLAnalyzedStatement statement, Context context) {
-        return new IterablePlan(context.jobId(), new GenericDDLNode(statement));
+    protected Plan visitShowAnalyzedStatement(AbstractShowAnalyzedStatement statement, Context context) {
+        return new GenericShowPlan(context.jobId(), statement);
     }
 
     @Override
-    protected Plan visitShowAnalyzedStatement(AbstractShowAnalyzedStatement statement, Context context) {
-        return new GenericShowPlan(context.jobId(), statement);
+    protected Plan visitDDLAnalyzedStatement(AbstractDDLAnalyzedStatement statement, Context context) {
+        return new GenericDDLPlan(context.jobId(), statement);
     }
 
     @Override

@@ -24,7 +24,6 @@ package io.crate.planner.node;
 import io.crate.planner.node.ddl.DropTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESDeletePartitionNode;
-import io.crate.planner.node.ddl.GenericDDLNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.UpsertByIdNode;
 
@@ -53,9 +52,4 @@ public class PlanNodeVisitor<C, R> {
     public R visitDropTableNode(DropTableNode node, C context) {
         return visitPlanNode(node, context);
     }
-
-    public R visitGenericDDLNode(GenericDDLNode node, C context) {
-        return visitPlanNode(node, context);
-    }
-
 }

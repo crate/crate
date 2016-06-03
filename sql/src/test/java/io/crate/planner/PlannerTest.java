@@ -20,6 +20,7 @@ import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.DropTableNode;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESDeletePartitionNode;
+import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
@@ -883,7 +884,7 @@ public class PlannerTest extends AbstractPlannerTest {
     @Test
     public void testDropBlobTableIfExistsCreatesIterablePlan() throws Exception {
         Plan plan = plan("drop blob table if exists screenshots");
-        assertThat(plan, instanceOf(IterablePlan.class));
+        assertThat(plan, instanceOf(GenericDDLPlan.class));
     }
 
     @Test
