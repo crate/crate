@@ -183,7 +183,7 @@ public class TransportExecutor implements Executor {
         public List<Task> visitIterablePlan(IterablePlan plan, UUID jobId) {
             List<Task> tasks = new ArrayList<>();
             for (PlanNode planNode : plan) {
-                tasks.addAll(planNode.accept(nodeVisitor, jobId));
+                tasks.add(planNode.accept(nodeVisitor, jobId));
             }
             return tasks;
         }
@@ -264,41 +264,37 @@ public class TransportExecutor implements Executor {
         }
     }
 
-    class NodeVisitor extends PlanNodeVisitor<UUID, ImmutableList<Task>> {
+    class NodeVisitor extends PlanNodeVisitor<UUID, Task> {
 
-        private ImmutableList<Task> singleTask(Task task) {
-            return ImmutableList.of(task);
+        @Override
+        public Task visitGenericDDLNode(GenericDDLNode node, UUID jobId) {
+            return new DDLTask(jobId, ddlAnalysisDispatcherProvider, node.analyzedStatement());
         }
 
         @Override
-        public ImmutableList<Task> visitGenericDDLNode(GenericDDLNode node, UUID jobId) {
-            return singleTask(new DDLTask(jobId, ddlAnalysisDispatcherProvider, node.analyzedStatement()));
-        }
-
-        @Override
-        public ImmutableList<Task> visitESGetNode(ESGetNode node, UUID jobId) {
-            return singleTask(new ESGetTask(
+        public Task visitESGetNode(ESGetNode node, UUID jobId) {
+            return new ESGetTask(
                     jobId,
                     functions,
                     globalProjectionToProjectionVisitor,
                     transportActionProvider.transportMultiGetAction(),
                     transportActionProvider.transportGetAction(),
                     node,
-                    jobContextService));
+                    jobContextService);
         }
 
         @Override
-        public ImmutableList<Task> visitESDeleteNode(ESDeleteNode node, UUID jobId) {
-            return singleTask(new ESDeleteTask(
+        public Task visitESDeleteNode(ESDeleteNode node, UUID jobId) {
+            return new ESDeleteTask(
                     jobId,
                     node,
                     transportActionProvider.transportDeleteAction(),
-                    jobContextService));
+                    jobContextService);
         }
 
         @Override
-        public ImmutableList<Task> visitUpsertByIdNode(UpsertByIdNode node, UUID jobId) {
-            return singleTask(new UpsertByIdTask(jobId,
+        public Task visitUpsertByIdNode(UpsertByIdNode node, UUID jobId) {
+            return new UpsertByIdTask(jobId,
                     clusterService,
                     indexNameExpressionResolver,
                     clusterService.state().metaData().settings(),
@@ -307,34 +303,34 @@ public class TransportExecutor implements Executor {
                     transportActionProvider.transportBulkCreateIndicesAction(),
                     bulkRetryCoordinatorPool,
                     node,
-                    jobContextService));
+                    jobContextService);
         }
 
         @Override
-        public ImmutableList<Task> visitDropTableNode(DropTableNode node, UUID jobId) {
-            return singleTask(new DropTableTask(jobId,
+        public Task visitDropTableNode(DropTableNode node, UUID jobId) {
+            return new DropTableTask(jobId,
                     transportActionProvider.transportDeleteIndexTemplateAction(),
                     transportActionProvider.transportDeleteIndexAction(),
-                    node));
+                    node);
         }
 
         @Override
-        public ImmutableList<Task> visitESDeletePartitionNode(ESDeletePartitionNode node, UUID jobId) {
-            return singleTask(new ESDeletePartitionTask(jobId,
+        public Task visitESDeletePartitionNode(ESDeletePartitionNode node, UUID jobId) {
+            return new ESDeletePartitionTask(jobId,
                     transportActionProvider.transportDeleteIndexAction(),
-                    node));
+                    node);
         }
 
         @Override
-        public ImmutableList<Task> visitESClusterUpdateSettingsNode(ESClusterUpdateSettingsNode node, UUID jobId) {
-            return singleTask(new ESClusterUpdateSettingsTask(
+        public Task visitESClusterUpdateSettingsNode(ESClusterUpdateSettingsNode node, UUID jobId) {
+            return new ESClusterUpdateSettingsTask(
                     jobId,
                     transportActionProvider.transportClusterUpdateSettingsAction(),
-                    node));
+                    node);
         }
 
         @Override
-        protected ImmutableList<Task> visitPlanNode(PlanNode node, UUID jobId) {
+        protected Task visitPlanNode(PlanNode node, UUID jobId) {
             throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH, "Can't generate job/task for planNode %s", node));
         }
