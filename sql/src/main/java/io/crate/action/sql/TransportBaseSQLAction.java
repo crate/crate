@@ -84,7 +84,6 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
     public static final String NODE_READ_ONLY_SETTING = "node.sql.read_only";
 
-    private static final String KILLED_MESSAGE = "KILLED";
     private static final DataType[] EMPTY_TYPES = new DataType[0];
     private static final String[] EMPTY_NAMES = new String[0];
     private static final int MAX_SHARD_MISSING_RETRIES = 3;
@@ -109,18 +108,18 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
     private final StatsTables statsTables;
     private volatile boolean disabled;
 
-    protected TransportBaseSQLAction(ClusterService clusterService,
-                                     Settings settings,
-                                     String actionName,
-                                     ThreadPool threadPool,
-                                     Analyzer analyzer,
-                                     Planner planner,
-                                     Provider<Executor> executorProvider,
-                                     StatsTables statsTables,
-                                     ActionFilters actionFilters,
-                                     IndexNameExpressionResolver indexNameExpressionResolver,
-                                     TransportKillJobsNodeAction transportKillJobsNodeAction,
-                                     TaskManager taskManager) {
+    TransportBaseSQLAction(ClusterService clusterService,
+                           Settings settings,
+                           String actionName,
+                           ThreadPool threadPool,
+                           Analyzer analyzer,
+                           Planner planner,
+                           Provider<Executor> executorProvider,
+                           StatsTables statsTables,
+                           ActionFilters actionFilters,
+                           IndexNameExpressionResolver indexNameExpressionResolver,
+                           TransportKillJobsNodeAction transportKillJobsNodeAction,
+                           TaskManager taskManager) {
         super(settings, actionName, threadPool, actionFilters, indexNameExpressionResolver, taskManager);
         this.clusterService = clusterService;
         this.analyzer = analyzer;
@@ -192,18 +191,37 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
     }
 
     @Override
-    protected void doExecute(TRequest request, ActionListener<TResponse> listener) {
-        logger.debug("{}", request);
-        UUID jobId = UUID.randomUUID();
+    protected void doExecute(TRequest request, final ActionListener<TResponse> listener) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("{}", request);
+        }
+        final UUID jobId = UUID.randomUUID();
         long startTime = System.nanoTime();
         statsTables.jobStarted(jobId, request.stmt());
-        doExecute(request, listener, 1, jobId, startTime);
+        statsTables.activeRequestsInc();
+
+        ActionListener<TResponse> wrappedListener = new ActionListener<TResponse>() {
+            @Override
+            public void onResponse(TResponse tResponse) {
+                listener.onResponse(tResponse);
+                statsTables.jobFinished(jobId, null);
+                statsTables.activeRequestsDec();
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                SQLActionException e = buildSQLActionException(t);
+                listener.onFailure(e);
+                statsTables.jobFinished(jobId, e.getMessage());
+                statsTables.activeRequestsDec();
+            }
+        };
+        doExecute(request, wrappedListener, 1, jobId, startTime);
     }
 
     private void doExecute(TRequest request, ActionListener<TResponse> listener, final int attempt, UUID jobId, long startTime) {
-        statsTables.activeRequestsInc();
         if (disabled) {
-            sendResponse(listener, new NodeDisconnectedException(clusterService.localNode(), actionName));
+            listener.onFailure(new NodeDisconnectedException(clusterService.localNode(), actionName));
             return;
         }
         try {
@@ -215,19 +233,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             processAnalysis(analysis, request, listener, attempt, jobId, startTime);
         } catch (Throwable e) {
             logger.debug("Error executing SQLRequest", e);
-            sendResponse(listener, buildSQLActionException(e));
-            statsTables.jobFinished(jobId, e.getMessage());
+            listener.onFailure(e);
         }
-    }
-
-    private void sendResponse(ActionListener<TResponse> listener, Throwable throwable) {
-        listener.onFailure(throwable);
-        statsTables.activeRequestsDec();
-    }
-
-    private void sendResponse(ActionListener<TResponse> listener, TResponse response) {
-        listener.onResponse(response);
-        statsTables.activeRequestsDec();
     }
 
     private void processAnalysis(Analysis analysis, TRequest request, ActionListener<TResponse> listener,
@@ -255,33 +262,23 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                         TResponse response;
                         try {
                             response = createResponseFromResult(result, analysis, request, startTime);
+                            listener.onResponse(response);
                         } catch (Throwable e) {
-                            sendResponse(listener, buildSQLActionException(e));
-                            return;
+                            listener.onFailure(e);
                         }
-                        statsTables.jobFinished(plan.jobId(), null);
-                        sendResponse(listener, response);
                     }
 
                     @Override
                     public void onFailure(final @Nonnull Throwable t) {
-                        String message;
                         Throwable unwrappedException = Exceptions.unwrap(t);
-                        if (unwrappedException instanceof InterruptedException) {
-                            message = KILLED_MESSAGE;
-                            logger.debug("KILLED: [{}]", request.stmt());
-                        } else if ((unwrappedException instanceof ShardNotFoundException || unwrappedException instanceof IllegalIndexShardStateException)
+                        if ((unwrappedException instanceof ShardNotFoundException || unwrappedException instanceof IllegalIndexShardStateException)
                                 && attempt <= MAX_SHARD_MISSING_RETRIES) {
                             logger.debug("FAILED ({}/{} attempts) - Retry: [{}]", attempt, MAX_SHARD_MISSING_RETRIES,  request.stmt());
 
                             killAndRetry(t);
                             return;
-                        } else {
-                            message = Exceptions.messageOf(t);
-                            logger.debug("Error processing SQLRequest", t);
                         }
-                        statsTables.jobFinished(plan.jobId(), message);
-                        sendResponse(listener, buildSQLActionException(t));
+                        listener.onFailure(t);
                     }
 
                     private void killAndRetry(@Nonnull final Throwable t) {
@@ -309,8 +306,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                                     @Override
                                     public void onFailure(Throwable e) {
                                         logger.warn("Failed to kill job before Retry", e);
-                                        statsTables.jobFinished(plan.jobId(), Exceptions.messageOf(t));
-                                        sendResponse(listener, buildSQLActionException(t));
+                                        listener.onFailure(e);
                                     }
                                 }
                         );
@@ -340,7 +336,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
      * and {@link org.elasticsearch.action.search.ReduceSearchPhaseException}.
      * Also transform throwable to {@link io.crate.exceptions.CrateException}.
      */
-    private Throwable esToCrateException(Throwable e) {
+    private static Throwable esToCrateException(Throwable e) {
         e = Exceptions.unwrap(e);
 
         if (e instanceof IllegalArgumentException || e instanceof ParsingException) {
@@ -385,7 +381,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
      * If concrete {@link org.elasticsearch.ElasticsearchException} is found, first transform it
      * to a {@link io.crate.exceptions.CrateException}
      */
-    private SQLActionException buildSQLActionException(Throwable e) {
+    private static SQLActionException buildSQLActionException(Throwable e) {
         if (e instanceof SQLActionException) {
             return (SQLActionException) e;
         }
