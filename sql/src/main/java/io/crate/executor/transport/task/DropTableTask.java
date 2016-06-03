@@ -21,6 +21,9 @@
 
 package io.crate.executor.transport.task;
 
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -39,11 +42,11 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
-public class DropTableTask extends AbstractChainedTask {
+public class DropTableTask extends JobTask {
 
     private static final TaskResult SUCCESS_RESULT = TaskResult.ONE_ROW;
 
@@ -53,6 +56,8 @@ public class DropTableTask extends AbstractChainedTask {
     private final TransportDeleteIndexTemplateAction deleteTemplateAction;
     private final TransportDeleteIndexAction deleteIndexAction;
     private final boolean ifExists;
+    private final List<ListenableFuture<TaskResult>> resultList;
+    private final SettableFuture<TaskResult> result;
 
     public DropTableTask(UUID jobId,
                          TransportDeleteIndexTemplateAction deleteTemplateAction,
@@ -63,18 +68,19 @@ public class DropTableTask extends AbstractChainedTask {
         this.tableInfo = node.tableInfo();
         this.deleteTemplateAction = deleteTemplateAction;
         this.deleteIndexAction = deleteIndexAction;
+        this.result = SettableFuture.create();
+        this.resultList = Collections.<ListenableFuture<TaskResult>>singletonList(result);
     }
 
-
     @Override
-    protected void doStart(List<TaskResult> upstreamResults) {
+    public void start() {
         if (tableInfo.isPartitioned()) {
             String templateName = PartitionName.templateName(tableInfo.ident().schema(), tableInfo.ident().name());
             deleteTemplateAction.execute(new DeleteIndexTemplateRequest(templateName), new ActionListener<DeleteIndexTemplateResponse>() {
                 @Override
                 public void onResponse(DeleteIndexTemplateResponse response) {
                     if (!response.isAcknowledged()) {
-                        warnNotAcknowledged(String.format(Locale.ENGLISH, "dropping table '%s'", tableInfo.ident().fqn()));
+                        warnNotAcknowledged();
                     }
                     if (!tableInfo.partitions().isEmpty()) {
                         deleteESIndex(tableInfo.ident().indexName());
@@ -97,7 +103,22 @@ public class DropTableTask extends AbstractChainedTask {
         } else {
             deleteESIndex(tableInfo.ident().indexName());
         }
+    }
 
+    @Override
+    public List<? extends ListenableFuture<TaskResult>> result() {
+        return resultList;
+    }
+
+    @Override
+    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
+        throw new UnsupportedOperationException("upstreamResult not supported");
+    }
+
+    private void warnNotAcknowledged() {
+        if (logger.isWarnEnabled()) {
+            logger.warn("Dropping table {} ");
+        }
     }
 
     private void deleteESIndex(String indexOrAlias) {
@@ -109,7 +130,7 @@ public class DropTableTask extends AbstractChainedTask {
             @Override
             public void onResponse(DeleteIndexResponse response) {
                 if (!response.isAcknowledged()) {
-                    warnNotAcknowledged(String.format(Locale.ENGLISH, "dropping table '%s'", tableInfo.ident().fqn()));
+                    warnNotAcknowledged();
                 }
                 result.set(SUCCESS_RESULT);
             }

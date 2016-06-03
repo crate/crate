@@ -21,9 +21,10 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.task.AbstractChainedTask;
 import io.crate.planner.node.ddl.ESDeletePartitionNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -31,18 +32,21 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.support.IndicesOptions;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class ESDeletePartitionTask extends AbstractChainedTask {
+public class ESDeletePartitionTask extends JobTask {
 
     private static final TaskResult RESULT_PARTITION = TaskResult.ROW_COUNT_UNKNOWN;
 
     private final TransportDeleteIndexAction transport;
     private final DeleteIndexRequest request;
     private final ActionListener<DeleteIndexResponse> listener;
+    private final SettableFuture<TaskResult> result;
+    private final List<? extends ListenableFuture<TaskResult>> results;
 
-    static class DeleteIndexListener implements ActionListener<DeleteIndexResponse> {
+    private static class DeleteIndexListener implements ActionListener<DeleteIndexResponse> {
 
         private final SettableFuture<TaskResult> future;
 
@@ -65,6 +69,8 @@ public class ESDeletePartitionTask extends AbstractChainedTask {
                                  TransportDeleteIndexAction transport,
                                  ESDeletePartitionNode node) {
         super(jobId);
+        result = SettableFuture.create();
+        results = Collections.singletonList(result);
         this.transport = transport;
         this.request = new DeleteIndexRequest(node.indices());
         if (node.indices().length > 1) {
@@ -81,7 +87,17 @@ public class ESDeletePartitionTask extends AbstractChainedTask {
     }
 
     @Override
-    protected void doStart(List<TaskResult> upstreamResults) {
+    public void start() {
         transport.execute(request, listener);
+    }
+
+    @Override
+    public List<? extends ListenableFuture<TaskResult>> result() {
+        return results;
+    }
+
+    @Override
+    public void upstreamResult(List<? extends ListenableFuture<TaskResult>> result) {
+        throw new UnsupportedOperationException("not supported");
     }
 }
