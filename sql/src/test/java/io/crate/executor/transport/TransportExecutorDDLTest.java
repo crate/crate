@@ -34,8 +34,7 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.PartitionName;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
-import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
+import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.ESDeletePartitionNode;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.Alias;
@@ -46,6 +45,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
@@ -207,9 +209,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 .put(persistentSetting, "panic")
                 .build();
 
-        ESClusterUpdateSettingsNode node = new ESClusterUpdateSettingsNode(persistentSettings);
-
-        Bucket objects = executePlanNode(node);
+        ESClusterUpdateSettingsPlan node = new ESClusterUpdateSettingsPlan(UUID.randomUUID(), persistentSettings);
+        Bucket objects = executePlan(node);
 
         assertThat(objects, contains(isRow(1L)));
         assertEquals("panic", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().persistentSettings().get(persistentSetting));
@@ -219,8 +220,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 .put(transientSetting, "123s")
                 .build();
 
-        node = new ESClusterUpdateSettingsNode(EMPTY_SETTINGS, transientSettings);
-        objects = executePlanNode(node);
+        node = new ESClusterUpdateSettingsPlan(UUID.randomUUID(), EMPTY_SETTINGS, transientSettings);
+        objects = executePlan(node);
 
         assertThat(objects, contains(isRow(1L)));
         assertEquals("123s", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
@@ -233,19 +234,16 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 .put(transientSetting, "243s")
                 .build();
 
-        node = new ESClusterUpdateSettingsNode(persistentSettings, transientSettings);
-        objects = executePlanNode(node);
+        node = new ESClusterUpdateSettingsPlan(UUID.randomUUID(), persistentSettings, transientSettings);
+        objects = executePlan(node);
 
         assertThat(objects, contains(isRow(1L)));
         assertEquals("normal", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().persistentSettings().get(persistentSetting));
         assertEquals("243s", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
     }
 
-    private Bucket executePlanNode(PlanNode node) throws InterruptedException, java.util.concurrent.ExecutionException {
-        Plan plan = new IterablePlan(UUID.randomUUID(), node);
-        Job job = executor.newJob(plan);
-        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
-        ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        return listenableFuture.get().get(0).rows();
+    private Bucket executePlan(Plan plan) throws InterruptedException, ExecutionException, TimeoutException {
+        ListenableFuture<TaskResult> future = executor.execute(plan);
+        return future.get(10, TimeUnit.SECONDS).rows();
     }
 }

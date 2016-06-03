@@ -27,7 +27,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.ActionListeners;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
+import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
@@ -35,7 +35,6 @@ import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSet
 
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 public class ESClusterUpdateSettingsTask extends JobTask {
 
@@ -44,23 +43,22 @@ public class ESClusterUpdateSettingsTask extends JobTask {
     private final ClusterUpdateSettingsRequest request;
     private final ActionListener<ClusterUpdateSettingsResponse> listener;
 
-    public ESClusterUpdateSettingsTask(UUID jobId,
-                                       TransportClusterUpdateSettingsAction transport,
-                                       ESClusterUpdateSettingsNode node) {
-        super(jobId);
+    public ESClusterUpdateSettingsTask(ESClusterUpdateSettingsPlan plan,
+                                       TransportClusterUpdateSettingsAction transport) {
+        super(plan.jobId());
         this.transport = transport;
 
         final SettableFuture<TaskResult> result = SettableFuture.create();
         results = Collections.<ListenableFuture<TaskResult>>singletonList(result);
 
         request = new ClusterUpdateSettingsRequest();
-        request.persistentSettings(node.persistentSettings());
-        request.transientSettings(node.transientSettings());
-        if (node.persistentSettingsToRemove() != null) {
-            request.persistentSettingsToRemove(node.persistentSettingsToRemove());
+        request.persistentSettings(plan.persistentSettings());
+        request.transientSettings(plan.transientSettings());
+        if (plan.persistentSettingsToRemove() != null) {
+            request.persistentSettingsToRemove(plan.persistentSettingsToRemove());
         }
-        if (node.transientSettingsToRemove() != null) {
-            request.transientSettingsToRemove(node.transientSettingsToRemove());
+        if (plan.transientSettingsToRemove() != null) {
+            request.transientSettingsToRemove(plan.transientSettingsToRemove());
         }
         listener = ActionListeners.wrap(result, Functions.constant(TaskResult.ONE_ROW));
     }

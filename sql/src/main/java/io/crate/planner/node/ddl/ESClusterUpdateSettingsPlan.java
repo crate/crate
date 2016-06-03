@@ -21,22 +21,26 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.Plan;
+import io.crate.planner.PlanVisitor;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.Set;
+import java.util.UUID;
 
-public class ESClusterUpdateSettingsNode implements PlanNode {
+public class ESClusterUpdateSettingsPlan implements Plan {
 
     private final Settings persistentSettings;
     private final Settings transientSettings;
     private final Set<String> transientSettingsToRemove;
     private final Set<String> persistentSettingsToRemove;
+    private final UUID jobId;
 
-    public ESClusterUpdateSettingsNode(Settings persistentSettings,
+    public ESClusterUpdateSettingsPlan(UUID jobId,
+                                       Settings persistentSettings,
                                        Settings transientSettings) {
+        this.jobId = jobId;
         this.persistentSettings = persistentSettings;
         // always override transient settings with persistent ones, so they won't get overridden
         // on cluster settings merge, which prefers the transient ones over the persistent ones
@@ -46,11 +50,12 @@ public class ESClusterUpdateSettingsNode implements PlanNode {
         transientSettingsToRemove = null;
     }
 
-    public ESClusterUpdateSettingsNode(Settings persistentSettings) {
-        this(persistentSettings, persistentSettings); // override stale transient settings too in that case
+    public ESClusterUpdateSettingsPlan(UUID jobId, Settings persistentSettings) {
+        this(jobId, persistentSettings, persistentSettings); // override stale transient settings too in that case
     }
 
-    public ESClusterUpdateSettingsNode(Set<String> persistentSettingsToRemove, Set<String> transientSettingsToRemove) {
+    public ESClusterUpdateSettingsPlan(UUID jobId, Set<String> persistentSettingsToRemove, Set<String> transientSettingsToRemove) {
+        this.jobId = jobId;
         this.persistentSettingsToRemove = persistentSettingsToRemove;
         this.transientSettingsToRemove = transientSettingsToRemove;
         persistentSettings = Settings.EMPTY;
@@ -76,7 +81,12 @@ public class ESClusterUpdateSettingsNode implements PlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitESClusterUpdateSettingsNode(this, context);
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        return visitor.visitESClusterUpdateSettingsPlan(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return jobId;
     }
 }

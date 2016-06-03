@@ -18,7 +18,7 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.DropTablePlan;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
+import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.ESDeletePartitionNode;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.*;
@@ -889,24 +889,16 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testSetPlan() throws Exception {
-        IterablePlan plan = plan("set GLOBAL PERSISTENT stats.jobs_log_size=1024");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESClusterUpdateSettingsNode.class));
+        ESClusterUpdateSettingsPlan plan = plan("set GLOBAL PERSISTENT stats.jobs_log_size=1024");
 
-        ESClusterUpdateSettingsNode node = (ESClusterUpdateSettingsNode) planNode;
         // set transient settings too when setting persistent ones
-        assertThat(node.transientSettings().toDelimitedString(','), is("stats.jobs_log_size=1024,"));
-        assertThat(node.persistentSettings().toDelimitedString(','), is("stats.jobs_log_size=1024,"));
+        assertThat(plan.transientSettings().toDelimitedString(','), is("stats.jobs_log_size=1024,"));
+        assertThat(plan.persistentSettings().toDelimitedString(','), is("stats.jobs_log_size=1024,"));
 
         plan = plan("set GLOBAL TRANSIENT stats.enabled=false,stats.jobs_log_size=0");
-        iterator = plan.iterator();
-        planNode = iterator.next();
-        assertThat(planNode, instanceOf(ESClusterUpdateSettingsNode.class));
 
-        node = (ESClusterUpdateSettingsNode) planNode;
-        assertThat(node.persistentSettings().getAsMap().size(), is(0));
-        assertThat(node.transientSettings().toDelimitedString(','), is("stats.enabled=false,stats.jobs_log_size=0,"));
+        assertThat(plan.persistentSettings().getAsMap().size(), is(0));
+        assertThat(plan.transientSettings().toDelimitedString(','), is("stats.enabled=false,stats.jobs_log_size=0,"));
     }
 
     @Test

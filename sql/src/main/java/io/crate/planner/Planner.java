@@ -43,7 +43,7 @@ import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.UpdateConsumer;
 import io.crate.planner.fetch.IndexBaseVisitor;
 import io.crate.planner.node.ddl.DropTablePlan;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
+import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertByIdNode;
@@ -395,8 +395,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             throw new UnhandledServerException("Could not build analyzer Settings", ioe);
         }
 
-        ESClusterUpdateSettingsNode node = new ESClusterUpdateSettingsNode(analyzerSettings);
-        return new IterablePlan(context.jobId(), node);
+        return new ESClusterUpdateSettingsPlan(context.jobId(), analyzerSettings);
     }
 
     @Override
@@ -404,21 +403,20 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         if (resetStatement.settingsToRemove().isEmpty()) {
             return new NoopPlan(context.jobId());
         }
-        return new IterablePlan(context.jobId(), new ESClusterUpdateSettingsNode(
-                resetStatement.settingsToRemove(), resetStatement.settingsToRemove()));
+        return new ESClusterUpdateSettingsPlan(context.jobId(),
+                resetStatement.settingsToRemove(), resetStatement.settingsToRemove());
     }
 
     @Override
     public Plan visitSetStatement(SetAnalyzedStatement analysis, Context context) {
-        ESClusterUpdateSettingsNode node = null;
-        if (analysis.settings() != null) {
-            if (analysis.isPersistent()) {
-                node = new ESClusterUpdateSettingsNode(analysis.settings());
-            } else {
-                node = new ESClusterUpdateSettingsNode(Settings.EMPTY, analysis.settings());
-            }
+        if (analysis.settings() == null) {
+            return new NoopPlan(context.jobId());
         }
-        return node != null ? new IterablePlan(context.jobId(), node) : new NoopPlan(context.jobId());
+        if (analysis.isPersistent()) {
+            return new ESClusterUpdateSettingsPlan(context.jobId(), analysis.settings());
+        } else {
+            return new ESClusterUpdateSettingsPlan(context.jobId(), Settings.EMPTY, analysis.settings());
+        }
     }
 
     @Override

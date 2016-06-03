@@ -22,6 +22,7 @@
 package io.crate.planner;
 
 import io.crate.planner.node.ddl.DropTablePlan;
+import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.CopyTo;
 import io.crate.planner.node.dml.InsertFromSubQuery;
@@ -104,6 +105,10 @@ public class PlanVisitor<C, R> {
     }
 
     public R visitDropTablePlan(DropTablePlan plan, C context) {
+        return visitPlan(plan, context);
+    }
+
+    public R visitESClusterUpdateSettingsPlan(ESClusterUpdateSettingsPlan plan, C context) {
         return visitPlan(plan, context);
     }
 }

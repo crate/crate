@@ -58,7 +58,7 @@ import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.node.ddl.DropTablePlan;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
+import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.ESDeletePartitionNode;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.*;
@@ -283,6 +283,13 @@ public class TransportExecutor implements Executor {
                     ddlAnalysisDispatcherProvider,
                     genericDDLPlan.statement()));
         }
+
+
+        @Override
+        public List<? extends Task> visitESClusterUpdateSettingsPlan(ESClusterUpdateSettingsPlan plan, UUID context) {
+            return Collections.singletonList(new ESClusterUpdateSettingsTask(
+                plan, transportActionProvider.transportClusterUpdateSettingsAction()));
+        }
     }
 
     class NodeVisitor extends PlanNodeVisitor<UUID, Task> {
@@ -314,14 +321,6 @@ public class TransportExecutor implements Executor {
         public Task visitESDeletePartitionNode(ESDeletePartitionNode node, UUID jobId) {
             return new ESDeletePartitionTask(jobId,
                     transportActionProvider.transportDeleteIndexAction(),
-                    node);
-        }
-
-        @Override
-        public Task visitESClusterUpdateSettingsNode(ESClusterUpdateSettingsNode node, UUID jobId) {
-            return new ESClusterUpdateSettingsTask(
-                    jobId,
-                    transportActionProvider.transportClusterUpdateSettingsAction(),
                     node);
         }
 
