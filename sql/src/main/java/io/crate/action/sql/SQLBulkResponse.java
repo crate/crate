@@ -32,18 +32,15 @@ import java.io.IOException;
 
 public class SQLBulkResponse extends SQLBaseResponse {
 
-    public static final Result[] EMPTY_RESULTS = new Result[0];
+    private static final String[] EMPTY_OUTPUT_NAMES = new String[0];
+    private static final DataType[] EMPTY_COLUMN_TYPES = new DataType[0];
 
     private Result[] results;
 
     public SQLBulkResponse() {} // used for serialization
 
-    public SQLBulkResponse(String[] outputNames,
-                           Result[] results,
-                           float duration,
-                           DataType[] colTypes,
-                           boolean includeTypes) {
-        super(outputNames, colTypes, includeTypes, duration);
+    public SQLBulkResponse(Result[] results, float duration) {
+        super(EMPTY_OUTPUT_NAMES, EMPTY_COLUMN_TYPES, false, duration);
         this.results = results;
     }
 

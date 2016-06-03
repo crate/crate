@@ -21,7 +21,11 @@
 
 package io.crate.action.sql;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.ActionListeners;
+import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.executor.Executor;
@@ -29,8 +33,8 @@ import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.operation.collect.StatsTables;
+import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
@@ -38,12 +42,12 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
@@ -75,31 +79,37 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
     }
 
     @Override
-    protected SQLBulkResponse emptyResponse(SQLBulkRequest request, float duration, String[] outputNames, @Nullable DataType[] types) {
-        return new SQLBulkResponse(
-            outputNames,
-            SQLBulkResponse.EMPTY_RESULTS,
-            duration,
-            types,
-            request.includeTypesOnResponse());
+    void executePlan(Executor executor,
+                     Analysis analysis,
+                     Plan plan,
+                     final ActionListener<SQLBulkResponse> listener,
+                     final SQLBulkRequest request,
+                     final long startTime) {
+        assert analysis.expectsAffectedRows() : "bulk operations only works with statements that return rowcounts";
+
+        ListenableFuture<List<TaskResult>> future = Futures.allAsList(executor.executeBulk(plan));
+        Futures.addCallback(future, new FutureCallback<List<TaskResult>>() {
+            @Override
+            public void onSuccess(@Nullable List<TaskResult> result) {
+                listener.onResponse(createResponse(result, startTime));
+            }
+
+            @Override
+            public void onFailure(@Nonnull Throwable t) {
+                listener.onFailure(t);
+            }
+        });
     }
 
-    @Override
-    protected SQLBulkResponse createResponseFromResult(String[] outputNames,
-                                                       DataType[] dataTypes,
-                                                       List<TaskResult> result,
-                                                       boolean expectsAffectedRows,
-                                                       SQLBulkRequest request,
-                                                       float duration) {
-        assert expectsAffectedRows : "bulk operations only works with statements that return rowcounts";
+    private SQLBulkResponse createResponse(List<TaskResult> result, long startTime) {
         SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[result.size()];
         for (int i = 0, resultSize = result.size(); i < resultSize; i++) {
             assert result.get(i) instanceof RowCountResult : "Query operation not supported with bulk requests";
             RowCountResult taskResult = (RowCountResult) result.get(i);
             results[i] = new SQLBulkResponse.Result(taskResult.errorMessage(), taskResult.rowCount());
         }
-        return new SQLBulkResponse(
-                outputNames, results, duration, dataTypes, request.includeTypesOnResponse());
+        float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
+        return new SQLBulkResponse(results, duration);
     }
 
     private class TransportHandler extends TransportRequestHandler<SQLBulkRequest> {

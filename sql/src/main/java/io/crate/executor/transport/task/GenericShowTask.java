@@ -21,9 +21,8 @@
 
 package io.crate.executor.transport.task;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.AbstractShowAnalyzedStatement;
 import io.crate.executor.Task;
@@ -37,8 +36,6 @@ public class GenericShowTask implements Task {
     private final UUID jobId;
     private final ShowStatementDispatcher showStatementDispatcher;
     private final AbstractShowAnalyzedStatement statement;
-    private final SettableFuture<TaskResult> result = SettableFuture.create();
-    private final List<ListenableFuture<TaskResult>> results = ImmutableList.<ListenableFuture<TaskResult>>of(result);
 
     public GenericShowTask(UUID jobId, ShowStatementDispatcher showStatementDispatcher, AbstractShowAnalyzedStatement statement) {
         this.jobId = jobId;
@@ -48,15 +45,20 @@ public class GenericShowTask implements Task {
 
     @Override
     public void start() {
-        try {
-            result.set(showStatementDispatcher.process(statement, jobId));
-        } catch (Throwable e) {
-            result.setException(e);
-        }
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public List<? extends ListenableFuture<TaskResult>> result() {
-        return results;
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ListenableFuture<TaskResult> execute() {
+        try {
+            return Futures.immediateFuture(showStatementDispatcher.process(statement, jobId));
+        } catch (Throwable t) {
+            return Futures.immediateFailedFuture(t);
+        }
     }
 }

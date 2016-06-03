@@ -21,9 +21,13 @@
 
 package io.crate.action.sql;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import io.crate.action.ActionListeners;
+import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
+import io.crate.analyze.symbol.Field;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
@@ -32,6 +36,7 @@ import io.crate.executor.Executor;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.operation.collect.StatsTables;
+import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
@@ -47,12 +52,15 @@ import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.List;
 
 
 @Singleton
 public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLResponse> {
+
+    private static final DataType[] EMPTY_TYPES = new DataType[0];
+    private static final String[] EMPTY_NAMES = new String[0];
 
     @Inject
     public TransportSQLAction(
@@ -82,51 +90,63 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
     }
 
     @Override
-    public SQLResponse emptyResponse(SQLRequest request,
-                                     float duration,
-                                     String[] outputNames,
-                                     @Nullable DataType[] types) {
-        return new SQLResponse(outputNames,
-                TaskResult.EMPTY_OBJS,
-                types,
-                0L,
-                duration,
-                request.includeTypesOnResponse());
+    void executePlan(Executor executor,
+                     final Analysis analysis,
+                     Plan plan,
+                     final ActionListener<SQLResponse> listener,
+                     final SQLRequest request,
+                     final long startTime) {
+
+        Futures.addCallback(executor.execute(plan), new FutureCallback<TaskResult>() {
+            @Override
+            public void onSuccess(@Nullable TaskResult result) {
+                listener.onResponse(createResponse(analysis, request, result, startTime));
+            }
+
+            @Override
+            public void onFailure(@Nonnull Throwable t) {
+                listener.onFailure(t);
+            }
+        });
     }
 
-    @Override
-    protected SQLResponse createResponseFromResult(String[] outputNames,
-                                                   DataType[] outputTypes,
-                                                   List<TaskResult> result,
-                                                   boolean expectsAffectedRows,
-                                                   SQLRequest request,
-                                                   float duration) {
-        assert result.size() == 1;
-        TaskResult taskResult = result.get(0);
-        Bucket rows = taskResult.rows();
+    private SQLResponse createResponse(Analysis analysis, SQLRequest request, @Nullable TaskResult result, long startTime) {
+        Bucket bucket = result == null ? Bucket.EMPTY : result.rows();
+        Object[][] rows;
+        String[] outputNames = EMPTY_NAMES;
+        DataType[] outputTypes = EMPTY_TYPES;
+        long rowCount = 0L;
 
-        Object[][] objs;
-        long rowCount = 0;
-        if (expectsAffectedRows) {
-            if (rows.size() >= 1){
-                Row first = rows.iterator().next();
+        if (analysis.expectsAffectedRows()) {
+            if (bucket.size() >= 1){
+                Row first = bucket.iterator().next();
                 if (first.size()>=1){
                     rowCount = ((Number) first.get(0)).longValue();
                 }
             }
-            objs = TaskResult.EMPTY_OBJS;
+            rows = TaskResult.EMPTY_OBJS;
         } else {
-            rowCount = rows.size();
-            objs = Buckets.materialize(rows);
+            assert analysis.rootRelation() != null;
+            outputNames = new String[analysis.rootRelation().fields().size()];
+            outputTypes = new DataType[analysis.rootRelation().fields().size()];
+            for (int i = 0; i < analysis.rootRelation().fields().size(); i++) {
+                Field field = analysis.rootRelation().fields().get(i);
+                outputNames[i] = field.path().outputName();
+                outputTypes[i] = field.valueType();
+            }
+
+            rowCount = bucket.size();
+            rows = Buckets.materialize(bucket);
         }
-        BytesRefUtils.ensureStringTypesAreStrings(outputTypes, objs);
+        BytesRefUtils.ensureStringTypesAreStrings(outputTypes, rows);
+        float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
         return new SQLResponse(
-                outputNames,
-                objs,
-                outputTypes,
-                rowCount,
-                duration,
-                request.includeTypesOnResponse()
+            outputNames,
+            rows,
+            outputTypes,
+            rowCount,
+            duration,
+            request.includeTypesOnResponse()
         );
     }
 

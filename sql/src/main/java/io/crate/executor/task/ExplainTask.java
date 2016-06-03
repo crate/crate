@@ -22,9 +22,8 @@
 
 package io.crate.executor.task;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Row1;
 import io.crate.core.collections.SingleRowBucket;
 import io.crate.executor.QueryResult;
@@ -38,8 +37,6 @@ import java.util.Map;
 
 public class ExplainTask implements Task {
 
-    private final SettableFuture<TaskResult> result = SettableFuture.create();
-    private final List<ListenableFuture<TaskResult>> results = ImmutableList.<ListenableFuture<TaskResult>>of(result);
     private final ExplainPlan explainPlan;
 
     public ExplainTask(ExplainPlan explainPlan) {
@@ -48,16 +45,22 @@ public class ExplainTask implements Task {
 
     @Override
     public void start() {
-        try {
-            Map<String, Object> map = PlanPrinter.objectMap(explainPlan.subPlan());
-            result.set(new QueryResult(new SingleRowBucket(new Row1(map))));
-        } catch (Throwable e) {
-            result.setException(e);
-        }
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public List<? extends ListenableFuture<TaskResult>> result() {
-        return results;
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ListenableFuture<TaskResult> execute() {
+        try {
+            Map<String, Object> map = PlanPrinter.objectMap(explainPlan.subPlan());
+            QueryResult queryResult = new QueryResult(new SingleRowBucket(new Row1(map)));
+            return Futures.<TaskResult>immediateFuture(queryResult);
+        } catch (Throwable t) {
+            return Futures.immediateFailedFuture(t);
+        }
     }
 }

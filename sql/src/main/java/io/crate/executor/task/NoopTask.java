@@ -50,4 +50,9 @@ public class NoopTask implements Task {
     public List<? extends ListenableFuture<TaskResult>> result() {
         return EMPTY_RESULT;
     }
+
+    @Override
+    public ListenableFuture<TaskResult> execute() {
+        return EMPTY_RESULT.get(0);
+    }
 }

@@ -24,28 +24,19 @@ package io.crate.action.sql;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
-import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.*;
 import io.crate.executor.Executor;
-import io.crate.executor.Job;
-import io.crate.executor.TaskResult;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.metadata.PartitionName;
-import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.projectors.ShardProjectorChain;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.Planner;
-import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -75,17 +66,16 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.NodeDisconnectedException;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.Locale;
+import java.util.UUID;
 
 public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TResponse extends SQLBaseResponse>
         extends TransportAction<TRequest, TResponse> {
 
     public static final String NODE_READ_ONLY_SETTING = "node.sql.read_only";
 
-    private static final DataType[] EMPTY_TYPES = new DataType[0];
-    private static final String[] EMPTY_NAMES = new String[0];
     private static final int MAX_SHARD_MISSING_RETRIES = 3;
 
 
@@ -131,64 +121,13 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
     public abstract ParameterContext getParamContext(TRequest request);
 
+    abstract void executePlan(Executor executor,
+                              Analysis analysis,
+                              Plan plan,
+                              ActionListener<TResponse> listener,
+                              TRequest request,
+                              long startTime);
 
-    /**
-     * create an empty SQLBaseResponse instance with no rows
-     * and a rowCount of 0
-     *
-     * @param request     the request that results in the response to be created
-     * @param outputNames an array of output column names
-     * @param types       an array of types of the output columns,
-     *                    if not null it must be of the same length as <code>outputNames</code>
-     */
-    protected abstract TResponse emptyResponse(TRequest request, float duration, String[] outputNames, @Nullable DataType[] types);
-
-    /**
-     * create an instance of SQLBaseResponse from a plan and a TaskResult
-     *
-     * @param outputNames an array of output column names
-     * @param outputTypes the DataTypes of the columns/rows in the response
-     * @param result      the result of the executed plan
-     * @param request     the request that created which issued the execution
-     */
-    protected abstract TResponse createResponseFromResult(String[] outputNames,
-                                                          DataType[] outputTypes,
-                                                          List<TaskResult> result,
-                                                          boolean expectsAffectedRows,
-                                                          TRequest request,
-                                                          float duration);
-
-    /**
-     * create an instance of SQLBaseResponse
-     *
-     * @param result   the result of the executed plan
-     * @param analysis the analysis for the result
-     * @param request  the request that created which issued the execution
-     */
-    private TResponse createResponseFromResult(@Nullable List<TaskResult> result, Analysis analysis, TRequest request, long startTime) {
-        String[] outputNames;
-        DataType[] outputTypes;
-        if (analysis.expectsAffectedRows()) {
-            outputNames = EMPTY_NAMES;
-            outputTypes = EMPTY_TYPES;
-        } else {
-            assert analysis.rootRelation() != null;
-            outputNames = new String[analysis.rootRelation().fields().size()];
-            outputTypes = new DataType[analysis.rootRelation().fields().size()];
-            for (int i = 0; i < analysis.rootRelation().fields().size(); i++) {
-                Field field = analysis.rootRelation().fields().get(i);
-                outputNames[i] = field.path().outputName();
-                outputTypes[i] = field.valueType();
-            }
-        }
-        float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
-        if (result == null) {
-            return emptyResponse(request, duration, outputNames, outputTypes);
-        } else {
-            return createResponseFromResult(outputNames, outputTypes, result, analysis.expectsAffectedRows(), request, duration);
-        }
-
-    }
 
     @Override
     protected void doExecute(TRequest request, final ActionListener<TResponse> listener) {
@@ -199,24 +138,10 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         long startTime = System.nanoTime();
         statsTables.jobStarted(jobId, request.stmt());
 
-        ActionListener<TResponse> wrappedListener = new ActionListener<TResponse>() {
-            @Override
-            public void onResponse(TResponse tResponse) {
-                listener.onResponse(tResponse);
-                statsTables.jobFinished(jobId, null);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                SQLActionException e = buildSQLActionException(t);
-                listener.onFailure(e);
-                statsTables.jobFinished(jobId, e.getMessage());
-            }
-        };
-        doExecute(request, wrappedListener, 1, jobId, startTime);
+        doExecute(request, new StatsTableListenerWrapper<>(listener, statsTables, jobId), jobId, startTime);
     }
 
-    private void doExecute(TRequest request, ActionListener<TResponse> listener, final int attempt, UUID jobId, long startTime) {
+    private void doExecute(TRequest request, ActionListener<TResponse> listener, UUID jobId, long startTime) {
         if (disabled) {
             listener.onFailure(new NodeDisconnectedException(clusterService.localNode(), actionName));
             return;
@@ -227,90 +152,29 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             if (analysis.analyzedStatement().isWriteOperation() && settings.getAsBoolean(NODE_READ_ONLY_SETTING, false)) {
                 throw new ReadOnlyException();
             }
-            processAnalysis(analysis, request, listener, attempt, jobId, startTime);
+            processAnalysis(analysis, request, listener, jobId, startTime);
         } catch (Throwable e) {
             logger.debug("Error executing SQLRequest", e);
             listener.onFailure(e);
         }
     }
 
-    private void processAnalysis(Analysis analysis, TRequest request, ActionListener<TResponse> listener,
-                                 final int attempt, UUID jobId, long startTime) {
-        final Plan plan = planner.plan(analysis, jobId);
+    private void processAnalysis(final Analysis analysis,
+                                 final TRequest request,
+                                 ActionListener<TResponse> listener,
+                                 final UUID jobId,
+                                 final long startTime) {
+        Plan plan = planner.plan(analysis, jobId);
         assert plan != null;
         tracePlan(plan);
-        executePlan(analysis, plan, listener, request, attempt, startTime);
+        Executor executor = executorProvider.get();
+        listener = new KillAndRetryListenerWrapper(listener, analysis, jobId, executor, request, startTime);
+        executePlan(executor, analysis, plan, listener, request, startTime);
     }
 
-    private void executePlan(final Analysis analysis,
-                             final Plan plan,
-                             final ActionListener<TResponse> listener,
-                             final TRequest request,
-                             final int attempt,
-                             final long startTime) {
-        Executor executor = executorProvider.get();
-        Job job = executor.newJob(plan);
-
-        List<? extends ListenableFuture<TaskResult>> resultFutureList = executor.execute(job);
-        Futures.addCallback(Futures.allAsList(resultFutureList), new FutureCallback<List<TaskResult>>() {
-
-                    @Override
-                    public void onSuccess(@Nullable List<TaskResult> result) {
-                        TResponse response;
-                        try {
-                            response = createResponseFromResult(result, analysis, request, startTime);
-                            listener.onResponse(response);
-                        } catch (Throwable e) {
-                            listener.onFailure(e);
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(final @Nonnull Throwable t) {
-                        Throwable unwrappedException = Exceptions.unwrap(t);
-                        if ((unwrappedException instanceof ShardNotFoundException || unwrappedException instanceof IllegalIndexShardStateException)
-                                && attempt <= MAX_SHARD_MISSING_RETRIES) {
-                            logger.debug("FAILED ({}/{} attempts) - Retry: [{}]", attempt, MAX_SHARD_MISSING_RETRIES,  request.stmt());
-
-                            killAndRetry(t);
-                            return;
-                        }
-                        listener.onFailure(t);
-                    }
-
-                    private void killAndRetry(@Nonnull final Throwable t) {
-                        /**
-                         * retry should only be done for select operations or absolute write operations
-                         *
-                         * relative write operations (x = x + 1) must not be retried
-                         *  - if one shard was successful that operation would be executed twice.
-                         *
-                         * This is currently ensured by the fact that
-                         * {@link io.crate.operation.collect.sources.ShardCollectSource#getDocCollectors(JobCollectContext, RoutedCollectPhase, ShardProjectorChain, Map)}
-                         * doesn't raise shard errors but instead uses a remoteCollector as fallback
-                         *
-                         * ORDERED collect operations would raise shard failures, but currently there is no case where
-                         * ordered + relative write operations happen
-                         */
-                        transportKillJobsNodeAction.executeKillOnAllNodes(
-                                new KillJobsRequest(Collections.singletonList(plan.jobId())), new ActionListener<KillResponse>() {
-                                    @Override
-                                    public void onResponse(KillResponse killResponse) {
-                                        logger.debug("Killed {} jobs before Retry", killResponse.numKilled());
-                                        doExecute(request, listener, attempt + 1, plan.jobId(), startTime);
-                                    }
-
-                                    @Override
-                                    public void onFailure(Throwable e) {
-                                        logger.warn("Failed to kill job before Retry", e);
-                                        listener.onFailure(e);
-                                    }
-                                }
-                        );
-                    }
-                }
-
-        );
+    private static boolean isShardFailure(Throwable e) {
+        e = Exceptions.unwrap(e);
+        return e instanceof ShardNotFoundException || e instanceof IllegalIndexShardStateException;
     }
 
     private void tracePlan(Plan plan) {
@@ -434,5 +298,102 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
     public void disable() {
         disabled = true;
+    }
+
+
+    private static class StatsTableListenerWrapper<TResponse extends SQLBaseResponse> implements ActionListener<TResponse> {
+        private final ActionListener<TResponse> delegate;
+        private final StatsTables statsTables;
+        private final UUID jobId;
+
+        StatsTableListenerWrapper(ActionListener<TResponse> delegate, StatsTables statsTables, UUID jobId) {
+            this.delegate = delegate;
+            this.statsTables = statsTables;
+            this.jobId = jobId;
+        }
+
+        @Override
+        public void onResponse(TResponse tResponse) {
+            delegate.onResponse(tResponse);
+            statsTables.jobFinished(jobId, null);
+        }
+
+        @Override
+        public void onFailure(Throwable t) {
+            SQLActionException e = buildSQLActionException(t);
+            delegate.onFailure(e);
+            statsTables.jobFinished(jobId, e.getMessage());
+        }
+    }
+
+    private class KillAndRetryListenerWrapper implements ActionListener<TResponse> {
+
+        private final ActionListener<TResponse> delegate;
+        private final Analysis analysis;
+        private final UUID jobId;
+        private final Executor executor;
+        private final TRequest request;
+        private final long startTime;
+        int attempt = 1;
+
+        KillAndRetryListenerWrapper(ActionListener<TResponse> delegate,
+                                    Analysis analysis,
+                                    UUID jobId,
+                                    Executor executor,
+                                    TRequest request,
+                                    long startTime) {
+            this.delegate = delegate;
+            this.analysis = analysis;
+            this.jobId = jobId;
+            this.executor = executor;
+            this.request = request;
+            this.startTime = startTime;
+        }
+
+        @Override
+        public void onResponse(TResponse tResponse) {
+            delegate.onResponse(tResponse);
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            if (attempt <= MAX_SHARD_MISSING_RETRIES && isShardFailure(e)) {
+                attempt += 1;
+                killAndRetry();
+            } else {
+                delegate.onFailure(e);
+            }
+        }
+
+        private void killAndRetry() {
+            /**
+             * retry should only be done for select operations or absolute write operations
+             *
+             * relative write operations (x = x + 1) must not be retried
+             *  - if one shard was successful that operation would be executed twice.
+             *
+             * This is currently ensured by the fact that
+             * {@link io.crate.operation.collect.sources.ShardCollectSource#getDocCollectors(JobCollectContext, RoutedCollectPhase, ShardProjectorChain, Map)}
+             * doesn't raise shard errors but instead uses a remoteCollector as fallback
+             *
+             * ORDERED collect operations would raise shard failures, but currently there is no case where
+             * ordered + relative write operations happen
+             */
+            transportKillJobsNodeAction.executeKillOnAllNodes(
+                new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<KillResponse>() {
+                    @Override
+                    public void onResponse(KillResponse killResponse) {
+                        logger.debug("Killed {} jobs before Retry", killResponse.numKilled());
+                        Plan newPlan = planner.plan(analysis, jobId);
+                        executePlan(executor, analysis, newPlan, KillAndRetryListenerWrapper.this, request, startTime);
+                    }
+                    @Override
+                    public void onFailure(Throwable e) {
+                        logger.warn("Failed to kill job before Retry", e);
+                        delegate.onFailure(e);
+                    }
+                }
+            );
+        }
     }
 }

@@ -316,8 +316,10 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
             res.get();
         } catch (ExecutionException e) {
             // in this case the job was successfully killed, so it must occur as killed the jobs log
-            SQLResponse response = execute("select * from sys.jobs_log where error = ? and stmt = ?", new Object[]{"KILLED", stmt});
-            assertThat(response.rowCount(), is(1L));
+            SQLResponse response = execute("select * from sys.jobs_log where error = ? and stmt = ?", new Object[]{"JobKilledException: Job killed", stmt});
+            if (response.rowCount() < 1L) {
+                throw new AssertionError(TestingHelpers.printedTable(execute("select * from sys.jobs_log").rows()));
+            }
         }
         waitUntilShardOperationsFinished();
     }

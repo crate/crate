@@ -28,8 +28,13 @@ import java.util.List;
 
 public interface Executor {
 
-    public Job newJob(Plan plan);
+    @Deprecated
+    Job newJob(Plan plan);
 
-    public List<? extends ListenableFuture<TaskResult>> execute(Job job);
+    @Deprecated
+    List<? extends ListenableFuture<TaskResult>> execute(Job job);
 
+    ListenableFuture<TaskResult> execute(Plan plan);
+
+    List<? extends ListenableFuture<TaskResult>> executeBulk(Plan plan);
 }

@@ -42,6 +42,7 @@ public interface Task {
     /**
      * start the execution
      */
+    @Deprecated
     void start();
 
     /**
@@ -49,5 +50,8 @@ public interface Task {
      * {@linkplain com.google.common.util.concurrent.ListenableFuture} instances.
      * This method may be called before {@linkplain #start()} is called.
      */
+    @Deprecated
     List<? extends ListenableFuture<TaskResult>> result();
+
+    ListenableFuture<TaskResult> execute();
 }

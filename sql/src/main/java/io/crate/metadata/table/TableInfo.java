@@ -48,6 +48,14 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
 
     TableIdent ident();
 
+    /**
+     * Retrieve the routing for the table
+     *
+     * The Routing is depending on the current clusterState and subsequent calls might return a different result.
+     *
+     * This MUST NOT be frozen within the Analysis because it would break the retry logic of {@link io.crate.action.sql.TransportBaseSQLAction}
+     * Which does a retry in case of shard-failure -> that retry only re-executes the Planning/execute step and re-uses the analysis
+     */
     Routing getRouting(WhereClause whereClause, @Nullable String preference);
 
     List<ColumnIdent> primaryKey();

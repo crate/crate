@@ -21,6 +21,8 @@
 
 package io.crate.executor;
 
+import com.google.common.util.concurrent.ListenableFuture;
+
 import java.util.UUID;
 
 public abstract class JobTask implements Task {
@@ -35,4 +37,9 @@ public abstract class JobTask implements Task {
         return this.jobId;
     }
 
+    @Override
+    public ListenableFuture<TaskResult> execute() {
+        start();
+        return result().get(0);
+    }
 }

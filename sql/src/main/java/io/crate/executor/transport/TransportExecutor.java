@@ -155,6 +155,17 @@ public class TransportExecutor implements Executor {
 
     }
 
+    @Override
+    public ListenableFuture<TaskResult> execute(Plan plan) {
+        List<? extends Task> tasks = planVisitor.process(plan, plan.jobId());
+        return tasks.get(0).execute();
+    }
+
+    @Override
+    public List<? extends ListenableFuture<TaskResult>> executeBulk(Plan plan) {
+        return execute(newJob(plan));
+    }
+
     private List<? extends ListenableFuture<TaskResult>> execute(Collection<? extends Task> tasks) {
         Task lastTask = null;
         assert tasks.size() > 0 : "need at least one task to execute";
