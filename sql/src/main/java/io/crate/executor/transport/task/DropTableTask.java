@@ -27,7 +27,7 @@ import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.node.ddl.DropTableNode;
+import io.crate.planner.node.ddl.DropTablePlan;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -44,7 +44,6 @@ import org.elasticsearch.indices.IndexTemplateMissingException;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 public class DropTableTask extends JobTask {
 
@@ -59,13 +58,12 @@ public class DropTableTask extends JobTask {
     private final List<ListenableFuture<TaskResult>> resultList;
     private final SettableFuture<TaskResult> result;
 
-    public DropTableTask(UUID jobId,
+    public DropTableTask(DropTablePlan plan,
                          TransportDeleteIndexTemplateAction deleteTemplateAction,
-                         TransportDeleteIndexAction deleteIndexAction,
-                         DropTableNode node) {
-        super(jobId);
-        this.ifExists = node.ifExists();
-        this.tableInfo = node.tableInfo();
+                         TransportDeleteIndexAction deleteIndexAction) {
+        super(plan.jobId());
+        this.ifExists = plan.ifExists();
+        this.tableInfo = plan.tableInfo();
         this.deleteTemplateAction = deleteTemplateAction;
         this.deleteIndexAction = deleteIndexAction;
         this.result = SettableFuture.create();

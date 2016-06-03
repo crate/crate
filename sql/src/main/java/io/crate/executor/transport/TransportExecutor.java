@@ -57,7 +57,7 @@ import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
-import io.crate.planner.node.ddl.DropTableNode;
+import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESDeletePartitionNode;
 import io.crate.planner.node.ddl.GenericDDLPlan;
@@ -254,6 +254,13 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
+        public List<? extends Task> visitDropTablePlan(DropTablePlan plan, UUID context) {
+            return Collections.singletonList(new DropTableTask(plan,
+                transportActionProvider.transportDeleteIndexTemplateAction(),
+                transportActionProvider.transportDeleteIndexAction()));
+        }
+
+        @Override
         public List<Task> visitKillPlan(KillPlan killPlan, UUID jobId) {
             Task task = killPlan.jobToKill().isPresent() ?
                     new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
@@ -301,14 +308,6 @@ public class TransportExecutor implements Executor {
                     bulkRetryCoordinatorPool,
                     node,
                     jobContextService);
-        }
-
-        @Override
-        public Task visitDropTableNode(DropTableNode node, UUID jobId) {
-            return new DropTableTask(jobId,
-                    transportActionProvider.transportDeleteIndexTemplateAction(),
-                    transportActionProvider.transportDeleteIndexAction(),
-                    node);
         }
 
         @Override

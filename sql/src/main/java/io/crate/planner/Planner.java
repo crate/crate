@@ -42,7 +42,7 @@ import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.UpdateConsumer;
 import io.crate.planner.fetch.IndexBaseVisitor;
-import io.crate.planner.node.ddl.DropTableNode;
+import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.Upsert;
@@ -375,7 +375,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         if (analysis.noop()) {
             return new NoopPlan(context.jobId());
         }
-        return new IterablePlan(context.jobId(), new DropTableNode(analysis.table(), analysis.dropIfExists()));
+        return new DropTablePlan(context.jobId(), analysis.table(), analysis.dropIfExists());
     }
 
     @Override

@@ -22,16 +22,20 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.Plan;
+import io.crate.planner.PlanVisitor;
 
-public class DropTableNode implements PlanNode {
+import java.util.UUID;
 
+public class DropTablePlan implements Plan {
+
+    private final UUID jobId;
     private final DocTableInfo table;
     private final boolean ifExists;
 
 
-    public DropTableNode(DocTableInfo table, boolean ifExists) {
+    public DropTablePlan(UUID jobId, DocTableInfo table, boolean ifExists) {
+        this.jobId = jobId;
         this.table = table;
         this.ifExists = ifExists;
     }
@@ -45,7 +49,12 @@ public class DropTableNode implements PlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitDropTableNode(this, context);
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        return visitor.visitDropTablePlan(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return jobId;
     }
 }

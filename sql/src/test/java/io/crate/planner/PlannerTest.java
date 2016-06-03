@@ -17,7 +17,7 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.ddl.DropTableNode;
+import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESDeletePartitionNode;
 import io.crate.planner.node.ddl.GenericDDLPlan;
@@ -835,13 +835,8 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testDropTable() throws Exception {
-        IterablePlan plan = plan("drop table users");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(DropTableNode.class));
-
-        DropTableNode node = (DropTableNode) planNode;
-        assertThat(node.tableInfo().ident().name(), is("users"));
+        DropTablePlan plan =  plan("drop table users");
+        assertThat(plan.tableInfo().ident().name(), is("users"));
     }
 
     @Test
@@ -852,13 +847,8 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testDropTableIfExists() throws Exception {
-        IterablePlan plan = plan("drop table if exists users");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-        assertThat(planNode, instanceOf(DropTableNode.class));
-
-        DropTableNode node = (DropTableNode) planNode;
-        assertThat(node.tableInfo().ident().name(), is("users"));
+        DropTablePlan plan = plan("drop table if exists users");
+        assertThat(plan.tableInfo().ident().name(), is("users"));
     }
 
     @Test
@@ -870,15 +860,8 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testDropPartitionedTable() throws Exception {
-        IterablePlan plan = plan("drop table parted");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode planNode = iterator.next();
-
-        assertThat(planNode, instanceOf(DropTableNode.class));
-        DropTableNode node = (DropTableNode) planNode;
-        assertThat(node.tableInfo().ident().name(), is("parted"));
-
-        assertFalse(iterator.hasNext());
+        DropTablePlan plan = plan("drop table parted");
+        assertThat(plan.tableInfo().ident().name(), is("parted"));
     }
 
     @Test
