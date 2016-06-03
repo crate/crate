@@ -240,6 +240,17 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
+        public List<? extends Task> visitGetPlan(ESGet plan, UUID context) {
+            return Collections.singletonList(new ESGetTask(
+                functions,
+                globalProjectionToProjectionVisitor,
+                transportActionProvider.transportMultiGetAction(),
+                transportActionProvider.transportGetAction(),
+                plan,
+                jobContextService));
+        }
+
+        @Override
         public List<Task> visitKillPlan(KillPlan killPlan, UUID jobId) {
             Task task = killPlan.jobToKill().isPresent() ?
                     new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
@@ -269,18 +280,6 @@ public class TransportExecutor implements Executor {
         @Override
         public Task visitGenericDDLNode(GenericDDLNode node, UUID jobId) {
             return new DDLTask(jobId, ddlAnalysisDispatcherProvider, node.analyzedStatement());
-        }
-
-        @Override
-        public Task visitESGetNode(ESGetNode node, UUID jobId) {
-            return new ESGetTask(
-                    jobId,
-                    functions,
-                    globalProjectionToProjectionVisitor,
-                    transportActionProvider.transportMultiGetAction(),
-                    transportActionProvider.transportGetAction(),
-                    node,
-                    jobContextService);
         }
 
         @Override

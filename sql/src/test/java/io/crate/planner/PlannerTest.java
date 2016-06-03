@@ -116,12 +116,10 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testGetPlan() throws Exception {
-        IterablePlan plan = plan("select name from users where id = 1");
-        Iterator<PlanNode> iterator = plan.iterator();
-        ESGetNode node = (ESGetNode) iterator.next();
-        assertThat(node.tableInfo().ident().name(), is("users"));
-        assertThat(node.docKeys().getOnlyKey(), isDocKey(1L));
-        assertThat(node.outputs().size(), is(1));
+        ESGet esGet = plan("select name from users where id = 1");
+        assertThat(esGet.tableInfo().ident().name(), is("users"));
+        assertThat(esGet.docKeys().getOnlyKey(), isDocKey(1L));
+        assertThat(esGet.outputs().size(), is(1));
     }
 
     @Test
@@ -133,37 +131,28 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testGetPlanStringLiteral() throws Exception {
-        IterablePlan plan = plan("select name from characters where id = 'one'");
-        Iterator<PlanNode> iterator = plan.iterator();
-        ESGetNode node = (ESGetNode) iterator.next();
-        assertThat(node.tableInfo().ident().name(), is("characters"));
-        assertThat(node.docKeys().getOnlyKey(), isDocKey("one"));
-        assertFalse(iterator.hasNext());
-        assertThat(node.outputs().size(), is(1));
+        ESGet esGet = plan("select name from characters where id = 'one'");
+        assertThat(esGet.tableInfo().ident().name(), is("characters"));
+        assertThat(esGet.docKeys().getOnlyKey(), isDocKey("one"));
+        assertThat(esGet.outputs().size(), is(1));
     }
 
     @Test
     public void testGetPlanPartitioned() throws Exception {
-        IterablePlan plan = plan("select name, date from parted where id = 'one' and date = 0");
-        Iterator<PlanNode> iterator = plan.iterator();
-        PlanNode node = iterator.next();
-        assertThat(node, instanceOf(ESGetNode.class));
-        ESGetNode getNode = (ESGetNode) node;
-        assertThat(getNode.tableInfo().ident().name(), is("parted"));
-        assertThat(getNode.docKeys().getOnlyKey(), isDocKey("one", 0L));
+        ESGet esGet = plan("select name, date from parted where id = 'one' and date = 0");
+        assertThat(esGet.tableInfo().ident().name(), is("parted"));
+        assertThat(esGet.docKeys().getOnlyKey(), isDocKey("one", 0L));
 
         //is(new PartitionName("parted", Arrays.asList(new BytesRef("0"))).asIndexName()));
-        assertEquals(DataTypes.STRING, getNode.outputTypes().get(0));
-        assertEquals(DataTypes.TIMESTAMP, getNode.outputTypes().get(1));
+        assertEquals(DataTypes.STRING, esGet.outputTypes().get(0));
+        assertEquals(DataTypes.TIMESTAMP, esGet.outputTypes().get(1));
     }
 
     @Test
     public void testMultiGetPlan() throws Exception {
-        IterablePlan plan = plan("select name from users where id in (1, 2)");
-        Iterator<PlanNode> iterator = plan.iterator();
-        ESGetNode node = (ESGetNode) iterator.next();
-        assertThat(node.docKeys().size(), is(2));
-        assertThat(node.docKeys(), containsInAnyOrder(isDocKey(1L), isDocKey(2L)));
+        ESGet esGet = plan("select name from users where id in (1, 2)");
+        assertThat(esGet.docKeys().size(), is(2));
+        assertThat(esGet.docKeys(), containsInAnyOrder(isDocKey(1L), isDocKey(2L)));
     }
 
     @Test

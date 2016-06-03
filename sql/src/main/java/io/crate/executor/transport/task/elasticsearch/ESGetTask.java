@@ -48,7 +48,7 @@ import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.planner.node.dql.ESGetNode;
+import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import org.apache.lucene.util.BytesRef;
@@ -68,19 +68,18 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
 
     private final static Set<ColumnIdent> FETCH_SOURCE_COLUMNS = ImmutableSet.of(DocSysColumns.DOC, DocSysColumns.RAW);
 
-    public ESGetTask(UUID jobId,
-                     Functions functions,
+    public ESGetTask(Functions functions,
                      ProjectorFactory projectorFactory,
                      TransportMultiGetAction multiGetAction,
                      TransportGetAction getAction,
-                     ESGetNode node,
+                     ESGet esGet,
                      JobContextService jobContextService) {
-        super(jobId, node.executionPhaseId(), 1, jobContextService);
+        super(esGet.jobId(), esGet.executionPhaseId(), 1, jobContextService);
 
         assert multiGetAction != null;
         assert getAction != null;
-        assert node.docKeys().size() > 0;
-        assert node.limit() == null || node.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
+        assert esGet.docKeys().size() > 0;
+        assert esGet.limit() == null || esGet.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
 
         ActionListener listener;
         ActionRequest request;
@@ -90,18 +89,18 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         SettableFuture<TaskResult> result = SettableFuture.create();
         results.add(result);
 
-        GetResponseContext ctx = new GetResponseContext(functions, node);
-        List<Function<GetResponse, Object>> extractors = getFieldExtractors(node, ctx);
+        GetResponseContext ctx = new GetResponseContext(functions, esGet);
+        List<Function<GetResponse, Object>> extractors = getFieldExtractors(esGet, ctx);
         FetchSourceContext fsc = getFetchSourceContext(ctx.references());
-        if (node.docKeys().size() > 1) {
-            request = prepareMultiGetRequest(node, fsc);
+        if (esGet.docKeys().size() > 1) {
+            request = prepareMultiGetRequest(esGet, fsc);
             transportAction = multiGetAction;
             QueryResultRowDownstream queryResultRowDownstream = new QueryResultRowDownstream(result);
-            projectorChain = getFlatProjectorChain(projectorFactory, node, queryResultRowDownstream);
+            projectorChain = getFlatProjectorChain(projectorFactory, esGet, queryResultRowDownstream);
             RowReceiver rowReceiver = projectorChain.firstProjector();
             listener = new MultiGetResponseListener(extractors, rowReceiver);
         } else {
-            request = prepareGetRequest(node, fsc);
+            request = prepareGetRequest(esGet, fsc);
             transportAction = getAction;
             listener = new GetResponseListener(result, extractors);
         }
@@ -125,7 +124,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         return new FetchSourceContext(false);
     }
 
-    private static List<Function<GetResponse, Object>> getFieldExtractors(ESGetNode node, GetResponseContext ctx) {
+    private static List<Function<GetResponse, Object>> getFieldExtractors(ESGet node, GetResponseContext ctx) {
         List<Function<GetResponse, Object>> extractors = new ArrayList<>(node.outputs().size() + node.sortSymbols().size());
         for (Symbol symbol : node.outputs()) {
             extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
@@ -144,7 +143,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         }
     }
 
-    private GetRequest prepareGetRequest(ESGetNode node, FetchSourceContext fsc) {
+    private GetRequest prepareGetRequest(ESGet node, FetchSourceContext fsc) {
         DocKeys.DocKey docKey = node.docKeys().getOnlyKey();
         GetRequest getRequest = new GetRequest(indexName(node.tableInfo(), docKey.partitionValues()),
                 Constants.DEFAULT_MAPPING_TYPE, docKey.id());
@@ -154,7 +153,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         return getRequest;
     }
 
-    private MultiGetRequest prepareMultiGetRequest(ESGetNode node, FetchSourceContext fsc) {
+    private MultiGetRequest prepareMultiGetRequest(ESGet node, FetchSourceContext fsc) {
         MultiGetRequest multiGetRequest = new MultiGetRequest();
         for (DocKeys.DocKey key : node.docKeys()) {
             MultiGetRequest.Item item = new MultiGetRequest.Item(
@@ -168,7 +167,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
     }
 
     private FlatProjectorChain getFlatProjectorChain(ProjectorFactory projectorFactory,
-                                                     ESGetNode node,
+                                                     ESGet node,
                                                      QueryResultRowDownstream queryResultRowDownstream) {
         if (node.limit() != null || node.offset() > 0 || !node.sortSymbols().isEmpty()) {
             List<Symbol> orderBySymbols = new ArrayList<>(node.sortSymbols().size());
@@ -288,9 +287,9 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
 
     static class GetResponseContext extends SymbolToFieldExtractor.Context {
         private final HashMap<String, DocKeys.DocKey> ids2Keys;
-        private final ESGetNode node;
+        private final ESGet node;
 
-        public GetResponseContext(Functions functions, ESGetNode node) {
+        public GetResponseContext(Functions functions, ESGet node) {
             super(functions, node.outputs().size());
             this.node = node;
             ids2Keys = new HashMap<>(node.docKeys().size());

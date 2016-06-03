@@ -34,7 +34,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.Planner;
-import io.crate.planner.node.dql.ESGetNode;
+import io.crate.planner.node.dql.ESGet;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.junit.After;
@@ -61,7 +61,7 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
     Reference femaleRef = TestingHelpers.createReference(charactersIdent.name(), new ColumnIdent("female"), DataTypes.BOOLEAN);
 
 
-    public static ESGetNode newGetNode(DocTableInfo tableInfo, List<Symbol> outputs, List<String> singleStringKeys, int executionNodeId) {
+    public static ESGet newGetNode(DocTableInfo tableInfo, List<Symbol> outputs, List<String> singleStringKeys, int executionNodeId) {
         QuerySpec querySpec = new QuerySpec();
         querySpec.outputs(outputs);
         List<List<Symbol>> keys = new ArrayList<>(singleStringKeys.size());
@@ -70,7 +70,7 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
         }
         WhereClause whereClause = new WhereClause(null, new DocKeys(keys, false, -1, null), null);
         querySpec.where(whereClause);
-        return new ESGetNode(executionNodeId, tableInfo, querySpec, UUID.randomUUID());
+        return new ESGet(executionNodeId, tableInfo, querySpec, UUID.randomUUID());
     }
 
     @Before
@@ -87,11 +87,11 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
         docSchemaInfo = null;
     }
 
-    protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, String singleStringKey, int executionNodeId) {
+    protected ESGet newGetNode(String tableName, List<Symbol> outputs, String singleStringKey, int executionNodeId) {
         return newGetNode(tableName, outputs, Collections.singletonList(singleStringKey), executionNodeId);
     }
 
-    protected ESGetNode newGetNode(String tableName, List<Symbol> outputs, List<String> singleStringKeys, int executionNodeId) {
+    protected ESGet newGetNode(String tableName, List<Symbol> outputs, List<String> singleStringKeys, int executionNodeId) {
         return newGetNode(docSchemaInfo.getTableInfo(tableName), outputs, singleStringKeys, executionNodeId);
     }
 

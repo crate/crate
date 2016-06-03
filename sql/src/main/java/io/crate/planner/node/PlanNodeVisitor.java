@@ -21,19 +21,17 @@
 
 package io.crate.planner.node;
 
-import io.crate.planner.node.ddl.*;
+import io.crate.planner.node.ddl.DropTableNode;
+import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
+import io.crate.planner.node.ddl.ESDeletePartitionNode;
+import io.crate.planner.node.ddl.GenericDDLNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.UpsertByIdNode;
-import io.crate.planner.node.dql.ESGetNode;
 
 public class PlanNodeVisitor<C, R> {
 
     protected R visitPlanNode(PlanNode node, C context) {
         return null;
-    }
-
-    public R visitESGetNode(ESGetNode node, C context) {
-        return visitPlanNode(node, context);
     }
 
     public R visitESDeleteNode(ESDeleteNode node, C context) {

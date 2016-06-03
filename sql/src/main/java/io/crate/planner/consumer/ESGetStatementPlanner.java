@@ -23,18 +23,13 @@ package io.crate.planner.consumer;
 
 
 import com.google.common.base.Optional;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dql.ESGetNode;
-
-import java.util.UUID;
+import io.crate.planner.node.dql.ESGet;
 
 public class ESGetStatementPlanner {
 
@@ -53,6 +48,6 @@ public class ESGetStatementPlanner {
             return new NoopPlan(context.jobId());
         }
         table.tableRelation().validateOrderBy(table.querySpec().orderBy());
-        return new ESGetNode(context.nextExecutionPhaseId(), tableInfo, table.querySpec(), context.jobId()).plan();
+        return new ESGet(context.nextExecutionPhaseId(), tableInfo, table.querySpec(), context.jobId()).plan();
     }
 }

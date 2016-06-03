@@ -24,21 +24,13 @@ package io.crate.planner.node.dql;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.DocKeys;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.Path;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.Operation;
-import io.crate.planner.IterablePlan;
-import io.crate.planner.Plan;
+import io.crate.planner.PlanAndPlannedAnalyzedRelation;
+import io.crate.planner.PlanVisitor;
 import io.crate.planner.distribution.UpstreamPhase;
-import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
 import org.elasticsearch.common.Nullable;
@@ -47,7 +39,7 @@ import java.util.List;
 import java.util.UUID;
 
 
-public class ESGetNode implements PlanNode, PlannedAnalyzedRelation {
+public class ESGet extends PlanAndPlannedAnalyzedRelation {
 
     private final DocTableInfo tableInfo;
     private final QuerySpec querySpec;
@@ -63,10 +55,10 @@ public class ESGetNode implements PlanNode, PlannedAnalyzedRelation {
     private final List<Symbol> outputs;
     private final List<DataType> outputTypes;
 
-    public ESGetNode(int executionPhaseId,
-                     DocTableInfo tableInfo,
-                     QuerySpec querySpec,
-                     UUID jobId) {
+    public ESGet(int executionPhaseId,
+                 DocTableInfo tableInfo,
+                 QuerySpec querySpec,
+                 UUID jobId) {
 
         assert querySpec.where().docKeys().isPresent();
         this.tableInfo = tableInfo;
@@ -87,11 +79,6 @@ public class ESGetNode implements PlanNode, PlannedAnalyzedRelation {
             this.reverseFlags = EMPTY_REVERSE_FLAGS;
             this.nullsFirst = EMPTY_NULLS_FIRST;
         }
-    }
-
-    @Override
-    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitESGetNode(this, context);
     }
 
     public List<DataType> outputTypes() {
@@ -148,11 +135,6 @@ public class ESGetNode implements PlanNode, PlannedAnalyzedRelation {
     }
 
     @Override
-    public Plan plan() {
-        return new IterablePlan(jobId, this);
-    }
-
-    @Override
     public void addProjection(Projection projection) {
         throw new UnsupportedOperationException("ESGetNode doesn't support projections");
     }
@@ -169,23 +151,12 @@ public class ESGetNode implements PlanNode, PlannedAnalyzedRelation {
     }
 
     @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return visitor.visitPlanedAnalyzedRelation(this, context);
-    }
-
-    @javax.annotation.Nullable
-    @Override
-    public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField() not implemented on ESGetNode");
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        return visitor.visitGetPlan(this, context);
     }
 
     @Override
-    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getField() not implemented on ESGetNode");
-    }
-
-    @Override
-    public List<Field> fields() {
-        throw new UnsupportedOperationException("fields() not implemented on ESGetNode");
+    public UUID jobId() {
+        return jobId;
     }
 }

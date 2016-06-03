@@ -42,9 +42,8 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertByIdNode;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.UpdateProjection;
 import io.crate.types.DataType;
@@ -90,8 +89,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
 
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        ESGetNode getNode = newGetNode("characters", outputs, "99", ctx.nextExecutionPhaseId());
-        plan = new IterablePlan(UUID.randomUUID(), getNode);
+        plan = newGetNode("characters", outputs, "99", ctx.nextExecutionPhaseId());
         job = executor.newJob(plan);
         result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();
@@ -179,8 +177,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
 
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        ESGetNode getNode = newGetNode("characters", outputs, Arrays.asList("99", "42"), ctx.nextExecutionPhaseId());
-        plan = new IterablePlan(UUID.randomUUID(), getNode);
+        plan = newGetNode("characters", outputs, Arrays.asList("99", "42"), ctx.nextExecutionPhaseId());
         job = executor.newJob(plan);
         result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();
@@ -211,8 +208,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
 
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        ESGetNode getNode = newGetNode("characters", outputs, "1", ctx.nextExecutionPhaseId());
-        plan = new IterablePlan(UUID.randomUUID(), getNode);
+        plan = newGetNode("characters", outputs, "1", ctx.nextExecutionPhaseId());
         job = executor.newJob(plan);
         result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();
@@ -245,8 +241,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
 
         // verify insert
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
-        ESGetNode getNode = newGetNode("characters", outputs, "5", ctx.nextExecutionPhaseId());
-        plan = new IterablePlan(UUID.randomUUID(), getNode);
+        plan = newGetNode("characters", outputs, "5", ctx.nextExecutionPhaseId());
         job = executor.newJob(plan);
         result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();
@@ -278,8 +273,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
 
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
-        ESGetNode getNode = newGetNode("characters", outputs, "1", ctx.nextExecutionPhaseId());
-        plan = new IterablePlan(UUID.randomUUID(), getNode);
+        plan = newGetNode("characters", outputs, "1", ctx.nextExecutionPhaseId());
         job = executor.newJob(plan);
         result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();

@@ -34,10 +34,8 @@ import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.management.KillPlan;
 import org.junit.Test;
 
@@ -60,8 +58,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         // create plan
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         Planner.Context ctx = newPlannerContext();
-        ESGetNode node = newGetNode("characters", outputs, "2", ctx.nextExecutionPhaseId());
-        Plan plan = new IterablePlan(ctx.jobId(), node);
+        Plan plan = newGetNode("characters", outputs, "2", ctx.nextExecutionPhaseId());
         Job job = executor.newJob(plan);
 
         // validate tasks
@@ -82,8 +79,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, new DynamicReference(
                 new ReferenceIdent(new TableIdent(null, "characters"), "foo"), RowGranularity.DOC));
         Planner.Context ctx = newPlannerContext();
-        ESGetNode node = newGetNode("characters", outputs, "2", ctx.nextExecutionPhaseId());
-        Plan plan = new IterablePlan(ctx.jobId(), node);
+        Plan plan = newGetNode("characters", outputs, "2", ctx.nextExecutionPhaseId());
         Job job = executor.newJob(plan);
         List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket rows = result.get(0).get().rows();
@@ -95,8 +91,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         Planner.Context ctx = newPlannerContext();
-        ESGetNode node = newGetNode("characters", outputs, asList("1", "2"), ctx.nextExecutionPhaseId());
-        Plan plan = new IterablePlan(ctx.jobId(), node);
+        Plan plan = newGetNode("characters", outputs, asList("1", "2"), ctx.nextExecutionPhaseId());
         Job job = executor.newJob(plan);
         List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
         Bucket objects = result.get(0).get().rows();

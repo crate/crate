@@ -25,10 +25,7 @@ import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.CopyTo;
 import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dml.Upsert;
-import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.CountPlan;
-import io.crate.planner.node.dql.DistributedGroupBy;
-import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.GenericShowPlan;
@@ -101,4 +98,7 @@ public class PlanVisitor<C, R> {
         return visitPlan(plan, context);
     }
 
+    public R visitGetPlan(ESGet plan, C context) {
+        return visitPlan(plan, context);
+    }
 }
