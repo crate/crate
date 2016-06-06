@@ -3,11 +3,8 @@ import json
 import os
 import time
 import socket
-try:
-    from urllib.request import urlopen
-    from urllib.parse import urlencode
-except ImportError:
-    from urllib import urlopen, urlencode
+from urllib.request import urlopen
+from urllib.parse import urlencode
 
 
 def is_up(host, port):

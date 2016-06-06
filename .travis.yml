@@ -42,6 +42,11 @@ branches:
 
 
 addons:
+  apt:
+    sources:
+        - deadsnakes
+    packages:
+        - python3.4
   coverity_scan:
     project:
       name: "crate/crate"

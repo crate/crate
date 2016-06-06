@@ -6,10 +6,10 @@ evaluationDependsOn(':client')
 evaluationDependsOn(':es-repository-hdfs')
 
 task bootstrap (type:Exec) {
-    inputs.file "$projectDir/bootstrap.py"
+    inputs.file "$projectDir/bootstrap.sh"
     outputs.file "$projectDir/bin/buildout"
 
-    commandLine 'python', "$projectDir/bootstrap.py"
+    commandLine 'sh', "$projectDir/bootstrap.sh"
 }
 
 task unpackDistTar (dependsOn: [project(':app').distTar, project(':client').jar]) << {
