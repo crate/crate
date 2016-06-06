@@ -33,12 +33,11 @@ import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.EqOperator;
-import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dml.Upsert;
-import io.crate.planner.node.dml.UpsertByIdNode;
+import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -52,7 +51,10 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.search.SearchHits;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
@@ -69,23 +71,23 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
 
         /* insert into characters (id, name) values (99, 'Marvin'); */
         Planner.Context ctx = newPlannerContext();
-        UpsertByIdNode updateNode = new UpsertByIdNode(
-                ctx.nextExecutionPhaseId(),
-                false,
-                false,
-                null,
-                new Reference[]{idRef, nameRef});
-        updateNode.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
+        UpsertById plan = new UpsertById(
+            ctx.jobId(),
+            ctx.nextExecutionPhaseId(),
+            false,
+            false,
+            null,
+            new Reference[]{idRef, nameRef});
+        plan.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
 
-        Plan plan = new IterablePlan(ctx.jobId(), updateNode);
         TaskResult result = executor.execute(plan).get(5, TimeUnit.SECONDS);
         Bucket rows = result.rows();
         assertThat(rows, contains(isRow(1L)));
 
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        plan = newGetNode("characters", outputs, "99", ctx.nextExecutionPhaseId());
-        Bucket bucket = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        Plan getPlan = newGetNode("characters", outputs, "99", ctx.nextExecutionPhaseId());
+        Bucket bucket = executor.execute(getPlan).get(5, TimeUnit.SECONDS).rows();
 
         assertThat(bucket, contains(isRow(99, "Marvin")));
     }
@@ -101,18 +103,18 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
 
         /* insert into parted (id, name, date) values(0, 'Trillian', 13959981214861); */
         Planner.Context ctx = newPlannerContext();
-        UpsertByIdNode updateNode = new UpsertByIdNode(
-                ctx.nextExecutionPhaseId(),
-                true,
-                false,
-                null,
-                new Reference[]{idRef, nameRef});
+        UpsertById upsertById = new UpsertById(
+            ctx.jobId(),
+            ctx.nextExecutionPhaseId(),
+            true,
+            false,
+            null,
+            new Reference[]{idRef, nameRef});
 
         PartitionName partitionName = new PartitionName("parted", Arrays.asList(new BytesRef("13959981214861")));
-        updateNode.add(partitionName.asIndexName(), "123", "123", null, null, new Object[]{0L, new BytesRef("Trillian")});
+        upsertById.add(partitionName.asIndexName(), "123", "123", null, null, new Object[]{0L, new BytesRef("Trillian")});
 
-        Plan plan = new IterablePlan(ctx.jobId(), updateNode);
-        Bucket indexResult = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        Bucket indexResult = executor.execute(upsertById).get(5, TimeUnit.SECONDS).rows();
         assertThat(indexResult, contains(isRow(1L)));
 
         refresh();
@@ -144,25 +146,24 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
 
         /* insert into characters (id, name) values (99, 'Marvin'), (42, 'Deep Thought'); */
         Planner.Context ctx = newPlannerContext();
-        UpsertByIdNode updateNode = new UpsertByIdNode(
-                ctx.nextExecutionPhaseId(),
-                false,
-                false,
-                null,
-                new Reference[]{idRef, nameRef});
+        UpsertById upsertById = new UpsertById(
+            ctx.jobId(),
+            ctx.nextExecutionPhaseId(),
+            false,
+            false,
+            null,
+            new Reference[]{idRef, nameRef});
 
-        updateNode.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
-        updateNode.add("characters", "42", "42", null, null, new Object[]{42, new BytesRef("Deep Thought")});
+        upsertById.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
+        upsertById.add("characters", "42", "42", null, null, new Object[]{42, new BytesRef("Deep Thought")});
 
-        Plan plan = new IterablePlan(ctx.jobId(), updateNode);
-
-        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        Bucket rows = executor.execute(upsertById).get(5, TimeUnit.SECONDS).rows();
         assertThat(rows, contains(isRow(2L)));
 
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        plan = newGetNode("characters", outputs, Arrays.asList("99", "42"), ctx.nextExecutionPhaseId());
-        Bucket bucket = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        Plan getPlan = newGetNode("characters", outputs, Arrays.asList("99", "42"), ctx.nextExecutionPhaseId());
+        Bucket bucket = executor.execute(getPlan).get(5, TimeUnit.SECONDS).rows();
 
         assertThat(bucket, contains(
                 isRow(99, "Marvin"),
@@ -176,18 +177,17 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
 
         // update characters set name='Vogon lyric fan' where id=1
         Planner.Context ctx = newPlannerContext();
-        UpsertByIdNode updateNode = new UpsertByIdNode(
-                ctx.nextExecutionPhaseId(), false, false, new String[]{nameRef.ident().columnIdent().fqn()}, null);
-        updateNode.add("characters", "1", "1", new Symbol[]{Literal.newLiteral("Vogon lyric fan")}, null);
-        Plan plan = new IterablePlan(ctx.jobId(), updateNode);
+        UpsertById upsertById = new UpsertById(
+            ctx.jobId(), ctx.nextExecutionPhaseId(), false, false, new String[]{nameRef.ident().columnIdent().fqn()}, null);
+        upsertById.add("characters", "1", "1", new Symbol[]{Literal.newLiteral("Vogon lyric fan")}, null);
 
-        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        Bucket rows = executor.execute(upsertById).get(5, TimeUnit.SECONDS).rows();
         assertThat(rows, contains(isRow(1L)));
 
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
-        plan = newGetNode("characters", outputs, "1", ctx.nextExecutionPhaseId());
-        Bucket bucket = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        Plan getPlan = newGetNode("characters", outputs, "1", ctx.nextExecutionPhaseId());
+        Bucket bucket = executor.execute(getPlan).get(5, TimeUnit.SECONDS).rows();
         assertThat(bucket, contains(isRow(1, "Vogon lyric fan")));
     }
 
@@ -198,22 +198,22 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
            on duplicate key update set name = 'Zaphod Beeblebrox'; */
         Object[] missingAssignments = new Object[]{5, new BytesRef("Zaphod Beeblebrox"), false};
         Planner.Context ctx = newPlannerContext();
-        UpsertByIdNode updateNode = new UpsertByIdNode(
-                ctx.nextExecutionPhaseId(),
-                false,
-                false,
-                new String[]{nameRef.ident().columnIdent().fqn()},
-                new Reference[]{idRef, nameRef, femaleRef});
+        UpsertById upsertById = new UpsertById(
+            ctx.jobId(),
+            ctx.nextExecutionPhaseId(),
+            false,
+            false,
+            new String[]{nameRef.ident().columnIdent().fqn()},
+            new Reference[]{idRef, nameRef, femaleRef});
 
-        updateNode.add("characters", "5", "5", new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")}, null, missingAssignments);
-        Plan plan = new IterablePlan(UUID.randomUUID(), updateNode);
-        Bucket bucket = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        upsertById.add("characters", "5", "5", new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")}, null, missingAssignments);
+        Bucket bucket = executor.execute(upsertById).get(5, TimeUnit.SECONDS).rows();
         assertThat(bucket, contains(isRow(1L)));
 
         // verify insert
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
-        plan = newGetNode("characters", outputs, "5", ctx.nextExecutionPhaseId());
-        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        Plan getPlan = newGetNode("characters", outputs, "5", ctx.nextExecutionPhaseId());
+        Bucket rows = executor.execute(getPlan).get(5, TimeUnit.SECONDS).rows();
         assertThat(rows, contains(isRow(5, "Zaphod Beeblebrox", false)));
 
     }
@@ -225,21 +225,21 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
            on duplicate key update set name = 'Zaphod Beeblebrox'; */
         Object[] missingAssignments = new Object[]{1, new BytesRef("Zaphod Beeblebrox"), true};
         Planner.Context ctx = newPlannerContext();
-        UpsertByIdNode updateNode = new UpsertByIdNode(
-                ctx.nextExecutionPhaseId(),
-                false,
-                false,
-                new String[]{femaleRef.ident().columnIdent().fqn()},
-                new Reference[]{idRef, nameRef, femaleRef});
-        updateNode.add("characters", "1", "1", new Symbol[]{Literal.newLiteral(true)}, null, missingAssignments);
-        Plan plan = new IterablePlan(ctx.jobId(), updateNode);
-        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        UpsertById upsertById = new UpsertById(
+            ctx.jobId(),
+            ctx.nextExecutionPhaseId(),
+            false,
+            false,
+            new String[]{femaleRef.ident().columnIdent().fqn()},
+            new Reference[]{idRef, nameRef, femaleRef});
+        upsertById.add("characters", "1", "1", new Symbol[]{Literal.newLiteral(true)}, null, missingAssignments);
+        Bucket rows = executor.execute(upsertById).get(5, TimeUnit.SECONDS).rows();
         assertThat(rows, contains(isRow(1L)));
 
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
-        plan = newGetNode("characters", outputs, "1", ctx.nextExecutionPhaseId());
-        rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        Plan getPlan = newGetNode("characters", outputs, "1", ctx.nextExecutionPhaseId());
+        rows = executor.execute(getPlan).get(5, TimeUnit.SECONDS).rows();
 
         assertThat(rows, contains(isRow(1, "Arthur", true)));
     }

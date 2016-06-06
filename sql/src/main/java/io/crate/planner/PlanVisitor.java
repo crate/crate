@@ -23,11 +23,9 @@ package io.crate.planner;
 
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
+import io.crate.planner.node.ddl.ESDeletePartition;
 import io.crate.planner.node.ddl.GenericDDLPlan;
-import io.crate.planner.node.dml.CopyTo;
-import io.crate.planner.node.dml.ESDelete;
-import io.crate.planner.node.dml.InsertFromSubQuery;
-import io.crate.planner.node.dml.Upsert;
+import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
@@ -43,10 +41,6 @@ public class PlanVisitor<C, R> {
 
     protected R visitPlan(Plan plan, C context) {
         return null;
-    }
-
-    public R visitIterablePlan(IterablePlan plan, C context) {
-        return visitPlan(plan, context);
     }
 
     public R visitNoopPlan(NoopPlan plan, C context) {
@@ -114,6 +108,14 @@ public class PlanVisitor<C, R> {
     }
 
     public R visitESDelete(ESDelete plan, C context) {
+        return visitPlan(plan, context);
+    }
+
+    public R visitUpsertById(UpsertById plan, C context) {
+        return visitPlan(plan, context);
+    }
+
+    public R visitESDeletePartition(ESDeletePartition plan, C context) {
         return visitPlan(plan, context);
     }
 }

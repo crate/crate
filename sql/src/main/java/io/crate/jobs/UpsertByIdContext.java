@@ -26,7 +26,7 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.PartitionName;
-import io.crate.planner.node.dml.UpsertByIdNode;
+import io.crate.planner.node.dml.UpsertById;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
@@ -44,13 +44,13 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
     private final static ESLogger LOGGER = Loggers.getLogger(UpsertByIdContext.class);
 
     private final ShardUpsertRequest request;
-    private final UpsertByIdNode.Item item;
+    private final UpsertById.Item item;
     private final SettableFuture<TaskResult> futureResult;
     private final BulkRequestExecutor transportShardUpsertActionDelegate;
 
     public UpsertByIdContext(int id,
                              ShardUpsertRequest request,
-                             UpsertByIdNode.Item item,
+                             UpsertById.Item item,
                              SettableFuture<TaskResult> futureResult,
                              BulkRequestExecutor transportShardUpsertActionDelegate) {
         super(id, LOGGER);

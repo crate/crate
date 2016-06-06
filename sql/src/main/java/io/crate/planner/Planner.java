@@ -25,7 +25,6 @@ import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -45,8 +44,7 @@ import io.crate.planner.fetch.IndexBaseVisitor;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
-import io.crate.planner.node.dml.Upsert;
-import io.crate.planner.node.dml.UpsertByIdNode;
+import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
@@ -431,17 +429,18 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         return new ExplainPlan(process(explainAnalyzedStatement.statement(), context));
     }
 
-    private Upsert processInsertStatement(InsertFromValuesAnalyzedStatement analysis, Context context) {
+    private UpsertById processInsertStatement(InsertFromValuesAnalyzedStatement analysis, Context context) {
         String[] onDuplicateKeyAssignmentsColumns = null;
         if (analysis.onDuplicateKeyAssignmentsColumns().size() > 0) {
             onDuplicateKeyAssignmentsColumns = analysis.onDuplicateKeyAssignmentsColumns().get(0);
         }
-        UpsertByIdNode upsertByIdNode = new UpsertByIdNode(
-                context.nextExecutionPhaseId(),
-                analysis.tableInfo().isPartitioned(),
-                analysis.isBulkRequest(),
-                onDuplicateKeyAssignmentsColumns,
-                analysis.columns().toArray(new Reference[analysis.columns().size()])
+        UpsertById upsertById = new UpsertById(
+            context.jobId(),
+            context.nextExecutionPhaseId(),
+            analysis.tableInfo().isPartitioned(),
+            analysis.isBulkRequest(),
+            onDuplicateKeyAssignmentsColumns,
+            analysis.columns().toArray(new Reference[analysis.columns().size()])
         );
         if (analysis.tableInfo().isPartitioned()) {
             List<String> partitions = analysis.generatePartitions();
@@ -451,7 +450,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 if (analysis.onDuplicateKeyAssignmentsColumns().size() > i) {
                     onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
                 }
-                upsertByIdNode.add(
+                upsertById.add(
                         indices[i],
                         analysis.ids().get(i),
                         analysis.routingValues().get(i),
@@ -465,7 +464,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 if (analysis.onDuplicateKeyAssignments().size() > i) {
                     onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
                 }
-                upsertByIdNode.add(
+                upsertById.add(
                         analysis.tableInfo().ident().indexName(),
                         analysis.ids().get(i),
                         analysis.routingValues().get(i),
@@ -475,7 +474,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             }
         }
 
-        return new Upsert(ImmutableList.<Plan>of(new IterablePlan(context.jobId(), upsertByIdNode)), context.jobId());
+        return upsertById;
     }
 
     /**

@@ -5,7 +5,7 @@ import io.crate.concurrent.ContextCompletionListener;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.planner.node.dml.UpsertByIdNode;
+import io.crate.planner.node.dml.UpsertById;
 import io.crate.test.CauseMatcher;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.ActionListener;
@@ -29,7 +29,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
     public void setUp() throws Exception {
         super.setUp();
         ShardUpsertRequest request = mock(ShardUpsertRequest.class);
-        UpsertByIdNode.Item item = mock(UpsertByIdNode.Item.class);
+        UpsertById.Item item = mock(UpsertById.Item.class);
         context = new UpsertByIdContext(1, request, item, SettableFuture.<TaskResult>create(), delegate);
         completionListener = new ContextCompletionListener();
         context.addListener(completionListener);

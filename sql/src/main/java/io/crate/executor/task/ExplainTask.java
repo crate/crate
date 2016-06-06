@@ -63,4 +63,9 @@ public class ExplainTask implements Task {
             return Futures.immediateFailedFuture(t);
         }
     }
+
+    @Override
+    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
+        throw new UnsupportedOperationException("ExplainTask cannot be executed as bulk operation");
+    }
 }

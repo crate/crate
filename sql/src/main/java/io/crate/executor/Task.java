@@ -41,6 +41,7 @@ public interface Task {
 
     /**
      * start the execution
+     * @deprecated use executeBulk() or execute()
      */
     @Deprecated
     void start();
@@ -49,9 +50,20 @@ public interface Task {
      * Get the result of the task execution as a list of
      * {@linkplain com.google.common.util.concurrent.ListenableFuture} instances.
      * This method may be called before {@linkplain #start()} is called.
+     * @deprecated use executeBulk() or execute()
      */
     @Deprecated
     List<? extends ListenableFuture<TaskResult>> result();
 
+
+    /**
+     * execute the task
+     */
     ListenableFuture<TaskResult> execute();
+
+    /**
+     * execute the bulk operation
+     * @throws UnsupportedOperationException if the task doesn't support bulk operations
+     */
+    List<? extends ListenableFuture<TaskResult>> executeBulk();
 }

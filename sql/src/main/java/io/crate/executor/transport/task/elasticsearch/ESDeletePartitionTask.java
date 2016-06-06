@@ -25,7 +25,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
-import io.crate.planner.node.ddl.ESDeletePartitionNode;
+import io.crate.planner.node.ddl.ESDeletePartition;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
@@ -34,7 +34,6 @@ import org.elasticsearch.action.support.IndicesOptions;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 public class ESDeletePartitionTask extends JobTask {
 
@@ -65,15 +64,13 @@ public class ESDeletePartitionTask extends JobTask {
         }
     }
 
-    public ESDeletePartitionTask(UUID jobId,
-                                 TransportDeleteIndexAction transport,
-                                 ESDeletePartitionNode node) {
-        super(jobId);
+    public ESDeletePartitionTask(ESDeletePartition esDeletePartition, TransportDeleteIndexAction transport) {
+        super(esDeletePartition.jobId());
         result = SettableFuture.create();
         results = Collections.singletonList(result);
         this.transport = transport;
-        this.request = new DeleteIndexRequest(node.indices());
-        if (node.indices().length > 1) {
+        this.request = new DeleteIndexRequest(esDeletePartition.indices());
+        if (esDeletePartition.indices().length > 1) {
             /**
              * table is partitioned, in case of concurrent "delete from partitions"
              * it could be that some partitions are already deleted,

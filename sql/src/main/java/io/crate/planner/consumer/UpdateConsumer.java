@@ -31,13 +31,12 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
-import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dml.Upsert;
-import io.crate.planner.node.dml.UpsertByIdNode;
+import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -50,7 +49,10 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 @Singleton
 public class UpdateConsumer implements Consumer {
@@ -88,25 +90,34 @@ public class UpdateConsumer implements Consumer {
             DocTableInfo tableInfo = tableRelation.tableInfo();
 
             List<Plan> childNodes = new ArrayList<>(statement.nestedStatements().size());
-            UpsertByIdNode upsertByIdNode = null;
+            UpsertById upsertById = null;
             for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : statement.nestedStatements()) {
                 WhereClause whereClause = nestedAnalysis.whereClause();
                 if (whereClause.noMatch()){
                     continue;
                 }
                 if (whereClause.docKeys().isPresent()) {
-                    if (upsertByIdNode == null) {
+                    if (upsertById == null) {
                         Tuple<String[], Symbol[]> assignments = Assignments.convert(nestedAnalysis.assignments());
-                        upsertByIdNode = new UpsertByIdNode(plannerContext.nextExecutionPhaseId(), false, statement.nestedStatements().size() > 1, assignments.v1(), null);
-                        childNodes.add(new IterablePlan(plannerContext.jobId(), upsertByIdNode));
+                        upsertById = new UpsertById(
+                            plannerContext.jobId(),
+                            plannerContext.nextExecutionPhaseId(),
+                            false,
+                            statement.nestedStatements().size() > 1, assignments.v1(),
+                            null
+                        );
                     }
-                    upsertById(nestedAnalysis, tableInfo, whereClause, upsertByIdNode);
+                    upsertById(nestedAnalysis, tableInfo, whereClause, upsertById);
                 } else {
                     Plan plan = upsertByQuery(nestedAnalysis, plannerContext, tableInfo, whereClause);
                     if (plan != null) {
                         childNodes.add(plan);
                     }
                 }
+            }
+            if (upsertById != null) {
+                assert childNodes.isEmpty() : "all bulk operations must resolve to the same sub-plan, either update-by-id or update-by-query";
+                return upsertById;
             }
             return createUpsertPlan(statement, childNodes, plannerContext.jobId());
         }
@@ -239,7 +250,7 @@ public class UpdateConsumer implements Consumer {
     private static void upsertById(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
                                    DocTableInfo tableInfo,
                                    WhereClause whereClause,
-                                   UpsertByIdNode upsertByIdNode) {
+                                   UpsertById upsertById) {
         String[] indices = Planner.indices(tableInfo, whereClause);
         assert tableInfo.isPartitioned() || indices.length == 1;
 
@@ -252,7 +263,7 @@ public class UpdateConsumer implements Consumer {
             } else {
                 index = indices[0];
             }
-            upsertByIdNode.add(
+            upsertById.add(
                 index,
                 key.id(),
                 key.routing(),

@@ -30,10 +30,9 @@ import io.crate.core.collections.Bucket;
 import io.crate.executor.TaskResult;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.PartitionName;
-import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
-import io.crate.planner.node.ddl.ESDeletePartitionNode;
+import io.crate.planner.node.ddl.ESDeletePartition;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -156,8 +155,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
 
         String partitionName = new PartitionName("t", ImmutableList.of(new BytesRef("1"))).asIndexName();
-        ESDeletePartitionNode deleteIndexNode = new ESDeletePartitionNode(partitionName);
-        Plan plan = new IterablePlan(UUID.randomUUID(), deleteIndexNode);
+        ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
 
         ListenableFuture<TaskResult> futures = executor.execute(plan);
         Bucket objects = futures.get(5, TimeUnit.SECONDS).rows();
@@ -185,8 +183,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         String partitionName = new PartitionName("t", ImmutableList.of(new BytesRef("1"))).asIndexName();
         assertTrue(client().admin().indices().prepareClose(partitionName).execute().actionGet().isAcknowledged());
 
-        ESDeletePartitionNode deleteIndexNode = new ESDeletePartitionNode(partitionName);
-        Plan plan = new IterablePlan(UUID.randomUUID(), deleteIndexNode);
+        ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
 
         Bucket bucket = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
         assertThat(bucket, contains(isRow(-1L)));

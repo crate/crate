@@ -23,15 +23,33 @@ package io.crate.planner.node.dml;
 
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.PlanAndPlannedAnalyzedRelation;
+import io.crate.planner.PlanVisitor;
+import io.crate.planner.distribution.UpstreamPhase;
+import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.uid.Versions;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
-public class UpsertByIdNode implements PlanNode {
+public class UpsertById extends PlanAndPlannedAnalyzedRelation {
+
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("Adding a projection to upsertById is not supported");
+    }
+
+    @Override
+    public boolean resultIsDistributed() {
+        return false;
+    }
+
+    @Override
+    public UpstreamPhase resultPhase() {
+        throw new UnsupportedOperationException("UpsertById doesn't have a resultPhase");
+    }
 
     /**
      * A single update item.
@@ -91,6 +109,7 @@ public class UpsertByIdNode implements PlanNode {
     }
 
 
+    private final UUID jobId;
     private final boolean partitionedTable;
     private final boolean bulkRequest;
     private final List<Item> items;
@@ -101,11 +120,13 @@ public class UpsertByIdNode implements PlanNode {
     @Nullable
     private final Reference[] insertColumns;
 
-    public UpsertByIdNode(int executionPhaseId,
-                          boolean partitionedTable,
-                          boolean bulkRequest,
-                          String[] updateColumns,
-                          @Nullable Reference[] insertColumns) {
+    public UpsertById(UUID jobId,
+                      int executionPhaseId,
+                      boolean partitionedTable,
+                      boolean bulkRequest,
+                      String[] updateColumns,
+                      @Nullable Reference[] insertColumns) {
+        this.jobId = jobId;
         this.partitionedTable = partitionedTable;
         this.bulkRequest = bulkRequest;
         this.updateColumns = updateColumns;
@@ -157,7 +178,12 @@ public class UpsertByIdNode implements PlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitUpsertByIdNode(this, context);
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        return visitor.visitUpsertById(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return jobId;
     }
 }

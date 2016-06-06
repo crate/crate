@@ -61,4 +61,9 @@ public class GenericShowTask implements Task {
             return Futures.immediateFailedFuture(t);
         }
     }
+
+    @Override
+    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
+        throw new UnsupportedOperationException("show task cannot be executed as bulk operation");
+    }
 }

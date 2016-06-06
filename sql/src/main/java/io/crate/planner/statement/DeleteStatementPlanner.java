@@ -37,12 +37,11 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
-import io.crate.planner.IterablePlan;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.ddl.ESDeletePartitionNode;
+import io.crate.planner.node.ddl.ESDeletePartition;
 import io.crate.planner.node.dml.Delete;
 import io.crate.planner.node.dml.ESDelete;
 import io.crate.planner.node.dql.CollectAndMerge;
@@ -55,6 +54,7 @@ import org.elasticsearch.cluster.routing.Preference;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Singleton
@@ -88,25 +88,25 @@ public class DeleteStatementPlanner {
                                Planner.Context context) {
 
         List<Plan> planNodes = new ArrayList<>();
-        IterablePlan iterablePlan = new IterablePlan(context.jobId());
+        List<String> indicesToDelete = new ArrayList<>();
+
         for (WhereClause whereClause : whereClauses) {
             String[] indices = Planner.indices(tableInfo, whereClause);
             if (indices.length > 0) {
                 if (!whereClause.hasQuery() && tableInfo.isPartitioned()) {
-                    iterablePlan.add(new ESDeletePartitionNode(indices));
+                    indicesToDelete.addAll(Arrays.asList(indices));
                 } else {
                     planNodes.add(collectWithDeleteProjection(tableInfo, whereClause, context));
                 }
             }
         }
-        if (!iterablePlan.isEmpty()) {
-            planNodes.add(iterablePlan);
+        if (!indicesToDelete.isEmpty()) {
+            assert planNodes.isEmpty() : "If a partition can be deleted that must be true for all bulk operations";
+            return new ESDeletePartition(context.jobId(), indicesToDelete.toArray(new String[0]));
         }
-
         if (planNodes.isEmpty()) {
             return new NoopPlan(context.jobId());
         }
-
         return new Delete(planNodes, context.jobId());
     }
 

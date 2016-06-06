@@ -21,16 +21,19 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.Plan;
+import io.crate.planner.PlanVisitor;
 
 import javax.annotation.Nonnull;
+import java.util.UUID;
 
-public class ESDeletePartitionNode implements PlanNode {
+public class ESDeletePartition implements Plan {
 
+    private final UUID jobId;
     private final String[] indices;
 
-    public ESDeletePartitionNode(@Nonnull String... indices) {
+    public ESDeletePartition(UUID jobId, @Nonnull String... indices) {
+        this.jobId = jobId;
         this.indices = indices;
     }
 
@@ -39,7 +42,12 @@ public class ESDeletePartitionNode implements PlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitESDeletePartitionNode(this, context);
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        return visitor.visitESDeletePartition(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return jobId;
     }
 }

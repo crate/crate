@@ -16,10 +16,9 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
-import io.crate.planner.node.ddl.ESDeletePartitionNode;
+import io.crate.planner.node.ddl.ESDeletePartition;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
@@ -166,18 +165,11 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testBulkDeletePartitionedTable() throws Exception {
-        Delete plan = (Delete) plan("delete from parted where date = ?", new Object[][]{
+        ESDeletePartition plan = (ESDeletePartition) plan("delete from parted where date = ?", new Object[][]{
                 new Object[]{"0"},
                 new Object[]{"123"},
         });
-        assertThat(plan.nodes().size(), is(1));
-        IterablePlan iterablePlan =  (IterablePlan) plan.nodes().get(0);
-        Iterator<PlanNode> iterator = iterablePlan.iterator();
-        ESDeletePartitionNode node1 = (ESDeletePartitionNode) iterator.next();
-        assertThat(node1.indices(), is(new String[]{".partitioned.parted.04130"}));
-        ESDeletePartitionNode node2 = (ESDeletePartitionNode) iterator.next();
-        assertThat(node2.indices(), is(new String[]{".partitioned.parted.04232chj"}));
-        assertFalse(iterator.hasNext());
+        assertThat(plan.indices(), is(new String[]{".partitioned.parted.04130", ".partitioned.parted.04232chj"}));
     }
 
     @Test
@@ -443,23 +435,16 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testInsertPlan() throws Exception {
-        Upsert plan = plan("insert into users (id, name) values (42, 'Deep Thought')");
+        UpsertById upsertById = plan("insert into users (id, name) values (42, 'Deep Thought')");
 
-        assertThat(plan.nodes().size(), is(1));
-
-        PlanNode next = ((IterablePlan) plan.nodes().get(0)).iterator().next();
-        assertThat(next, instanceOf(UpsertByIdNode.class));
-
-        UpsertByIdNode updateNode = (UpsertByIdNode)next;
-
-        assertThat(updateNode.insertColumns().length, is(2));
-        Reference idRef = updateNode.insertColumns()[0];
+        assertThat(upsertById.insertColumns().length, is(2));
+        Reference idRef = upsertById.insertColumns()[0];
         assertThat(idRef.ident().columnIdent().fqn(), is("id"));
-        Reference nameRef = updateNode.insertColumns()[1];
+        Reference nameRef = upsertById.insertColumns()[1];
         assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
 
-        assertThat(updateNode.items().size(), is(1));
-        UpsertByIdNode.Item item = updateNode.items().get(0);
+        assertThat(upsertById.items().size(), is(1));
+        UpsertById.Item item = upsertById.items().get(0);
         assertThat(item.index(), is("users"));
         assertThat(item.id(), is("42"));
         assertThat(item.routing(), is("42"));
@@ -471,24 +456,17 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testInsertPlanMultipleValues() throws Exception {
-        Upsert plan = plan("insert into users (id, name) values (42, 'Deep Thought'), (99, 'Marvin')");
+        UpsertById upsertById = plan("insert into users (id, name) values (42, 'Deep Thought'), (99, 'Marvin')");
 
-        assertThat(plan.nodes().size(), is(1));
-
-        PlanNode next = ((IterablePlan) plan.nodes().get(0)).iterator().next();
-        assertThat(next, instanceOf(UpsertByIdNode.class));
-
-        UpsertByIdNode updateNode = (UpsertByIdNode)next;
-
-        assertThat(updateNode.insertColumns().length, is(2));
-        Reference idRef = updateNode.insertColumns()[0];
+        assertThat(upsertById.insertColumns().length, is(2));
+        Reference idRef = upsertById.insertColumns()[0];
         assertThat(idRef.ident().columnIdent().fqn(), is("id"));
-        Reference nameRef = updateNode.insertColumns()[1];
+        Reference nameRef = upsertById.insertColumns()[1];
         assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
 
-        assertThat(updateNode.items().size(), is(2));
+        assertThat(upsertById.items().size(), is(2));
 
-        UpsertByIdNode.Item item1 = updateNode.items().get(0);
+        UpsertById.Item item1 = upsertById.items().get(0);
         assertThat(item1.index(), is("users"));
         assertThat(item1.id(), is("42"));
         assertThat(item1.routing(), is("42"));
@@ -496,7 +474,7 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat((Long)item1.insertValues()[0], is(42L));
         assertThat((BytesRef)item1.insertValues()[1], is(new BytesRef("Deep Thought")));
 
-        UpsertByIdNode.Item item2 = updateNode.items().get(1);
+        UpsertById.Item item2 = upsertById.items().get(1);
         assertThat(item2.index(), is("users"));
         assertThat(item2.id(), is("99"));
         assertThat(item2.routing(), is("99"));
@@ -738,18 +716,12 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testUpdateByIdPlan() throws Exception {
-        Upsert planNode = plan("update users set name='Vogon lyric fan' where id=1");
-        assertThat(planNode.nodes().size(), is(1));
+        UpsertById upsertById = plan("update users set name='Vogon lyric fan' where id=1");
+        assertThat(upsertById.items().size(), is(1));
 
-        PlanNode next = ((IterablePlan) planNode.nodes().get(0)).iterator().next();
-        assertThat(next, instanceOf(UpsertByIdNode.class));
+        assertThat(upsertById.updateColumns()[0], is("name"));
 
-        UpsertByIdNode updateNode = (UpsertByIdNode) next;
-        assertThat(updateNode.items().size(), is(1));
-
-        assertThat(updateNode.updateColumns()[0], is("name"));
-
-        UpsertByIdNode.Item item = updateNode.items().get(0);
+        UpsertById.Item item = upsertById.items().get(0);
         assertThat(item.index(), is("users"));
         assertThat(item.id(), is("1"));
 
@@ -759,16 +731,10 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testUpdatePlanWithMultiplePrimaryKeyValues() throws Exception {
-        Upsert planNode = plan("update users set name='Vogon lyric fan' where id in (1,2,3)");
-        assertThat(planNode.nodes().size(), is(1));
-
-        PlanNode next = ((IterablePlan) planNode.nodes().get(0)).iterator().next();
-
-        assertThat(next, instanceOf(UpsertByIdNode.class));
-        UpsertByIdNode updateNode = (UpsertByIdNode) next;
+        UpsertById plan = plan("update users set name='Vogon lyric fan' where id in (1,2,3)");
 
         List<String> ids = new ArrayList<>(3);
-        for (UpsertByIdNode.Item item : updateNode.items()) {
+        for (UpsertById.Item item : plan.items()) {
             ids.add(item.id());
             assertThat(item.updateAssignments().length, is(1));
             assertThat(item.updateAssignments()[0], isLiteral("Vogon lyric fan", DataTypes.STRING));
@@ -779,19 +745,13 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testUpdatePlanWithMultiplePrimaryKeyValuesPartitioned() throws Exception {
-        Upsert planNode = plan("update parted set name='Vogon lyric fan' where " +
+        UpsertById planNode = plan("update parted set name='Vogon lyric fan' where " +
                                "(id=2 and date = 0) OR" +
                                "(id=3 and date=123)");
-        assertThat(planNode.nodes().size(), is(1));
-
-        PlanNode next = ((IterablePlan) planNode.nodes().get(0)).iterator().next();
-
-        assertThat(next, instanceOf(UpsertByIdNode.class));
-        UpsertByIdNode updateNode = (UpsertByIdNode) next;
 
         List<String> partitions = new ArrayList<>(2);
         List<String> ids = new ArrayList<>(2);
-        for (UpsertByIdNode.Item item : updateNode.items()) {
+        for (UpsertById.Item item : planNode.items()) {
             partitions.add(item.index());
             ids.add(item.id());
             assertThat(item.updateAssignments().length, is(1));
@@ -1554,10 +1514,7 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testInsertFromValuesWithOnDuplicateKey() throws Exception {
-        Upsert plan = plan("insert into users (id, name) values (1, null) on duplicate key update name = values(name)");
-        PlanNode planNode = ((IterablePlan) plan.nodes().get(0)).iterator().next();
-        assertThat(planNode, instanceOf(UpsertByIdNode.class));
-        UpsertByIdNode node = (UpsertByIdNode) planNode;
+        UpsertById node = plan("insert into users (id, name) values (1, null) on duplicate key update name = values(name)");
 
         assertThat(node.updateColumns(), is(new String[]{ "name" }));
 
@@ -1568,7 +1525,7 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
 
         assertThat(node.items().size(), is(1));
-        UpsertByIdNode.Item item = node.items().get(0);
+        UpsertById.Item item = node.items().get(0);
         assertThat(item.index(), is("users"));
         assertThat(item.id(), is("1"));
         assertThat(item.routing(), is("1"));
