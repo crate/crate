@@ -22,15 +22,9 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
-import io.crate.executor.Job;
-import io.crate.executor.Task;
-import io.crate.executor.TaskResult;
-import io.crate.executor.transport.task.KillTask;
-import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
@@ -39,13 +33,11 @@ import io.crate.planner.Planner;
 import io.crate.planner.node.management.KillPlan;
 import org.junit.Test;
 
-import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static java.util.Arrays.asList;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
 
@@ -55,20 +47,11 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     public void testESGetTask() throws Exception {
         setup.setUpCharacters();
 
-        // create plan
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         Planner.Context ctx = newPlannerContext();
         Plan plan = newGetNode("characters", outputs, "2", ctx.nextExecutionPhaseId());
-        Job job = executor.newJob(plan);
 
-        // validate tasks
-        assertThat(job.tasks().size(), is(1));
-        Task task = job.tasks().get(0);
-        assertThat(task, instanceOf(ESGetTask.class));
-
-        // execute and validate results
-        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        Bucket rows = result.get(0).get().rows();
+        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
         assertThat(rows, contains(isRow(2, "Ford")));
     }
 
@@ -80,9 +63,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new ReferenceIdent(new TableIdent(null, "characters"), "foo"), RowGranularity.DOC));
         Planner.Context ctx = newPlannerContext();
         Plan plan = newGetNode("characters", outputs, "2", ctx.nextExecutionPhaseId());
-        Job job = executor.newJob(plan);
-        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        Bucket rows = result.get(0).get().rows();
+        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
         assertThat(rows, contains(isRow(2, null)));
     }
 
@@ -92,22 +73,13 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         Planner.Context ctx = newPlannerContext();
         Plan plan = newGetNode("characters", outputs, asList("1", "2"), ctx.nextExecutionPhaseId());
-        Job job = executor.newJob(plan);
-        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        Bucket objects = result.get(0).get().rows();
-
-        assertThat(objects.size(), is(2));
+        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        assertThat(rows.size(), is(2));
     }
 
     @Test
     public void testKillTask() throws Exception {
-        Job job = executor.newJob(new KillPlan(UUID.randomUUID()));
-        assertThat(job.tasks(), hasSize(1));
-        assertThat(job.tasks().get(0), instanceOf(KillTask.class));
-
-        List<? extends ListenableFuture<TaskResult>> results = executor.execute(job);
-        assertThat(results, hasSize(1));
-        results.get(0).get();
+        executor.execute(new KillPlan(UUID.randomUUID())).get(5, TimeUnit.SECONDS);
     }
 
     protected Planner.Context newPlannerContext() {

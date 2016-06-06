@@ -24,11 +24,9 @@ package io.crate.executor.transport;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.core.collections.Bucket;
-import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.PartitionName;
@@ -44,7 +42,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -158,10 +159,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         ESDeletePartitionNode deleteIndexNode = new ESDeletePartitionNode(partitionName);
         Plan plan = new IterablePlan(UUID.randomUUID(), deleteIndexNode);
 
-        Job job = executor.newJob(plan);
-        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
-        ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        Bucket objects = listenableFuture.get().get(0).rows();
+        ListenableFuture<TaskResult> futures = executor.execute(plan);
+        Bucket objects = futures.get(5, TimeUnit.SECONDS).rows();
         assertThat(objects, contains(isRow(-1L)));
 
         execute("select * from information_schema.table_partitions where table_name = 't'");
@@ -189,11 +188,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         ESDeletePartitionNode deleteIndexNode = new ESDeletePartitionNode(partitionName);
         Plan plan = new IterablePlan(UUID.randomUUID(), deleteIndexNode);
 
-        Job job = executor.newJob(plan);
-        List<? extends ListenableFuture<TaskResult>> futures = executor.execute(job);
-        ListenableFuture<List<TaskResult>> listenableFuture = Futures.allAsList(futures);
-        Bucket objects = listenableFuture.get().get(0).rows();
-        assertThat(objects, contains(isRow(-1L)));
+        Bucket bucket = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        assertThat(bucket, contains(isRow(-1L)));
 
         execute("select * from information_schema.table_partitions where table_name = 't'");
         assertThat(response.rowCount(), is(0L));

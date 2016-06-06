@@ -94,9 +94,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         PlanForNode plan = plan("select * from t");
         execute("drop table t");
-        ListenableFuture<List<TaskResult>> future = execute(plan);
+        ListenableFuture<TaskResult> future = execute(plan);
         try {
-            future.get();
+            future.get(5, TimeUnit.SECONDS);
         } catch (Throwable t) {
             throw Exceptions.unwrap(t);
         }

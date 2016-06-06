@@ -28,7 +28,6 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.core.collections.Row;
-import io.crate.executor.Job;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.planner.Plan;
@@ -105,15 +104,14 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).nodeReaders(), notNullValue());
         assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).readerIndices(), notNullValue());
 
-        Job job = executor.newJob(plan);
-        ListenableFuture<List<TaskResult>> results = Futures.allAsList(executor.execute(job));
+        ListenableFuture<TaskResult> result = executor.execute(plan);
 
         final List<Object[]> resultingRows = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(1);
-        Futures.addCallback(results, new FutureCallback<List<TaskResult>>() {
+        Futures.addCallback(result, new FutureCallback<TaskResult>() {
             @Override
-            public void onSuccess(List<TaskResult> resultList) {
-                for (Row row : resultList.get(0).rows()) {
+            public void onSuccess(TaskResult result) {
+                for (Row row : result.rows()) {
                     resultingRows.add(row.materialize());
                 }
                 latch.countDown();

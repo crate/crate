@@ -28,7 +28,6 @@ import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.executor.Executor;
-import io.crate.executor.Job;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
 import io.crate.executor.task.DDLTask;
@@ -146,19 +145,6 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public Job newJob(Plan plan) {
-        List<? extends Task> tasks = planVisitor.process(plan, plan.jobId());
-        return new Job(tasks);
-    }
-
-    @Override
-    public List<? extends ListenableFuture<TaskResult>> execute(Job job) {
-        assert job.tasks().size() > 0;
-        return execute(job.tasks());
-
-    }
-
-    @Override
     public ListenableFuture<TaskResult> execute(Plan plan) {
         List<? extends Task> tasks = planVisitor.process(plan, plan.jobId());
         return tasks.get(0).execute();
@@ -166,7 +152,8 @@ public class TransportExecutor implements Executor {
 
     @Override
     public List<? extends ListenableFuture<TaskResult>> executeBulk(Plan plan) {
-        return execute(newJob(plan));
+        List<? extends Task> tasks = planVisitor.process(plan, plan.jobId());
+        return execute(tasks);
     }
 
     private List<? extends ListenableFuture<TaskResult>> execute(Collection<? extends Task> tasks) {

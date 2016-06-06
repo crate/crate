@@ -176,8 +176,8 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
 
         PlanForNode plan = plan(stmt);
         execute("delete from t");
-        ListenableFuture<List<TaskResult>> future = execute(plan);
-        return future.get(500, TimeUnit.MILLISECONDS).get(0);
+        ListenableFuture<TaskResult> future = execute(plan);
+        return future.get(500, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -209,7 +209,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         PlanForNode plan = plan("refresh table t"); // create a plan in which the partitions exist
         execute("delete from t");
 
-        ListenableFuture<List<TaskResult>> future = execute(plan); // execute now that the partitions are gone
+        ListenableFuture<TaskResult> future = execute(plan); // execute now that the partitions are gone
         // shouldn't throw an exception:
         future.get(500, TimeUnit.MILLISECONDS);
     }

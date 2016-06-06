@@ -27,10 +27,8 @@ import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
 import io.crate.core.collections.Bucket;
-import io.crate.executor.Job;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
-import io.crate.executor.transport.task.UpsertByIdTask;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
@@ -55,6 +53,7 @@ import org.elasticsearch.search.SearchHits;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
@@ -79,22 +78,16 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         updateNode.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
 
         Plan plan = new IterablePlan(ctx.jobId(), updateNode);
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
-
-        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        TaskResult taskResult = result.get(0).get();
-        Bucket rows = taskResult.rows();
+        TaskResult result = executor.execute(plan).get(5, TimeUnit.SECONDS);
+        Bucket rows = result.rows();
         assertThat(rows, contains(isRow(1L)));
 
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         plan = newGetNode("characters", outputs, "99", ctx.nextExecutionPhaseId());
-        job = executor.newJob(plan);
-        result = executor.execute(job);
-        Bucket objects = result.get(0).get().rows();
+        Bucket bucket = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
 
-        assertThat(objects, contains(isRow(99, "Marvin")));
+        assertThat(bucket, contains(isRow(99, "Marvin")));
     }
 
     @Test
@@ -119,12 +112,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         updateNode.add(partitionName.asIndexName(), "123", "123", null, null, new Object[]{0L, new BytesRef("Trillian")});
 
         Plan plan = new IterablePlan(ctx.jobId(), updateNode);
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
-
-        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        TaskResult taskResult = result.get(0).get();
-        Bucket indexResult = taskResult.rows();
+        Bucket indexResult = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
         assertThat(indexResult, contains(isRow(1L)));
 
         refresh();
@@ -167,22 +155,16 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         updateNode.add("characters", "42", "42", null, null, new Object[]{42, new BytesRef("Deep Thought")});
 
         Plan plan = new IterablePlan(ctx.jobId(), updateNode);
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
 
-        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        TaskResult taskResult = result.get(0).get();
-        Bucket rows = taskResult.rows();
+        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
         assertThat(rows, contains(isRow(2L)));
 
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         plan = newGetNode("characters", outputs, Arrays.asList("99", "42"), ctx.nextExecutionPhaseId());
-        job = executor.newJob(plan);
-        result = executor.execute(job);
-        Bucket objects = result.get(0).get().rows();
+        Bucket bucket = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
 
-        assertThat(objects, contains(
+        assertThat(bucket, contains(
                 isRow(99, "Marvin"),
                 isRow(42, "Deep Thought")
         ));
@@ -199,21 +181,14 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         updateNode.add("characters", "1", "1", new Symbol[]{Literal.newLiteral("Vogon lyric fan")}, null);
         Plan plan = new IterablePlan(ctx.jobId(), updateNode);
 
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
-        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        TaskResult taskResult = result.get(0).get();
-        Bucket rows = taskResult.rows();
+        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
         assertThat(rows, contains(isRow(1L)));
 
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         plan = newGetNode("characters", outputs, "1", ctx.nextExecutionPhaseId());
-        job = executor.newJob(plan);
-        result = executor.execute(job);
-        Bucket objects = result.get(0).get().rows();
-
-        assertThat(objects, contains(isRow(1, "Vogon lyric fan")));
+        Bucket bucket = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        assertThat(bucket, contains(isRow(1, "Vogon lyric fan")));
     }
 
     @Test
@@ -232,20 +207,14 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
 
         updateNode.add("characters", "5", "5", new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")}, null, missingAssignments);
         Plan plan = new IterablePlan(UUID.randomUUID(), updateNode);
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
-        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        TaskResult taskResult = result.get(0).get();
-        Bucket rows = taskResult.rows();
-        assertThat(rows, contains(isRow(1L)));
+        Bucket bucket = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        assertThat(bucket, contains(isRow(1L)));
 
         // verify insert
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
         plan = newGetNode("characters", outputs, "5", ctx.nextExecutionPhaseId());
-        job = executor.newJob(plan);
-        result = executor.execute(job);
-        Bucket objects = result.get(0).get().rows();
-        assertThat(objects, contains(isRow(5, "Zaphod Beeblebrox", false)));
+        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        assertThat(rows, contains(isRow(5, "Zaphod Beeblebrox", false)));
 
     }
 
@@ -264,21 +233,15 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
                 new Reference[]{idRef, nameRef, femaleRef});
         updateNode.add("characters", "1", "1", new Symbol[]{Literal.newLiteral(true)}, null, missingAssignments);
         Plan plan = new IterablePlan(ctx.jobId(), updateNode);
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(UpsertByIdTask.class));
-        List<? extends ListenableFuture<TaskResult>> result = executor.execute(job);
-        TaskResult taskResult = result.get(0).get();
-        Bucket rows = taskResult.rows();
+        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
         assertThat(rows, contains(isRow(1L)));
 
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
         plan = newGetNode("characters", outputs, "1", ctx.nextExecutionPhaseId());
-        job = executor.newJob(plan);
-        result = executor.execute(job);
-        Bucket objects = result.get(0).get().rows();
+        rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
 
-        assertThat(objects, contains(isRow(1, "Arthur", true)));
+        assertThat(rows, contains(isRow(1, "Arthur", true)));
     }
 
     @Test
@@ -356,11 +319,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         childNodes.add(new CollectAndMerge(collectPhase2, mergeNode2));
 
         Upsert plan = new Upsert(childNodes, plannerContext.jobId());
-        Job job = executor.newJob(plan);
-
-        assertThat(job.tasks().size(), is(1));
-        assertThat(job.tasks().get(0), instanceOf(ExecutionPhasesTask.class));
-        List<? extends ListenableFuture<TaskResult>> results = executor.execute(job);
+        List<? extends ListenableFuture<TaskResult>> results = executor.executeBulk(plan);
         assertThat(results.size(), is(2));
 
         for (int i = 0; i < results.size(); i++) {
