@@ -25,6 +25,7 @@ import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.CopyTo;
+import io.crate.planner.node.dml.ESDelete;
 import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.*;
@@ -109,6 +110,10 @@ public class PlanVisitor<C, R> {
     }
 
     public R visitESClusterUpdateSettingsPlan(ESClusterUpdateSettingsPlan plan, C context) {
+        return visitPlan(plan, context);
+    }
+
+    public R visitESDelete(ESDelete plan, C context) {
         return visitPlan(plan, context);
     }
 }

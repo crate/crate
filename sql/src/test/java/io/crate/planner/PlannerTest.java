@@ -158,13 +158,10 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testDeletePlan() throws Exception {
-        IterablePlan plan = plan("delete from users where id = 1");
-        Iterator<PlanNode> iterator = plan.iterator();
-        ESDeleteNode node = (ESDeleteNode) iterator.next();
-        assertThat(node.tableInfo().ident().name(), is("users"));
-        assertThat(node.docKeys().size(), is(1));
-        assertThat(node.docKeys().get(0), isDocKey(1L));
-        assertFalse(iterator.hasNext());
+        ESDelete plan =  plan("delete from users where id = 1");
+        assertThat(plan.tableInfo().ident().name(), is("users"));
+        assertThat(plan.docKeys().size(), is(1));
+        assertThat(plan.docKeys().get(0), isDocKey(1L));
     }
 
     @Test

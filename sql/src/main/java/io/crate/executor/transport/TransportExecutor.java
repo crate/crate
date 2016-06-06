@@ -290,18 +290,17 @@ public class TransportExecutor implements Executor {
             return Collections.singletonList(new ESClusterUpdateSettingsTask(
                 plan, transportActionProvider.transportClusterUpdateSettingsAction()));
         }
+
+        @Override
+        public List<? extends Task> visitESDelete(ESDelete plan, UUID context) {
+            return Collections.singletonList(new ESDeleteTask(
+                plan,
+                transportActionProvider.transportDeleteAction(),
+                jobContextService));
+        }
     }
 
     class NodeVisitor extends PlanNodeVisitor<UUID, Task> {
-
-        @Override
-        public Task visitESDeleteNode(ESDeleteNode node, UUID jobId) {
-            return new ESDeleteTask(
-                    jobId,
-                    node,
-                    transportActionProvider.transportDeleteAction(),
-                    jobContextService);
-        }
 
         @Override
         public Task visitUpsertByIdNode(UpsertByIdNode node, UUID jobId) {

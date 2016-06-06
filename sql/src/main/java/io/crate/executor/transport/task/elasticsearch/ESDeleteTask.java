@@ -27,7 +27,7 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.TaskResult;
 import io.crate.jobs.JobContextService;
-import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dml.ESDelete;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
@@ -36,20 +36,18 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class ESDeleteTask extends EsJobContextTask {
 
-    public ESDeleteTask(UUID jobId,
-                        ESDeleteNode node,
+    public ESDeleteTask(ESDelete esDelete,
                         TransportDeleteAction transport,
                         JobContextService jobContextService) {
-        super(jobId, node.executionPhaseId(), node.docKeys().size(), jobContextService);
-        List<DeleteRequest> requests = new ArrayList<>(node.docKeys().size());
-        List<ActionListener> listeners = new ArrayList<>(node.docKeys().size());
-        for (DocKeys.DocKey docKey : node.docKeys()) {
+        super(esDelete.jobId(), esDelete.executionPhaseId(), esDelete.docKeys().size(), jobContextService);
+        List<DeleteRequest> requests = new ArrayList<>(esDelete.docKeys().size());
+        List<ActionListener> listeners = new ArrayList<>(esDelete.docKeys().size());
+        for (DocKeys.DocKey docKey : esDelete.docKeys()) {
             DeleteRequest request = new DeleteRequest(
-                    ESGetTask.indexName(node.tableInfo(), docKey.partitionValues()),
+                    ESGetTask.indexName(esDelete.tableInfo(), docKey.partitionValues()),
                     Constants.DEFAULT_MAPPING_TYPE, docKey.id());
             request.routing(docKey.routing());
             if (docKey.version().isPresent()) {

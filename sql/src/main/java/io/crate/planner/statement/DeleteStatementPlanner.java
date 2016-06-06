@@ -44,10 +44,10 @@ import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ddl.ESDeletePartitionNode;
 import io.crate.planner.node.dml.Delete;
-import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dml.ESDelete;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.DeleteProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataTypes;
@@ -75,9 +75,7 @@ public class DeleteStatementPlanner {
             }
         }
         if (!docKeys.isEmpty()) {
-            return new IterablePlan(
-                    context.jobId(),
-                    new ESDeleteNode(context.nextExecutionPhaseId(), tableRelation.tableInfo(), docKeys));
+            return new ESDelete(context.jobId(), context.nextExecutionPhaseId(), tableRelation.tableInfo(), docKeys);
         } else if (!whereClauses.isEmpty()) {
             return deleteByQuery(tableRelation.tableInfo(), whereClauses, context);
         }

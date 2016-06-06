@@ -22,17 +22,12 @@
 package io.crate.planner.node;
 
 import io.crate.planner.node.ddl.ESDeletePartitionNode;
-import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.UpsertByIdNode;
 
 public class PlanNodeVisitor<C, R> {
 
     protected R visitPlanNode(PlanNode node, C context) {
         return null;
-    }
-
-    public R visitESDeleteNode(ESDeleteNode node, C context) {
-        return visitPlanNode(node, context);
     }
 
     public R visitUpsertByIdNode(UpsertByIdNode node, C context) {

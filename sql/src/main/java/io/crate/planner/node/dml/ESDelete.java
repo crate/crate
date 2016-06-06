@@ -23,20 +23,24 @@ package io.crate.planner.node.dml;
 
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.PlanNodeVisitor;
+import io.crate.planner.Plan;
+import io.crate.planner.PlanVisitor;
 
 import java.util.List;
+import java.util.UUID;
 
-public class ESDeleteNode implements PlanNode {
+public class ESDelete implements Plan {
 
+    private final UUID jobId;
     private final int executionPhaseId;
     private final DocTableInfo tableInfo;
     private final List<DocKeys.DocKey> docKeys;
 
-    public ESDeleteNode(int executionPhaseId,
-                        DocTableInfo tableInfo,
-                        List<DocKeys.DocKey> docKeys) {
+    public ESDelete(UUID jobId,
+                    int executionPhaseId,
+                    DocTableInfo tableInfo,
+                    List<DocKeys.DocKey> docKeys) {
+        this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
         this.tableInfo = tableInfo;
         this.docKeys = docKeys;
@@ -55,8 +59,12 @@ public class ESDeleteNode implements PlanNode {
     }
 
     @Override
-    public <C, R> R accept(PlanNodeVisitor<C, R> visitor, C context) {
-        return visitor.visitESDeleteNode(this, context);
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        return visitor.visitESDelete(this, context);
     }
 
+    @Override
+    public UUID jobId() {
+        return jobId;
+    }
 }
