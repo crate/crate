@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Throw a more meaningful error if an attempt is made to order by an invalid field in a query with aggregations.
+
  - Update crate-admin to 0.18.1 which contains following changes:
 
     - Resolve path to ``/_sql`` endpoint correctly when Crate is served at a
