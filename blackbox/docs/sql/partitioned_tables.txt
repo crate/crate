@@ -117,8 +117,7 @@ by querying the ``information_schema.table_partitions`` table::
 
     cr> SELECT count(*) as partition_count
     ... FROM information_schema.table_partitions
-    ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
-    ... ORDER BY partition_ident;
+    ... WHERE schema_name = 'doc' AND table_name = 'parted_table';
     +-----------------+
     | partition_count |
     +-----------------+
@@ -230,8 +229,7 @@ matching document, which is a lot faster::
 
     cr> SELECT count(*) as partition_count
     ... FROM information_schema.table_partitions
-    ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
-    ... ORDER BY partition_ident;
+    ... WHERE schema_name = 'doc' AND table_name = 'parted_table';
     +-----------------+
     | partition_count |
     +-----------------+

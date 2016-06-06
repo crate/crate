@@ -64,7 +64,9 @@ import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.node.service.NodeService;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -82,6 +84,9 @@ import static org.mockito.Mockito.when;
 
 @SuppressWarnings("ConstantConditions")
 public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     static class TestMetaDataModule extends MetaDataModule {
 
@@ -103,7 +108,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                     .build();
             when(fooSchema.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(fooUserTableInfo);
             schemaBinder.addBinding("foo").toInstance(fooSchema);
-            
+
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
             when(schemaInfo.getTableInfo(USER_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(USER_TABLE_INFO_CLUSTERED_BY_ONLY);
@@ -381,6 +386,44 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test(expected = AmbiguousColumnAliasException.class)
     public void testAmbiguousOrderByOnAlias() throws Exception {
         analyze("select id as load, load from sys.nodes order by load");
+    }
+
+    @Test
+    public void testSelectGroupByOrderByWithColumnMissingFromSelect() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("ORDER BY field 'id' must appear in the select clause " +
+                                        "when grouping or global aggregation is used.");
+        analyze("select name, count(id) from users group by name order by id");
+    }
+
+    @Test
+    public void testSelectGlobalAggregationOrderByWithColumnMissingFromSelect() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("ORDER BY field 'id' must appear in the select clause " +
+                                        "when grouping or global aggregation is used.");
+        analyze("select count(id) from users order by id");
+    }
+
+    @Test
+    public void testSelectGroupByOrderByWithAggregateFunctionInOrderByClause() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("ORDER BY function 'max(count(upper(name)))' is not allowed. Only scalar functions can be used.");
+        analyze("select name, count(id) from users group by name order by max(count(upper(name)))");
+    }
+
+    @Test
+    public void testValidCombinationsOrderByWithAggregation() throws Exception {
+        analyze("select name, count(id) from users group by name order by 1");
+        analyze("select name, count(id) from users group by name order by 2");
+
+        analyze("select name, count(id) from users group by name order by name");
+        analyze("select name, count(id) from users group by name order by count(id)");
+
+        analyze("select name, count(id) from users group by name order by lower(name)");
+        analyze("select name, count(id) from users group by name order by lower(upper(name))");
+
+        analyze("select name, count(id) from users group by name order by sin(count(id))");
+        analyze("select name, count(id) from users group by name order by sin(sqrt(count(id)))");
     }
 
     @Test
