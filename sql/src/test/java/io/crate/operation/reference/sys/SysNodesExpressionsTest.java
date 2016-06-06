@@ -400,10 +400,10 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
         assertEquals(3600000L, v.get("uptime"));
 
         Map<String, Short> cpuObj = new HashMap<>(5);
-        cpuObj.put("system", (short) 2);
+        cpuObj.put("system", (short) 0);
         cpuObj.put("user", (short) 4);
         cpuObj.put("idle", (short) 94);
-        cpuObj.put("used", (short) 6);
+        cpuObj.put("used", (short) 4);
         cpuObj.put("stolen", (short) 10);
         assertEquals(cpuObj, v.get("cpu"));
     }

@@ -73,7 +73,7 @@ public class NodeOsCpuExpression extends SysNodeObjectReference {
         childImplementations.put(USAGE, new CpuExpression() {
             @Override
             public Short value() {
-                if (cpu != null && cpu.sys() > 0) {
+                if (cpu != null && cpu.sys() != -1) {
                     return (short) (cpu.sys() + cpu.user());
                 } else {
                     return -1;

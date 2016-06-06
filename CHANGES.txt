@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed cpu used bug. It was returning -1, even if cpu info loaded from sigar.
+
  - Update crate-admin to 0.18.1 which contains following changes:
 
     - Resolve path to ``/_sql`` endpoint correctly when Crate is served at a
