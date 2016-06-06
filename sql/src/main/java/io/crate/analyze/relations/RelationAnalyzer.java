@@ -40,6 +40,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.AndOperator;
+import io.crate.planner.consumer.OrderByWithAggregationValidator;
 import io.crate.sql.tree.*;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
@@ -127,7 +128,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
 
         QuerySpec querySpec = new QuerySpec()
-                .orderBy(analyzeOrderBy(selectAnalysis, node.getOrderBy(), context))
+                .orderBy(analyzeOrderBy(selectAnalysis, node.getOrderBy(),
+                                        context, expressionAnalysisContext.hasAggregates))
                 .having(analyzeHaving(node.getHaving(), groupBy, context))
                 .limit(context.expressionAnalyzer().integerFromExpression(node.getLimit()))
                 .offset(context.expressionAnalyzer().integerFromExpression(node.getOffset()))
@@ -216,8 +218,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Nullable
-    private OrderBy analyzeOrderBy(SelectAnalyzer.SelectAnalysis selectAnalysis, List<SortItem> orderBy,
-                                   RelationAnalysisContext context) {
+    private OrderBy analyzeOrderBy(SelectAnalyzer.SelectAnalysis selectAnalysis,
+                                   List<SortItem> orderBy,
+                                   RelationAnalysisContext context,
+                                   boolean hasAggregates) {
         int size = orderBy.size();
         if (size == 0) {
             return null;
@@ -231,6 +235,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             Expression sortKey = sortItem.getSortKey();
             Symbol symbol = symbolFromSelectOutputReferenceOrExpression(sortKey, selectAnalysis, "ORDER BY", context);
             SemanticSortValidator.validate(symbol);
+            if (hasAggregates) {
+                OrderByWithAggregationValidator.validate(symbol, selectAnalysis.outputSymbols());
+            }
 
             symbols.add(symbol);
             switch (sortItem.getNullOrdering()) {
