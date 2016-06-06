@@ -449,54 +449,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
     }
 
     @Test
-    public void testJobLog() throws Exception {
-        executor.exec("select name from sys.cluster");
-        SQLResponse response = executor.exec("select * from sys.jobs_log");
-        assertThat(response.rowCount(), is(0L)); // default length is zero
-
-        executor.exec("set global transient stats.enabled = true, stats.jobs_log_size=1");
-
-        executor.exec("select id from sys.cluster");
-        executor.exec("select id from sys.cluster");
-        executor.exec("select id from sys.cluster");
-        response = executor.exec("select stmt from sys.jobs_log order by ended desc");
-
-        // there are 2 nodes so depending on whether both nodes were hit this should be either 1 or 2
-        // but never 3 because the queue size is only 1
-        assertThat(response.rowCount(), Matchers.lessThanOrEqualTo(2L));
-        assertThat((String) response.rows()[0][0], is("select id from sys.cluster"));
-
-        executor.exec("reset global stats.enabled, stats.jobs_log_size");
-        waitNoPendingTasksOnAll();
-        response = executor.exec("select * from sys.jobs_log");
-        assertThat(response.rowCount(), is(0L));
-    }
-
-    @Test
-    public void testSetSingleStatement() throws Exception {
-        SQLResponse response = executor.exec("select settings['stats']['jobs_log_size'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
-
-        response = executor.exec("set global persistent stats.enabled= true, stats.jobs_log_size=7");
-        assertThat(response.rowCount(), is(1L));
-
-        response = executor.exec("select settings['stats']['jobs_log_size'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(7));
-
-        response = executor.exec("reset global stats.enabled, stats.jobs_log_size");
-        assertThat(response.rowCount(), is(1L));
-        waitNoPendingTasksOnAll();
-
-        response = executor.exec("select settings['stats']['enabled'], settings['stats']['jobs_log_size'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Boolean) response.rows()[0][0], is(CrateSettings.STATS_ENABLED.defaultValue()));
-        assertThat((Integer) response.rows()[0][1], is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
-
-    }
-
-    @Test
     public void testSetMultipleStatement() throws Exception {
         SQLResponse response = executor.exec(
                 "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
@@ -603,22 +555,6 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
         sysOperationThread.start();
         selectThread.join(500);
         sysOperationThread.join(500);
-    }
-
-
-    @Test
-    public void testEmptyJobsInLog() throws Exception {
-        executor.exec("set global transient stats.enabled = true");
-        executor.exec("insert into characters (name) values ('sysjobstest')");
-        executor.exec("refresh table characters");
-        SQLResponse response = executor.exec("delete from characters where name = 'sysjobstest'");
-        // make sure everything is deleted (nothing changed in whole class lifecycle cluster state)
-        assertThat(response.rowCount(), is(1L));
-        executor.exec("refresh table characters");
-
-        response = executor.exec(
-                "select * from sys.jobs_log where stmt like 'insert into%' or stmt like 'delete%'");
-        assertThat(response.rowCount(), is(2L));
     }
 
     @Test
