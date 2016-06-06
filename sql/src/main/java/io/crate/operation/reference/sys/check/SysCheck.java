@@ -64,7 +64,7 @@ public interface SysCheck {
     /**
      * The validator method, used for e.g. validation of a setting.
      *
-     * @return {@true} if validation is passed.
+     * @return true if validation is passed.
      */
     boolean validate();
 }
