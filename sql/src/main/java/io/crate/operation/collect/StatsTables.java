@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.base.Supplier;
+import com.twitter.jsr166e.LongAdder;
 import io.crate.core.collections.BlockingEvictingQueue;
 import io.crate.core.collections.NoopQueue;
 import io.crate.metadata.settings.CrateSettings;
@@ -67,6 +68,7 @@ public class StatsTables {
     private final JobsIterableGetter jobsIterableGetter;
     private final OperationsIterableGetter operationsIterableGetter;
     private final OperationsLogIterableGetter operationsLogIterableGetter;
+    private final LongAdder activeRequests = new LongAdder();
 
     protected final NodeSettingsService.Listener listener = new NodeSettingListener();
     volatile int lastOperationsLogSize;
@@ -120,6 +122,7 @@ public class StatsTables {
      * If {@link #isEnabled()} is false this method won't do anything.
      */
     public void jobStarted(UUID jobId, String statement) {
+        activeRequests.increment();
         if (!isEnabled()) {
             return;
         }
@@ -132,6 +135,7 @@ public class StatsTables {
      * If {@link #isEnabled()} is false this method won't do anything.
      */
     public void jobFinished(UUID jobId, @Nullable String errorMessage) {
+        activeRequests.decrement();
         if (!isEnabled()) {
             return;
         }
@@ -181,6 +185,10 @@ public class StatsTables {
 
     public Supplier<Iterable<?>> operationsLogGetter() {
         return operationsLogIterableGetter;
+    }
+
+    public long activeRequests() {
+        return activeRequests.longValue();
     }
 
     private class JobsLogIterableGetter implements Supplier<Iterable<?>> {

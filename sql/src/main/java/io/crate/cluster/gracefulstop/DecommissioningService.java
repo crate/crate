@@ -26,6 +26,7 @@ import com.google.common.collect.Sets;
 import io.crate.action.sql.TransportSQLAction;
 import io.crate.action.sql.TransportSQLBulkAction;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -45,6 +46,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.node.settings.NodeSettingsService;
+import org.elasticsearch.threadpool.ThreadPool;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
@@ -52,6 +54,8 @@ import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Singleton
 public class DecommissioningService extends AbstractLifecycleComponent implements SignalHandler {
@@ -59,6 +63,8 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     static final String DECOMMISSION_PREFIX = "crate.internal.decommission.";
 
     private final ClusterService clusterService;
+    private final StatsTables statsTables;
+    private final ThreadPool threadPool;
     private final TransportSQLAction sqlAction;
     private final TransportSQLBulkAction sqlBulkAction;
     private final TransportClusterHealthAction healthAction;
@@ -72,6 +78,8 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     @Inject
     public DecommissioningService(Settings settings,
                                   final ClusterService clusterService,
+                                  StatsTables statsTables,
+                                  ThreadPool threadPool,
                                   NodeSettingsService nodeSettingsService,
                                   TransportSQLAction sqlAction,
                                   TransportSQLBulkAction sqlBulkAction,
@@ -79,6 +87,8 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
                                   final TransportClusterUpdateSettingsAction updateSettingsAction) {
         super(settings);
         this.clusterService = clusterService;
+        this.statsTables = statsTables;
+        this.threadPool = threadPool;
         this.sqlAction = sqlAction;
         this.sqlBulkAction = sqlBulkAction;
         this.healthAction = healthAction;
@@ -161,28 +171,60 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
                     request = request.waitForYellowStatus();
                 }
 
+                final long startTime = System.nanoTime();
+
                 healthAction.execute(request, new ActionListener<ClusterHealthResponse>() {
                     @Override
                     public void onResponse(ClusterHealthResponse clusterHealthResponse) {
-                        System.exit(0);
+                        exitIfNoActiveRequests(startTime);
                     }
 
                     @Override
                     public void onFailure(Throwable e) {
-                        if (forceStop) {
-                            System.exit(0);
-                        } else {
-                            removeDecommissioningSetting();
-                        }
+                        forceStopOrAbort(e);
                     }
                 });
             }
 
             @Override
             public void onFailure(Throwable e) {
-
+                logger.error("Couldn't set settings. Graceful shutdown failed", e);
             }
         });
+    }
+
+    void forceStopOrAbort(@Nullable Throwable e) {
+        if (forceStop) {
+            exit();
+        } else {
+            logger.warn("Aborting graceful shutdown due to error", e);
+            removeDecommissioningSetting();
+        }
+    }
+
+    void exitIfNoActiveRequests(final long startTime) {
+        if (statsTables.activeRequests() == 0L) {
+            exit();
+            return;
+        }
+
+        if (System.nanoTime() - startTime > gracefulStopTimeout.nanos()) {
+            forceStopOrAbort(new TimeoutException("gracefulStopTimeout reached - waited too long for pending requests to finish"));
+            return;
+        }
+
+        logger.info("There are still active requests on this node, delaying graceful shutdown");
+        // use scheduler instead of busy loop to avoid blocking a listener thread
+        threadPool.scheduler().schedule(new Runnable() {
+            @Override
+            public void run() {
+                exitIfNoActiveRequests(startTime);
+            }
+        }, 5, TimeUnit.SECONDS);
+    }
+
+    void exit() {
+        System.exit(0);
     }
 
     private void removeDecommissioningSetting() {
