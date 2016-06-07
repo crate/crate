@@ -270,7 +270,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     public ListenableFuture<TaskResult> execute(PlanForNode planForNode) {
         TransportExecutor transportExecutor = internalCluster().getInstance(TransportExecutor.class, planForNode.nodeName);
-        return transportExecutor.execute(planForNode.plan);
+        return transportExecutor.execute(planForNode.plan, ParameterContext.EMPTY);
     }
 
     /**

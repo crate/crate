@@ -31,14 +31,15 @@ import io.crate.action.job.ContextPreparer;
 import io.crate.action.job.JobRequest;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.action.job.TransportJobAction;
+import io.crate.action.sql.FetchProperties;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.*;
+import io.crate.operation.ClientPagingReceiver;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
-import io.crate.operation.QueryResultRowDownstream;
 import io.crate.operation.RowCountResultRowDownstream;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ExecutionPhase;
@@ -59,9 +60,10 @@ public class ExecutionPhasesTask extends JobTask {
     static final ESLogger LOGGER = Loggers.getLogger(ExecutionPhasesTask.class);
 
     private final TransportJobAction transportJobAction;
+    private final FetchProperties fetchProperties;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final List<NodeOperationTree> nodeOperationTrees;
-    private final ClusterService clusterService;
+    private final String localNodeId;
     private ContextPreparer contextPreparer;
     private final JobContextService jobContextService;
     private final IndicesService indicesService;
@@ -75,15 +77,18 @@ public class ExecutionPhasesTask extends JobTask {
                                IndicesService indicesService,
                                TransportJobAction transportJobAction,
                                TransportKillJobsNodeAction transportKillJobsNodeAction,
-                               List<NodeOperationTree> nodeOperationTrees) {
+                               List<NodeOperationTree> nodeOperationTrees,
+                               FetchProperties fetchProperties) {
         super(jobId);
-        this.clusterService = clusterService;
         this.contextPreparer = contextPreparer;
         this.jobContextService = jobContextService;
         this.indicesService = indicesService;
         this.transportJobAction = transportJobAction;
+        this.fetchProperties = fetchProperties;
         this.transportKillJobsNodeAction = transportKillJobsNodeAction;
         this.nodeOperationTrees = nodeOperationTrees;
+
+        this.localNodeId = clusterService.localNode().id();
 
         for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
             for (NodeOperation nodeOperation : nodeOperationTree.nodeOperations()) {
@@ -103,14 +108,16 @@ public class ExecutionPhasesTask extends JobTask {
         InitializationTracker initializationTracker = new InitializationTracker(operationByServer.size());
 
         SettableFuture<TaskResult> result = SettableFuture.create();
+        ClientPagingReceiver clientPagingReceiver = new ClientPagingReceiver(fetchProperties, result);
         RowReceiver receiver = new InterceptingRowReceiver(
             jobId(),
-            new QueryResultRowDownstream(result),
+            clientPagingReceiver,
             initializationTracker,
             transportKillJobsNodeAction);
         Tuple<ExecutionPhase, RowReceiver> handlerPhase = new Tuple<>(nodeOperationTree.leaf(), receiver);
         try {
-            setupContext(operationByServer, Collections.singletonList(handlerPhase), initializationTracker);
+            setupContext(jobContextService.newBuilder(jobId(), localNodeId, clientPagingReceiver),
+                operationByServer, Collections.singletonList(handlerPhase), initializationTracker);
         } catch (Throwable throwable) {
             result.setException(throwable);
         }
@@ -144,7 +151,8 @@ public class ExecutionPhasesTask extends JobTask {
         }
 
         try {
-            setupContext(operationByServer, handlerPhases, initializationTracker);
+            setupContext(jobContextService.newBuilder(jobId(), localNodeId),
+                operationByServer, handlerPhases, initializationTracker);
         } catch (Throwable throwable) {
             for (SettableFuture<TaskResult> result : results) {
                 result.setException(throwable);
@@ -158,20 +166,18 @@ public class ExecutionPhasesTask extends JobTask {
         throw new UnsupportedOperationException("start is deprecated and shouldn't be used");
     }
 
-    private void setupContext(Map<String, Collection<NodeOperation>> operationByServer,
+    private void setupContext(JobExecutionContext.Builder contextBuilder,
+                              Map<String, Collection<NodeOperation>> operationByServer,
                               List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
                               InitializationTracker initializationTracker) throws Throwable {
 
-        String localNodeId = clusterService.localNode().id();
         Collection<NodeOperation> localNodeOperations = operationByServer.remove(localNodeId);
         if (localNodeOperations == null) {
             localNodeOperations = Collections.emptyList();
         }
-
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId(), localNodeId);
         List<ListenableFuture<Bucket>> directResponseFutures =
-            contextPreparer.prepareOnHandler(localNodeOperations, builder, handlerPhases, new SharedShardContexts(indicesService));
-        JobExecutionContext localJobContext = jobContextService.createContext(builder);
+            contextPreparer.prepareOnHandler(localNodeOperations, contextBuilder, handlerPhases, new SharedShardContexts(indicesService));
+        JobExecutionContext localJobContext = jobContextService.createContext(contextBuilder);
 
         List<PageBucketReceiver> pageBucketReceivers = getHandlerBucketReceivers(localJobContext, handlerPhases);
         int bucketIdx = 0;

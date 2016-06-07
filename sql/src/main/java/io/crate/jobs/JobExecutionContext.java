@@ -25,12 +25,13 @@ import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.concurrent.CompletionState;
-import io.crate.exceptions.ContextMissingException;
-import io.crate.exceptions.Exceptions;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionMultiListener;
+import io.crate.concurrent.CompletionState;
+import io.crate.exceptions.ContextMissingException;
+import io.crate.exceptions.Exceptions;
+import io.crate.operation.ClientPagingReceiver;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -61,6 +62,7 @@ public class JobExecutionContext implements CompletionListenable {
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final String coordinatorNodeId;
     private final StatsTables statsTables;
+    private final ClientPagingReceiver clientPagingRowReceiver;
     private final SettableFuture<Void> finishedFuture = SettableFuture.create();
     private CompletionListener listener = CompletionListener.NO_OP;
     private volatile Throwable failure;
@@ -70,12 +72,18 @@ public class JobExecutionContext implements CompletionListenable {
         private final UUID jobId;
         private final String coordinatorNode;
         private final StatsTables statsTables;
+        @Nullable
+        private final ClientPagingReceiver clientPagingRowReceiver;
         private final LinkedHashMap<Integer, ExecutionSubContext> subContexts = new LinkedHashMap<>();
 
-        Builder(UUID jobId, String coordinatorNode, StatsTables statsTables) {
+        Builder(UUID jobId,
+                String coordinatorNode,
+                StatsTables statsTables,
+                @Nullable ClientPagingReceiver clientPagingRowReceiver) {
             this.jobId = jobId;
             this.coordinatorNode = coordinatorNode;
             this.statsTables = statsTables;
+            this.clientPagingRowReceiver = clientPagingRowReceiver;
         }
 
         public void addAllSubContexts(Iterable<? extends ExecutionSubContext> subContexts) {
@@ -101,7 +109,7 @@ public class JobExecutionContext implements CompletionListenable {
         }
 
         JobExecutionContext build() {
-            return new JobExecutionContext(jobId, coordinatorNode, statsTables, subContexts);
+            return new JobExecutionContext(jobId, coordinatorNode, statsTables, subContexts, clientPagingRowReceiver);
         }
     }
 
@@ -109,11 +117,13 @@ public class JobExecutionContext implements CompletionListenable {
     private JobExecutionContext(UUID jobId,
                                 String coordinatorNodeId,
                                 StatsTables statsTables,
-                                LinkedHashMap<Integer, ExecutionSubContext> subContexts) {
+                                LinkedHashMap<Integer, ExecutionSubContext> subContexts,
+                                ClientPagingReceiver clientPagingRowReceiver) {
         this.coordinatorNodeId = coordinatorNodeId;
         orderedContextIds = Lists.newArrayList(subContexts.keySet());
         this.jobId = jobId;
         this.statsTables = statsTables;
+        this.clientPagingRowReceiver = clientPagingRowReceiver;
 
         for (Map.Entry<Integer, ExecutionSubContext> entry : subContexts.entrySet()) {
             addContext(entry.getKey(), entry.getValue());
@@ -128,6 +138,11 @@ public class JobExecutionContext implements CompletionListenable {
         } else {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "subContext %d is already present", subContextId));
         }
+    }
+
+    @Nullable
+    public ClientPagingReceiver clientPagingRowReceiver() {
+        return clientPagingRowReceiver;
     }
 
     public UUID jobId() {

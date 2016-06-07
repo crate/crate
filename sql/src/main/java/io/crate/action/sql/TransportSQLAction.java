@@ -87,7 +87,7 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
     @Override
     public ParameterContext getParamContext(SQLRequest request) {
         return new ParameterContext(
-                request.args(), SQLBulkRequest.EMPTY_BULK_ARGS, request.getDefaultSchema(), request.getRequestFlags());
+                request.args(), SQLBulkRequest.EMPTY_BULK_ARGS, request.getDefaultSchema(), request.getRequestFlags(), request.fetchProperties());
     }
 
     @Override
@@ -98,7 +98,7 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
                      final SQLRequest request,
                      final long startTime) {
 
-        Futures.addCallback(executor.execute(plan), new FutureCallback<TaskResult>() {
+        Futures.addCallback(executor.execute(plan, analysis.parameterContext()), new FutureCallback<TaskResult>() {
             @Override
             public void onSuccess(@Nullable TaskResult result) {
                 listener.onResponse(createResponse(plan.jobId(), analysis, request, result, startTime));

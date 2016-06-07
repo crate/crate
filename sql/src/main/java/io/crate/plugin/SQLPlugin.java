@@ -27,6 +27,8 @@ import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLBulkAction;
 import io.crate.action.sql.TransportSQLAction;
 import io.crate.action.sql.TransportSQLBulkAction;
+import io.crate.action.sql.fetch.SQLFetchAction;
+import io.crate.action.sql.fetch.TransportClientFetchAction;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.breaker.CircuitBreakerModule;
 import io.crate.breaker.CrateCircuitBreakerService;
@@ -206,6 +208,7 @@ public class SQLPlugin extends Plugin {
     public void onModule(ActionModule actionModule) {
         actionModule.registerAction(SQLAction.INSTANCE, TransportSQLAction.class);
         actionModule.registerAction(SQLBulkAction.INSTANCE, TransportSQLBulkAction.class);
+        actionModule.registerAction(SQLFetchAction.INSTANCE, TransportClientFetchAction.class);
     }
 
     public void onModule(IndicesModule indicesModule) {
