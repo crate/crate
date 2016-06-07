@@ -108,8 +108,20 @@ class ConnectingCrateLayer(CrateLayer):
         shutil.rmtree(self.repo_path, ignore_errors=True)
         super(ConnectingCrateLayer, self).tearDown()
 
+class ConnectingAndJavaReplLayer(object):
 
-empty_layer = ConnectingCrateLayer(
+    def __init__(self, connecting_layer, javarepl_layer):
+        self.__bases__ = (connecting_layer, javarepl_layer)
+        self.__name__ = 'connecting_and_javarepl'
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+
+crate_layer = ConnectingCrateLayer(
     'crate',
     crate_home=crate_path(),
     port=CRATE_HTTP_PORT,
@@ -118,6 +130,8 @@ empty_layer = ConnectingCrateLayer(
         'cluster.routing.schedule': '30ms',
     }
 )
+
+crate_and_javarepl_layer = ConnectingAndJavaReplLayer(crate_layer, java_repl)
 
 
 def setUpLocations(test):
@@ -362,7 +376,6 @@ def setUpTutorials(test):
 def setUp(test):
     test.globs['cmd'] = cmd
     test.globs['java_repl'] = java_repl
-    java_repl.setUp()
     test.globs['wait_for_schema_update'] = wait_for_schema_update
 
 
@@ -381,7 +394,7 @@ def test_suite():
                              optionflags=doctest.NORMALIZE_WHITESPACE |
                              doctest.ELLIPSIS,
                              encoding='utf-8')
-    s.layer = empty_layer
+    s.layer = crate_layer
     docs_suite.addTest(s)
     for fn in ('sql/rest.txt',):
         s = doctest.DocFileSuite('../../' + fn,
@@ -391,7 +404,7 @@ def test_suite():
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS,
                                  encoding='utf-8')
-        s.layer = empty_layer
+        s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('sql/ddl.txt',
                'sql/dql.txt',
@@ -414,7 +427,7 @@ def test_suite():
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS,
                                  encoding='utf-8')
-        s.layer = empty_layer
+        s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('sql/joins.txt', ):
         path = os.path.join('..', '..', fn)
@@ -425,7 +438,7 @@ def test_suite():
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS,
                                  encoding='utf-8')
-        s.layer = empty_layer
+        s.layer = crate_layer
         docs_suite.addTest(s)
 
 
@@ -436,7 +449,7 @@ def test_suite():
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS,
                                  encoding='utf-8')
-        s.layer = empty_layer
+        s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('best_practice/migrating_from_mongodb.txt',
 	       'best_practice/systables.txt'):
@@ -446,7 +459,7 @@ def test_suite():
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS,
                                  encoding='utf-8')
-        s.layer = empty_layer
+        s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('data_import.txt', 'cluster_upgrade.txt'):
         path = os.path.join('..', '..', 'best_practice', fn)
@@ -455,7 +468,7 @@ def test_suite():
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS,
                                  encoding='utf-8')
-        s.layer = empty_layer
+        s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('sql/snapshot_restore.txt',):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
@@ -464,16 +477,15 @@ def test_suite():
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS,
                                  encoding='utf-8')
-        s.layer = empty_layer
+        s.layer = crate_layer
         docs_suite.addTest(s)
 
     s = doctest.DocFileSuite('../../clients/client.txt', parser=java_parser,
                              setUp=setUp,
-                             tearDown=java_repl.tearDown,
                              optionflags=doctest.NORMALIZE_WHITESPACE |
                              doctest.ELLIPSIS,
                              encoding='utf-8')
-    s.layer = empty_layer
+    s.layer = crate_and_javarepl_layer
     docs_suite.addTest(s)
     suite.addTests(docs_suite)
     return suite

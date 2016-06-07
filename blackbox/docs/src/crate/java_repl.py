@@ -21,6 +21,10 @@ def is_up(host, port):
 
 
 class JavaRepl(object):
+
+    __bases__ = ()
+    __name__ = 'javarepl'
+
     def __init__(self, java_repl_jar, jars, port):
         self.port = port = str(port)
         jars = [os.path.abspath(p) for p in [java_repl_jar] + jars]
@@ -41,7 +45,11 @@ class JavaRepl(object):
             slept += 0.1
 
     def tearDown(self, *args, **kwargs):
+        self.process.stdin.close()
+        self.process.stdout.close()
+        self.process.stderr.close()
         self.process.kill()
+        self.process.wait()
 
     def execute(self, expression):
         data = urlencode({'expression': expression}).encode('utf-8')
