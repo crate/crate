@@ -215,7 +215,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
 
     @Test
     public void testRowReceiverDontWantMoreStopsCollectingMultipleUris() throws Throwable {
-        DontWantMoreRowReceiver rowReceiver = new DontWantMoreRowReceiver(1);
+        CollectingRowReceiver rowReceiver = CollectingRowReceiver.withLimit(1);
         List<String> fileUris = new ArrayList<>();
         fileUris.add(tmpFile.getCanonicalPath());
         fileUris.add(tmpFileEmptyLine.getCanonicalPath());
@@ -321,23 +321,6 @@ public class FileReadingCollectorTest extends CrateUnitTest {
             byte[] buffer = (byte[]) invocation.getArguments()[0];
             System.arraycopy(bytes, 0, buffer, 0, bytes.length);
             return bytes.length;
-        }
-    }
-
-    static class DontWantMoreRowReceiver extends CollectingRowReceiver {
-        private int stopAfter;
-
-        public DontWantMoreRowReceiver(int stopAfter) {
-            this.stopAfter = stopAfter;
-        }
-
-        @Override
-        public boolean setNextRow(Row row) {
-            boolean res = super.setNextRow(row);
-            if (rows.size() >= stopAfter) {
-                return false;
-            }
-            return res;
         }
     }
 }

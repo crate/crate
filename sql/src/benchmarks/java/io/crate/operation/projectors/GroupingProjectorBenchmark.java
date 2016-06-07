@@ -38,7 +38,7 @@ import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
-import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.RowCountRowReceiver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -81,15 +81,6 @@ public class GroupingProjectorBenchmark {
         }
     }
 
-    static class NoOpRowReceiver extends CollectingRowReceiver {
-
-        @Override
-        public boolean setNextRow(Row row) {
-            return true;
-        }
-    }
-
-
     @Test
     public void testGroupByMinBytesRef() throws Exception {
         Functions functions = new ModulesBuilder().add(new AggregationImplModule())
@@ -110,7 +101,7 @@ public class GroupingProjectorBenchmark {
         AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
         GroupingProjector groupingProjector = new GroupingProjector(
                 Arrays.<DataType>asList(DataTypes.STRING), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
-        NoOpRowReceiver finalReceiver = new NoOpRowReceiver();
+        RowReceiver finalReceiver = new RowCountRowReceiver();
         groupingProjector.downstream(finalReceiver);
 
         groupingProjector.prepare();
@@ -149,7 +140,7 @@ public class GroupingProjectorBenchmark {
         AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
         GroupingProjector groupingProjector = new GroupingProjector(
                 Arrays.<DataType>asList(DataTypes.INTEGER), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
-        NoOpRowReceiver finalReceiver = new NoOpRowReceiver();
+        RowReceiver finalReceiver = new RowCountRowReceiver();
         groupingProjector.downstream(finalReceiver);
         groupingProjector.prepare();
 
