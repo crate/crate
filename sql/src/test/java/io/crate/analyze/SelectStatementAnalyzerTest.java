@@ -408,23 +408,23 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testSelectGroupByOrderByWithAggregateFunctionInOrderByClause() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("ORDER BY function 'max(count(upper(name)))' is not allowed. Only scalar functions can be used.");
-        analyze("select name, count(id) from users group by name order by max(count(upper(name)))");
+        expectedException.expectMessage("ORDER BY function 'max(count(abs(other_id)))' is not allowed. Only scalar functions can be used.");
+        analyze("select other_id, count(id) from users group by other_id order by max(count(abs(other_id)))");
     }
 
     @Test
     public void testValidCombinationsOrderByWithAggregation() throws Exception {
-        analyze("select name, count(id) from users group by name order by 1");
-        analyze("select name, count(id) from users group by name order by 2");
+        analyze("select other_id, count(id) from users group by other_id order by 1");
+        analyze("select other_id, count(id) from users group by other_id order by 2");
 
-        analyze("select name, count(id) from users group by name order by name");
-        analyze("select name, count(id) from users group by name order by count(id)");
+        analyze("select other_id, count(id) from users group by other_id order by other_id");
+        analyze("select other_id, count(id) from users group by other_id order by count(id)");
 
-        analyze("select name, count(id) from users group by name order by lower(name)");
-        analyze("select name, count(id) from users group by name order by lower(upper(name))");
+        analyze("select other_id, count(id) from users group by other_id order by sqrt(other_id)");
+        analyze("select other_id, count(id) from users group by other_id order by floor(sqrt(other_id))");
 
-        analyze("select name, count(id) from users group by name order by sin(count(id))");
-        analyze("select name, count(id) from users group by name order by sin(sqrt(count(id)))");
+        analyze("select other_id, count(id) from users group by other_id order by sqrt(count(id))");
+        analyze("select other_id, count(id) from users group by other_id order by floor(sqrt(count(id)))");
     }
 
     @Test
@@ -1269,7 +1269,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testUnknownSubscriptInSelectList() {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column o['no_such_column'] unknown");
-       analyze("select o['no_such_column'] from users");
+        analyze("select o['no_such_column'] from users");
     }
 
     @Test
