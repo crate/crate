@@ -23,7 +23,7 @@ package io.crate.jobs;
 
 import javax.annotation.Nullable;
 
-public interface DownstreamExecutionSubContext extends ExecutionSubContext {
+public interface DownstreamExecutionSubContext {
 
     @Nullable
     PageDownstreamContext pageDownstreamContext(byte inputId);

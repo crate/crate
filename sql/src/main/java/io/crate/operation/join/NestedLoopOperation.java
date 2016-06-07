@@ -21,8 +21,12 @@
 
 package io.crate.operation.join;
 
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.concurrent.CompletionListenable;
+import io.crate.concurrent.CompletionListener;
+import io.crate.concurrent.CompletionState;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.operation.RowUpstream;
@@ -37,9 +41,10 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class NestedLoopOperation implements RowUpstream {
+public class NestedLoopOperation implements RowUpstream, CompletionListenable {
 
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopOperation.class);
+    private final SettableFuture<CompletionState> completionFuture = SettableFuture.create();
 
     private final LeftRowReceiver left;
     private final RightRowReceiver right;
@@ -49,6 +54,11 @@ public class NestedLoopOperation implements RowUpstream {
     private volatile boolean downstreamWantsMore = true;
     private volatile boolean paused;
     private volatile Throwable upstreamFailure = null;
+
+    @Override
+    public void addListener(CompletionListener listener) {
+        Futures.addCallback(completionFuture, listener);
+    }
 
     /**
      * state of the left and right side.
@@ -163,6 +173,7 @@ public class NestedLoopOperation implements RowUpstream {
         public void kill(Throwable throwable) {
             killBoth(throwable);
             downstream.kill(throwable);
+            completionFuture.setException(throwable);
         }
 
         @Override
@@ -192,8 +203,10 @@ public class NestedLoopOperation implements RowUpstream {
                 Throwable upstreamFailure = NestedLoopOperation.this.upstreamFailure;
                 if (upstreamFailure == null) {
                     downstream.finish();
+                    completionFuture.set(new CompletionState());
                 } else {
                     downstream.fail(upstreamFailure);
+                    completionFuture.setException(upstreamFailure);
                 }
             } else {
                 otherUpstream.resume(false);

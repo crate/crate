@@ -271,14 +271,12 @@ class ExecutionPhasesTask extends JobTask {
         }
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId(), localNodeId);
-        Tuple<List<ExecutionSubContext>, List<ListenableFuture<Bucket>>> onHandler =
+        List<ListenableFuture<Bucket>> directResponseFutures =
             contextPreparer.prepareOnHandler(localNodeOperations, builder, handlerPhases, new SharedShardContexts(indicesService));
         JobExecutionContext localJobContext = jobContextService.createContext(builder);
-        localJobContext.start();
 
-        List<PageDownstreamContext> pageDownstreamContexts = getHandlerPageDownstreamContexts(onHandler);
+        List<PageDownstreamContext> pageDownstreamContexts = getHandlerPageDownstreamContexts(localJobContext, handlerPhases);
         int bucketIdx = 0;
-        List<ListenableFuture<Bucket>> directResponseFutures = onHandler.v2();
 
         if (!localNodeOperations.isEmpty()) {
             if (directResponseFutures.isEmpty()) {
@@ -289,9 +287,11 @@ class ExecutionPhasesTask extends JobTask {
                 bucketIdx++;
             }
         }
-
+        localJobContext.start();
         sendJobRequests(localNodeId, operationByServer, pageDownstreamContexts, handlerPhases, bucketIdx, initializationTracker);
     }
+
+
 
     private void sendJobRequests(String localNodeId,
                                  Map<String, Collection<NodeOperation>> operationByServer,
@@ -312,11 +312,13 @@ class ExecutionPhasesTask extends JobTask {
         }
     }
 
-    private List<PageDownstreamContext> getHandlerPageDownstreamContexts(Tuple<List<ExecutionSubContext>, List<ListenableFuture<Bucket>>> onHandler) {
-        final List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(onHandler.v1().size());
-        for (ExecutionSubContext handlerExecutionSubContext : onHandler.v1()) {
-            if (handlerExecutionSubContext instanceof DownstreamExecutionSubContext) {
-                PageDownstreamContext pageDownstreamContext = ((DownstreamExecutionSubContext) handlerExecutionSubContext).pageDownstreamContext((byte) 0);
+    private List<PageDownstreamContext> getHandlerPageDownstreamContexts(JobExecutionContext jobExecutionContext,
+                                                                         List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases) {
+        final List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(handlerPhases.size());
+        for (Tuple<ExecutionPhase, RowReceiver> handlerPhase : handlerPhases) {
+            ExecutionSubContext ctx = jobExecutionContext.getSubContextOrNull(handlerPhase.v1().executionPhaseId());
+            if (ctx instanceof DownstreamExecutionSubContext){
+                PageDownstreamContext pageDownstreamContext = ((DownstreamExecutionSubContext) ctx).pageDownstreamContext((byte) 0);
                 pageDownstreamContexts.add(pageDownstreamContext);
             }
         }

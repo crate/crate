@@ -84,7 +84,7 @@ public class PageDownstreamFactory {
     }
 
     public Tuple<PageDownstream, FlatProjectorChain> createMergeNodePageDownstream(MergePhase mergeNode,
-                                                                                   RowReceiver rowReceiver,
+                                                                                   RowReceiver downstream,
                                                                                    boolean requiresRepeatSupport,
                                                                                    RamAccountingContext ramAccountingContext,
                                                                                    Optional<Executor> executorOptional) {
@@ -94,10 +94,10 @@ public class PageDownstreamFactory {
                     projectionToProjectorVisitor,
                     ramAccountingContext,
                     mergeNode.projections(),
-                    rowReceiver,
+                    downstream,
                     mergeNode.jobId()
             );
-            rowReceiver = projectorChain.firstProjector();
+            downstream = projectorChain.firstProjector();
         }
 
         PagingIterator<Void, Row> pagingIterator;
@@ -114,7 +114,7 @@ public class PageDownstreamFactory {
             pagingIterator = requiresRepeatSupport ?
                     PassThroughPagingIterator.<Void, Row>repeatable() : PassThroughPagingIterator.<Void, Row>oneShot();
         }
-        PageDownstream pageDownstream = new IteratorPageDownstream(rowReceiver, pagingIterator, executorOptional);
+        PageDownstream pageDownstream = new IteratorPageDownstream(downstream, pagingIterator, executorOptional);
         return new Tuple<>(pageDownstream, projectorChain);
     }
 }

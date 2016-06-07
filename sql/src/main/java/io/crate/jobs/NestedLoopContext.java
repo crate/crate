@@ -21,25 +21,19 @@
 
 package io.crate.jobs;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
+import io.crate.concurrent.CompletionListener;
+import io.crate.concurrent.CompletionState;
 import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class NestedLoopContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopContext.class);
-
-    private final AtomicInteger activeSubContexts = new AtomicInteger(0);
     private final NestedLoopPhase nestedLoopPhase;
     private final FlatProjectorChain flatProjectorChain;
 
@@ -49,8 +43,6 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
     private final PageDownstreamContext rightPageDownstreamContext;
     private final ListenableRowReceiver leftRowReceiver;
     private final ListenableRowReceiver rightRowReceiver;
-
-    private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
     public NestedLoopContext(ESLogger logger,
                              NestedLoopPhase phase,
@@ -68,17 +60,17 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
         leftRowReceiver = nestedLoopOperation.leftRowReceiver();
         rightRowReceiver = nestedLoopOperation.rightRowReceiver();
 
-        if (leftPageDownstreamContext == null) {
-            Futures.addCallback(leftRowReceiver.finishFuture(), new RemoveContextCallback());
-        } else {
-            leftPageDownstreamContext.future.addCallback(new RemoveContextCallback());
-        }
+        nestedLoopOperation.addListener(new CompletionListener() {
+            @Override
+            public void onSuccess(@Nullable CompletionState result) {
+                future.close(null);
+            }
 
-        if (rightPageDownstreamContext == null) {
-            Futures.addCallback(rightRowReceiver.finishFuture(), new RemoveContextCallback());
-        } else {
-            rightPageDownstreamContext.future.addCallback(new RemoveContextCallback());
-        }
+            @Override
+            public void onFailure(@Nonnull Throwable t) {
+                future.close(t);
+            }
+        });
     }
 
     @Override
@@ -97,48 +89,26 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
     }
 
     @Override
-    protected void innerStart() {
-        if (leftPageDownstreamContext != null) {
-            leftPageDownstreamContext.start();
-        }
-        if (rightPageDownstreamContext != null) {
-            rightPageDownstreamContext.start();
-        }
-    }
-
-    @Override
     protected void innerClose(@Nullable Throwable t) {
-        closeSubContext(t, leftPageDownstreamContext, leftRowReceiver);
-        closeSubContext(t, rightPageDownstreamContext, rightRowReceiver);
+        closeReceiver(t, leftPageDownstreamContext, leftRowReceiver);
+        closeReceiver(t, rightPageDownstreamContext, rightRowReceiver);
     }
 
-    private static void closeSubContext(@Nullable Throwable t, @Nullable PageDownstreamContext subContext, ListenableRowReceiver rowReceiver) {
-        if (subContext == null) {
-            finishOrFail(t, rowReceiver);
-        } else {
-            subContext.close(t);
-        }
-    }
-
-    private static void finishOrFail(@Nullable Throwable t, ListenableRowReceiver rowReceiver) {
-        if (t == null) {
-            rowReceiver.finish();
-        } else {
+    private static void closeReceiver(@Nullable Throwable t, @Nullable PageDownstreamContext subContext, ListenableRowReceiver rowReceiver) {
+        if (subContext == null && t != null) {
             rowReceiver.fail(t);
         }
     }
 
     @Override
     protected void innerKill(@Nullable Throwable t) {
-        killSubContext(t, leftPageDownstreamContext, leftRowReceiver);
-        killSubContext(t, rightPageDownstreamContext, rightRowReceiver);
+        killReceiver(t, leftPageDownstreamContext, leftRowReceiver);
+        killReceiver(t, rightPageDownstreamContext, rightRowReceiver);
     }
 
-    private static void killSubContext(Throwable t, @Nullable PageDownstreamContext subContext, ListenableRowReceiver rowReceiver) {
+    private static void killReceiver(Throwable t, @Nullable PageDownstreamContext subContext, ListenableRowReceiver rowReceiver) {
         if (subContext == null) {
             rowReceiver.kill(t);
-        } else {
-            subContext.kill(t);
         }
     }
 
@@ -155,37 +125,10 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
     public String toString() {
         return "NestedLoopContext{" +
                "id=" + id() +
-               ", activeSubContexts=" + activeSubContexts +
                ", leftCtx=" + leftPageDownstreamContext +
                ", rightCtx=" + rightPageDownstreamContext +
                ", closed=" + future.closed() +
                '}';
     }
 
-    private class RemoveContextCallback implements FutureCallback<Object> {
-
-        public RemoveContextCallback() {
-            activeSubContexts.incrementAndGet();
-        }
-
-        @Override
-        public void onSuccess(@Nullable Object result) {
-            countdown();
-        }
-
-        private void countdown() {
-            if (activeSubContexts.decrementAndGet() == 0) {
-                Throwable t = failure.get();
-                if (future.firstClose()) {
-                    future.close(t);
-                }
-            }
-        }
-
-        @Override
-        public void onFailure(@Nonnull Throwable t) {
-            failure.set(t);
-            countdown();
-        }
-    }
 }
