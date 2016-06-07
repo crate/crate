@@ -70,16 +70,13 @@ public class ESDeletePartitionTask extends JobTask {
         results = Collections.singletonList(result);
         this.transport = transport;
         this.request = new DeleteIndexRequest(esDeletePartition.indices());
-        if (esDeletePartition.indices().length > 1) {
-            /**
-             * table is partitioned, in case of concurrent "delete from partitions"
-             * it could be that some partitions are already deleted,
-             * so ignore it if some are missing
-             */
-            this.request.indicesOptions(IndicesOptions.lenientExpandOpen());
-        } else {
-            this.request.indicesOptions(IndicesOptions.strictExpandOpen());
-        }
+
+        /**
+         * table is partitioned, in case of concurrent "delete from partitions"
+         * it could be that some partitions are already deleted,
+         * so ignore it if some are missing
+         */
+        this.request.indicesOptions(IndicesOptions.lenientExpandOpen());
         this.listener = new DeleteIndexListener(result);
     }
 
