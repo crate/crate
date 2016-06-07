@@ -23,7 +23,6 @@ package io.crate.executor.transport;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -64,23 +63,12 @@ class ExecutionPhasesTask extends JobTask {
     private final TransportJobAction transportJobAction;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final List<NodeOperationTree> nodeOperationTrees;
-    private final OperationType operationType;
     private final ClusterService clusterService;
     private ContextPreparer contextPreparer;
     private final JobContextService jobContextService;
     private final IndicesService indicesService;
 
-
-    private final List<SettableFuture<TaskResult>> results = new ArrayList<>();
     private boolean hasDirectResponse;
-
-    enum OperationType {
-        BULK,
-        /**
-         * UNKNOWN means it will depend on the number of nodeOperationTrees, if > 1 it will use bulk, otherwise QueryResult
-         */
-        UNKNOWN
-    }
 
     ExecutionPhasesTask(UUID jobId,
                         ClusterService clusterService,
@@ -89,8 +77,7 @@ class ExecutionPhasesTask extends JobTask {
                         IndicesService indicesService,
                         TransportJobAction transportJobAction,
                         TransportKillJobsNodeAction transportKillJobsNodeAction,
-                        List<NodeOperationTree> nodeOperationTrees,
-                        OperationType operationType) {
+                        List<NodeOperationTree> nodeOperationTrees) {
         super(jobId);
         this.clusterService = clusterService;
         this.contextPreparer = contextPreparer;
@@ -99,10 +86,8 @@ class ExecutionPhasesTask extends JobTask {
         this.transportJobAction = transportJobAction;
         this.transportKillJobsNodeAction = transportKillJobsNodeAction;
         this.nodeOperationTrees = nodeOperationTrees;
-        this.operationType = operationType;
 
         for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
-            results.add(SettableFuture.<TaskResult>create());
             for (NodeOperation nodeOperation : nodeOperationTree.nodeOperations()) {
                 if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
                     hasDirectResponse = true;
@@ -113,7 +98,29 @@ class ExecutionPhasesTask extends JobTask {
     }
 
     @Override
-    public void start() {
+    public ListenableFuture<TaskResult> execute() {
+        assert nodeOperationTrees.size() == 1 : "must only have 1 NodeOperationTree for non-bulk operations";
+        NodeOperationTree nodeOperationTree = nodeOperationTrees.get(0);
+        Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(nodeOperationTree.nodeOperations());
+        InitializationTracker initializationTracker = new InitializationTracker(operationByServer.size());
+
+        SettableFuture<TaskResult> result = SettableFuture.create();
+        RowReceiver receiver = new InterceptingRowReceiver(
+            jobId(),
+            new QueryResultRowDownstream(result),
+            initializationTracker,
+            transportKillJobsNodeAction);
+        Tuple<ExecutionPhase, RowReceiver> handlerPhase = new Tuple<>(nodeOperationTree.leaf(), receiver);
+        try {
+            setupContext(operationByServer, Collections.singletonList(handlerPhase), initializationTracker);
+        } catch (Throwable throwable) {
+            result.setException(throwable);
+        }
+        return result;
+    }
+
+    @Override
+    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
         FluentIterable<NodeOperation> nodeOperations = FluentIterable.from(nodeOperationTrees)
             .transformAndConcat(new Function<NodeOperationTree, Iterable<? extends NodeOperation>>() {
                 @Nullable
@@ -122,10 +129,22 @@ class ExecutionPhasesTask extends JobTask {
                     return input.nodeOperations();
                 }
             });
-
         Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(nodeOperations);
         InitializationTracker initializationTracker = new InitializationTracker(operationByServer.size());
-        List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases = createHandlerPhases(initializationTracker);
+
+        List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases = new ArrayList<>(nodeOperationTrees.size());
+        List<SettableFuture<TaskResult>> results = new ArrayList<>(nodeOperationTrees.size());
+        for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
+            SettableFuture<TaskResult> result = SettableFuture.create();
+            results.add(result);
+            RowReceiver receiver = new InterceptingRowReceiver(
+                jobId(),
+                new RowCountResultRowDownstream(result),
+                initializationTracker,
+                transportKillJobsNodeAction);
+            handlerPhases.add(new Tuple<>(nodeOperationTree.leaf(), receiver));
+        }
+
         try {
             setupContext(operationByServer, handlerPhases, initializationTracker);
         } catch (Throwable throwable) {
@@ -133,6 +152,12 @@ class ExecutionPhasesTask extends JobTask {
                 result.setException(throwable);
             }
         }
+        return results;
+    }
+
+    @Override
+    public void start() {
+        throw new UnsupportedOperationException("start is deprecated and shouldn't be used");
     }
 
     private static class InitializationTracker {
@@ -234,32 +259,6 @@ class ExecutionPhasesTask extends JobTask {
         }
     }
 
-    private List<Tuple<ExecutionPhase, RowReceiver>> createHandlerPhases(InitializationTracker initializationTracker) {
-        List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases = new ArrayList<>(nodeOperationTrees.size());
-
-        if (operationType == OperationType.BULK || nodeOperationTrees.size() > 1) {
-            // bulk Operation with rowCountResult
-            for (int i = 0; i < nodeOperationTrees.size(); i++) {
-                SettableFuture<TaskResult> result = results.get(i);
-                RowReceiver receiver = new InterceptingRowReceiver(
-                    jobId(),
-                    new RowCountResultRowDownstream(result),
-                    initializationTracker,
-                    transportKillJobsNodeAction);
-                handlerPhases.add(new Tuple<>(nodeOperationTrees.get(i).leaf(), receiver));
-            }
-        } else {
-            SettableFuture<TaskResult> result = Iterables.getOnlyElement(results);
-            RowReceiver receiver = new InterceptingRowReceiver(
-                jobId(),
-                new QueryResultRowDownstream(result),
-                initializationTracker,
-                transportKillJobsNodeAction);
-            handlerPhases.add(new Tuple<>(Iterables.getOnlyElement(nodeOperationTrees).leaf(), receiver));
-        }
-        return handlerPhases;
-    }
-
     private void setupContext(Map<String, Collection<NodeOperation>> operationByServer,
                               List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
                               InitializationTracker initializationTracker) throws Throwable {
@@ -327,7 +326,7 @@ class ExecutionPhasesTask extends JobTask {
 
     @Override
     public List<? extends ListenableFuture<TaskResult>> result() {
-        return results;
+        throw new UnsupportedOperationException("result is deprecated and shouldn't be used");
     }
 
     private static class FailureOnlyResponseListener implements ActionListener<JobResponse> {

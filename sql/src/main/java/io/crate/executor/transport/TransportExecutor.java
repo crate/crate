@@ -141,33 +141,33 @@ public class TransportExecutor implements Executor {
 
     @Override
     public ListenableFuture<TaskResult> execute(Plan plan) {
-        return plan2TaskVisitor.process(plan, ExecutionPhasesTask.OperationType.UNKNOWN).execute();
+        return plan2TaskVisitor.process(plan, null).execute();
     }
 
     @Override
     public List<? extends ListenableFuture<TaskResult>> executeBulk(Plan plan) {
-        Task task = plan2TaskVisitor.process(plan, ExecutionPhasesTask.OperationType.BULK);
+        Task task = plan2TaskVisitor.process(plan, null);
         return task.executeBulk();
     }
 
-    private class TaskCollectingVisitor extends PlanVisitor<ExecutionPhasesTask.OperationType, Task> {
+    private class TaskCollectingVisitor extends PlanVisitor<Void, Task> {
 
         @Override
-        public Task visitNoopPlan(NoopPlan plan, ExecutionPhasesTask.OperationType operationType) {
+        public Task visitNoopPlan(NoopPlan plan, Void context) {
             return NoopTask.INSTANCE;
         }
 
         @Override
-        public Task visitExplainPlan(ExplainPlan explainPlan, ExecutionPhasesTask.OperationType operationType) {
+        public Task visitExplainPlan(ExplainPlan explainPlan, Void context) {
             return new ExplainTask(explainPlan);
         }
 
         @Override
-        protected Task visitPlan(Plan plan, ExecutionPhasesTask.OperationType operationType) {
-            return executionPhasesTask(plan, operationType);
+        protected Task visitPlan(Plan plan, Void context) {
+            return executionPhasesTask(plan);
         }
 
-        private ExecutionPhasesTask executionPhasesTask(Plan plan, ExecutionPhasesTask.OperationType operationType) {
+        private ExecutionPhasesTask executionPhasesTask(Plan plan) {
             List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(
                     plan, clusterService.localNode().id());
             LOGGER.debug("Created NodeOperationTrees from Plan: {}", nodeOperationTrees);
@@ -179,13 +179,12 @@ public class TransportExecutor implements Executor {
                     indicesService,
                     transportActionProvider.transportJobInitAction(),
                     transportActionProvider.transportKillJobsNodeAction(),
-                    nodeOperationTrees,
-                    operationType
+                    nodeOperationTrees
             );
         }
 
         @Override
-        public Task visitGetPlan(ESGet plan, ExecutionPhasesTask.OperationType operationType) {
+        public Task visitGetPlan(ESGet plan, Void context) {
             return new ESGetTask(
                 functions,
                 globalProjectionToProjectionVisitor,
@@ -196,14 +195,14 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitDropTablePlan(DropTablePlan plan, ExecutionPhasesTask.OperationType operationType) {
+        public Task visitDropTablePlan(DropTablePlan plan, Void context) {
             return new DropTableTask(plan,
                 transportActionProvider.transportDeleteIndexTemplateAction(),
                 transportActionProvider.transportDeleteIndexAction());
         }
 
         @Override
-        public Task visitKillPlan(KillPlan killPlan, ExecutionPhasesTask.OperationType operationType) {
+        public Task visitKillPlan(KillPlan killPlan, Void context) {
             return killPlan.jobToKill().isPresent() ?
                     new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
                             killPlan.jobId(),
@@ -212,27 +211,27 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitGenericShowPlan(GenericShowPlan genericShowPlan, ExecutionPhasesTask.OperationType operationType) {
+        public Task visitGenericShowPlan(GenericShowPlan genericShowPlan, Void context) {
             return new GenericShowTask(genericShowPlan.jobId(), showStatementDispatcherProvider, genericShowPlan.statement());
         }
 
         @Override
-        public Task visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, ExecutionPhasesTask.OperationType operationType) {
+        public Task visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, Void context) {
             return new DDLTask(genericDDLPlan.jobId(), ddlAnalysisDispatcherProvider, genericDDLPlan.statement());
         }
 
         @Override
-        public Task visitESClusterUpdateSettingsPlan(ESClusterUpdateSettingsPlan plan, ExecutionPhasesTask.OperationType operationType) {
+        public Task visitESClusterUpdateSettingsPlan(ESClusterUpdateSettingsPlan plan, Void context) {
             return new ESClusterUpdateSettingsTask(plan, transportActionProvider.transportClusterUpdateSettingsAction());
         }
 
         @Override
-        public Task visitESDelete(ESDelete plan, ExecutionPhasesTask.OperationType operationType) {
+        public Task visitESDelete(ESDelete plan, Void context) {
             return new ESDeleteTask(plan, transportActionProvider.transportDeleteAction(), jobContextService);
         }
 
         @Override
-        public Task visitUpsertById(UpsertById plan, ExecutionPhasesTask.OperationType operationType) {
+        public Task visitUpsertById(UpsertById plan, Void context) {
             return new UpsertByIdTask(
                 plan,
                 clusterService,
@@ -246,7 +245,7 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitESDeletePartition(ESDeletePartition plan, ExecutionPhasesTask.OperationType operationType) {
+        public Task visitESDeletePartition(ESDeletePartition plan, Void context) {
             return new ESDeletePartitionTask(plan, transportActionProvider.transportDeleteIndexAction());
         }
     }
