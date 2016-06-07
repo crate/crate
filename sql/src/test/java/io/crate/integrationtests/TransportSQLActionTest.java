@@ -100,6 +100,23 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testDeletePartitionAfterPlan() throws Throwable {
+        execute("CREATE TABLE parted_table (id long, text string, day timestamp) " +
+                "PARTITIONED BY (day)");
+        execute("INSERT INTO parted_table (id, text, day) values(1, 'test', '2016-06-07')");
+        ensureYellow();
+
+        PlanForNode plan = plan("delete from parted_table where day='2016-06-07'");
+        execute("delete from parted_table where day='2016-06-07'");
+        ListenableFuture<List<TaskResult>> future = execute(plan);
+        try {
+            future.get();
+        } catch (Throwable t) {
+            throw Exceptions.unwrap(t);
+        }
+    }
+
+    @Test
     public void testSelectCountStar() throws Exception {
         execute("create table test (\"type\" string) with (number_of_replicas=0)");
         ensureYellow();
