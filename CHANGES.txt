@@ -6,6 +6,7 @@ Unreleased
 ==========
 
  - Throw a more meaningful error if an attempt is made to order by an invalid field in a query with aggregations.
+ - Fixed cpu used bug. It was returning -1, even if cpu info loaded from sigar.
 
  - Update crate-admin to 0.18.1 which contains following changes:
 

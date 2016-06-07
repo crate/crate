@@ -38,6 +38,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
@@ -90,6 +91,23 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTe
 
         Object[] data = (Object[]) v.get("data");
         assertThat(data.length, is(0));
+    }
+
+    @Test
+    public void testCpu() throws Exception {
+        prepare(true);
+        ReferenceInfo refInfo = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
+        NestedObjectExpression os = (NestedObjectExpression) resolver.getImplementation(refInfo);
+
+        Map<String, Object> v = os.value();
+        
+        Map<String, Short> cpuObj = new HashMap<>(5);
+        cpuObj.put("system", (short) -1);
+        cpuObj.put("user", (short) -1);
+        cpuObj.put("idle", (short) -1);
+        cpuObj.put("used", (short) -1);
+        cpuObj.put("stolen", (short) -1);
+        assertEquals(cpuObj, v.get("cpu"));
     }
 
     @Test
