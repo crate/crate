@@ -33,6 +33,7 @@ import io.crate.executor.TaskResult;
 import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.ExplainTask;
 import io.crate.executor.task.NoopTask;
+import io.crate.executor.transport.executionphases.ExecutionPhasesTask;
 import io.crate.executor.transport.task.*;
 import io.crate.executor.transport.task.elasticsearch.ESClusterUpdateSettingsTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeletePartitionTask;
