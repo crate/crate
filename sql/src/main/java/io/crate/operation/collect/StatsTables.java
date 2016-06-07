@@ -68,21 +68,12 @@ public class StatsTables {
     private final JobsIterableGetter jobsIterableGetter;
     private final OperationsIterableGetter operationsIterableGetter;
     private final OperationsLogIterableGetter operationsLogIterableGetter;
+    private final LongAdder activeRequests = new LongAdder();
 
     protected final NodeSettingsService.Listener listener = new NodeSettingListener();
     protected volatile int lastOperationsLogSize;
     protected volatile int lastJobsLogSize;
     protected volatile boolean lastIsEnabled;
-
-    private final LongAdder activeRequests = new LongAdder();
-
-    public void activeRequestsInc() {
-        activeRequests.increment();
-    }
-
-    public void activeRequestsDec() {
-        activeRequests.decrement();
-    }
 
     public long activeRequests() {
         return activeRequests.longValue();
@@ -135,6 +126,7 @@ public class StatsTables {
      * If {@link #isEnabled()} is false this method won't do anything.
      */
     public void jobStarted(UUID jobId, String statement) {
+        activeRequests.increment();
         if (!isEnabled()) {
             return;
         }
@@ -147,6 +139,7 @@ public class StatsTables {
      * If {@link #isEnabled()} is false this method won't do anything.
      */
     public void jobFinished(UUID jobId, @Nullable String errorMessage) {
+        activeRequests.decrement();
         if (!isEnabled()) {
             return;
         }

@@ -201,7 +201,6 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
     }
 
     private void doExecute(TRequest request, ActionListener<TResponse> listener, final int attempt, UUID jobId, long startTime) {
-        statsTables.activeRequestsInc();
         if (disabled) {
             sendResponse(listener, new NodeDisconnectedException(clusterService.localNode(), actionName));
             return;
@@ -222,12 +221,10 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
     private void sendResponse(ActionListener<TResponse> listener, Throwable throwable) {
         listener.onFailure(throwable);
-        statsTables.activeRequestsDec();
     }
 
     private void sendResponse(ActionListener<TResponse> listener, TResponse response) {
         listener.onResponse(response);
-        statsTables.activeRequestsDec();
     }
 
     private void processAnalysis(Analysis analysis, TRequest request, ActionListener<TResponse> listener,
