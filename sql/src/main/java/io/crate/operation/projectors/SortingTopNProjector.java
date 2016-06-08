@@ -23,8 +23,6 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.Sets;
-import io.crate.Constants;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Row;
 import io.crate.operation.Input;
@@ -60,17 +58,14 @@ public class SortingTopNProjector extends AbstractProjector {
                                 Ordering<Object[]> ordering,
                                 int limit,
                                 int offset) {
-        Preconditions.checkArgument(limit >= TopN.NO_LIMIT, "invalid limit");
-        Preconditions.checkArgument(offset >= 0, "invalid offset");
+        Preconditions.checkArgument(limit > 0, "invalid limit %s, this projector only supports positive limits", limit);
+        Preconditions.checkArgument(offset >= 0, "invalid offset %s", offset);
 
         this.inputs = inputs;
         this.numOutputs = numOutputs;
         this.collectExpressions = collectExpressions;
         this.offset = offset;
 
-        if (limit == TopN.NO_LIMIT) {
-            limit = Constants.DEFAULT_SELECT_LIMIT;
-        }
         int maxSize = this.offset + limit;
         pq = new RowPriorityQueue<>(maxSize, ordering);
     }
@@ -124,8 +119,7 @@ public class SortingTopNProjector extends AbstractProjector {
     @Override
     public Set<Requirement> requirements() {
         if (requirements == null) {
-            requirements = Sets.newEnumSet(downstream.requirements(), Requirement.class);
-            requirements.remove(Requirement.REPEAT);
+            requirements = Requirements.remove(downstream.requirements(), Requirement.REPEAT);
         }
         return requirements;
     }

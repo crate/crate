@@ -22,9 +22,9 @@
 
 package io.crate.planner;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.Constants;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.SelectAnalyzedStatement;
@@ -36,6 +36,7 @@ import io.crate.analyze.symbol.Reference;
 import io.crate.exceptions.ValidationException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.TableIdent;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.ESGetStatementPlanner;
@@ -125,8 +126,9 @@ public class SelectStatementPlanner {
 
             CollectAndMerge qaf = (CollectAndMerge) plannedSubQuery;
             RoutedCollectPhase collectPhase = ((RoutedCollectPhase) qaf.collectPhase());
-            if (collectPhase.nodePageSizeHint() == null) {
-                collectPhase.nodePageSizeHint(Constants.DEFAULT_SELECT_LIMIT + querySpec.offset());
+            Optional<Integer> limit = querySpec.limit();
+            if (collectPhase.nodePageSizeHint() == null && limit.isPresent()) {
+                collectPhase.nodePageSizeHint(limit.get() + querySpec.offset());
             }
 
             Planner.Context.ReaderAllocations readerAllocations = context.buildReaderAllocations();
@@ -147,7 +149,7 @@ public class SelectStatementPlanner {
                     collectPhase.toCollect(),
                     null, // orderBy = null because stuff is pre-sorted in collectPhase and sortedLocalMerge is used
                     querySpec.offset(),
-                    querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT),
+                    querySpec.limit().or(TopN.NO_LIMIT),
                     null
             );
             if (!querySpec.orderBy().isPresent()) {
