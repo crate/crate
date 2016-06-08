@@ -26,10 +26,7 @@ import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.executor.transport.Transports;
-import io.crate.jobs.DownstreamExecutionSubContext;
-import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
-import io.crate.jobs.PageDownstreamContext;
+import io.crate.jobs.*;
 import io.crate.operation.PageResultListener;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.component.AbstractComponent;
@@ -112,23 +109,23 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
             return;
         }
 
-        PageDownstreamContext pageDownstreamContext = executionContext.pageDownstreamContext(request.executionPhaseInputId());
-        if (pageDownstreamContext == null) {
+        PageBucketReceiver pageBucketReceiver = executionContext.getBucketReceiver(request.executionPhaseInputId());
+        if (pageBucketReceiver == null) {
             listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
-                    "Couldn't find pageDownstreamContext for input %d", request.executionPhaseInputId())));
+                    "Couldn't find BucketReciever for input %d", request.executionPhaseInputId())));
             return;
         }
 
         Throwable throwable = request.throwable();
         if (throwable == null) {
-            request.streamers(pageDownstreamContext.streamer());
-            pageDownstreamContext.setBucket(
+            request.streamers(pageBucketReceiver.streamer());
+            pageBucketReceiver.setBucket(
                     request.bucketIdx(),
                     request.rows(),
                     request.isLast(),
                     new SendResponsePageResultListener(listener, request));
         } else {
-            pageDownstreamContext.failure(request.bucketIdx(), throwable);
+            pageBucketReceiver.failure(request.bucketIdx(), throwable);
             listener.onResponse(new DistributedResultResponse(false));
         }
     }

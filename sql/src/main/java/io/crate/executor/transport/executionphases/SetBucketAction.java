@@ -25,7 +25,7 @@ package io.crate.executor.transport.executionphases;
 import com.google.common.util.concurrent.FutureCallback;
 import io.crate.action.job.JobResponse;
 import io.crate.core.collections.Bucket;
-import io.crate.jobs.PageDownstreamContext;
+import io.crate.jobs.PageBucketReceiver;
 import org.elasticsearch.action.ActionListener;
 
 import javax.annotation.Nonnull;
@@ -33,13 +33,13 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 class SetBucketAction implements FutureCallback<List<Bucket>>, ActionListener<JobResponse> {
-    private final List<PageDownstreamContext> pageDownstreamContexts;
+    private final List<PageBucketReceiver> pageBucketReceivers;
     private final int bucketIdx;
     private final InitializationTracker initializationTracker;
     private final BucketResultListener bucketResultListener;
 
-    SetBucketAction(List<PageDownstreamContext> pageDownstreamContexts, int bucketIdx, InitializationTracker initializationTracker) {
-        this.pageDownstreamContexts = pageDownstreamContexts;
+    SetBucketAction(List<PageBucketReceiver> pageBucketReceivers, int bucketIdx, InitializationTracker initializationTracker) {
+        this.pageBucketReceivers = pageBucketReceivers;
         this.bucketIdx = bucketIdx;
         this.initializationTracker = initializationTracker;
         bucketResultListener = new BucketResultListener(bucketIdx);
@@ -53,35 +53,35 @@ class SetBucketAction implements FutureCallback<List<Bucket>>, ActionListener<Jo
             return;
         }
 
-        for (int i = 0; i < pageDownstreamContexts.size(); i++) {
-            PageDownstreamContext pageDownstreamContext = pageDownstreamContexts.get(i);
-            setBucket(pageDownstreamContext, result.get(i));
+        for (int i = 0; i < pageBucketReceivers.size(); i++) {
+            PageBucketReceiver pageBucketReceiver = pageBucketReceivers.get(i);
+            setBucket(pageBucketReceiver, result.get(i));
         }
     }
 
     @Override
     public void onResponse(JobResponse jobResponse) {
         initializationTracker.jobInitialized(null);
-        for (int i = 0; i < pageDownstreamContexts.size(); i++) {
-            PageDownstreamContext pageDownstreamContext = pageDownstreamContexts.get(i);
-            jobResponse.streamers(pageDownstreamContext.streamer());
-            setBucket(pageDownstreamContext, jobResponse.directResponse().get(i));
+        for (int i = 0; i < pageBucketReceivers.size(); i++) {
+            PageBucketReceiver pageBucketReceiver = pageBucketReceivers.get(i);
+            jobResponse.streamers(pageBucketReceiver.streamer());
+            setBucket(pageBucketReceiver, jobResponse.directResponse().get(i));
         }
     }
 
     @Override
     public void onFailure(@Nonnull Throwable t) {
         initializationTracker.jobInitialized(t);
-        for (PageDownstreamContext pageDownstreamContext : pageDownstreamContexts) {
-            pageDownstreamContext.failure(bucketIdx, t);
+        for (PageBucketReceiver pageBucketReceiver : pageBucketReceivers) {
+            pageBucketReceiver.failure(bucketIdx, t);
         }
     }
 
-    private void setBucket(PageDownstreamContext pageDownstreamContext, Bucket bucket) {
+    private void setBucket(PageBucketReceiver pageBucketReceiver, Bucket bucket) {
         if (bucket == null) {
-            pageDownstreamContext.failure(bucketIdx, new IllegalStateException("expected directResponse but didn't get one"));
+            pageBucketReceiver.failure(bucketIdx, new IllegalStateException("expected directResponse but didn't get one"));
             return;
         }
-        pageDownstreamContext.setBucket(bucketIdx, bucket, true, bucketResultListener);
+        pageBucketReceiver.setBucket(bucketIdx, bucket, true, bucketResultListener);
     }
 }

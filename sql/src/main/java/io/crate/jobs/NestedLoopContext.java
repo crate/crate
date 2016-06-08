@@ -38,24 +38,24 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
     private final FlatProjectorChain flatProjectorChain;
 
     @Nullable
-    private final PageDownstreamContext leftPageDownstreamContext;
+    private final PageBucketReceiver leftBucketReceiver;
     @Nullable
-    private final PageDownstreamContext rightPageDownstreamContext;
+    private final PageBucketReceiver rightBucketReceiver;
     private final ListenableRowReceiver leftRowReceiver;
     private final ListenableRowReceiver rightRowReceiver;
 
     public NestedLoopContext(ESLogger logger,
-                             NestedLoopPhase phase,
+                             NestedLoopPhase nestedLoopPhase,
                              FlatProjectorChain flatProjectorChain,
                              NestedLoopOperation nestedLoopOperation,
-                             @Nullable PageDownstreamContext leftPageDownstreamContext,
-                             @Nullable PageDownstreamContext rightPageDownstreamContext) {
-        super(phase.executionPhaseId(), logger);
+                             @Nullable PageBucketReceiver leftBucketReceiver,
+                             @Nullable PageBucketReceiver rightBucketReceiver) {
+        super(nestedLoopPhase.executionPhaseId(), logger);
 
-        nestedLoopPhase = phase;
+        this.nestedLoopPhase = nestedLoopPhase;
         this.flatProjectorChain = flatProjectorChain;
-        this.leftPageDownstreamContext = leftPageDownstreamContext;
-        this.rightPageDownstreamContext = rightPageDownstreamContext;
+        this.leftBucketReceiver = leftBucketReceiver;
+        this.rightBucketReceiver = rightBucketReceiver;
 
         leftRowReceiver = nestedLoopOperation.leftRowReceiver();
         rightRowReceiver = nestedLoopOperation.rightRowReceiver();
@@ -90,11 +90,11 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
 
     @Override
     protected void innerClose(@Nullable Throwable t) {
-        closeReceiver(t, leftPageDownstreamContext, leftRowReceiver);
-        closeReceiver(t, rightPageDownstreamContext, rightRowReceiver);
+        closeReceiver(t, leftBucketReceiver, leftRowReceiver);
+        closeReceiver(t, rightBucketReceiver, rightRowReceiver);
     }
 
-    private static void closeReceiver(@Nullable Throwable t, @Nullable PageDownstreamContext subContext, ListenableRowReceiver rowReceiver) {
+    private static void closeReceiver(@Nullable Throwable t, @Nullable PageBucketReceiver subContext, ListenableRowReceiver rowReceiver) {
         if (subContext == null && t != null) {
             rowReceiver.fail(t);
         }
@@ -102,31 +102,31 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
 
     @Override
     protected void innerKill(@Nullable Throwable t) {
-        killReceiver(t, leftPageDownstreamContext, leftRowReceiver);
-        killReceiver(t, rightPageDownstreamContext, rightRowReceiver);
+        killReceiver(t, leftBucketReceiver, leftRowReceiver);
+        killReceiver(t, rightBucketReceiver, rightRowReceiver);
     }
 
-    private static void killReceiver(Throwable t, @Nullable PageDownstreamContext subContext, ListenableRowReceiver rowReceiver) {
+    private static void killReceiver(Throwable t, @Nullable PageBucketReceiver subContext, ListenableRowReceiver rowReceiver) {
         if (subContext == null) {
             rowReceiver.kill(t);
         }
     }
 
     @Override
-    public PageDownstreamContext pageDownstreamContext(byte inputId) {
+    public PageBucketReceiver getBucketReceiver(byte inputId) {
         assert inputId < 2 : "Only 0 and 1 inputId's supported";
         if (inputId == 0) {
-            return leftPageDownstreamContext;
+            return leftBucketReceiver;
         }
-        return rightPageDownstreamContext;
+        return rightBucketReceiver;
     }
 
     @Override
     public String toString() {
         return "NestedLoopContext{" +
                "id=" + id() +
-               ", leftCtx=" + leftPageDownstreamContext +
-               ", rightCtx=" + rightPageDownstreamContext +
+               ", leftCtx=" + leftBucketReceiver +
+               ", rightCtx=" + rightBucketReceiver +
                ", closed=" + future.closed() +
                '}';
     }

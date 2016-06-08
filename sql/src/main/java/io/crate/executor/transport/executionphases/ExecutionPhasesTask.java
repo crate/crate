@@ -173,7 +173,7 @@ public class ExecutionPhasesTask extends JobTask {
             contextPreparer.prepareOnHandler(localNodeOperations, builder, handlerPhases, new SharedShardContexts(indicesService));
         JobExecutionContext localJobContext = jobContextService.createContext(builder);
 
-        List<PageDownstreamContext> pageDownstreamContexts = getHandlerPageDownstreamContexts(localJobContext, handlerPhases);
+        List<PageBucketReceiver> pageBucketReceivers = getHandlerBucketReceivers(localJobContext, handlerPhases);
         int bucketIdx = 0;
 
         if (!localNodeOperations.isEmpty()) {
@@ -181,19 +181,19 @@ public class ExecutionPhasesTask extends JobTask {
                 initializationTracker.jobInitialized(null);
             } else {
                 Futures.addCallback(Futures.allAsList(directResponseFutures),
-                    new SetBucketAction(pageDownstreamContexts, bucketIdx, initializationTracker));
+                    new SetBucketAction(pageBucketReceivers, bucketIdx, initializationTracker));
                 bucketIdx++;
             }
         }
         localJobContext.start();
-        sendJobRequests(localNodeId, operationByServer, pageDownstreamContexts, handlerPhases, bucketIdx, initializationTracker);
+        sendJobRequests(localNodeId, operationByServer, pageBucketReceivers, handlerPhases, bucketIdx, initializationTracker);
     }
 
 
 
     private void sendJobRequests(String localNodeId,
                                  Map<String, Collection<NodeOperation>> operationByServer,
-                                 List<PageDownstreamContext> pageDownstreamContexts,
+                                 List<PageBucketReceiver> pageBucketReceivers,
                                  List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
                                  int bucketIdx,
                                  InitializationTracker initializationTracker) {
@@ -202,7 +202,7 @@ public class ExecutionPhasesTask extends JobTask {
             JobRequest request = new JobRequest(jobId(), localNodeId, entry.getValue());
             if (hasDirectResponse) {
                 transportJobAction.execute(serverNodeId, request,
-                    new SetBucketAction(pageDownstreamContexts, bucketIdx, initializationTracker));
+                    new SetBucketAction(pageBucketReceivers, bucketIdx, initializationTracker));
             } else {
                 transportJobAction.execute(serverNodeId, request, new FailureOnlyResponseListener(handlerPhases, initializationTracker));
             }
@@ -210,17 +210,17 @@ public class ExecutionPhasesTask extends JobTask {
         }
     }
 
-    private List<PageDownstreamContext> getHandlerPageDownstreamContexts(JobExecutionContext jobExecutionContext,
-                                                                         List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases) {
-        final List<PageDownstreamContext> pageDownstreamContexts = new ArrayList<>(handlerPhases.size());
+    private List<PageBucketReceiver> getHandlerBucketReceivers(JobExecutionContext jobExecutionContext,
+                                                               List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases) {
+        final List<PageBucketReceiver> pageBucketReceivers = new ArrayList<>(handlerPhases.size());
         for (Tuple<ExecutionPhase, RowReceiver> handlerPhase : handlerPhases) {
             ExecutionSubContext ctx = jobExecutionContext.getSubContextOrNull(handlerPhase.v1().executionPhaseId());
             if (ctx instanceof DownstreamExecutionSubContext){
-                PageDownstreamContext pageDownstreamContext = ((DownstreamExecutionSubContext) ctx).pageDownstreamContext((byte) 0);
-                pageDownstreamContexts.add(pageDownstreamContext);
+                PageBucketReceiver pageBucketReceiver = ((DownstreamExecutionSubContext) ctx).getBucketReceiver((byte) 0);
+                pageBucketReceivers.add(pageBucketReceiver);
             }
         }
-        return pageDownstreamContexts;
+        return pageBucketReceivers;
     }
 
     @Override

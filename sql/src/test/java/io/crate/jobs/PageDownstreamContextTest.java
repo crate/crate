@@ -66,7 +66,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
             }
         }).when(pageDownstream).fail((Throwable)notNull());
 
-        PageDownstreamContext ctx = new PageDownstreamContext(Loggers.getLogger(PageDownstreamContext.class), "n1",
+        PageBucketReceiver ctx = new PageDownstreamContext(Loggers.getLogger(PageDownstreamContext.class), "n1",
                 1, "dummy", pageDownstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
 
         PageResultListener pageResultListener = mock(PageResultListener.class);

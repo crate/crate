@@ -39,7 +39,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Locale;
 
-public class PageDownstreamContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext {
+public class PageDownstreamContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext, PageBucketReceiver {
 
     private final Object lock = new Object();
     private final String nodeName;
@@ -98,6 +98,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         return exhausted.get(bucketIdx);
     }
 
+    @Override
     public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
         synchronized (listeners) {
             listeners.add(pageResultListener);
@@ -140,6 +141,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         }
     }
 
+    @Override
     public synchronized void failure(int bucketIdx, Throwable throwable) {
         // can't trigger failure on pageDownstream immediately as it would remove the context which the other
         // upstreams still require
@@ -184,6 +186,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         }
     }
 
+    @Override
     public Streamer<?>[] streamer() {
         return streamer;
     }
@@ -240,7 +243,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
     @Nullable
     @Override
-    public PageDownstreamContext pageDownstreamContext(byte inputId) {
+    public PageBucketReceiver getBucketReceiver(byte inputId) {
         assert inputId == 0 : "This downstream context only supports 1 input";
         return this;
     }
