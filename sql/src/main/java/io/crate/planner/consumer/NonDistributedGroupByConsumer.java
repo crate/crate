@@ -22,7 +22,6 @@ package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
@@ -39,9 +38,9 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
@@ -179,7 +178,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             boolean outputsMatch = table.querySpec().outputs().size() == collectOutputs.size() &&
                                     collectOutputs.containsAll(table.querySpec().outputs());
             if (isRootRelation || !outputsMatch) {
-                int limit = table.querySpec().limit().or(isRootRelation ? Constants.DEFAULT_SELECT_LIMIT : TopN.NO_LIMIT);
+                int limit = table.querySpec().limit().or(TopN.NO_LIMIT);
                 Integer offset = (isRootRelation ? table.querySpec().offset() : TopN.NO_OFFSET);
                 projections.add(ProjectionBuilder.topNProjection(
                         collectOutputs,

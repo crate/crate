@@ -23,7 +23,6 @@ package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
@@ -37,9 +36,9 @@ import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
@@ -154,9 +153,10 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                     collectOutputs.containsAll(table.querySpec().outputs());
             boolean collectorTopN = table.querySpec().limit().isPresent() || table.querySpec().offset() > 0 || !outputsMatch;
 
+            Optional<Integer> limit = table.querySpec().limit();
             int collectTopNLimit;
-            if (context.isRoot()) {
-                collectTopNLimit = table.querySpec().limit().or(Constants.DEFAULT_SELECT_LIMIT) + table.querySpec().offset();
+            if (context.isRoot() && limit.isPresent()) {
+                collectTopNLimit = limit.get() + table.querySpec().offset();
             } else {
                 collectTopNLimit = TopN.NO_LIMIT;
             }
@@ -180,7 +180,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             // handler
             List<Projection> handlerProjections = new ArrayList<>();
             MergePhase localMerge;
-            int topNLimit = table.querySpec().limit().or(context.isRoot() ? Constants.DEFAULT_SELECT_LIMIT : TopN.NO_LIMIT);
+            int topNLimit = table.querySpec().limit().or(TopN.NO_LIMIT);
             if (!ignoreSorting && collectorTopN && table.querySpec().orderBy().isPresent()) {
                 // handler receives sorted results from collect nodes
                 // we can do the sorting with a sorting bucket merger
