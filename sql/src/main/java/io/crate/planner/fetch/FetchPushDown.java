@@ -23,7 +23,6 @@ package io.crate.planner.fetch;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.DocTableRelation;
@@ -95,7 +94,7 @@ public class FetchPushDown {
 
         FetchRequiredVisitor.Context context;
         if (orderBy.isPresent()) {
-            context = new FetchRequiredVisitor.Context(new LinkedHashSet<>(querySpec.orderBy().get().orderBySymbols()));
+            context = new FetchRequiredVisitor.Context(new LinkedHashSet<>(orderBy.get().orderBySymbols()));
         } else {
             context = new FetchRequiredVisitor.Context();
 
@@ -144,7 +143,10 @@ public class FetchPushDown {
             querySpec.orderBy(new OrderBy(newOrderBySymbols, orderBy.get().reverseFlags(), orderBy.get().nullsFirst()));
         }
 
-        sub.limit(querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset());
+        Optional<Integer> limit = querySpec.limit();
+        if (limit.isPresent()) {
+            sub.limit(limit.get() + querySpec.offset());
+        }
         return subRelation;
     }
 
