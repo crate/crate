@@ -36,6 +36,8 @@ import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.projectors.fetch.FetchProjector;
+import io.crate.operation.projectors.fetch.FetchProjectorContext;
+import io.crate.operation.projectors.fetch.TransportFetchOperation;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.planner.projection.*;
@@ -362,17 +364,24 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitFetchProjection(FetchProjection projection, Context context) {
+        FetchProjectorContext projectorContext = new FetchProjectorContext(
+            projection.fetchSources(),
+            projection.nodeReaders(),
+            projection.readerIndices(),
+            projection.indicesToIdents()
+        );
         return new FetchProjector(
+            new TransportFetchOperation(
                 transportActionProvider.transportFetchNodeAction(),
-                threadPool,
-                symbolVisitor.functions(),
+                projectorContext.nodeIdsToStreamers(),
                 context.jobId,
-                projection.collectPhaseId(),
-                projection.fetchSources(),
-                projection.outputSymbols(),
-                projection.nodeReaders(),
-                projection.readerIndices(),
-                projection.indicesToIdents());
+                projection.collectPhaseId()
+            ),
+            threadPool.executor(ThreadPool.Names.SUGGEST),
+            symbolVisitor.functions(),
+            projection.outputSymbols(),
+            projectorContext
+        );
     }
 
     @Override
