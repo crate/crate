@@ -76,9 +76,31 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     }
 
     @Test
-    public void testOrderByWithoutLimitAndOffset() throws Exception {
+    public void testOrderBy() throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        Projector pipe = getProjector(2, TopN.NO_LIMIT, TopN.NO_OFFSET, rowReceiver);
+        Projector pipe = getProjector(1, 3, 5, rowReceiver);
+
+        int i;
+        for (i = 10; i > 0; i--) {   // 10 --> 1
+            pipe.setNextRow(spare(i));
+        }
+        assertThat(i, is(0)); // needs to collect all it can get
+        pipe.finish();
+        Bucket rows = rowReceiver.result();
+        assertThat(rows.size(), is(3));
+
+        int iterateLength = 0;
+        for (Row row : rows) {
+            assertThat(row, isRow(iterateLength + 6));
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(3));
+    }
+
+    @Test
+    public void testOrderByWithoutOffset() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        Projector pipe = getProjector(2, 10, TopN.NO_OFFSET, rowReceiver);
         int i;
         for (i = 10; i > 0; i--) {   // 10 --> 1
             if (!pipe.setNextRow(spare(i))) {
@@ -113,56 +135,36 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     }
 
     @Test
-    public void testOrderByWithoutLimit() throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        Projector pipe = getProjector(2, TopN.NO_LIMIT, 5, rowReceiver);
-        int i;
-        for (i = 10; i > 0; i--) {   // 10 --> 1
-            if (!pipe.setNextRow(spare(i))) {
-                break;
-            }
-        }
-        assertThat(i, is(0)); // needs to collect all it can get
-        pipe.finish();
-        Bucket rows = rowReceiver.result();
-        assertThat(rows.size(), is(5));
-        int iterateLength = 0;
-        for (Row row : rows) {
-            assertThat(row, isRow(iterateLength + 6, true));
-            iterateLength++;
-        }
-        assertThat(iterateLength, is(5));
+    public void testInvalidNegativeLimit() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid limit -1, this projector only supports positive limits");
+
+        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, -1, 0);
     }
 
     @Test
-    public void testOrderBy() throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        Projector pipe = getProjector(1, 3, 5, rowReceiver);
+    public void testInvalidZeroLimit() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid limit 0, this projector only supports positive limits");
 
-        int i;
-        for (i = 10; i > 0; i--) {   // 10 --> 1
-            pipe.setNextRow(spare(i));
-        }
-        assertThat(i, is(0)); // needs to collect all it can get
-        pipe.finish();
-        Bucket rows = rowReceiver.result();
-        assertThat(rows.size(), is(3));
-
-        int iterateLength = 0;
-        for (Row row : rows) {
-            assertThat(row, isRow(iterateLength + 6));
-            iterateLength++;
-        }
-        assertThat(iterateLength, is(3));
+        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, 0, 0);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testNegativeOffset() {
-        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, TopN.NO_LIMIT, -10);
+    @Test
+    public void testInvalidOffset() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid offset -1");
+
+        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, 1, -1);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testNegativeLimit() {
-        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, -100, 10);
+    @Test
+    public void testInvalidRepeat() throws Exception {
+        Projector projector = new SortingTopNProjector(null, null, 2, null, 1, 1);
+
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("repeat() not supported");
+
+        projector.repeat();
     }
 }

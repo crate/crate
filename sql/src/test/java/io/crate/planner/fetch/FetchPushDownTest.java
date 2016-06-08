@@ -107,7 +107,7 @@ public class FetchPushDownTest {
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
         assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), FETCH(INPUT(0), s.t._doc['i'])"));
-        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid LIMIT 10000"));
+        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid"));
     }
 
     @Test
@@ -118,7 +118,7 @@ public class FetchPushDownTest {
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
         assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), INPUT(1) ORDER BY INPUT(1) DESC NULLS LAST"));
-        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, s.t.i ORDER BY s.t.i DESC NULLS LAST LIMIT 10000"));
+        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, s.t.i ORDER BY s.t.i DESC NULLS LAST"));
     }
 
     private Function abs(Symbol symbol){
@@ -135,7 +135,7 @@ public class FetchPushDownTest {
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
         assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), FETCH(INPUT(0), s.t._doc['i']) ORDER BY INPUT(1) DESC NULLS LAST"));
-        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, abs(s.t.i) ORDER BY abs(s.t.i) DESC NULLS LAST LIMIT 10000"));
+        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, abs(s.t.i) ORDER BY abs(s.t.i) DESC NULLS LAST"));
     }
 
 
@@ -150,7 +150,7 @@ public class FetchPushDownTest {
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
         assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), FETCH(INPUT(0), s.t._doc['i']), INPUT(1) ORDER BY INPUT(1) DESC NULLS LAST"));
-        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, abs(s.t.i) ORDER BY abs(s.t.i) DESC NULLS LAST LIMIT 10000"));
+        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, abs(s.t.i) ORDER BY abs(s.t.i) DESC NULLS LAST"));
     }
 
 
@@ -164,7 +164,7 @@ public class FetchPushDownTest {
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
         assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), INPUT(1), abs(INPUT(1)) ORDER BY INPUT(1) DESC NULLS LAST"));
-        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, s.t.i ORDER BY s.t.i DESC NULLS LAST LIMIT 10000"));
+        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, s.t.i ORDER BY s.t.i DESC NULLS LAST"));
     }
 
 
@@ -195,6 +195,6 @@ public class FetchPushDownTest {
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
         assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), INPUT(1), INPUT(2) ORDER BY INPUT(1) DESC NULLS LAST"));
-        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, s.t.i, s.t._score ORDER BY s.t.i DESC NULLS LAST LIMIT 10000"));
+        assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, s.t.i, s.t._score ORDER BY s.t.i DESC NULLS LAST"));
     }
 }
