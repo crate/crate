@@ -42,7 +42,6 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 
-import java.util.Collections;
 import java.util.List;
 
 public class DropTableTask extends JobTask {
@@ -55,7 +54,6 @@ public class DropTableTask extends JobTask {
     private final TransportDeleteIndexTemplateAction deleteTemplateAction;
     private final TransportDeleteIndexAction deleteIndexAction;
     private final boolean ifExists;
-    private final List<ListenableFuture<TaskResult>> resultList;
     private final SettableFuture<TaskResult> result;
 
     public DropTableTask(DropTablePlan plan,
@@ -67,11 +65,10 @@ public class DropTableTask extends JobTask {
         this.deleteTemplateAction = deleteTemplateAction;
         this.deleteIndexAction = deleteIndexAction;
         this.result = SettableFuture.create();
-        this.resultList = Collections.<ListenableFuture<TaskResult>>singletonList(result);
     }
 
     @Override
-    public void start() {
+    public ListenableFuture<TaskResult> execute() {
         if (tableInfo.isPartitioned()) {
             String templateName = PartitionName.templateName(tableInfo.ident().schema(), tableInfo.ident().name());
             deleteTemplateAction.execute(new DeleteIndexTemplateRequest(templateName), new ActionListener<DeleteIndexTemplateResponse>() {
@@ -101,17 +98,13 @@ public class DropTableTask extends JobTask {
         } else {
             deleteESIndex(tableInfo.ident().indexName());
         }
+
+        return result;
     }
 
     @Override
-    public List<? extends ListenableFuture<TaskResult>> result() {
-        return resultList;
-    }
-
-    private void warnNotAcknowledged() {
-        if (logger.isWarnEnabled()) {
-            logger.warn("Dropping table {} was not acknowledged. This could lead to inconsistent state.", tableInfo.ident());
-        }
+    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
+        throw new UnsupportedOperationException("drop table task cannot be executed as bulk operation");
     }
 
     private void deleteESIndex(String indexOrAlias) {
@@ -132,8 +125,8 @@ public class DropTableTask extends JobTask {
             public void onFailure(Throwable e) {
                 if (tableInfo.isPartitioned()) {
                     logger.warn("Could not (fully) delete all partitions of {}. " +
-                            "Some orphaned partitions might still exist, " +
-                            "but are not accessible.", e, tableInfo.ident().fqn());
+                                "Some orphaned partitions might still exist, " +
+                                "but are not accessible.", e, tableInfo.ident().fqn());
                 }
                 if (ifExists && e instanceof IndexNotFoundException) {
                     result.set(TaskResult.ZERO);
@@ -142,5 +135,11 @@ public class DropTableTask extends JobTask {
                 }
             }
         });
+    }
+
+    private void warnNotAcknowledged() {
+        if (logger.isWarnEnabled()) {
+            logger.warn("Dropping table {} was not acknowledged. This could lead to inconsistent state.", tableInfo.ident());
+        }
     }
 }

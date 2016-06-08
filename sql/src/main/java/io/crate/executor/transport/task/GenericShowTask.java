@@ -44,16 +44,6 @@ public class GenericShowTask implements Task {
     }
 
     @Override
-    public void start() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public List<? extends ListenableFuture<TaskResult>> result() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public ListenableFuture<TaskResult> execute() {
         try {
             return Futures.immediateFuture(showStatementDispatcher.process(statement, jobId));

@@ -22,7 +22,6 @@
 package io.crate.executor.transport.task;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.ActionListeners;
@@ -47,25 +46,24 @@ public class KillTask extends JobTask {
             return input == null ? null : new RowCountResult(input.numKilled());
         }
     };
-    private final List<ListenableFuture<TaskResult>> results;
     private final TransportKillAllNodeAction nodeAction;
-    private final ActionListener<KillResponse> actionListener;
 
     public KillTask(TransportKillAllNodeAction nodeAction, UUID jobId) {
         super(jobId);
         this.nodeAction = nodeAction;
+    }
+
+    @Override
+    public ListenableFuture<TaskResult> execute() {
         SettableFuture<TaskResult> result = SettableFuture.create();
-        results = ImmutableList.of((ListenableFuture<TaskResult>) result);
-        actionListener = ActionListeners.wrap(result, RESPONSE_TO_TASK_RESULT);
-    }
-
-    @Override
-    public void start() {
+        ActionListener<KillResponse> actionListener = ActionListeners.wrap(result, RESPONSE_TO_TASK_RESULT);
         nodeAction.broadcast(new KillAllRequest(), actionListener);
+
+        return result;
     }
 
     @Override
-    public List<ListenableFuture<TaskResult>> result() {
-        return results;
+    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
+        throw new UnsupportedOperationException("kill task cannot be executed as bulk operation");
     }
 }

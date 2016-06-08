@@ -29,32 +29,13 @@ import java.util.List;
  * A task gets executed as part of or in the context of a
  * {@linkplain io.crate.executor.Job} and returns a result asynchronously
  * as a list of futures.
- *
- * create a task, call {@linkplain #start()} and wait for the futures returned
- * by {@linkplain #result()} to return the result or raise an exception.
- *
+ * <p>
+ * create a task, call {@linkplain #execute()} or {@linkplain #executeBulk()}
+ * and wait for the futures returned to fetch the result or raise an exception.
  *
  * @see io.crate.executor.Job
- *
  */
 public interface Task {
-
-    /**
-     * start the execution
-     * @deprecated use executeBulk() or execute()
-     */
-    @Deprecated
-    void start();
-
-    /**
-     * Get the result of the task execution as a list of
-     * {@linkplain com.google.common.util.concurrent.ListenableFuture} instances.
-     * This method may be called before {@linkplain #start()} is called.
-     * @deprecated use executeBulk() or execute()
-     */
-    @Deprecated
-    List<? extends ListenableFuture<TaskResult>> result();
-
 
     /**
      * execute the task
@@ -63,6 +44,7 @@ public interface Task {
 
     /**
      * execute the bulk operation
+     *
      * @throws UnsupportedOperationException if the task doesn't support bulk operations
      */
     List<? extends ListenableFuture<TaskResult>> executeBulk();

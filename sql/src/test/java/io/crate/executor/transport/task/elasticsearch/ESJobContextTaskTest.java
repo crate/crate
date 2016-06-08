@@ -47,16 +47,16 @@ import static org.mockito.Mockito.mock;
 public class ESJobContextTaskTest extends CrateUnitTest {
 
     private final JobContextService jobContextService = new JobContextService(
-            Settings.EMPTY, new NoopClusterService(), mock(StatsTables.class));
+        Settings.EMPTY, new NoopClusterService(), mock(StatsTables.class));
 
     private JobTask createTask(UUID jobId) {
         EsJobContextTask task = new EsJobContextTask(jobId, 1, 1, jobContextService);
-        task.results.add(SettableFuture.<TaskResult>create());
         task.createContext("test",
-                ImmutableList.of(new DummyRequest()),
-                ImmutableList.of(new DummyListener()),
-                mock(TransportAction.class),
-                null);
+            ImmutableList.of(new DummyRequest()),
+            ImmutableList.of(new DummyListener()),
+            mock(TransportAction.class),
+            null);
+        task.results.add(SettableFuture.<TaskResult>create());
         return task;
     }
 
@@ -80,8 +80,7 @@ public class ESJobContextTaskTest extends CrateUnitTest {
         ExecutionSubContext subContext = jobExecutionContext.getSubContext(1);
         subContext.kill(null);
 
-        assertThat(task.result().size(), is(1));
-        assertThat(task.result().get(0).isCancelled(), is(true));
+        assertThat(task.execute().isCancelled(), is(true));
         assertNull(jobExecutionContext.getSubContextOrNull(1));
     }
 

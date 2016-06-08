@@ -21,7 +21,6 @@
 
 package io.crate.executor.task;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -40,8 +39,6 @@ public class DDLTask extends JobTask {
 
     private final AnalyzedStatement analyzedStatement;
     private DDLStatementDispatcher ddlStatementDispatcher;
-    private SettableFuture<TaskResult> result = SettableFuture.create();
-    private List<ListenableFuture<TaskResult>> results = ImmutableList.<ListenableFuture<TaskResult>>of(result);
 
     public DDLTask(UUID jobId, DDLStatementDispatcher ddlStatementDispatcher, AnalyzedStatement analyzedStatement) {
         super(jobId);
@@ -50,7 +47,9 @@ public class DDLTask extends JobTask {
     }
 
     @Override
-    public void start() {
+    public ListenableFuture<TaskResult> execute() {
+        final SettableFuture<TaskResult> result = SettableFuture.create();
+
         ListenableFuture<Long> future = ddlStatementDispatcher.dispatch(analyzedStatement, jobId());
         Futures.addCallback(future, new FutureCallback<Long>() {
             @Override
@@ -67,10 +66,12 @@ public class DDLTask extends JobTask {
                 result.setException(t);
             }
         });
+
+        return result;
     }
 
     @Override
-    public List<? extends ListenableFuture<TaskResult>> result() {
-        return results;
+    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
+        throw new UnsupportedOperationException("DDL task cannot be executed as bulk operation");
     }
 }

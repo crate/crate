@@ -33,23 +33,19 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequ
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 
-import java.util.Collections;
 import java.util.List;
 
 public class ESClusterUpdateSettingsTask extends JobTask {
 
-    private final List<ListenableFuture<TaskResult>> results;
     private final TransportClusterUpdateSettingsAction transport;
     private final ClusterUpdateSettingsRequest request;
     private final ActionListener<ClusterUpdateSettingsResponse> listener;
+    private final SettableFuture<TaskResult> result;
 
     public ESClusterUpdateSettingsTask(ESClusterUpdateSettingsPlan plan,
                                        TransportClusterUpdateSettingsAction transport) {
         super(plan.jobId());
         this.transport = transport;
-
-        final SettableFuture<TaskResult> result = SettableFuture.create();
-        results = Collections.<ListenableFuture<TaskResult>>singletonList(result);
 
         request = new ClusterUpdateSettingsRequest();
         request.persistentSettings(plan.persistentSettings());
@@ -60,16 +56,18 @@ public class ESClusterUpdateSettingsTask extends JobTask {
         if (plan.transientSettingsToRemove() != null) {
             request.transientSettingsToRemove(plan.transientSettingsToRemove());
         }
+        result = SettableFuture.create();
         listener = ActionListeners.wrap(result, Functions.constant(TaskResult.ONE_ROW));
     }
 
     @Override
-    public void start() {
+    public ListenableFuture<TaskResult> execute() {
         transport.execute(request, listener);
+        return result;
     }
 
     @Override
-    public List<? extends ListenableFuture<TaskResult>> result() {
-        return results;
+    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
+        throw new UnsupportedOperationException("cluster update settings task cannot be executed as bulk operation");
     }
 }

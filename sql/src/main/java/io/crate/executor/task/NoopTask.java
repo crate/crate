@@ -32,23 +32,13 @@ import java.util.List;
 public class NoopTask implements Task {
 
     private static final List<ListenableFuture<TaskResult>> EMPTY_RESULT =
-            ImmutableList.<ListenableFuture<TaskResult>>of(
-                    Futures.immediateFuture((TaskResult) TaskResult.EMPTY_RESULT)
-            );
+        ImmutableList.of(
+            Futures.immediateFuture((TaskResult) TaskResult.EMPTY_RESULT)
+        );
 
     public static final NoopTask INSTANCE = new NoopTask();
 
     private NoopTask() {
-    }
-
-    @Override
-    public void start() {
-
-    }
-
-    @Override
-    public List<? extends ListenableFuture<TaskResult>> result() {
-        return EMPTY_RESULT;
     }
 
     @Override

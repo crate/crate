@@ -44,16 +44,6 @@ public class ExplainTask implements Task {
     }
 
     @Override
-    public void start() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public List<? extends ListenableFuture<TaskResult>> result() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public ListenableFuture<TaskResult> execute() {
         try {
             Map<String, Object> map = PlanPrinter.objectMap(explainPlan.subPlan());

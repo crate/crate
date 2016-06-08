@@ -153,11 +153,6 @@ public class ExecutionPhasesTask extends JobTask {
         return results;
     }
 
-    @Override
-    public void start() {
-        throw new UnsupportedOperationException("start is deprecated and shouldn't be used");
-    }
-
     private void setupContext(Map<String, Collection<NodeOperation>> operationByServer,
                               List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
                               InitializationTracker initializationTracker) throws Throwable {
@@ -190,7 +185,6 @@ public class ExecutionPhasesTask extends JobTask {
     }
 
 
-
     private void sendJobRequests(String localNodeId,
                                  Map<String, Collection<NodeOperation>> operationByServer,
                                  List<PageBucketReceiver> pageBucketReceivers,
@@ -215,16 +209,11 @@ public class ExecutionPhasesTask extends JobTask {
         final List<PageBucketReceiver> pageBucketReceivers = new ArrayList<>(handlerPhases.size());
         for (Tuple<ExecutionPhase, RowReceiver> handlerPhase : handlerPhases) {
             ExecutionSubContext ctx = jobExecutionContext.getSubContextOrNull(handlerPhase.v1().executionPhaseId());
-            if (ctx instanceof DownstreamExecutionSubContext){
+            if (ctx instanceof DownstreamExecutionSubContext) {
                 PageBucketReceiver pageBucketReceiver = ((DownstreamExecutionSubContext) ctx).getBucketReceiver((byte) 0);
                 pageBucketReceivers.add(pageBucketReceiver);
             }
         }
         return pageBucketReceivers;
-    }
-
-    @Override
-    public List<? extends ListenableFuture<TaskResult>> result() {
-        throw new UnsupportedOperationException("result is deprecated and shouldn't be used");
     }
 }

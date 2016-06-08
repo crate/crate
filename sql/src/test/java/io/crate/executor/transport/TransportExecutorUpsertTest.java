@@ -51,10 +51,7 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.search.SearchHits;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
@@ -111,7 +108,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             null,
             new Reference[]{idRef, nameRef});
 
-        PartitionName partitionName = new PartitionName("parted", Arrays.asList(new BytesRef("13959981214861")));
+        PartitionName partitionName = new PartitionName("parted", Collections.singletonList(new BytesRef("13959981214861")));
         upsertById.add(partitionName.asIndexName(), "123", "123", null, null, new Object[]{0L, new BytesRef("Trillian")});
 
         Bucket indexResult = executor.execute(upsertById).get(5, TimeUnit.SECONDS).rows();
@@ -120,20 +117,20 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         refresh();
 
         assertTrue(
-                client().admin().indices().prepareExists(partitionName.asIndexName())
-                        .execute().actionGet().isExists()
+            client().admin().indices().prepareExists(partitionName.asIndexName())
+                .execute().actionGet().isExists()
         );
         assertTrue(
-                client().admin().indices().prepareAliasesExist("parted")
-                        .execute().actionGet().exists()
+            client().admin().indices().prepareAliasesExist("parted")
+                .execute().actionGet().exists()
         );
         SearchHits hits = client().prepareSearch(partitionName.asIndexName())
-                .setTypes(Constants.DEFAULT_MAPPING_TYPE)
-                .addFields("id", "name")
-                .setQuery(new MapBuilder<String, Object>()
-                                .put("match_all", new HashMap<String, Object>())
-                                .map()
-                ).execute().actionGet().getHits();
+            .setTypes(Constants.DEFAULT_MAPPING_TYPE)
+            .addFields("id", "name")
+            .setQuery(new MapBuilder<String, Object>()
+                .put("match_all", new HashMap<String, Object>())
+                .map()
+            ).execute().actionGet().getHits();
         assertThat(hits.getTotalHits(), is(1L));
         assertThat((Integer) hits.getHits()[0].field("id").getValues().get(0), is(0));
         assertThat((String) hits.getHits()[0].field("name").getValues().get(0), is("Trillian"));
@@ -165,9 +162,10 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         Plan getPlan = newGetNode("characters", outputs, Arrays.asList("99", "42"), ctx.nextExecutionPhaseId());
         Bucket bucket = executor.execute(getPlan).get(5, TimeUnit.SECONDS).rows();
 
+        //noinspection unchecked
         assertThat(bucket, contains(
-                isRow(99, "Marvin"),
-                isRow(42, "Deep Thought")
+            isRow(99, "Marvin"),
+            isRow(42, "Deep Thought")
         ));
     }
 
@@ -255,78 +253,79 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         Planner.Context plannerContext = newPlannerContext();
 
         TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
+        assert tableInfo != null;
         Reference uidReference = new Reference(
-                new ReferenceInfo(
-                        new ReferenceIdent(tableInfo.ident(), "_uid"),
-                        RowGranularity.DOC, DataTypes.STRING));
+            new ReferenceInfo(
+                new ReferenceIdent(tableInfo.ident(), "_uid"),
+                RowGranularity.DOC, DataTypes.STRING));
 
         // 1st collect and merge nodes
         Function query = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.BOOLEAN)),
-                DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(femaleRef, Literal.newLiteral(true)));
+            new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.BOOLEAN)),
+            DataTypes.BOOLEAN),
+            Arrays.asList(femaleRef, Literal.newLiteral(true)));
 
         UpdateProjection updateProjection = new UpdateProjection(
-                new InputColumn(0, DataTypes.STRING),
-                new String[]{"name"},
-                new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")},
-                null);
+            new InputColumn(0, DataTypes.STRING),
+            new String[]{"name"},
+            new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")},
+            null);
 
         WhereClause whereClause = new WhereClause(query);
         RoutedCollectPhase collectPhase1 = new RoutedCollectPhase(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(),
-                "collect",
-                plannerContext.allocateRouting(tableInfo, whereClause, Preference.PRIMARY.type()),
-                RowGranularity.DOC,
-                ImmutableList.<Symbol>of(uidReference),
-                ImmutableList.<Projection>of(updateProjection),
-                whereClause,
-                DistributionInfo.DEFAULT_BROADCAST
+            plannerContext.jobId(),
+            plannerContext.nextExecutionPhaseId(),
+            "collect",
+            plannerContext.allocateRouting(tableInfo, whereClause, Preference.PRIMARY.type()),
+            RowGranularity.DOC,
+            ImmutableList.<Symbol>of(uidReference),
+            ImmutableList.<Projection>of(updateProjection),
+            whereClause,
+            DistributionInfo.DEFAULT_BROADCAST
         );
         MergePhase mergeNode1 = MergePhase.localMerge(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(),
-                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
-                collectPhase1.executionNodes().size(),
-                collectPhase1.outputTypes());
+            plannerContext.jobId(),
+            plannerContext.nextExecutionPhaseId(),
+            ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
+            collectPhase1.executionNodes().size(),
+            collectPhase1.outputTypes());
         childNodes.add(new CollectAndMerge(collectPhase1, mergeNode1));
 
         // 2nd collect and merge nodes
         Function query2 = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.BOOLEAN)),
-                DataTypes.BOOLEAN),
-                Arrays.<Symbol>asList(femaleRef, Literal.newLiteral(true)));
+            new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.BOOLEAN)),
+            DataTypes.BOOLEAN),
+            Arrays.asList(femaleRef, Literal.newLiteral(true)));
 
         final WhereClause whereClause1 = new WhereClause(query2);
         RoutedCollectPhase collectPhase2 = new RoutedCollectPhase(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(),
-                "collect",
-                plannerContext.allocateRouting(tableInfo, whereClause1, Preference.PRIMARY.type()),
-                RowGranularity.DOC,
-                ImmutableList.<Symbol>of(uidReference),
-                ImmutableList.<Projection>of(updateProjection),
-                whereClause1,
-                DistributionInfo.DEFAULT_BROADCAST
+            plannerContext.jobId(),
+            plannerContext.nextExecutionPhaseId(),
+            "collect",
+            plannerContext.allocateRouting(tableInfo, whereClause1, Preference.PRIMARY.type()),
+            RowGranularity.DOC,
+            ImmutableList.<Symbol>of(uidReference),
+            ImmutableList.<Projection>of(updateProjection),
+            whereClause1,
+            DistributionInfo.DEFAULT_BROADCAST
         );
         MergePhase mergeNode2 = MergePhase.localMerge(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(),
-                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
-                collectPhase2.executionNodes().size(),
-                collectPhase2.outputTypes());
+            plannerContext.jobId(),
+            plannerContext.nextExecutionPhaseId(),
+            ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
+            collectPhase2.executionNodes().size(),
+            collectPhase2.outputTypes());
         childNodes.add(new CollectAndMerge(collectPhase2, mergeNode2));
 
         Upsert plan = new Upsert(childNodes, plannerContext.jobId());
         List<? extends ListenableFuture<TaskResult>> results = executor.executeBulk(plan);
         assertThat(results.size(), is(2));
 
-        for (int i = 0; i < results.size(); i++) {
-            TaskResult result = results.get(i).get();
+        for (ListenableFuture<TaskResult> result1 : results) {
+            TaskResult result = result1.get();
             assertThat(result, instanceOf(RowCountResult.class));
             // each of the bulk request hits 2 records
-            assertThat(((RowCountResult)result).rowCount(), is(2L));
+            assertThat(((RowCountResult) result).rowCount(), is(2L));
         }
     }
 }

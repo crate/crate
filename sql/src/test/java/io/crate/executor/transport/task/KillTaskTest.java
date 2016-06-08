@@ -33,14 +33,13 @@ import static org.mockito.Mockito.*;
 
 public class KillTaskTest extends CrateUnitTest {
 
-
     @SuppressWarnings("unchecked")
     @Test
     public void testKillTaskCallsBroadcastOnTransportKillAllNodeAction() throws Exception {
         TransportKillAllNodeAction killAllNodeAction = mock(TransportKillAllNodeAction.class);
-        KillTask task =  new KillTask(killAllNodeAction, UUID.randomUUID());
+        KillTask task = new KillTask(killAllNodeAction, UUID.randomUUID());
 
-        task.start();
+        task.execute();
         verify(killAllNodeAction, times(1)).broadcast(any(KillAllRequest.class), any(ActionListener.class));
         verify(killAllNodeAction, times(0)).nodeOperation(any(KillAllRequest.class), any(ActionListener.class));
     }

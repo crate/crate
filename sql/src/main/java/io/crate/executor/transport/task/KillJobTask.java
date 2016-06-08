@@ -37,25 +37,21 @@ import java.util.UUID;
 
 public class KillJobTask extends JobTask {
 
-    private final SettableFuture<TaskResult> result;
-    private final List<ListenableFuture<TaskResult>> results;
     private final UUID jobToKill;
     private final TransportKillJobsNodeAction nodeAction;
-
 
     public KillJobTask(TransportKillJobsNodeAction nodeAction,
                        UUID jobId,
                        UUID jobToKill) {
         super(jobId);
         this.nodeAction = nodeAction;
-        result = SettableFuture.create();
-        results = ImmutableList.of((ListenableFuture<TaskResult>) result);
         this.jobToKill = jobToKill;
     }
 
     @Override
-    public void start() {
+    public ListenableFuture<TaskResult> execute() {
         KillJobsRequest request = new KillJobsRequest(ImmutableList.of(jobToKill));
+        final SettableFuture<TaskResult> result = SettableFuture.create();
 
         nodeAction.executeKillOnAllNodes(request, new ActionListener<KillResponse>() {
             @Override
@@ -68,10 +64,12 @@ public class KillJobTask extends JobTask {
                 result.setException(e);
             }
         });
+
+        return result;
     }
 
     @Override
-    public List<ListenableFuture<TaskResult>> result() {
-        return results;
+    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
+        throw new UnsupportedOperationException("kill job task cannot be executed as bulk operation");
     }
 }

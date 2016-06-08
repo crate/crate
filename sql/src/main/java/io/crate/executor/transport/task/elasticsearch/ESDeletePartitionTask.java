@@ -32,7 +32,6 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.support.IndicesOptions;
 
-import java.util.Collections;
 import java.util.List;
 
 public class ESDeletePartitionTask extends JobTask {
@@ -43,7 +42,17 @@ public class ESDeletePartitionTask extends JobTask {
     private final DeleteIndexRequest request;
     private final ActionListener<DeleteIndexResponse> listener;
     private final SettableFuture<TaskResult> result;
-    private final List<? extends ListenableFuture<TaskResult>> results;
+
+    @Override
+    public ListenableFuture<TaskResult> execute() {
+        transport.execute(request, listener);
+        return result;
+    }
+
+    @Override
+    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
+        throw new UnsupportedOperationException("delete partition task cannot be executed as bulk operation");
+    }
 
     private static class DeleteIndexListener implements ActionListener<DeleteIndexResponse> {
 
@@ -67,7 +76,6 @@ public class ESDeletePartitionTask extends JobTask {
     public ESDeletePartitionTask(ESDeletePartition esDeletePartition, TransportDeleteIndexAction transport) {
         super(esDeletePartition.jobId());
         result = SettableFuture.create();
-        results = Collections.singletonList(result);
         this.transport = transport;
         this.request = new DeleteIndexRequest(esDeletePartition.indices());
 
@@ -78,15 +86,5 @@ public class ESDeletePartitionTask extends JobTask {
          */
         this.request.indicesOptions(IndicesOptions.lenientExpandOpen());
         this.listener = new DeleteIndexListener(result);
-    }
-
-    @Override
-    public void start() {
-        transport.execute(request, listener);
-    }
-
-    @Override
-    public List<? extends ListenableFuture<TaskResult>> result() {
-        return results;
     }
 }

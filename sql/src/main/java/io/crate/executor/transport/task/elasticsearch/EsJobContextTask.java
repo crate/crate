@@ -38,17 +38,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class EsJobContextTask extends JobTask {
+class EsJobContextTask extends JobTask {
 
     protected final List<SettableFuture<TaskResult>> results;
     protected final int executionPhaseId;
     private final JobContextService jobContextService;
     protected JobExecutionContext context;
 
-    public EsJobContextTask(UUID jobId,
-                            int executionPhaseId,
-                            int numResults,
-                            JobContextService jobContextService) {
+    EsJobContextTask(UUID jobId,
+                     int executionPhaseId,
+                     int numResults,
+                     JobContextService jobContextService) {
         super(jobId);
         this.executionPhaseId = executionPhaseId;
         this.jobContextService = jobContextService;
@@ -61,14 +61,26 @@ public class EsJobContextTask extends JobTask {
                                  TransportAction transportAction,
                                  @Nullable FlatProjectorChain projectorChain) {
         ESJobContext esJobContext = new ESJobContext(executionPhaseId, operationName,
-                requests, listeners, results, transportAction, projectorChain);
+            requests, listeners, results, transportAction, projectorChain);
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
         contextBuilder.addSubContext(esJobContext);
         context = jobContextService.createContext(contextBuilder);
     }
 
     @Override
-    final public void start() {
+    public ListenableFuture<TaskResult> execute() {
+        assert context != null : "Context must be created first";
+        SettableFuture<TaskResult> result = results.get(0);
+        try {
+            context.start();
+        } catch (Throwable throwable) {
+            result.setException(throwable);
+        }
+        return result;
+    }
+
+    @Override
+    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
         assert context != null : "Context must be created first";
         try {
             context.start();
@@ -77,11 +89,6 @@ public class EsJobContextTask extends JobTask {
                 result.setException(throwable);
             }
         }
-    }
-
-    @Override
-    final public List<? extends ListenableFuture<TaskResult>> result() {
-        assert results.size() > 0 : "Result list is empty, sub-class muss add at least one";
         return results;
     }
 }
