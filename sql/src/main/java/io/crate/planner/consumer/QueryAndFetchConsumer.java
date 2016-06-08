@@ -23,7 +23,6 @@ package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
@@ -39,6 +38,7 @@ import io.crate.collections.Lists2;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.operation.predicate.MatchPredicate;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.MergePhase;
@@ -139,12 +139,12 @@ public class QueryAndFetchConsumer implements Consumer {
 
                 List<Projection> projections = ImmutableList.of();
                 Integer nodePageSizeHint = null;
-                if (context.isRoot() || querySpec.limit().isPresent()) {
-                    int limit = querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT);
-                    TopNProjection topNProjection = new TopNProjection(querySpec.offset() + limit, 0);
+                Optional<Integer> limit = querySpec.limit();
+                if (limit.isPresent()) {
+                    TopNProjection topNProjection = new TopNProjection(querySpec.offset() + limit.get(), 0);
                     topNProjection.outputs(allOutputs);
                     projections = ImmutableList.<Projection>of(topNProjection);
-                    nodePageSizeHint = limit + querySpec.offset();
+                    nodePageSizeHint = limit.get() + querySpec.offset();
                 }
                 collectPhase = RoutedCollectPhase.forQueriedTable(
                         plannerContext,
@@ -157,7 +157,7 @@ public class QueryAndFetchConsumer implements Consumer {
 
                 // MERGE
                 if (context.isRoot()) {
-                    TopNProjection tnp = new TopNProjection(querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT), querySpec.offset());
+                    TopNProjection tnp = new TopNProjection(querySpec.limit().or(TopN.NO_LIMIT), querySpec.offset());
                     tnp.outputs(finalOutputs);
                     if (!orderBy.isPresent()) {
                         // no sorting needed

@@ -40,7 +40,7 @@ public class Buckets {
         };
     }
 
-    static Function<Object[], Row> arrayToRowFunction(final int numColumns) {
+    public static Function<Object[], Row> arrayToRowFunction(final int numColumns) {
         return new Function<Object[], Row>() {
             final RowN row = new RowN(numColumns);
 
