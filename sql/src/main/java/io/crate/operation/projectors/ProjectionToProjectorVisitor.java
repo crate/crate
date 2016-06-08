@@ -35,6 +35,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
+import io.crate.operation.projectors.fetch.FetchProjector;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.planner.projection.*;

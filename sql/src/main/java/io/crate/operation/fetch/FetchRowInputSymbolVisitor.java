@@ -31,7 +31,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.BaseImplementationSymbolVisitor;
 import io.crate.operation.Input;
-import io.crate.operation.projectors.FetchProjector;
+import io.crate.operation.projectors.fetch.FetchProjector;
 import io.crate.planner.node.fetch.FetchSource;
 
 import java.util.Map;
