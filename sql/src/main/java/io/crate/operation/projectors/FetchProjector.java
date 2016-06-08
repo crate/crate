@@ -58,6 +58,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class FetchProjector extends AbstractProjector {
 
+
     enum Stage {
         INIT,
         COLLECT,
@@ -74,20 +75,20 @@ public class FetchProjector extends AbstractProjector {
 
     // TODO: add an estimate to the constructor
     private final ArrayList<Object[]> inputValues = new ArrayList<>();
+    private final Executor resultExecutor;
 
+    /**
+     * map from nodeId -> readerIds
+     */
     private final Map<String, IntSet> nodeReaders;
 
-    private final ThreadPool threadPool;
     private final UUID jobId;
     private final int collectPhaseId;
-    private final Map<TableIdent, FetchSource> fetchSources;
-    private final TreeMap<Integer, String> readerIndices;
-    private final Map<String, TableIdent> indicesToIdents;
     private final Row outputRow;
     private final AtomicInteger remainingRequests = new AtomicInteger(0);
 
     private static final ESLogger LOGGER = Loggers.getLogger(FetchProjector.class);
-    private Fetches fetches;
+    private final Fetches fetches;
 
     /**
      * An array backed row, which returns the inner array upon materialize
@@ -124,13 +125,10 @@ public class FetchProjector extends AbstractProjector {
                           TreeMap<Integer, String> readerIndices,
                           Map<String, TableIdent> indicesToIdents) {
         this.transportFetchNodeAction = transportFetchNodeAction;
-        this.threadPool = threadPool;
+        this.resultExecutor = threadPool.executor(ThreadPool.Names.SUGGEST);
         this.jobId = jobId;
         this.collectPhaseId = collectPhaseId;
-        this.fetchSources = fetchSources;
         this.nodeReaders = nodeReaders;
-        this.readerIndices = readerIndices;
-        this.indicesToIdents = indicesToIdents;
 
         FetchRowInputSymbolVisitor rowInputSymbolVisitor = new FetchRowInputSymbolVisitor(functions);
 
@@ -142,6 +140,7 @@ public class FetchProjector extends AbstractProjector {
         }
 
         outputRow = new InputRow(inputs);
+        fetches = new Fetches(readerIndices, indicesToIdents, fetchSources);
     }
 
     private boolean nextStage(Stage from, Stage to) {
@@ -156,7 +155,6 @@ public class FetchProjector extends AbstractProjector {
     @Override
     public void prepare() {
         assert stage.get() == Stage.INIT;
-        fetches = new Fetches();
         nextStage(Stage.INIT, Stage.COLLECT);
     }
 
@@ -165,7 +163,7 @@ public class FetchProjector extends AbstractProjector {
         Object[] cells = row.materialize();
         collectRowContext.inputRow().cells = cells;
         for (int i : collectRowContext.docIdPositions()) {
-            fetches.require((Long) cells[i]);
+            fetches.require((long) cells[i]);
         }
         inputValues.add(cells);
         return true;
@@ -177,19 +175,22 @@ public class FetchProjector extends AbstractProjector {
         }
         boolean anyRequestSent = false;
         for (Map.Entry<String, IntSet> entry : nodeReaders.entrySet()) {
+
+            // readerId -> docIds
             IntObjectHashMap<IntContainer> toFetch = new IntObjectHashMap<>(entry.getValue().size());
+            // readerId -> streamers
             IntObjectHashMap<Streamer[]> streamers = new IntObjectHashMap<>(entry.getValue().size());
             boolean requestRequired = false;
-            for (IntCursor intCursor : entry.getValue()) {
-                ReaderBucket readerBucket = fetches.readerBucket(intCursor.value);
+            for (IntCursor readerIdCursor : entry.getValue()) {
+                ReaderBucket readerBucket = fetches.readerBucket(readerIdCursor.value);
                 IndexInfo indexInfo;
                 if (readerBucket == null) {
-                    indexInfo = fetches.indexInfo(intCursor.value);
+                    indexInfo = fetches.indexInfo(readerIdCursor.value);
                 } else {
                     indexInfo = readerBucket.indexInfo;
                     if (indexInfo.fetchRequired() && readerBucket.docs.size() > 0) {
-                        toFetch.put(intCursor.value, readerBucket.docs.keys());
-                        streamers.put(intCursor.value, readerBucket.indexInfo.streamers());
+                        toFetch.put(readerIdCursor.value, readerBucket.docs.keys());
+                        streamers.put(readerIdCursor.value, readerBucket.indexInfo.streamers());
                     }
                 }
                 requestRequired = requestRequired || (indexInfo != null && indexInfo.fetchRequired());
@@ -212,8 +213,7 @@ public class FetchProjector extends AbstractProjector {
                         }
                     }
                     if (remainingRequests.decrementAndGet() == 0) {
-                        Executor executor = threadPool.executor(ThreadPool.Names.SUGGEST);
-                        executor.execute(new AbstractRunnable() {
+                        resultExecutor.execute(new AbstractRunnable() {
                             @Override
                             public void onFailure(Throwable t) {
                                 fail(t);
@@ -323,7 +323,7 @@ public class FetchProjector extends AbstractProjector {
         Object[] partitionValues;
         Streamer[] streamers;
 
-        public IndexInfo(String index, FetchSource fetchSource) {
+        IndexInfo(String index, FetchSource fetchSource) {
             this.fetchSource = fetchSource;
             if (!fetchSource.partitionedByColumns().isEmpty()) {
                 PartitionName pn = PartitionName.fromIndexOrTemplate(index);
@@ -339,7 +339,7 @@ public class FetchProjector extends AbstractProjector {
             }
         }
 
-        public boolean fetchRequired() {
+        boolean fetchRequired() {
             return !fetchSource.references().isEmpty();
         }
 
@@ -351,16 +351,18 @@ public class FetchProjector extends AbstractProjector {
         }
     }
 
-    private FetchSource getFetchSource(String index) {
-        TableIdent ti = indicesToIdents.get(index);
-        return fetchSources.get(ti);
-    }
 
-    private class Fetches {
+    private static class Fetches {
         private final IntObjectHashMap<ReaderBucket> readerBuckets = new IntObjectHashMap<>();
         private final TreeMap<Integer, IndexInfo> indexInfos;
+        private final Map<String, TableIdent> indicesToIdents;
+        private final Map<TableIdent, FetchSource> fetchSources;
 
-        private Fetches() {
+        private Fetches(TreeMap<Integer, String> readerIndices,
+                        Map<String, TableIdent> indicesToIdents,
+                        Map<TableIdent, FetchSource> fetchSources) {
+            this.indicesToIdents = indicesToIdents;
+            this.fetchSources = fetchSources;
             this.indexInfos = new TreeMap<>();
             for (Map.Entry<Integer, String> entry : readerIndices.entrySet()) {
                 FetchSource fetchSource = getFetchSource(entry.getValue());
@@ -372,12 +374,17 @@ public class FetchProjector extends AbstractProjector {
             }
         }
 
+        private FetchSource getFetchSource(String index) {
+            TableIdent ti = indicesToIdents.get(index);
+            return fetchSources.get(ti);
+        }
+
         @Nullable
-        public IndexInfo indexInfo(Integer readerId) {
+        IndexInfo indexInfo(Integer readerId) {
             return indexInfos.floorEntry(readerId).getValue();
         }
 
-        public ReaderBucket readerBucket(int readerId) {
+        ReaderBucket readerBucket(int readerId) {
             return readerBuckets.get(readerId);
         }
 
@@ -394,12 +401,12 @@ public class FetchProjector extends AbstractProjector {
         }
     }
 
-    public static class ReaderBucket {
+    private static class ReaderBucket {
 
         private final IndexInfo indexInfo;
         private final IntObjectHashMap<Object[]> docs = new IntObjectHashMap<>();
 
-        public ReaderBucket(IndexInfo indexInfo) {
+        ReaderBucket(IndexInfo indexInfo) {
             this.indexInfo = indexInfo;
         }
 
@@ -411,7 +418,7 @@ public class FetchProjector extends AbstractProjector {
             return docs.get(doc);
         }
 
-        public void fetched(Bucket bucket) {
+        void fetched(Bucket bucket) {
             assert bucket.size() == docs.size();
             Iterator<Row> rowIterator = bucket.iterator();
 
@@ -424,6 +431,6 @@ public class FetchProjector extends AbstractProjector {
 
     @Override
     public Set<Requirement> requirements() {
-        return Requirements.NO_REQUIREMENTS;
+        return downstream.requirements();
     }
 }
