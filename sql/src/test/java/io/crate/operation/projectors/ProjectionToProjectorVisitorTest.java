@@ -34,10 +34,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.EqOperator;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.FilterProjection;
-import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.*;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataType;
@@ -149,6 +146,18 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0), new InputColumn(1)));
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         assertThat(projector, instanceOf(SortingTopNProjector.class));
+    }
+
+    @Test
+    public void testTopNProjectionToSortingProjector() throws Exception {
+        TopNProjection projection = new TopNProjection(TopN.NO_LIMIT, TopN.NO_OFFSET,
+                Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)),
+                new boolean[]{false, false},
+                new Boolean[]{null, null}
+        );
+        projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0), new InputColumn(1)));
+        Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
+        assertThat(projector, instanceOf(SortingProjector.class));
     }
 
     @Test
