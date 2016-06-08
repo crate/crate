@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.*;
@@ -228,11 +227,7 @@ public class NestedLoopConsumer implements Consumer {
                     }
                 }
             }
-            // due to weird subplanning, context.isRoot() is false here, so apply this hack
-            boolean isRoot = context.rootRelation() instanceof MultiSourceSelect;
-            int topNLimit = querySpec.limit().or(
-                    isRoot ? Constants.DEFAULT_SELECT_LIMIT : TopN.NO_LIMIT
-            );
+            int topNLimit = querySpec.limit().or(TopN.NO_LIMIT);
             TopNProjection topN = ProjectionBuilder.topNProjection(
                     nlOutputs,
                     statement.remainingOrderBy().orNull(),
