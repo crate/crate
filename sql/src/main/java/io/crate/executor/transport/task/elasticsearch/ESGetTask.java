@@ -48,6 +48,7 @@ import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -180,8 +181,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
                 }
             }
             TopNProjection topNProjection = new TopNProjection(
-                    // TODO: use TopN.NO_LIMIT as default once this can be used as subrelation
-                    MoreObjects.firstNonNull(node.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    MoreObjects.firstNonNull(node.limit(), TopN.NO_LIMIT),
                     node.offset(),
                     orderBySymbols,
                     node.reverseFlags(),
@@ -219,14 +219,14 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         throw new UnsupportedOperationException();
     }
 
-    static class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
+    private static class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
 
         private final List<Function<GetResponse, Object>> fieldExtractors;
         private final RowReceiver downstream;
 
 
-        public MultiGetResponseListener(List<Function<GetResponse, Object>> extractors,
-                                        RowReceiver rowDownstreamHandle) {
+        MultiGetResponseListener(List<Function<GetResponse, Object>> extractors,
+                                 RowReceiver rowDownstreamHandle) {
             downstream = rowDownstreamHandle;
             this.fieldExtractors = extractors;
         }
@@ -257,13 +257,13 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         }
     }
 
-    static class GetResponseListener implements ActionListener<GetResponse> {
+    private static class GetResponseListener implements ActionListener<GetResponse> {
 
         private final Bucket bucket;
         private final FieldExtractorRow<GetResponse> row;
         private final SettableFuture<TaskResult> result;
 
-        public GetResponseListener(SettableFuture<TaskResult> result, List<Function<GetResponse, Object>> extractors) {
+        GetResponseListener(SettableFuture<TaskResult> result, List<Function<GetResponse, Object>> extractors) {
             this.result = result;
             row = new FieldExtractorRow<>(extractors);
             bucket = Buckets.of(row);
@@ -289,7 +289,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         private final HashMap<String, DocKeys.DocKey> ids2Keys;
         private final ESGet node;
 
-        public GetResponseContext(Functions functions, ESGet node) {
+        GetResponseContext(Functions functions, ESGet node) {
             super(functions, node.outputs().size());
             this.node = node;
             ids2Keys = new HashMap<>(node.docKeys().size());
@@ -304,7 +304,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         }
     }
 
-    static class GetResponseFieldExtractorFactory implements FieldExtractorFactory<GetResponse, GetResponseContext> {
+    private static class GetResponseFieldExtractorFactory implements FieldExtractorFactory<GetResponse, GetResponseContext> {
 
         @Override
         public Function<GetResponse, Object> build(final Reference reference, final GetResponseContext context) {

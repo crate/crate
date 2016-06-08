@@ -25,7 +25,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import io.crate.Constants;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -38,13 +37,14 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
-import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -153,11 +153,15 @@ public class DistributedGroupByConsumer implements Consumer {
 
             boolean isRootRelation = context.rootRelation() == table;
             if (isRootRelation) {
+                int limit = TopN.NO_LIMIT;
+                if (querySpec.limit().isPresent()) {
+                    limit = querySpec.limit().get() + querySpec.offset();
+                }
                 reducerProjections.add(ProjectionBuilder.topNProjection(
                         collectOutputs,
                         querySpec.orderBy().orNull(),
                         0,
-                        querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT) + querySpec.offset(),
+                        limit,
                         querySpec.outputs()));
             }
 
@@ -180,7 +184,7 @@ public class DistributedGroupByConsumer implements Consumer {
                         querySpec.outputs(),
                         querySpec.orderBy().orNull(),
                         querySpec.offset(),
-                        querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT),
+                        querySpec.limit().or(TopN.NO_LIMIT),
                         null);
                 localMergeNode = MergePhase.localMerge(
                         plannerContext.jobId(),

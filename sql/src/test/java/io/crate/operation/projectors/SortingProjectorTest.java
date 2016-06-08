@@ -105,7 +105,16 @@ public class SortingProjectorTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid offset -1");
 
-        new SortingTopNProjector(null, null, 2, null, 1, -1);
+        new SortingProjector(null, null, 2, null, -1);
     }
 
+    @Test
+    public void testInvalidRepeat() throws Exception {
+        Projector projector = new SortingProjector(null, null, 2, null, 1);
+
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("repeat() not supported");
+
+        projector.repeat();
+    }
 }
