@@ -24,6 +24,7 @@ package io.crate.executor.transport;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import org.elasticsearch.common.Nullable;
@@ -40,12 +41,12 @@ public class NodeFetchRequest extends TransportRequest {
     private int fetchPhaseId;
 
     @Nullable
-    private IntObjectHashMap<IntContainer> toFetch;
+    private IntObjectMap<? extends IntContainer> toFetch;
 
     public NodeFetchRequest() {
     }
 
-    public NodeFetchRequest(UUID jobId, int fetchPhaseId, IntObjectHashMap<IntContainer> toFetch) {
+    public NodeFetchRequest(UUID jobId, int fetchPhaseId, IntObjectMap<? extends IntContainer> toFetch) {
         this.jobId = jobId;
         this.fetchPhaseId = fetchPhaseId;
         if (!toFetch.isEmpty()) {
@@ -62,7 +63,7 @@ public class NodeFetchRequest extends TransportRequest {
     }
 
     @Nullable
-    public IntObjectHashMap<IntContainer> toFetch() {
+    public IntObjectMap<? extends IntContainer> toFetch() {
         return toFetch;
     }
 
@@ -73,7 +74,7 @@ public class NodeFetchRequest extends TransportRequest {
         fetchPhaseId = in.readVInt();
         int numReaders = in.readVInt();
         if (numReaders > 0) {
-            toFetch = new IntObjectHashMap<>(numReaders);
+            IntObjectHashMap<IntArrayList> toFetch = new IntObjectHashMap<>(numReaders);
             for (int i = 0; i < numReaders; i++) {
                 int readerId = in.readVInt();
                 int numDocs = in.readVInt();
@@ -82,6 +83,7 @@ public class NodeFetchRequest extends TransportRequest {
                 for (int j = 0; j < numDocs; j++) {
                     docs.add(in.readInt());
                 }
+                this.toFetch = toFetch;
             }
         }
     }
@@ -96,7 +98,7 @@ public class NodeFetchRequest extends TransportRequest {
             out.writeVInt(0);
         } else {
             out.writeVInt(toFetch.size());
-            for (IntObjectCursor<IntContainer> toFetchCursor : toFetch) {
+            for (IntObjectCursor<? extends IntContainer> toFetchCursor : toFetch) {
                 out.writeVInt(toFetchCursor.key);
                 out.writeVInt(toFetchCursor.value.size());
                 for (IntCursor docCursor : toFetchCursor.value) {

@@ -34,7 +34,6 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.NodeFetchRequest;
 import io.crate.executor.transport.NodeFetchResponse;
-import io.crate.executor.transport.StreamBucket;
 import io.crate.executor.transport.TransportFetchNodeAction;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
@@ -190,7 +189,7 @@ public class FetchProjector extends AbstractProjector {
                     indexInfo = readerBucket.indexInfo;
                     if (indexInfo.fetchRequired() && readerBucket.docs.size() > 0) {
                         toFetch.put(readerIdCursor.value, readerBucket.docs.keys());
-                        streamers.put(readerIdCursor.value, readerBucket.indexInfo.streamers());
+                        streamers.put(readerIdCursor.value, indexInfo.streamers());
                     }
                 }
                 requestRequired = requestRequired || (indexInfo != null && indexInfo.fetchRequired());
@@ -205,9 +204,9 @@ public class FetchProjector extends AbstractProjector {
             transportFetchNodeAction.execute(nodeId, streamers, request, new ActionListener<NodeFetchResponse>() {
                 @Override
                 public void onResponse(NodeFetchResponse nodeFetchResponse) {
-                    IntObjectMap<StreamBucket> fetched = nodeFetchResponse.fetched();
+                    IntObjectMap<? extends Bucket> fetched = nodeFetchResponse.fetched();
                     if (fetched != null) {
-                        for (IntObjectCursor<StreamBucket> cursor : fetched) {
+                        for (IntObjectCursor<? extends Bucket> cursor : fetched) {
                             ReaderBucket readerBucket = fetches.readerBuckets.get(cursor.key);
                             readerBucket.fetched(cursor.value);
                         }
@@ -380,7 +379,7 @@ public class FetchProjector extends AbstractProjector {
         }
 
         @Nullable
-        IndexInfo indexInfo(Integer readerId) {
+        IndexInfo indexInfo(int readerId) {
             return indexInfos.floorEntry(readerId).getValue();
         }
 

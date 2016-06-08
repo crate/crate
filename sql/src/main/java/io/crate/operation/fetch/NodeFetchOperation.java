@@ -22,8 +22,8 @@
 package io.crate.operation.fetch;
 
 import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.Streamer;
 import io.crate.analyze.symbol.Reference;
@@ -85,12 +85,12 @@ public class NodeFetchOperation {
     }
 
     public IntObjectMap<StreamBucket> doFetch(
-            FetchContext fetchContext, IntObjectMap<IntContainer> toFetch) throws Exception {
+            FetchContext fetchContext, IntObjectMap<? extends IntContainer> toFetch) throws Exception {
 
         IntObjectHashMap<StreamBucket> fetched = new IntObjectHashMap<>(toFetch.size());
         HashMap<TableIdent, TableFetchInfo> tableFetchInfos = getTableFetchInfos(fetchContext);
 
-        for (IntObjectCursor<IntContainer> toFetchCursor : toFetch) {
+        for (IntObjectCursor<? extends IntContainer> toFetchCursor : toFetch) {
             TableIdent ident = fetchContext.tableIdent(toFetchCursor.key);
             TableFetchInfo tfi = tableFetchInfos.get(ident);
             assert tfi != null;

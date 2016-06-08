@@ -21,10 +21,11 @@
 
 package io.crate.executor.transport;
 
-import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.Streamer;
+import io.crate.core.collections.Bucket;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
@@ -56,7 +57,7 @@ public class NodeFetchResponse extends TransportResponse {
     }
 
     @Nullable
-    public IntObjectMap<StreamBucket> fetched() {
+    public IntObjectMap<? extends Bucket> fetched() {
         return fetched;
     }
 
