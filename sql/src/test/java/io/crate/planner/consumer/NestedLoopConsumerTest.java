@@ -22,7 +22,6 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.repositories.RepositorySettingsModule;
@@ -41,6 +40,7 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
+import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
@@ -202,7 +202,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         assertThat(fp.outputs().size(), is(3));
 
         TopNProjection topN = ((TopNProjection) nestedLoop.nestedLoopPhase().projections().get(1));
-        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topN.limit(), is(TopN.NO_LIMIT));
         assertThat(topN.offset(), is(0));
         assertThat(topN.outputs().size(), is(3));
 
@@ -212,7 +212,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
                 Matchers.contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
 
         TopNProjection finalTopN = ((TopNProjection) localMergePhase.projections().get(0));
-        assertThat(finalTopN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(finalTopN.limit(), is(TopN.NO_LIMIT));
         assertThat(finalTopN.offset(), is(0));
         assertThat(finalTopN.outputs().size(), is(3));
 
@@ -236,7 +236,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         assertThat(nestedLoop.nestedLoopPhase().projections(),
                 Matchers.contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
         TopNProjection topN = ((TopNProjection) nestedLoop.nestedLoopPhase().projections().get(0));
-        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topN.limit(), is(TopN.NO_LIMIT));
         assertThat(topN.offset(), is(0));
         assertThat(topN.outputs().size(), is(2));
 
