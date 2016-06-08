@@ -35,16 +35,13 @@ public class CollectionBucket implements Bucket {
     private final Function<Object[], Row> arrayToRowFunction;
 
     public CollectionBucket(Collection<Object[]> rows) {
-        this(rows, -1);
+        this.rows = rows;
+        arrayToRowFunction = Buckets.arrayToRowFunction();
     }
 
     public CollectionBucket(Collection<Object[]> rows, int numColumns) {
         this.rows = rows;
-        if (numColumns == -1) {
-            arrayToRowFunction = Buckets.arrayToRowFunction();
-        } else {
-            arrayToRowFunction = Buckets.arrayToRowFunction(numColumns);
-        }
+        arrayToRowFunction = Buckets.arrayToRowFunction(numColumns);
     }
 
     @Override

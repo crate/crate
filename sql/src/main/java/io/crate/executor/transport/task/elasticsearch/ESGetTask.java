@@ -44,10 +44,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.QueryResultRowDownstream;
-import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.operation.projectors.ProjectorFactory;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.*;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -180,8 +177,7 @@ public class ESGetTask extends EsJobContextTask {
                 }
             }
             TopNProjection topNProjection = new TopNProjection(
-                    // TODO: use TopN.NO_LIMIT as default once this can be used as subrelation
-                    MoreObjects.firstNonNull(node.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    MoreObjects.firstNonNull(node.limit(), TopN.NO_LIMIT),
                     node.offset(),
                     orderBySymbols,
                     node.reverseFlags(),
@@ -207,8 +203,8 @@ public class ESGetTask extends EsJobContextTask {
         private final RowReceiver downstream;
 
 
-        public MultiGetResponseListener(List<Function<GetResponse, Object>> extractors,
-                                        RowReceiver rowDownstreamHandle) {
+        MultiGetResponseListener(List<Function<GetResponse, Object>> extractors,
+                                 RowReceiver rowDownstreamHandle) {
             downstream = rowDownstreamHandle;
             this.fieldExtractors = extractors;
         }
@@ -247,13 +243,13 @@ public class ESGetTask extends EsJobContextTask {
         }
     }
 
-    static class GetResponseListener implements ActionListener<GetResponse> {
+    private static class GetResponseListener implements ActionListener<GetResponse> {
 
         private final Bucket bucket;
         private final FieldExtractorRow<GetResponse> row;
         private final SettableFuture<TaskResult> result;
 
-        public GetResponseListener(SettableFuture<TaskResult> result, List<Function<GetResponse, Object>> extractors) {
+        GetResponseListener(SettableFuture<TaskResult> result, List<Function<GetResponse, Object>> extractors) {
             this.result = result;
             row = new FieldExtractorRow<>(extractors);
             bucket = Buckets.of(row);
@@ -279,7 +275,7 @@ public class ESGetTask extends EsJobContextTask {
         private final HashMap<String, DocKeys.DocKey> ids2Keys;
         private final ESGet node;
 
-        public GetResponseContext(Functions functions, ESGet node) {
+        GetResponseContext(Functions functions, ESGet node) {
             super(functions, node.outputs().size());
             this.node = node;
             ids2Keys = new HashMap<>(node.docKeys().size());
@@ -294,7 +290,7 @@ public class ESGetTask extends EsJobContextTask {
         }
     }
 
-    static class GetResponseFieldExtractorFactory implements FieldExtractorFactory<GetResponse, GetResponseContext> {
+    private static class GetResponseFieldExtractorFactory implements FieldExtractorFactory<GetResponse, GetResponseContext> {
 
         @Override
         public Function<GetResponse, Object> build(final Reference reference, final GetResponseContext context) {

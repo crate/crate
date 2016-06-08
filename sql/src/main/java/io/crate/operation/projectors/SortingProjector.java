@@ -23,7 +23,6 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.Sets;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.operation.Input;
@@ -39,16 +38,15 @@ import java.util.*;
  */
 class SortingProjector extends AbstractProjector {
 
-    protected final Collection<? extends Input<?>> inputs;
-    protected final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
-    protected Set<Requirement> requirements;
+    private final Collection<? extends Input<?>> inputs;
+    private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
+    private Set<Requirement> requirements;
 
     private final Ordering<Object[]> ordering;
-    private List<Object[]> rows = new ArrayList<>();
-    private int offset;
-
-    final int numOutputs;
-    volatile IterableRowEmitter rowEmitter = null;
+    private final int offset;
+    private final int numOutputs;
+    private final List<Object[]> rows = new ArrayList<>();
+    private IterableRowEmitter rowEmitter = null;
 
     /**
      * @param inputs             contains output {@link io.crate.operation.Input}s and orderBy {@link io.crate.operation.Input}s
@@ -89,18 +87,21 @@ class SortingProjector extends AbstractProjector {
         // sort, we must reverse the order (back to original one) because order was reserved for used on queues
         Collections.sort(rows, Collections.reverseOrder(ordering));
 
-        // process offset
-        if (offset != 0) {
-            rows = rows.subList(offset, rows.size());
-        }
-
         // emit
         rowEmitter = createRowEmitter();
         rowEmitter.run();
     }
 
     private IterableRowEmitter createRowEmitter() {
-        return new IterableRowEmitter(downstream, new CollectionBucket(rows, numOutputs));
+        CollectionBucket collectionBucket;
+        // process offset
+        if (offset != 0) {
+            collectionBucket = new CollectionBucket(rows.subList(offset, rows.size()), numOutputs);
+        } else {
+            collectionBucket = new CollectionBucket(rows, numOutputs);
+        }
+
+        return new IterableRowEmitter(downstream, collectionBucket);
     }
 
     @Override
@@ -121,8 +122,7 @@ class SortingProjector extends AbstractProjector {
     @Override
     public Set<Requirement> requirements() {
         if (requirements == null) {
-            requirements = Sets.newEnumSet(downstream.requirements(), Requirement.class);
-            requirements.remove(Requirement.REPEAT);
+            requirements = Requirements.remove(downstream.requirements(), Requirement.REPEAT);
         }
         return requirements;
     }
