@@ -35,12 +35,9 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.isNullRow;
 import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 
 public class SortingTopNProjectorTest extends CrateUnitTest {
@@ -159,76 +156,6 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         assertThat(iterateLength, is(3));
     }
 
-    @Test
-    public void testOrderByAscNullsFirst() throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        Projector pipe = getProjector(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, false, true));
-        pipe.setNextRow(spare(1));
-        pipe.setNextRow(spare(new Object[]{null}));
-        pipe.finish();
-
-        Bucket rows = rowReceiver.result();
-        assertThat(rows, contains(isNullRow(), isRow(1)));
-    }
-
-    @Test
-    public void testOrderByAscNullsLast() throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        Projector pipe = getProjector(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, false, false));
-
-        pipe.setNextRow(spare(1));
-        pipe.setNextRow(spare(new Object[]{null}));
-        pipe.finish();
-
-        Bucket rows = rowReceiver.result();
-        assertThat(rows, contains(isRow(1), isNullRow()));
-    }
-
-    @Test
-    public void testOrderByDescNullsLast() throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        Projector pipe = getProjector(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, true, false));
-
-        pipe.setNextRow(spare(1));
-        pipe.setNextRow(spare(new Object[]{null}));
-        pipe.finish();
-
-        Bucket rows = rowReceiver.result();
-        assertThat(rows, contains(isRow(1), isNullRow()));
-    }
-
-    @Test
-    public void testOrderByDescNullsFirst() throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        Projector pipe = getProjector(1, 100, 0, rowReceiver, OrderingByPosition.arrayOrdering(0, true, true));
-
-        pipe.setNextRow(spare(1));
-        pipe.setNextRow(spare(new Object[]{null}));
-        pipe.finish();
-
-        Bucket rows = rowReceiver.result();
-        assertThat(rows, contains(isNullRow(), isRow(1)));
-    }
-
-    @Test
-    public void testOrderByAsc() throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        Projector pipe = getProjector(2, 3, 5, rowReceiver, OrderingByPosition.arrayOrdering(0, true, null));
-
-        int i;
-        for (i = 0; i < 10; i++) {   // 0 --> 9
-            pipe.setNextRow(spare(i));
-        }
-        assertThat(i, is(10)); // needs to collect all it can get
-        pipe.finish();
-        Bucket rows = rowReceiver.result();
-        assertThat(rows, contains(
-                isRow(4, true),
-                isRow(3, true),
-                isRow(2, true)
-        ));
-    }
-
     @Test(expected = IllegalArgumentException.class)
     public void testNegativeOffset() {
         new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, TopN.NO_LIMIT, -10);
@@ -237,39 +164,5 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     @Test(expected = IllegalArgumentException.class)
     public void testNegativeLimit() {
         new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, -100, 10);
-    }
-
-    @Test
-    public void testMultipleOrderBy() throws Exception {
-        // select modulo(bla, 4), bla from x order by modulo(bla, 4), bla
-        InputCollectExpression input = new InputCollectExpression(1);
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        SortingTopNProjector pipe = new SortingTopNProjector(
-                Arrays.asList(input, INPUT, /* order By input */input, INPUT),
-                Arrays.<CollectExpression<Row, ?>>asList(INPUT, input),
-                2,
-                Ordering.compound(Arrays.asList(
-                        OrderingByPosition.arrayOrdering(2, false, null),
-                        OrderingByPosition.arrayOrdering(3, false, null)
-                )),
-                TopN.NO_LIMIT,
-                TopN.NO_OFFSET);
-
-        pipe.downstream(rowReceiver);
-        int i;
-        for (i = 0; i < 7; i++) {
-            pipe.setNextRow(spare(i, i % 4));
-        }
-        pipe.finish();
-        Bucket rows = rowReceiver.result();
-        assertThat(rows, contains(
-                isRow(0, 0),
-                isRow(0, 4),
-                isRow(1, 1),
-                isRow(1, 5),
-                isRow(2, 2),
-                isRow(2, 6),
-                isRow(3, 3)
-        ));
     }
 }
