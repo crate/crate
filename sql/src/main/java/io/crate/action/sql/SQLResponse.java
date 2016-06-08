@@ -29,6 +29,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.UUID;
 
 public class SQLResponse extends SQLBaseResponse {
 
@@ -36,6 +37,7 @@ public class SQLResponse extends SQLBaseResponse {
 
     private Object[][] rows;
     private long rowCount = NO_ROW_COUNT;
+    private UUID cursorId;
 
     public SQLResponse() {
     }
@@ -45,10 +47,12 @@ public class SQLResponse extends SQLBaseResponse {
                        DataType[] dataTypes,
                        long rowCount,
                        float duration,
-                       boolean includeTypes) {
+                       boolean includeTypes,
+                       UUID cursorId) {
         super(cols, dataTypes, includeTypes, duration);
         this.rows = rows;
         this.rowCount = rowCount;
+        this.cursorId = cursorId;
     }
 
     @Override
@@ -75,6 +79,10 @@ public class SQLResponse extends SQLBaseResponse {
         return rows;
     }
 
+    public UUID cursorId() {
+        return cursorId;
+    }
+
     public long rowCount() {
         return rowCount;
     }
@@ -95,6 +103,7 @@ public class SQLResponse extends SQLBaseResponse {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
 
+        cursorId = new UUID(in.readLong(), in.readLong());
         boolean negative = in.readBoolean();
         rowCount = in.readVLong();
         if (negative) {
@@ -115,6 +124,8 @@ public class SQLResponse extends SQLBaseResponse {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
 
+        out.writeLong(cursorId.getMostSignificantBits());
+        out.writeLong(cursorId.getLeastSignificantBits());
         out.writeBoolean(rowCount < 0);
         out.writeVLong(Math.abs(rowCount));
         out.writeInt(rows.length);
