@@ -40,7 +40,6 @@ import io.crate.planner.Planner;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
-import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportAction;
@@ -72,7 +71,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TResponse extends SQLBaseResponse>
-        extends TransportAction<TRequest, TResponse> {
+    extends TransportAction<TRequest, TResponse> {
 
     public static final String NODE_READ_ONLY_SETTING = "node.sql.read_only";
 
@@ -80,15 +79,15 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
 
     private final LoadingCache<String, Statement> statementCache = CacheBuilder.newBuilder()
-            .maximumSize(100)
-            .build(
-                    new CacheLoader<String, Statement>() {
-                        @Override
-                        public Statement load(@Nonnull String statement) throws Exception {
-                            return SqlParser.createStatement(statement);
-                        }
-                    }
-            );
+        .maximumSize(100)
+        .build(
+            new CacheLoader<String, Statement>() {
+                @Override
+                public Statement load(@Nonnull String statement) throws Exception {
+                    return SqlParser.createStatement(statement);
+                }
+            }
+        );
 
     private final ClusterService clusterService;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
@@ -149,27 +148,23 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         try {
             Statement statement = statementCache.get(request.stmt());
             Analysis analysis = analyzer.analyze(statement, getParamContext(request));
-            if (analysis.analyzedStatement().isWriteOperation() && settings.getAsBoolean(NODE_READ_ONLY_SETTING, false)) {
-                throw new ReadOnlyException();
+            Executor executor = executorProvider.get();
+            if (analysis.analyzedStatement().isWriteOperation()) {
+                if (settings.getAsBoolean(NODE_READ_ONLY_SETTING, false)) {
+                    throw new ReadOnlyException();
+                }
+            } else {
+                // full retry is only used for read-only operations
+                listener = new KillAndRetryListenerWrapper(listener, statement, jobId, executor, request, startTime);
             }
-            processAnalysis(analysis, request, listener, jobId, startTime);
+            Plan plan = planner.plan(analysis, jobId);
+            assert plan != null;
+            tracePlan(plan);
+            executePlan(executor, analysis, plan, listener, request, startTime);
         } catch (Throwable e) {
             logger.debug("Error executing SQLRequest", e);
             listener.onFailure(e);
         }
-    }
-
-    private void processAnalysis(final Analysis analysis,
-                                 final TRequest request,
-                                 ActionListener<TResponse> listener,
-                                 final UUID jobId,
-                                 final long startTime) {
-        Plan plan = planner.plan(analysis, jobId);
-        assert plan != null;
-        tracePlan(plan);
-        Executor executor = executorProvider.get();
-        listener = new KillAndRetryListenerWrapper(listener, analysis, jobId, executor, request, startTime);
-        executePlan(executor, analysis, plan, listener, request, startTime);
     }
 
     private static boolean isShardFailure(Throwable e) {
@@ -182,9 +177,9 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             String json = null;
             try {
                 json = JsonXContent.contentBuilder()
-                        .humanReadable(true)
-                        .prettyPrint()
-                        .value(PlanPrinter.objectMap(plan)).bytes().toUtf8();
+                    .humanReadable(true)
+                    .prettyPrint()
+                    .value(PlanPrinter.objectMap(plan)).bytes().toUtf8();
             } catch (IOException e) {
                 logger.error("Failed to print plan", e);
             }
@@ -206,14 +201,14 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             return new UnsupportedFeatureException(e.getMessage(), (Exception) e);
         } else if (e instanceof DocumentAlreadyExistsException) {
             return new DuplicateKeyException(
-                    "A document with the same primary key exists already", e);
+                "A document with the same primary key exists already", e);
         } else if (e instanceof IndexAlreadyExistsException) {
             return new TableAlreadyExistsException(((IndexAlreadyExistsException) e).getIndex(), e);
         } else if ((e instanceof InvalidIndexNameException)) {
             if (e.getMessage().contains("already exists as alias")) {
                 // treat an alias like a table as aliases are not officially supported
                 return new TableAlreadyExistsException(((InvalidIndexNameException) e).getIndex(),
-                        e);
+                    e);
             }
             return new InvalidTableNameException(((InvalidIndexNameException) e).getIndex(), e);
         } else if (e instanceof InvalidIndexTemplateException) {
@@ -329,7 +324,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
     private class KillAndRetryListenerWrapper implements ActionListener<TResponse> {
 
         private final ActionListener<TResponse> delegate;
-        private final Analysis analysis;
+        private final Statement statement;
         private final UUID jobId;
         private final Executor executor;
         private final TRequest request;
@@ -337,13 +332,13 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         int attempt = 1;
 
         KillAndRetryListenerWrapper(ActionListener<TResponse> delegate,
-                                    Analysis analysis,
+                                    Statement statement,
                                     UUID jobId,
                                     Executor executor,
                                     TRequest request,
                                     long startTime) {
             this.delegate = delegate;
-            this.analysis = analysis;
+            this.statement = statement;
             this.jobId = jobId;
             this.executor = executor;
             this.request = request;
@@ -384,9 +379,11 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                     @Override
                     public void onResponse(KillResponse killResponse) {
                         logger.debug("Killed {} jobs before Retry", killResponse.numKilled());
+                        Analysis analysis = analyzer.analyze(statement, getParamContext(request));
                         Plan newPlan = planner.plan(analysis, jobId);
                         executePlan(executor, analysis, newPlan, KillAndRetryListenerWrapper.this, request, startTime);
                     }
+
                     @Override
                     public void onFailure(Throwable e) {
                         logger.warn("Failed to kill job before Retry", e);

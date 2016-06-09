@@ -51,10 +51,12 @@ public interface TableInfo extends Iterable<ReferenceInfo> {
     /**
      * Retrieve the routing for the table
      *
-     * The Routing is depending on the current clusterState and subsequent calls might return a different result.
+     * The result of this method is non-deterministic for two reasons:
      *
-     * This MUST NOT be frozen within the Analysis because it would break the retry logic of {@link io.crate.action.sql.TransportBaseSQLAction}
-     * Which does a retry in case of shard-failure -> that retry only re-executes the Planning/execute step and re-uses the analysis
+     *  1. Shard selection is randomized for load distribution.
+     *
+     *  2. The underlying clusterState might change between calls.
+     *
      */
     Routing getRouting(WhereClause whereClause, @Nullable String preference);
 
