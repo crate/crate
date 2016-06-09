@@ -37,6 +37,7 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.planner.projection.*;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.RowSender;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -122,18 +123,12 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
 
-        projector.prepare();
-        int i;
-        for (i = 0; i < 20; i++) {
-            if (projector.setNextRow(spare(42)) == RowReceiver.Result.STOP) {
-                break;
-            }
-        }
-        assertThat(i, is(11));
-        projector.finish(RepeatHandle.UNSUPPORTED);
+
+        long lastEmittedValue = RowSender.generateRowsInRangeAndEmit(0, 20, projector);
+        assertThat(lastEmittedValue, is(11L));
         Bucket rows = collectingProjector.result();
         assertThat(rows.size(), is(10));
-        assertThat(rows.iterator().next(), isRow("foo", 42));
+        assertThat(rows.iterator().next(), isRow("foo", 2L));
     }
 
     @Test
