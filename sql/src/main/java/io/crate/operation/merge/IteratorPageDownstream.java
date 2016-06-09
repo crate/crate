@@ -57,8 +57,8 @@ public class IteratorPageDownstream implements PageDownstream {
     private final PagingIterator<Void, Row> pagingIterator;
     private final TopRowUpstream topRowUpstream;
 
-    private volatile PageConsumeListener pausedListener;
-    private volatile Iterator<Row> pausedIterator;
+    private volatile PageConsumeListener lastListener;
+    private volatile Iterator<Row> lastIterator;
     private boolean downstreamWantsMore = true;
 
     public IteratorPageDownstream(final RowReceiver rowReceiver,
@@ -73,10 +73,10 @@ public class IteratorPageDownstream implements PageDownstream {
                     @Override
                     public void run() {
                         try {
-                            processBuckets(pausedIterator, pausedListener);
+                            processBuckets(lastIterator, lastListener);
                         } catch (Throwable t) {
                             fail(t);
-                            pausedListener.finish();
+                            lastListener.finish();
                         }
                     }
                 },
@@ -85,9 +85,7 @@ public class IteratorPageDownstream implements PageDownstream {
                     public void run() {
                         if (finished.compareAndSet(true, false)) {
                             try {
-                                if (processBuckets(pagingIterator.repeat().iterator(), PageConsumeListener.NO_OP_LISTENER)) {
-                                    consumeRemaining();
-                                }
+                                processBuckets(pagingIterator.repeat().iterator(), PageConsumeListener.NO_OP_LISTENER);
                                 finished.set(true);
                                 rowReceiver.finish();
                             } catch (Throwable t) {
@@ -102,28 +100,27 @@ public class IteratorPageDownstream implements PageDownstream {
         rowReceiver.setUpstream(topRowUpstream);
     }
 
-    private boolean processBuckets(Iterator<Row> iterator, PageConsumeListener listener) {
+    private void processBuckets(Iterator<Row> iterator, PageConsumeListener listener) {
+        lastListener = listener;
+        lastIterator = iterator;
         while (iterator.hasNext()) {
             if (finished.get()) {
                 listener.finish();
-                return false;
+                return;
             }
             Row row = iterator.next();
             boolean wantMore = rowReceiver.setNextRow(row);
             if (topRowUpstream.shouldPause()) {
-                pausedListener = listener;
-                pausedIterator = iterator;
                 topRowUpstream.pauseProcessed();
-                return true;
+                return;
             }
             if (!wantMore) {
                 downstreamWantsMore = false;
                 listener.finish();
-                return false;
+                return;
             }
         }
         listener.needMore();
-        return true;
     }
 
     @Override
@@ -189,6 +186,11 @@ public class IteratorPageDownstream implements PageDownstream {
         while (pagingIterator.hasNext()) {
             Row row = pagingIterator.next();
             boolean wantMore = rowReceiver.setNextRow(row);
+            if (topRowUpstream.shouldPause()) {
+                topRowUpstream.pauseProcessed();
+                finished.compareAndSet(true, false); // set to false so it can be resumed
+                return;
+            }
             if (!wantMore) {
                 break;
             }

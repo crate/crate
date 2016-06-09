@@ -25,8 +25,17 @@ import io.crate.core.collections.BucketPage;
 
 public interface PageDownstream {
 
+    /**
+     * Called each time the first bucket of a new Page is received.
+     *
+     * After the first call this may only be called again if requested through the listener
+     */
     void nextPage(BucketPage page, PageConsumeListener listener);
 
+    /**
+     * Called as a response to {@link PageConsumeListener#needMore()} or {@link PageConsumeListener#finish()}
+     * To indicate that the upstream doesn't have any more data
+     */
     void finish();
 
     void fail(Throwable t);

@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an edge case that could cause sorted join queries to fail.
+
  - Fix: Allow concurrent deletion of partition without raising an exception.
 
  - Throw a more meaningful error if an attempt is made to order by an invalid field in a query with aggregations.

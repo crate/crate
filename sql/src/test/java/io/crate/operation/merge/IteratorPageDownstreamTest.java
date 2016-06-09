@@ -23,10 +23,13 @@ package io.crate.operation.merge;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.*;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
@@ -46,17 +49,8 @@ import static org.mockito.Mockito.*;
 
 public class IteratorPageDownstreamTest extends CrateUnitTest {
 
-    public static final PageConsumeListener PAGE_CONSUME_LISTENER = new PageConsumeListener() {
-        @Override
-        public void needMore() {
-
-        }
-
-        @Override
-        public void finish() {
-
-        }
-    };
+    @Mock
+    public PageConsumeListener pageConsumeListener;
 
     @Mock
     PagingIterator<Void, Row> mockedPagingIterator;
@@ -71,7 +65,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
 
         SettableFuture<Bucket> b1 = SettableFuture.create();
         SettableFuture<Bucket> b2 = SettableFuture.create();
-        downstream.nextPage(new BucketPage(ImmutableList.of(b1, b2)), PAGE_CONSUME_LISTENER);
+        downstream.nextPage(new BucketPage(ImmutableList.of(b1, b2)), pageConsumeListener);
         verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends KeyIterable<Void, Row>>>any());
         b1.set(Bucket.EMPTY);
         verify(mockedPagingIterator, times(0)).merge(Mockito.<Iterable<? extends KeyIterable<Void, Row>>>any());
@@ -95,7 +89,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
                 rowReceiver, PassThroughPagingIterator.<Void, Row>oneShot(), Optional.<Executor>absent());
 
         SettableFuture<Bucket> b1 = SettableFuture.create();
-        downstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
+        downstream.nextPage(new BucketPage(ImmutableList.of(b1)), pageConsumeListener);
         b1.set(new SingleRowBucket(new Row1(42)));
         rowReceiver.result();
     }
@@ -110,7 +104,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
                 rowReceiver, mockedPagingIterator, Optional.<Executor>absent());
 
         SettableFuture<Bucket> b1 = SettableFuture.create();
-        downstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
+        downstream.nextPage(new BucketPage(ImmutableList.of(b1)), pageConsumeListener);
         b1.setException(dummy);
         rowReceiver.result();
     }
@@ -145,7 +139,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
                 }
         ));
 
-        downstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
+        downstream.nextPage(new BucketPage(ImmutableList.of(b1)), pageConsumeListener);
         downstream.finish();
         assertThat(rowReceiver.result().size(), is(1));
     }
@@ -197,8 +191,8 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
                         new Object[] {"c"}
                 }
         ));
-        pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
-        pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
+        pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), pageConsumeListener);
+        pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), pageConsumeListener);
         pageDownstream.finish();
         rowReceiver.repeatUpstream();
         pageDownstream.finish();
@@ -233,7 +227,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
                         new Object[] {"c"}
                 }
         ));
-        pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), PAGE_CONSUME_LISTENER);
+        pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), pageConsumeListener);
         assertThat(rowReceiver.rows.size(), is(2));
         rowReceiver.resumeUpstream(false);
         assertThat(rowReceiver.rows.size(), is(3));
@@ -248,5 +242,39 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
                 "a\n" +
                 "b\n" +
                 "c\n"));
+    }
+
+    @Test
+    public void testPauseDuringConsumeRemaining() throws Exception {
+        CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(3);
+        SortedPagingIterator<Void, Row> pagingIterator =
+            new SortedPagingIterator<>(OrderingByPosition.rowOrdering(0, false, null), false);
+        IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
+            rowReceiver,
+            pagingIterator,
+            Optional.<Executor>absent());
+
+        ListenableFuture<Bucket> b1 = Futures.<Bucket>immediateFuture((new ArrayBucket(
+            new Object[][] {
+                new Object[] {"a"},
+            })));
+        ListenableFuture<Bucket> b2 = Futures.<Bucket>immediateFuture((new ArrayBucket(
+            new Object[][] {
+                new Object[] {"a"},
+                new Object[] {"b"},
+                new Object[] {"b"},
+            })));
+
+        pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1, b2)), pageConsumeListener);
+        assertThat(rowReceiver.rows.size(), is(1));
+        // pageDownstream calls needMore after first row - it is holding back the rows of the second bucket
+        // because there could be a second page for the first bucket with more rows
+        verify(pageConsumeListener, times(1)).needMore();
+        pageDownstream.finish(); // causes pageDownstream to emit the rows it had been holding back.
+
+        assertThat(rowReceiver.rows.size(), is(3));
+
+        rowReceiver.resumeUpstream(false);
+        assertThat(rowReceiver.rows.size(), is(4));
     }
 }
