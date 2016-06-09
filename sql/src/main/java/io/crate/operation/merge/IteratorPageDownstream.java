@@ -53,7 +53,7 @@ public class IteratorPageDownstream implements PageDownstream {
 
     private final RowReceiver rowReceiver;
     private final Executor executor;
-    private final AtomicBoolean finished = new AtomicBoolean(false);
+    private final AtomicBoolean upstreamHasMoreData = new AtomicBoolean(true);
     private final PagingIterator<Void, Row> pagingIterator;
     private final TopRowUpstream topRowUpstream;
 
@@ -65,6 +65,7 @@ public class IteratorPageDownstream implements PageDownstream {
                                   final PagingIterator<Void, Row> pagingIterator,
                                   Optional<Executor> executor) {
         this.pagingIterator = pagingIterator;
+        lastIterator = pagingIterator;
         this.executor = executor.or(MoreExecutors.directExecutor());
         this.rowReceiver = rowReceiver;
         this.topRowUpstream = new TopRowUpstream(
@@ -83,16 +84,13 @@ public class IteratorPageDownstream implements PageDownstream {
                 new Runnable() {
                     @Override
                     public void run() {
-                        if (finished.compareAndSet(true, false)) {
-                            try {
-                                processBuckets(pagingIterator.repeat().iterator(), PageConsumeListener.NO_OP_LISTENER);
-                                finished.set(true);
-                                rowReceiver.finish();
-                            } catch (Throwable t) {
-                                fail(t);
-                            }
-                        } else {
-                            LOGGER.trace("Received repeat, but wasn't finished");
+                        try {
+                            Iterator<Row> iterator = pagingIterator.repeat().iterator();
+                            lastIterator = iterator;
+                            lastListener = PageConsumeListener.NO_OP_LISTENER;
+                            processBuckets(iterator, PageConsumeListener.NO_OP_LISTENER);
+                        } catch (Throwable t) {
+                            fail(t);
                         }
                     }
                 }
@@ -101,13 +99,7 @@ public class IteratorPageDownstream implements PageDownstream {
     }
 
     private void processBuckets(Iterator<Row> iterator, PageConsumeListener listener) {
-        lastListener = listener;
-        lastIterator = iterator;
         while (iterator.hasNext()) {
-            if (finished.get()) {
-                listener.finish();
-                return;
-            }
             Row row = iterator.next();
             boolean wantMore = rowReceiver.setNextRow(row);
             if (topRowUpstream.shouldPause()) {
@@ -116,11 +108,20 @@ public class IteratorPageDownstream implements PageDownstream {
             }
             if (!wantMore) {
                 downstreamWantsMore = false;
-                listener.finish();
+
+                if (upstreamHasMoreData.get()) {
+                    listener.finish();
+                } else {
+                    rowReceiver.finish();
+                }
                 return;
             }
         }
-        listener.needMore();
+        if (upstreamHasMoreData.get()) {
+            listener.needMore();
+        } else {
+            rowReceiver.finish();
+        }
     }
 
     @Override
@@ -129,6 +130,8 @@ public class IteratorPageDownstream implements PageDownstream {
             @Override
             public void onSuccess(List<Bucket> buckets) {
                 pagingIterator.merge(numberedBuckets(buckets));
+                lastIterator = pagingIterator;
+                lastListener = listener;
                 try {
                     processBuckets(pagingIterator, listener);
                 } catch (Throwable t) {
@@ -173,33 +176,19 @@ public class IteratorPageDownstream implements PageDownstream {
 
     @Override
     public void finish() {
-        if (finished.compareAndSet(false, true)) {
+        if (upstreamHasMoreData.compareAndSet(true, false)) {
             if (downstreamWantsMore) {
-                consumeRemaining();
-            }
-            rowReceiver.finish();
-        }
-    }
-
-    private void consumeRemaining() {
-        pagingIterator.finish();
-        while (pagingIterator.hasNext()) {
-            Row row = pagingIterator.next();
-            boolean wantMore = rowReceiver.setNextRow(row);
-            if (topRowUpstream.shouldPause()) {
-                topRowUpstream.pauseProcessed();
-                finished.compareAndSet(true, false); // set to false so it can be resumed
-                return;
-            }
-            if (!wantMore) {
-                break;
+                pagingIterator.finish();
+                processBuckets(lastIterator, lastListener);
+            } else {
+                rowReceiver.finish();
             }
         }
     }
 
     @Override
     public void fail(Throwable t) {
-        if (finished.compareAndSet(false, true)) {
+        if (upstreamHasMoreData.compareAndSet(true, false)) {
             rowReceiver.fail(t);
         }
     }

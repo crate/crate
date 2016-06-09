@@ -276,5 +276,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
 
         rowReceiver.resumeUpstream(false);
         assertThat(rowReceiver.rows.size(), is(4));
+        verify(pageConsumeListener, times(1)).needMore();
+        verify(pageConsumeListener, times(0)).finish();
     }
 }
