@@ -24,7 +24,6 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Literal;
-import io.crate.core.collections.ArrayRow;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.operation.collect.CollectExpression;
@@ -32,22 +31,13 @@ import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.RowSender;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.core.Is.is;
 
 public class SortingProjectorTest extends CrateUnitTest {
-
-    private final ArrayRow spare = new ArrayRow();
-
-    private Row spare(Object... cells) {
-        if (cells == null) {
-            cells = new Object[]{null};
-        }
-        spare.cells(cells);
-        return spare;
-    }
 
     private SortingProjector createProjector(int numOutputs, int offset, RowReceiver rowReceiver) {
         InputCollectExpression input = new InputCollectExpression(0);
@@ -62,22 +52,11 @@ public class SortingProjectorTest extends CrateUnitTest {
         return projector;
     }
 
-    private void addRows(Projector projector) {
-        int i;
-        for (i = 10; i > 0; i--) {   // 10 --> 1
-            if (!projector.setNextRow(spare(i))) {
-                break;
-            }
-        }
-        assertThat(i, is(0)); // needs to collect all it can get
-    }
-
     @Test
     public void testOrderBy() throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         SortingProjector projector = createProjector(2, 0, rowReceiver);
-        addRows(projector);
-        projector.finish();
+        RowSender.generateRowsInRangeAndEmit(1, 11, true, projector);
         Bucket rows = rowReceiver.result();
         assertThat(rows.size(), is(10));
         int iterateLength = 1;
@@ -90,8 +69,7 @@ public class SortingProjectorTest extends CrateUnitTest {
     public void testOrderByWithOffset() throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         SortingProjector projector = createProjector(2, 5, rowReceiver);
-        addRows(projector);
-        projector.finish();
+        RowSender.generateRowsInRangeAndEmit(1, 11, true, projector);
         Bucket rows = rowReceiver.result();
         assertThat(rows.size(), is(5));
         int iterateLength = 6;
