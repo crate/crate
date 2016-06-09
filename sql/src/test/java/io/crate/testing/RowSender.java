@@ -21,12 +21,17 @@
 
 package io.crate.testing;
 
+import com.google.common.util.concurrent.MoreExecutors;
+import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.collectors.TopRowUpstream;
 import io.crate.operation.projectors.RowReceiver;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.Executor;
 
 public class RowSender implements Runnable, RowUpstream {
@@ -99,5 +104,34 @@ public class RowSender implements Runnable, RowUpstream {
 
     public int numResumes() {
         return numResumes;
+    }
+
+    /**
+     * Generates N rows where each row will just have 1 integer column, the current range iteration value.
+     * N is defined by the given <p>start</p> and <p>end</p> arguments.
+     *
+     * @param start         range start for generating rows (inclusive)
+     * @param end           range end for generating rows (exclusive)
+     * @param reverse       if true, list of rows will be reversed before emitting
+     * @param rowReceiver   rows will be emitted on that RowReceiver
+     * @return              the last emitted integer value
+     */
+    public static int generateRowsInRangeAndEmit(int start, int end, boolean reverse, RowReceiver rowReceiver) {
+        final List<Object[]> rows = new ArrayList<>(end - start);
+        for (int i = start; i < end; i++) {
+            rows.add(new Object[]{i});
+        }
+        if (reverse) {
+            Collections.reverse(rows);
+        }
+
+        RowSender rowSender = new RowSender(new CollectionBucket(rows), rowReceiver, MoreExecutors.directExecutor());
+        rowSender.run();
+        if (rowSender.iterator.hasNext()) {
+            Integer nextValue = (Integer) rowSender.iterator.next().get(0);
+            return reverse ? nextValue + 1 : nextValue - 1;
+        } else {
+            return end;
+        }
     }
 }
