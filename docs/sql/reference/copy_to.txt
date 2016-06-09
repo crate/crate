@@ -27,9 +27,9 @@ contents of its shards.
 
 The created files are JSON formatted and contain one table row per line.
 
-If the ``DIRECTORY`` keyword is given, the uri is treated as a directory path.
-This will generate one or more files in the given directory, named in such a
-way to prevent filename conflicts.
+If the ``DIRECTORY`` keyword is given, the URI is treated as a directory path.
+This will generate one or more files in the given directory, named to prevent
+filename conflicts.
 
 
 
@@ -170,9 +170,9 @@ Optional parameter to override default output behaviour.
 
 Possible values for the ``format`` settings are:
 
-:json_object: Output file contains one independently JSON serialised table row
-              per line. This is the default behaviour if no columns are
-              defined.
+:json_object: Output file contains one independently JSON serialized table row
+              per line. This is the default behavior if no columns are
+              defined. Use this format to import with :ref:`copy_from`.
 
 :json_array: Output file contains on each line a JSON array storing column
              values of one row. This is the default behaviour if columns are
@@ -183,5 +183,3 @@ Possible values for the ``format`` settings are:
 .. _`Amazon S3`: http://aws.amazon.com/s3/
 
 .. _NFS: http://de.wikipedia.org/wiki/Network_File_System
-
-
