@@ -27,7 +27,7 @@ contents of its shards.
 
 The created files are JSON formatted and contain one table row per line.
 
-If the ``DIRECTORY`` keyword is given, the uri is treated as a directory path.
+If the ``DIRECTORY`` keyword is given, the URI is treated as a directory path.
 This will generate one or more files in the given directory, named to prevent
 filename conflicts.
 
@@ -172,7 +172,7 @@ Possible values for the ``format`` settings are:
 
 :json_object: Output file contains one independently JSON serialized table row
               per line. This is the default behavior if no columns are
-              defined.
+              defined. Use this format to import with :ref:`copy_from`.
 
 :json_array: Output file contains on each line a JSON array storing column
              values of one row. This is the default behavior if columns are
