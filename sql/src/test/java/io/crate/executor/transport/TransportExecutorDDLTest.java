@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
+import io.crate.analyze.ParameterContext;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.TaskResult;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
@@ -157,7 +158,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         String partitionName = new PartitionName("t", ImmutableList.of(new BytesRef("1"))).asIndexName();
         ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
 
-        ListenableFuture<TaskResult> futures = executor.execute(plan);
+        ListenableFuture<TaskResult> futures = executor.execute(plan, ParameterContext.EMPTY);
         Bucket objects = futures.get(5, TimeUnit.SECONDS).rows();
         assertThat(objects, contains(isRow(-1L)));
 
@@ -185,7 +186,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
 
-        Bucket bucket = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        Bucket bucket = executor.execute(plan, ParameterContext.EMPTY).get(5, TimeUnit.SECONDS).rows();
         assertThat(bucket, contains(isRow(-1L)));
 
         execute("select * from information_schema.table_partitions where table_name = 't'");
@@ -236,7 +237,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     }
 
     private Bucket executePlan(Plan plan) throws InterruptedException, ExecutionException, TimeoutException {
-        ListenableFuture<TaskResult> future = executor.execute(plan);
+        ListenableFuture<TaskResult> future = executor.execute(plan, ParameterContext.EMPTY);
         return future.get(10, TimeUnit.SECONDS).rows();
     }
 }

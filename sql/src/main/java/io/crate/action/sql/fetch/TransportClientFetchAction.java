@@ -1,0 +1,101 @@
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
+
+package io.crate.action.sql.fetch;
+
+import io.crate.action.ActionListeners;
+import io.crate.action.sql.SQLActionException;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Buckets;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
+import io.crate.operation.ClientPagingReceiver;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.ActionFilters;
+import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportChannel;
+import org.elasticsearch.transport.TransportService;
+
+import java.util.Locale;
+
+@Singleton
+public class TransportClientFetchAction extends TransportAction<FetchRequest, FetchResponse> {
+
+    private final static String ACTION = "sql_fetch";
+    private final static String EXECUTOR = ThreadPool.Names.SEARCH;
+    private final JobContextService jobContextService;
+
+    @Inject
+    public TransportClientFetchAction(Settings settings,
+                                      String actionName,
+                                      ThreadPool threadPool,
+                                      TransportService transportService,
+                                      ActionFilters actionFilters,
+                                      IndexNameExpressionResolver indexNameExpressionResolver,
+                                      JobContextService jobContextService) {
+        super(settings, actionName, threadPool, actionFilters, indexNameExpressionResolver, transportService.getTaskManager());
+        this.jobContextService = jobContextService;
+        transportService.registerRequestHandler(ACTION, FetchRequest.class, EXECUTOR, new TransportHandler());
+    }
+
+    @Override
+    protected void doExecute(FetchRequest request, final ActionListener<FetchResponse> listener) {
+        JobExecutionContext context = jobContextService.getContextOrNull(request.cursorId());
+        if (context == null) {
+            listener.onFailure(new SQLActionException(String.format(Locale.ENGLISH,
+                "No context for cursorId \"%s\" found.", request.cursorId()), 4000, RestStatus.BAD_REQUEST));
+            return;
+        }
+
+        ClientPagingReceiver clientPagingReceiver = context.clientPagingRowReceiver();
+        if (clientPagingReceiver == null) {
+            listener.onFailure(new SQLActionException(String.format(Locale.ENGLISH,
+                "Context for cursorId \"%s\" doesn't support paging.", request.cursorId()), 4000, RestStatus.BAD_REQUEST));
+            return;
+        }
+        clientPagingReceiver.fetch(request.fetchProperties(), new ClientPagingReceiver.FetchCallback() {
+            @Override
+            public void onResult(Bucket rows, boolean isLast) {
+                listener.onResponse(new FetchResponse(Buckets.materialize(rows), isLast));
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                listener.onFailure(t);
+            }
+        });
+    }
+
+    private class TransportHandler extends org.elasticsearch.transport.TransportRequestHandler<FetchRequest> {
+        @Override
+        public void messageReceived(FetchRequest request, TransportChannel channel) throws Exception {
+            ActionListener<FetchResponse> listener = ActionListeners.forwardTo(channel);
+            doExecute(request, listener);
+        }
+    }
+}

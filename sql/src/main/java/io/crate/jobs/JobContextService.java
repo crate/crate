@@ -21,9 +21,10 @@
 
 package io.crate.jobs;
 
+import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionState;
 import io.crate.exceptions.ContextMissingException;
-import io.crate.concurrent.CompletionListener;
+import io.crate.operation.ClientPagingReceiver;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.ClusterService;
@@ -103,11 +104,17 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     }
 
     public JobExecutionContext.Builder newBuilder(UUID jobId) {
-        return new JobExecutionContext.Builder(jobId, clusterService.localNode().id(), statsTables);
+        return new JobExecutionContext.Builder(jobId, clusterService.localNode().id(), statsTables, null);
+    }
+
+    public JobExecutionContext.Builder newBuilder(UUID jobId,
+                                                  String coordinatorNodeId,
+                                                  @Nullable ClientPagingReceiver clientPagingReceiver) {
+        return new JobExecutionContext.Builder(jobId, coordinatorNodeId, statsTables, clientPagingReceiver);
     }
 
     public JobExecutionContext.Builder newBuilder(UUID jobId, String coordinatorNodeId) {
-        return new JobExecutionContext.Builder(jobId, coordinatorNodeId, statsTables);
+        return newBuilder(jobId, coordinatorNodeId, null);
     }
 
     public JobExecutionContext createContext(JobExecutionContext.Builder contextBuilder) {
