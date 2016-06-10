@@ -25,12 +25,10 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
-import io.crate.action.ActionListeners;
+import io.crate.action.FutureActionListener;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.*;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -111,10 +109,9 @@ public class DDLStatementDispatcher {
                     new String[analysis.indexNames().size()]));
             request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
-            final SettableFuture<Long> future = SettableFuture.create();
-            ActionListener<RefreshResponse> listener = ActionListeners.wrap(future, Functions.<Long>constant(null));
+            FutureActionListener<RefreshResponse, Long> listener = new FutureActionListener<>(Functions.<Long>constant(null));
             transportActionProvider.transportRefreshAction().execute(request, listener);
-            return future;
+            return listener;
         }
 
 

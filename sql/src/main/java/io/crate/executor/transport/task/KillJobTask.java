@@ -23,14 +23,12 @@ package io.crate.executor.transport.task;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.FutureActionListener;
 import io.crate.executor.JobTask;
-import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
-import org.elasticsearch.action.ActionListener;
 
 import java.util.List;
 import java.util.UUID;
@@ -51,21 +49,9 @@ public class KillJobTask extends JobTask {
     @Override
     public ListenableFuture<TaskResult> execute() {
         KillJobsRequest request = new KillJobsRequest(ImmutableList.of(jobToKill));
-        final SettableFuture<TaskResult> result = SettableFuture.create();
-
-        nodeAction.executeKillOnAllNodes(request, new ActionListener<KillResponse>() {
-            @Override
-            public void onResponse(KillResponse killResponse) {
-                result.set(new RowCountResult(killResponse.numKilled()));
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-                result.setException(e);
-            }
-        });
-
-        return result;
+        FutureActionListener<KillResponse, TaskResult> listener = new FutureActionListener<>(KillTask.RESPONSE_TO_TASK_RESULT);
+        nodeAction.executeKillOnAllNodes(request, listener);
+        return listener;
     }
 
     @Override

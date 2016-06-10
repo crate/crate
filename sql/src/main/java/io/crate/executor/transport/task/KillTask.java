@@ -23,15 +23,13 @@ package io.crate.executor.transport.task;
 
 import com.google.common.base.Function;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
-import io.crate.action.ActionListeners;
+import io.crate.action.FutureActionListener;
 import io.crate.executor.JobTask;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.kill.KillAllRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
-import org.elasticsearch.action.ActionListener;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -39,7 +37,7 @@ import java.util.UUID;
 
 public class KillTask extends JobTask {
 
-    private static final Function<KillResponse, TaskResult> RESPONSE_TO_TASK_RESULT = new Function<KillResponse, TaskResult>() {
+    static final Function<KillResponse, TaskResult> RESPONSE_TO_TASK_RESULT = new Function<KillResponse, TaskResult>() {
         @Nullable
         @Override
         public TaskResult apply(@Nullable KillResponse input) {
@@ -55,11 +53,9 @@ public class KillTask extends JobTask {
 
     @Override
     public ListenableFuture<TaskResult> execute() {
-        SettableFuture<TaskResult> result = SettableFuture.create();
-        ActionListener<KillResponse> actionListener = ActionListeners.wrap(result, RESPONSE_TO_TASK_RESULT);
-        nodeAction.broadcast(new KillAllRequest(), actionListener);
-
-        return result;
+        FutureActionListener<KillResponse, TaskResult> listener = new FutureActionListener<>(RESPONSE_TO_TASK_RESULT);
+        nodeAction.broadcast(new KillAllRequest(), listener);
+        return listener;
     }
 
     @Override

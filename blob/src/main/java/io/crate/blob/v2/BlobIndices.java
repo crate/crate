@@ -26,7 +26,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.action.ActionListeners;
+import io.crate.action.FutureActionListener;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.BlobShardFuture;
 import org.apache.lucene.util.IOUtils;
@@ -119,11 +119,12 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
      * @param indexSettings updated index settings
      */
     public ListenableFuture<Void> alterBlobTable(String tableName, Settings indexSettings) {
-        final SettableFuture<Void> result = SettableFuture.create();
-        ActionListener<UpdateSettingsResponse> listener = ActionListeners.wrap(result, Functions.<Void>constant(null));
+        FutureActionListener<UpdateSettingsResponse, Void> listener =
+            new FutureActionListener<>(Functions.<Void>constant(null));
+
         transportUpdateSettingsActionProvider.get().execute(
             new UpdateSettingsRequest(indexSettings, fullIndexName(tableName)), listener);
-        return result;
+        return listener;
     }
 
     public ListenableFuture<Void> createBlobTable(String tableName,
@@ -149,10 +150,9 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     }
 
     public ListenableFuture<Void> dropBlobTable(final String tableName) {
-        final SettableFuture<Void> result = SettableFuture.create();
-        ActionListener<DeleteIndexResponse> listener = ActionListeners.wrap(result, Functions.<Void>constant(null));
+        FutureActionListener<DeleteIndexResponse, Void> listener = new FutureActionListener<>(Functions.<Void>constant(null));
         transportDeleteIndexActionProvider.get().execute(new DeleteIndexRequest(fullIndexName(tableName)), listener);
-        return result;
+        return listener;
     }
 
     public BlobShard blobShard(String index, int shardId) {

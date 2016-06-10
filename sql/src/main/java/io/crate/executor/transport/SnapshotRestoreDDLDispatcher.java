@@ -25,7 +25,7 @@ package io.crate.executor.transport;
 import com.google.common.base.Functions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.action.ActionListeners;
+import io.crate.action.FutureActionListener;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
@@ -134,8 +134,6 @@ public class SnapshotRestoreDDLDispatcher {
     }
 
     public ListenableFuture<Long> dispatch(final RestoreSnapshotAnalyzedStatement analysis) {
-        final SettableFuture<Long> resultFuture = SettableFuture.create();
-
         boolean waitForCompletion = analysis.settings().getAsBoolean(WAIT_FOR_COMPLETION.settingName(), WAIT_FOR_COMPLETION.defaultValue());
         boolean ignoreUnavailable = analysis.settings().getAsBoolean(IGNORE_UNAVAILABLE.settingName(), IGNORE_UNAVAILABLE.defaultValue());
 
@@ -149,8 +147,8 @@ public class SnapshotRestoreDDLDispatcher {
                 .waitForCompletion(waitForCompletion)
                 .includeGlobalState(false)
                 .includeAliases(true);
-        ActionListener<RestoreSnapshotResponse> listener = ActionListeners.wrap(resultFuture, Functions.constant(1L));
+        FutureActionListener<RestoreSnapshotResponse, Long> listener = new FutureActionListener<>(Functions.constant(1L));
         transportActionProvider.transportRestoreSnapshotAction().execute(request, listener);
-        return resultFuture;
+        return listener;
     }
 }

@@ -21,17 +21,16 @@
 
 package io.crate.executor.task;
 
-import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.base.Function;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.executor.JobTask;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,26 +47,17 @@ public class DDLTask extends JobTask {
 
     @Override
     public ListenableFuture<TaskResult> execute() {
-        final SettableFuture<TaskResult> result = SettableFuture.create();
-
-        ListenableFuture<Long> future = ddlStatementDispatcher.dispatch(analyzedStatement, jobId());
-        Futures.addCallback(future, new FutureCallback<Long>() {
-            @Override
-            public void onSuccess(Long rowCount) {
-                if (rowCount == null) {
-                    result.set(TaskResult.ROW_COUNT_UNKNOWN);
-                } else {
-                    result.set(new RowCountResult(rowCount));
+        return Futures.transform(ddlStatementDispatcher.dispatch(analyzedStatement, jobId()),
+            new Function<Long, TaskResult>() {
+                @Nullable
+                @Override
+                public TaskResult apply(@Nullable Long input) {
+                    if (input == null) {
+                        return TaskResult.ROW_COUNT_UNKNOWN;
+                    }
+                    return new RowCountResult(input);
                 }
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                result.setException(t);
-            }
-        });
-
-        return result;
+            });
     }
 
     @Override

@@ -23,12 +23,10 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Functions;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
-import io.crate.action.ActionListeners;
+import io.crate.action.FutureActionListener;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
@@ -39,8 +37,6 @@ public class ESClusterUpdateSettingsTask extends JobTask {
 
     private final TransportClusterUpdateSettingsAction transport;
     private final ClusterUpdateSettingsRequest request;
-    private final ActionListener<ClusterUpdateSettingsResponse> listener;
-    private final SettableFuture<TaskResult> result;
 
     public ESClusterUpdateSettingsTask(ESClusterUpdateSettingsPlan plan,
                                        TransportClusterUpdateSettingsAction transport) {
@@ -56,14 +52,14 @@ public class ESClusterUpdateSettingsTask extends JobTask {
         if (plan.transientSettingsToRemove() != null) {
             request.transientSettingsToRemove(plan.transientSettingsToRemove());
         }
-        result = SettableFuture.create();
-        listener = ActionListeners.wrap(result, Functions.constant(TaskResult.ONE_ROW));
     }
 
     @Override
     public ListenableFuture<TaskResult> execute() {
+        FutureActionListener<ClusterUpdateSettingsResponse, TaskResult> listener =
+            new FutureActionListener<>(Functions.<TaskResult>constant(TaskResult.ONE_ROW));
         transport.execute(request, listener);
-        return result;
+        return listener;
     }
 
     @Override
