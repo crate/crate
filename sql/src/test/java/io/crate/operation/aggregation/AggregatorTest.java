@@ -65,7 +65,7 @@ public class AggregatorTest extends CrateUnitTest {
                 Aggregation.Step.PARTIAL
         );
         Input dummyInput = new Input() {
-            Long state = 10L;
+            CountAggregation.LongState state = new CountAggregation.LongState(10L);
 
 
             @Override

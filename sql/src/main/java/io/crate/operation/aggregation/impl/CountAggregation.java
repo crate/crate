@@ -22,7 +22,10 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.*;
+import io.crate.Streamer;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
@@ -30,35 +33,34 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.planner.projection.AggregationProjection;
 import io.crate.types.DataType;
+import io.crate.types.DataTypeFactory;
 import io.crate.types.DataTypes;
+import io.crate.types.FixedWidthType;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.util.Collections;
+import java.io.IOException;
 import java.util.List;
 
-public class CountAggregation extends AggregationFunction<Long, Long> {
+public class CountAggregation extends AggregationFunction<CountAggregation.LongState, Long> {
 
     public static final String NAME = "count";
     private final FunctionInfo info;
     private final boolean hasArgs;
 
-    public static final FunctionInfo COUNT_STAR_FUNCTION = new FunctionInfo(new FunctionIdent(NAME,
-            ImmutableList.<DataType>of()), DataTypes.LONG, FunctionInfo.Type.AGGREGATE);
+    static {
+        DataTypes.register(CountAggregation.LongStateType.ID, CountAggregation.LongStateType.INSTANCE);
+    }
 
-    public static final AggregationProjection PARTIAL_COUNT_AGGREGATION_PROJECTION =
-            new AggregationProjection(Collections.singletonList(
-                    Aggregation.finalAggregation(
-                            CountAggregation.COUNT_STAR_FUNCTION,
-                            Collections.<Symbol>singletonList(new InputColumn(0, DataTypes.LONG)),
-                            Aggregation.Step.PARTIAL
-                    )));
+    public static final FunctionInfo COUNT_STAR_FUNCTION = new FunctionInfo(new FunctionIdent(NAME,
+        ImmutableList.<DataType>of()), DataTypes.LONG, FunctionInfo.Type.AGGREGATE);
 
     public static void register(AggregationImplModule mod) {
         mod.register(NAME, new CountAggregationFunctionResolver());
     }
 
-    static class CountAggregationFunctionResolver implements DynamicFunctionResolver {
+    private static class CountAggregationFunctionResolver implements DynamicFunctionResolver {
 
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
@@ -66,29 +68,29 @@ public class CountAggregation extends AggregationFunction<Long, Long> {
                 return new CountAggregation(COUNT_STAR_FUNCTION, false);
             } else {
                 return new CountAggregation(
-                        new FunctionInfo(new FunctionIdent(NAME, dataTypes),
-                                DataTypes.LONG, FunctionInfo.Type.AGGREGATE), true);
+                    new FunctionInfo(new FunctionIdent(NAME, dataTypes),
+                        DataTypes.LONG, FunctionInfo.Type.AGGREGATE), true);
             }
         }
     }
 
-    CountAggregation(FunctionInfo info, boolean hasArgs) {
+    private CountAggregation(FunctionInfo info, boolean hasArgs) {
         this.info = info;
         this.hasArgs = hasArgs;
     }
 
     @Override
-    public Long iterate(RamAccountingContext ramAccountingContext, Long state, Input... args) {
-        if (!hasArgs || args[0].value() != null){
-            return state + 1;
+    public LongState iterate(RamAccountingContext ramAccountingContext, LongState state, Input... args) {
+        if (!hasArgs || args[0].value() != null) {
+            return state.add(1L);
         }
         return state;
     }
 
     @Override
-    public Long newState(RamAccountingContext ramAccountingContext) {
-        ramAccountingContext.addBytes(DataTypes.LONG.fixedSize());
-        return 0L;
+    public LongState newState(RamAccountingContext ramAccountingContext) {
+        ramAccountingContext.addBytes(LongStateType.INSTANCE.fixedSize());
+        return new LongState();
     }
 
     @Override
@@ -104,7 +106,7 @@ public class CountAggregation extends AggregationFunction<Long, Long> {
             if (function.arguments().get(0).symbolType().isValueSymbol()) {
                 if ((function.arguments().get(0)).valueType() == DataTypes.UNDEFINED) {
                     return Literal.newLiteral(0L);
-                } else{
+                } else {
                     return new Function(COUNT_STAR_FUNCTION, ImmutableList.<Symbol>of());
                 }
             }
@@ -114,16 +116,109 @@ public class CountAggregation extends AggregationFunction<Long, Long> {
 
     @Override
     public DataType partialType() {
-        return DataTypes.LONG;
+        return LongStateType.INSTANCE;
     }
 
     @Override
-    public Long reduce(RamAccountingContext ramAccountingContext, Long state1, Long state2) {
-        return state1 + state2;
+    public LongState reduce(RamAccountingContext ramAccountingContext, LongState state1, LongState state2) {
+        return state1.merge(state2);
     }
 
     @Override
-    public Long terminatePartial(RamAccountingContext ramAccountingContext, Long state) {
-        return state;
+    public Long terminatePartial(RamAccountingContext ramAccountingContext, LongState state) {
+        return state.value;
+    }
+
+    public static class LongState implements Comparable<CountAggregation.LongState> {
+
+        long value = 0L;
+
+        public LongState() {
+        }
+
+        public LongState(long value) {
+            this.value = value;
+        }
+
+        public LongState add(long value) {
+            this.value = this.value + value;
+            return this;
+        }
+
+        public LongState merge(LongState otherState) {
+            add(otherState.value);
+            return this;
+        }
+
+        @Override
+        public int compareTo(LongState o) {
+            if (o == null) {
+                return 1;
+            } else {
+                return Long.compare(value, o.value);
+            }
+        }
+
+        @Override
+        public String toString() {
+            return String.valueOf(value);
+        }
+    }
+
+    public static class LongStateType extends DataType<LongState>
+        implements FixedWidthType, Streamer<LongState>, DataTypeFactory {
+
+        public static final int ID = 16384;
+        public static final LongStateType INSTANCE = new LongStateType();
+
+        @Override
+        public int id() {
+            return ID;
+        }
+
+        @Override
+        public String getName() {
+            return "long_state";
+        }
+
+        @Override
+        public Streamer<?> streamer() {
+            return this;
+        }
+
+        @Override
+        public LongState value(Object value) throws IllegalArgumentException, ClassCastException {
+            return (LongState) value;
+        }
+
+        @Override
+        public int compareValueTo(LongState val1, LongState val2) {
+            if (val1 == null) {
+                return -1;
+            } else {
+                return val1.compareTo(val2);
+            }
+        }
+
+        @Override
+        public LongState readValueFrom(StreamInput in) throws IOException {
+            return new CountAggregation.LongState(in.readVLong());
+        }
+
+        @Override
+        public void writeValueTo(StreamOutput out, Object v) throws IOException {
+            LongState longState = (LongState) v;
+            out.writeVLong(longState.value);
+        }
+
+        @Override
+        public DataType<?> create() {
+            return INSTANCE;
+        }
+
+        @Override
+        public int fixedSize() {
+            return DataTypes.LONG.fixedSize();
+        }
     }
 }

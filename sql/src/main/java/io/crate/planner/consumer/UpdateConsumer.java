@@ -30,7 +30,6 @@ import io.crate.analyze.symbol.*;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
@@ -40,6 +39,7 @@ import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SysUpdateProjection;
 import io.crate.planner.projection.UpdateProjection;
@@ -170,7 +170,7 @@ public class UpdateConsumer implements Consumer {
         MergePhase mergePhase = MergePhase.localMerge(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
-            Collections.<Projection>singletonList(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
+            Collections.<Projection>singletonList(MergeCountProjection.INSTANCE),
             collectPhase.executionNodes().size(),
             collectPhase.outputTypes()
         );
@@ -237,7 +237,7 @@ public class UpdateConsumer implements Consumer {
             MergePhase mergeNode = MergePhase.localMerge(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
-                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
+                ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
                 collectPhase.executionNodes().size(),
                 collectPhase.outputTypes()
             );

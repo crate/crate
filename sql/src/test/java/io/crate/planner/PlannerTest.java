@@ -14,6 +14,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
+import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.ddl.DropTablePlan;
@@ -80,7 +81,7 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectPhase.outputTypes().size(), is(2));
         assertEquals(DataTypes.STRING, collectPhase.outputTypes().get(0));
-        assertEquals(DataTypes.LONG, collectPhase.outputTypes().get(1));
+        assertEquals(CountAggregation.LongStateType.INSTANCE, collectPhase.outputTypes().get(1));
 
         MergePhase mergeNode = distributedGroupBy.reducerMergeNode();
 
@@ -215,7 +216,7 @@ public class PlannerTest extends AbstractPlannerTest {
         CollectAndMerge globalAggregate = plan("select count(name) from users");
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) globalAggregate.collectPhase());
 
-        assertEquals(DataTypes.LONG, collectPhase.outputTypes().get(0));
+        assertEquals(CountAggregation.LongStateType.INSTANCE, collectPhase.outputTypes().get(0));
         assertThat(collectPhase.maxRowGranularity(), is(RowGranularity.DOC));
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(AggregationProjection.class));
@@ -223,7 +224,7 @@ public class PlannerTest extends AbstractPlannerTest {
 
         MergePhase mergeNode = globalAggregate.localMerge();
 
-        assertEquals(DataTypes.LONG, Iterables.get(mergeNode.inputTypes(), 0));
+        assertEquals(CountAggregation.LongStateType.INSTANCE, Iterables.get(mergeNode.inputTypes(), 0));
         assertEquals(DataTypes.LONG, mergeNode.outputTypes().get(0));
     }
 
@@ -233,7 +234,7 @@ public class PlannerTest extends AbstractPlannerTest {
                 "select count(*), name from sys.nodes group by name");
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) planNode.collectPhase());
         assertEquals(DataTypes.STRING, collectPhase.outputTypes().get(0));
-        assertEquals(DataTypes.LONG, collectPhase.outputTypes().get(1));
+        assertEquals(CountAggregation.LongStateType.INSTANCE, collectPhase.outputTypes().get(1));
 
         MergePhase mergeNode = planNode.localMerge();
         assertThat(mergeNode.numUpstreams(), is(2));
@@ -709,7 +710,7 @@ public class PlannerTest extends AbstractPlannerTest {
 
         MergePhase mergeNode = planNode.localMerge();
         assertThat(mergeNode.projections().size(), is(1));
-        assertThat(mergeNode.projections().get(0), instanceOf(AggregationProjection.class));
+        assertThat(mergeNode.projections().get(0), instanceOf(MergeCountProjection.class));
 
         assertThat(mergeNode.outputTypes().size(), is(1));
     }
@@ -841,7 +842,7 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(plan.countNode().whereClause(), equalTo(WhereClause.MATCH_ALL));
 
         assertThat(plan.mergeNode().projections().size(), is(1));
-        assertThat(plan.mergeNode().projections().get(0), instanceOf(AggregationProjection.class));
+        assertThat(plan.mergeNode().projections().get(0), instanceOf(MergeCountProjection.class));
     }
 
     @Test
@@ -921,7 +922,7 @@ public class PlannerTest extends AbstractPlannerTest {
 
         MergePhase localMergeNode = planNode.handlerMergeNode().get();
         assertThat(localMergeNode.projections().size(), is(1));
-        assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
+        assertThat(localMergeNode.projections().get(0), instanceOf(MergeCountProjection.class));
         assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
     }
 
@@ -951,7 +952,7 @@ public class PlannerTest extends AbstractPlannerTest {
         MergePhase localMergeNode = planNode.handlerMergeNode().get();
 
         assertThat(localMergeNode.projections().size(), is(1));
-        assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
+        assertThat(localMergeNode.projections().get(0), instanceOf(MergeCountProjection.class));
         assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
 
     }
@@ -1073,7 +1074,7 @@ public class PlannerTest extends AbstractPlannerTest {
         MergePhase localMergeNode = planNode.handlerMergeNode().get();
 
         assertThat(localMergeNode.projections().size(), is(1));
-        assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
+        assertThat(localMergeNode.projections().get(0), instanceOf(MergeCountProjection.class));
     }
 
     @Test
@@ -1201,7 +1202,7 @@ public class PlannerTest extends AbstractPlannerTest {
         MergePhase localMergeNode = planNode.handlerMergeNode().get();
 
         assertThat(localMergeNode.projections().size(), is(1));
-        assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
+        assertThat(localMergeNode.projections().get(0), instanceOf(MergeCountProjection.class));
         assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
 
     }

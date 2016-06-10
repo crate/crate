@@ -31,7 +31,6 @@ import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -41,6 +40,7 @@ import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.UpdateProjection;
 import io.crate.types.DataType;
@@ -92,10 +92,10 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
     @Test
     public void testInsertIntoPartitionedTableWithUpsertByIdTask() throws Exception {
         execute("create table parted (" +
-                "  id int, " +
-                "  name string, " +
-                "  date timestamp" +
-                ") partitioned by (date)");
+            "  id int, " +
+            "  name string, " +
+            "  date timestamp" +
+            ") partitioned by (date)");
         ensureGreen();
 
         /* insert into parted (id, name, date) values(0, 'Trillian', 13959981214861); */
@@ -286,7 +286,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         MergePhase mergeNode1 = MergePhase.localMerge(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
-            ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
+            ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
             collectPhase1.executionNodes().size(),
             collectPhase1.outputTypes());
         childNodes.add(new CollectAndMerge(collectPhase1, mergeNode1));
@@ -312,7 +312,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         MergePhase mergeNode2 = MergePhase.localMerge(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
-            ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
+            ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
             collectPhase2.executionNodes().size(),
             collectPhase2.outputTypes());
         childNodes.add(new CollectAndMerge(collectPhase2, mergeNode2));

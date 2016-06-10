@@ -22,11 +22,17 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.Streamer;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
+
+import static org.hamcrest.Matchers.equalTo;
 
 public class CountAggregationTest extends AggregationTest {
 
@@ -90,4 +96,14 @@ public class CountAggregationTest extends AggregationTest {
         assertEquals(2L, result[0][0]);
     }
 
+    @Test
+    public void testStreaming() throws Exception {
+        CountAggregation.LongState l1 = new CountAggregation.LongState(12345L);
+        BytesStreamOutput out = new BytesStreamOutput();
+        Streamer streamer = CountAggregation.LongStateType.INSTANCE.streamer();
+        streamer.writeValueTo(out, l1);
+        StreamInput in = StreamInput.wrap(out.bytes());
+        CountAggregation.LongState l2 = (CountAggregation.LongState) streamer.readValueFrom(in);
+        assertEquals(l1.value, l2.value);
+    }
 }

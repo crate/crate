@@ -46,6 +46,10 @@ public class ProjectionVisitor<C, R> {
         return visitProjection(projection, context);
     }
 
+    public R visitMergeCountProjection(MergeCountProjection projection, C context) {
+        return visitProjection(projection, context);
+    }
+
     public R visitWriterProjection(WriterProjection projection, C context) {
         return visitProjection(projection, context);
     }

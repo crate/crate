@@ -36,7 +36,6 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -48,6 +47,7 @@ import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.DeleteProjection;
+import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.Preference;
@@ -137,7 +137,7 @@ public class DeleteStatementPlanner {
         MergePhase mergeNode = MergePhase.localMerge(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
-                ImmutableList.<Projection>of(CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION),
+                ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
                 collectPhase.executionNodes().size(),
                 collectPhase.outputTypes()
         );

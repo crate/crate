@@ -32,14 +32,12 @@ import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.DocReferenceConverter;
-import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
+import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.builder.InputCreatingVisitor;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
@@ -89,11 +87,11 @@ public class InsertFromSubQueryConsumer implements Consumer {
             MergePhase mergeNode = null;
             if (plannedSubQuery.resultIsDistributed()) {
                 // add local merge Node which aggregates the distributed results
-                AggregationProjection aggregationProjection = CountAggregation.PARTIAL_COUNT_AGGREGATION_PROJECTION;
+                MergeCountProjection mergeCountProjection = MergeCountProjection.INSTANCE;
                 mergeNode = MergePhase.localMerge(
                         plannerContext.jobId(),
                         plannerContext.nextExecutionPhaseId(),
-                        ImmutableList.<Projection>of(aggregationProjection),
+                        ImmutableList.<Projection>of(mergeCountProjection),
                         plannedSubQuery.resultPhase().executionNodes().size(),
                         Symbols.extractTypes(indexWriterProjection.outputs()));
                 mergeNode.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));

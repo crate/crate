@@ -167,6 +167,11 @@ public class ProjectionToProjectorVisitor
     }
 
     @Override
+    public Projector visitMergeCountProjection(MergeCountProjection projection, Context context) {
+        return new MergeCountProjector();
+    }
+
+    @Override
     public Projector visitAggregationProjection(AggregationProjection projection, Context context) {
         ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
         for (Aggregation aggregation : projection.aggregations()) {
