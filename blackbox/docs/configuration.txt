@@ -917,8 +917,8 @@ would result in a list of discovery nodes ordered like::
 
 .. _conf_ec2_discovery:
 
-Discovery via EC2
-*****************
+Discovery on Amazon EC2
+***********************
 
 Crate has built-in support for discovery via the EC2 API. To enable EC2
 discovery the ``discovery.type`` setting needs to be set to ``ec2``.
@@ -993,6 +993,50 @@ Following settings control the discovery:
 
   If you have your own compatible implementation of the EC2 API service you can
   set the enpoint that should be used.
+
+.. _conf_azure_discovery:
+
+Discovery on Microsoft Azure
+****************************
+
+Crate has built-in support for discovery via the Azure Virtual Machine API.
+To enable Azure discovery set the ``discovery.type`` setting to ``azure``.
+
+**cloud.azure.management.resourcegroup.name**
+  | *Runtime:*  ``no``
+
+  The name of the resource group the Crate cluster is running on.
+  All nodes need to be started within the same resource group.
+
+**cloud.azure.management.subscription.id**
+  | *Runtime:*  ``no``
+
+  The subscription ID of your Azure account.
+  You can find the ID on the `Azure Portal`_.
+
+**cloud.azure.management.tenant.id**
+  | *Runtime:*  ``no``
+
+  The tenant ID of the `Active Directory application`_.
+
+**cloud.azure.management.app.id**
+  | *Runtime:*  ``no``
+
+  The application ID of the `Active Directory application`_.
+
+**cloud.azure.management.app.secret**
+  | *Runtime:*  ``no``
+
+  The password of the `Active Directory application`_.
+
+**discovery.azure.method**
+  | *Runtime:* ``no``
+  | *Default:* ``vnet``
+  | *Allowed Values:* ``vnet | subnet``
+
+  Defines the scope of the discovery. ``vnet`` will discover all VMs within the
+  same virtual network (default), ``subnet`` will discover all VMs within the
+  same subnet of the Crate instance.
 
 
 .. _conf_routing:
@@ -1717,15 +1761,11 @@ running on it.
 
 
 .. _YAML: http://en.wikipedia.org/wiki/YAML
-
 .. _Log4j: https://logging.apache.org/log4j/1.2/
-
 .. _`hierarchical named loggers`: https://logging.apache.org/log4j/1.2/manual.html
-
 .. _PropertyConfigurator: https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PropertyConfigurator.html
-
 .. _`JarURLConnection documentation`: http://docs.oracle.com/javase/8/docs/api/java/net/JarURLConnection.html
-
 .. _Lucene: https://lucene.apache.org/
-
 .. _`Compressed Oops`: https://wiki.openjdk.java.net/display/HotSpot/CompressedOops
+.. _`Azure Portal`: https://portal.azure.com
+.. _`Active Directory application`: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/#_create-ad-application-with-password

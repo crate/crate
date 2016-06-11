@@ -1,0 +1,55 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+apply plugin: 'idea'
+
+archivesBaseName = 'crate-azure-discovery'
+group = 'io.crate'
+
+task writePropertiesFile << {
+    copy {
+        from "src/main/resources/"
+        into "${buildDir}/tmp"
+        include "plugin-descriptor.properties"
+        expand (version: project.version,
+                esVersion: versions.elasticsearch,
+                jmvCompatibility: project.targetCompatibility,
+                name: project.name)
+    }
+}
+
+jar.dependsOn(writePropertiesFile)
+
+dependencies {
+    compileOnly project(':es')
+    compileOnly project(':core')
+    compileOnly('com.microsoft.azure:azure-mgmt-utility:0.9.3') {
+        exclude group: 'stax', module: 'stax-api'
+        exclude group: 'javax.mail', module: 'mail'
+        exclude group: 'org.slf4j', module: 'slf4j-api'
+        exclude group: 'commons-logging', module: 'commons-logging'
+        exclude group: 'commons-codec', module: 'commons-codec'
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+        exclude group: 'org.apache.httpcomponents', module: 'httpclient'
+    }
+    testCompile project(':testing')
+    testCompile('com.microsoft.azure:azure-mgmt-utility:0.9.3') {
+        exclude group: 'stax', module: 'stax-api'
+        exclude group: 'javax.mail', module: 'mail'
+        exclude group: 'org.slf4j', module: 'slf4j-api'
+        exclude group: 'commons-logging', module: 'commons-logging'
+        exclude group: 'commons-codec', module: 'commons-codec'
+        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+        exclude group: 'org.apache.httpcomponents', module: 'httpclient'
+    }
+}
+
+sourceSets {
+    test {
+        output.resourcesDir = null
+    }
+}
+
+idea {
+    module {
+        excludeDirs += files('build','src/test')
+    }
+}

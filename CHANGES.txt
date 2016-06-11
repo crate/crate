@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added plugin for unicast host discovery on Azure (ARM mode)
+
  - Fix: do not allow to create tables in read-only system schemas
 
  - Fix: type was not set correctly when creating a token filter
