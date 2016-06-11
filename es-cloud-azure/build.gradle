@@ -1,0 +1,39 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+apply plugin: 'idea'
+
+dependencies {
+    compile project(':es')
+    compile('com.microsoft.azure:azure-storage:4.0.0')
+    compile('com.microsoft.azure:azure-svc-mgmt-compute:0.9.3') {
+        exclude group: 'stax', module: 'stax-api'
+    }
+    compile('com.microsoft.azure:azure-core:0.9.3') {
+        exclude group: 'stax', module: 'stax-api'
+    }
+}
+
+def pluginDir = project(":es").file('upstream/plugins/cloud-azure')
+
+sourceSets {
+    main {
+        java {
+            srcDir "$pluginDir/src/main/java"
+        }
+        output.resourcesDir = null
+    }
+    test {
+        output.resourcesDir = null
+        output.classesDir = null
+    }
+}
+
+test {
+    enabled = false
+}
+
+idea {
+    module {
+        contentRoot = pluginDir
+        excludeDirs += files('build','src/test')
+    }
+}

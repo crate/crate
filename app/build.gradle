@@ -38,6 +38,7 @@ dependencies {
     compile project(':dns-discovery')
     compile project(':es-discovery-multicast')
     compile project(':es-cloud-aws')
+    compile project(':es-cloud-azure')
 
     testCompile project(':testing')
 
@@ -51,7 +52,7 @@ dependencies {
     compileNotTransitive project(':dns-discovery')
     compileNotTransitive project(':es-discovery-multicast')
     compileNotTransitive project(':es-cloud-aws')
-
+    compileNotTransitive project(':es-cloud-azure')
 }
 
 task release(dependsOn: 'distTar') << {

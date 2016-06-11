@@ -11,6 +11,7 @@ include 'es',
         'dns-discovery',
         'sigar',
         'es-cloud-aws',
+        'es-cloud-azure',
         'es-discovery-multicast',
         'es-repository-hdfs',
         'blackbox'
