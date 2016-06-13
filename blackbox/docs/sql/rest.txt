@@ -21,6 +21,7 @@ A simple `SELECT` statement can be submitted like this::
     ... }'
     {
       "cols" : [ "name", "position" ],
+      "col_types" : [ 4, 9 ],
       "duration" : ...,
       "rows" : [ [ "North West Ripple", 1 ], [ "Arkintoofle Minor", 3 ] ],
       "rowcount" : 2
@@ -50,6 +51,7 @@ expected under the ``args`` key::
     ... EOF
     {
       "cols" : [ "date", "position" ],
+      "col_types" : [ 11, 9 ],
       "duration" : ...,
       "rows" : [ [ 308534400000, 1 ], [ 308534400000, 2 ] ],
       "rowcount" : 2
@@ -76,6 +78,7 @@ The same query using question marks as placeholders looks like this::
     ... EOF
     {
       "cols" : [ "date", "position" ],
+      "col_types" : [ 11, 9 ],
       "duration" : ...,
       "rows" : [ [ 308534400000, 1 ], [ 308534400000, 2 ] ],
       "rowcount" : 2
@@ -98,6 +101,7 @@ It is possible to set a default schema while querying the Crate cluster via
     ... }'
     {
       "cols" : [ "name", "position" ],
+      "col_types" : [ 4, 9 ],
       "duration" : ...,
       "rows" : [ [ "North West Ripple", 1 ], [ "Arkintoofle Minor", 3 ] ],
       "rowcount" : 2
@@ -109,27 +113,9 @@ will be used instead.
 Column Types
 ============
 
-Crate can respond a list ``col_types`` with the data type id of every
+The response contains a list ``col_types`` with the data type id of every
 responded column. This way one can know what exact data type a column
 is holding.
-
-In order to get the list of column data types, a ``types`` query
-parameter must be passed to the request::
-
-    sh$ curl -sSXPOST '127.0.0.1:4200/_sql?types&pretty' -d@- <<- EOF
-    ... {"stmt":
-    ...     "select date, position from locations
-    ...      where date <= \$1 and position < \$2 order by position",
-    ...  "args": ["1979-10-12", 3]
-    ... }
-    ... EOF
-    {
-      "cols" : [ "date", "position" ],
-      "col_types" : [ 11, 9 ],
-      "duration" : ...,
-      "rows" : [ [ 308534400000, 1 ], [ 308534400000, 2 ] ],
-      "rowcount" : 2
-    }
 
 Collection data types like ``Set`` or ``Array`` are displayed as
 a list where the first value is the collection type and the second is

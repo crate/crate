@@ -50,7 +50,8 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
                 "seventeen million.\", \"1\", \"Galaxy\", \"North West Ripple\", 1, " +
                 "null ] ],\n" +
                 " \"rowcount\": 1," +
-                " \"duration\": " + responseDuration +
+                " \"duration\": " + responseDuration + ", " +
+                " \"col_types\": [11, 4, 4, 4, 4, 9, 12]," +
                 "}"
                 , json, true
         );
@@ -92,7 +93,8 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
                 " West ripple of the Galaxy is said to be easier by a factor of about " +
                 "seventeen million.\", \"1\", \"Galaxy\", \"North West Ripple\", 1, null ] ],\n" +
                 " \"rowcount\": 1," +
-                " \"duration\": " + responseDuration +
+                " \"duration\": " + responseDuration + "," +
+                " \"col_types\": [11, 4, 4, 4, 4, 9, 12], " +
                 "}"
                 , json, true);
     }
@@ -110,7 +112,8 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
                 "  \"cols\" : [ ],\n" +
                 "  \"rows\" : [ ],\n" +
                 "  \"rowcount\" : 1,\n" +
-                "  \"duration\" : \n" + responseDuration +
+                "  \"duration\" : \n" + responseDuration + ", " +
+                "  \"col_types\": []," +
                 "}", json, true);
     }
 
@@ -201,7 +204,8 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
                 "  \"cols\" : [ \"name\" ],\n" +
                 "  \"duration\" : " + responseDuration + ",\n" +
                 "  \"rows\" : [ ],\n" +
-                "  \"rowcount\" : 0\n" +
+                "  \"rowcount\" : 0,\n" +
+                "  \"col_types\": [4]\n "+
                 "}", json, true);
     }
 
@@ -215,6 +219,7 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
                 "{\n" +
                 "  \"cols\" : [ \"name\" ],\n" +
                 "  \"duration\" : " + responseDuration + ",\n" +
+                "  \"col_types\" : [ 4 ],\n" +
                 "  \"rows\" : [ ],\n" +
                 "  \"rowcount\" : 0\n" +
                 "}", json, true);

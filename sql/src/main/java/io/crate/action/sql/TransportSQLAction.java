@@ -29,9 +29,7 @@ import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
-import io.crate.executor.BytesRefUtils;
 import io.crate.executor.Executor;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
@@ -101,7 +99,7 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
         Futures.addCallback(executor.execute(plan, analysis.parameterContext()), new FutureCallback<TaskResult>() {
             @Override
             public void onSuccess(@Nullable TaskResult result) {
-                listener.onResponse(createResponse(plan.jobId(), analysis, request, result, startTime));
+                listener.onResponse(createResponse(plan.jobId(), analysis, result, startTime));
             }
 
             @Override
@@ -113,11 +111,9 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
 
     private SQLResponse createResponse(UUID jobId,
                                        Analysis analysis,
-                                       SQLRequest request,
                                        @Nullable TaskResult result,
                                        long startTime) {
         Bucket bucket = result == null ? Bucket.EMPTY : result.rows();
-        Object[][] rows;
         String[] outputNames = EMPTY_NAMES;
         DataType[] outputTypes = EMPTY_TYPES;
         long rowCount = 0L;
@@ -128,8 +124,8 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
                 if (first.size()>=1){
                     rowCount = ((Number) first.get(0)).longValue();
                 }
+                bucket = Bucket.EMPTY;
             }
-            rows = TaskResult.EMPTY_OBJS;
         } else {
             assert analysis.rootRelation() != null;
             outputNames = new String[analysis.rootRelation().fields().size()];
@@ -141,17 +137,14 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
             }
 
             rowCount = bucket.size();
-            rows = Buckets.materialize(bucket);
         }
-        BytesRefUtils.ensureStringTypesAreStrings(outputTypes, rows);
         float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
         return new SQLResponse(
             outputNames,
-            rows,
+            bucket,
             outputTypes,
             rowCount,
             duration,
-            request.includeTypesOnResponse(),
             jobId
         );
     }

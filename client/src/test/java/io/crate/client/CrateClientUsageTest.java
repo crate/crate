@@ -27,6 +27,7 @@ import io.crate.action.sql.SQLBulkResponse;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -68,7 +69,7 @@ public class CrateClientUsageTest extends CrateClientIntegrationTest {
         assertEquals("id", r.cols()[0]);
         assertEquals(1, r.rows()[0][0]);
 
-        assertThat(r.columnTypes(), is(new DataType[0]));
+        assertThat(r.columnTypes(), is(new DataType[] {DataTypes.INTEGER }));
     }
 
     @Test
@@ -112,7 +113,7 @@ public class CrateClientUsageTest extends CrateClientIntegrationTest {
                     assertEquals("id", r.cols()[0]);
                     assertEquals(1, r.rows()[0][0]);
 
-                    assertThat(r.columnTypes(), is(new DataType[0]));
+                    assertThat(r.columnTypes(), is(new DataType[] { DataTypes.INTEGER }));
                 } catch (AssertionError e) {
                     assertionError.set(e);
                 } finally {

@@ -27,12 +27,14 @@ import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.action.sql.TransportSQLAction;
 import io.crate.analyze.Analyzer;
+import io.crate.core.collections.CollectionBucket;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.collect.StatsTables;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilters;
@@ -49,6 +51,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
 
+import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -91,17 +94,16 @@ public class TableStatsServiceTest extends CrateUnitTest  {
             protected void doExecute(SQLRequest request, ActionListener<SQLResponse> listener) {
                 Object[] row;
                 if (numRequests.get() == 0) {
-                    row = new Object[] { 2L, "foo", "bar"};
+                    row = new Object[] { 2L, new BytesRef("foo"), new BytesRef("bar")};
                 } else {
-                    row = new Object[] { 4L, "foo", "bar"};
+                    row = new Object[] { 4L, new BytesRef("foo"), new BytesRef("bar")};
                 }
                 listener.onResponse(new SQLResponse(
                     new String[] {"cast(sum(num_docs) as long)", "schema_name", "table_name"},
-                    new Object[][] { row },
+                    new CollectionBucket(Collections.singletonList(row)),
                     new DataType[] {DataTypes.LONG, DataTypes.STRING, DataTypes.STRING},
                     1L,
                     1,
-                    false,
                     UUID.randomUUID()
                 ));
                 numRequests.incrementAndGet();

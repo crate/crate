@@ -18,6 +18,8 @@ def coreIncludes = ['io/crate/Streamer*',
                     "io/crate/TimestampFormat*",
                     "io/crate/core/collections/MapComparator*",
                     "io/crate/core/collections/ForEach*",
+                    "io/crate/core/collections/Bucket*",
+                    "io/crate/core/collections/Row*",
                     "io/crate/core/StringUtils*",
                     "io/crate/geo/GeoJSONUtils*",
                     "io/crate/types/**"]
@@ -27,6 +29,8 @@ def sqlIncludes = [
     "io/crate/action/sql/Fetch*",
     "io/crate/action/sql/fetch/Fetch*",
     "io/crate/action/sql/fetch/SQLFetchAction*",
+    "io/crate/executor/BytesRefUtils.class",
+    "io/crate/executor/transport/StreamBucket*"
 ]
 
 task depClasses(type: Copy, dependsOn: [':core:compileJava', ':sql:compileJava']) {

@@ -87,7 +87,7 @@ public class AlterTableOperation {
             transportActionProvider.transportSQLAction().execute(new SQLRequest(stmt), new ActionListener<SQLResponse>() {
                 @Override
                 public void onResponse(SQLResponse sqlResponse) {
-                    Long count = (Long) sqlResponse.rows()[0][0];
+                    Long count = (Long) sqlResponse.bucket().iterator().next().get(0);
                     if (count == 0L) {
                         addColumnToTable(analysis, result);
                     } else {

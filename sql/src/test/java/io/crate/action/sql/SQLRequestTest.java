@@ -40,13 +40,12 @@ public class SQLRequestTest extends CrateUnitTest {
                 new Object[] { "arg1", "arg2" }
         );
         request.fetchProperties(new FetchProperties(20, true));
-        request.includeTypesOnResponse(true);
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
 
         byte[] expectedBytes = new byte[]
-            {0, 19, 115, 101, 108, 101, 99, 116, 32, 42, 32, 102, 114, 111, 109, 32, 117, 115, 101, 114, 115, 1, 20, 0, 0, 0, 6, -4, 35, -84, 0, 1, 2, 0, 4, 97, 114, 103, 49, 0, 4, 97, 114, 103, 50};
+            {0, 19, 115, 101, 108, 101, 99, 116, 32, 42, 32, 102, 114, 111, 109, 32, 117, 115, 101, 114, 115, 20, 0, 0, 0, 6, -4, 35, -84, 0, 1, 2, 0, 4, 97, 114, 103, 49, 0, 4, 97, 114, 103, 50};
         assertThat(out.bytes().toBytes(), is(expectedBytes));
     }
 
@@ -54,13 +53,12 @@ public class SQLRequestTest extends CrateUnitTest {
     @Test
     public void testSerializationReadFrom() throws Exception {
         byte[] buf = new byte[]
-            {0, 19, 115, 101, 108, 101, 99, 116, 32, 42, 32, 102, 114, 111, 109, 32, 117, 115, 101, 114, 115, 1, 20, 0, 0, 0, 6, -4, 35, -84, 0, 1, 2, 0, 4, 97, 114, 103, 49, 0, 4, 97, 114, 103, 50};
+            {0, 19, 115, 101, 108, 101, 99, 116, 32, 42, 32, 102, 114, 111, 109, 32, 117, 115, 101, 114, 115, 20, 0, 0, 0, 6, -4, 35, -84, 0, 1, 2, 0, 4, 97, 114, 103, 49, 0, 4, 97, 114, 103, 50};
         StreamInput in = StreamInput.wrap(buf);
         SQLRequest request = new SQLRequest();
         request.readFrom(in);
 
         assertThat(request.args(), is(new Object[] { "arg1", "arg2" }));
-        assertThat(request.includeTypesOnResponse(), is(true));
         assertThat(request.stmt(), is("select * from users"));
         FetchProperties fetchProperties = request.fetchProperties();
         assertThat(fetchProperties.fetchSize(), is(20));

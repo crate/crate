@@ -21,6 +21,12 @@
 
 package io.crate.action.sql;
 
+import io.crate.Streamer;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Buckets;
+import io.crate.core.collections.Row;
+import io.crate.executor.BytesRefUtils;
+import io.crate.executor.transport.StreamBucket;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,22 +41,22 @@ public class SQLResponse extends SQLBaseResponse {
 
     public static final long NO_ROW_COUNT = -1L;
 
-    private Object[][] rows;
+    private Bucket bucket;
     private long rowCount = NO_ROW_COUNT;
     private UUID cursorId;
+    private Object[][] rows;
 
     public SQLResponse() {
     }
 
     public SQLResponse(String[] cols,
-                       Object[][] rows,
+                       Bucket bucket,
                        DataType[] dataTypes,
                        long rowCount,
                        float duration,
-                       boolean includeTypes,
                        UUID cursorId) {
-        super(cols, dataTypes, includeTypes, duration);
-        this.rows = rows;
+        super(cols, dataTypes, true, duration);
+        this.bucket = bucket;
         this.rowCount = rowCount;
         this.cursorId = cursorId;
     }
@@ -60,14 +66,12 @@ public class SQLResponse extends SQLBaseResponse {
         builder.startObject();
         writeSharedAttributes(builder);
         builder.startArray(Fields.ROWS);
-        if (rows != null) {
-            for (Object[] row : rows) {
-                builder.startArray();
-                for (int j = 0, len = cols().length; j < len; j++) {
-                    builder.value(row[j]);
-                }
-                builder.endArray();
+        for (Row row : bucket) {
+            builder.startArray();
+            for (int j = 0, len = cols().length; j < len; j++) {
+                builder.value(row.get(j));
             }
+            builder.endArray();
         }
         builder.endArray();
         builder.field(Fields.ROWCOUNT, rowCount());
@@ -75,8 +79,20 @@ public class SQLResponse extends SQLBaseResponse {
         return builder;
     }
 
-    public Object[][] rows(){
+    /**
+     * @deprecated rows() will be removed in X.XX - use {@link #bucket()} instead
+     */
+    @Deprecated
+    public Object[][] rows() {
+        if (rows == null) {
+            rows = Buckets.materialize(bucket);
+            BytesRefUtils.ensureStringTypesAreStrings(colTypes, rows);
+        }
         return rows;
+    }
+
+    public Bucket bucket() {
+        return bucket;
     }
 
     public UUID cursorId() {
@@ -87,16 +103,8 @@ public class SQLResponse extends SQLBaseResponse {
         return rowCount;
     }
 
-    public void rowCount(long rowCount) {
-        this.rowCount = rowCount;
-    }
-
     public boolean hasRowCount() {
         return this.rowCount() > NO_ROW_COUNT;
-    }
-
-    public void rows(Object[][] rows) {
-        this.rows = rows;
     }
 
     @Override
@@ -110,14 +118,18 @@ public class SQLResponse extends SQLBaseResponse {
             rowCount = -rowCount;
         }
 
-        int numCols = cols().length;
-        int numRows = in.readInt();
-        rows = new Object[numRows][numCols];
-        for (int i = 0; i < numRows; i++) {
-            for (int j = 0; j < numCols; j++) {
-                rows[i][j] = in.readGenericValue();
-            }
+        StreamBucket streamBucket = new StreamBucket(streamers());
+        streamBucket.readFrom(in);
+        bucket = streamBucket;
+    }
+
+    private Streamer<?>[] streamers() {
+        DataType[] dataTypes = columnTypes();
+        Streamer[] streamers = new Streamer[dataTypes.length];
+        for (int i = 0; i < dataTypes.length; i++) {
+            streamers[i] = dataTypes[i].streamer();
         }
+        return streamers;
     }
 
     @Override
@@ -128,12 +140,7 @@ public class SQLResponse extends SQLBaseResponse {
         out.writeLong(cursorId.getLeastSignificantBits());
         out.writeBoolean(rowCount < 0);
         out.writeVLong(Math.abs(rowCount));
-        out.writeInt(rows.length);
-        for (Object[] row : rows) {
-            for (int j = 0, len = cols().length; j < len; j++) {
-                out.writeGenericValue(row[j]);
-            }
-        }
+        StreamBucket.writeBucket(out, streamers(), bucket);
     }
 
     private static String arrayToString(@Nullable Object[] array) {
@@ -145,7 +152,7 @@ public class SQLResponse extends SQLBaseResponse {
         return "SQLResponse{" +
                 "cols=" + arrayToString(cols()) +
                 "colTypes=" + arrayToString(columnTypes()) +
-                ", rows=" + ((rows!=null) ? rows.length: -1)  +
+                ", rows=" + (bucket == null ? -1 : bucket.size()) +
                 ", rowCount=" + rowCount  +
                 ", duration=" + duration()  +
                 '}';

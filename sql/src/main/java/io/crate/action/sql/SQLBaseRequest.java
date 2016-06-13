@@ -58,7 +58,6 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
     public static final int HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT = 1;
 
     private String stmt;
-    private boolean includeTypesOnResponse = false;
 
     public SQLBaseRequest() {}
 
@@ -79,21 +78,20 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
     }
 
     /**
-     * set to true if the column types should be included in the {@link io.crate.action.sql.SQLResponse}
-     * or {@link SQLBulkResponse}
-     *
-     * if set to false (the default) the types won't be included in the response.
+     * @deprecated types are now always included, setting this has no effect.
      */
+    @Deprecated
     public void includeTypesOnResponse(boolean includeTypesOnResponse) {
-        this.includeTypesOnResponse = includeTypesOnResponse;
     }
 
     /**
      * See also {@link #includeTypesOnResponse(boolean)}
-     * @return true or false indicating if the column dataTypes will be included in the requests response.
+     * @deprecated types are now always included
+     * @return true
      */
+    @Deprecated
     public boolean includeTypesOnResponse() {
-        return includeTypesOnResponse;
+        return true;
     }
 
 
@@ -139,13 +137,11 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         stmt = in.readString();
-        includeTypesOnResponse = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeString(stmt);
-        out.writeBoolean(includeTypesOnResponse);
     }
 }

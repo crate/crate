@@ -48,7 +48,7 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
     }
 
     private String[] cols;
-    private DataType[] colTypes;
+    protected DataType[] colTypes;
     private boolean includeTypes;
     private float duration;
 
@@ -72,14 +72,6 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
 
     public DataType[] columnTypes() {
         return colTypes;
-    }
-
-    public void colTypes(DataType[] dataTypes) {
-        this.colTypes = dataTypes;
-    }
-
-    public void includeTypes(boolean includeTypes) {
-        this.includeTypes = includeTypes;
     }
 
     public float duration() {
