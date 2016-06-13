@@ -905,8 +905,8 @@ would result in a list of discovery nodes ordered like::
 
 .. _conf_ec2_discovery:
 
-Discovery via EC2
-*****************
+Discovery on Amazon EC2
+***********************
 
 Crate has built-in support for discovery via the EC2 API. To enable EC2
 discovery the ``discovery.type`` setting needs to be set to ``ec2``.
@@ -981,6 +981,59 @@ Following settings control the discovery:
 
   If you have your own compatible implementation of the EC2 API service you can
   set the enpoint that should be used.
+
+.. _conf_azure_discovery:
+
+Discovery on Microsoft Azure
+****************************
+
+Crate has built-in support for discovery via the Azure Virtual Machine API.
+To enable Azure discovery set the ``discovery.type`` setting to ``azure``.
+
+**cloud.azure.management.keystore.path**
+  | *Runtime:*  ``no``
+
+  Path to the keystore.
+
+**cloud.azure.management.keystore.type**
+  | *Runtime:*  ``no``
+  | *Default:* ``pkcs12``
+  | *Allowed Values:* ``pkcs12 | jceks | jks``
+
+  The type of the keystore.
+
+**cloud.azure.management.keystore.password**
+  | *Runtime:*  ``no``
+
+  The password of the keystore.
+
+**cloud.azure.management.subscription.id**
+  | *Runtime:*  ``no``
+
+  The Id of your Azure subscription, in the format of a UUID
+  ``xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx``.
+
+**cloud.azure.management.cloud.service.name**
+  | *Runtime:*  ``no``
+
+**discovery.azure.host.type**
+  | *Runtime:*  ``no``
+  | *Default:* ``private_ip``
+  | *Allowed Values:* ``public_ip | private_ip``
+
+  Defines via which host type to communicate with other instances.
+
+**discovery.azure.endpoint.name**
+  | *Runtime:*  ``no``
+
+**discovery.azure.deployment.name**
+  | *Runtime:*  ``no``
+
+**discovery.azure.deployment.slot**
+  | *Runtime:*  ``no``
+  | *Default:* ``production``
+  | *Allowed Values:* ``staging | production``
+
 
 
 .. _conf_routing:
