@@ -120,16 +120,18 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates) {
             ensureNonAggregatesInGroupBy(selectAnalysis.outputSymbols(), groupBy);
         }
+        boolean isDistinct = false;
         if (node.getSelect().isDistinct() && groupBy.isEmpty()) {
             groupBy = rewriteGlobalDistinct(selectAnalysis.outputSymbols());
+            isDistinct = true;
         }
         if (groupBy != null && groupBy.isEmpty()){
             groupBy = null;
         }
 
         QuerySpec querySpec = new QuerySpec()
-                .orderBy(analyzeOrderBy(selectAnalysis, node.getOrderBy(),
-                                        context, expressionAnalysisContext.hasAggregates))
+                .orderBy(analyzeOrderBy(selectAnalysis, node.getOrderBy(), context,
+                    expressionAnalysisContext.hasAggregates || groupBy != null, isDistinct))
                 .having(analyzeHaving(node.getHaving(), groupBy, context))
                 .limit(context.expressionAnalyzer().integerFromExpression(node.getLimit()))
                 .offset(context.expressionAnalyzer().integerFromExpression(node.getOffset()))
@@ -221,7 +223,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private OrderBy analyzeOrderBy(SelectAnalyzer.SelectAnalysis selectAnalysis,
                                    List<SortItem> orderBy,
                                    RelationAnalysisContext context,
-                                   boolean hasAggregates) {
+                                   boolean hasAggregatesOrGrouping,
+                                   boolean isDistinct) {
         int size = orderBy.size();
         if (size == 0) {
             return null;
@@ -235,8 +238,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             Expression sortKey = sortItem.getSortKey();
             Symbol symbol = symbolFromSelectOutputReferenceOrExpression(sortKey, selectAnalysis, "ORDER BY", context);
             SemanticSortValidator.validate(symbol);
-            if (hasAggregates) {
-                OrderByWithAggregationValidator.validate(symbol, selectAnalysis.outputSymbols());
+            if (hasAggregatesOrGrouping) {
+                OrderByWithAggregationValidator.validate(symbol, selectAnalysis.outputSymbols(), isDistinct);
             }
 
             symbols.add(symbol);
