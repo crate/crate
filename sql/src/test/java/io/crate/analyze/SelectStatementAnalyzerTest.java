@@ -391,23 +391,32 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testSelectGroupByOrderByWithColumnMissingFromSelect() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("ORDER BY field 'id' must appear in the select clause " +
-                                        "when grouping or global aggregation is used.");
+        expectedException.expectMessage("ORDER BY expression 'id' must appear in the select clause " +
+                                        "when grouping or global aggregation is used");
         analyze("select name, count(id) from users group by name order by id");
     }
 
     @Test
     public void testSelectGlobalAggregationOrderByWithColumnMissingFromSelect() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("ORDER BY field 'id' must appear in the select clause " +
-                                        "when grouping or global aggregation is used.");
+        expectedException.expectMessage("ORDER BY expression 'id' must appear in the select clause " +
+                                        "when grouping or global aggregation is used");
         analyze("select count(id) from users order by id");
+    }
+
+    @Test
+    public void testSelectDistinctOrderByWithColumnMissingFromSelect() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("ORDER BY expression 'id' must appear in the select clause " +
+                                        "when SELECT DISTINCT is used");
+        analyze("select distinct name from users order by id");
     }
 
     @Test
     public void testSelectGroupByOrderByWithAggregateFunctionInOrderByClause() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("ORDER BY function 'max(count(upper(name)))' is not allowed. Only scalar functions can be used.");
+        expectedException.expectMessage("ORDER BY function 'max(count(upper(name)))' is not allowed. " +
+                                        "Only scalar functions can be used");
         analyze("select name, count(id) from users group by name order by max(count(upper(name)))");
     }
 
