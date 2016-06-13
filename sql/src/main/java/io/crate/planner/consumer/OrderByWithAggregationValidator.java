@@ -38,45 +38,61 @@ import java.util.Collection;
  */
 public class OrderByWithAggregationValidator {
 
+    private final static String INVALID_FIELD_TEMPLATE = "ORDER BY expression '%s' must appear in the select clause " +
+                                                         "when grouping or global aggregation is used";
+    private final static String INVALID_FIELD_IN_DISTINCT_TEMPLATE = "ORDER BY expression '%s' must appear in the " +
+                                                                     "select clause when SELECT DISTINCT is used";
+
     private final static InnerValidator INNER_VALIDATOR = new InnerValidator();
 
-    public static void validate(Symbol symbol, Collection<? extends Symbol> outputSymbols) throws UnsupportedOperationException {
-        INNER_VALIDATOR.process(symbol, outputSymbols);
+    public static void validate(Symbol symbol,
+                                Collection<? extends Symbol> outputSymbols,
+                                boolean isDistinct) throws UnsupportedOperationException {
+        INNER_VALIDATOR.process(symbol, new ValidatorContext(outputSymbols, isDistinct));
     }
 
-    private static class InnerValidator extends SymbolVisitor<Collection<? extends Symbol>, Void> {
+    private static class ValidatorContext {
+        private final Collection<? extends Symbol> outputSymbols;
+        private final boolean isDistinct;
+
+        ValidatorContext(Collection<? extends Symbol> outputSymbols, boolean isDistinct) {
+            this.outputSymbols = outputSymbols;
+            this.isDistinct = isDistinct;
+        }
+    }
+
+    private static class InnerValidator extends SymbolVisitor<ValidatorContext, Void> {
 
         @Override
-        public Void visitFunction(Function symbol, Collection<? extends Symbol> outputSymbols) {
-            if (outputSymbols.contains(symbol)) {
+        public Void visitFunction(Function symbol, ValidatorContext context) {
+            if (context.outputSymbols.contains(symbol)) {
                 return null;
             } else {
                 if (symbol.info().type() == FunctionInfo.Type.SCALAR) {
                     for (Symbol arg : symbol.arguments()) {
-                        process(arg, outputSymbols);
+                        process(arg, context);
                     }
                 } else {
                     throw new UnsupportedOperationException(
                         SymbolFormatter.format("ORDER BY function '%s' is not allowed. " +
-                                               "Only scalar functions can be used.", symbol));
+                                               "Only scalar functions can be used", symbol));
                 }
                 return null;
             }
         }
 
         @Override
-        public Void visitField(Field field, Collection<? extends Symbol> outputSymbols) {
-            if (outputSymbols.contains(field)) {
+        public Void visitField(Field field, ValidatorContext context) {
+            if (context.outputSymbols.contains(field)) {
                 return null;
             } else {
-                throw new UnsupportedOperationException(
-                    SymbolFormatter.format("ORDER BY field '%s' must appear in the select clause " +
-                                           "when grouping or global aggregation is used.", field));
+                String template = context.isDistinct ? INVALID_FIELD_IN_DISTINCT_TEMPLATE : INVALID_FIELD_TEMPLATE;
+                throw new UnsupportedOperationException(SymbolFormatter.format(template, field));
             }
         }
 
         @Override
-        public Void visitSymbol(Symbol symbol, Collection<? extends Symbol> outputSymbols) {
+        public Void visitSymbol(Symbol symbol, ValidatorContext context) {
             return null;
         }
     }
