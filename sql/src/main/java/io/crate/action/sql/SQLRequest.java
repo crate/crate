@@ -49,9 +49,6 @@ public class SQLRequest extends SQLBaseRequest {
         args(args);
     }
 
-    /**
-     * Set the fetchSize. The fetchSize is the maximum number of rows which the {@link SQLResponse} will contain.
-     */
     public void fetchProperties(FetchProperties fetchProperties) {
         this.fetchProperties = fetchProperties;
     }
