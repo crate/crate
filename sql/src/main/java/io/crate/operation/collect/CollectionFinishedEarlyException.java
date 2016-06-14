@@ -24,7 +24,7 @@ package io.crate.operation.collect;
 import java.io.IOException;
 
 /**
- * Throw this exception inside a {@link org.apache.lucene.search.Collector#collect} in order to
+ * Throw this exception inside a {@link org.apache.lucene.search.LeafCollector#collect(int)} in order to
  * abort the collection. Throwing a {@link org.apache.lucene.search.CollectionTerminatedException}
  * will cause the IndexSearcher to stop collecting the current leaf (segment) but continuing with
  * the next leaf (segment).
@@ -32,7 +32,7 @@ import java.io.IOException;
 public class CollectionFinishedEarlyException extends IOException {
 
     /**
-     * As this exception is just used to break out of {@link org.apache.lucene.search.Collector#collect(int)}
+     * As this exception is just used to break out of {@link org.apache.lucene.search.LeafCollector#collect(int)}
      * we're not interested in a stacktrace and re-use a single instance
      */
     @SuppressWarnings("ThrowableInstanceNeverThrown")

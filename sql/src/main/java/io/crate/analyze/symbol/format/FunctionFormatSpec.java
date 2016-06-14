@@ -35,7 +35,6 @@ public interface FunctionFormatSpec {
 
     /**
      * stuff that comes after arguments are formatted
-     * @return
      */
     String afterArgs(Function function);
 

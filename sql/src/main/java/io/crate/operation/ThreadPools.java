@@ -68,7 +68,7 @@ public class ThreadPools {
     }
 
     /**
-     * Similar to {@link #runWithAvailableThreads(ThreadPoolExecutor, int, Collection)}
+     * Similar to {@link #runWithAvailableThreads(ThreadPoolExecutor, Collection)}
      * but this function will return a Future that wraps the futures of each callable
      *
      * @param executor executor that is used to execute the callableList

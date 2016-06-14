@@ -29,7 +29,7 @@ import io.crate.types.DataTypes;
 import java.util.Locale;
 
 /**
- * get input and output {@link io.crate.Streamer}s for {@link io.crate.planner.node.PlanNode}s
+ * Get output {@link io.crate.Streamer}s for {@link ExecutionPhase}s
  */
 public class StreamerVisitor {
 
