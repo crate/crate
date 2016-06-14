@@ -31,7 +31,6 @@ import com.carrotsearch.randomizedtesting.ThreadFilter;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
 import com.carrotsearch.randomizedtesting.annotations.TimeoutSuite;
-import com.google.common.collect.Iterables;
 import io.crate.core.collections.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.operation.collect.CrateCollector;
@@ -183,8 +182,8 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
     }
 
 
-    private CrateCollector createCollector(String stmt, RowReceiver downstream, Integer pageSizeHint, Object ... args) {
-        return Iterables.getOnlyElement(collectorProvider.createCollectors(stmt, downstream, pageSizeHint, args));
+    private CrateCollector createCollector(String stmt, RowReceiver downstream, Integer pageSizeHint, Object ... args) throws Exception {
+        return collectorProvider.createCollector(stmt, downstream, pageSizeHint, args);
     }
 
 

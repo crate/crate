@@ -39,7 +39,6 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.*;
 
 public class FetchContext extends AbstractExecutionSubContext {
@@ -136,15 +135,10 @@ public class FetchContext extends AbstractExecutionSubContext {
     }
 
     @Override
-    protected void innerClose(@Nullable Throwable t) {
+    public void cleanup() {
         for (IntObjectCursor<Engine.Searcher> cursor : searchers) {
             cursor.value.close();
         }
-    }
-
-    @Override
-    protected void innerKill(@Nullable Throwable t) {
-        innerClose(t);
     }
 
     @Override

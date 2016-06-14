@@ -59,7 +59,7 @@ public class ESDeleteTask extends EsJobContextTask {
             listeners.add(new DeleteResponseListener(result));
         }
 
-        createContext("delete", requests, listeners, transport, null);
+        createContextBuilder("delete", requests, listeners, transport, null);
     }
 
     private static class DeleteResponseListener implements ActionListener<DeleteResponse> {

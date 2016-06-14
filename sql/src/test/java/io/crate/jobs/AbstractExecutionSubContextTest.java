@@ -114,7 +114,7 @@ public abstract class AbstractExecutionSubContextTest extends CrateUnitTest {
         }
 
         @Override
-        protected void innerPrepare() {
+        public void innerPrepare() {
             numPrepare.incrementAndGet();
         }
 

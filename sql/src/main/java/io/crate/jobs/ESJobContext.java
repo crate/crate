@@ -66,7 +66,7 @@ public class ESJobContext extends AbstractExecutionSubContext {
     }
 
     @Override
-    protected void innerPrepare() {
+    public void innerPrepare() {
         if (projectorChain != null) {
             projectorChain.prepare();
         }

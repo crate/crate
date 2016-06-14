@@ -110,7 +110,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         return new JobExecutionContext.Builder(jobId, coordinatorNodeId, statsTables);
     }
 
-    public JobExecutionContext createContext(JobExecutionContext.Builder contextBuilder) {
+    public JobExecutionContext createContext(JobExecutionContext.Builder contextBuilder) throws Exception {
         if (contextBuilder.isEmpty()) {
             throw new IllegalArgumentException("JobExecutionContext.Builder must at least contain 1 SubExecutionContext");
         }

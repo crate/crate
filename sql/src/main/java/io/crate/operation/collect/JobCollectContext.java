@@ -116,7 +116,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     }
 
     @Override
-    protected void cleanup() {
+    public void cleanup() {
         closeSearchContexts();
         queryPhaseRamAccountingContext.close();
     }
@@ -163,9 +163,8 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     }
 
     @Override
-    protected void innerPrepare() {
+    public void innerPrepare() throws Exception {
         collectors = collectOperation.createCollectors(collectPhase, rowReceiver, this);
-
     }
 
     @Override
@@ -218,4 +217,12 @@ public class JobCollectContext extends AbstractExecutionSubContext {
         // Anything else like INFORMATION_SCHEMA tables or sys.cluster table collector
         return ThreadPool.Names.PERCOLATE;
     }
+
+    @VisibleForTesting
+    public Collection<CrateCollector> collectors() {
+        return collectors;
+    }
+
+
+
 }
