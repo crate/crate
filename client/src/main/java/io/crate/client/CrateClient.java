@@ -28,24 +28,23 @@ import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.TransportActionNodeProxy;
+import org.elasticsearch.cache.recycler.PageCacheRecycler;
+import org.elasticsearch.client.support.Headers;
 import org.elasticsearch.client.transport.TransportClientNodesService;
-import org.elasticsearch.cluster.ClusterNameModule;
+import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.indices.breaker.CircuitBreakerModule;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.threadpool.ThreadPoolModule;
-import org.elasticsearch.transport.TransportModule;
 import org.elasticsearch.transport.TransportService;
+import org.elasticsearch.transport.netty.NettyTransport;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -90,22 +89,24 @@ public class CrateClient {
         this.settings = builder.build();
 
         threadPool = new ThreadPool(this.settings);
-        NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry();
-
-        ModulesBuilder modules = new ModulesBuilder();
-        modules.add(new Version.Module(Version.CURRENT));
-        modules.add(new ThreadPoolModule(threadPool));
-
-        modules.add(new SettingsModule(this.settings));
-
-        modules.add(new ClusterNameModule(this.settings));
-        modules.add(new TransportModule(this.settings, namedWriteableRegistry));
-        modules.add(new CircuitBreakerModule(this.settings));
-
-        Injector injector = modules.createInjector();
-        transportService = injector.getInstance(TransportService.class).start();
-        nodesService = injector.getInstance(TransportClientNodesService.class);
-
+        NettyTransport nettyTransport = new NettyTransport(
+            settings,
+            threadPool,
+            new NetworkService(settings),
+            new BigArrays(new PageCacheRecycler(settings, threadPool), null),
+            Version.CURRENT,
+            new NamedWriteableRegistry()
+        );
+        transportService = new TransportService(settings, nettyTransport, threadPool);
+        transportService.start();
+        nodesService = new TransportClientNodesService(
+            settings,
+            ClusterName.clusterNameFromSettings(settings),
+            transportService,
+            threadPool,
+            new Headers(settings),
+            Version.CURRENT
+        );
         for (String server : servers) {
             TransportAddress transportAddress = tryCreateTransportFor(server);
             if(transportAddress != null) {
