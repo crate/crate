@@ -221,7 +221,7 @@ public class JobContextServiceTest extends CrateUnitTest {
     }
 
     @Test
-    public void testKillSingleJob() {
+    public void testKillSingleJob() throws Exception {
         ImmutableList<UUID> jobsToKill = ImmutableList.<UUID>of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobsToKill.get(0));
         builder.addSubContext(new DummySubContext());
@@ -237,7 +237,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         assertThat(jobContextService.killJobs(jobsToKill), is(1L));
     }
 
-    private JobExecutionContext getJobExecutionContextWithOneActiveSubContext(JobContextService jobContextService) {
+    private JobExecutionContext getJobExecutionContextWithOneActiveSubContext(JobContextService jobContextService) throws Exception {
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(UUID.randomUUID());
         PageDownstreamContext pageDownstreamContext =
                 new PageDownstreamContext(Loggers.getLogger(PageDownstreamContext.class), "n1",

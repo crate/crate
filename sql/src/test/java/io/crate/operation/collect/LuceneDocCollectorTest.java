@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.collect.Iterables;
 import io.crate.action.sql.SQLBulkRequest;
 import io.crate.core.collections.Bucket;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
@@ -102,8 +101,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         refresh();
     }
 
-    private CrateCollector createDocCollector(String statement, RowReceiver rowReceiver, Object ... args) {
-        return Iterables.getOnlyElement(collectorProvider.createCollectors(statement, rowReceiver, NODE_PAGE_SIZE_HINT, args));
+    private CrateCollector createDocCollector(String statement, RowReceiver rowReceiver, Object ... args) throws Exception {
+        return collectorProvider.createCollector(statement, rowReceiver, NODE_PAGE_SIZE_HINT, args);
     }
 
 

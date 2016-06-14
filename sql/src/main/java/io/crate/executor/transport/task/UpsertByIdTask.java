@@ -121,8 +121,9 @@ public class UpsertByIdTask extends JobTask {
                 } else {
                     executeUpsertRequest(item, futureResult);
                 }
-
-            } else if (bulkShardProcessorContext != null) {
+            } else {
+                assert bulkShardProcessorContext != null;
+                createJobExecutionContext(bulkShardProcessorContext);
                 assert jobExecutionContext != null;
                 for (UpsertByIdNode.Item item : node.items()) {
                     ShardUpsertRequest.Item requestItem = new ShardUpsertRequest.Item(
@@ -165,15 +166,15 @@ public class UpsertByIdTask extends JobTask {
 
         UpsertByIdContext upsertByIdContext = new UpsertByIdContext(
                 node.executionPhaseId(), upsertRequest, item, futureResult, transportShardUpsertActionDelegate);
-        createJobExecutionContext(upsertByIdContext);
         try {
+            createJobExecutionContext(upsertByIdContext);
             jobExecutionContext.start();
         } catch (Throwable throwable) {
             futureResult.setException(throwable);
         }
     }
 
-    private void createJobExecutionContext(ExecutionSubContext context) {
+    private void createJobExecutionContext(ExecutionSubContext context) throws Exception {
         assert jobExecutionContext == null;
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
         contextBuilder.addSubContext(context);
@@ -205,7 +206,6 @@ public class UpsertByIdTask extends JobTask {
                 jobId());
         bulkShardProcessorContext = new BulkShardProcessorContext(
                 node.executionPhaseId(), bulkShardProcessor);
-        createJobExecutionContext(bulkShardProcessorContext);
 
         if (node.numBulkResponses() == 0) {
             final SettableFuture<TaskResult> futureResult = SettableFuture.create();

@@ -34,11 +34,16 @@ import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
+import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
@@ -49,21 +54,27 @@ public class ESJobContextTaskTest extends CrateUnitTest {
     private final JobContextService jobContextService = new JobContextService(
             Settings.EMPTY, new NoopClusterService(), mock(StatsTables.class));
 
-    private JobTask createTask(UUID jobId) {
+    private EsJobContextTask createTask(UUID jobId) {
         EsJobContextTask task = new EsJobContextTask(jobId, 1, 1, jobContextService);
+        task.createContextBuilder("test",
+            ImmutableList.of(new DummyRequest()),
+            ImmutableList.of(new DummyListener()),
+            new TransportAction(Settings.EMPTY, "dummy", mock(ThreadPool.class), new ActionFilters(Collections.EMPTY_SET), mock(IndexNameExpressionResolver.class), mock(TaskManager.class)) {
+                @Override
+                protected void doExecute(ActionRequest request, ActionListener listener) {
+                    // do nothing
+                }
+            },
+            null);
         task.results.add(SettableFuture.<TaskResult>create());
-        task.createContext("test",
-                ImmutableList.of(new DummyRequest()),
-                ImmutableList.of(new DummyListener()),
-                mock(TransportAction.class),
-                null);
         return task;
     }
 
     @Test
     public void testContextCreation() throws Exception {
         UUID jobId = UUID.randomUUID();
-        createTask(jobId);
+        EsJobContextTask task = createTask(jobId);
+        task.start();
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
         ExecutionSubContext subContext = jobExecutionContext.getSubContext(1);
@@ -75,6 +86,7 @@ public class ESJobContextTaskTest extends CrateUnitTest {
     public void testContextKill() throws Exception {
         UUID jobId = UUID.randomUUID();
         JobTask task = createTask(jobId);
+        task.start();
 
         JobExecutionContext jobExecutionContext = jobContextService.getContext(jobId);
         ExecutionSubContext subContext = jobExecutionContext.getSubContext(1);

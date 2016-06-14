@@ -44,7 +44,7 @@ public class EsJobContextTask extends JobTask {
     protected final List<SettableFuture<TaskResult>> results;
     protected final int executionPhaseId;
     private final JobContextService jobContextService;
-    protected JobExecutionContext context;
+    private JobExecutionContext.Builder builder;
 
     public EsJobContextTask(UUID jobId,
                             int executionPhaseId,
@@ -56,23 +56,23 @@ public class EsJobContextTask extends JobTask {
         results = new ArrayList<>(numResults);
     }
 
-    protected void createContext(String operationName,
-                                 List<? extends ActionRequest> requests,
-                                 List<? extends ActionListener> listeners,
-                                 TransportAction transportAction,
-                                 @Nullable FlatProjectorChain projectorChain) {
+    void createContextBuilder(String operationName,
+                              List<? extends ActionRequest> requests,
+                              List<? extends ActionListener> listeners,
+                              TransportAction transportAction,
+                              @Nullable FlatProjectorChain projectorChain) {
         ESJobContext esJobContext = new ESJobContext(executionPhaseId, operationName,
                 requests, listeners, results, transportAction, projectorChain);
-        JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(jobId());
-        contextBuilder.addSubContext(esJobContext);
-        context = jobContextService.createContext(contextBuilder);
+        builder = jobContextService.newBuilder(jobId());
+        builder.addSubContext(esJobContext);
     }
 
     @Override
     final public void start() {
-        assert context != null : "Context must be created first";
+        assert builder != null : "Context must be created first";
         try {
-            context.start();
+            JobExecutionContext ctx = jobContextService.createContext(builder);
+            ctx.start();
         } catch (Throwable throwable) {
             for (SettableFuture<TaskResult> result : results) {
                 result.setException(throwable);

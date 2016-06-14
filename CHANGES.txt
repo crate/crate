@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed error handling while preparing execution plans.
+
  - Fix: Number of bulk results were equal to the total number of items
    on bulk inserts/updates, ignoring possible multi-value bulk inserts/updates.
 

@@ -44,26 +44,25 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
         return id;
     }
 
-    protected void innerPrepare() {
-    }
-
-    @Override
-    final public void prepare() {
-        if (!future.closed()) {
-            logger.trace("preparing id={} ctx={}", id, this);
-            try {
-                innerPrepare();
-            } catch (Throwable t) {
-                close(t);
-            }
-        }
-    }
-
     protected void innerStart() {
     }
 
+    protected void innerPrepare() throws Exception {
+
+    }
+
     @Override
-    final public void start() {
+    public final void prepare() throws Exception {
+        try {
+            innerPrepare();
+        } catch (Exception e){
+            cleanup();
+            throw e;
+        }
+    }
+
+    @Override
+    public final void start() {
         if (!future.closed()) {
             logger.trace("starting id={} ctx={}", id, this);
             try {
@@ -122,12 +121,8 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
         }
     }
 
-    /**
-     * Hook to cleanup resources of this context. This is called in finally clauses on kill and close.
-     * This hook might be called more than one time, therefore it should be idempotent.
-     */
-    protected void cleanup() {
-
+    @Override
+    public void cleanup() {
     }
 
     @Override

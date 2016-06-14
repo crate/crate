@@ -63,7 +63,7 @@ public class CountContext extends AbstractExecutionSubContext implements RowUpst
     }
 
     @Override
-    protected void innerPrepare() {
+    public void innerPrepare() {
         rowReceiver.prepare();
     }
 

@@ -106,7 +106,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
             listener = new GetResponseListener(result, extractors);
         }
 
-        createContext("lookup by primary key", ImmutableList.of(request), ImmutableList.of(listener),
+        createContextBuilder("lookup by primary key", ImmutableList.of(request), ImmutableList.of(listener),
                 transportAction, projectorChain);
     }
 
