@@ -305,18 +305,34 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
     @Test
     public void testCopyToFile() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(containsString("Using COPY TO without specifying a DIRECTORY is deprecated"));
+
         execute("create table singleshard (name string) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
-        execute("insert into singleshard (name) values ('foo')");
-        execute("refresh table singleshard");
 
-        String uri = Paths.get(folder.getRoot().toURI()).resolve("testsingleshard.json").toUri().toString();
-        SQLResponse response = execute("copy singleshard to ?", new Object[] { uri });
-        assertThat(response.rowCount(), is(1L));
-        List<String> lines = Files.readAllLines(
-                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), StandardCharsets.UTF_8);
+        execute("copy singleshard to '/tmp/file.json'");
+    }
 
-        assertThat(lines.size(), is(1));
+    @Test
+    public void testCopyToDirectory() throws Exception {
+        this.setup.groupBySetup();
+
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
+        SQLResponse response = execute("copy characters to DIRECTORY ?", new Object[]{uriTemplate});
+        assertThat(response.rowCount(), is(7L));
+        String[] list = folder.getRoot().list();
+        assertThat(list.length, greaterThanOrEqualTo(1));
+        for (String file : list) {
+            assertThat(file, startsWith("characters_"));
+        }
+
+        List<String> lines = new ArrayList<>(7);
+        DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
+        for (Path path: stream) {
+            lines.addAll(Files.readAllLines(path, StandardCharsets.UTF_8));
+        }
+        assertThat(lines.size(), is(7));
         for (String line : lines) {
             assertThat(line, startsWith("{"));
             assertThat(line, endsWith("}"));
@@ -324,18 +340,23 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyToCompressedFile() throws Exception {
+    public void testCopyToWithCompression() throws Exception {
         execute("create table singleshard (name string) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into singleshard (name) values ('foo')");
         execute("refresh table singleshard");
 
-        String uri = Paths.get(folder.getRoot().toURI()).resolve("testsingleshard.gz").toUri().toString();
-        SQLResponse response = execute("copy singleshard to ? with (compression='gzip')", new Object[] { uri });
-        assertThat(response.rowCount(), is(1L));
-        long size = Files.size(
-                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.gz")));
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
+        SQLResponse response = execute("copy singleshard to DIRECTORY ? with (compression='gzip')", new Object[]{uriTemplate});
 
+        assertThat(response.rowCount(), is(1L));
+
+        String[] list = folder.getRoot().list();
+        assertThat(list.length, is(1));
+        String file = list[0];
+        assertThat(file, both(startsWith("singleshard_")).and(endsWith(".json.gz")));
+
+        long size = Files.size(Paths.get(folder.getRoot().toURI().resolve(file)));
         assertThat(size, is(35L));
     }
 
@@ -370,42 +391,20 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyToDirectory() throws Exception {
-        this.setup.groupBySetup();
-
-        String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
-        SQLResponse response = execute("copy characters to DIRECTORY ?", new Object[]{uriTemplate});
-        assertThat(response.rowCount(), is(7L));
-        List<String> lines = new ArrayList<>(7);
-        DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
-        for (Path entry: stream) {
-            lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
-        }
-        String[] list = folder.getRoot().list();
-        assertThat(list.length, greaterThanOrEqualTo(1));
-        for (String file : list) {
-            assertThat(file, startsWith("characters_"));
-        }
-
-        assertThat(lines.size(), is(7));
-        for (String line : lines) {
-            assertThat(line, startsWith("{"));
-            assertThat(line, endsWith("}"));
-        }
-    }
-
-    @Test
     public void testCopyToFileColumnsJsonObjectOutput() throws Exception {
         execute("create table singleshard (name string, test object as (foo string)) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into singleshard (name, test) values ('foobar', {foo='bar'})");
         execute("refresh table singleshard");
 
-        String uri = Paths.get(folder.getRoot().toURI()).resolve("testsingleshard.json").toUri().toString();
-        SQLResponse response = execute("copy singleshard (name, test['foo']) to ? with (format='json_object')", new Object[]{uri});
+        String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
+        SQLResponse response = execute("copy singleshard (name, test['foo']) to DIRECTORY ? with (format='json_object')", new Object[]{uriTemplate});
         assertThat(response.rowCount(), is(1L));
+
+        String[] list = folder.getRoot().list();
+        assertThat(list.length, is(1));
         List<String> lines = Files.readAllLines(
-                Paths.get(folder.getRoot().toURI().resolve("testsingleshard.json")), StandardCharsets.UTF_8);
+                Paths.get(folder.getRoot().toURI().resolve(list[0])), StandardCharsets.UTF_8);
 
         assertThat(lines.size(), is(1));
         for (String line : lines) {
@@ -462,23 +461,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy foo to DIRECTORY ?", new Object[]{uriTemplate});
         assertThat(response.rowCount(), is(1L));
-    }
-
-    @Test
-    public void testCopyToDirectoryPath() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(containsString("Failed to open output: 'Output path is a directory: "));
-        execute("create table characters (" +
-                " race string," +
-                " gender string," +
-                " age long," +
-                " birthdate timestamp," +
-                " name string," +
-                " details object" +
-                ") with (number_of_replicas=0)");
-        ensureYellow();
-        String directoryUri = Paths.get(folder.newFolder().toURI()).toUri().toString();
-        execute("COPY characters TO ?", new Object[]{directoryUri});
     }
 
     @Test

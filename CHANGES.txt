@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Deprecated usage of COPY TO without specifying a DIRECTORY. This will prevent a user from defining an output path
+   that conflicts with multiple shards.
+
  - Fixed proper validation of the ``blocks.*`` table settings at all
    SQL operations.
 

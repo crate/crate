@@ -152,7 +152,6 @@ public class ProjectionBuilder {
 
     public static WriterProjection writerProjection(Collection<? extends Symbol> inputs,
                                                     Symbol uri,
-                                                    boolean isDirectoryUri,
                                                     @Nullable WriterProjection.CompressionType compressionType,
                                                     Map<ColumnIdent, Symbol> overwrites,
                                                     @Nullable List<String> outputNames,
@@ -160,6 +159,6 @@ public class ProjectionBuilder {
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
 
         return new WriterProjection(
-                inputVisitor.process(inputs, context), uri, isDirectoryUri, compressionType, overwrites, outputNames, outputFormat);
+                inputVisitor.process(inputs, context), uri, compressionType, overwrites, outputNames, outputFormat);
     }
 }

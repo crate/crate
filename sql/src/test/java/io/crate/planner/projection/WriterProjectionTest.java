@@ -26,17 +26,11 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RowGranularity;
-import io.crate.operation.operator.AndOperator;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingHelpers;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
-
-import java.util.HashMap;
 
 public class WriterProjectionTest extends CrateUnitTest {
 
@@ -45,8 +39,7 @@ public class WriterProjectionTest extends CrateUnitTest {
         WriterProjection p = new WriterProjection(
                 ImmutableList.<Symbol>of(new InputColumn(1)),
                 Literal.newLiteral("/foo.json"),
-                false,
-                WriterProjection.CompressionType.GZIP,
+            WriterProjection.CompressionType.GZIP,
                 MapBuilder.<ColumnIdent, Symbol>newMapBuilder().put(
                         new ColumnIdent("partitionColumn"), Literal.newLiteral(1)).map(),
                 ImmutableList.of("foo"),

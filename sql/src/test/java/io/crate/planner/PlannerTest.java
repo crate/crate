@@ -764,7 +764,7 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testCopyToWithColumnsReferenceRewrite() throws Exception {
-        CopyTo plan = plan("copy users (name) to '/file.ext'");
+        CopyTo plan = plan("copy users (name) to directory '/tmp'");
         CollectAndMerge innerPlan = (CollectAndMerge) plan.innerPlan();
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
         Reference nameRef = (Reference)node.toCollect().get(0);
@@ -776,7 +776,7 @@ public class PlannerTest extends AbstractPlannerTest {
     @Test
     public void testCopyToWithPartitionedGeneratedColumn() throws Exception {
         // test that generated partition column is NOT exported
-        CopyTo plan = plan("copy parted_generated to '/file.ext'");
+        CopyTo plan = plan("copy parted_generated to directory '/tmp'");
         CollectAndMerge innerPlan = (CollectAndMerge) plan.innerPlan();
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
         WriterProjection projection = (WriterProjection) node.projections().get(0);

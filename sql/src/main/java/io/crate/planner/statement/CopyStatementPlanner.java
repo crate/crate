@@ -93,7 +93,7 @@ public class CopyStatementPlanner {
 
             if (table.isPartitioned()) {
                 partitionedByNames = Lists.newArrayList(
-                        Lists.transform(table.partitionedBy(), ColumnIdent.GET_FQN_NAME_FUNCTION));
+                    Lists.transform(table.partitionedBy(), ColumnIdent.GET_FQN_NAME_FUNCTION));
             } else {
                 partitionedByNames = Collections.emptyList();
             }
@@ -108,19 +108,19 @@ public class CopyStatementPlanner {
         }
 
         SourceIndexWriterProjection sourceIndexWriterProjection = new SourceIndexWriterProjection(
-                table.ident(),
-                partitionIdent,
-                new Reference(table.getReferenceInfo(DocSysColumns.RAW)),
-                table.primaryKey(),
-                table.partitionedBy(),
-                partitionValues,
-                table.clusteredBy(),
-                clusteredByPrimaryKeyIdx,
-                analysis.settings(),
-                null,
-                partitionedByNames.size() >
-                0 ? partitionedByNames.toArray(new String[partitionedByNames.size()]) : null,
-                table.isPartitioned() // autoCreateIndices
+            table.ident(),
+            partitionIdent,
+            new Reference(table.getReferenceInfo(DocSysColumns.RAW)),
+            table.primaryKey(),
+            table.partitionedBy(),
+            partitionValues,
+            table.clusteredBy(),
+            clusteredByPrimaryKeyIdx,
+            analysis.settings(),
+            null,
+            partitionedByNames.size() >
+            0 ? partitionedByNames.toArray(new String[partitionedByNames.size()]) : null,
+            table.isPartitioned() // autoCreateIndices
         );
         List<Projection> projections = Collections.<Projection>singletonList(sourceIndexWriterProjection);
         partitionedByNames.removeAll(Lists.transform(table.primaryKey(), ColumnIdent.GET_FQN_NAME_FUNCTION));
@@ -149,7 +149,7 @@ public class CopyStatementPlanner {
         // add clusteredBy column (if not part of primaryKey)
         if (clusteredByPrimaryKeyIdx == -1) {
             toCollect.add(
-                    new Reference(table.getReferenceInfo(table.clusteredBy())));
+                new Reference(table.getReferenceInfo(table.clusteredBy())));
         }
         // add _raw or _doc
         if (table.isPartitioned() && analysis.partitionIdent() == null) {
@@ -168,43 +168,42 @@ public class CopyStatementPlanner {
 
         DiscoveryNodes allNodes = clusterService.state().nodes();
         FileUriCollectPhase collectPhase = new FileUriCollectPhase(
-                context.jobId(),
-                context.nextExecutionPhaseId(),
-                "copyFrom",
-                getExecutionNodes(allNodes, analysis.settings().getAsInt("num_readers", allNodes.getSize()), analysis.nodePredicate()),
-                analysis.uri(),
-                toCollect,
-                projections,
-                analysis.settings().get("compression", null),
-                analysis.settings().getAsBoolean("shared", null)
+            context.jobId(),
+            context.nextExecutionPhaseId(),
+            "copyFrom",
+            getExecutionNodes(allNodes, analysis.settings().getAsInt("num_readers", allNodes.getSize()), analysis.nodePredicate()),
+            analysis.uri(),
+            toCollect,
+            projections,
+            analysis.settings().get("compression", null),
+            analysis.settings().getAsBoolean("shared", null)
         );
 
         return new CollectAndMerge(collectPhase, MergePhase.localMerge(
-                context.jobId(),
-                context.nextExecutionPhaseId(),
-                ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
-                collectPhase.executionNodes().size(),
-                collectPhase.outputTypes()));
+            context.jobId(),
+            context.nextExecutionPhaseId(),
+            ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
+            collectPhase.executionNodes().size(),
+            collectPhase.outputTypes()));
     }
 
     public Plan planCopyTo(CopyToAnalyzedStatement statement, Planner.Context context) {
         WriterProjection.OutputFormat outputFormat = statement.outputFormat();
         if (outputFormat == null) {
             outputFormat = statement.columnsDefined() ?
-                    WriterProjection.OutputFormat.JSON_ARRAY : WriterProjection.OutputFormat.JSON_OBJECT;
+                WriterProjection.OutputFormat.JSON_ARRAY : WriterProjection.OutputFormat.JSON_OBJECT;
         }
 
         WriterProjection projection = ProjectionBuilder.writerProjection(
-                statement.subQueryRelation().querySpec().outputs(),
-                statement.uri(),
-                statement.isDirectoryUri(),
-                statement.compressionType(),
-                statement.overwrites(),
-                statement.outputNames(),
-                outputFormat);
+            statement.subQueryRelation().querySpec().outputs(),
+            statement.uri(),
+            statement.compressionType(),
+            statement.overwrites(),
+            statement.outputNames(),
+            outputFormat);
 
         PlannedAnalyzedRelation plannedSubQuery = context.planSubRelation(statement.subQueryRelation(),
-                new ConsumerContext(statement, context));
+            new ConsumerContext(statement, context));
         if (plannedSubQuery == null) {
             return null;
         }
@@ -212,11 +211,11 @@ public class CopyStatementPlanner {
         plannedSubQuery.addProjection(projection);
 
         MergePhase mergePhase = MergePhase.localMerge(
-                context.jobId(),
-                context.nextExecutionPhaseId(),
-                ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
-                plannedSubQuery.resultPhase().executionNodes().size(),
-                Symbols.extractTypes(projection.outputs()));
+            context.jobId(),
+            context.nextExecutionPhaseId(),
+            ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
+            plannedSubQuery.resultPhase().executionNodes().size(),
+            Symbols.extractTypes(projection.outputs()));
 
         return new CopyTo(context.jobId(), plannedSubQuery.plan(), mergePhase);
     }

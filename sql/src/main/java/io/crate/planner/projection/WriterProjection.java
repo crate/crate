@@ -87,14 +87,12 @@ public class WriterProjection extends Projection {
 
     public WriterProjection(List<Symbol> inputs,
                             Symbol uri,
-                            boolean isDirectoryUri,
                             @Nullable CompressionType compressionType,
                             Map<ColumnIdent, Symbol> overwrites,
                             @Nullable List<String> outputNames,
                             OutputFormat outputFormat) {
         this.inputs = inputs;
         this.uri = uri;
-        this.isDirectoryUri = isDirectoryUri;
         this.overwrites = overwrites;
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
@@ -115,10 +113,6 @@ public class WriterProjection extends Projection {
 
     public Symbol uri() {
         return uri;
-    }
-
-    public boolean isDirectoryUri() {
-        return isDirectoryUri;
     }
 
     @Override
@@ -154,7 +148,6 @@ public class WriterProjection extends Projection {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        isDirectoryUri = in.readBoolean();
         uri = Symbol.fromStream(in);
         int size = in.readVInt();
         if (size > 0) {
@@ -176,7 +169,6 @@ public class WriterProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeBoolean(isDirectoryUri);
         Symbol.toStream(uri, out);
         if (outputNames != null) {
             out.writeVInt(outputNames.size());
@@ -204,7 +196,6 @@ public class WriterProjection extends Projection {
 
         WriterProjection that = (WriterProjection) o;
 
-        if (isDirectoryUri != that.isDirectoryUri) return false;
         if (outputNames != null ? !outputNames.equals(that.outputNames) : that.outputNames != null)
             return false;
         if (!uri.equals(that.uri)) return false;
@@ -219,7 +210,6 @@ public class WriterProjection extends Projection {
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + uri.hashCode();
-        result = 31 * result + (isDirectoryUri ? 1 : 0);
         result = 31 * result + (outputNames != null ? outputNames.hashCode() : 0);
         result = 31 * result + overwrites.hashCode();
         result = 31 * result + (compressionType != null ? compressionType.hashCode() : 0);
@@ -232,7 +222,6 @@ public class WriterProjection extends Projection {
         return "WriterProjection{" +
                 "uri=" + uri +
                 ", outputNames=" + outputNames +
-                ", isDirectory=" + isDirectoryUri +
                 ", compressionType=" + compressionType +
                 ", outputFormat=" + outputFormat +
                 '}';

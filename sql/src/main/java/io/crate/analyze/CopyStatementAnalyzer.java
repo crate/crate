@@ -133,6 +133,10 @@ public class CopyStatementAnalyzer {
     public CopyToAnalyzedStatement convertCopyTo(CopyTo node, Analysis analysis) {
         analysis.expectsAffectedRows(true);
 
+        if (!node.directoryUri()) {
+            throw new UnsupportedOperationException("Using COPY TO without specifying a DIRECTORY is deprecated");
+        }
+
         TableInfo tableInfo = analysisMetaData.schemas().getTableInfo(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         if (!(tableInfo instanceof DocTableInfo)) {
@@ -197,7 +201,7 @@ public class CopyStatementAnalyzer {
         }
 
         QueriedDocTable subRelation = new QueriedDocTable(tableRelation, querySpec);
-        return new CopyToAnalyzedStatement(subRelation, settings, uri, node.directoryUri(), compressionType, outputFormat, outputNames, columnsDefined, overwrites);
+        return new CopyToAnalyzedStatement(subRelation, settings, uri, compressionType, outputFormat, outputNames, columnsDefined, overwrites);
     }
 
     private static <E extends Enum<E>> E settingAsEnum(Class<E> settingsEnum, String settingValue) {

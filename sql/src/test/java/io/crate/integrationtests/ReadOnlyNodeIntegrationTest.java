@@ -152,8 +152,8 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testAllowedCopyTo() throws Exception {
-        String uri = Paths.get(folder.getRoot().toURI()).resolve("test.json").toUri().toString();
-        SQLResponse response = execute("copy write_test to ?", new Object[] { uri });
+        String uri = folder.getRoot().toURI().toString();
+        SQLResponse response = execute("copy write_test to directory ?", new Object[] { uri });
         assertThat(response.rowCount(), greaterThanOrEqualTo(0L));
     }
 

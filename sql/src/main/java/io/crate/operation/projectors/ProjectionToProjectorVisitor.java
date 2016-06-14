@@ -199,21 +199,21 @@ public class ProjectionToProjectorVisitor
         projection = projection.normalize(normalizer);
         String uri = ValueSymbolVisitor.STRING.process(projection.uri());
         assert uri != null : "URI must not be null";
-        if (projection.isDirectoryUri()) {
-            StringBuilder sb = new StringBuilder(uri);
-            Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME);
-            assert resolvedFileName instanceof Literal;
-            assert resolvedFileName.valueType() == StringType.INSTANCE;
-            String fileName = ValueSymbolVisitor.STRING.process(resolvedFileName);
-            if (!uri.endsWith("/")) {
-                sb.append("/");
-            }
-            sb.append(fileName);
-            if (projection.compressionType() == WriterProjection.CompressionType.GZIP) {
-                sb.append(".gz");
-            }
-            uri = sb.toString();
+
+        StringBuilder sb = new StringBuilder(uri);
+        Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME);
+        assert resolvedFileName instanceof Literal;
+        assert resolvedFileName.valueType() == StringType.INSTANCE;
+        String fileName = ValueSymbolVisitor.STRING.process(resolvedFileName);
+        if (!uri.endsWith("/")) {
+            sb.append("/");
         }
+        sb.append(fileName);
+        if (projection.compressionType() == WriterProjection.CompressionType.GZIP) {
+            sb.append(".gz");
+        }
+        uri = sb.toString();
+
         return new WriterProjector(
                 ((ThreadPoolExecutor) threadPool.generic()),
                 uri,
