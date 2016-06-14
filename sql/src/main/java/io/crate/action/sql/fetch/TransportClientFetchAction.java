@@ -25,7 +25,6 @@ package io.crate.action.sql.fetch;
 import io.crate.action.ActionListeners;
 import io.crate.action.sql.SQLActionException;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Buckets;
 import io.crate.operation.ClientPagingReceiver;
 import io.crate.operation.HandlerOperations;
 import org.elasticsearch.action.ActionListener;
@@ -64,7 +63,7 @@ public class TransportClientFetchAction extends TransportAction<FetchRequest, Fe
 
     @Override
     protected void doExecute(FetchRequest request, final ActionListener<FetchResponse> listener) {
-        ClientPagingReceiver receiver = handlerOperations.get(request.cursorId(), request.fetchProperties().cursorKeepAlive());
+        final ClientPagingReceiver receiver = handlerOperations.get(request.cursorId(), request.fetchProperties().cursorKeepAlive());
         if (receiver == null) {
             listener.onFailure(new SQLActionException(String.format(Locale.ENGLISH,
                 "No context for cursorId \"%s\" found.", request.cursorId()), 4000, RestStatus.BAD_REQUEST));
@@ -73,7 +72,7 @@ public class TransportClientFetchAction extends TransportAction<FetchRequest, Fe
         receiver.fetch(request.fetchProperties(), new ClientPagingReceiver.FetchCallback() {
             @Override
             public void onResult(Bucket rows, boolean isLast) {
-                listener.onResponse(new FetchResponse(Buckets.materialize(rows), isLast));
+                listener.onResponse(new FetchResponse(rows,  isLast, receiver.outputTypes()));
             }
 
             @Override

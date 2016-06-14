@@ -28,32 +28,39 @@ import io.crate.concurrent.CompletionListenable;
 import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.StreamBucket;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.Requirements;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.IOException;
+import java.util.Collection;
 import java.util.Set;
 
 public class ClientPagingReceiver implements RowReceiver, CompletionListenable {
 
     final SettableFuture<TaskResult> resultFuture;
+    private final StreamBucket.Builder bucketBuilder;
+    private final Collection<? extends DataType> outputTypes;
 
     private CompletionListener listener = CompletionListener.NO_OP;
     private RowUpstream rowUpstream;
-    private List<Object[]> rows = new ArrayList<>();
     private FetchCallback callback;
     private Throwable killed;
     private FetchProperties fetchProperties;
 
-    public ClientPagingReceiver(FetchProperties fetchProperties, SettableFuture<TaskResult> resultFuture) {
+    public ClientPagingReceiver(FetchProperties fetchProperties,
+                                SettableFuture<TaskResult> resultFuture,
+                                Collection<? extends DataType> outputTypes) {
         this.fetchProperties = fetchProperties;
         this.resultFuture = resultFuture;
+        this.bucketBuilder = new StreamBucket.Builder(DataTypes.getStreamer(outputTypes));
+        this.outputTypes = outputTypes;
     }
 
     @Override
@@ -62,8 +69,13 @@ public class ClientPagingReceiver implements RowReceiver, CompletionListenable {
             return false;
         }
 
-        rows.add(row.materialize());
-        if (rows.size() >= fetchProperties.fetchSize()) {
+        try {
+            bucketBuilder.add(row);
+        } catch (IOException e) {
+            fail(e);
+            return false;
+        }
+        if (bucketBuilder.size() >= fetchProperties.fetchSize()) {
             if (fetchProperties.closeContext()) {
                 emitResult(true);
                 return false;
@@ -82,14 +94,22 @@ public class ClientPagingReceiver implements RowReceiver, CompletionListenable {
             listener.onSuccess(null);
         }
         if (!resultFuture.isDone()) {
-            resultFuture.set(new QueryResult(new CollectionBucket(rows)));
+            try {
+                resultFuture.set(new QueryResult(bucketBuilder.build()));
+            } catch (IOException e) {
+                resultFuture.setException(e);
+            }
         } else {
             FetchCallback fetchCallback = callback;
             callback = null;
-            fetchCallback.onResult(new CollectionBucket(rows), isLast);
+            try {
+                fetchCallback.onResult(bucketBuilder.build(), isLast);
+            } catch (IOException e) {
+                fetchCallback.onError(e);
+            }
         }
         if (!isLast) {
-            rows = new ArrayList<>(); // buckets are lazy, must use new list to avoid adding rows to the previously emitted bucket
+            bucketBuilder.reset();
         }
     }
 
@@ -142,6 +162,10 @@ public class ClientPagingReceiver implements RowReceiver, CompletionListenable {
     @Override
     public void addListener(CompletionListener listener) {
         this.listener = CompletionMultiListener.merge(this.listener, listener);
+    }
+
+    public Collection<? extends DataType> outputTypes() {
+        return outputTypes;
     }
 
     public interface FetchCallback {

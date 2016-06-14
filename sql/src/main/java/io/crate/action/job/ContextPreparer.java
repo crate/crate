@@ -53,7 +53,7 @@ import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.ExecutionPhases;
-import io.crate.planner.node.StreamerVisitor;
+import io.crate.planner.node.PhaseVisitors;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.MergePhase;
@@ -175,7 +175,7 @@ public class ContextPreparer extends AbstractComponent {
                 }
             }
             if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
-                Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
+                Streamer<?>[] streamers = PhaseVisitors.streamerFromOutputs(nodeOperation.executionPhase());
                 SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers);
                 preparerContext.directResponseFutures.add(bucketBuilder.result());
                 preparerContext.registerRowReceiver(nodeOperation.downstreamExecutionPhaseId(), bucketBuilder);
@@ -622,7 +622,7 @@ public class ContextPreparer extends AbstractComponent {
                     mergePhase.executionPhaseId(),
                     mergePhase.name(),
                     pageDownstreamWithChain.v1(),
-                    StreamerVisitor.streamerFromOutputs(mergePhase),
+                    PhaseVisitors.streamerFromOutputs(mergePhase),
                     ramAccountingContext,
                     mergePhase.numUpstreams(),
                     pageDownstreamWithChain.v2()

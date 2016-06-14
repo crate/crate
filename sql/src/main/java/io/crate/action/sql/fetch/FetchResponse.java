@@ -23,24 +23,33 @@
 package io.crate.action.sql.fetch;
 
 import io.crate.action.sql.FetchProperties;
+import io.crate.core.collections.Bucket;
+import io.crate.executor.transport.StreamBucket;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 public class FetchResponse extends ActionResponse {
-    private Object[][] rows;
+    private Bucket rows;
     private boolean isLast;
+    private Collection<? extends DataType> columnTypes;
 
     public FetchResponse() {}
 
-    public FetchResponse(Object[][] rows, boolean isLast) {
+    public FetchResponse(Bucket rows, boolean isLast, Collection<? extends DataType> columnTypes) {
         this.rows = rows;
         this.isLast = isLast;
+        this.columnTypes = columnTypes;
     }
 
-    public Object[][] rows() {
+    public Bucket rows() {
         return rows;
     }
 
@@ -48,15 +57,14 @@ public class FetchResponse extends ActionResponse {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeBoolean(isLast);
-        out.writeVInt(rows.length);
+        out.writeVInt(rows.size());
 
-        if (rows.length > 0) {
-            out.writeVInt(rows[0].length); // all rows have the same number of columns, so only write this once
-            for (Object[] row : rows) {
-                for (Object o : row) {
-                    out.writeGenericValue(o);
-                }
+        if (rows.size() > 0) {
+            out.writeVInt(columnTypes.size());
+            for (DataType columnType : columnTypes) {
+                DataTypes.toStream(columnType, out);
             }
+            StreamBucket.writeBucket(out, DataTypes.getStreamer(columnTypes), rows);
         }
     }
 
@@ -65,15 +73,16 @@ public class FetchResponse extends ActionResponse {
         super.readFrom(in);
         isLast = in.readBoolean();
         int numRows = in.readVInt();
-        rows = new Object[numRows][];
         if (numRows > 0) {
             int numCols = in.readVInt();
-            for (int r = 0; r < numRows; r++) {
-                rows[r] = new Object[numCols];
-                for (int c = 0; c < numCols; c++) {
-                    rows[r][c] = in.readGenericValue();
-                }
+            List<DataType> columnTypes = new ArrayList<>(numCols);
+            for (int i = 0; i < numCols; i++) {
+                columnTypes.add(DataTypes.fromStream(in));
             }
+            this.columnTypes = columnTypes;
+            StreamBucket streamBucket = new StreamBucket(DataTypes.getStreamer(columnTypes));
+            streamBucket.readFrom(in);
+            rows = streamBucket;
         }
     }
 

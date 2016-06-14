@@ -83,6 +83,10 @@ public class StreamBucket implements Bucket, Streamable {
             return sb;
         }
 
+        public int size() {
+            return size;
+        }
+
         public void reset() {
             out = new BytesStreamOutput(size); // next bucket is probably going to have the same size
             size = 0;

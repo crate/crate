@@ -27,7 +27,7 @@ import io.crate.executor.transport.distributed.*;
 import io.crate.operation.NodeOperation;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
-import io.crate.planner.node.StreamerVisitor;
+import io.crate.planner.node.PhaseVisitors;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -61,7 +61,7 @@ public class InternalRowDownstreamFactory extends AbstractComponent implements R
                                         DistributionInfo distributionInfo,
                                         UUID jobId,
                                         int pageSize) {
-        Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
+        Streamer<?>[] streamers = PhaseVisitors.streamerFromOutputs(nodeOperation.executionPhase());
         assert !ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())
                 : "trying to build a DistributingDownstream but nodeOperation has a directResponse downstream";
         assert nodeOperation.downstreamNodes().size() > 0 : "must have at least one downstream";

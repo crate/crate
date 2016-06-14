@@ -42,6 +42,7 @@ import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.NodeOperationGrouper;
+import io.crate.planner.node.PhaseVisitors;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
@@ -112,7 +113,8 @@ public class ExecutionPhasesTask extends JobTask {
         if (fetchProperties.closeContext()) {
             rowReceiver = new QueryResultRowDownstream(result);
         } else {
-            ClientPagingReceiver clientPagingReceiver = new ClientPagingReceiver(fetchProperties, result);
+            ClientPagingReceiver clientPagingReceiver = new ClientPagingReceiver(
+                fetchProperties, result, PhaseVisitors.typesFromOutputs(nodeOperationTree.leaf()));
             handlerOperations.register(jobId(), fetchProperties.cursorKeepAlive(), clientPagingReceiver);
             rowReceiver = clientPagingReceiver;
         }

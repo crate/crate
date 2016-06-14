@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.FetchProperties;
 import io.crate.executor.TaskResult;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.DataType;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.Consumer;
 import org.hamcrest.Matchers;
@@ -33,6 +34,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -66,7 +68,7 @@ public class HandlerOperationsTest extends CrateUnitTest {
         }, TimeValue.timeValueMillis(1));
         UUID cursorId = UUID.randomUUID();
         ClientPagingReceiver clientPagingReceiver = new ClientPagingReceiver(
-            FetchProperties.DEFAULT, SettableFuture.<TaskResult>create());
+            FetchProperties.DEFAULT, SettableFuture.<TaskResult>create(), Collections.<DataType>emptyList());
         handlerOperations.register(cursorId, TimeValue.timeValueNanos(1), clientPagingReceiver);
 
         assertThat(killedFuture.get(2, TimeUnit.SECONDS), is(cursorId));
@@ -84,7 +86,7 @@ public class HandlerOperationsTest extends CrateUnitTest {
         }, TimeValue.timeValueHours(1));
 
         ClientPagingReceiver clientPagingReceiver = new ClientPagingReceiver(
-            FetchProperties.DEFAULT, SettableFuture.<TaskResult>create());
+            FetchProperties.DEFAULT, SettableFuture.<TaskResult>create(), Collections.<DataType>emptyList());
 
         UUID cursorId = UUID.randomUUID();
         TimeValue keepAlive = TimeValue.timeValueSeconds(30);

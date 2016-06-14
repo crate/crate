@@ -31,9 +31,12 @@ import io.crate.core.collections.Row1;
 import io.crate.executor.TaskResult;
 import io.crate.testing.RowSender;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -53,7 +56,8 @@ public class ClientPagingReceiverTest {
     @Test
     public void testTriggersFutureIfFetchSizeIsReached() throws Exception {
         SettableFuture<TaskResult> future = SettableFuture.create();
-        ClientPagingReceiver receiver = new ClientPagingReceiver(new FetchProperties(2, false), future);
+        ClientPagingReceiver receiver = new ClientPagingReceiver(
+            new FetchProperties(2, false), future, Collections.<DataType>singletonList(DataTypes.INTEGER));
         RowSender rowSender = new RowSender(rows(5), receiver, MoreExecutors.directExecutor());
         rowSender.run();
 
@@ -66,7 +70,8 @@ public class ClientPagingReceiverTest {
     public void testFetchMoreAfterFirstResult() throws Exception {
         SettableFuture<TaskResult> future = SettableFuture.create();
         FetchProperties fetchProperties = new FetchProperties(2, false);
-        ClientPagingReceiver receiver = new ClientPagingReceiver(fetchProperties, future);
+        ClientPagingReceiver receiver = new ClientPagingReceiver(
+            fetchProperties, future, Collections.<DataType>singletonList(DataTypes.INTEGER));
         RowSender rowSender = new RowSender(rows(5), receiver, MoreExecutors.directExecutor());
         rowSender.run();
 
