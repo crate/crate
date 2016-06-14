@@ -21,15 +21,16 @@
 
 package io.crate.client;
 
-import io.crate.action.sql.SQLBulkRequest;
-import io.crate.action.sql.SQLBulkResponse;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.*;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.TransportActionNodeProxy;
+import org.elasticsearch.client.transport.TransportClientNodesService;
 import org.elasticsearch.cluster.ClusterNameModule;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -57,11 +58,13 @@ import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 public class CrateClient {
 
     private final Settings settings;
-    private final InternalCrateClient internalClient;
     private final TransportService transportService;
     private final ThreadPool threadPool;
+    private final TransportClientNodesService nodesService;
 
     private static final ESLogger logger = Loggers.getLogger(CrateClient.class);
+    private final TransportActionNodeProxy<SQLRequest, SQLResponse> sqlTransportProxy;
+    private final TransportActionNodeProxy<SQLBulkRequest, SQLBulkResponse> bulkSqlTransportProxy;
 
     public CrateClient(Settings pSettings, String ... servers) throws
             ElasticsearchException {
@@ -90,7 +93,6 @@ public class CrateClient {
         NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry();
 
         ModulesBuilder modules = new ModulesBuilder();
-        modules.add(new CrateClientModule());
         modules.add(new Version.Module(Version.CURRENT));
         modules.add(new ThreadPoolModule(threadPool));
 
@@ -102,14 +104,16 @@ public class CrateClient {
 
         Injector injector = modules.createInjector();
         transportService = injector.getInstance(TransportService.class).start();
-        internalClient = injector.getInstance(InternalCrateClient.class);
+        nodesService = injector.getInstance(TransportClientNodesService.class);
 
         for (String server : servers) {
             TransportAddress transportAddress = tryCreateTransportFor(server);
             if(transportAddress != null) {
-                internalClient.addTransportAddress(transportAddress);
+                nodesService.addTransportAddresses(transportAddress);
             }
         }
+        sqlTransportProxy = new TransportActionNodeProxy<>(settings, SQLAction.INSTANCE, transportService);
+        bulkSqlTransportProxy = new TransportActionNodeProxy<>(settings, SQLBulkAction.INSTANCE, transportService);
     }
 
     public CrateClient() {
@@ -121,7 +125,7 @@ public class CrateClient {
     }
 
     @Nullable
-    protected TransportAddress tryCreateTransportFor(String server) {
+    TransportAddress tryCreateTransportFor(String server) {
         URI uri;
         try {
             uri = new URI(server.contains("://") ? server : "tcp://" + server);
@@ -142,23 +146,23 @@ public class CrateClient {
     }
 
     public ActionFuture<SQLResponse> sql(SQLRequest request) {
-        return internalClient.sql(request);
+        return execute(sqlTransportProxy, request);
     }
 
     public void sql(String stmt, ActionListener<SQLResponse> listener) {
-        sql(new SQLRequest(stmt), listener);
+        execute(sqlTransportProxy, new SQLRequest(stmt), listener);
     }
 
     public void sql(SQLRequest request, ActionListener<SQLResponse> listener) {
-        internalClient.sql(request, listener);
+        execute(sqlTransportProxy, request, listener);
     }
 
     public ActionFuture<SQLBulkResponse> bulkSql(SQLBulkRequest bulkRequest) {
-        return internalClient.bulkSql(bulkRequest);
+        return execute(bulkSqlTransportProxy, bulkRequest);
     }
 
     public void bulkSql(SQLBulkRequest bulkRequest, ActionListener<SQLBulkResponse> listener) {
-        internalClient.bulkSql(bulkRequest, listener);
+        execute(bulkSqlTransportProxy, bulkRequest, listener);
     }
 
     public Settings settings() {
@@ -167,12 +171,34 @@ public class CrateClient {
 
     public void close() {
         transportService.stop();
-        internalClient.close();
+        nodesService.close();
         threadPool.shutdown();
         try {
             threadPool.awaitTermination(1, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            Thread.currentThread().isInterrupted();
+            Thread.currentThread().interrupt();
         }
+    }
+
+
+    private <Request extends ActionRequest, Response extends SQLBaseResponse> ActionFuture<Response> execute(
+        TransportActionNodeProxy<Request, Response> transportProxy,
+        Request request) {
+
+        CrateClientActionFuture<Response> actionFuture = new CrateClientActionFuture<>();
+        execute(transportProxy, request, actionFuture);
+        return actionFuture;
+    }
+
+    private <Request extends ActionRequest, Response extends SQLBaseResponse> void execute(
+        final TransportActionNodeProxy<Request, Response> transportProxy,
+        final Request request,
+        ActionListener<Response> listener) {
+        nodesService.execute(new TransportClientNodesService.NodeListenerCallback<Response>() {
+            @Override
+            public void doWithNode(DiscoveryNode node, ActionListener<Response> listener) {
+                transportProxy.execute(node, request, listener);
+            }
+        }, listener);
     }
 }

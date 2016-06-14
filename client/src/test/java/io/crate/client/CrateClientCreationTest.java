@@ -65,12 +65,9 @@ public class CrateClientCreationTest extends CrateClientIntegrationTest {
     }
 
     private List<DiscoveryNode> extractDiscoveryNodes(CrateClient crateClient) throws Exception {
-        Field internalClientField = CrateClient.class.getDeclaredField("internalClient");
-        internalClientField.setAccessible(true);
-        InternalCrateClient internalCrateClient = (InternalCrateClient) internalClientField.get(crateClient);
-        Field nodesServiceField = InternalCrateClient.class.getDeclaredField("nodesService");
+        Field nodesServiceField = CrateClient.class.getDeclaredField("nodesService");
         nodesServiceField.setAccessible(true);
-        TransportClientNodesService transportClientNodesService = (TransportClientNodesService) nodesServiceField.get(internalCrateClient);
+        TransportClientNodesService transportClientNodesService = (TransportClientNodesService) nodesServiceField.get(crateClient);
         return transportClientNodesService.connectedNodes();
     }
 
