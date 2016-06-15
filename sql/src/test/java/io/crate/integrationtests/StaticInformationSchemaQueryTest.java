@@ -22,51 +22,22 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLResponse;
-import io.crate.test.integration.ClassLifecycleIntegrationTest;
-import io.crate.testing.SQLTransportExecutor;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 
-public class StaticInformationSchemaQueryTest extends ClassLifecycleIntegrationTest {
+public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private SQLResponse response;
-
-    private static boolean dataInitialized = false;
-    private static SQLTransportExecutor executor;
-
     @Before
     public void tableCreation() throws Exception {
-        synchronized (StaticInformationSchemaQueryTest.class) {
-            if (dataInitialized) {
-                return;
-            }
-
-            executor = SQLTransportExecutor.create(ClassLifecycleIntegrationTest.GLOBAL_CLUSTER);
-            execute("create table t1 (col1 integer, col2 string) clustered into 7 shards");
-            execute("create table t2 (col1 integer, col2 string) clustered into 10 shards");
-            execute("create table t3 (col1 integer, col2 string) with (number_of_replicas=8)");
-            dataInitialized = true;
-        }
-    }
-
-    public SQLResponse execute(String stmt) {
-        response = executor.exec(stmt);
-        return response;
-    }
-
-    @AfterClass
-    public synchronized static void after() throws Exception {
-        if (executor != null) {
-            executor = null;
-        }
+        execute("create table t1 (col1 integer, col2 string) clustered into 7 shards");
+        execute("create table t2 (col1 integer, col2 string) clustered into 10 shards");
+        execute("create table t3 (col1 integer, col2 string) with (number_of_replicas=8)");
     }
 
     @Test

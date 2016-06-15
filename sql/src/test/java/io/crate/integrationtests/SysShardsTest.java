@@ -25,12 +25,10 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.metadata.PartitionName;
-import io.crate.test.integration.ClassLifecycleIntegrationTest;
-import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
-import org.junit.AfterClass;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,46 +41,31 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.*;
 
-public class SysShardsTest extends ClassLifecycleIntegrationTest {
+@ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2)
+public class SysShardsTest extends SQLTransportIntegrationTest {
 
-    private static boolean dataInitialized = false;
-    private static SQLTransportExecutor transportExecutor;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void initTestData() throws Exception {
-        synchronized (SysShardsTest.class) {
-            if (dataInitialized) {
-                return;
-            }
-            transportExecutor = SQLTransportExecutor.create(ClassLifecycleIntegrationTest.GLOBAL_CLUSTER);
-            Setup setup = new Setup(transportExecutor);
-            setup.groupBySetup();
-            transportExecutor.exec(
-                "create table quotes (id integer primary key, quote string) with(number_of_replicas=1)");
-            BlobIndices blobIndices = GLOBAL_CLUSTER.getInstance(BlobIndices.class);
-            Settings indexSettings = Settings.builder()
-                    .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
-                    .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 5)
-                    .build();
-            blobIndices.createBlobTable("blobs", indexSettings);
-            transportExecutor.ensureGreen();
-            dataInitialized = true;
-        }
-    }
-
-    @AfterClass
-    public synchronized static void after() throws Exception {
-        if (transportExecutor != null) {
-            transportExecutor = null;
-        }
+        Setup setup = new Setup(sqlExecutor);
+        setup.groupBySetup();
+        sqlExecutor.exec(
+            "create table quotes (id integer primary key, quote string) with(number_of_replicas=1)");
+        BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class);
+        Settings indexSettings = Settings.builder()
+                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
+                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 5)
+                .build();
+        blobIndices.createBlobTable("blobs", indexSettings);
+        sqlExecutor.ensureGreen();
     }
 
     @Test
     public void testSelectGroupByWhereTable() throws Exception {
-        SQLResponse response = transportExecutor.exec("" +
+        SQLResponse response = execute("" +
             "select count(*), num_docs from sys.shards where table_name = 'characters' " +
             "group by num_docs order by count(*)");
         assertThat(response.rowCount(), greaterThan(0L));
@@ -90,7 +73,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSelectGroupByAllTables() throws Exception {
-        SQLResponse response = transportExecutor.exec("select count(*), table_name from sys.shards " +
+        SQLResponse response = execute("select count(*), table_name from sys.shards " +
             "group by table_name order by table_name");
         assertEquals(3L, response.rowCount());
         assertEquals(10L, response.rows()[0][0]);
@@ -102,10 +85,10 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     @Test
     public void testGroupByWithLimitUnassignedShards() throws Exception {
         try {
-            transportExecutor.exec("create table t (id int, name string) with (number_of_replicas=2)");
-            transportExecutor.ensureYellowOrGreen();
+            execute("create table t (id int, name string) with (number_of_replicas=2)");
+            ensureYellow();
 
-            SQLResponse response = transportExecutor.exec("select sum(num_docs), table_name, sum(num_docs) from sys.shards group by table_name order by table_name desc limit 1000");
+            SQLResponse response = execute("select sum(num_docs), table_name, sum(num_docs) from sys.shards group by table_name order by table_name desc limit 1000");
             assertThat(response.rowCount(), is(4L));
             assertThat(TestingHelpers.printedTable(response.rows()),
                     is("0.0| t| 0.0\n" +
@@ -113,13 +96,13 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
                        "14.0| characters| 14.0\n" +
                        "0.0| blobs| 0.0\n"));
         } finally {
-            transportExecutor.exec("drop table t");
+            execute("drop table t");
         }
     }
 
     @Test
     public void testSelectGroupByWhereNotLike() throws Exception {
-        SQLResponse response = transportExecutor.exec("select count(*), table_name from sys.shards " +
+        SQLResponse response = execute("select count(*), table_name from sys.shards " +
             "where table_name not like 'my_table%' group by table_name order by table_name");
         assertEquals(3L, response.rowCount());
         assertEquals(10L, response.rows()[0][0]);
@@ -132,7 +115,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSelectWhereTable() throws Exception {
-        SQLResponse response = transportExecutor.exec(
+        SQLResponse response = execute(
             "select id, size from sys.shards " +
             "where table_name = 'characters'");
         assertEquals(8L, response.rowCount());
@@ -140,7 +123,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSelectStarWhereTable() throws Exception {
-        SQLResponse response = transportExecutor.exec(
+        SQLResponse response = execute(
             "select * from sys.shards where table_name = 'characters'");
         assertEquals(8L, response.rowCount());
         assertEquals(12, response.cols().length);
@@ -148,7 +131,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSelectStarAllTables() throws Exception {
-        SQLResponse response = transportExecutor.exec("select * from sys.shards");
+        SQLResponse response = execute("select * from sys.shards");
         assertEquals(26L, response.rowCount());
         assertEquals(12, response.cols().length);
         assertThat(response.cols(), arrayContaining(
@@ -168,7 +151,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSelectStarLike() throws Exception {
-        SQLResponse response = transportExecutor.exec(
+        SQLResponse response = execute(
             "select * from sys.shards where table_name like 'charact%'");
         assertEquals(8L, response.rowCount());
         assertEquals(12, response.cols().length);
@@ -176,7 +159,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSelectStarNotLike() throws Exception {
-        SQLResponse response = transportExecutor.exec(
+        SQLResponse response = execute(
             "select * from sys.shards where table_name not like 'quotes%'");
         assertEquals(18L, response.rowCount());
         assertEquals(12, response.cols().length);
@@ -184,7 +167,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSelectStarIn() throws Exception {
-        SQLResponse response = transportExecutor.exec(
+        SQLResponse response = execute(
             "select * from sys.shards where table_name in ('characters')");
         assertEquals(8L, response.rowCount());
         assertEquals(12, response.cols().length);
@@ -194,12 +177,12 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     public void testSelectStarMatch() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Cannot use match predicate on system tables");
-        transportExecutor.exec("select * from sys.shards where match(table_name, 'characters')");
+        execute("select * from sys.shards where match(table_name, 'characters')");
     }
 
     @Test
     public void testSelectOrderBy() throws Exception {
-        SQLResponse response = transportExecutor.exec("select * from sys.shards order by table_name");
+        SQLResponse response = execute("select * from sys.shards order by table_name");
         assertEquals(26L, response.rowCount());
         List<String> tableNames = Arrays.asList("blobs", "characters", "quotes");
         for (int i = 0; i < response.rowCount(); i++) {
@@ -209,19 +192,19 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSelectGreaterThan() throws Exception {
-        SQLResponse response = transportExecutor.exec("select * from sys.shards where num_docs > 0");
+        SQLResponse response = execute("select * from sys.shards where num_docs > 0");
         assertThat(response.rowCount(), greaterThan(0L));
     }
 
     @Test
     public void testSelectWhereBoolean() throws Exception {
-        SQLResponse response = transportExecutor.exec("select * from sys.shards where \"primary\" = false");
+        SQLResponse response = execute("select * from sys.shards where \"primary\" = false");
         assertEquals(13L, response.rowCount());
     }
 
     @Test
     public void testSelectGlobalAggregates() throws Exception {
-        SQLResponse response = transportExecutor.exec(
+        SQLResponse response = execute(
             "select sum(size), min(size), max(size), avg(size) from sys.shards");
         assertEquals(1L, response.rowCount());
         assertEquals(4, response.rows()[0].length);
@@ -233,14 +216,14 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSelectGlobalCount() throws Exception {
-        SQLResponse response = transportExecutor.exec("select count(*) from sys.shards");
+        SQLResponse response = execute("select count(*) from sys.shards");
         assertEquals(1L, response.rowCount());
         assertEquals(26L, response.rows()[0][0]);
     }
 
     @Test
     public void testSelectGlobalCountAndOthers() throws Exception {
-        SQLResponse response = transportExecutor.exec("select count(*), max(table_name) from sys.shards");
+        SQLResponse response = execute("select count(*), max(table_name) from sys.shards");
         assertEquals(1L, response.rowCount());
         assertEquals(26L, response.rows()[0][0]);
         assertEquals("quotes", response.rows()[0][1]);
@@ -249,20 +232,20 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     @Test
     public void testGroupByUnknownResultColumn() throws Exception {
         expectedException.expect(SQLActionException.class);
-        transportExecutor.exec("select lol from sys.shards group by table_name");
+        execute("select lol from sys.shards group by table_name");
     }
 
     @Test
     public void testGroupByUnknownGroupByColumn() throws Exception {
         expectedException.expect(SQLActionException.class);
-        transportExecutor.exec("select max(num_docs) from sys.shards group by lol");
+        execute("select max(num_docs) from sys.shards group by lol");
     }
 
     @Test
     public void testGroupByUnknownOrderBy() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Column lol unknown");
-        transportExecutor.exec(
+        execute(
             "select sum(num_docs), table_name from sys.shards group by table_name order by lol");
     }
 
@@ -270,7 +253,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     public void testGroupByUnknownWhere() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Column lol unknown");
-        transportExecutor.exec(
+        execute(
             "select sum(num_docs), table_name from sys.shards where lol='funky' group by table_name");
     }
 
@@ -278,7 +261,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     public void testGlobalAggregateUnknownWhere() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Column lol unknown");
-        transportExecutor.exec(
+        execute(
             "select sum(num_docs) from sys.shards where lol='funky'");
     }
 
@@ -286,20 +269,20 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     public void testSelectShardIdFromSysNodes() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Cannot resolve relation 'shards'");
-        transportExecutor.exec("select sys.shards.id from sys.nodes");
+        execute("select sys.shards.id from sys.nodes");
     }
 
     @Test
     public void testSelectWithOrderByColumnNotInOutputs() throws Exception {
         // regression test... query failed with ArrayOutOfBoundsException due to inputColumn mangling in planner
-        SQLResponse response = transportExecutor.exec("select id from sys.shards order by table_name limit 1");
+        SQLResponse response = execute("select id from sys.shards order by table_name limit 1");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], instanceOf(Integer.class));
     }
 
     @Test
     public void testSelectGroupByHaving() throws Exception {
-        SQLResponse response = transportExecutor.exec("select count(*) " +
+        SQLResponse response = execute("select count(*) " +
                 "from sys.shards " +
                 "group by table_name " +
                 "having table_name = 'quotes'");
@@ -308,62 +291,62 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSelectNodeSysExpression() throws Exception {
-        SQLResponse response = transportExecutor.exec(
+        SQLResponse response = execute(
                 "select _node, _node['name'], id from sys.shards order by _node['name'], id  limit 1");
         assertEquals(1L, response.rowCount());
         Map<String, Object> fullNode = (Map<String, Object>) response.rows()[0][0];
         String nodeName = response.rows()[0][1].toString();
-        assertEquals("shared0", nodeName);
-        assertEquals("shared0", fullNode.get("name"));
+        assertEquals("node_s0", nodeName);
+        assertEquals("node_s0", fullNode.get("name"));
     }
 
     @Test
     public void testOrphanedPartitionExpression() throws Exception {
         try {
-            transportExecutor.exec("create table c.orphan_test (id int primary key, p string primary key) " +
+            execute("create table c.orphan_test (id int primary key, p string primary key) " +
                             "partitioned by (p) " +
                             "clustered into 1 shards " +
                             "with (number_of_replicas = 0)"
             );
-            transportExecutor.exec("insert into c.orphan_test (id, p) values (1, 'foo')");
-            transportExecutor.ensureYellowOrGreen();
+            execute("insert into c.orphan_test (id, p) values (1, 'foo')");
+            ensureYellow();
 
-            SQLResponse response = transportExecutor.exec(
+            SQLResponse response = execute(
                     "select orphan_partition from sys.shards where table_name = 'orphan_test'");
             assertThat(TestingHelpers.printedTable(response.rows()), is("false\n"));
 
-            GLOBAL_CLUSTER.client().admin().indices()
+            client().admin().indices()
                     .prepareDeleteTemplate(PartitionName.templateName("c", "orphan_test"))
                     .execute().get(1, TimeUnit.SECONDS);
 
-            response = transportExecutor.exec(
+            response = execute(
                     "select orphan_partition from sys.shards where table_name = 'orphan_test'");
             assertThat(TestingHelpers.printedTable(response.rows()), is("true\n"));
         } finally {
-            transportExecutor.exec("drop table c.orphan_test");
+            execute("drop table c.orphan_test");
         }
     }
 
     @Test
     public void testSelectNodeSysExpressionWithUnassignedShards() throws Exception {
         try {
-            transportExecutor.exec("create table users (id integer primary key, name string) " +
+            execute("create table users (id integer primary key, name string) " +
                     "clustered into 5 shards with (number_of_replicas=2)");
-            transportExecutor.ensureYellowOrGreen();
-            SQLResponse response = transportExecutor.exec(
+            ensureYellow();
+            SQLResponse response = execute(
                     "select _node['name'], id from sys.shards where table_name = 'users' order by _node['name'] nulls last"
             );
             String nodeName = response.rows()[0][0].toString();
-            assertEquals("shared0", nodeName);
+            assertEquals("node_s0", nodeName);
             assertThat(response.rows()[12][0], is(nullValue()));
         } finally {
-            transportExecutor.exec("drop table users");
+            execute("drop table users");
         }
     }
 
     @Test
     public void testSelectRecoveryExpression() throws Exception {
-        SQLResponse response = transportExecutor.exec("select recovery, " +
+        SQLResponse response = execute("select recovery, " +
             "recovery['files'], recovery['files']['used'], recovery['files']['reused'], recovery['files']['recovered'], " +
             "recovery['size'], recovery['size']['used'], recovery['size']['reused'], recovery['size']['recovered'] " +
             "from sys.shards");

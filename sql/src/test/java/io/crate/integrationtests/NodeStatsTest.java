@@ -23,13 +23,10 @@ package io.crate.integrationtests;
 
 import io.crate.Version;
 import io.crate.action.sql.SQLResponse;
-import io.crate.test.integration.ClassLifecycleIntegrationTest;
-import io.crate.testing.SQLTransportExecutor;
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.env.NodeEnvironment;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -39,25 +36,12 @@ import java.util.Map;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-public class NodeStatsTest extends ClassLifecycleIntegrationTest {
-
-    private static SQLTransportExecutor executor;
-
-    @Before
-    public void before() throws Exception {
-        executor = SQLTransportExecutor.create(ClassLifecycleIntegrationTest.GLOBAL_CLUSTER);
-    }
-
-    @After
-    public void after() throws Exception {
-        if (executor != null) {
-            executor = null;
-        }
-    }
+@ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2)
+public class NodeStatsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSysNodesMem() throws Exception {
-        SQLResponse response = executor.exec("select mem['free'], mem['used'], mem['free_percent'], mem['used_percent'] from sys.nodes limit 1");
+        SQLResponse response = execute("select mem['free'], mem['used'], mem['free_percent'], mem['used_percent'] from sys.nodes limit 1");
         long free = (long)response.rows()[0][0];
         long used = (long)response.rows()[0][1];
 
@@ -78,7 +62,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testThreadPools() throws Exception {
-        SQLResponse response = executor.exec("select thread_pools from sys.nodes limit 1");
+        SQLResponse response = execute("select thread_pools from sys.nodes limit 1");
 
         Object[] threadPools = (Object[]) response.rows()[0][0];
         assertThat(threadPools.length, greaterThanOrEqualTo(1));
@@ -102,7 +86,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testThreadPoolValue() throws Exception {
-        SQLResponse response = executor.exec("select thread_pools['name'], thread_pools['queue'] from sys.nodes limit 1");
+        SQLResponse response = execute("select thread_pools['name'], thread_pools['queue'] from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));
 
         Object[] objects = (Object[]) response.rows()[0][0];
@@ -117,7 +101,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testNetwork() throws Exception {
-        SQLResponse response = executor.exec("select network from sys.nodes limit 1");
+        SQLResponse response = execute("select network from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));
 
         Map<String, Object> network = (Map<String, Object>)response.rows()[0][0];
@@ -126,7 +110,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         assertNetworkTCP(tcp);
 
 
-        response = executor.exec("select network['tcp'] from sys.nodes limit 1");
+        response = execute("select network['tcp'] from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));
         tcp = (Map<String, Object>)response.rows()[0][0];
         assertNetworkTCP(tcp);
@@ -147,7 +131,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testNetworkTcpConnectionFields() throws Exception {
-        SQLResponse response = executor.exec("select " +
+        SQLResponse response = execute("select " +
                 "network['tcp']['connections']['initiated'], " +
                 "network['tcp']['connections']['accepted'], " +
                 "network['tcp']['connections']['curr_established']," +
@@ -162,7 +146,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testNetworkTcpPacketsFields() throws Exception {
-        SQLResponse response = executor.exec("select " +
+        SQLResponse response = execute("select " +
                 "network['tcp']['packets']['sent'], " +
                 "network['tcp']['packets']['received'], " +
                 "network['tcp']['packets']['retransmitted'], " +
@@ -177,7 +161,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSysNodesOs() throws Exception {
-        SQLResponse response = executor.exec("select os from sys.nodes limit 1");
+        SQLResponse response = execute("select os from sys.nodes limit 1");
         Map results = (Map) response.rows()[0][0];
         assertThat(response.rowCount(), is(1L));
 
@@ -202,7 +186,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSysNodsOsInfo() throws Exception {
-        SQLResponse response = executor.exec("select os_info from sys.nodes limit 1");
+        SQLResponse response = execute("select os_info from sys.nodes limit 1");
         Map results = (Map) response.rows()[0][0];
         assertThat(response.rowCount(), is(1L));
 
@@ -221,7 +205,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSysNodesProcess() throws Exception {
-        SQLResponse response = executor.exec("select process['open_file_descriptors'], " +
+        SQLResponse response = execute("select process['open_file_descriptors'], " +
                 "process['max_open_file_descriptors'] " +
                 "from sys.nodes limit 1");
         for (int i = 0; i < response.cols().length; i++) {
@@ -231,7 +215,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testFs() throws Exception {
-        SQLResponse response = executor.exec("select fs from sys.nodes limit 1");
+        SQLResponse response = execute("select fs from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], instanceOf(Map.class));
         Map<String, Object> fs = (Map<String, Object>)response.rows()[0][0];
@@ -264,7 +248,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
         Object[] data = (Object[])fs.get("data");
         if (data.length > 0) {
             // without sigar, no data definition returned
-            int numDataPaths = GLOBAL_CLUSTER.getInstance(NodeEnvironment.class).nodeDataPaths().length;
+            int numDataPaths = internalCluster().getInstance(NodeEnvironment.class).nodeDataPaths().length;
             assertThat(data.length, is(numDataPaths));
             Map<String, Object> someData = (Map<String, Object>) data[0];
             assertThat(someData.keySet().size(), is(2));
@@ -274,7 +258,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testFsNoRootFS() throws Exception {
-        SQLResponse response = executor.exec("select fs['data']['dev'], fs['disks'] from sys.nodes");
+        SQLResponse response = execute("select fs['data']['dev'], fs['disks'] from sys.nodes");
         assertThat(response.rowCount(), is(2L));
         for (Object[] row : response.rows()) {
             // data device name
@@ -293,7 +277,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testSysNodesObjectArrayStringChildColumn() throws Exception {
-        SQLResponse response = executor.exec("select fs['data']['path'] from sys.nodes");
+        SQLResponse response = execute("select fs['data']['path'] from sys.nodes");
         assertThat(response.rowCount(), Matchers.is(2L));
         for (Object path : (Object[])response.rows()[0][0]) {
             assertThat(path, instanceOf(String.class));
@@ -302,7 +286,7 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testVersion() throws Exception {
-        SQLResponse response = executor.exec("select version, version['number'], " +
+        SQLResponse response = execute("select version, version['number'], " +
                 "version['build_hash'], version['build_snapshot'] " +
                 "from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));
@@ -315,9 +299,9 @@ public class NodeStatsTest extends ClassLifecycleIntegrationTest {
 
     @Test
     public void testRegexpMatchOnNode() throws Exception {
-        SQLResponse response = executor.exec("select name from sys.nodes where name ~ 'shared[0-1]{1,2}' order by name");
+        SQLResponse response = execute("select name from sys.nodes where name ~ 'node_s[0-1]{1,2}' order by name");
         assertThat(response.rowCount(), is(2L));
-        assertThat((String)response.rows()[0][0], is("shared0"));
-        assertThat((String)response.rows()[1][0], is("shared1"));
+        assertThat((String)response.rows()[0][0], is("node_s0"));
+        assertThat((String)response.rows()[1][0], is("node_s1"));
     }
 }
