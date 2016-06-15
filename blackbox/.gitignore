@@ -3,7 +3,6 @@
 /tmp/
 parts/
 .installed.cfg
-bin/
 develop-eggs/
 eggs/
 .venv27

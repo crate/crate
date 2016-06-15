@@ -7,7 +7,7 @@ evaluationDependsOn(':es-repository-hdfs')
 
 task bootstrap (type:Exec) {
     inputs.file "$projectDir/bootstrap.sh"
-    outputs.file "$projectDir/bin/buildout"
+    outputs.file "$projectDir/.venv"
 
     commandLine 'sh', "$projectDir/bootstrap.sh"
 }
@@ -27,14 +27,6 @@ task unpackDistTar (dependsOn: [project(':app').distTar, project(':client').jar]
         from(project(':client').jar)
         into crateClient
     }
-}
-
-task buildout (type:Exec, dependsOn: bootstrap) {
-    commandLine "$projectDir/bin/buildout", 'install', 'test', 'sphinx'
-}
-
-task buildoutHadoop(type:Exec, dependsOn: buildout) {
-    commandLine "$projectDir/bin/buildout", 'install', 'hdfs-test'
 }
 
 task lessLogging (dependsOn: unpackDistTar) << {
@@ -63,9 +55,9 @@ task gtest (type:Exec) {
 }
 
 
-hdfsTest.dependsOn(unpackDistTar, buildoutHadoop, lessLogging, ignoreDiskThreshold, project(':es-repository-hdfs').distZipHadoop2)
-itest.dependsOn(unpackDistTar, buildout, lessLogging, ignoreDiskThreshold)
-gtest.dependsOn(unpackDistTar, buildout, lessLogging, ignoreDiskThreshold)
+hdfsTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold, project(':es-repository-hdfs').distZipHadoop2)
+itest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
+gtest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 
 task clean << {
     FileCollection toDelete = files(crateDist,
@@ -73,10 +65,7 @@ task clean << {
         "$projectDir/docs/out/html",
         "$projectDir/docs/clients/out/text",
         "$projectDir/docs/clients/out/html",
-        "$projectDir/parts",
-        "$projectDir/.installed.cfg",
-        "$projectDir/bin",
-        "$projectDir/develop-eggs")
+        "$projectDir/parts")
     toDelete.each {File file ->
         delete file
     }

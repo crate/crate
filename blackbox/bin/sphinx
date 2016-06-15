@@ -1,0 +1,18 @@
+#!/bin/sh
+declare -i RESULT=0
+echo "\033[1mCleaning output folder ...\033[0m"
+rm -rf docs/out/ && rm -rf docs/clients/out/
+RESULT+=$?
+echo "\033[1;44mBuilding server docs (html) ...\033[0m"
+.venv/bin/sphinx-build -n -W -c docs/ -b html -E docs/ docs/out/html
+RESULT+=$?
+echo "\033[1;44mBuilding server docs (text) ...\033[0m"
+.venv/bin/sphinx-build -c docs/ -b text -E docs/ docs/out/text
+RESULT+=$?
+echo "\033[1;44mBuilding client docs (html) ...\033[0m"
+.venv/bin/sphinx-build -c docs/ -b html -E docs/clients docs/clients/out/html
+RESULT+=$?
+echo "\033[1;44mBuilding client docs (text) ...\033[0m"
+.venv/bin/sphinx-build -c docs/ -b text -E docs/clients docs/clients/out/text
+RESULT+=$?
+exit $RESULT
