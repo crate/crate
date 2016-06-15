@@ -30,7 +30,7 @@ task unpackDistTar (dependsOn: [project(':app').distTar, project(':client').jar]
 }
 
 task buildout (type:Exec, dependsOn: bootstrap) {
-    commandLine "$projectDir/bin/buildout", 'install', 'test', 'sphinx', 'java_repl'
+    commandLine "$projectDir/bin/buildout", 'install', 'test', 'sphinx'
 }
 
 task buildoutHadoop(type:Exec, dependsOn: buildout) {

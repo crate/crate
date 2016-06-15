@@ -38,7 +38,6 @@ cmd = CrateTestCmd(is_tty=False)
 jars = [project_path('blackbox', 'tmp', 'crateClient', 'crate-client.jar')]
 jars += glob.glob(crate_path('lib', '*.jar'))
 java_repl = JavaRepl(
-    java_repl_jar=project_path('blackbox', 'parts', 'java_repl', 'javarepl.jar'),
     jars=jars,
     port=GLOBAL_PORT_POOL.get()
 )

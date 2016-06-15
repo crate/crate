@@ -3,8 +3,14 @@ import json
 import os
 import time
 import socket
-from urllib.request import urlopen
+import contextlib
+from urllib.request import urlopen, urlretrieve
 from urllib.parse import urlencode
+
+
+SOURCE_URL = "http://albertlatacz.published.s3.amazonaws.com/javarepl/javarepl.jar"
+CACHE_DIR = os.environ.get(
+    'XDG_CACHE_HOME', os.path.join(os.path.expanduser('~'), '.cache', 'crate-tests'))
 
 
 def is_up(host, port):
@@ -17,25 +23,34 @@ def is_up(host, port):
     return False
 
 
-class JavaRepl(object):
+class JavaRepl(contextlib.ExitStack):
 
     __bases__ = ()
     __name__ = 'javarepl'
 
-    def __init__(self, java_repl_jar, jars, port):
+    def __init__(self, jars, port):
+        super().__init__()
         self.port = port = str(port)
+        java_repl_jar = self._get_repl_file()
         jars = [os.path.abspath(p) for p in [java_repl_jar] + jars]
         cp = ':'.join(jars)
         self.cmd = [
             'java', '-cp', cp, 'javarepl.Repl', '--port=' + port]
         self.url = 'http://localhost:' + port + '/execute'
 
+    def _get_repl_file(self):
+        cached_file = os.path.join(CACHE_DIR, 'java_repl.jar')
+        if not os.path.exists(cached_file):
+            os.makedirs(CACHE_DIR, exist_ok=True)
+            urlretrieve(SOURCE_URL, cached_file)
+        return cached_file
+
     def setUp(self):
-        self.process = subprocess.Popen(
+        self.process = self.enter_context(subprocess.Popen(
             self.cmd,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stdin=subprocess.PIPE)
+            stdin=subprocess.PIPE))
         slept = 0
         while not is_up('localhost', self.port) and slept < 10:
             time.sleep(0.1)
