@@ -5,9 +5,16 @@ import zipfile
 import subprocess
 import socket
 import time
+import tarfile
 from crate.testing.layer import CrateLayer
 from crate.client import connect
+from urllib.request import urlretrieve
 
+HADOOP_VERSION = '2.7.1'
+HADOOP_SOURCE = ('http://www-eu.apache.org/dist/hadoop/common/'
+                 'hadoop-{version}/hadoop-{version}.tar.gz'.format(version=HADOOP_VERSION))
+CACHE_DIR = os.environ.get(
+    'XDG_CACHE_HOME', os.path.join(os.path.expanduser('~'), '.cache', 'crate-tests'))
 
 CRATE_HTTP_PORT = '42220'
 CRATE_TRANSPORT_PORT = '42330'
@@ -49,13 +56,28 @@ class HadoopLayer(object):
     __name__ = 'hadoop'
     __bases__ = ()
 
-    def __init__(self, hadoop_path):
-        self.hadoop_path = hadoop_path
+    def __init__(self):
+        self.hadoop_path = hadoop_path = self._get_hadoop()
         self.hadoop_bin = os.path.join(hadoop_path, 'bin', 'hadoop')
         self.hadoop_mapreduce_client = os.path.join(
-            hadoop_path, 'share', 'hadoop', 'mapreduce', 'hadoop-mapreduce-client-jobclient-2.7.1-tests.jar')
+            hadoop_path, 'share', 'hadoop', 'mapreduce',
+            'hadoop-mapreduce-client-jobclient-{version}-tests.jar'.format(version=HADOOP_VERSION))
         self.yarn_server_jar = os.path.join(
-            hadoop_path, 'share', 'hadoop', 'yarn', 'test', 'hadoop-yarn-server-tests-2.7.1-tests.jar')
+            hadoop_path, 'share', 'hadoop', 'yarn', 'test',
+            'hadoop-yarn-server-tests-{version}-tests.jar'.format(version=HADOOP_VERSION))
+
+    def _get_hadoop(self):
+        hadoop_path = os.path.join(CACHE_DIR, 'hadoop')
+        hadoop_tar = os.path.join(
+            hadoop_path,
+            'hadoop-{version}.tar.gz'.format(version=HADOOP_VERSION))
+        if not os.path.exists(hadoop_tar):
+            os.makedirs(hadoop_path, exist_ok=True)
+            urlretrieve(HADOOP_SOURCE, hadoop_tar)
+            with tarfile.open(hadoop_tar) as tf:
+                tf.extractall(path=hadoop_path)
+        return os.path.join(hadoop_path,
+                            'hadoop-{version}'.format(version=HADOOP_VERSION))
 
     def setUp(self):
         cmd = ['bash',
@@ -116,7 +138,6 @@ def test_suite():
         port=CRATE_HTTP_PORT,
         transport_port=CRATE_TRANSPORT_PORT
     )
-    hadoop_layer = HadoopLayer(
-        hadoop_path=os.path.join(project_root, 'blackbox', 'parts', 'hadoop'))
+    hadoop_layer = HadoopLayer()
     suite.layer = HadoopAndCrateLayer(crate_layer, hadoop_layer)
     return suite

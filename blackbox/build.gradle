@@ -34,7 +34,7 @@ task buildout (type:Exec, dependsOn: bootstrap) {
 }
 
 task buildoutHadoop(type:Exec, dependsOn: buildout) {
-    commandLine "$projectDir/bin/buildout", 'install', 'hadoop', 'hdfs-test'
+    commandLine "$projectDir/bin/buildout", 'install', 'hdfs-test'
 }
 
 task lessLogging (dependsOn: unpackDistTar) << {
