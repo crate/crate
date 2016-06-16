@@ -396,7 +396,8 @@ public class ProjectionToProjectorVisitor
             threadPool.executor(ThreadPool.Names.SUGGEST),
             symbolVisitor.functions(),
             projection.outputSymbols(),
-            projectorContext
+            projectorContext,
+            projection.getFetchSize()
         );
     }
 

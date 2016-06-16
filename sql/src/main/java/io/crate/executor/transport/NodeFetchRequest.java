@@ -39,6 +39,7 @@ public class NodeFetchRequest extends TransportRequest {
 
     private UUID jobId;
     private int fetchPhaseId;
+    private boolean closeContext;
 
     @Nullable
     private IntObjectMap<? extends IntContainer> toFetch;
@@ -46,9 +47,13 @@ public class NodeFetchRequest extends TransportRequest {
     public NodeFetchRequest() {
     }
 
-    public NodeFetchRequest(UUID jobId, int fetchPhaseId, IntObjectMap<? extends IntContainer> toFetch) {
+    public NodeFetchRequest(UUID jobId,
+                            int fetchPhaseId,
+                            boolean closeContext,
+                            IntObjectMap<? extends IntContainer> toFetch) {
         this.jobId = jobId;
         this.fetchPhaseId = fetchPhaseId;
+        this.closeContext = closeContext;
         if (!toFetch.isEmpty()) {
             this.toFetch = toFetch;
         }
@@ -62,6 +67,10 @@ public class NodeFetchRequest extends TransportRequest {
         return fetchPhaseId;
     }
 
+    public boolean isCloseContext() {
+        return closeContext;
+    }
+
     @Nullable
     public IntObjectMap<? extends IntContainer> toFetch() {
         return toFetch;
@@ -72,6 +81,7 @@ public class NodeFetchRequest extends TransportRequest {
         super.readFrom(in);
         jobId = new UUID(in.readLong(), in.readLong());
         fetchPhaseId = in.readVInt();
+        closeContext = in.readBoolean();
         int numReaders = in.readVInt();
         if (numReaders > 0) {
             IntObjectHashMap<IntArrayList> toFetch = new IntObjectHashMap<>(numReaders);
@@ -94,6 +104,7 @@ public class NodeFetchRequest extends TransportRequest {
         out.writeLong(jobId.getMostSignificantBits());
         out.writeLong(jobId.getLeastSignificantBits());
         out.writeVInt(fetchPhaseId);
+        out.writeBoolean(closeContext);
         if (toFetch == null) {
             out.writeVInt(0);
         } else {
