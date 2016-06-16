@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.DefaultTraversalVisitor;
@@ -66,6 +67,7 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
     public AddColumnAnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, Analysis analysis) {
         AddColumnAnalyzedStatement statement = new AddColumnAnalyzedStatement(schemas);
         setTableAndPartitionName(node.table(), statement, analysis.parameterContext());
+        Operation.blockedRaiseException(statement.table(), Operation.ALTER);
 
         statement.analyzedTableElements(TableElementsAnalyzer.analyze(
                 node.tableElement(),

@@ -202,7 +202,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
     public void testUpdateWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"DocTableRelation{table=doc.mytablealias}\" doesn't support update operations");
+        expectedException.expectMessage("relation \"doc.mytablealias\" doesn't support or allow UPDATE operations");
 
         execute(String.format(Locale.ENGLISH, "update %s set id=?, content=?", tableAlias), new Object[]{1, "bla"});
     }
@@ -211,7 +211,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
     public void testDeleteWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"DocTableRelation{table=doc.mytablealias}\" doesn't support delete operations");
+        expectedException.expectMessage("relation \"doc.mytablealias\" doesn't support or allow DELETE operations");
 
         execute(String.format(Locale.ENGLISH, "delete from %s where id=?", tableAlias), new Object[]{1});
     }

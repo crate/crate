@@ -26,6 +26,7 @@ import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 
@@ -35,6 +36,7 @@ import java.util.*;
 public class RelationAnalysisContext {
 
     private final ExpressionAnalysisContext expressionAnalysisContext;
+    private final Operation currentOperation;
     private ExpressionAnalyzer expressionAnalyzer;
     // keep order of sources.
     //  e.g. something like:  select * from t1, t2 must not become select t2.*, t1.*
@@ -46,9 +48,16 @@ public class RelationAnalysisContext {
     @Nullable
     private List<Expression> joinExpressions;
 
-    public RelationAnalysisContext(ParameterContext parameterContext, AnalysisMetaData analysisMetaData) {
+    RelationAnalysisContext(ParameterContext parameterContext, AnalysisMetaData analysisMetaData) {
+        this(parameterContext, analysisMetaData, Operation.READ);
+    }
+
+    public RelationAnalysisContext(ParameterContext parameterContext,
+                                   AnalysisMetaData analysisMetaData,
+                                   Operation currentOperation) {
         this.parameterContext = parameterContext;
         this.analysisMetaData = analysisMetaData;
+        this.currentOperation = currentOperation;
         this.expressionAnalysisContext = new ExpressionAnalysisContext();
     }
 
@@ -56,11 +65,15 @@ public class RelationAnalysisContext {
         return parameterContext;
     }
 
-    public void addSourceRelation(String nameOrAlias, AnalyzedRelation relation) {
+    Operation currentOperation() {
+        return currentOperation;
+    }
+
+    void addSourceRelation(String nameOrAlias, AnalyzedRelation relation) {
         addSourceRelation(new QualifiedName(nameOrAlias), relation);
     }
 
-    public void addSourceRelation(String schemaName, String nameOrAlias, AnalyzedRelation relation) {
+    void addSourceRelation(String schemaName, String nameOrAlias, AnalyzedRelation relation) {
         addSourceRelation(new QualifiedName(Arrays.asList(schemaName, nameOrAlias)), relation);
     }
 
@@ -86,7 +99,7 @@ public class RelationAnalysisContext {
         return expressionAnalyzer;
     }
 
-    FieldProvider fieldProvider(){
+    private FieldProvider fieldProvider(){
         if (fieldProvider == null){
             fieldProvider = new FullQualifedNameFieldProvider(sources());
         }
@@ -97,14 +110,14 @@ public class RelationAnalysisContext {
         return expressionAnalysisContext;
     }
 
-    public List<Expression> joinExpressions() {
+    List<Expression> joinExpressions() {
         if (joinExpressions == null) {
             return ImmutableList.of();
         }
         return joinExpressions;
     }
 
-    public void addJoinExpression(Expression expression) {
+    void addJoinExpression(Expression expression) {
         if (joinExpressions == null) {
             joinExpressions = new ArrayList<>();
         }

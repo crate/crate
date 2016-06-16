@@ -51,7 +51,6 @@ import org.elasticsearch.common.inject.Singleton;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 
 @Singleton
@@ -96,12 +95,8 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     @Override
     public AnalyzedStatement visitUpdate(Update node, Analysis analysis) {
         RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext(
-                analysis.parameterContext(), analysisMetaData);
+                analysis.parameterContext(), analysisMetaData, Operation.UPDATE);
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), relationAnalysisContext);
-        if (!Relations.supportsOperation(analyzedRelation, Operation.UPDATE)) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "relation \"%s\" doesn't support update operations", analyzedRelation));
-        }
 
         FieldResolver fieldResolver = (FieldResolver) analyzedRelation;
         FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);

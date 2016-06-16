@@ -35,6 +35,7 @@ import io.crate.analyze.symbol.Reference;
 import io.crate.exceptions.TableAliasSchemaException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
@@ -84,6 +85,7 @@ public class DocIndexMetaData {
     private final ImmutableMap<String, Object> tableParameters;
     private final Map<String, Object> indicesMap;
     private final List<List<String>> partitionedByList;
+    private final Set<Operation> supportedOperations;
     private ImmutableList<ReferenceInfo> columns;
     private ImmutableMap<ColumnIdent, IndexReferenceInfo> indices;
     private ImmutableList<ReferenceInfo> partitionedByColumns;
@@ -120,6 +122,11 @@ public class DocIndexMetaData {
         indicesMap = getNested(metaMap, "indices", ImmutableMap.<String, Object>of());
         partitionedByList = getNested(metaMap, "partitioned_by", ImmutableList.<List<String>>of());
         generatedColumns = getNested(metaMap, "generated_columns", ImmutableMap.<String, String>of());
+        if (isAlias && partitionedByList.isEmpty()) {
+            supportedOperations = Operation.READ_ONLY;
+        } else {
+            supportedOperations = Operation.buildFromIndexSettings(metaData.getSettings());
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -641,5 +648,9 @@ public class DocIndexMetaData {
         } else {
             return getAnalyzers(null, propertiesMap);
         }
+    }
+
+    public Set<Operation> supportedOperations() {
+        return supportedOperations;
     }
 }

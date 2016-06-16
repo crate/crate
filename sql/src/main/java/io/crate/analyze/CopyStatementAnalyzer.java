@@ -86,6 +86,7 @@ public class CopyStatementAnalyzer {
         DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
+        Operation.blockedRaiseException(tableInfo, Operation.INSERT);
 
         String partitionIdent = null;
         if (!node.table().partitionProperties().isEmpty()) {
@@ -138,6 +139,7 @@ public class CopyStatementAnalyzer {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "Cannot COPY %s TO. COPY TO only supports user tables", tableInfo.ident()));
         }
+        Operation.blockedRaiseException(tableInfo, Operation.READ);
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 
         Context context = new Context(analysisMetaData, analysis.parameterContext(), tableRelation, Operation.READ);

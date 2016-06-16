@@ -24,9 +24,12 @@ package io.crate.analyze;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.*;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 
 @Singleton
 public class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyzedStatement, Analysis> {
@@ -50,7 +53,6 @@ public class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyz
 
     @Override
     public AlterTableAnalyzedStatement visitAlterTable(AlterTable node, Analysis analysis) {
-
         AlterTableAnalyzedStatement statement = new AlterTableAnalyzedStatement(schemas);
         setTableAndPartitionName(node.table(), statement, analysis);
 
@@ -69,6 +71,15 @@ public class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyz
         } else if (!node.resetProperties().isEmpty()) {
             TABLE_PROPERTIES_ANALYZER.analyze(
                     statement.tableParameter(), tableParameterInfo, node.resetProperties());
+        }
+
+        // Only check for permission if statement is not changing the metadata blocks, so don't block `re-enabling` these.
+        Settings tableSettings = statement.tableParameter().settings();
+        if (tableSettings.getAsMap().size() != 1 ||
+            (tableSettings.get(IndexMetaData.SETTING_BLOCKS_METADATA) == null &&
+             tableSettings.get(IndexMetaData.SETTING_READ_ONLY) == null)) {
+
+            Operation.blockedRaiseException(statement.table(), Operation.ALTER);
         }
 
         return statement;
