@@ -135,7 +135,7 @@ public class TableCreator {
     private void setException(SettableFuture<Long> result, Throwable e, CreateTableAnalyzedStatement statement) {
         e = Exceptions.unwrap(e);
         String message = e.getMessage();
-        if (message.equals("mapping [default]") && e.getCause() != null) {
+        if ("mapping [default]".equals(message) && e.getCause() != null) {
             // this is a generic mapping parse exception,
             // the cause has usually a better more detailed error message
             result.setException(e.getCause());
