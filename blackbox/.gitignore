@@ -6,3 +6,4 @@ parts/
 develop-eggs/
 eggs/
 .venv27
+.venv
