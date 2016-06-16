@@ -28,6 +28,9 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.IntegerType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.junit.Rule;
@@ -459,5 +462,39 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 return false;
             }
         });
+    }
+
+    @Test
+    public void testTwoLevelNestedArrayColumn() throws Exception {
+        execute("create table assets (categories array(object as (items array(object as (id int)))))");
+        execute("insert into assets (categories) values ([{items=[{id=10}, {id=20}]}])");
+        ensureYellow();
+        execute("refresh table assets");
+
+        refresh();
+        waitNoPendingTasksOnAll();
+        execute("select categories['items']['id'] from assets");
+        Object[] columns = TestingHelpers.getColumn(response.rows(), 0);
+        assertThat(response.columnTypes()[0], is((DataType)new ArrayType(new ArrayType(IntegerType.INSTANCE))));
+        assertThat((Integer)((Object[])((Object[]) columns[0])[0])[0], is(10));
+        assertThat((Integer)((Object[])((Object[]) columns[0])[0])[1], is(20));
+    }
+
+    @Test
+    public void testThreeLevelNestedArrayColumn() throws Exception {
+        execute("create table assets (categories array(object as (subcategories array(object as (" +
+                "items array(object as (id int)))))))");
+        execute("insert into assets (categories) values ([{subcategories=[{items=[{id=10}, {id=20}]}]}])");
+        ensureYellow();
+        execute("refresh table assets");
+
+        refresh();
+        waitNoPendingTasksOnAll();
+        execute("select categories['subcategories']['items']['id'] from assets");
+        Object[] columns = TestingHelpers.getColumn(response.rows(), 0);
+        assertThat(response.columnTypes()[0],
+                   is((DataType)new ArrayType(new ArrayType(new ArrayType(IntegerType.INSTANCE)))));
+        assertThat((Integer)((Object[])((Object[])((Object[]) columns[0])[0])[0])[0], is(10));
+        assertThat((Integer)((Object[])((Object[])((Object[]) columns[0])[0])[0])[1], is(20));
     }
 }

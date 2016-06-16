@@ -33,6 +33,7 @@ import io.crate.metadata.Path;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
@@ -79,21 +80,36 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
 
     protected ReferenceInfo checkNestedArray(ColumnIdent ci, ReferenceInfo referenceInfo) {
         // TODO: build type correctly as array when the tableInfo is created and remove the conversion here
-        if (!ci.isColumn() && hasMatchingParent(referenceInfo, IS_OBJECT_ARRAY)) {
+        DataType dataType = null;
+        ColumnIdent tmpCI = ci;
+        ReferenceInfo tmpRI = referenceInfo;
+
+        while (!tmpCI.isColumn() && hasMatchingParent(tmpRI, IS_OBJECT_ARRAY)) {
             if (DataTypes.isCollectionType(referenceInfo.type())) {
                 // TODO: remove this limitation with next type refactoring
                 throw new UnsupportedOperationException("cannot query for arrays inside object arrays explicitly");
             }
             // for child fields of object arrays
             // return references of primitive types as array
-            referenceInfo = new ReferenceInfo.Builder()
-                    .ident(referenceInfo.ident())
-                    .columnPolicy(referenceInfo.columnPolicy())
-                    .granularity(referenceInfo.granularity())
-                    .type(new ArrayType(referenceInfo.type()))
-                    .build();
+            if (dataType == null) {
+                dataType = new ArrayType(referenceInfo.type());
+            } else {
+                dataType = new ArrayType(dataType);
+            }
+            tmpCI = tmpCI.getParent();
+            tmpRI = tableInfo.getReferenceInfo(tmpCI);
+
         }
-        return referenceInfo;
+        if (dataType != null) {
+            return new ReferenceInfo.Builder()
+                .ident(referenceInfo.ident())
+                .columnPolicy(referenceInfo.columnPolicy())
+                .granularity(referenceInfo.granularity())
+                .type(dataType)
+                .build();
+        } else {
+            return referenceInfo;
+        }
     }
 
     @Override

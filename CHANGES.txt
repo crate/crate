@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Allow select statements with more than one level nested arrays in table columns.
+   eg: SELECT categories['items']['id'] FROM assets
+
  - Fixed an edge case that could cause sorted join queries to fail.
 
  - Fix: Allow concurrent deletion of partition without raising an exception.
@@ -85,7 +88,7 @@ Unreleased
  - Fixed an issue that caused `CREATE TABLE` statements to ignore PRIMARY KEY
    constraints on nested columns
 
- - Fixed an issue that caused queries to get stuck if an invalid regex is used. 
+ - Fixed an issue that caused queries to get stuck if an invalid regex is used.
 
  - Fixed an issue that caused INSERT-FROM-QUERY statements to fail if the
    target table contained a generated column as primary key
