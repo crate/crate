@@ -71,25 +71,32 @@ Blocks
   | *Default:*   ``false``
   | *Runtime:*   ``yes``
 
-  Disable/enable read-only table.
+  If set to ``true``, the table will be ``read_only`` and no write,
+  alter and drop operations are allowed.
+  It has the same effect like setting ``blocks.read`` and
+  ``blocks.metadata`` to ``true``.
 
 **blocks.read**
   | *Default:*   ``false``
   | *Runtime:*   ``yes``
 
-  Disable/enable all the read operations.
+  If set to ``true``, no read (including export and snapshot)
+  operations are allowed on that table.
 
 **blocks.write**
   | *Default:*   ``false``
   | *Runtime:*   ``yes``
 
-  Disable/enable all the write operations.
+  If set to ``true``, no write operations are allowed.
 
 **blocks.metadata**
   | *Default:*   ``false``
   | *Runtime:*   ``yes``
 
-  Disables/enables the table settings modifications.
+  If set to ``true``, no alter or drop operations are allowed.
+  There is one exception: setting a single ``blocks.*`` setting is
+  still allowed using ``ALTER`` to make it possible to change the
+  blocks setting.
 
 Translog
 --------

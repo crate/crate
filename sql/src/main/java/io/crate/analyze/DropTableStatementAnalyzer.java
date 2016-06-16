@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.Node;
@@ -43,6 +44,10 @@ public class DropTableStatementAnalyzer extends DefaultTraversalVisitor<DropTabl
     public DropTableAnalyzedStatement visitDropTable(DropTable node, Analysis context) {
         DropTableAnalyzedStatement statement = new DropTableAnalyzedStatement(schemas, node.ignoreNonExistentTable());
         statement.table(TableIdent.of(node.table(), context.parameterContext().defaultSchema()));
+        if (!statement.noop()) {
+            Operation.blockedRaiseException(statement.tableInfo, Operation.DROP);
+        }
+
         return statement;
     }
 

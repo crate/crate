@@ -35,8 +35,6 @@ import io.crate.sql.tree.Node;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Locale;
-
 @Singleton
 public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Analysis> {
 
@@ -100,13 +98,9 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         int numNested = 1;
 
         RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext(
-                context.parameterContext(), analysisMetaData);
+                context.parameterContext(), analysisMetaData, Operation.DELETE);
 
         AnalyzedRelation analyzedRelation = relationAnalyzer.process(node.getRelation(), relationAnalysisContext);
-        if (!Relations.supportsOperation(analyzedRelation, Operation.DELETE)) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "relation \"%s\" doesn't support delete operations", analyzedRelation));
-        }
         assert analyzedRelation instanceof DocTableRelation;
         DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);

@@ -39,6 +39,7 @@ import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.operation.operator.AndOperator;
@@ -391,6 +392,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     protected AnalyzedRelation visitTable(Table node, RelationAnalysisContext context) {
         TableInfo tableInfo = analysisMetaData.schemas().getTableInfo(
                 TableIdent.of(node, context.parameterContext().defaultSchema()));
+        Operation.blockedRaiseException(tableInfo, context.currentOperation());
         AnalyzedRelation tableRelation;
         // Dispatching of doc relations is based on the returned class of the schema information.
         if (tableInfo instanceof DocTableInfo){
@@ -424,6 +426,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
         TableFunctionImplementation tableFunction = analysisMetaData.functions().getTableFunctionSafe(node.name());
         TableInfo tableInfo = tableFunction.createTableInfo(clusterService, Symbols.extractTypes(arguments));
+        Operation.blockedRaiseException(tableInfo, context.currentOperation());
         TableRelation tableRelation = new TableFunctionRelation(tableInfo, node.name(), arguments);
         context.addSourceRelation(node.name(), tableRelation);
         return tableRelation;

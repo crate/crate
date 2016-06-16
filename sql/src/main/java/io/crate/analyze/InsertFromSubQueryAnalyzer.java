@@ -38,6 +38,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.InsertFromSubquery;
 import org.elasticsearch.common.inject.Inject;
@@ -88,8 +89,9 @@ public class InsertFromSubQueryAnalyzer {
 
         DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
-        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
+        Operation.blockedRaiseException(tableInfo, Operation.INSERT);
 
+        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
 
         QueriedRelation source = (QueriedRelation) relationAnalyzer.analyze(node.subQuery(), analysis);

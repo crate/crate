@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
+import io.crate.metadata.table.Operation;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -39,29 +40,30 @@ public class DocTableInfoTest extends CrateUnitTest {
         TableIdent tableIdent = new TableIdent(null, "dummy");
 
         DocTableInfo info = new DocTableInfo(
-                tableIdent,
-                ImmutableList.of(
-                        new ReferenceInfo(new ReferenceIdent(tableIdent, new ColumnIdent("o", ImmutableList.<String>of())), RowGranularity.DOC, DataTypes.OBJECT)
-                ),
-                ImmutableList.<ReferenceInfo>of(),
-                ImmutableList.<GeneratedReferenceInfo>of(),
-                ImmutableMap.<ColumnIdent, IndexReferenceInfo>of(),
-                ImmutableMap.<ColumnIdent, ReferenceInfo>of(),
-                ImmutableMap.<ColumnIdent, String>of(),
-                ImmutableList.<ColumnIdent>of(),
-                null,
-                false,
-                true,
-                new String[0],
-                null,
-                new IndexNameExpressionResolver(Settings.EMPTY),
-                5,
-                new BytesRef("0"),
-                ImmutableMap.<String,Object>of(),
-                ImmutableList.<ColumnIdent>of(),
-                ImmutableList.<PartitionName>of(),
-                ColumnPolicy.DYNAMIC,
-                executorService
+            tableIdent,
+            ImmutableList.of(
+                    new ReferenceInfo(new ReferenceIdent(tableIdent, new ColumnIdent("o", ImmutableList.<String>of())), RowGranularity.DOC, DataTypes.OBJECT)
+            ),
+            ImmutableList.<ReferenceInfo>of(),
+            ImmutableList.<GeneratedReferenceInfo>of(),
+            ImmutableMap.<ColumnIdent, IndexReferenceInfo>of(),
+            ImmutableMap.<ColumnIdent, ReferenceInfo>of(),
+            ImmutableMap.<ColumnIdent, String>of(),
+            ImmutableList.<ColumnIdent>of(),
+            null,
+            false,
+            true,
+            new String[0],
+            null,
+            new IndexNameExpressionResolver(Settings.EMPTY),
+            5,
+            new BytesRef("0"),
+            ImmutableMap.<String,Object>of(),
+            ImmutableList.<ColumnIdent>of(),
+            ImmutableList.<PartitionName>of(),
+            ColumnPolicy.DYNAMIC,
+            Operation.ALL,
+            executorService
         );
 
         ReferenceInfo foobar = info.getReferenceInfo(new ColumnIdent("o", ImmutableList.of("foobar")));
@@ -91,27 +93,28 @@ public class DocTableInfoTest extends CrateUnitTest {
                 .build();
 
         DocTableInfo info = new DocTableInfo(
-                dummy,
-                ImmutableList.<ReferenceInfo>of(strictParent),
-                ImmutableList.<ReferenceInfo>of(),
-                ImmutableList.<GeneratedReferenceInfo>of(),
-                ImmutableMap.<ColumnIdent, IndexReferenceInfo>of(),
-                references,
-                ImmutableMap.<ColumnIdent, String>of(),
-                ImmutableList.<ColumnIdent>of(),
-                null,
-                false,
-                true,
-                new String[0],
-                null,
-                new IndexNameExpressionResolver(Settings.EMPTY),
-                5,
-                new BytesRef("0"),
-                ImmutableMap.<String, Object>of(),
-                ImmutableList.<ColumnIdent>of(),
-                ImmutableList.<PartitionName>of(),
-                ColumnPolicy.DYNAMIC,
-                executorService
+            dummy,
+            ImmutableList.<ReferenceInfo>of(strictParent),
+            ImmutableList.<ReferenceInfo>of(),
+            ImmutableList.<GeneratedReferenceInfo>of(),
+            ImmutableMap.<ColumnIdent, IndexReferenceInfo>of(),
+            references,
+            ImmutableMap.<ColumnIdent, String>of(),
+            ImmutableList.<ColumnIdent>of(),
+            null,
+            false,
+            true,
+            new String[0],
+            null,
+            new IndexNameExpressionResolver(Settings.EMPTY),
+            5,
+            new BytesRef("0"),
+            ImmutableMap.<String, Object>of(),
+            ImmutableList.<ColumnIdent>of(),
+            ImmutableList.<PartitionName>of(),
+            ColumnPolicy.DYNAMIC,
+            Operation.ALL,
+            executorService
         );
 
 

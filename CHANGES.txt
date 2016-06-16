@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed proper validation of the ``blocks.*`` table settings at all
+   SQL operations.
+
  - Fix: Allow select statements with more than one level nested arrays in table columns.
    eg: SELECT categories['items']['id'] FROM assets
 

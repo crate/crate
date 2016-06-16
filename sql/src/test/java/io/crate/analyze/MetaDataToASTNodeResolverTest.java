@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.CreateTable;
 import io.crate.test.integration.CrateUnitTest;
@@ -66,25 +67,26 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                                 List<ColumnIdent> partitionedBy,
                                 ColumnPolicy policy) {
             super(ident,
-                    columns,
-                    partitionedByColumns,
-                    generatedColumns,
-                    indexColumns,
-                    references,
-                    analyzers,
-                    primaryKeys,
-                    clusteredBy,
-                    false, false,
-                    new String[]{},
-                    mock(ClusterService.class),
-                    new IndexNameExpressionResolver(Settings.EMPTY),
-                    numberOfShards,
-                    new BytesRef(numberOfReplicas),
-                    tableParameters,
-                    partitionedBy,
-                    Collections.EMPTY_LIST,
-                    policy,
-                    mock(ExecutorService.class));
+                columns,
+                partitionedByColumns,
+                generatedColumns,
+                indexColumns,
+                references,
+                analyzers,
+                primaryKeys,
+                clusteredBy,
+                false, false,
+                new String[]{},
+                mock(ClusterService.class),
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                numberOfShards,
+                new BytesRef(numberOfReplicas),
+                tableParameters,
+                partitionedBy,
+                Collections.EMPTY_LIST,
+                policy,
+                Operation.ALL,
+                mock(ExecutorService.class));
         }
     }
 

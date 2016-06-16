@@ -44,6 +44,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.StringSetting;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.projection.WriterProjection;
 import io.crate.sql.tree.*;
@@ -85,6 +86,7 @@ public class CopyStatementAnalyzer {
         DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
+        Operation.blockedRaiseException(tableInfo, Operation.INSERT);
 
         String partitionIdent = null;
         if (!node.table().partitionProperties().isEmpty()) {
@@ -137,6 +139,7 @@ public class CopyStatementAnalyzer {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "Cannot COPY %s TO. COPY TO only supports user tables", tableInfo.ident()));
         }
+        Operation.blockedRaiseException(tableInfo, Operation.READ);
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 
         Context context = new Context(analysisMetaData, analysis.parameterContext(), tableRelation, false);

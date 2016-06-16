@@ -33,6 +33,8 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.QualifiedName;
@@ -109,6 +111,7 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
                     throw new IllegalArgumentException(
                             String.format(Locale.ENGLISH, "Cannot create snapshot of tables in schema '%s'", tableInfo.ident().schema()));
                 }
+                Operation.blockedRaiseException(tableInfo, Operation.READ);
                 DocTableInfo docTableInfo = (DocTableInfo)tableInfo;
                 if (table.partitionProperties().isEmpty()) {
                     if (docTableInfo.isPartitioned()) {
@@ -137,6 +140,14 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
             }
             return CreateSnapshotAnalyzedStatement.forTables(snapshotId, settings, ImmutableList.copyOf(snapshotIndices), includeMetadata);
         } else {
+            for (SchemaInfo schemaInfo : schemas) {
+                for (TableInfo tableInfo : schemaInfo) {
+                    // only check for user generated tables
+                    if (tableInfo instanceof DocTableInfo) {
+                        Operation.blockedRaiseException(tableInfo, Operation.READ);
+                    }
+                }
+            }
             return CreateSnapshotAnalyzedStatement.all(snapshotId, settings);
         }
     }

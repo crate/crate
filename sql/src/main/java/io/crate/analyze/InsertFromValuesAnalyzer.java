@@ -35,6 +35,7 @@ import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.operation.Input;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Expression;
@@ -92,8 +93,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
         DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
-        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
+        Operation.blockedRaiseException(tableInfo, Operation.INSERT);
 
+        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
         ExpressionAnalyzer expressionAnalyzer =
                 new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), fieldProvider, tableRelation);
