@@ -101,7 +101,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
             statsTables.operationStarted(request.fetchPhaseId(), request.jobId(), "fetch");
 
             // nothing to fetch, just close
-            if (request.toFetch() == null) {
+            if (request.toFetch() == null && request.isCloseContext()) {
                 JobExecutionContext ctx = jobContextService.getContextOrNull(request.jobId());
                 if (ctx != null) {
                     FetchContext fetchContext = ctx.getSubContextOrNull(request.fetchPhaseId());
@@ -131,7 +131,9 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                             fetchContext, request.toFetch());
                     // no streamers needed to serialize, since the buckets are StreamBuckets
                     NodeFetchResponse response = NodeFetchResponse.forSending(fetched);
-                    fetchContext.close();
+                    if (request.isCloseContext()) {
+                        fetchContext.close();
+                    }
                     fetchResponse.onResponse(response);
                     statsTables.operationFinished(request.fetchPhaseId(), request.jobId(), null,
                             ramAccountingContext.totalBytes());
@@ -148,7 +150,5 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                     ramAccountingContext.totalBytes());
             ramAccountingContext.close();
         }
-
     }
-
 }
