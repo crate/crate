@@ -209,6 +209,8 @@ public class SelectStatementPlanner {
             );
             FetchProjection fp = new FetchProjection(
                     fetchPhase.executionPhaseId(),
+                //FIXME: pass fetchSize
+                10000,
                     pd.fetchSources(),
                     pd.remainingOutputs(),
                     readerAllocations.nodeReaders(),
@@ -232,6 +234,8 @@ public class SelectStatementPlanner {
 
         return new FetchProjection(
                 fetchPhase.executionPhaseId(),
+            //FIXME: pass fetchSize
+            10000,
                 fetchSources,
                 querySpec.outputs(),
                 readerAllocations.nodeReaders(),

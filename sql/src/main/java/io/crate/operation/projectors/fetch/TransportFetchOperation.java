@@ -54,12 +54,14 @@ public class TransportFetchOperation implements FetchOperation {
     }
 
     @Override
-    public ListenableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId, IntObjectMap<? extends IntContainer> toFetch) {
+    public ListenableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId,
+                                                                  IntObjectMap<? extends IntContainer> toFetch,
+                                                                  boolean closeContext) {
         final SettableFuture<IntObjectMap<? extends Bucket>> future = SettableFuture.create();
         transportFetchNodeAction.execute(
             nodeId,
             nodeIdToReaderIdToStreamers.get(nodeId),
-            new NodeFetchRequest(jobId, executionPhaseId, toFetch),
+            new NodeFetchRequest(jobId, executionPhaseId, closeContext, toFetch),
             new ActionListener<NodeFetchResponse>() {
                 @Override
                 public void onResponse(NodeFetchResponse nodeFetchResponse) {

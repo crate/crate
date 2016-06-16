@@ -115,11 +115,15 @@ public class RowMergers {
          */
         protected void onFinish() {
             assert !paused : "must not receive a finish call if upstream should be paused";
-            for (Object[] objects : pauseFifo) {
-                sharedRow.cells(objects);
+            Object[] bufferedCells;
+            while ((bufferedCells = pauseFifo.poll()) != null) {
+                sharedRow.cells(bufferedCells);
                 boolean wantMore = delegate.setNextRow(sharedRow);
                 if (!wantMore) {
                     break;
+                }
+                if (paused) {
+                    return;
                 }
             }
             delegate.finish();
@@ -167,8 +171,12 @@ public class RowMergers {
         @Override
         public void resume(boolean async) {
             paused = false;
-            for (RowUpstream rowUpstream : rowUpstreams) {
-                rowUpstream.resume(async);
+            if (activeUpstreams.get() == 0) {
+                onFinish();
+            } else {
+                for (RowUpstream rowUpstream : rowUpstreams) {
+                    rowUpstream.resume(async);
+                }
             }
         }
 
