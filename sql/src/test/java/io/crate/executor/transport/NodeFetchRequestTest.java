@@ -43,7 +43,7 @@ public class NodeFetchRequestTest {
         IntHashSet docIds = new IntHashSet(3);
         toFetch.put(1, docIds);
 
-        NodeFetchRequest orig = new NodeFetchRequest(UUID.randomUUID(), 1, toFetch);
+        NodeFetchRequest orig = new NodeFetchRequest(UUID.randomUUID(), 1, true, toFetch);
 
         BytesStreamOutput out = new BytesStreamOutput();
         orig.writeTo(out);
@@ -56,6 +56,7 @@ public class NodeFetchRequestTest {
 
         assertThat(orig.jobId(), is(streamed.jobId()));
         assertThat(orig.fetchPhaseId(), is(streamed.fetchPhaseId()));
+        assertThat(orig.isCloseContext(), is(streamed.isCloseContext()));
         assertThat(orig.toFetch().toString(), is(streamed.toFetch().toString()));
     }
 }

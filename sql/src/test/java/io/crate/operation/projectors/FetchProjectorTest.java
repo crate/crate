@@ -22,18 +22,20 @@
 
 package io.crate.operation.projectors;
 
-import com.carrotsearch.hppc.*;
-import com.carrotsearch.hppc.cursors.IntCursor;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
+import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
+import com.carrotsearch.hppc.IntSet;
+import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.symbol.FetchReference;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.CollectionBucket;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.operation.projectors.fetch.FetchOperation;
@@ -42,7 +44,6 @@ import io.crate.operation.projectors.fetch.FetchProjectorContext;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
-import io.crate.testing.RowSender;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.LongType;
 import org.junit.After;
@@ -54,8 +55,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.testing.RowSender.rowRange;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.*;
 
 public class FetchProjectorTest extends CrateUnitTest {
 
@@ -74,45 +75,70 @@ public class FetchProjectorTest extends CrateUnitTest {
     }
 
     @Test
-    public void testFetchProjectorStopsEmittingRows() throws Throwable {
-        CollectingRowReceiver rowReceiver = CollectingRowReceiver.withLimit(2);
+    public void testFetchSize() throws Throwable {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
 
-        // dummy FetchOperation that returns buckets for each reader-id where each row contains a column that is the same as the docId
-        FetchOperation fetchOperation = new FetchOperation() {
-            @Override
-            public ListenableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId, IntObjectMap<? extends IntContainer> toFetch) {
-                IntObjectHashMap<Bucket> readerToBuckets = new IntObjectHashMap<>();
-                for (IntObjectCursor<? extends IntContainer> cursor : toFetch) {
-                    List<Object[]> rows = new ArrayList<>();
-                    for (IntCursor docIdCursor : cursor.value) {
-                        rows.add(new Object[] { docIdCursor.value });
+        FetchOperation fetchOperation = mock(FetchOperation.class);
+        SettableFuture<IntObjectMap<? extends Bucket>> future = SettableFuture.create();
+        when(fetchOperation.fetch(anyString(), any(IntObjectMap.class), anyBoolean()))
+            .thenReturn(future);
+
+        int fetchSize = 3;
+        FetchProjector fetchProjector = prepareFetchProjector(fetchSize, rowReceiver, fetchOperation);
+
+        IntObjectMap<Bucket> intObjectMap = new IntObjectHashMap<>(2);
+        Collection<Object[]> rows = new ArrayList<>(10);
+
+        long i;
+        for (i = 1; i <= 10; i++) {
+            Row row = new Row1(i);
+            rows.add(row.materialize());
+            CollectionBucket collectionBucket = new CollectionBucket(rows);
+            intObjectMap.put(0 , collectionBucket);
+
+            RowReceiver.Result result = fetchProjector.setNextRow(row);
+            if (i % fetchSize == 0) {
+                assertThat(result, is(RowReceiver.Result.PAUSE));
+                future.set(intObjectMap);
+
+                final SettableFuture<Void> resumeCalled = SettableFuture.create();
+                fetchProjector.pauseProcessed(new ResumeHandle() {
+                    @Override
+                    public void resume(boolean async) {
+                        resumeCalled.set(null);
                     }
-                    readerToBuckets.put(cursor.key, new CollectionBucket(rows));
-                }
-                return Futures.<IntObjectMap<? extends Bucket>>immediateFuture(readerToBuckets);
+                });
+                resumeCalled.get(1000, TimeUnit.MILLISECONDS);
+            } else {
+                assertThat(result, is(RowReceiver.Result.CONTINUE));
             }
-        };
-        FetchProjector fetchProjector = prepareFetchProjector(rowReceiver, fetchOperation);
+        }
+        assertThat(i, is(11L));
+        fetchProjector.finish(RepeatHandle.UNSUPPORTED);
 
-        RowSender rowSender = new RowSender(rowRange(0, 5), fetchProjector, MoreExecutors.directExecutor());
-        rowSender.run();
+        Bucket projected = rowReceiver.result();
+        assertThat(projected.size(), is(10));
 
-        assertThat(rowReceiver.result().size(), is(2));
+        int iterateLength = Iterables.size(rowReceiver.result());
+        assertThat(iterateLength, is(10));
     }
 
 
-    private FetchProjector prepareFetchProjector(CollectingRowReceiver rowReceiver, FetchOperation fetchOperation ) {
-        FetchProjector fetchProjector =
+    private FetchProjector prepareFetchProjector(int fetchSize,
+                                                 CollectingRowReceiver rowReceiver,
+                                                 FetchOperation fetchOperation) {
+        FetchProjector pipe =
             new FetchProjector(
                 fetchOperation,
                 executorService,
                 TestingHelpers.getFunctions(),
                 buildOutputSymbols(),
-                buildFetchProjectorContext()
+                buildFetchProjectorContext(),
+                fetchSize
             );
-        fetchProjector.downstream(rowReceiver);
-        fetchProjector.prepare();
-        return fetchProjector;
+        pipe.downstream(rowReceiver);
+        pipe.prepare();
+        return pipe;
     }
 
     private FetchProjectorContext buildFetchProjectorContext() {

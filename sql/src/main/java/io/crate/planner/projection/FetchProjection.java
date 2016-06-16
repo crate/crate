@@ -36,6 +36,7 @@ import java.util.TreeMap;
 public class FetchProjection extends Projection {
 
     private final int collectPhaseId;
+    private final int fetchSize;
     private final Map<TableIdent, FetchSource> fetchSources;
     private final List<Symbol> outputSymbols;
     private final Map<String, IntSet> nodeReaders;
@@ -43,12 +44,14 @@ public class FetchProjection extends Projection {
     private final Map<String, TableIdent> indicesToIdents;
 
     public FetchProjection(int collectPhaseId,
+                           int fetchSize,
                            Map<TableIdent, FetchSource> fetchSources,
                            List<Symbol> outputSymbols,
                            Map<String, IntSet> nodeReaders,
                            TreeMap<Integer, String> readerIndices,
                            Map<String, TableIdent> indicesToIdents) {
         this.collectPhaseId = collectPhaseId;
+        this.fetchSize = fetchSize;
         this.fetchSources = fetchSources;
         this.outputSymbols = outputSymbols;
         this.nodeReaders = nodeReaders;
@@ -58,6 +61,10 @@ public class FetchProjection extends Projection {
 
     public int collectPhaseId() {
         return collectPhaseId;
+    }
+
+    public int getFetchSize() {
+        return fetchSize;
     }
 
     public Map<TableIdent, FetchSource> fetchSources() {
