@@ -51,19 +51,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class FetchProjector extends AbstractProjector {
 
-
+    //FIXME: Remove default fetchSize from here
+    private int fetchSize = 10000;
+    private int currentRowCount = 0;
     private final FetchProjectorContext context;
     private final FetchOperation fetchOperation;
+    private final AtomicBoolean finishCalled = new AtomicBoolean(false);
 
     enum Stage {
         INIT,
         COLLECT,
         FETCH,
+        EMIT,
         FINALIZE
     }
 
@@ -110,7 +115,10 @@ public class FetchProjector extends AbstractProjector {
                           Executor resultExecutor,
                           Functions functions,
                           List<Symbol> outputSymbols,
-                          FetchProjectorContext fetchProjectorContext) {
+                          FetchProjectorContext fetchProjectorContext,
+                          int fetchSize) {
+        this.fetchSize = fetchSize;
+
         this.fetchOperation = fetchOperation;
         this.context = fetchProjectorContext;
         this.resultExecutor = resultExecutor;
@@ -126,6 +134,7 @@ public class FetchProjector extends AbstractProjector {
     }
 
     private boolean nextStage(Stage from, Stage to) {
+        LOGGER.debug("Changing state from {} to {}", from, to);
         synchronized (failureLock) {
             if (failIfNeeded()) return true;
             Stage was = stage.getAndSet(to);
@@ -148,10 +157,20 @@ public class FetchProjector extends AbstractProjector {
             context.require((long) cells[i]);
         }
         inputValues.add(cells);
+
+        // Check if fetchSize is reached and dispatch fetch requests
+        currentRowCount++;
+        if (currentRowCount == fetchSize) {
+            upstream.pause();
+            sendRequests(false);
+        }
         return true;
     }
 
-    private void sendRequests() {
+    private void sendRequests(final boolean isLast) {
+        if (nextStage(Stage.COLLECT, Stage.FETCH)) {
+            return;
+        }
         synchronized (failureLock) {
             remainingRequests.set(context.nodeToReaderIds.size());
         }
@@ -159,44 +178,55 @@ public class FetchProjector extends AbstractProjector {
         for (Map.Entry<String, IntSet> entry : context.nodeToReaderIds.entrySet()) {
 
             IntObjectHashMap<IntContainer> toFetch = generateToFetch(entry);
-            final String nodeId = entry.getKey();
-            ListenableFuture<IntObjectMap<? extends Bucket>> future = fetchOperation.fetch(nodeId, toFetch);
-            anyRequestSent = true;
 
-            Futures.addCallback(future, new FutureCallback<IntObjectMap<? extends Bucket>>() {
-                @Override
-                public void onSuccess(@Nullable IntObjectMap<? extends Bucket> result) {
-                    if (result != null) {
-                        for (IntObjectCursor<? extends Bucket> cursor : result) {
-                            ReaderBucket readerBucket = context.getReaderBucket(cursor.key);
-                            readerBucket.fetched(cursor.value);
+            if (toFetch.isEmpty() && !isLast) {
+                remainingRequests.decrementAndGet();
+            } else {
+                final String nodeId = entry.getKey();
+                ListenableFuture<IntObjectMap<? extends Bucket>> future = fetchOperation.fetch(nodeId, toFetch, isLast);
+                anyRequestSent = true;
+
+                Futures.addCallback(future, new FutureCallback<IntObjectMap<? extends Bucket>>() {
+                    @Override
+                    public void onSuccess(@Nullable IntObjectMap<? extends Bucket> result) {
+                        if (result != null) {
+                            for (IntObjectCursor<? extends Bucket> cursor : result) {
+                                ReaderBucket readerBucket = context.getReaderBucket(cursor.key);
+                                readerBucket.fetched(cursor.value);
+                            }
+                        }
+                        if (remainingRequests.decrementAndGet() == 0) {
+                            resultExecutor.execute(new AbstractRunnable() {
+                                @Override
+                                public void onFailure(Throwable t) {
+                                    fail(t);
+                                }
+
+                                @Override
+                                protected void doRun() throws Exception {
+                                    sendToDownstream(isLast);
+                                    if (isLast) {
+                                        finishDownstream();
+                                    }
+                                }
+                            });
                         }
                     }
-                    if (remainingRequests.decrementAndGet() == 0) {
-                        resultExecutor.execute(new AbstractRunnable() {
-                            @Override
-                            public void onFailure(Throwable t) {
-                                fail(t);
-                            }
 
-                            @Override
-                            protected void doRun() throws Exception {
-                                fetchFinished();
-                            }
-                        });
+                    @Override
+                    public void onFailure(@Nonnull Throwable t) {
+                        LOGGER.error("NodeFetchRequest failed on node {}", t, nodeId);
+                        remainingRequests.decrementAndGet();
+                        fail(t);
                     }
-                }
-
-                @Override
-                public void onFailure(@Nonnull Throwable t) {
-                    LOGGER.error("NodeFetchRequest failed on node {}", t, nodeId);
-                    remainingRequests.decrementAndGet();
-                    fail(t);
-                }
-            });
+                });
+            }
         }
         if (!anyRequestSent) {
-            fetchFinished();
+            sendToDownstream(isLast);
+            if (isLast) {
+                finishDownstream();
+            }
         }
     }
 
@@ -211,8 +241,8 @@ public class FetchProjector extends AbstractProjector {
         return toFetch;
     }
 
-    private void fetchFinished() {
-        if (nextStage(Stage.FETCH, Stage.FINALIZE)) {
+    private void sendToDownstream(boolean isLast) {
+        if (nextStage(Stage.FETCH, Stage.EMIT)) {
             return;
         }
         final ArrayBackedRow inputRow = collectRowContext.inputRow();
@@ -234,7 +264,14 @@ public class FetchProjector extends AbstractProjector {
             }
             downstream.setNextRow(outputRow);
         }
-        finishDownstream();
+        if (!isLast) {
+            if (nextStage(Stage.EMIT, Stage.COLLECT)) {
+                return;
+            }
+            inputValues.clear();
+            currentRowCount = 0;
+            upstream.resume(false);
+        }
     }
 
     private void setPartitionRow(ArrayBackedRow[] partitionRows, int i, ReaderBucket readerBucket) {
@@ -247,10 +284,9 @@ public class FetchProjector extends AbstractProjector {
 
     @Override
     public void finish() {
-        if (nextStage(Stage.COLLECT, Stage.FETCH)) {
-            return;
+        if (!finishCalled.getAndSet(true)) {
+            sendRequests(true);
         }
-        sendRequests();
     }
 
     private boolean failIfNeeded() {
@@ -263,6 +299,9 @@ public class FetchProjector extends AbstractProjector {
     }
 
     private void finishDownstream() {
+        if (nextStage(Stage.EMIT, Stage.FINALIZE)) {
+            return;
+        }
         if (failIfNeeded()) {
             return;
         }
@@ -278,7 +317,9 @@ public class FetchProjector extends AbstractProjector {
                     throw new IllegalStateException("Shouldn't call fail on projection if projection hasn't been prepared");
                 case COLLECT:
                     if (first) {
-                        sendRequests();
+                        if (!finishCalled.getAndSet(true)) {
+                            sendRequests(true);
+                        }
                         return;
                     }
                 case FETCH:
