@@ -347,7 +347,6 @@ public class NestedLoopOperation implements RowUpstream, CompletionListenable {
             combinedRow.outerRow = left.lastRow;
             combinedRow.innerRow = row;
             boolean wantsMore = downstream.setNextRow(combinedRow);
-            assert downstreamWantsMore : "shouldn't emit rows if downstream doesn't need anymore";
             if (!wantsMore) {
                 LOGGER.trace("[{}] downstream doesn't need any more rows", phaseId);
             }

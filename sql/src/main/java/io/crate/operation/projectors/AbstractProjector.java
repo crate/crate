@@ -34,7 +34,7 @@ public abstract class AbstractProjector implements Projector {
     private final static RowUpstream STATE_CHECK_ROW_UPSTREAM = new StateCheckRowUpstream();
     private final static RowReceiver STATE_CHECK_RECEIVER = new StateCheckReceiver();
 
-    private RowUpstream upstream = STATE_CHECK_ROW_UPSTREAM;
+    protected RowUpstream upstream = STATE_CHECK_ROW_UPSTREAM;
     protected RowReceiver downstream = STATE_CHECK_RECEIVER;
 
     @Override
