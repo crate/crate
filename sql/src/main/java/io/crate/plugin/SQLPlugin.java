@@ -62,6 +62,7 @@ import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
 import io.crate.operation.reference.sys.shard.blob.BlobShardExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
+import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.rest.action.RestSQLAction;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.bulk.BulkModule;
@@ -116,6 +117,7 @@ public class SQLPlugin extends Plugin {
             DecommissioningService.class,
             BulkRetryCoordinatorPool.class,
             NodeDisconnectJobMonitorService.class,
+            PostgresNetty.class,
             JobContextService.class);
     }
 
