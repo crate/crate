@@ -8,8 +8,6 @@ Unreleased
  - Fix: Allow select statements with more than one level nested arrays in table columns.
    eg: SELECT categories['items']['id'] FROM assets
 
- - Optimize count aggregations by using custom data type to avoid boxing of primitives into Objects.
-
  - Fixed an edge case that could cause sorted join queries to fail.
 
  - Fix: Allow concurrent deletion of partition without raising an exception.
