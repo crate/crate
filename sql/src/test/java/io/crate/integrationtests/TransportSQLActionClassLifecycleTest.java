@@ -523,9 +523,8 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         Thread selectThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                for (int i=0; i < 50; i++) {
-                    execute(
-                            "select count(*), race from characters group by race order by count(*) desc limit 2");
+                for (int i = 0; i < 50; i++) {
+                    execute("select count(*), race from characters group by race order by count(*) desc limit 2");
                 }
             }
         });
@@ -533,15 +532,15 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         Thread sysOperationThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                for (int i=0; i < 50; i++) {
+                for (int i = 0; i < 50; i++) {
                     execute("select * from sys.operations_log order by ended");
                 }
             }
         });
         selectThread.start();
         sysOperationThread.start();
-        selectThread.join(500);
-        sysOperationThread.join(500);
+        selectThread.join(1000);
+        sysOperationThread.join(1000);
     }
 
     @Test
