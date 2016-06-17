@@ -32,6 +32,7 @@ public class MergeCountProjector extends AbstractProjector {
     @Override
     public boolean setNextRow(Row row) {
         Long count = (Long)row.get(0);
+        //noinspection UnnecessaryUnboxing
         sum += count.longValue();
         return true;
     }
