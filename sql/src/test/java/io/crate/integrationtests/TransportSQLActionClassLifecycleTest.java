@@ -26,6 +26,7 @@ import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -539,8 +540,8 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         });
         selectThread.start();
         sysOperationThread.start();
-        selectThread.join(1000);
-        sysOperationThread.join(1000);
+        selectThread.join(SQLTransportExecutor.REQUEST_TIMEOUT.millis());
+        sysOperationThread.join(SQLTransportExecutor.REQUEST_TIMEOUT.millis());
     }
 
     @Test
