@@ -15,40 +15,18 @@ Synopsis
     COPY table_ident [ PARTITION ( partition_column = value [ , ... ] ) ]
                      [ ( column [ , ...] ) ]
                      [ WHERE condition ]
-                     TO [DIRECTORY] output_uri
+                     TO DIRECTORY output_uri
                      [ WITH ( copy_parameter [= value] [, ... ] ) ]
 
 Description
 ===========
 
-The ``COPY TO`` command exports the contents of a table to one or more files.
-Each node of the cluster which contains a shard of the table will export the
+The ``COPY TO`` command exports the contents of a table to one or more
+files in the given directory, named to prevent filename conflicts. Each
+node of the cluster which contains a shard of the table will export the
 contents of its shards.
 
 The created files are JSON formatted and contain one table row per line.
-
-If the ``DIRECTORY`` keyword is given, the URI is treated as a directory path.
-This will generate one or more files in the given directory, named to prevent
-filename conflicts.
-
-
-
-Implications of shard level export
-==================================
-
-Exporting the data on a shard level is the fastest possible way to export data
-in Crate.
-
-There are quirks users should be aware of when using ``COPY TO``:
-
-Since data is exported and written per shard there might be concurrent writes
-to the same file if a single node contains more than one shard. This could
-cause corruption in the file being written. The same holds true when data is
-written to a shared file system such as `Amazon S3`_ or `NFS`_.
-
-To prevent this from happening writing a separate file per shard is required.
-To do this the ``DIRECTORY`` keyword can be used. An example is given in
-:ref:`exporting_data`.
 
 
 .. note::
@@ -87,7 +65,7 @@ The resulting string should be a valid URI of one of the supporting schemes:
  * ``file://``
  * ``s3://[<accesskey>:<secretkey>@]<bucketname>/<path>``
 
-If no scheme is given (e.g.: '/path/to/file') the default uri-scheme ``file://``
+If no scheme is given (e.g.: '/path/to/dir') the default uri-scheme ``file://``
 will be used.
 
 .. note::

@@ -447,12 +447,6 @@ distributed way, meaning each node will export its own data.
 Replicated data is not exported. So every row of an exported table is
 stored only once.
 
-.. note::
-
- Data is written per shard. To prevent corrupted exports when more than one
- shard is allocated on a node, or data is exported to a shared storage system,
- use the ``DIRECTORY`` keyword (see :ref:`copy_to`).
-
 This example shows how to export a given table into files named after
 the table and shard id with gzip compression::
 
