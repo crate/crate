@@ -38,7 +38,6 @@ import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.*;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
-import io.crate.operation.QueryResultRowDownstream;
 import io.crate.operation.RowCountResultRowDownstream;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ExecutionPhase;
@@ -96,25 +95,23 @@ public class ExecutionPhasesTask extends JobTask {
     }
 
     @Override
-    public ListenableFuture<TaskResult> execute() {
+    public void execute(RowReceiver resultReceiver) {
         assert nodeOperationTrees.size() == 1 : "must only have 1 NodeOperationTree for non-bulk operations";
         NodeOperationTree nodeOperationTree = nodeOperationTrees.get(0);
         Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(nodeOperationTree.nodeOperations());
         InitializationTracker initializationTracker = new InitializationTracker(operationByServer.size());
 
-        SettableFuture<TaskResult> result = SettableFuture.create();
         RowReceiver receiver = new InterceptingRowReceiver(
             jobId(),
-            new QueryResultRowDownstream(result),
+            resultReceiver,
             initializationTracker,
             transportKillJobsNodeAction);
         Tuple<ExecutionPhase, RowReceiver> handlerPhase = new Tuple<>(nodeOperationTree.leaf(), receiver);
         try {
             setupContext(operationByServer, Collections.singletonList(handlerPhase), initializationTracker);
         } catch (Throwable throwable) {
-            result.setException(throwable);
+            resultReceiver.fail(throwable);
         }
-        return result;
     }
 
     @Override

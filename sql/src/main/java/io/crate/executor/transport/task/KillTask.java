@@ -23,13 +23,15 @@ package io.crate.executor.transport.task;
 
 import com.google.common.base.Function;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.action.FutureActionListener;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
-import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.OneRowActionListener;
 import io.crate.executor.transport.kill.KillAllRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
+import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -37,11 +39,11 @@ import java.util.UUID;
 
 public class KillTask extends JobTask {
 
-    static final Function<KillResponse, TaskResult> RESPONSE_TO_TASK_RESULT = new Function<KillResponse, TaskResult>() {
+    static final Function<KillResponse,Row> KILL_RESPONSE_TO_ROW_FUNCTION = new Function<KillResponse, Row>() {
         @Nullable
         @Override
-        public TaskResult apply(@Nullable KillResponse input) {
-            return input == null ? null : new RowCountResult(input.numKilled());
+        public Row apply(@Nullable KillResponse input) {
+            return new Row1(input == null ? -1 : input.numKilled());
         }
     };
     private final TransportKillAllNodeAction nodeAction;
@@ -52,10 +54,9 @@ public class KillTask extends JobTask {
     }
 
     @Override
-    public ListenableFuture<TaskResult> execute() {
-        FutureActionListener<KillResponse, TaskResult> listener = new FutureActionListener<>(RESPONSE_TO_TASK_RESULT);
-        nodeAction.broadcast(new KillAllRequest(), listener);
-        return listener;
+    public void execute(RowReceiver resultReceiver) {
+        nodeAction.broadcast(new KillAllRequest(),
+            new OneRowActionListener<>(resultReceiver, KILL_RESPONSE_TO_ROW_FUNCTION));
     }
 
     @Override

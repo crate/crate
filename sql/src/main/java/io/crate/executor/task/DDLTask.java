@@ -26,9 +26,12 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.analyze.AnalyzedStatement;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
-import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.OneRowActionListener;
+import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -46,18 +49,15 @@ public class DDLTask extends JobTask {
     }
 
     @Override
-    public ListenableFuture<TaskResult> execute() {
-        return Futures.transform(ddlStatementDispatcher.dispatch(analyzedStatement, jobId()),
-            new Function<Long, TaskResult>() {
-                @Nullable
-                @Override
-                public TaskResult apply(@Nullable Long input) {
-                    if (input == null) {
-                        return TaskResult.ROW_COUNT_UNKNOWN;
-                    }
-                    return new RowCountResult(input);
-                }
-            });
+    public void execute(final RowReceiver resultReceiver) {
+        ListenableFuture<Long> future = ddlStatementDispatcher.dispatch(analyzedStatement, jobId());
+        Futures.addCallback(future, new OneRowActionListener<>(resultReceiver, new Function<Long, Row>() {
+            @Nullable
+            @Override
+            public Row apply(@Nullable Long input) {
+                return new Row1(input == null ? -1 : input);
+            }
+        }));
     }
 
     @Override

@@ -43,6 +43,7 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.UpdateProjection;
+import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -52,7 +53,6 @@ import org.elasticsearch.search.SearchHits;
 import org.junit.Test;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
@@ -77,14 +77,17 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             new Reference[]{idRef, nameRef});
         plan.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
 
-        TaskResult result = executor.execute(plan).get(5, TimeUnit.SECONDS);
-        Bucket rows = result.rows();
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        executor.execute(plan, rowReceiver);
+        Bucket rows = rowReceiver.result();
         assertThat(rows, contains(isRow(1L)));
 
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         Plan getPlan = newGetNode("characters", outputs, "99", ctx.nextExecutionPhaseId());
-        Bucket bucket = executor.execute(getPlan).get(5, TimeUnit.SECONDS).rows();
+        rowReceiver = new CollectingRowReceiver();
+        executor.execute(getPlan, rowReceiver);
+        Bucket bucket = rowReceiver.result();
 
         assertThat(bucket, contains(isRow(99, "Marvin")));
     }
@@ -111,8 +114,10 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         PartitionName partitionName = new PartitionName("parted", Collections.singletonList(new BytesRef("13959981214861")));
         upsertById.add(partitionName.asIndexName(), "123", "123", null, null, new Object[]{0L, new BytesRef("Trillian")});
 
-        Bucket indexResult = executor.execute(upsertById).get(5, TimeUnit.SECONDS).rows();
-        assertThat(indexResult, contains(isRow(1L)));
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        executor.execute(upsertById, rowReceiver);
+
+        assertThat(rowReceiver.result(), contains(isRow(1L)));
 
         refresh();
 
@@ -154,16 +159,19 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         upsertById.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
         upsertById.add("characters", "42", "42", null, null, new Object[]{42, new BytesRef("Deep Thought")});
 
-        Bucket rows = executor.execute(upsertById).get(5, TimeUnit.SECONDS).rows();
-        assertThat(rows, contains(isRow(2L)));
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        executor.execute(upsertById, rowReceiver);
+        assertThat(rowReceiver.result(), contains(isRow(2L)));
 
         // verify insertion
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         Plan getPlan = newGetNode("characters", outputs, Arrays.asList("99", "42"), ctx.nextExecutionPhaseId());
-        Bucket bucket = executor.execute(getPlan).get(5, TimeUnit.SECONDS).rows();
+
+        rowReceiver = new CollectingRowReceiver();
+        executor.execute(getPlan, rowReceiver);
 
         //noinspection unchecked
-        assertThat(bucket, contains(
+        assertThat(rowReceiver.result(), contains(
             isRow(99, "Marvin"),
             isRow(42, "Deep Thought")
         ));
@@ -179,14 +187,16 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             ctx.jobId(), ctx.nextExecutionPhaseId(), false, false, new String[]{nameRef.ident().columnIdent().fqn()}, null);
         upsertById.add("characters", "1", "1", new Symbol[]{Literal.newLiteral("Vogon lyric fan")}, null);
 
-        Bucket rows = executor.execute(upsertById).get(5, TimeUnit.SECONDS).rows();
-        assertThat(rows, contains(isRow(1L)));
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        executor.execute(upsertById, rowReceiver);
+        assertThat(rowReceiver.result(), contains(isRow(1L)));
 
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         Plan getPlan = newGetNode("characters", outputs, "1", ctx.nextExecutionPhaseId());
-        Bucket bucket = executor.execute(getPlan).get(5, TimeUnit.SECONDS).rows();
-        assertThat(bucket, contains(isRow(1, "Vogon lyric fan")));
+        rowReceiver = new CollectingRowReceiver();
+        executor.execute(getPlan, rowReceiver);
+        assertThat(rowReceiver.result(), contains(isRow(1, "Vogon lyric fan")));
     }
 
     @Test
@@ -205,15 +215,16 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             new Reference[]{idRef, nameRef, femaleRef});
 
         upsertById.add("characters", "5", "5", new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")}, null, missingAssignments);
-        Bucket bucket = executor.execute(upsertById).get(5, TimeUnit.SECONDS).rows();
-        assertThat(bucket, contains(isRow(1L)));
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        executor.execute(upsertById, rowReceiver);
+        assertThat(rowReceiver.result(), contains(isRow(1L)));
 
         // verify insert
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
         Plan getPlan = newGetNode("characters", outputs, "5", ctx.nextExecutionPhaseId());
-        Bucket rows = executor.execute(getPlan).get(5, TimeUnit.SECONDS).rows();
-        assertThat(rows, contains(isRow(5, "Zaphod Beeblebrox", false)));
-
+        rowReceiver = new CollectingRowReceiver();
+        executor.execute(getPlan, rowReceiver);
+        assertThat(rowReceiver.result(), contains(isRow(5, "Zaphod Beeblebrox", false)));
     }
 
     @Test
@@ -231,15 +242,17 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             new String[]{femaleRef.ident().columnIdent().fqn()},
             new Reference[]{idRef, nameRef, femaleRef});
         upsertById.add("characters", "1", "1", new Symbol[]{Literal.newLiteral(true)}, null, missingAssignments);
-        Bucket rows = executor.execute(upsertById).get(5, TimeUnit.SECONDS).rows();
-        assertThat(rows, contains(isRow(1L)));
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        executor.execute(upsertById, rowReceiver);
+        assertThat(rowReceiver.result(), contains(isRow(1L)));
 
         // verify update
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef, femaleRef);
         Plan getPlan = newGetNode("characters", outputs, "1", ctx.nextExecutionPhaseId());
-        rows = executor.execute(getPlan).get(5, TimeUnit.SECONDS).rows();
+        rowReceiver = new CollectingRowReceiver();
+        executor.execute(getPlan, rowReceiver);
 
-        assertThat(rows, contains(isRow(1, "Arthur", true)));
+        assertThat(rowReceiver.result(), contains(isRow(1, "Arthur", true)));
     }
 
     @Test

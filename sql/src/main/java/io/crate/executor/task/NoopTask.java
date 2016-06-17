@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
+import io.crate.operation.projectors.RowReceiver;
 
 import java.util.List;
 
@@ -42,8 +43,8 @@ public class NoopTask implements Task {
     }
 
     @Override
-    public ListenableFuture<TaskResult> execute() {
-        return EMPTY_RESULT.get(0);
+    public void execute(RowReceiver resultReceiver) {
+        resultReceiver.finish();
     }
 
     @Override

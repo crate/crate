@@ -24,6 +24,7 @@ package io.crate.executor.transport.task;
 import io.crate.executor.transport.kill.KillAllRequest;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingRowReceiver;
 import org.elasticsearch.action.ActionListener;
 import org.junit.Test;
 
@@ -39,7 +40,7 @@ public class KillTaskTest extends CrateUnitTest {
         TransportKillAllNodeAction killAllNodeAction = mock(TransportKillAllNodeAction.class);
         KillTask task = new KillTask(killAllNodeAction, UUID.randomUUID());
 
-        task.execute();
+        task.execute(new CollectingRowReceiver());
         verify(killAllNodeAction, times(1)).broadcast(any(KillAllRequest.class), any(ActionListener.class));
         verify(killAllNodeAction, times(0)).nodeOperation(any(KillAllRequest.class), any(ActionListener.class));
     }

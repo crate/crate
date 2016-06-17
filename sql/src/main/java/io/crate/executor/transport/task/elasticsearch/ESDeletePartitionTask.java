@@ -21,12 +21,16 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.OneRowActionListener;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ddl.ESDeletePartition;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
@@ -36,17 +40,15 @@ import java.util.List;
 
 public class ESDeletePartitionTask extends JobTask {
 
-    private static final TaskResult RESULT_PARTITION = TaskResult.ROW_COUNT_UNKNOWN;
+    private static final Function<Object, Row> TO_UNKNOWN_COUNT_ROW = Functions.<Row>constant(new Row1(-1L));;
 
     private final TransportDeleteIndexAction transport;
     private final DeleteIndexRequest request;
-    private final ActionListener<DeleteIndexResponse> listener;
-    private final SettableFuture<TaskResult> result;
 
     @Override
-    public ListenableFuture<TaskResult> execute() {
-        transport.execute(request, listener);
-        return result;
+    public void execute(final RowReceiver rowReceiver) {
+        OneRowActionListener<DeleteIndexResponse> actionListener = new OneRowActionListener<>(rowReceiver, TO_UNKNOWN_COUNT_ROW);
+        transport.execute(request, actionListener);
     }
 
     @Override
@@ -54,28 +56,8 @@ public class ESDeletePartitionTask extends JobTask {
         throw new UnsupportedOperationException("delete partition task cannot be executed as bulk operation");
     }
 
-    private static class DeleteIndexListener implements ActionListener<DeleteIndexResponse> {
-
-        private final SettableFuture<TaskResult> future;
-
-        DeleteIndexListener(SettableFuture<TaskResult> future) {
-            this.future = future;
-        }
-
-        @Override
-        public void onResponse(DeleteIndexResponse deleteIndexResponse) {
-            future.set(RESULT_PARTITION);
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            future.setException(e);
-        }
-    }
-
     public ESDeletePartitionTask(ESDeletePartition esDeletePartition, TransportDeleteIndexAction transport) {
         super(esDeletePartition.jobId());
-        result = SettableFuture.create();
         this.transport = transport;
         this.request = new DeleteIndexRequest(esDeletePartition.indices());
 
@@ -85,6 +67,5 @@ public class ESDeletePartitionTask extends JobTask {
          * so ignore it if some are missing
          */
         this.request.indicesOptions(IndicesOptions.lenientExpandOpen());
-        this.listener = new DeleteIndexListener(result);
     }
 }

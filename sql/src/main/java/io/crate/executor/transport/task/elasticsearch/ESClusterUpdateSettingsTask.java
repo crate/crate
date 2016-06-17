@@ -21,11 +21,15 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.action.FutureActionListener;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.OneRowActionListener;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
@@ -35,6 +39,7 @@ import java.util.List;
 
 public class ESClusterUpdateSettingsTask extends JobTask {
 
+    private static final Function<Object, Row> TO_ONE_ROW = Functions.<Row>constant(new Row1(1L));;
     private final TransportClusterUpdateSettingsAction transport;
     private final ClusterUpdateSettingsRequest request;
 
@@ -55,11 +60,9 @@ public class ESClusterUpdateSettingsTask extends JobTask {
     }
 
     @Override
-    public ListenableFuture<TaskResult> execute() {
-        FutureActionListener<ClusterUpdateSettingsResponse, TaskResult> listener =
-            new FutureActionListener<>(Functions.<TaskResult>constant(TaskResult.ONE_ROW));
-        transport.execute(request, listener);
-        return listener;
+    public void execute(final RowReceiver rowReceiver) {
+        OneRowActionListener<ClusterUpdateSettingsResponse> actionListener = new OneRowActionListener<>(rowReceiver, TO_ONE_ROW);
+        transport.execute(request, actionListener);
     }
 
     @Override

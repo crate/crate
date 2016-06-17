@@ -22,15 +22,18 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.core.collections.Bucket;
+import io.crate.executor.TaskResult;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.operation.QueryResultRowDownstream;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.node.management.KillPlan;
+import io.crate.testing.CollectingRowReceiver;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -51,8 +54,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         Planner.Context ctx = newPlannerContext();
         Plan plan = newGetNode("characters", outputs, "2", ctx.nextExecutionPhaseId());
 
-        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
-        assertThat(rows, contains(isRow(2, "Ford")));
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        executor.execute(plan, rowReceiver);
+        assertThat(rowReceiver.result(), contains(isRow(2, "Ford")));
     }
 
     @Test
@@ -63,8 +67,9 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
                 new ReferenceIdent(new TableIdent(null, "characters"), "foo"), RowGranularity.DOC));
         Planner.Context ctx = newPlannerContext();
         Plan plan = newGetNode("characters", outputs, "2", ctx.nextExecutionPhaseId());
-        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
-        assertThat(rows, contains(isRow(2, null)));
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        executor.execute(plan, rowReceiver);
+        assertThat(rowReceiver.result(), contains(isRow(2, null)));
     }
 
     @Test
@@ -73,13 +78,18 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, nameRef);
         Planner.Context ctx = newPlannerContext();
         Plan plan = newGetNode("characters", outputs, asList("1", "2"), ctx.nextExecutionPhaseId());
-        Bucket rows = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
-        assertThat(rows.size(), is(2));
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        executor.execute(plan, rowReceiver);
+        assertThat(rowReceiver.result().size(), is(2));
     }
 
     @Test
     public void testKillTask() throws Exception {
-        executor.execute(new KillPlan(UUID.randomUUID())).get(5, TimeUnit.SECONDS);
+        SettableFuture<TaskResult> future = SettableFuture.create();
+        QueryResultRowDownstream rowDownstream = new QueryResultRowDownstream(future);
+        KillPlan plan = new KillPlan(UUID.randomUUID());
+        executor.execute(plan, rowDownstream);
+        future.get(5, TimeUnit.SECONDS);
     }
 
     protected Planner.Context newPlannerContext() {

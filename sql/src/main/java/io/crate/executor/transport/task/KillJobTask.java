@@ -23,12 +23,12 @@ package io.crate.executor.transport.task;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.action.FutureActionListener;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.OneRowActionListener;
 import io.crate.executor.transport.kill.KillJobsRequest;
-import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
+import io.crate.operation.projectors.RowReceiver;
 
 import java.util.List;
 import java.util.UUID;
@@ -47,11 +47,10 @@ public class KillJobTask extends JobTask {
     }
 
     @Override
-    public ListenableFuture<TaskResult> execute() {
+    public void execute(RowReceiver resultReceiver) {
         KillJobsRequest request = new KillJobsRequest(ImmutableList.of(jobToKill));
-        FutureActionListener<KillResponse, TaskResult> listener = new FutureActionListener<>(KillTask.RESPONSE_TO_TASK_RESULT);
-        nodeAction.executeKillOnAllNodes(request, listener);
-        return listener;
+        nodeAction.executeKillOnAllNodes(request,
+            new OneRowActionListener<>(resultReceiver, KillTask.KILL_RESPONSE_TO_ROW_FUNCTION));
     }
 
     @Override

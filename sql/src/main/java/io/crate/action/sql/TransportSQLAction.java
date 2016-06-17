@@ -21,21 +21,20 @@
 
 package io.crate.action.sql;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import io.crate.action.ActionListeners;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 import io.crate.executor.BytesRefUtils;
 import io.crate.executor.Executor;
-import io.crate.executor.TaskResult;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
+import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.projectors.Requirement;
+import io.crate.operation.projectors.Requirements;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.types.DataType;
@@ -52,8 +51,9 @@ import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 
 @Singleton
@@ -97,34 +97,61 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
                      final SQLRequest request,
                      final long startTime) {
 
-        Futures.addCallback(executor.execute(plan), new FutureCallback<TaskResult>() {
+        executor.execute(plan, new RowReceiver() {
+
+            final List<Object[]> rows = new ArrayList<>();
+            boolean shouldContinue = true;
+
             @Override
-            public void onSuccess(@Nullable TaskResult result) {
-                listener.onResponse(createResponse(analysis, request, result, startTime));
+            public boolean setNextRow(Row row) {
+                rows.add(row.materialize());
+                return shouldContinue;
             }
 
             @Override
-            public void onFailure(@Nonnull Throwable t) {
-                listener.onFailure(t);
+            public void finish() {
+                listener.onResponse(createResponse(analysis, request, rows, startTime));
+            }
+
+            @Override
+            public void fail(Throwable throwable) {
+                listener.onFailure(throwable);
+            }
+
+            @Override
+            public void kill(Throwable throwable) {
+                listener.onFailure(throwable);
+                shouldContinue = false;
+            }
+
+            @Override
+            public void prepare() {
+            }
+
+            @Override
+            public void setUpstream(RowUpstream rowUpstream) {
+            }
+
+            @Override
+            public Set<Requirement> requirements() {
+                return Requirements.NO_REQUIREMENTS;
             }
         });
     }
 
-    private SQLResponse createResponse(Analysis analysis, SQLRequest request, @Nullable TaskResult result, long startTime) {
-        Bucket bucket = result == null ? Bucket.EMPTY : result.rows();
-        Object[][] rows;
+    private SQLResponse createResponse(Analysis analysis, SQLRequest request, List<Object[]> rows, long startTime) {
         String[] outputNames = EMPTY_NAMES;
         DataType[] outputTypes = EMPTY_TYPES;
         long rowCount = 0L;
 
         if (analysis.expectsAffectedRows()) {
-            if (bucket.size() >= 1){
-                Row first = bucket.iterator().next();
-                if (first.size()>=1){
-                    rowCount = ((Number) first.get(0)).longValue();
+            if (rows.size() >= 1){
+                Object[] first = rows.iterator().next();
+                if (first.length >= 1){
+                    rowCount = ((Number) first[0]).longValue();
                 }
+                rows.clear();
             }
-            rows = TaskResult.EMPTY_OBJS;
         } else {
             assert analysis.rootRelation() != null;
             outputNames = new String[analysis.rootRelation().fields().size()];
@@ -135,14 +162,14 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
                 outputTypes[i] = field.valueType();
             }
 
-            rowCount = bucket.size();
-            rows = Buckets.materialize(bucket);
+            rowCount = rows.size();
         }
-        BytesRefUtils.ensureStringTypesAreStrings(outputTypes, rows);
+        Object[][] rowsArr = rows.toArray(new Object[0][]);
+        BytesRefUtils.ensureStringTypesAreStrings(outputTypes, rowsArr);
         float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
         return new SQLResponse(
             outputNames,
-            rows,
+            rowsArr,
             outputTypes,
             rowCount,
             duration,

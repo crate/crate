@@ -25,6 +25,7 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.*;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
@@ -42,6 +43,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.QueryResultRowDownstream;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.plugin.CrateCorePlugin;
@@ -270,7 +272,9 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     public ListenableFuture<TaskResult> execute(PlanForNode planForNode) {
         TransportExecutor transportExecutor = internalCluster().getInstance(TransportExecutor.class, planForNode.nodeName);
-        return transportExecutor.execute(planForNode.plan);
+        SettableFuture<TaskResult> future = SettableFuture.create();
+        transportExecutor.execute(planForNode.plan, new QueryResultRowDownstream(future));
+        return future;
     }
 
     /**

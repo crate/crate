@@ -21,30 +21,24 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
-import io.crate.core.collections.Row;
-import io.crate.executor.TaskResult;
+import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.sql.parser.SqlParser;
+import io.crate.testing.CollectingRowReceiver;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
@@ -104,34 +98,18 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).nodeReaders(), notNullValue());
         assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).readerIndices(), notNullValue());
 
-        ListenableFuture<TaskResult> result = executor.execute(plan);
 
-        final List<Object[]> resultingRows = new ArrayList<>();
-        final CountDownLatch latch = new CountDownLatch(1);
-        Futures.addCallback(result, new FutureCallback<TaskResult>() {
-            @Override
-            public void onSuccess(TaskResult result) {
-                for (Row row : result.rows()) {
-                    resultingRows.add(row.materialize());
-                }
-                latch.countDown();
-            }
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        executor.execute(plan, rowReceiver);
 
-            @Override
-            public void onFailure(Throwable t) {
-                latch.countDown();
-                fail(t.getMessage());
-            }
-        });
-
-        latch.await();
-        assertThat(resultingRows.size(), is(2));
-        assertThat(resultingRows.get(0).length, is(3));
-        assertThat((Integer) resultingRows.get(0)[0], is(1));
-        assertThat((BytesRef) resultingRows.get(0)[1], is(new BytesRef("Arthur")));
-        assertThat((BytesRef) resultingRows.get(0)[2], is(new BytesRef("rthur")));
-        assertThat((Integer) resultingRows.get(1)[0], is(2));
-        assertThat((BytesRef) resultingRows.get(1)[1], is(new BytesRef("Ford")));
-        assertThat((BytesRef) resultingRows.get(1)[2], is(new BytesRef("ord")));
+        Bucket result = rowReceiver.result();
+        assertThat(result.size(), is(2));
+        assertThat(rowReceiver.rows.get(0).length, is(3));
+        assertThat((Integer) rowReceiver.rows.get(0)[0], is(1));
+        assertThat((BytesRef) rowReceiver.rows.get(0)[1], is(new BytesRef("Arthur")));
+        assertThat((BytesRef) rowReceiver.rows.get(0)[2], is(new BytesRef("rthur")));
+        assertThat((Integer) rowReceiver.rows.get(1)[0], is(2));
+        assertThat((BytesRef) rowReceiver.rows.get(1)[1], is(new BytesRef("Ford")));
+        assertThat((BytesRef) rowReceiver.rows.get(1)[2], is(new BytesRef("ord")));
     }
 }

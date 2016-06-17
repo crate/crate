@@ -31,6 +31,7 @@ import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.operation.collect.StatsTables;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingRowReceiver;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
@@ -80,7 +81,10 @@ public class ESJobContextTaskTest extends CrateUnitTest {
         ExecutionSubContext subContext = jobExecutionContext.getSubContext(1);
         subContext.kill(null);
 
-        assertThat(task.execute().isCancelled(), is(true));
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        task.execute(rowReceiver);
+
+        assertThat(rowReceiver.getNumFailOrFinishCalls(), is(1));
         assertNull(jobExecutionContext.getSubContextOrNull(1));
     }
 

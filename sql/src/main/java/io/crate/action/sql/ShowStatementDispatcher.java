@@ -25,10 +25,6 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.MetaDataToASTNodeResolver;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
-import io.crate.core.collections.Row1;
-import io.crate.core.collections.SingleRowBucket;
-import io.crate.executor.QueryResult;
-import io.crate.executor.TaskResult;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.CreateTable;
 import org.elasticsearch.common.inject.Singleton;
@@ -37,18 +33,17 @@ import java.util.Locale;
 import java.util.UUID;
 
 @Singleton
-public class ShowStatementDispatcher extends AnalyzedStatementVisitor<UUID, TaskResult>  {
+public class ShowStatementDispatcher extends AnalyzedStatementVisitor<UUID, String>  {
 
     @Override
-    protected TaskResult visitAnalyzedStatement(AnalyzedStatement analysis, UUID job) {
+    protected String visitAnalyzedStatement(AnalyzedStatement analysis, UUID job) {
         throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analysis));
     }
 
     @Override
-    public TaskResult visitShowCreateTableAnalyzedStatement(ShowCreateTableAnalyzedStatement analysis, UUID job) {
+    public String visitShowCreateTableAnalyzedStatement(ShowCreateTableAnalyzedStatement analysis, UUID job) {
         CreateTable createTable = MetaDataToASTNodeResolver.resolveCreateTable(analysis.tableInfo());
-        String formattedSqlStatement = SqlFormatter.formatSql(createTable);
-        return new QueryResult(new SingleRowBucket(new Row1(formattedSqlStatement)));
+        return SqlFormatter.formatSql(createTable);
     }
 }
 

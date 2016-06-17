@@ -22,6 +22,7 @@
 package io.crate.executor;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.operation.projectors.RowReceiver;
 
 import java.util.List;
 
@@ -30,7 +31,7 @@ import java.util.List;
  * {@linkplain io.crate.executor.Job} and returns a result asynchronously
  * as a list of futures.
  * <p>
- * create a task, call {@linkplain #execute()} or {@linkplain #executeBulk()}
+ * create a task, call {@linkplain #execute(RowReceiver)} or {@linkplain #executeBulk()}
  * and wait for the futures returned to fetch the result or raise an exception.
  *
  * @see io.crate.executor.Job
@@ -40,7 +41,7 @@ public interface Task {
     /**
      * execute the task
      */
-    ListenableFuture<TaskResult> execute();
+    void execute(RowReceiver resultReceiver);
 
     /**
      * execute the bulk operation

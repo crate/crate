@@ -20,40 +20,39 @@
  * agreement.
  */
 
-package io.crate.executor.task;
+package io.crate.executor.transport;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.Row1;
-import io.crate.executor.Task;
-import io.crate.executor.TaskResult;
+import com.google.common.base.Function;
+import com.google.common.util.concurrent.FutureCallback;
+import io.crate.core.collections.Row;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.planner.PlanPrinter;
-import io.crate.planner.node.management.ExplainPlan;
+import org.elasticsearch.action.ActionListener;
 
-import java.util.List;
-import java.util.Map;
+import javax.annotation.Nullable;
 
-public class ExplainTask implements Task {
+public class OneRowActionListener<Response> implements ActionListener<Response>, FutureCallback<Response> {
 
-    private final ExplainPlan explainPlan;
+    private final RowReceiver rowReceiver;
+    private final Function<? super Response, ? extends Row> toRowFunction;
 
-    public ExplainTask(ExplainPlan explainPlan) {
-        this.explainPlan = explainPlan;
+    public OneRowActionListener(RowReceiver rowReceiver, Function<? super Response, ? extends Row> toRowFunction) {
+        this.rowReceiver = rowReceiver;
+        this.toRowFunction = toRowFunction;
     }
 
     @Override
-    public void execute(RowReceiver resultReceiver) {
-        try {
-            Map<String, Object> map = PlanPrinter.objectMap(explainPlan.subPlan());
-            resultReceiver.setNextRow(new Row1(map));
-            resultReceiver.finish();
-        } catch (Throwable t) {
-            resultReceiver.fail(t);
-        }
+    public void onResponse(Response response) {
+        rowReceiver.setNextRow(toRowFunction.apply(response));
+        rowReceiver.finish();
     }
 
     @Override
-    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
-        throw new UnsupportedOperationException("ExplainTask cannot be executed as bulk operation");
+    public void onSuccess(@Nullable Response result) {
+        onResponse(result);
+    }
+
+    @Override
+    public void onFailure(Throwable e) {
+        rowReceiver.fail(e);
     }
 }

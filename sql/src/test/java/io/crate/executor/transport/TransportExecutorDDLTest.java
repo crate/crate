@@ -24,15 +24,14 @@ package io.crate.executor.transport;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.core.collections.Bucket;
-import io.crate.executor.TaskResult;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.PartitionName;
 import io.crate.planner.Plan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.ESDeletePartition;
+import io.crate.testing.CollectingRowReceiver;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -45,9 +44,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
@@ -157,8 +153,9 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         String partitionName = new PartitionName("t", ImmutableList.of(new BytesRef("1"))).asIndexName();
         ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
 
-        ListenableFuture<TaskResult> futures = executor.execute(plan);
-        Bucket objects = futures.get(5, TimeUnit.SECONDS).rows();
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        executor.execute(plan, rowReceiver);
+        Bucket objects = rowReceiver.result();
         assertThat(objects, contains(isRow(-1L)));
 
         execute("select * from information_schema.table_partitions where table_name = 't'");
@@ -185,7 +182,9 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
 
-        Bucket bucket = executor.execute(plan).get(5, TimeUnit.SECONDS).rows();
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        executor.execute(plan, rowReceiver);
+        Bucket bucket = rowReceiver.result();
         assertThat(bucket, contains(isRow(-1L)));
 
         execute("select * from information_schema.table_partitions where table_name = 't'");
@@ -235,8 +234,9 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertEquals("243s", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
     }
 
-    private Bucket executePlan(Plan plan) throws InterruptedException, ExecutionException, TimeoutException {
-        ListenableFuture<TaskResult> future = executor.execute(plan);
-        return future.get(10, TimeUnit.SECONDS).rows();
+    private Bucket executePlan(Plan plan) throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        executor.execute(plan, rowReceiver);
+        return rowReceiver.result();
     }
 }

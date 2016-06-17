@@ -27,6 +27,7 @@ import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ddl.DropTablePlan;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -68,7 +69,8 @@ public class DropTableTask extends JobTask {
     }
 
     @Override
-    public ListenableFuture<TaskResult> execute() {
+    public void execute(RowReceiver rowReceiver) {
+        JobTask.resultToRowReceiver(result, rowReceiver);
         if (tableInfo.isPartitioned()) {
             String templateName = PartitionName.templateName(tableInfo.ident().schema(), tableInfo.ident().name());
             deleteTemplateAction.execute(new DeleteIndexTemplateRequest(templateName), new ActionListener<DeleteIndexTemplateResponse>() {
@@ -98,8 +100,6 @@ public class DropTableTask extends JobTask {
         } else {
             deleteESIndex(tableInfo.ident().indexName());
         }
-
-        return result;
     }
 
     @Override

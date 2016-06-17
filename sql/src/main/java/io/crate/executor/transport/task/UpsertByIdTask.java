@@ -33,6 +33,7 @@ import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.jobs.*;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dml.UpsertById;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -105,8 +106,8 @@ public class UpsertByIdTask extends JobTask {
     }
 
     @Override
-    public ListenableFuture<TaskResult> execute() {
-        return executeBulk().get(0);
+    public void execute(RowReceiver rowReceiver) {
+        JobTask.resultToRowReceiver(executeBulk().get(0), rowReceiver);
     }
 
     @Override

@@ -29,6 +29,7 @@ import io.crate.jobs.ESJobContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.operation.projectors.FlatProjectorChain;
+import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.support.TransportAction;
@@ -68,7 +69,7 @@ class EsJobContextTask extends JobTask {
     }
 
     @Override
-    public ListenableFuture<TaskResult> execute() {
+    public void execute(RowReceiver rowReceiver) {
         assert context != null : "Context must be created first";
         SettableFuture<TaskResult> result = results.get(0);
         try {
@@ -76,7 +77,7 @@ class EsJobContextTask extends JobTask {
         } catch (Throwable throwable) {
             result.setException(throwable);
         }
-        return result;
+        JobTask.resultToRowReceiver(result, rowReceiver);
     }
 
     @Override
