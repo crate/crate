@@ -10,18 +10,6 @@ using `Oracle's Java`_ and OpenJDK_ on Linux Systems.
 
 It is recommended to use a recent Java 8 version.
 
-Writing Documentation
-=====================
-
-The documentation is written as `reStructuredText`_ (aka ``rst``) and is built
-using Sphinx_. The line length shall not exceed 80 characters. Most text
-editors support automatic line breaks at a certain line width if you don't want
-to insert line break manually ;)
-
-Sphinx_ requires Python_ 2.7 or 3 to be installed in addition to Java_. Make
-sure that there is a python executable called ``python`` in the global system
-``$PATH`` (most distributions do that by default if Python is installed).
-
 Git checkout and submodules
 ===========================
 
@@ -40,8 +28,10 @@ automatically, therefore there is no need to install gradle on the system.
 Writing Documentation
 =====================
 
-The documentation is maintained under the ``docs`` directory and
-written in ReStructuredText_ and processed with Sphinx_.
+The documentation is maintained under the ``docs`` directory and written as
+`reStructuredText`_ (aka ``rst``) and is built using Sphinx_. The line length
+shall not exceed 80 characters. Most text editors support automatic line breaks
+at a certain line width if you don't want to insert line break manually ;)
 
 Normally the documentation is built by `Read the Docs`_ and isn't part of the
 Crate distribution. However if you work on the documentation you can run sphinx
@@ -49,16 +39,20 @@ directly, which can be done by just running ``bin/sphinx`` in the ``blackbox``
 directory. The output can then be found in the ``docs/out/html`` and
 ``docs/out/text`` directories.
 
-Before you can run ``blackbox/bin/sphinx`` you need to setup a development
-environment by running `bootstrap.py` inside the ``blackbox`` directory::
+Sphinx_ requires Python_ 3 to be installed in addition to Java_. Make
+sure that there is a python executable called ``python3`` in the global system
+``$PATH`` (most distributions do that by default if Python is installed).
+
+Before you can build the documentation, you need to setup a development
+environment by running `bootstrap.sh` inside the ``blackbox`` directory::
 
     
     $ cd blackbox
-    $ python bootstrap.py
+    $ ./bootstrap.sh
 
-And afterwards run buildout::
+To build the HTML and text documentation, run::
 
-    $ ./bin/buildout -N
+    $ ./bin/sphinx
 
 To test that all examples in the documentation execute correctly run::
 
