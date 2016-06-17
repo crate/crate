@@ -1,3 +1,4 @@
 
 cluster.name: dev
 discovery.zen.ping.multicast.enabled: false
+network.psql: true
