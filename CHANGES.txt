@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Number of bulk results were equal to the total number of items
+   on bulk inserts/updates, ignoring possible multi-value bulk inserts/updates.
+
  - Fixed path to sigar lib in crate.bat for Windows
 
  - Deprecated usage of COPY TO without specifying a DIRECTORY. This will prevent a user from defining an output path

@@ -190,7 +190,7 @@ public class UpsertByIdTask extends JobTask {
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
             false, // do not overwrite duplicates
-            upsertById.isBulkRequest() || upsertById.updateColumns() != null, // continue on error on bulk and/or update
+            upsertById.numBulkResponses() > 0 || upsertById.updateColumns() != null, // continue on error on bulk and/or update
             upsertById.updateColumns(),
             upsertById.insertColumns(),
             jobId(),
@@ -211,7 +211,7 @@ public class UpsertByIdTask extends JobTask {
             upsertById.executionPhaseId(), bulkShardProcessor);
         createJobExecutionContext(bulkShardProcessorContext);
 
-        if (!upsertById.isBulkRequest()) {
+        if (upsertById.numBulkResponses() == 0) {
             final SettableFuture<TaskResult> futureResult = SettableFuture.create();
             List<SettableFuture<TaskResult>> resultList = new ArrayList<>(1);
             resultList.add(futureResult);
@@ -234,7 +234,8 @@ public class UpsertByIdTask extends JobTask {
             });
             return resultList;
         } else {
-            final int numResults = upsertById.items().size();
+            final int numResults = upsertById.numBulkResponses();
+            final Integer[] resultsRowCount = new Integer[numResults];
             final List<SettableFuture<TaskResult>> resultList = new ArrayList<>(numResults);
             for (int i = 0; i < numResults; i++) {
                 resultList.add(SettableFuture.<TaskResult>create());
@@ -248,10 +249,27 @@ public class UpsertByIdTask extends JobTask {
                         return;
                     }
 
+                    for (int i = 0; i < result.length(); i++) {
+                        UpsertById.Item item = upsertById.items().get(i);
+                        int resultIdx = upsertById.getBulkResultIdxForId(item.id());
+
+                        if (resultsRowCount[resultIdx] == null) {
+                            resultsRowCount[resultIdx] = result.get(i) ? 1 : -2;
+                        } else if (resultsRowCount[resultIdx] >= 0 && result.get(i)) {
+                            resultsRowCount[resultIdx]++;
+                        }
+                    }
+
                     for (int i = 0; i < numResults; i++) {
                         SettableFuture<TaskResult> future = resultList.get(i);
-                        future.set(result.get(i) ? TaskResult.ONE_ROW : TaskResult.FAILURE);
+                        Integer rowCount = resultsRowCount[i];
+                        if (rowCount != null && rowCount >= 0) {
+                            future.set(new RowCountResult(rowCount));
+                        } else {
+                            future.set(TaskResult.FAILURE);
+                        }
                     }
+
                     bulkShardProcessorContext.close();
                 }
 

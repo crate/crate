@@ -1216,9 +1216,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         {1, "Earth", 2, "Saturn"},    // bulk row 1
                         {3, "Moon", 4, "Mars"}        // bulk row 2
                 });
-        assertThat(bulkResp.results().length, is(4));
+        assertThat(bulkResp.results().length, is(2));
         for (SQLBulkResponse.Result result : bulkResp.results()) {
-            assertThat(result.rowCount(), is(1L));
+            assertThat(result.rowCount(), is(2L));
         }
         refresh();
 
@@ -1227,7 +1227,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 {1, "Earth", 2, "Saturn"},    // bulk row 1
                 {3, "Moon", 4, "Mars"}        // bulk row 2
             });
-        assertThat(bulkResp.results().length, is(4));
+        assertThat(bulkResp.results().length, is(2));
         for (SQLBulkResponse.Result result : bulkResp.results()) {
             assertThat(result.rowCount(), is(-2L));
         }

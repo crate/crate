@@ -91,6 +91,7 @@ public class UpdateConsumer implements Consumer {
 
             List<Plan> childNodes = new ArrayList<>(statement.nestedStatements().size());
             UpsertById upsertById = null;
+            int bulkIdx = 0;
             for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : statement.nestedStatements()) {
                 WhereClause whereClause = nestedAnalysis.whereClause();
                 if (whereClause.noMatch()){
@@ -99,15 +100,21 @@ public class UpdateConsumer implements Consumer {
                 if (whereClause.docKeys().isPresent()) {
                     if (upsertById == null) {
                         Tuple<String[], Symbol[]> assignments = Assignments.convert(nestedAnalysis.assignments());
+                        int numBulkResponses = statement.nestedStatements().size();
+                        if (numBulkResponses == 1) {
+                            // disable bulk logic for 1 bulk item
+                            numBulkResponses = 0;
+                        }
                         upsertById = new UpsertById(
                             plannerContext.jobId(),
                             plannerContext.nextExecutionPhaseId(),
                             false,
-                            statement.nestedStatements().size() > 1, assignments.v1(),
+                            numBulkResponses,
+                            assignments.v1(),
                             null
                         );
                     }
-                    upsertById(nestedAnalysis, tableInfo, whereClause, upsertById);
+                    upsertById(nestedAnalysis, tableInfo, whereClause, upsertById, bulkIdx++);
                 } else {
                     Plan plan = upsertByQuery(nestedAnalysis, plannerContext, tableInfo, whereClause);
                     if (plan != null) {
@@ -250,7 +257,8 @@ public class UpdateConsumer implements Consumer {
     private static void upsertById(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
                                    DocTableInfo tableInfo,
                                    WhereClause whereClause,
-                                   UpsertById upsertById) {
+                                   UpsertById upsertById,
+                                   int bulkIdx) {
         String[] indices = Planner.indices(tableInfo, whereClause);
         assert tableInfo.isPartitioned() || indices.length == 1;
 
@@ -263,6 +271,7 @@ public class UpdateConsumer implements Consumer {
             } else {
                 index = indices[0];
             }
+            upsertById.setBulkResultIdxForId(key.id(), bulkIdx);
             upsertById.add(
                 index,
                 key.id(),
