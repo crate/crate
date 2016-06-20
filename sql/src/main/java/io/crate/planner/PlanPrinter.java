@@ -219,7 +219,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
                 context.print(printItem(item));
             }
             context.dedent();
-            context.print("bulk: %s", node.isBulkRequest());
+            context.print("bulk: %s", node.numBulkResponses() > 0);
             context.print("partitioned: %s", node.isPartitionedTable());
             context.dedent();
             return null;

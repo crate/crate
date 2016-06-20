@@ -105,7 +105,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 analysisMetaData, analysis.parameterContext(), fieldProvider, valuesResolver);
 
         InsertFromValuesAnalyzedStatement statement = new InsertFromValuesAnalyzedStatement(
-                tableInfo, analysis.parameterContext().hasBulkParams());
+                tableInfo, analysis.parameterContext().bulkParameters.length);
         handleInsertColumns(node, node.maxValuesLength(), statement);
 
         Set<ReferenceInfo> allReferencedReferences = new HashSet<>();
@@ -180,22 +180,6 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 for (int i = 0; i < parameterContext.bulkParameters.length; i++) {
                     parameterContext.setBulkIdx(i);
                     addValues(
-                            tableRelation,
-                            valueNormalizer,
-                            expressionAnalyzer,
-                            expressionAnalysisContext,
-                            valuesResolver,
-                            valuesAwareExpressionAnalyzer,
-                            node,
-                            assignments,
-                            statement,
-                            referenceToLiteralContext,
-                            numPks,
-                            idFunction
-                    );
-                }
-            } else {
-                addValues(
                         tableRelation,
                         valueNormalizer,
                         expressionAnalyzer,
@@ -207,7 +191,25 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                         statement,
                         referenceToLiteralContext,
                         numPks,
-                        idFunction
+                        idFunction,
+                        i
+                    );
+                }
+            } else {
+                addValues(
+                    tableRelation,
+                    valueNormalizer,
+                    expressionAnalyzer,
+                    expressionAnalysisContext,
+                    valuesResolver,
+                    valuesAwareExpressionAnalyzer,
+                    node,
+                    assignments,
+                    statement,
+                    referenceToLiteralContext,
+                    numPks,
+                    idFunction,
+                    -1
                 );
             }
         } catch (IOException e) {
@@ -225,7 +227,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                            List<Assignment> assignments,
                            InsertFromValuesAnalyzedStatement context,
                            ReferenceToLiteralConverter.Context referenceToLiteralContext,
-                           int numPrimaryKeys, Function<List<BytesRef>, String> idFunction) throws IOException {
+                           int numPrimaryKeys,
+                           Function<List<BytesRef>, String> idFunction,
+                           int bulkIdx) throws IOException {
         if (context.tableInfo().isPartitioned()) {
             context.newPartitionMap();
         }
@@ -322,7 +326,11 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         routingValue = ctx.routingValue;
 
         context.sourceMaps().add(insertValues);
-        context.addIdAndRouting(idFunction.apply(primaryKeyValues), routingValue);
+        String id = idFunction.apply(primaryKeyValues);
+        context.addIdAndRouting(id, routingValue);
+        if (bulkIdx >= 0) {
+            context.idToBulkResult().put(id, bulkIdx);
+        }
     }
 
     private void addPrimaryKeyValue(int index, Object value, List<BytesRef> primaryKeyValues) {

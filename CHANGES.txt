@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Number of bulk results were equal to the total number of items
+   on bulk inserts/updates, ignoring possible multi-value bulk inserts/updates.
+
  - Fix: Allow select statements with more than one level nested arrays in table columns.
    eg: SELECT categories['items']['id'] FROM assets
 

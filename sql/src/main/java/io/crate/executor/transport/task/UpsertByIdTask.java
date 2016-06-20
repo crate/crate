@@ -183,13 +183,13 @@ public class UpsertByIdTask extends JobTask {
 
         assert node.updateColumns() != null | node.insertColumns() != null;
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-                CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
-                false, // do not overwrite duplicates
-                node.isBulkRequest() || node.updateColumns() != null, // continue on error on bulk and/or update
-                node.updateColumns(),
-                node.insertColumns(),
-                jobId(),
-                false
+            CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
+            false, // do not overwrite duplicates
+            node.numBulkResponses() > 0 || node.updateColumns() != null, // continue on error on bulk and/or update
+            node.updateColumns(),
+            node.insertColumns(),
+            jobId(),
+            false
         );
         BulkShardProcessor bulkShardProcessor = new BulkShardProcessor(
                 clusterService,
@@ -205,7 +205,7 @@ public class UpsertByIdTask extends JobTask {
                 node.executionPhaseId(), bulkShardProcessor);
         createJobExecutionContext(bulkShardProcessorContext);
 
-        if (!node.isBulkRequest()) {
+        if (node.numBulkResponses() == 0) {
             final SettableFuture<TaskResult> futureResult = SettableFuture.create();
             List<SettableFuture<TaskResult>> resultList = new ArrayList<>(1);
             resultList.add(futureResult);
@@ -228,7 +228,8 @@ public class UpsertByIdTask extends JobTask {
             });
             return resultList;
         } else {
-            final int numResults = node.items().size();
+            final int numResults = node.numBulkResponses();
+            final Integer[] resultsRowCount = new Integer[numResults];
             final List<SettableFuture<TaskResult>> resultList = new ArrayList<>(numResults);
             for (int i = 0; i < numResults; i++) {
                 resultList.add(SettableFuture.<TaskResult>create());
@@ -242,10 +243,27 @@ public class UpsertByIdTask extends JobTask {
                         return;
                     }
 
+                    for (int i = 0; i < result.length(); i++) {
+                        UpsertByIdNode.Item item = node.items().get(i);
+                        int resultIdx = node.getBulkResultIdxForId(item.id());
+
+                        if (resultsRowCount[resultIdx] == null) {
+                            resultsRowCount[resultIdx] = result.get(i) ? 1 : -2;
+                        } else if (resultsRowCount[resultIdx] >= 0 && result.get(i)) {
+                            resultsRowCount[resultIdx]++;
+                        }
+                    }
+
                     for (int i = 0; i < numResults; i++) {
                         SettableFuture<TaskResult> future = resultList.get(i);
-                        future.set(result.get(i) ? TaskResult.ONE_ROW : TaskResult.FAILURE);
+                        Integer rowCount = resultsRowCount[i];
+                        if (rowCount != null && rowCount >= 0) {
+                            future.set(new RowCountResult(rowCount));
+                        } else {
+                            future.set(TaskResult.FAILURE);
+                        }
                     }
+
                     bulkShardProcessorContext.close();
                 }
 

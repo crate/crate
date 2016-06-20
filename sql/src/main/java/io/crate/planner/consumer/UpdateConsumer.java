@@ -80,6 +80,7 @@ public class UpdateConsumer implements Consumer {
 
             List<Plan> childNodes = new ArrayList<>(statement.nestedStatements().size());
             UpsertByIdNode upsertByIdNode = null;
+            int bulkIdx = 0;
             for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : statement.nestedStatements()) {
                 WhereClause whereClause = nestedAnalysis.whereClause();
                 if (whereClause.noMatch()){
@@ -88,10 +89,21 @@ public class UpdateConsumer implements Consumer {
                 if (whereClause.docKeys().isPresent()) {
                     if (upsertByIdNode == null) {
                         Tuple<String[], Symbol[]> assignments = Assignments.convert(nestedAnalysis.assignments());
-                        upsertByIdNode = new UpsertByIdNode(context.plannerContext().nextExecutionPhaseId(), false, statement.nestedStatements().size() > 1, assignments.v1(), null);
+                        int numBulkResponses = statement.nestedStatements().size();
+                        if (numBulkResponses == 1) {
+                            // disable bulk logic for 1 bulk item
+                            numBulkResponses = 0;
+                        }
+                        upsertByIdNode = new UpsertByIdNode(
+                            context.plannerContext().nextExecutionPhaseId(),
+                            false,
+                            numBulkResponses,
+                            assignments.v1(),
+                            null
+                        );
                         childNodes.add(new IterablePlan(context.plannerContext().jobId(), upsertByIdNode));
                     }
-                    upsertById(nestedAnalysis, tableInfo, whereClause, upsertByIdNode);
+                    upsertById(nestedAnalysis, tableInfo, whereClause, upsertByIdNode, bulkIdx++);
                 } else {
                     Plan plan = upsertByQuery(nestedAnalysis, context, tableInfo, whereClause);
                     if (plan != null) {
@@ -165,9 +177,10 @@ public class UpdateConsumer implements Consumer {
         }
 
         private void upsertById(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
-                                             DocTableInfo tableInfo,
-                                             WhereClause whereClause,
-                                             UpsertByIdNode upsertByIdNode) {
+                                DocTableInfo tableInfo,
+                                WhereClause whereClause,
+                                UpsertByIdNode upsertByIdNode,
+                                int bulkIdx) {
             String[] indices = Planner.indices(tableInfo, whereClause);
             assert tableInfo.isPartitioned() || indices.length == 1;
 
@@ -180,6 +193,7 @@ public class UpdateConsumer implements Consumer {
                 } else {
                     index = indices[0];
                 }
+                upsertByIdNode.setBulkResultIdxForId(key.id(), bulkIdx);
                 upsertByIdNode.add(
                         index,
                         key.id(),

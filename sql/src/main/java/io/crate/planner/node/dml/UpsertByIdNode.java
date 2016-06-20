@@ -21,6 +21,8 @@
 
 package io.crate.planner.node.dml;
 
+import com.carrotsearch.hppc.ObjectIntMap;
+import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.node.PlanNode;
@@ -92,9 +94,10 @@ public class UpsertByIdNode implements PlanNode {
 
 
     private final boolean partitionedTable;
-    private final boolean bulkRequest;
+    private final int numBulkResponses;
     private final List<Item> items;
     private final int executionPhaseId;
+    private final ObjectIntMap<String> idToBulkResultIdx;
 
     @Nullable
     private final String[] updateColumns;
@@ -103,17 +106,29 @@ public class UpsertByIdNode implements PlanNode {
 
     public UpsertByIdNode(int executionPhaseId,
                           boolean partitionedTable,
-                          boolean bulkRequest,
-                          String[] updateColumns,
+                          int numBulkResponses,
+                          ObjectIntMap<String> idToBulkResultIdx,
+                          @Nullable String[] updateColumns,
                           @Nullable Reference[] insertColumns) {
         this.partitionedTable = partitionedTable;
-        this.bulkRequest = bulkRequest;
+        this.numBulkResponses = numBulkResponses;
+        this.idToBulkResultIdx = idToBulkResultIdx;
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
         this.items = new ArrayList<>();
         this.executionPhaseId = executionPhaseId;
     }
 
+    public UpsertByIdNode(int executionPhaseId,
+                          boolean partitionedTable,
+                          int numBulkResponses,
+                          @Nullable String[] updateColumns,
+                          @Nullable Reference[] insertColumns) {
+        this(executionPhaseId, partitionedTable, numBulkResponses, new ObjectIntOpenHashMap<String>(),
+            updateColumns, insertColumns);
+    }
+
+    @Nullable
     public String[] updateColumns() {
         return updateColumns;
     }
@@ -127,8 +142,16 @@ public class UpsertByIdNode implements PlanNode {
         return partitionedTable;
     }
 
-    public boolean isBulkRequest() {
-        return bulkRequest;
+    public int numBulkResponses() {
+        return numBulkResponses;
+    }
+
+    public int getBulkResultIdxForId(String id) {
+        return idToBulkResultIdx.get(id);
+    }
+
+    public void setBulkResultIdxForId(String id, int bulkResultIdx) {
+        idToBulkResultIdx.put(id, bulkResultIdx);
     }
 
     public void add(String index,
