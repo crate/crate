@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed path to sigar lib in crate.bat for Windows
+
  - Fixed proper validation of the ``blocks.*`` table settings at all
    SQL operations.
 
