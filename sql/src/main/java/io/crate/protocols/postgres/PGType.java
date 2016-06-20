@@ -22,20 +22,12 @@
 
 package io.crate.protocols.postgres;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import javax.annotation.Nonnull;
-import java.util.Map;
 
 abstract class PGType {
-
-    static final Map<DataType, PGType> CRATE_TO_PG_TYPES = ImmutableMap.<DataType, PGType>builder()
-        .put(DataTypes.STRING, new StringType())
-        .build();
 
     final int oid;
     final int typeLen;
@@ -49,13 +41,20 @@ abstract class PGType {
         this.formatCode = formatCode;
     }
 
+    /**
+     * write the value onto the buffer.
+     * @return the number of bytes written.
+     */
     abstract int writeValue(ChannelBuffer buffer, @Nonnull Object value);
 
+    abstract Object readValue(ChannelBuffer buffer, int valueLength);
 
-    private static class StringType extends PGType {
+    static class StringType extends PGType {
 
-        private StringType() {
-            super(1043, -1, -1, 0);
+        final static int OID = 1043;
+
+        StringType() {
+            super(OID, -1, -1, 0);
         }
 
         @Override
@@ -64,6 +63,14 @@ abstract class PGType {
             buffer.writeInt(bytesRef.length);
             buffer.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);
             return 4 + bytesRef.length;
+        }
+
+        @Override
+        Object readValue(ChannelBuffer buffer, int valueLength) {
+            BytesRef bytesRef = new BytesRef(valueLength);
+            bytesRef.length = valueLength;
+            buffer.readBytes(bytesRef.bytes);
+            return bytesRef;
         }
     }
 }

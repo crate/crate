@@ -33,11 +33,16 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import io.crate.types.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
+
+import static io.crate.action.sql.SQLBulkRequest.EMPTY_BULK_ARGS;
 
 @Singleton
 public class SQLOperations {
@@ -56,14 +61,53 @@ public class SQLOperations {
     }
 
     public void simpleQuery(String query, Function<AnalyzedRelation, RowReceiver> rowReceiverFactory) {
-        Statement statement = SqlParser.createStatement(query);
-        Analysis analysis = analyzer.analyze(statement, ParameterContext.EMPTY);
-        UUID jobId = UUID.randomUUID();
-        Plan plan = planner.plan(analysis, jobId);
+        Session session = createSession(rowReceiverFactory);
+        session.parse("", query, Collections.<DataType>emptyList());
+        session.bind("", "", Collections.emptyList());
+        session.execute("", 0);
+        session.sync();
+    }
 
-        RowReceiver rowReceiver = rowReceiverFactory.apply(analysis.rootRelation());
+    public Session createSession(Function<AnalyzedRelation, RowReceiver> rowReceiverFactory) {
+        return new Session(executorProvider.get(), rowReceiverFactory);
+    }
 
-        Executor executor = executorProvider.get();
-        executor.execute(plan, rowReceiver);
+    public class Session {
+
+        private final Executor executor;
+        private final Function<AnalyzedRelation, RowReceiver> rowReceiverFactory;
+        private final UUID jobId;
+
+        private List<DataType> paramTypes;
+        private Statement statement;
+        private Analysis analysis;
+        private Plan plan;
+
+        private Session(Executor executor, Function<AnalyzedRelation, RowReceiver> rowReceiverFactory) {
+            this.executor = executor;
+            this.rowReceiverFactory = rowReceiverFactory;
+            this.jobId = UUID.randomUUID();
+        }
+
+        public void parse(String statementName, String query, List<DataType> paramTypes) {
+            this.statement = SqlParser.createStatement(query);
+            this.paramTypes = paramTypes;
+        }
+
+        public DataType getParamType(int idx) {
+            return paramTypes.get(idx);
+        }
+
+        public void bind(String portalName, String statementName, List<Object> params) {
+            analysis = analyzer.analyze(statement, new ParameterContext(params.toArray(new Object[0]), EMPTY_BULK_ARGS, null));
+            plan = planner.plan(analysis, jobId);
+        }
+
+        public void execute(String portalName, int maxRows) {
+        }
+
+        public void sync() {
+            executor.execute(plan, rowReceiverFactory.apply(analysis.rootRelation()));
+        }
     }
 }

@@ -24,12 +24,13 @@ package io.crate.integrationtests;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.util.Locale;
+import java.sql.*;
+
+import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
 public class PostgresITest extends SQLTransportIntegrationTest {
@@ -48,10 +49,37 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testConnectionHandshake() throws Exception {
-        Locale.setDefault(Locale.ENGLISH);
+    public void testSelectPreparedStatement() throws Exception {
         try (Connection conn = DriverManager.getConnection("jdbc:postgresql://127.0.0.1:4242/")) {
-            // yay works
+            conn.setAutoCommit(true);
+            PreparedStatement preparedStatement = conn.prepareStatement("select name from sys.cluster");
+            ResultSet resultSet = preparedStatement.executeQuery();
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-CHILD"));
+        }
+    }
+
+    @Test
+    public void testSelect() throws Exception {
+        try (Connection conn = DriverManager.getConnection("jdbc:postgresql://127.0.0.1:4242/")) {
+            conn.setAutoCommit(true);
+            Statement statement = conn.createStatement();
+            statement.execute("select name from sys.cluster");
+            ResultSet resultSet = statement.getResultSet();
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-CHILD"));
+        }
+    }
+
+    @Test
+    public void testSelectWithParameters() throws Exception {
+        try (Connection conn = DriverManager.getConnection("jdbc:postgresql://127.0.0.1:4242/")) {
+            conn.setAutoCommit(true);
+            PreparedStatement preparedStatement = conn.prepareStatement("select name from sys.cluster where name like ?");
+            preparedStatement.setString(1, "SUITE%");
+            ResultSet resultSet = preparedStatement.executeQuery();
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-CHILD"));
         }
     }
 }
