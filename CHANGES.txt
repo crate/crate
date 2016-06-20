@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed path to sigar lib in crate.bat for Windows
+
  - Deprecated usage of COPY TO without specifying a DIRECTORY. This will prevent a user from defining an output path
    that conflicts with multiple shards.
 
