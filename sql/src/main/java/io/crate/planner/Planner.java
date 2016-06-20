@@ -440,11 +440,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             onDuplicateKeyAssignmentsColumns = analysis.onDuplicateKeyAssignmentsColumns().get(0);
         }
         UpsertByIdNode upsertByIdNode = new UpsertByIdNode(
-                context.nextExecutionPhaseId(),
-                analysis.tableInfo().isPartitioned(),
-                analysis.isBulkRequest(),
-                onDuplicateKeyAssignmentsColumns,
-                analysis.columns().toArray(new Reference[analysis.columns().size()])
+            context.nextExecutionPhaseId(),
+            analysis.tableInfo().isPartitioned(),
+            analysis.numBulkResponses(),
+            analysis.idToBulkResult(),
+            onDuplicateKeyAssignmentsColumns,
+            analysis.columns().toArray(new Reference[analysis.columns().size()])
         );
         if (analysis.tableInfo().isPartitioned()) {
             List<String> partitions = analysis.generatePartitions();

@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.carrotsearch.hppc.ObjectIntHashMap;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.PartitionName;
@@ -44,13 +45,14 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
 
     private final List<String> ids = new ArrayList<>();
     private final List<String> routingValues = new ArrayList<>();
+    private final ObjectIntHashMap<String> idToBulkResult = new ObjectIntHashMap<>();
 
-    private final boolean isBulkRequest;
+    private final int numBulkResponses;
 
     private int numAddedGeneratedColumns = 0;
 
-    public InsertFromValuesAnalyzedStatement(DocTableInfo tableInfo, boolean isBulkRequest) {
-        this.isBulkRequest = isBulkRequest;
+    public InsertFromValuesAnalyzedStatement(DocTableInfo tableInfo, int numBulkResponses) {
+        this.numBulkResponses = numBulkResponses;
         super.tableInfo(tableInfo);
         if (tableInfo.isPartitioned()) {
             for (Map<String, String> partitionMap : partitionMaps) {
@@ -149,8 +151,8 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
         return analyzedStatementVisitor.visitInsertFromValuesStatement(this, context);
     }
 
-    public boolean isBulkRequest() {
-        return isBulkRequest;
+    public int numBulkResponses() {
+        return numBulkResponses;
     }
 
     public void addGeneratedColumn(Reference reference) {
@@ -160,5 +162,9 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
 
     public int numAddedGeneratedColumns() {
         return numAddedGeneratedColumns;
+    }
+
+    public ObjectIntHashMap<String> idToBulkResult() {
+        return idToBulkResult;
     }
 }

@@ -685,6 +685,21 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testBulkUpdateWithPKAndMultipleHits() throws Exception {
+        execute("create table t (id integer primary key, name string) with (number_of_replicas = 0)");
+        ensureYellow();
+
+        execute("insert into t values (?, ?)", $$($(1, "foo"), $(2, "bar"), $(3, "hoschi"), $(4, "crate")));
+        refresh();
+
+        SQLBulkResponse bulkResponse = execute("update t set name = 'updated' where id = ? or id = ?", $$($(1, 2), $(3, 4)));
+        assertThat(bulkResponse.results().length, is(2));
+        for (SQLBulkResponse.Result result : bulkResponse.results()) {
+            assertThat(result.rowCount(), is(2L));
+        }
+    }
+
+    @Test
     public void testUpdateWithGeneratedColumn() throws Exception {
         execute("create table generated_column (" +
                 " id int primary key," +
