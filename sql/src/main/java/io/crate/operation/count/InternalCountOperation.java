@@ -103,7 +103,7 @@ public class InternalCountOperation implements CountOperation {
         IndexShard indexShard = indexService.shardSafe(shardId);
         try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
-                    whereClause, indexService.mapperService(), indexService.fieldData(), indexService.cache());
+                    whereClause, indexService.mapperService(), indexService.fieldData(), indexService.cache(), indexService.indexSettings());
             if (Thread.interrupted()) {
                 throw new InterruptedException();
             }
