@@ -67,12 +67,15 @@ import org.apache.lucene.sandbox.queries.regex.JavaUtilRegexCapabilities;
 import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
 import org.apache.lucene.spatial.geopoint.document.GeoPointField;
+import org.apache.lucene.spatial.geopoint.search.GeoPointDistanceRangeQuery;
 import org.apache.lucene.spatial.geopoint.search.GeoPointInPolygonQuery;
 import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
 import org.apache.lucene.spatial.query.SpatialArgs;
 import org.apache.lucene.spatial.query.SpatialOperation;
+import org.apache.lucene.spatial.util.GeoDistanceUtils;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.SloppyMath;
 import org.apache.lucene.util.automaton.RegExp;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
@@ -80,6 +83,7 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.geo.GeoDistance;
 import org.elasticsearch.common.geo.GeoPoint;
+import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.ShapeRelation;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -105,6 +109,7 @@ import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static io.crate.operation.scalar.regex.RegexMatcher.isPcrePattern;
+import static org.apache.lucene.spatial.util.GeoEncodingUtils.TOLERANCE;
 
 @Singleton
 public class LuceneQueryBuilder {
@@ -226,6 +231,7 @@ public class LuceneQueryBuilder {
         final static Map<String, String> UNSUPPORTED_FIELDS = ImmutableMap.<String, String>builder()
                 .put("_version", "\"_version\" column is not valid in the WHERE clause")
                 .build();
+
     }
 
     public static String convertSqlLikeToLuceneWildcard(String wildcardString) {
@@ -884,6 +890,7 @@ public class LuceneQueryBuilder {
             final static GeoDistance GEO_DISTANCE = GeoDistance.DEFAULT;
             final static String OPTIMIZE_BOX = "memory";
 
+
             /**
              *
              * @param parent the outer function. E.g. in the case of
@@ -919,6 +926,7 @@ public class LuceneQueryBuilder {
 
                 String parentName = functionLiteralPair.functionName();
 
+                GeoPoint geoPoint = new GeoPoint(lat, lon);
                 Double from = null;
                 Double to = null;
                 boolean includeLower = false;
@@ -933,25 +941,31 @@ public class LuceneQueryBuilder {
                         break;
                     case LteOperator.NAME:
                         includeUpper = true;
+                        includeLower = true; // ignored by old query if from == null
                         to = distance;
                         break;
                     case LtOperator.NAME:
                         to = distance;
+                        includeLower = true; // ignored by old query if from == null
                         break;
                     case GteOperator.NAME:
                         from = distance;
                         includeLower = true;
+                        includeUpper = true; // ignored by old query if to == null
                         break;
                     case GtOperator.NAME:
                         from = distance;
+                        includeUpper = true; // ignored by old query if to == null
                         break;
                     default:
                         // invalid operator? give up
                         return null;
                 }
-                GeoPoint geoPoint = new GeoPoint(lat, lon);
 
-                return new GeoDistanceRangeQuery(
+                final Version indexCreated = Version.indexCreated(context.indexCache.indexSettings());
+                final Query query;
+                if (indexCreated.before(Version.V_2_3_0)) {
+                    query = new GeoDistanceRangeQuery(
                         geoPoint,
                         from,
                         to,
@@ -961,6 +975,22 @@ public class LuceneQueryBuilder {
                         geoPointFieldType,
                         fieldData,
                         OPTIMIZE_BOX);
+                } else {
+                    GeoUtils.normalizePoint(geoPoint);
+                    if (from == null) {
+                        from = 0d;
+                    }
+                    if (to == null) {
+                        to = GeoDistanceUtils.maxRadialDistanceMeters(geoPoint.lon(), geoPoint.lat());
+                    }
+                    query = new GeoPointDistanceRangeQuery(
+                        fieldData.getFieldNames().indexName(),
+                        GeoPointField.TermEncoding.PREFIX,
+                        geoPoint.lon(), geoPoint.lat(),
+                        (includeLower) ? from : from + TOLERANCE,
+                        (includeUpper) ? to : to - TOLERANCE);
+                }
+                return query;
             }
         }
 
