@@ -123,8 +123,8 @@ public class LuceneQueryBuilder {
     public Context convert(WhereClause whereClause,
                            MapperService mapperService,
                            IndexFieldDataService indexFieldDataService,
-                           IndexCache indexCache, Settings indexSettings) throws UnsupportedFeatureException {
-        Context ctx = new Context(inputSymbolVisitor, mapperService, indexFieldDataService, indexCache, indexSettings);
+                           IndexCache indexCache) throws UnsupportedFeatureException {
+        Context ctx = new Context(inputSymbolVisitor, mapperService, indexFieldDataService, indexCache);
         if (whereClause.noMatch()) {
             ctx.query = Queries.newMatchNoDocsQuery();
         } else if (!whereClause.hasQuery()) {
@@ -182,18 +182,15 @@ public class LuceneQueryBuilder {
         final MapperService mapperService;
         final IndexFieldDataService fieldDataService;
         final IndexCache indexCache;
-        final Version indexVersionCreated;
 
         Context(CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor,
                 MapperService mapperService,
                 IndexFieldDataService fieldDataService,
-                IndexCache indexCache,
-                Settings indexSettings) {
+                IndexCache indexCache) {
             this.inputSymbolVisitor = inputSymbolVisitor;
             this.mapperService = mapperService;
             this.fieldDataService = fieldDataService;
             this.indexCache = indexCache;
-            this.indexVersionCreated = Version.indexCreated(indexSettings);
         }
 
         public Query query() {
@@ -232,9 +229,6 @@ public class LuceneQueryBuilder {
                 .put("_version", "\"_version\" column is not valid in the WHERE clause")
                 .build();
 
-        public Version indexVersionCreated() {
-            return indexVersionCreated;
-        }
     }
 
     public static String convertSqlLikeToLuceneWildcard(String wildcardString) {
@@ -932,7 +926,7 @@ public class LuceneQueryBuilder {
                 GeoPoint geoPoint = new GeoPoint(lat, lon);
 
 
-                if(context.indexVersionCreated.before(Version.V_2_2_0)) {
+                if(Version.indexCreated(context.indexCache.indexSettings()).before(Version.V_2_2_0)) {
                     return new GeoDistanceRangeQuery(
                         geoPoint,
                         from,
@@ -944,7 +938,8 @@ public class LuceneQueryBuilder {
                         fieldData,
                         OPTIMIZE_BOX);
                 } else {
-                    final GeoPointField.TermEncoding encoding = (context.indexVersionCreated().before(Version.V_2_3_0)) ?
+                    final GeoPointField.TermEncoding encoding =
+                        (Version.indexCreated(context.indexCache.indexSettings()).before(Version.V_2_3_0)) ?
                         GeoPointField.TermEncoding.NUMERIC : GeoPointField.TermEncoding.PREFIX;
                     distance = GeoUtils.maxRadialDistance(geoPoint, distance);
                     return new GeoPointDistanceQuery(fieldData.getFieldNames().indexName(), geoPoint.lon(), geoPoint.lat(), distance);

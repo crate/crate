@@ -95,7 +95,7 @@ public class SearchContextFactory {
                 Optional.<Scroll>absent()
         );
         LuceneQueryBuilder.Context context = luceneQueryBuilder.convert(
-                whereClause,  indexService.mapperService(), indexService.fieldData(), indexService.cache(), indexService.indexSettings());
+                whereClause,  indexService.mapperService(), indexService.fieldData(), indexService.cache());
         searchContext.parsedQuery(new ParsedQuery(context.query(), EMPTY_NAMED_FILTERS));
 
         Float minScore = context.minScore();
