@@ -66,14 +66,23 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelect() throws Exception {
+    public void testCreateInsertSelect() throws Exception {
         try (Connection conn = DriverManager.getConnection("jdbc:postgresql://127.0.0.1:4242/")) {
             conn.setAutoCommit(true);
             Statement statement = conn.createStatement();
-            statement.execute("select name from sys.cluster");
+            assertThat(statement.executeUpdate("create table t (x string) with (number_of_replicas = 0)"), is(0));
+            ensureYellow();
+
+            assertThat(statement.executeUpdate("insert into t (x) values ('Marvin'), ('Trillian')"), is(2));;
+            assertThat(statement.executeUpdate("refresh table t"), is(0));
+
+            statement.executeQuery("select x from t order by x");
             ResultSet resultSet = statement.getResultSet();
             assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-CHILD"));
+            assertThat(resultSet.getString(1), is("Marvin"));
+
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getString(1), is("Trillian"));
         }
     }
 

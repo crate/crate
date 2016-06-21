@@ -106,6 +106,9 @@ public class SQLOperations {
             if (analysis == null) {
                 throw new IllegalStateException("describe called, but there was no bind() call");
             }
+            if (analysis.rootRelation() == null) {
+                return null;
+            }
             List<Field> fields = analysis.rootRelation().fields();
             outputTypes = Symbols.extractTypes(fields);
             return fields;

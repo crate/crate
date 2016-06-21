@@ -24,8 +24,8 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.Exceptions;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.types.DataType;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -375,7 +375,11 @@ class ConnectionContext {
         String portalOrStatement = readCString(buffer);
         try {
             Collection<Field> fields = session.describe((char) type, portalOrStatement);
-            Messages.sendRowDescription(channel, fields);
+            if (fields == null) {
+                // DML statement, no need for description
+            } else {
+                Messages.sendRowDescription(channel, fields);
+            }
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
         }
@@ -394,11 +398,23 @@ class ConnectionContext {
         String portalName = readCString(buffer);
         int maxRows = buffer.readInt();
         try {
-            session.execute(portalName, maxRows,
-                new PsqlWireRowReceiver(session.query(), channel, session.outputTypes()));
+            RowReceiver rowReceiver = createRowReceiver(channel);
+            session.execute(portalName, maxRows, rowReceiver);
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
         }
+    }
+
+    private RowReceiver createRowReceiver(Channel channel) {
+        RowReceiver rowReceiver;
+        if (session.outputTypes() == null) {
+            // this is a DML query:
+            rowReceiver = new RowCountReceiver(session.query(), channel);
+        } else {
+            // query with resultSet
+            rowReceiver = new ResultSetReceiver(session.query(), channel, session.outputTypes());
+        }
+        return rowReceiver;
     }
 
     private void handleSync(Channel channel) {
@@ -406,8 +422,41 @@ class ConnectionContext {
             session.sync();
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+            Messages.sendReadyForQuery(channel);
         }
     }
+
+    private void handleSimpleQuery(ChannelBuffer buffer, final Channel channel) {
+        String query = readCString(buffer);
+        assert query != null : "query must not be nulL";
+
+        // TODO: support multiple statements
+        if (query.endsWith(";")) {
+            query = query.substring(0, query.length() - 1);
+        }
+        LOGGER.trace("query={}", query);
+
+        // TODO: hack for unsupported `SET datetype = 'ISO'` that's sent by psycopg2 if a connection is established
+        if (query.startsWith("SET")) {
+            Messages.sendCommandComplete(channel, "SET", 0);
+            Messages.sendReadyForQuery(channel);
+            return;
+        }
+        try {
+            session.parse("", query, Collections.<DataType>emptyList());
+            session.bind("", "", Collections.emptyList());
+            List<Field> fields = session.describe('S', "");
+            if (fields != null) {
+                Messages.sendRowDescription(channel, fields);
+            }
+            session.execute("", 0, createRowReceiver(channel));
+            session.sync();
+        } catch (Throwable t) {
+            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+            Messages.sendReadyForQuery(channel);
+        }
+    }
+
 
     /**
      * FrameDecoder that makes sure that a full message is in the buffer before delegating work to the MessageHandler
@@ -469,28 +518,4 @@ class ConnectionContext {
             return buffer;
         }
     }
-
-    private void handleSimpleQuery(ChannelBuffer buffer, final Channel channel) {
-        String query = readCString(buffer);
-        assert query != null : "query must not be nulL";
-        LOGGER.trace("query={}", query);
-
-        // TODO: hack for unsupported `SET datetype = 'ISO'` that's sent by psycopg2 if a connection is established
-        if (query.startsWith("SET")) {
-            Messages.sendCommandComplete(channel, "SET");
-            Messages.sendReadyForQuery(channel);
-            return;
-        }
-        try {
-            session.parse("", query, Collections.<DataType>emptyList());
-            session.bind("", "", Collections.emptyList());
-            List<Field> fields = session.describe('S', "");
-            Messages.sendRowDescription(channel, fields);
-            session.execute("", 0, new PsqlWireRowReceiver(query, channel, Symbols.extractTypes(fields)));
-            session.sync();
-        } catch (Throwable t) {
-            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
-        }
-    }
-
 }

@@ -28,40 +28,36 @@ import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.Requirements;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.types.DataType;
 import org.jboss.netty.channel.Channel;
 
-import java.util.List;
 import java.util.Set;
 
-class PsqlWireRowReceiver implements RowReceiver {
+class RowCountReceiver implements RowReceiver {
 
-    private final String query;
     private final Channel channel;
-    private final List<? extends DataType> columnTypes;
+    private final String query;
+    private long rowCount;
 
-    PsqlWireRowReceiver(String query, Channel channel, List<? extends DataType> columnTypes) {
+    RowCountReceiver(String query, Channel channel) {
         this.query = query;
         this.channel = channel;
-        this.columnTypes = columnTypes;
     }
 
     @Override
     public boolean setNextRow(Row row) {
-        Messages.sendDataRow(channel, row, columnTypes);
+        rowCount = (long) row.get(0);
         return true;
     }
 
     @Override
     public void finish() {
-        Messages.sendCommandComplete(channel, query.split(" ")[0]);
+        Messages.sendCommandComplete(channel, query, rowCount);
         Messages.sendReadyForQuery(channel);
     }
 
     @Override
     public void fail(Throwable throwable) {
         Messages.sendErrorResponse(channel, Exceptions.messageOf(throwable));
-        channel.close();
     }
 
     @Override
