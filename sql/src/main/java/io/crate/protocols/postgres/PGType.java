@@ -22,19 +22,32 @@
 
 package io.crate.protocols.postgres;
 
+import com.google.common.base.Throwables;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import javax.annotation.Nonnull;
+import java.io.IOException;
+import java.util.Map;
 
 abstract class PGType {
 
     final int oid;
     final int typeLen;
     final int typeMod;
-    final int formatCode;
+    final FormatCode formatCode;
 
-    private PGType(int oid,  int typeLen, int typeMod, int formatCode) {
+    enum FormatCode {
+        TEXT,   // 0
+        BINARY  // 1
+    }
+
+    /**
+     */
+    private PGType(int oid,  int typeLen, int typeMod, FormatCode formatCode) {
         this.oid = oid;
         this.typeLen = typeLen;
         this.typeMod = typeMod;
@@ -42,8 +55,8 @@ abstract class PGType {
     }
 
     /**
-     * write the value onto the buffer.
-     * @return the number of bytes written.
+     * write | int32 len | byteN value onto the buffer
+     * @return the number of bytes written. (4 + N)
      */
     abstract int writeValue(ChannelBuffer buffer, @Nonnull Object value);
 
@@ -54,7 +67,7 @@ abstract class PGType {
         final static int OID = 1043;
 
         StringType() {
-            super(OID, -1, -1, 0);
+            super(OID, -1, -1, FormatCode.BINARY);
         }
 
         @Override
@@ -71,6 +84,41 @@ abstract class PGType {
             bytesRef.length = valueLength;
             buffer.readBytes(bytesRef.bytes);
             return bytesRef;
+        }
+    }
+
+    static class JsonType extends PGType {
+
+        final static int OID = 114;
+
+        JsonType() {
+            super(OID, -1, -1, FormatCode.TEXT);
+        }
+
+        @Override
+        int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+            try {
+                XContentBuilder builder = JsonXContent.contentBuilder();
+                builder.map((Map) value);
+                builder.close();
+                BytesReference bytes = builder.bytes();
+                buffer.writeInt(bytes.length());
+                buffer.writeBytes(bytes.toChannelBuffer());
+                return 4 + bytes.length();
+            } catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
+        }
+
+        @Override
+        Object readValue(ChannelBuffer buffer, int valueLength) {
+            byte[] bytes = new byte[valueLength];
+            buffer.readBytes(bytes);
+            try {
+                return JsonXContent.jsonXContent.createParser(bytes).map();
+            } catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
         }
     }
 }
