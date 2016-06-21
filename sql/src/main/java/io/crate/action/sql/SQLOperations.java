@@ -27,6 +27,7 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.symbol.Field;
 import io.crate.executor.Executor;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;
@@ -38,7 +39,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -58,14 +58,6 @@ public class SQLOperations {
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
-    }
-
-    public void simpleQuery(String query, Function<AnalyzedRelation, RowReceiver> rowReceiverFactory) {
-        Session session = createSession(rowReceiverFactory);
-        session.parse("", query, Collections.<DataType>emptyList());
-        session.bind("", "", Collections.emptyList());
-        session.execute("", 0);
-        session.sync();
     }
 
     public Session createSession(Function<AnalyzedRelation, RowReceiver> rowReceiverFactory) {
@@ -104,6 +96,13 @@ public class SQLOperations {
             }
             analysis = analyzer.analyze(statement, new ParameterContext(params.toArray(new Object[0]), EMPTY_BULK_ARGS, null));
             plan = planner.plan(analysis, jobId);
+        }
+
+        public List<Field> describe(char type, String portalOrStatement) {
+            if (analysis == null) {
+                throw new IllegalStateException("describe called, but there was no bind() call");
+            }
+            return analysis.rootRelation().fields();
         }
 
         public void execute(String portalName, int maxRows) {
