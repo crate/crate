@@ -99,14 +99,23 @@ public class SQLOperations {
         }
 
         public void bind(String portalName, String statementName, List<Object> params) {
+            if (statement == null) {
+                throw new IllegalStateException("bind called without having a parsed statement");
+            }
             analysis = analyzer.analyze(statement, new ParameterContext(params.toArray(new Object[0]), EMPTY_BULK_ARGS, null));
             plan = planner.plan(analysis, jobId);
         }
 
         public void execute(String portalName, int maxRows) {
+            if (plan == null || analysis == null) {
+                throw new IllegalStateException("execute called without plan/analysis");
+            }
         }
 
         public void sync() {
+            if (plan == null || analysis == null) {
+                throw new IllegalStateException("sync called without plan/analysis");
+            }
             executor.execute(plan, rowReceiverFactory.apply(analysis.rootRelation()));
         }
     }

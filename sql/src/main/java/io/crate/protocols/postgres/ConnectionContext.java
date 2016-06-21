@@ -26,6 +26,7 @@ import com.google.common.base.Function;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.exceptions.Exceptions;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.types.DataType;
 import org.elasticsearch.common.logging.ESLogger;
@@ -269,7 +270,7 @@ class ConnectionContext {
                             handleExecute(buffer, channel);
                             return;
                         case 'S':
-                            handleSync(buffer, channel);
+                            handleSync(channel);
                             return;
                         case 'X': // Terminate
                             channel.close();
@@ -309,8 +310,12 @@ class ConnectionContext {
         }
 
         currentSession = sqlOperations.createSession(new RowReceiverFactory(channel, query));
-        currentSession.parse(statementName, query, paramTypes);
-        Messages.sendParseComplete(channel);
+        try {
+            currentSession.parse(statementName, query, paramTypes);
+            Messages.sendParseComplete(channel);
+        } catch (Throwable t) {
+            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+        }
     }
 
     /**
@@ -360,8 +365,12 @@ class ConnectionContext {
             buffer.readShort();
         }
 
-        currentSession.bind(portalName, statementName, params);
-        Messages.sendBindComplete(channel);
+        try {
+            currentSession.bind(portalName, statementName, params);
+            Messages.sendBindComplete(channel);
+        } catch (Throwable t) {
+            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+        }
     }
 
     /**
@@ -390,11 +399,19 @@ class ConnectionContext {
     private void handleExecute(ChannelBuffer buffer, Channel channel) {
         String portalName = readCString(buffer);
         int maxRows = buffer.readInt();
-        currentSession.execute(portalName, maxRows);
+        try {
+            currentSession.execute(portalName, maxRows);
+        } catch (Throwable t) {
+            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+        }
     }
 
-    private void handleSync(ChannelBuffer buffer, Channel channel) {
-        currentSession.sync();
+    private void handleSync(Channel channel) {
+        try {
+            currentSession.sync();
+        } catch (Throwable t) {
+            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+        }
     }
 
     /**
@@ -472,7 +489,7 @@ class ConnectionContext {
         try {
             sqlOperations.simpleQuery(query, new RowReceiverFactory(channel, query));
         } catch (Throwable t) {
-            Messages.sendErrorResponse(channel, t.getMessage());
+            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
         }
     }
 
