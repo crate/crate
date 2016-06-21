@@ -42,6 +42,7 @@ import org.apache.lucene.search.*;
 import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeQuery;
 import org.apache.lucene.spatial.prefix.WithinPrefixTreeQuery;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -101,8 +102,11 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         searchContext = mock(SearchContext.class, Answers.RETURNS_MOCKS.get());
         indexCache = mock(IndexCache.class, Answers.RETURNS_MOCKS.get());
 
-        MapperService mapperService = newMapperService(temporaryFolder.newFolder().toPath(),
-                Settings.builder().put("index.version.created", Version.CURRENT).build());
+        Settings indexSettings = Settings.builder()
+            .put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
+            .build();
+        when(indexCache.indexSettings()).thenReturn(indexSettings);
+        MapperService mapperService = newMapperService(temporaryFolder.newFolder().toPath(), indexSettings);
 
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder().startObject().startObject("default")
                 .startObject("properties")
@@ -386,11 +390,17 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     @Test
-    public void testWithinFunction() throws Exception {
-        Query eqWithinQuery = convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0]]})");
-        assertThat(eqWithinQuery.toString(), is("GeoPolygonQuery(point, [0.0,0.0, 1.0,1.0])"));
+    public void testWithinFunctionTooFewPoints() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("at least 4 polygon points required");
+        convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0]]})");
     }
 
+    @Test
+    public void testWithinFunction() throws Exception {
+        Query eqWithinQuery = convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0], [2.0, 1.0]]})");
+        assertThat(eqWithinQuery.toString(), is("GeoPointInPolygonQuery: field=point: Points: [0.0, 0.0] [1.0, 1.0] [2.0, 1.0] [0.0, 0.0] "));
+    }
     @Test
     public void testWithinFunctionWithShapeReference() throws Exception {
         // shape references cannot use the inverted index, so use generic function here
