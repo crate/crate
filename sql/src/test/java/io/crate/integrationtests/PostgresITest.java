@@ -101,12 +101,12 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testStatementThatResultsInAnalyzerError() throws Exception {
-        try (Connection conn = DriverManager.getConnection("jdbc:postgresql://127.0.0.1:4242/")) {
+    public void testCustomSchemaAndAnalyzerFailure() throws Exception {
+        try (Connection conn = DriverManager.getConnection("jdbc:postgresql://127.0.0.1:4242/foo")) {
             conn.setAutoCommit(true);
-            PreparedStatement stmt = conn.prepareStatement("select invalid_column from sys.cluster");
+            PreparedStatement stmt = conn.prepareStatement("select x from t");
             expectedException.expect(PSQLException.class);
-            expectedException.expectMessage("Column invalid_column unknown");
+            expectedException.expectMessage("Schema 'foo' unknown");
             stmt.executeQuery();
 
             // verify that queries can be made after an error occurred
