@@ -25,6 +25,7 @@ package io.crate.protocols.postgres;
 import com.google.common.base.Function;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.Exceptions;
 import io.crate.operation.projectors.RowReceiver;
@@ -39,6 +40,7 @@ import org.jboss.netty.handler.codec.frame.FrameDecoder;
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -114,6 +116,9 @@ import static io.crate.protocols.postgres.ConnectionContext.State.STARTUP_HEADER
  *          |                                  |
  *          |  Describe (optional)             |
  *          |--------------------------------->|
+ *          |                                  |
+ *          |  RowDescription (optional)       |
+ *          |<-------------------------------- |
  *          |                                  |
  *          |  Execute                         |
  *          |--------------------------------->|
@@ -205,8 +210,6 @@ class ConnectionContext {
         @Override
         public RowReceiver apply(@Nullable AnalyzedRelation input) {
             assert input != null : "relation must not be null";
-
-            Messages.sendRowDescription(channel, input.fields());
             return new PsqlWireRowReceiver(query, channel, Symbols.extractTypes(input.fields()));
         }
     }
@@ -385,6 +388,12 @@ class ConnectionContext {
     private void handleDescribeMessage(ChannelBuffer buffer, Channel channel) {
         byte type = buffer.readByte();
         String portalOrStatement = readCString(buffer);
+        try {
+            Collection<Field> fields = currentSession.describe((char) type, portalOrStatement);
+            Messages.sendRowDescription(channel, fields);
+        } catch (Throwable t) {
+            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+        }
     }
 
     /**
@@ -486,8 +495,15 @@ class ConnectionContext {
             Messages.sendReadyForQuery(channel);
             return;
         }
+
         try {
-            sqlOperations.simpleQuery(query, new RowReceiverFactory(channel, query));
+            SQLOperations.Session session = sqlOperations.createSession(new RowReceiverFactory(channel, query));
+            session.parse("", query, Collections.<DataType>emptyList());
+            session.bind("", "", Collections.emptyList());
+            Collection<Field> fields = session.describe('S', "");
+            Messages.sendRowDescription(channel, fields);
+            session.execute("", 0);
+            session.sync();
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
         }
