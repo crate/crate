@@ -34,12 +34,14 @@ class PGTypes {
 
     static final Map<DataType, PGType> CRATE_TO_PG_TYPES = ImmutableMap.<DataType, PGType>builder()
         .put(DataTypes.STRING, new PGType.StringType())
+        .put(DataTypes.OBJECT, new PGType.JsonType())
         .build();
 
     private static final IntObjectMap<DataType> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<DataType>()
     {{
         put(0, DataTypes.UNDEFINED);
         put(PGType.StringType.OID, DataTypes.STRING);
+        put(PGType.JsonType.OID, DataTypes.OBJECT);
     }};
 
     static DataType fromOID(int oid) {
