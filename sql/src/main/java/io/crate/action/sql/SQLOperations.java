@@ -22,12 +22,11 @@
 
 package io.crate.action.sql;
 
-import com.google.common.base.Function;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.executor.Executor;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;
@@ -39,6 +38,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.UUID;
 
@@ -60,28 +60,32 @@ public class SQLOperations {
         this.executorProvider = executorProvider;
     }
 
-    public Session createSession(Function<AnalyzedRelation, RowReceiver> rowReceiverFactory) {
-        return new Session(executorProvider.get(), rowReceiverFactory);
+    public Session createSession(@Nullable String defaultSchema) {
+        return new Session(executorProvider.get(), defaultSchema);
     }
 
     public class Session {
 
         private final Executor executor;
-        private final Function<AnalyzedRelation, RowReceiver> rowReceiverFactory;
+        private final String defaultSchema;
         private final UUID jobId;
 
         private List<DataType> paramTypes;
         private Statement statement;
         private Analysis analysis;
         private Plan plan;
+        private RowReceiver rowReceiver;
+        private List<DataType> outputTypes;
+        private String query;
 
-        private Session(Executor executor, Function<AnalyzedRelation, RowReceiver> rowReceiverFactory) {
+        private Session(Executor executor, String defaultSchema) {
             this.executor = executor;
-            this.rowReceiverFactory = rowReceiverFactory;
+            this.defaultSchema = defaultSchema;
             this.jobId = UUID.randomUUID();
         }
 
         public void parse(String statementName, String query, List<DataType> paramTypes) {
+            this.query = query;
             this.statement = SqlParser.createStatement(query);
             this.paramTypes = paramTypes;
         }
@@ -94,7 +98,7 @@ public class SQLOperations {
             if (statement == null) {
                 throw new IllegalStateException("bind called without having a parsed statement");
             }
-            analysis = analyzer.analyze(statement, new ParameterContext(params.toArray(new Object[0]), EMPTY_BULK_ARGS, null));
+            analysis = analyzer.analyze(statement, new ParameterContext(params.toArray(new Object[0]), EMPTY_BULK_ARGS, defaultSchema));
             plan = planner.plan(analysis, jobId);
         }
 
@@ -102,20 +106,31 @@ public class SQLOperations {
             if (analysis == null) {
                 throw new IllegalStateException("describe called, but there was no bind() call");
             }
-            return analysis.rootRelation().fields();
+            List<Field> fields = analysis.rootRelation().fields();
+            outputTypes = Symbols.extractTypes(fields);
+            return fields;
         }
 
-        public void execute(String portalName, int maxRows) {
+        public void execute(String portalName, int maxRows, RowReceiver rowReceiver) {
+            this.rowReceiver = rowReceiver;
             if (plan == null || analysis == null) {
                 throw new IllegalStateException("execute called without plan/analysis");
             }
         }
 
         public void sync() {
-            if (plan == null || analysis == null) {
-                throw new IllegalStateException("sync called without plan/analysis");
+            if (plan == null || analysis == null || rowReceiver == null) {
+                throw new IllegalStateException("sync called, but there was no bind or execute");
             }
-            executor.execute(plan, rowReceiverFactory.apply(analysis.rootRelation()));
+            executor.execute(plan, rowReceiver);
+        }
+
+        public List<? extends DataType> outputTypes() {
+            return outputTypes;
+        }
+
+        public String query() {
+            return query;
         }
     }
 }
