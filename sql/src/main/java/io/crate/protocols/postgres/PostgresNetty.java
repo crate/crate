@@ -23,20 +23,31 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.SQLOperations;
+import io.crate.metadata.settings.CrateSettings;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.network.NetworkAddress;
+import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.PortsRange;
 import org.jboss.netty.bootstrap.ServerBootstrap;
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 
+import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
@@ -44,19 +55,30 @@ import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadF
 public class PostgresNetty extends AbstractLifecycleComponent {
 
     private final SQLOperations sqlOperations;
+    private final NetworkService networkService;
+
+    private final boolean enabled;
+    private final String port;
+
     private ServerBootstrap bootstrap;
     private ExecutorService bossExecutor;
     private ExecutorService workerExecutor;
 
+    private volatile List<Channel> serverChannels = new ArrayList<>();
+
     @Inject
-    public PostgresNetty(Settings settings, SQLOperations sqlOperations) {
+    public PostgresNetty(Settings settings, SQLOperations sqlOperations, NetworkService networkService) {
         super(settings);
         this.sqlOperations = sqlOperations;
+        this.networkService = networkService;
+
+        enabled = CrateSettings.NETWORK_PSQL.extract(settings);
+        port = CrateSettings.PSQL_PORT.extract(settings);
     }
 
     @Override
     protected void doStart() {
-        if (!settings.getAsBoolean("network.psql", false)) {
+        if (!enabled) {
             return;
         }
 
@@ -75,11 +97,63 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                 return pipeline;
             }
         });
-        bootstrap.bind(new InetSocketAddress("127.0.0.1", 4242));
+
+        resolveBindAddress();
+    }
+
+    private void resolveBindAddress() {
+        // Bind and start to accept incoming connections.
+        try {
+            InetAddress[] hostAddresses = networkService.resolveBindHostAddresses(null);
+            for (InetAddress address : hostAddresses) {
+                bindAddress(address);
+            }
+        } catch (IOException e) {
+            throw new BindPostgresException("Failed to resolve binding network host", e);
+        }
+    }
+
+    private InetSocketTransportAddress bindAddress(final InetAddress hostAddress) {
+        PortsRange portsRange = new PortsRange(port);
+        final AtomicReference<Exception> lastException = new AtomicReference<>();
+        final AtomicReference<InetSocketAddress> boundSocket = new AtomicReference<>();
+        boolean success = portsRange.iterate(new PortsRange.PortCallback() {
+            @Override
+            public boolean onPortNumber(int portNumber) {
+                try {
+                    synchronized (serverChannels) {
+                        Channel channel = bootstrap.bind(new InetSocketAddress(hostAddress, portNumber));
+                        serverChannels.add(channel);
+                        boundSocket.set((InetSocketAddress) channel.getLocalAddress());
+                    }
+                } catch (Exception e) {
+                    lastException.set(e);
+                    return false;
+                }
+                return true;
+            }
+        });
+        if (!success) {
+            throw new BindPostgresException("Failed to bind to [" + port + "]", lastException.get());
+        }
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("Bound psql to address {{}}", NetworkAddress.format(boundSocket.get()));
+        }
+        return new InetSocketTransportAddress(boundSocket.get());
     }
 
     @Override
     protected void doStop() {
+        synchronized (serverChannels) {
+            if (serverChannels != null) {
+                for (Channel channel : serverChannels) {
+                    channel.close().awaitUninterruptibly();
+                }
+                serverChannels = null;
+            }
+        }
+
         if (bootstrap != null) {
             bootstrap.shutdown();
             workerExecutor.shutdown();
@@ -96,6 +170,5 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
     @Override
     protected void doClose() {
-
     }
 }
