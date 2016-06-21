@@ -214,6 +214,20 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         future.get(500, TimeUnit.MILLISECONDS);
     }
 
+    @Test
+    public void testOptimizeDuringPartitionDeletion() throws Exception {
+        execute("create table t (name string, p string) partitioned by (p)");
+        execute("insert into t (name, p) values ('Arthur', 'a'), ('Trillian', 't')");
+        execute("refresh table t");
+
+        PlanForNode plan = plan("optimize table t"); // create a plan in which the partitions exist
+        execute("delete from t");
+
+        ListenableFuture<TaskResult> future = execute(plan); // execute now that the partitions are gone
+        // shouldn't throw an exception:
+        future.get(500, TimeUnit.MILLISECONDS);
+    }
+
     private void deletePartitionWhileInsertingData(final boolean useBulk) throws Exception {
         execute("create table parted (id int, name string) " +
                 "partitioned by (id) " +

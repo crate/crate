@@ -408,6 +408,7 @@ def test_suite():
     for fn in ('sql/ddl.txt',
                'sql/dql.txt',
                'sql/refresh.txt',
+               'sql/optimize.txt',
                'sql/fulltext.txt',
                'sql/data_types.txt',
                'sql/occ.txt',

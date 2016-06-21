@@ -38,6 +38,7 @@ public class Analyzer {
     private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
     private final DropBlobTableStatementAnalyzer dropBlobTableStatementAnalyzer;
     private final RefreshTableAnalyzer refreshTableAnalyzer;
+    private final OptimizeTableAnalyzer optimizeTableAnalyzer;
     private final AlterTableAnalyzer alterTableAnalyzer;
     private final AlterBlobTableAnalyzer alterBlobTableAnalyzer;
     private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
@@ -62,6 +63,7 @@ public class Analyzer {
                     CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
                     DropBlobTableStatementAnalyzer dropBlobTableStatementAnalyzer,
                     RefreshTableAnalyzer refreshTableAnalyzer,
+                    OptimizeTableAnalyzer optimizeTableAnalyzer,
                     AlterTableAnalyzer alterTableAnalyzer,
                     AlterBlobTableAnalyzer alterBlobTableAnalyzer,
                     AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer,
@@ -85,6 +87,7 @@ public class Analyzer {
         this.createAnalyzerStatementAnalyzer = createAnalyzerStatementAnalyzer;
         this.dropBlobTableStatementAnalyzer = dropBlobTableStatementAnalyzer;
         this.refreshTableAnalyzer = refreshTableAnalyzer;
+        this.optimizeTableAnalyzer = optimizeTableAnalyzer;
         this.alterTableAnalyzer = alterTableAnalyzer;
         this.alterBlobTableAnalyzer = alterBlobTableAnalyzer;
         this.alterTableAddColumnAnalyzer = alterTableAddColumnAnalyzer;
@@ -204,6 +207,11 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitRefreshStatement(RefreshStatement node, Analysis context) {
             return refreshTableAnalyzer.analyze(node, context);
+        }
+
+        @Override
+        public AnalyzedStatement visitOptimizeStatement(OptimizeStatement node, Analysis context) {
+            return optimizeTableAnalyzer.analyze(node, context);
         }
 
         @Override

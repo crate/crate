@@ -99,6 +99,7 @@ statement returns [Statement value]
     | copyTo                    { $value = $copyTo.value; }
     | createAnalyzer            { $value = $createAnalyzer.value; }
     | refresh                   { $value = $refresh.value; }
+    | optimize                  { $value = $optimize.value; }
     | set                       { $value = $set.value; }
     | resetStatement            { $value = $resetStatement.value; }
     | killStatement             { $value = $killStatement.value; }
@@ -1019,6 +1020,10 @@ namedProperties returns [NamedProperties value]
 
 refresh returns [RefreshStatement value]
     : ^(REFRESH tableWithPartitionList)  { $value = new RefreshStatement($tableWithPartitionList.value); }
+    ;
+
+optimize returns [OptimizeStatement value]
+    : ^(OPTIMIZE tableWithPartitionList genericProperties?)  { $value = new OptimizeStatement($tableWithPartitionList.value, $genericProperties.value); }
     ;
 
 tableWithPartitionList returns [List<Table> value = new ArrayList<>()]

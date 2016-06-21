@@ -24,8 +24,6 @@ package io.crate.metadata.settings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import io.crate.analyze.SettingsApplier;
-import io.crate.analyze.SettingsAppliers;
 import io.crate.breaker.CrateCircuitBreakerService;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;

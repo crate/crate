@@ -34,6 +34,7 @@ import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestore
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
+import org.elasticsearch.action.admin.indices.forcemerge.TransportForceMergeAction;
 import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
 import org.elasticsearch.action.admin.indices.refresh.TransportRefreshAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
@@ -67,6 +68,7 @@ public class TransportActionProvider {
     private final Provider<TransportShardUpsertAction> transportShardUpsertActionProvider;
     private final Provider<TransportPutMappingAction> transportPutMappingActionProvider;
     private final Provider<TransportRefreshAction> transportRefreshActionProvider;
+    private final Provider<TransportForceMergeAction> transportForceMergeActionProvider;
     private final Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider;
     private final Provider<TransportBulkCreateIndicesAction> transportBulkCreateIndicesActionProvider;
 
@@ -99,6 +101,7 @@ public class TransportActionProvider {
                                    Provider<TransportKillAllNodeAction> transportKillAllNodeActionProvider,
                                    Provider<TransportPutMappingAction> transportPutMappingActionProvider,
                                    Provider<TransportRefreshAction> transportRefreshActionProvider,
+                                   Provider<TransportForceMergeAction> transportForceMergeActionProvider,
                                    Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider,
                                    Provider<TransportJobAction> transportJobInitActionProvider,
                                    Provider<TransportBulkCreateIndicesAction> transportBulkCreateIndicesActionProvider,
@@ -124,6 +127,7 @@ public class TransportActionProvider {
         this.transportFetchNodeActionProvider = transportFetchNodeActionProvider;
         this.transportPutMappingActionProvider = transportPutMappingActionProvider;
         this.transportRefreshActionProvider = transportRefreshActionProvider;
+        this.transportForceMergeActionProvider = transportForceMergeActionProvider;
         this.transportUpdateSettingsActionProvider = transportUpdateSettingsActionProvider;
         this.transportJobInitActionProvider = transportJobInitActionProvider;
         this.transportBulkCreateIndicesActionProvider = transportBulkCreateIndicesActionProvider;
@@ -198,6 +202,10 @@ public class TransportActionProvider {
 
     public TransportRefreshAction transportRefreshAction() {
         return transportRefreshActionProvider.get();
+    }
+
+    public TransportForceMergeAction transportForceMergeAction() {
+        return transportForceMergeActionProvider.get();
     }
 
     public TransportUpdateSettingsAction transportUpdateSettingsAction() {

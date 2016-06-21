@@ -29,6 +29,7 @@ supported by Crate.
     reference/explain
     reference/insert
     reference/kill
+    reference/optimize
     reference/refresh
     reference/restore_snapshot
     reference/select

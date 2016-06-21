@@ -24,9 +24,8 @@ package io.crate.analyze.repositories;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import io.crate.analyze.SettingsApplier;
-import io.crate.analyze.SettingsAppliers;
+import io.crate.metadata.settings.SettingsApplier;
+import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.metadata.settings.BoolSetting;
 import io.crate.metadata.settings.ByteSizeSetting;
 import io.crate.metadata.settings.IntSetting;

@@ -43,6 +43,7 @@ import io.crate.metadata.doc.MetaDataDocModule;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
+import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.monitor.MonitorModule;
@@ -193,7 +194,7 @@ public class SQLPlugin extends Plugin {
         for (Setting setting : settings) {
             /**
              * validation is done in
-             * {@link io.crate.analyze.SettingsAppliers.AbstractSettingsApplier#apply(org.elasticsearch.common.settings.Settings.Builder, Object[], io.crate.sql.tree.Expression)}
+             * {@link SettingsAppliers.AbstractSettingsApplier#apply(org.elasticsearch.common.settings.Settings.Builder, Object[], io.crate.sql.tree.Expression)}
              * here we use Validator.EMPTY, since ES ignores invalid settings silently
              **/
 

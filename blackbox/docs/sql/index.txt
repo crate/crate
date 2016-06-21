@@ -27,5 +27,6 @@ see :doc:`sql`. For general information about SQL please refer to
    system
    kill
    snapshot_restore
+   optimize
    sql
    rest

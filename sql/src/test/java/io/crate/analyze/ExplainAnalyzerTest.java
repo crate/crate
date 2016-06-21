@@ -86,10 +86,16 @@ public class ExplainAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testExplainUnsupported() throws Exception {
+    public void testExplainRefreshUnsupported() throws Exception {
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage("EXPLAIN is not supported for RefreshStatement");
         analyze("explain refresh table parted");
     }
 
+    @Test
+    public void testExplainOptimizeUnsupported() throws Exception {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("EXPLAIN is not supported for OptimizeStatement");
+        analyze("explain optimize table parted");
+    }
 }

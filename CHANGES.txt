@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Implemented OPTIMIZE table statement which optimizes tables and partitions
+   by merging the segments of which each table and partition consists.
+
  - Fix: Failures on large bulk operations could lead to an
    stackoverflow error and unresponsive cluster.
 

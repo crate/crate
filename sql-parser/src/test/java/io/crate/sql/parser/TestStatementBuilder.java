@@ -30,6 +30,7 @@ import org.antlr.runtime.tree.CommonTree;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Strings.repeat;
@@ -453,6 +454,21 @@ public class TestStatementBuilder {
                        "    col1 geo_shape INDEX OFF," +
                        "    index geo_shape_i using quadtree(col1) with (precision='1m')" +
                        ")");
+    }
+
+    @Test
+    public void testOptimize() throws Exception {
+        printStatement("optimize table t");
+        printStatement("optimize table t1, t2");
+        printStatement("optimize table schema.t");
+        printStatement("optimize table schema.t1, schema.t2");
+        printStatement("optimize table t partition (pcol='val')");
+        printStatement("optimize table t partition (pcol=?)");
+        printStatement("optimize table t partition (pcol['nested'] = ?)");
+        printStatement("optimize table t partition (pcol='val') with (param1=val1, param2=val2)");
+        printStatement("optimize table t1 partition (pcol1='val1'), t2 partition (pcol2='val2')");
+        printStatement("optimize table t1 partition (pcol1='val1'), t2 partition (pcol2='val2') " +
+                        "with (param1=val1, param2=val2, param3='val3')");
     }
 
     @Test

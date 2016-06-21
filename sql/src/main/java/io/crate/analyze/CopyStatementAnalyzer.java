@@ -43,6 +43,8 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.SettingsApplier;
+import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.metadata.settings.StringSetting;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;

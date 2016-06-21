@@ -89,6 +89,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLAnalyzedStatement(analysis, context);
     }
 
+    public R visitOptimizeTableStatement(OptimizeTableAnalyzedStatement analysis, C context) {
+        return visitDDLAnalyzedStatement(analysis, context);
+    }
+
     public R visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, C context) {
         return visitDDLAnalyzedStatement(analysis, context);
     }

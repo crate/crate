@@ -29,7 +29,8 @@ import io.crate.action.FutureActionListener;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.*;
-import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
+import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -99,6 +100,26 @@ public class DDLStatementDispatcher {
         @Override
         public ListenableFuture<Long> visitAddColumnStatement(AddColumnAnalyzedStatement analysis, UUID context) {
             return alterTableOperation.executeAlterTableAddColumn(analysis);
+        }
+
+        @Override
+        public ListenableFuture<Long> visitOptimizeTableStatement(OptimizeTableAnalyzedStatement analysis, UUID jobId) {
+            ForceMergeRequest request = new ForceMergeRequest(analysis.indexNames().toArray(new String[0]));
+
+            // Pass parameters to ES request
+            request.maxNumSegments(analysis.settings().getAsInt(OptimizeSettings.MAX_NUM_SEGMENTS.name(),
+                                                                ForceMergeRequest.Defaults.MAX_NUM_SEGMENTS));
+            request.onlyExpungeDeletes(analysis.settings().getAsBoolean(OptimizeSettings.ONLY_EXPUNGE_DELETES.name(),
+                                                                      ForceMergeRequest.Defaults.ONLY_EXPUNGE_DELETES));
+            request.flush(analysis.settings().getAsBoolean(OptimizeSettings.FLUSH.name(),
+                                                           ForceMergeRequest.Defaults.FLUSH));
+
+            request.indicesOptions(IndicesOptions.lenientExpandOpen());
+
+            FutureActionListener<ForceMergeResponse, Long> listener =
+                new FutureActionListener<>(Functions.constant((long) analysis.indexNames().size()));
+            transportActionProvider.transportForceMergeAction().execute(request, listener);
+            return listener;
         }
 
         @Override
