@@ -485,7 +485,7 @@ class ConnectionContext {
     }
 
     private void handleSimpleQuery(ChannelBuffer buffer, final Channel channel) {
-        final String query = readCString(buffer);
+        String query = readCString(buffer);
         assert query != null : "query must not be nulL";
         LOGGER.trace("query={}", query);
 
@@ -495,7 +495,6 @@ class ConnectionContext {
             Messages.sendReadyForQuery(channel);
             return;
         }
-
         try {
             SQLOperations.Session session = sqlOperations.createSession(new RowReceiverFactory(channel, query));
             session.parse("", query, Collections.<DataType>emptyList());
