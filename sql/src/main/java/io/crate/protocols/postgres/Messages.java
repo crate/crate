@@ -269,7 +269,7 @@ class Messages {
             buffer.writeInt(pgType.oid);
             buffer.writeShort(pgType.typeLen);
             buffer.writeInt(pgType.typeMod);
-            buffer.writeShort(pgType.formatCode);
+            buffer.writeShort(pgType.formatCode.ordinal());
         }
 
         buffer.setInt(1, length);
