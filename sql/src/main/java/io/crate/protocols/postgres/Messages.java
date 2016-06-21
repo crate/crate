@@ -37,6 +37,7 @@ import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Regular data packet is in the following format:
@@ -73,9 +74,24 @@ class Messages {
     /**
      * | 'C' | int32 len | str commandTag
      *
-     * @param commandTag:single word that identifies the SQL command that was completed
+     * @param query :the query
+     * @param rowCount : number of rows in the result set or number of rows affected by the DML statement
      */
-    static void sendCommandComplete(Channel channel, String commandTag) {
+    static void sendCommandComplete(Channel channel, String query, long rowCount) {
+        query = query.split(" ", 2)[0].toUpperCase(Locale.ENGLISH);
+        String commandTag;
+        /**
+         * from https://www.postgresql.org/docs/current/static/protocol-message-formats.html:
+         *
+         * For an INSERT command, the tag is INSERT oid rows, where rows is the number of rows inserted.
+         * oid is the object ID of the inserted row if rows is 1 and the target table has OIDs; otherwise oid is 0.
+         */
+        if ("INSERT".equals(query)) {
+            commandTag = "INSERT 0 " + rowCount;
+        } else {
+            commandTag = query + " " + rowCount;
+        }
+
         byte[] commandTagBytes = commandTag.getBytes(StandardCharsets.UTF_8);
         int length = 4 + commandTagBytes.length + 1;
         ChannelBuffer buffer = ChannelBuffers.buffer(length + 1);
@@ -166,20 +182,28 @@ class Messages {
      *
      */
     static void sendErrorResponse(Channel channel, @Nonnull final String message) {
-        byte[] msgBytes = message.getBytes(StandardCharsets.UTF_8);
-        int length = 4 + 1 + msgBytes.length + 1 + 1;
-        ChannelBuffer buffer = ChannelBuffers.buffer(length + 2);
+        byte[] msg = message.getBytes(StandardCharsets.UTF_8);
+        byte[] severity = "ERROR".getBytes(StandardCharsets.UTF_8);
+        int length =
+            4 +
+            1 + (severity.length + 1) +
+            1 + (msg.length + 1) +
+            1;
+        ChannelBuffer buffer = ChannelBuffers.buffer(length + 1);
         buffer.writeByte('E');
         buffer.writeInt(length);
         buffer.writeByte('S');
-        writeCString(buffer, msgBytes);
+        writeCString(buffer, severity);
+        buffer.writeByte('M');
+        writeCString(buffer, msg);
+
+        buffer.writeByte(0);
         channel.write(buffer).addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
                 LOGGER.trace("sentErrorResponse msg={}", message);
             }
         });
-        buffer.writeByte(0);
     }
 
     /**
@@ -269,7 +293,7 @@ class Messages {
             buffer.writeInt(pgType.oid);
             buffer.writeShort(pgType.typeLen);
             buffer.writeInt(pgType.typeMod);
-            buffer.writeShort(pgType.formatCode);
+            buffer.writeShort(pgType.formatCode.ordinal());
         }
 
         buffer.setInt(1, length);

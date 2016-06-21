@@ -22,13 +22,11 @@
 
 package io.crate.protocols.postgres;
 
-import com.google.common.base.Function;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.Exceptions;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.types.DataType;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -37,7 +35,6 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.*;
 import org.jboss.netty.handler.codec.frame.FrameDecoder;
 
-import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,6 +42,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static io.crate.protocols.postgres.ConnectionContext.State.STARTUP_HEADER;
+
 
 
 /**
@@ -151,7 +149,7 @@ class ConnectionContext {
 
     private int msgLength;
     private byte msgType;
-    private SQLOperations.Session currentSession;
+    private SQLOperations.Session session;
 
     enum State {
         SSL_NEG,
@@ -186,35 +184,25 @@ class ConnectionContext {
         return new String(bytes, 0, bytes.length - 1, StandardCharsets.UTF_8);
     }
 
-    private void readStartupMessage(ChannelBuffer buffer) {
+    private SQLOperations.Session readStartupMessage(ChannelBuffer buffer) {
         ChannelBuffer channelBuffer = buffer.readBytes(msgLength);
+        String defaultSchema = null;
         while (true) {
-            String s = readCString(channelBuffer);
-            if (s == null) {
+            String key = readCString(channelBuffer);
+            if (key == null) {
                 break;
             }
-            LOGGER.trace("payload: {}", s);
+            String value = readCString(channelBuffer);
+            LOGGER.trace("payload: key={} value={}", key, value);
+            if (key.equals("database") && !"".equals(value)) {
+                defaultSchema = value;
+            }
         }
-    }
-
-    private static class RowReceiverFactory implements Function<AnalyzedRelation, ResultReceiver> {
-        private final Channel channel;
-        private final String query;
-
-        RowReceiverFactory(Channel channel, String query) {
-            this.channel = channel;
-            this.query = query;
-        }
-
-        @Nullable
-        @Override
-        public ResultReceiver apply(@Nullable AnalyzedRelation input) {
-            assert input != null : "relation must not be null";
-            return new PsqlWireRowReceiver(query, channel, Symbols.extractTypes(input.fields()));
-        }
+        return sqlOperations.createSession(defaultSchema);
     }
 
     private class MessageHandler extends SimpleChannelUpstreamHandler {
+
         @Override
         public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
             Object m = e.getMessage();
@@ -245,7 +233,7 @@ class ConnectionContext {
 
                 case STARTUP_BODY:
                     state = State.MSG_HEADER;
-                    readStartupMessage(buffer);
+                    session = readStartupMessage(buffer);
                     Messages.sendAuthenticationOK(channel);
                     // TODO: probably need to send more stuff
                     Messages.sendParameterStatus(channel, "server_encoding", "UTF8");
@@ -277,6 +265,7 @@ class ConnectionContext {
                             return;
                         case 'X': // Terminate
                             channel.close();
+                            session = null;
                             return;
                         default:
                             Messages.sendErrorResponse(channel, "Unsupported messageType: " + msgType);
@@ -311,10 +300,8 @@ class ConnectionContext {
         for (int i = 0; i < numParams; i++) {
             paramTypes.add(PGTypes.fromOID(buffer.readInt()));
         }
-
-        currentSession = sqlOperations.createSession(new RowReceiverFactory(channel, query));
         try {
-            currentSession.parse(statementName, query, paramTypes);
+            session.parse(statementName, query, paramTypes);
             Messages.sendParseComplete(channel);
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
@@ -357,7 +344,7 @@ class ConnectionContext {
                 if (valueLength == -1) {
                     params.add(null);
                 } else {
-                    DataType paramType = currentSession.getParamType(i);
+                    DataType paramType = session.getParamType(i);
                     PGType pgType = PGTypes.CRATE_TO_PG_TYPES.get(paramType);
                     params.add(pgType.readValue(buffer, valueLength));
                 }
@@ -369,7 +356,7 @@ class ConnectionContext {
         }
 
         try {
-            currentSession.bind(portalName, statementName, params);
+            session.bind(portalName, statementName, params);
             Messages.sendBindComplete(channel);
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
@@ -389,8 +376,12 @@ class ConnectionContext {
         byte type = buffer.readByte();
         String portalOrStatement = readCString(buffer);
         try {
-            Collection<Field> fields = currentSession.describe((char) type, portalOrStatement);
-            Messages.sendRowDescription(channel, fields);
+            Collection<Field> fields = session.describe((char) type, portalOrStatement);
+            if (fields == null) {
+                // DML statement, no need for description
+            } else {
+                Messages.sendRowDescription(channel, fields);
+            }
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
         }
@@ -409,19 +400,65 @@ class ConnectionContext {
         String portalName = readCString(buffer);
         int maxRows = buffer.readInt();
         try {
-            currentSession.execute(portalName, maxRows);
+            ResultReceiver rowReceiver = createRowReceiver(channel);
+            session.execute(portalName, maxRows, rowReceiver);
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
         }
     }
 
+    private ResultReceiver createRowReceiver(Channel channel) {
+        ResultReceiver rowReceiver;
+        if (session.outputTypes() == null) {
+            // this is a DML query:
+            rowReceiver = new RowCountReceiver(session.query(), channel);
+        } else {
+            // query with resultSet
+            rowReceiver = new ResultSetReceiver(session.query(), channel, session.outputTypes());
+        }
+        return rowReceiver;
+    }
+
     private void handleSync(Channel channel) {
         try {
-            currentSession.sync();
+            session.sync();
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+            Messages.sendReadyForQuery(channel);
         }
     }
+
+    private void handleSimpleQuery(ChannelBuffer buffer, final Channel channel) {
+        String query = readCString(buffer);
+        assert query != null : "query must not be nulL";
+
+        // TODO: support multiple statements
+        if (query.endsWith(";")) {
+            query = query.substring(0, query.length() - 1);
+        }
+        LOGGER.trace("query={}", query);
+
+        // TODO: hack for unsupported `SET datetype = 'ISO'` that's sent by psycopg2 if a connection is established
+        if (query.startsWith("SET")) {
+            Messages.sendCommandComplete(channel, "SET", 0);
+            Messages.sendReadyForQuery(channel);
+            return;
+        }
+        try {
+            session.parse("", query, Collections.<DataType>emptyList());
+            session.bind("", "", Collections.emptyList());
+            List<Field> fields = session.describe('S', "");
+            if (fields != null) {
+                Messages.sendRowDescription(channel, fields);
+            }
+            session.execute("", 0, createRowReceiver(channel));
+            session.sync();
+        } catch (Throwable t) {
+            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+            Messages.sendReadyForQuery(channel);
+        }
+    }
+
 
     /**
      * FrameDecoder that makes sure that a full message is in the buffer before delegating work to the MessageHandler
@@ -483,30 +520,4 @@ class ConnectionContext {
             return buffer;
         }
     }
-
-    private void handleSimpleQuery(ChannelBuffer buffer, final Channel channel) {
-        final String query = readCString(buffer);
-        assert query != null : "query must not be nulL";
-        LOGGER.trace("query={}", query);
-
-        // TODO: hack for unsupported `SET datetype = 'ISO'` that's sent by psycopg2 if a connection is established
-        if (query.startsWith("SET")) {
-            Messages.sendCommandComplete(channel, "SET");
-            Messages.sendReadyForQuery(channel);
-            return;
-        }
-
-        try {
-            SQLOperations.Session session = sqlOperations.createSession(new RowReceiverFactory(channel, query));
-            session.parse("", query, Collections.<DataType>emptyList());
-            session.bind("", "", Collections.emptyList());
-            Collection<Field> fields = session.describe('S', "");
-            Messages.sendRowDescription(channel, fields);
-            session.execute("", 0);
-            session.sync();
-        } catch (Throwable t) {
-            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
-        }
-    }
-
 }
