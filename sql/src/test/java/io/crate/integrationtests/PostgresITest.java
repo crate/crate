@@ -38,6 +38,8 @@ import static org.hamcrest.core.Is.is;
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
 public class PostgresITest extends SQLTransportIntegrationTest {
 
+    private static final String JDBC_POSTGRESQL_URL = "jdbc:postgresql://127.0.0.1:4242/";
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
@@ -46,6 +48,8 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put("network.psql", true)
+            .put("psql.host", "127.0.0.1")
+            .put("psql.port", "4242")
             .build();
     }
 
@@ -56,7 +60,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectPreparedStatement() throws Exception {
-        try (Connection conn = DriverManager.getConnection("jdbc:postgresql://127.0.0.1:4242/")) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
             PreparedStatement preparedStatement = conn.prepareStatement("select name from sys.cluster");
             ResultSet resultSet = preparedStatement.executeQuery();
@@ -67,7 +71,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateInsertSelect() throws Exception {
-        try (Connection conn = DriverManager.getConnection("jdbc:postgresql://127.0.0.1:4242/")) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
             Statement statement = conn.createStatement();
             assertThat(statement.executeUpdate("create table t (x string) with (number_of_replicas = 0)"), is(0));
@@ -88,7 +92,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectWithParameters() throws Exception {
-        try (Connection conn = DriverManager.getConnection("jdbc:postgresql://127.0.0.1:4242/")) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
             PreparedStatement preparedStatement = conn.prepareStatement("select name from sys.cluster where name like ?");
             preparedStatement.setString(1, "SUITE%");
@@ -100,7 +104,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testStatementThatResultsInParseError() throws Exception {
-        try (Connection conn = DriverManager.getConnection("jdbc:postgresql://127.0.0.1:4242/")) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
             PreparedStatement stmt = conn.prepareStatement("select name fro sys.cluster");
             expectedException.expect(PSQLException.class);
@@ -111,7 +115,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCustomSchemaAndAnalyzerFailure() throws Exception {
-        try (Connection conn = DriverManager.getConnection("jdbc:postgresql://127.0.0.1:4242/foo")) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL + "foo")) {
             conn.setAutoCommit(true);
             PreparedStatement stmt = conn.prepareStatement("select x from t");
             expectedException.expect(PSQLException.class);

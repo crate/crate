@@ -28,8 +28,8 @@ public class Constants {
      */
     public static final String DEFAULT_MAPPING_TYPE = "default";
 
-    // port rangess for HTTP and Transport
-    public static final String HTTP_PORT_RANGE = "4200-4300";
+    // port ranges for HTTP and Transport
+    public static final String HTTP_PORT_RANGE = "4200-4249";
     public static final String TRANSPORT_PORT_RANGE = "4300-4400";
     public static final String THRIFT_PORT_RANGE = "4500-4600";
     public static final Integer DEFAULT_SELECT_LIMIT = 10000;
