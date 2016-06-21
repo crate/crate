@@ -1480,7 +1480,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(expectedAggregate, TestingHelpers.printedTable(response.rows()));
 
         // queries
-        execute("select p from t where distance(p, 'POINT (11 21)') > 0.0");
+        execute("select p from t where distance(p, 'POINT (11 21)') > 0.01");
         Double[] row = Arrays.copyOf((Object[])response.rows()[0][0], 2, Double[].class);
         assertThat(row[0], is(10.0d));
         assertThat(row[1], is(20.0d));

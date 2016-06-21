@@ -67,6 +67,7 @@ import org.apache.lucene.queries.TermsQuery;
 import org.apache.lucene.sandbox.queries.regex.JavaUtilRegexCapabilities;
 import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
+import org.apache.lucene.spatial.geopoint.search.GeoPointDistanceRangeQuery;
 import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
 import org.apache.lucene.spatial.query.SpatialArgs;
 import org.apache.lucene.spatial.query.SpatialOperation;
@@ -107,6 +108,7 @@ import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static io.crate.operation.scalar.regex.RegexMatcher.isPcrePattern;
+import static org.apache.lucene.spatial.util.GeoEncodingUtils.TOLERANCE;
 
 @Singleton
 public class LuceneQueryBuilder {
@@ -893,8 +895,8 @@ public class LuceneQueryBuilder {
 
                 String parentName = functionLiteralPair.functionName();
 
-                Double from = null;
-                Double to = null;
+                Double from = 0d;
+                Double to = Double.POSITIVE_INFINITY;
                 boolean includeLower = false;
                 boolean includeUpper = false;
 
@@ -925,9 +927,14 @@ public class LuceneQueryBuilder {
                 }
                 GeoPoint geoPoint = new GeoPoint(lat, lon);
 
+                final Version indexCreated = Version.indexCreated(context.indexCache.indexSettings());
+                if (indexCreated.onOrAfter(Version.V_2_2_0)) {
+                    GeoUtils.normalizePoint(geoPoint);
+                }
 
-                if(Version.indexCreated(context.indexCache.indexSettings()).before(Version.V_2_2_0)) {
-                    return new GeoDistanceRangeQuery(
+                final Query query;
+                if(indexCreated.before(Version.V_2_2_0)) {
+                    query = new GeoDistanceRangeQuery(
                         geoPoint,
                         from,
                         to,
@@ -939,11 +946,16 @@ public class LuceneQueryBuilder {
                         OPTIMIZE_BOX);
                 } else {
                     final GeoPointField.TermEncoding encoding =
-                        (Version.indexCreated(context.indexCache.indexSettings()).before(Version.V_2_3_0)) ?
-                        GeoPointField.TermEncoding.NUMERIC : GeoPointField.TermEncoding.PREFIX;
-                    distance = GeoUtils.maxRadialDistance(geoPoint, distance);
-                    return new GeoPointDistanceQuery(fieldData.getFieldNames().indexName(), geoPoint.lon(), geoPoint.lat(), distance);
+                        indexCreated.before(Version.V_2_3_0) ?
+                            GeoPointField.TermEncoding.NUMERIC : GeoPointField.TermEncoding.PREFIX;
+                    query = new GeoPointDistanceRangeQuery(
+                        fieldData.getFieldNames().indexName(),
+                        encoding,
+                        geoPoint.lon(), geoPoint.lat(),
+                        (includeLower) ? from : from + TOLERANCE,
+                        (includeUpper) ? to : to - TOLERANCE);
                 }
+                return query;
             }
         }
 
