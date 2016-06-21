@@ -23,6 +23,7 @@
 package io.crate.protocols.postgres;
 
 import io.crate.core.collections.Row;
+import io.crate.exceptions.Exceptions;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.Requirements;
@@ -59,7 +60,7 @@ class PsqlWireRowReceiver implements RowReceiver {
 
     @Override
     public void fail(Throwable throwable) {
-        Messages.sendErrorResponse(channel, throwable.getMessage());
+        Messages.sendErrorResponse(channel, Exceptions.messageOf(throwable));
         channel.close();
     }
 

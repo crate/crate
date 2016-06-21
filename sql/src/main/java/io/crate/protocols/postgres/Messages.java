@@ -33,6 +33,7 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 
+import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
@@ -164,7 +165,7 @@ class Messages {
      * See https://www.postgresql.org/docs/9.2/static/protocol-error-fields.html for a list of error codes
      *
      */
-    static void sendErrorResponse(Channel channel, final String message) {
+    static void sendErrorResponse(Channel channel, @Nonnull final String message) {
         byte[] msgBytes = message.getBytes(StandardCharsets.UTF_8);
         int length = 4 + 1 + msgBytes.length + 1 + 1;
         ChannelBuffer buffer = ChannelBuffers.buffer(length + 2);
