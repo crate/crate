@@ -71,8 +71,10 @@ import org.apache.lucene.spatial.geopoint.search.GeoPointDistanceRangeQuery;
 import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
 import org.apache.lucene.spatial.query.SpatialArgs;
 import org.apache.lucene.spatial.query.SpatialOperation;
+import org.apache.lucene.spatial.util.GeoDistanceUtils;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.SloppyMath;
 import org.apache.lucene.util.automaton.RegExp;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
@@ -895,8 +897,9 @@ public class LuceneQueryBuilder {
 
                 String parentName = functionLiteralPair.functionName();
 
+                GeoPoint geoPoint = new GeoPoint(lat, lon);
                 Double from = 0d;
-                Double to = Double.POSITIVE_INFINITY;
+                Double to = GeoDistanceUtils.maxRadialDistanceMeters(geoPoint.lon(), geoPoint.lat());
                 boolean includeLower = false;
                 boolean includeUpper = false;
 
@@ -909,23 +912,26 @@ public class LuceneQueryBuilder {
                         break;
                     case LteOperator.NAME:
                         includeUpper = true;
+                        includeLower = true;
                         to = distance;
                         break;
                     case LtOperator.NAME:
                         to = distance;
+                        includeLower = true;
                         break;
                     case GteOperator.NAME:
                         from = distance;
                         includeLower = true;
+                        includeUpper = true;
                         break;
                     case GtOperator.NAME:
                         from = distance;
+                        includeUpper = true;
                         break;
                     default:
                         // invalid operator? give up
                         return null;
                 }
-                GeoPoint geoPoint = new GeoPoint(lat, lon);
 
                 final Version indexCreated = Version.indexCreated(context.indexCache.indexSettings());
                 if (indexCreated.onOrAfter(Version.V_2_2_0)) {
