@@ -244,8 +244,7 @@ public class UpsertByIdTask extends JobTask {
                     }
 
                     for (int i = 0; i < result.length(); i++) {
-                        UpsertByIdNode.Item item = node.items().get(i);
-                        int resultIdx = node.getBulkResultIdxForId(item.id());
+                        int resultIdx = node.bulkIndices().get(i);
 
                         if (resultsRowCount[resultIdx] == null) {
                             resultsRowCount[resultIdx] = result.get(i) ? 1 : -2;

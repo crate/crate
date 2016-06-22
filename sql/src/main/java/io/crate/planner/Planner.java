@@ -479,7 +479,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             context.nextExecutionPhaseId(),
             analysis.tableInfo().isPartitioned(),
             analysis.numBulkResponses(),
-            analysis.idToBulkResult(),
+            analysis.bulkIndices(),
             onDuplicateKeyAssignmentsColumns,
             analysis.columns().toArray(new Reference[analysis.columns().size()])
         );

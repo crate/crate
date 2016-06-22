@@ -329,7 +329,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         String id = idFunction.apply(primaryKeyValues);
         context.addIdAndRouting(id, routingValue);
         if (bulkIdx >= 0) {
-            context.idToBulkResult().put(id, bulkIdx);
+            context.bulkIndices().add(bulkIdx);
         }
     }
 

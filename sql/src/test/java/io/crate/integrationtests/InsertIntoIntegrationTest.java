@@ -750,6 +750,16 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testBulkInsertWithFailing() throws Exception {
+        execute("create table locations (id integer primary key, name string) with (number_of_replicas=0)");
+        ensureYellow();
+        SQLBulkResponse bulkResponse = execute("insert into locations (id, name) values (?, ?)", $$($(1, "Mars"), $(1, "Sun")));
+        assertThat(bulkResponse.results().length, is(2));
+        assertThat(bulkResponse.results()[0].rowCount(), is(1L));
+        assertThat(bulkResponse.results()[1].rowCount(), is(-2L));
+    }
+
+    @Test
     public void testInsertIntoLongPartitionedBy() throws Exception {
         execute("create table import (col1 int, col2 long primary key) partitioned by (col2)");
         ensureYellow();
