@@ -23,10 +23,12 @@
 package io.crate.operation.projectors;
 
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.ArrayRow;
 import io.crate.core.collections.Row;
 import io.crate.operation.RowDownstream;
 import io.crate.operation.RowUpstream;
+import io.crate.operation.collect.collectors.TopRowUpstream;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -45,6 +47,24 @@ public class RowMergers {
         return new MultiUpstreamRowReceiver(delegate);
     }
 
+    /**
+     * Acts as a bridge from multiple RowUpstreams to a single RowReceiver
+     *
+     *
+     *      +----+     +----+
+     *      | U1 |     | U2 |
+     *      +----+     +----+
+     *          \        /
+     *           \      /
+     *          +-----------+
+     *          | RowMerger |
+     *          +-----------+
+     *                |
+     *                |
+     *          +-------------+
+     *          | RowReceiver |
+     *          +-------------+
+     */
     static class MultiUpstreamRowReceiver implements RowReceiver, RowMerger {
 
         private static final ESLogger LOGGER = Loggers.getLogger(MultiUpstreamRowReceiver.class);
@@ -56,18 +76,44 @@ public class RowMergers {
         private final AtomicReference<Throwable> failure = new AtomicReference<>();
         private final Object lock = new Object();
 
-        protected final Queue<Object[]> pauseFifo = new LinkedList<>();
-        protected final ArrayRow sharedRow = new ArrayRow();
+        final Queue<Object[]> pauseFifo = new LinkedList<>();
+        final ArrayRow sharedRow = new ArrayRow();
 
         volatile boolean paused = false;
+        private boolean downstreamFinished = false;
 
-        public MultiUpstreamRowReceiver(RowReceiver delegate) {
+        /**
+         * Used in {@link #resume(boolean)} when rows are emitted from the pauseFifo.
+         * This is used to have proper pause/resume locking
+         */
+        final TopRowUpstream topRowUpstream = new TopRowUpstream(MoreExecutors.directExecutor(),
+            new Runnable() { // resumeRunnable
+                @Override
+                public void run() {
+                    delegate.setUpstream(MultiUpstreamRowReceiver.this);
+                    resume(false);
+                }
+            },
+            new Runnable() { // repeatRunnable
+                @Override
+                public void run() {
+                    // this can only happen after finish in which case the MultiUpstreamRowReceiver itself should be the
+                    // upstream and not the topRowUpstream
+                    throw new AssertionError("repeat shouldn't be called on TopRowUpstream");
+                }
+            }
+        );
+
+        MultiUpstreamRowReceiver(RowReceiver delegate) {
             delegate.setUpstream(this);
             this.delegate = delegate;
         }
 
         @Override
         public final boolean setNextRow(Row row) {
+            if (downstreamFinished) {
+                return false;
+            }
             synchronized (lock) {
                 boolean wantMore = synchronizedSetNextRow(row);
                 if (!wantMore) {
@@ -78,23 +124,33 @@ public class RowMergers {
             }
         }
 
-        protected boolean synchronizedSetNextRow(Row row) {
+        /**
+         * pause handling is tricky:
+         *
+         *
+         * u1:                                              u2:
+         *  rw.setNextRow(r1)                                rw.setNextRow(r2)
+         *      synchronized:                                   synchronized: // < blocked until u1 is done
+         *          [...]
+         *          delegate.setNextRow()
+         *                  [...]
+         *                  upstream.pause()
+         *                  [...]
+         *                  return
+         *      return                                         // unblocks but already *within* setNextRow
+         *  u1 pauses                                          if (paused) {
+         *                                                         pauseFifo.add(row.materialize())
+         *                                                         return
+         *                                                     }
+         *                                                     u2 pauses
+         */
+        boolean synchronizedSetNextRow(Row row) {
             if (paused) {
                 pauseFifo.add(row.materialize());
                 return true;
             } else {
-                Object[] bufferedCells;
-                while ((bufferedCells = pauseFifo.poll()) != null) {
-                    sharedRow.cells(bufferedCells);
-                    boolean wantMore = delegate.setNextRow(sharedRow);
-                    if (!wantMore) {
-                        return false;
-                    }
-                    if (paused) {
-                        pauseFifo.add(row.materialize());
-                        return true;
-                    }
-                }
+                assert pauseFifo.size() == 0
+                    : "resume should consume pauseFifo first before delegating resume to upstreams";
                 return delegate.setNextRow(row);
             }
         }
@@ -113,22 +169,16 @@ public class RowMergers {
         /**
          * triggered if the last remaining upstream finished or failed
          */
-        protected void onFinish() {
+        void onFinish() {
             assert !paused : "must not receive a finish call if upstream should be paused";
-            for (Object[] objects : pauseFifo) {
-                sharedRow.cells(objects);
-                boolean wantMore = delegate.setNextRow(sharedRow);
-                if (!wantMore) {
-                    break;
-                }
-            }
+            assert pauseFifo.isEmpty() : "pauseFifo should be clear already";
             delegate.finish();
         }
 
         /**
          * triggered if the last remaining upstream finished or failed
          */
-        protected void onFail(Throwable t) {
+        void onFail(Throwable t) {
             delegate.fail(t);
         }
 
@@ -167,6 +217,28 @@ public class RowMergers {
         @Override
         public void resume(boolean async) {
             paused = false;
+            Object[] row;
+            if (!pauseFifo.isEmpty()) {
+                // clear pauseFifo first, otherwise it could grow very large
+                delegate.setUpstream(topRowUpstream);
+                while ((row = pauseFifo.poll()) != null) {
+                    sharedRow.cells(row);
+                    boolean wantMore = delegate.setNextRow(sharedRow);
+                    if (topRowUpstream.shouldPause()) {
+                        delegate.setUpstream(this);
+                        topRowUpstream.pauseProcessed();
+                        return;
+                    }
+                    if (!wantMore) {
+                        downstreamFinished = true;
+                        pauseFifo.clear();
+                        // resume upstreams anyway so that they can finish and cleanup resources
+                        // they'll receive false on the next setNextRow call
+                        break;
+                    }
+                }
+                delegate.setUpstream(this);
+            }
             for (RowUpstream rowUpstream : rowUpstreams) {
                 rowUpstream.resume(async);
             }
