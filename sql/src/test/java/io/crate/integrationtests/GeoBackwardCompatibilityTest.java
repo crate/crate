@@ -46,7 +46,7 @@ public class GeoBackwardCompatibilityTest extends SQLTransportIntegrationTest{
          *      p geo_point);
          * INSERT INTO legacy_geo_point (id, p) VALUES (1, 'POINT (10 10)');
          */
-        Path zippedIndexDir = getDataPath("/indices/bwc/legacy_geo_point.zip");
+        Path zippedIndexDir = getDataPath("/indices/bwc/geo_point_1_7_5.zip");
         Settings nodeSettings = prepareBackwardsDataDir(zippedIndexDir);
         internalCluster().startNode(nodeSettings);
         ensureYellow();
