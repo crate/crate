@@ -33,6 +33,36 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * Class that acts as a {@link RowUpstream} to handle pause/resume calls in a thread-safe and async safe manner.
+ *
+ * <pre>
+ * upstream
+ *      wantMore = downstream.setNextRow()
+ *                  [...]
+ *                  upstream.pause() // must be called *before* an async operation that will resume
+ *                  asyncOperation ->
+ *                      [...]
+ *                      upstream.resume()   // if the asyncOperation is fast this can happen *before* setNextRow has returned
+ *
+ *                  return true;
+ *
+ *      // If resume got called before shouldPause is called it acts as if there never was a pause.
+ *      // It will continue to emit rows in *this* thread.
+ *      // the thread that called upstream.resume() finishes *without* emitting new rows
+ *
+ *      if (topRowUpstream.shouldPause()) {
+ *
+ *          // if the shouldPause call succeeds it will have acquired a lock to block resume calls.
+ *          // this means THIS thread has to finish/die and another thread that calls resume will take over later on
+ *
+ *          [...]
+ *
+ *          topRowUpstream.pauseProcessed(); // this releases the lock - unblocking resume()
+ *      }
+ *
+ * </pre>
+ */
 public class TopRowUpstream implements RowUpstream {
 
     private final static ESLogger LOGGER = Loggers.getLogger(TopRowUpstream.class);
