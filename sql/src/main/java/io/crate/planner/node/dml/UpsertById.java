@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.dml;
 
-import com.carrotsearch.hppc.ObjectIntHashMap;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.PlanAndPlannedAnalyzedRelation;
@@ -115,7 +114,7 @@ public class UpsertById extends PlanAndPlannedAnalyzedRelation {
     private final int numBulkResponses;
     private final List<Item> items;
     private final int executionPhaseId;
-    private final ObjectIntHashMap<String> idToBulkResultIdx;
+    private final List<Integer> bulkIndices;
 
     @Nullable
     private final String[] updateColumns;
@@ -126,13 +125,13 @@ public class UpsertById extends PlanAndPlannedAnalyzedRelation {
                       int executionPhaseId,
                       boolean partitionedTable,
                       int numBulkResponses,
-                      ObjectIntHashMap<String> idToBulkResultIdx,
+                      List<Integer> bulkIndices,
                       @Nullable String[] updateColumns,
                       @Nullable Reference[] insertColumns) {
         this.jobId = jobId;
         this.partitionedTable = partitionedTable;
         this.numBulkResponses = numBulkResponses;
-        this.idToBulkResultIdx = idToBulkResultIdx;
+        this.bulkIndices = bulkIndices;
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
         this.items = new ArrayList<>();
@@ -145,7 +144,7 @@ public class UpsertById extends PlanAndPlannedAnalyzedRelation {
                       int numBulkResponses,
                       @Nullable String[] updateColumns,
                       @Nullable Reference[] insertColumns) {
-        this(jobId, executionPhaseId, partitionedTable, numBulkResponses, new ObjectIntHashMap<String>(),
+        this(jobId, executionPhaseId, partitionedTable, numBulkResponses, new ArrayList<Integer>(),
             updateColumns, insertColumns);
     }
 
@@ -167,12 +166,8 @@ public class UpsertById extends PlanAndPlannedAnalyzedRelation {
         return numBulkResponses;
     }
 
-    public int getBulkResultIdxForId(String id) {
-        return idToBulkResultIdx.get(id);
-    }
-
-    public boolean setBulkResultIdxForId(String id, int bulkResultIdx) {
-        return idToBulkResultIdx.putIfAbsent(id, bulkResultIdx);
+    public List<Integer> bulkIndices() {
+        return bulkIndices;
     }
 
     public void add(String index,

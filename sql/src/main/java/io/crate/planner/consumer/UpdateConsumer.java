@@ -271,7 +271,7 @@ public class UpdateConsumer implements Consumer {
             } else {
                 index = indices[0];
             }
-            upsertById.setBulkResultIdxForId(key.id(), bulkIdx);
+            upsertById.bulkIndices().add(bulkIdx);
             upsertById.add(
                 index,
                 key.id(),

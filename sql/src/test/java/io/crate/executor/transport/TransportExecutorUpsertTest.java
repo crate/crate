@@ -74,7 +74,6 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             ctx.nextExecutionPhaseId(),
             false,
             0,
-            new ObjectIntHashMap<String>(),
             null,
             new Reference[]{idRef, nameRef});
         plan.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
@@ -110,7 +109,6 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             ctx.nextExecutionPhaseId(),
             true,
             0,
-            new ObjectIntHashMap<String>(),
             null,
             new Reference[]{idRef, nameRef});
 
@@ -156,7 +154,6 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             ctx.nextExecutionPhaseId(),
             false,
             0,
-            new ObjectIntHashMap<String>(),
             null,
             new Reference[]{idRef, nameRef});
 
@@ -192,7 +189,6 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             ctx.nextExecutionPhaseId(),
             false,
             0,
-            new ObjectIntHashMap<String>(),
             new String[]{nameRef.ident().columnIdent().fqn()},
             null);
         upsertById.add("characters", "1", "1", new Symbol[]{Literal.newLiteral("Vogon lyric fan")}, null);
@@ -221,7 +217,6 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             ctx.nextExecutionPhaseId(),
             false,
             0,
-            new ObjectIntHashMap<String>(),
             new String[]{nameRef.ident().columnIdent().fqn()},
             new Reference[]{idRef, nameRef, femaleRef});
 
@@ -250,7 +245,6 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             ctx.nextExecutionPhaseId(),
             false,
             0,
-            new ObjectIntHashMap<String>(),
             new String[]{femaleRef.ident().columnIdent().fqn()},
             new Reference[]{idRef, nameRef, femaleRef});
         upsertById.add("characters", "1", "1", new Symbol[]{Literal.newLiteral(true)}, null, missingAssignments);
