@@ -190,6 +190,13 @@ your geographic data::
     +--------------------+
     SELECT 1 row in set (... sec)
 
+With tables that have been created until Crate ``0.55.x`` it was also possible
+to query a point within a ``LINESTRING`` geo shape.
+However, tables that have been created with later versions only support closed
+``POLYGON`` lines with at least 4 points where the start point is equal the
+end point. If the last point of the polygon line is not the start point, Crate
+will automatically close the polygon.
+
 ::
 
     cr> SELECT distance(capital_location, [0, 0]) as from_northpole
