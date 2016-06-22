@@ -4,6 +4,8 @@ Changes for Crate
 
 Unreleased
 ==========
+ 
+ - Fixed bug in range inclusion for geo distance calculation.
 
  - Fixed error handling while preparing execution plans.
 
