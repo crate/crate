@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.carrotsearch.hppc.ObjectIntHashMap;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.PartitionName;
@@ -45,7 +44,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
 
     private final List<String> ids = new ArrayList<>();
     private final List<String> routingValues = new ArrayList<>();
-    private final ObjectIntHashMap<String> idToBulkResult = new ObjectIntHashMap<>();
+    private final List<Integer> bulkIndices = new ArrayList<>();
 
     private final int numBulkResponses;
 
@@ -164,7 +163,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
         return numAddedGeneratedColumns;
     }
 
-    public ObjectIntHashMap<String> idToBulkResult() {
-        return idToBulkResult;
+    public List<Integer> bulkIndices() {
+        return bulkIndices;
     }
 }

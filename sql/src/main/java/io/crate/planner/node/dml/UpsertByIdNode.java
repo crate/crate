@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.dml;
 
-import com.carrotsearch.hppc.ObjectIntHashMap;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.node.PlanNode;
@@ -96,7 +95,7 @@ public class UpsertByIdNode implements PlanNode {
     private final int numBulkResponses;
     private final List<Item> items;
     private final int executionPhaseId;
-    private final ObjectIntHashMap<String> idToBulkResultIdx;
+    private final List<Integer> bulkIndices;
 
     @Nullable
     private final String[] updateColumns;
@@ -106,12 +105,12 @@ public class UpsertByIdNode implements PlanNode {
     public UpsertByIdNode(int executionPhaseId,
                           boolean partitionedTable,
                           int numBulkResponses,
-                          ObjectIntHashMap<String> idToBulkResultIdx,
+                          List<Integer> bulkIndices,
                           @Nullable String[] updateColumns,
                           @Nullable Reference[] insertColumns) {
         this.partitionedTable = partitionedTable;
         this.numBulkResponses = numBulkResponses;
-        this.idToBulkResultIdx = idToBulkResultIdx;
+        this.bulkIndices = bulkIndices;
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
         this.items = new ArrayList<>();
@@ -123,7 +122,7 @@ public class UpsertByIdNode implements PlanNode {
                           int numBulkResponses,
                           @Nullable String[] updateColumns,
                           @Nullable Reference[] insertColumns) {
-        this(executionPhaseId, partitionedTable, numBulkResponses, new ObjectIntHashMap<String>(),
+        this(executionPhaseId, partitionedTable, numBulkResponses, new ArrayList<Integer>(),
             updateColumns, insertColumns);
     }
 
@@ -145,12 +144,8 @@ public class UpsertByIdNode implements PlanNode {
         return numBulkResponses;
     }
 
-    public int getBulkResultIdxForId(String id) {
-        return idToBulkResultIdx.get(id);
-    }
-
-    public boolean setBulkResultIdxForId(String id, int bulkResultIdx) {
-        return idToBulkResultIdx.putIfAbsent(id, bulkResultIdx);
+    public List<Integer> bulkIndices() {
+        return bulkIndices;
     }
 
     public void add(String index,
