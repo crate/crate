@@ -1493,7 +1493,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select p from t where distance(p, 'POINT (11 21)') < 10.0 or distance(p, 'POINT (11 21)') > 10.0");
         assertThat(response.rowCount(), is(2L));
 
-        execute("select p from t where distance(p, 'POINT (10 20)') >= 152462.707 and distance(p, 'POINT (10 20)') <= 152462.708");
+        execute("select p, distance(p, 'POINT (10 20)') from t where distance(p, 'POINT (10 20)') >= 152462.6902 and distance(p, 'POINT (10 20)') <= 152462.7075");
         assertThat(response.rowCount(), is(1L));
     }
 
