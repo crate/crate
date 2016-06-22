@@ -29,6 +29,7 @@ import io.crate.action.FutureActionListener;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.executor.transport.*;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -109,7 +110,9 @@ public class DDLStatementDispatcher {
                     new String[analysis.indexNames().size()]));
             request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
-            FutureActionListener<RefreshResponse, Long> listener = new FutureActionListener<>(Functions.<Long>constant(null));
+            //noinspection UnnecessaryBoxing
+            FutureActionListener<RefreshResponse, Long> listener =
+                new FutureActionListener<>(Functions.constant(Long.valueOf(analysis.indexNames().size())));
             transportActionProvider.transportRefreshAction().execute(request, listener);
             return listener;
         }

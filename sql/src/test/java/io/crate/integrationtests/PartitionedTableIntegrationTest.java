@@ -1453,7 +1453,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat((Long) response.rows()[0][0], lessThanOrEqualTo(2L));
 
         execute("refresh table parted");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), is(2L));
 
         // assert that all is available after refresh
         execute("select count(*) from parted");
@@ -1482,7 +1482,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         ensureYellow();
         execute("refresh table parted");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), is(2L));
 
         // assert that after refresh all columns are available
         execute("select * from parted");
@@ -1499,14 +1499,14 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(response.rowCount(), lessThanOrEqualTo(4L));
 
         execute("refresh table parted PARTITION (date='1970-01-01')");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), is(1L));
 
         // assert all partition rows are available after refresh
         execute("select * from parted where date='1970-01-01'");
         assertThat(response.rowCount(), is(2L));
 
         execute("refresh table parted PARTITION (date='1970-01-07')");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), is(1L));
 
         // assert all partition rows are available after refresh
         execute("select * from parted where date='1970-01-07'");
@@ -1535,7 +1535,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("refresh table t1 partition (age=50, date='1970-01-07'), " +
                 "              t1 partition (age=90, date='1970-01-01')");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), is(2L));
 
         execute("select * from t1 where age in (50, 90) and date in ('1970-01-07', '1970-01-01')");
         assertThat(response.rowCount(), lessThanOrEqualTo(4L));
