@@ -7,3 +7,4 @@ develop-eggs/
 eggs/
 .venv27
 .venv
+get-pip.py

@@ -45,6 +45,7 @@ sourceSets {
             include '**/*.rst'
             include '**/*.json'
             include '**/*.gz'
+            include '**/*.zip'
             include '**/*.sql'
             include '**/*.html'
             include '**/*.jsonp'
