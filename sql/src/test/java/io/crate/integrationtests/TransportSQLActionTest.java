@@ -1216,9 +1216,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         {1, "Earth", 2, "Saturn"},    // bulk row 1
                         {3, "Moon", 4, "Mars"}        // bulk row 2
                 });
-        assertThat(bulkResp.results().length, is(4));
+        assertThat(bulkResp.results().length, is(2));
         for (SQLBulkResponse.Result result : bulkResp.results()) {
-            assertThat(result.rowCount(), is(1L));
+            assertThat(result.rowCount(), is(2L));
         }
         refresh();
 
@@ -1227,7 +1227,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 {1, "Earth", 2, "Saturn"},    // bulk row 1
                 {3, "Moon", 4, "Mars"}        // bulk row 2
             });
-        assertThat(bulkResp.results().length, is(4));
+        assertThat(bulkResp.results().length, is(2));
         for (SQLBulkResponse.Result result : bulkResp.results()) {
             assertThat(result.rowCount(), is(-2L));
         }
@@ -1493,7 +1493,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select p from t where distance(p, 'POINT (11 21)') < 10.0 or distance(p, 'POINT (11 21)') > 10.0");
         assertThat(response.rowCount(), is(2L));
 
-        execute("select p from t where distance(p, 'POINT (10 20)') >= -0.99 and distance(p, 'POINT (10 20)') <= 0.01");
+        execute("select p, distance(p, 'POINT (10 20)') from t where distance(p, 'POINT (10 20)') >= 152462.6902 and distance(p, 'POINT (10 20)') <= 152462.7075");
         assertThat(response.rowCount(), is(1L));
     }
 

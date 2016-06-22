@@ -713,6 +713,22 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testBulkInsertWithMultiValue() throws Exception {
+        execute("create table t (x int)");
+        ensureYellow();
+        Object[][] bulkArgs = {
+            new Object[]{10, 11},
+            new Object[]{20, 21},
+            new Object[]{30, 31}
+        };
+        SQLBulkResponse bulkResponse = execute("insert into t values (?), (?)", bulkArgs);
+        assertThat(bulkResponse.results().length, is(3));
+        for (SQLBulkResponse.Result result : bulkResponse.results()) {
+            assertThat(result.rowCount(), is(2L));
+        }
+    }
+
+    @Test
     public void testBulkInsert() throws Exception {
         execute("create table giveittome (" +
                 "  date timestamp," +

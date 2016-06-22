@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport;
 
+import com.carrotsearch.hppc.ObjectIntHashMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
@@ -72,7 +73,8 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             ctx.jobId(),
             ctx.nextExecutionPhaseId(),
             false,
-            false,
+            0,
+            new ObjectIntHashMap<String>(),
             null,
             new Reference[]{idRef, nameRef});
         plan.add("characters", "99", "99", null, null, new Object[]{99, new BytesRef("Marvin")});
@@ -107,7 +109,8 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             ctx.jobId(),
             ctx.nextExecutionPhaseId(),
             true,
-            false,
+            0,
+            new ObjectIntHashMap<String>(),
             null,
             new Reference[]{idRef, nameRef});
 
@@ -152,7 +155,8 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             ctx.jobId(),
             ctx.nextExecutionPhaseId(),
             false,
-            false,
+            0,
+            new ObjectIntHashMap<String>(),
             null,
             new Reference[]{idRef, nameRef});
 
@@ -184,7 +188,13 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         // update characters set name='Vogon lyric fan' where id=1
         Planner.Context ctx = newPlannerContext();
         UpsertById upsertById = new UpsertById(
-            ctx.jobId(), ctx.nextExecutionPhaseId(), false, false, new String[]{nameRef.ident().columnIdent().fqn()}, null);
+            ctx.jobId(),
+            ctx.nextExecutionPhaseId(),
+            false,
+            0,
+            new ObjectIntHashMap<String>(),
+            new String[]{nameRef.ident().columnIdent().fqn()},
+            null);
         upsertById.add("characters", "1", "1", new Symbol[]{Literal.newLiteral("Vogon lyric fan")}, null);
 
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
@@ -210,7 +220,8 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             ctx.jobId(),
             ctx.nextExecutionPhaseId(),
             false,
-            false,
+            0,
+            new ObjectIntHashMap<String>(),
             new String[]{nameRef.ident().columnIdent().fqn()},
             new Reference[]{idRef, nameRef, femaleRef});
 
@@ -238,7 +249,8 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             ctx.jobId(),
             ctx.nextExecutionPhaseId(),
             false,
-            false,
+            0,
+            new ObjectIntHashMap<String>(),
             new String[]{femaleRef.ident().columnIdent().fqn()},
             new Reference[]{idRef, nameRef, femaleRef});
         upsertById.add("characters", "1", "1", new Symbol[]{Literal.newLiteral(true)}, null, missingAssignments);
