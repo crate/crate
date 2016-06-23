@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.Streamer;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.PartitionName;
@@ -129,4 +130,9 @@ public class FetchProjectorContext {
         return nodeIdToReaderIdToStreamers;
     }
 
+    void clearBuckets() {
+        for (ObjectCursor<ReaderBucket> bucketCursor : readerBuckets.values()) {
+            bucketCursor.value.docs.clear();
+        }
+    }
 }

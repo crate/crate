@@ -29,6 +29,7 @@ import io.crate.core.collections.Row;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
+import java.util.Locale;
 
 class ReaderBucket {
 
@@ -50,9 +51,10 @@ class ReaderBucket {
     }
 
     void fetched(Bucket bucket) {
-        assert bucket.size() == docs.size();
-        Iterator<Row> rowIterator = bucket.iterator();
+        assert bucket.size() == docs.size()
+            : String.format(Locale.ENGLISH, "requested %d docs but got %d", docs.size(), bucket.size());
 
+        Iterator<Row> rowIterator = bucket.iterator();
         for (IntCursor intCursor : docs.keys()) {
             docs.indexReplace(intCursor.index, rowIterator.next().materialize());
         }
