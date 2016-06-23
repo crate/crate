@@ -35,6 +35,8 @@ import java.util.Map;
 
 abstract class PGType {
 
+    private static final int INT32_BYTE_SIZE = Integer.SIZE / 8;
+
     final int oid;
     final int typeLen;
     final int typeMod;
@@ -75,7 +77,7 @@ abstract class PGType {
             BytesRef bytesRef = (BytesRef) value;
             buffer.writeInt(bytesRef.length);
             buffer.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);
-            return 4 + bytesRef.length;
+            return INT32_BYTE_SIZE + bytesRef.length;
         }
 
         @Override
@@ -84,6 +86,29 @@ abstract class PGType {
             bytesRef.length = valueLength;
             buffer.readBytes(bytesRef.bytes);
             return bytesRef;
+        }
+    }
+
+    static class BooleanType extends PGType {
+
+        final static int OID = 16;
+
+        BooleanType() {
+            super(OID, 1, -1, FormatCode.BINARY);
+        }
+
+        @Override
+        int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+            byte byteValue = (byte) ((boolean) value ? 1 : 0);
+            buffer.writeInt(typeLen);
+            buffer.writeByte(byteValue);
+            return INT32_BYTE_SIZE + typeLen;
+        }
+
+        @Override
+        Object readValue(ChannelBuffer buffer, int valueLength) {
+            byte value = buffer.readByte();
+            return value != 0;
         }
     }
 
@@ -104,7 +129,7 @@ abstract class PGType {
                 BytesReference bytes = builder.bytes();
                 buffer.writeInt(bytes.length());
                 buffer.writeBytes(bytes.toChannelBuffer());
-                return 4 + bytes.length();
+                return INT32_BYTE_SIZE + bytes.length();
             } catch (IOException e) {
                 throw Throwables.propagate(e);
             }
