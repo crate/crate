@@ -24,6 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.ResultReceiver;
 import io.crate.concurrent.CompletionListener;
+import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.collections.Row;
 import io.crate.exceptions.Exceptions;
 import io.crate.operation.projectors.RowReceiver;
@@ -39,7 +40,8 @@ class ResultSetReceiver implements ResultReceiver {
     private final Channel channel;
     private final List<? extends DataType> columnTypes;
 
-    long rowCount = 0;
+    private CompletionListener listener = CompletionListener.NO_OP;
+    private long rowCount = 0;
 
     ResultSetReceiver(String query, Channel channel, List<? extends DataType> columnTypes) {
         this.query = query;
@@ -57,16 +59,17 @@ class ResultSetReceiver implements ResultReceiver {
     @Override
     public void finish() {
         Messages.sendCommandComplete(channel, query, rowCount);
-        Messages.sendReadyForQuery(channel);
+        listener.onSuccess(null);
     }
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
         Messages.sendErrorResponse(channel, Exceptions.messageOf(throwable));
-        channel.close();
+        listener.onFailure(throwable);
     }
 
     @Override
     public void addListener(CompletionListener listener) {
+        this.listener = CompletionMultiListener.merge(this.listener, listener);
     }
 }
