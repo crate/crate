@@ -110,7 +110,7 @@ public class SelectStatementPlanner {
             if (querySpec.where().hasVersions()) {
                 throw new VersionInvalidException();
             }
-            if (querySpec.where().noMatch()) {
+            if (querySpec.where().noMatch() || (querySpec.limit().isPresent() && querySpec.limit().get() == 0)) {
                 return new NoopPlan(context.jobId());
             }
             table.tableRelation().validateOrderBy(querySpec.orderBy());
