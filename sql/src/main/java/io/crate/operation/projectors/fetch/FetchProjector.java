@@ -264,6 +264,7 @@ public class FetchProjector extends AbstractProjector {
             }
             downstream.setNextRow(outputRow);
         }
+        context.clearBuckets();
         if (!isLast) {
             if (nextStage(Stage.EMIT, Stage.COLLECT)) {
                 return;
