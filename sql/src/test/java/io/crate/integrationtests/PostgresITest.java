@@ -59,6 +59,15 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testNoAutoCommit() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+            conn.setAutoCommit(false);
+            expectedException.expectMessage("no viable alternative at input 'BEGIN'");
+            conn.prepareStatement("select name from sys.cluster").executeQuery();
+        }
+    }
+
+    @Test
     public void testSelectPreparedStatement() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
