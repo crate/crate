@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Leverage new Lucene queries for geo point queries (``distance``, ``within``,
+   ``match`` using ``within``). Newly created tables with geo_point columns
+   automatically use the new queries whereas previously created tables still
+   use the backwards compatible old queries.
+
  - Fixed path to sigar lib in crate.bat for Windows
 
  - Deprecated usage of COPY TO without specifying a DIRECTORY. This will prevent a user from defining an output path
