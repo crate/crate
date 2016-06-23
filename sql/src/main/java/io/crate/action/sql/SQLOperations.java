@@ -23,12 +23,17 @@
 package io.crate.action.sql;
 
 import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.concurrent.CompletionListener;
 import io.crate.executor.Executor;
+import io.crate.executor.TaskResult;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.parser.SqlParser;
@@ -37,15 +42,22 @@ import io.crate.types.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static io.crate.action.sql.SQLBulkRequest.EMPTY_BULK_ARGS;
+import static io.crate.action.sql.SQLRequest.EMPTY_ARGS;
 
 @Singleton
 public class SQLOperations {
+
+    private final static ESLogger LOGGER = Loggers.getLogger(SQLOperations.class);
 
     private final Analyzer analyzer;
     private final Planner planner;
@@ -107,26 +119,28 @@ public class SQLOperations {
 
         private final Executor executor;
         private final String defaultSchema;
-        private final UUID jobId;
 
+        private UUID jobId;
         private List<DataType> paramTypes;
         private Statement statement;
         private Analysis analysis;
-        private Plan plan;
-        private ResultReceiver rowReceiver;
         private List<DataType> outputTypes;
         private String query;
 
         private Throwable throwable = null;
+        private List<List<Object>> bulkParams = new ArrayList<>();
+        private List<ResultReceiver> resultReceivers = new ArrayList<>();
 
         private Session(Executor executor, String defaultSchema) {
             this.executor = executor;
             this.defaultSchema = defaultSchema;
-            this.jobId = UUID.randomUUID();
         }
 
         public void parse(String statementName, String query, List<DataType> paramTypes) {
+            LOGGER.debug("method=parse stmtName={} query={} paramTypes={}", statementName, query, paramTypes);
+
             try {
+                this.jobId = UUID.randomUUID();
                 this.query = query;
                 this.statement = SqlParser.createStatement(query);
                 this.paramTypes = paramTypes;
@@ -141,24 +155,26 @@ public class SQLOperations {
         }
 
         public void bind(String portalName, String statementName, List<Object> params) {
+            LOGGER.debug("method=bind portalName={} statementName={} params={}", portalName, statementName, params);
+
             if (throwable != null) {
                 return;
             }
-            try {
-                analysis = analyzer.analyze(statement, new ParameterContext(params.toArray(new Object[0]), EMPTY_BULK_ARGS, defaultSchema));
-                plan = planner.plan(analysis, jobId);
-            } catch (Throwable t) {
-                throwable = t;
-                throw t;
-            }
+            bulkParams.add(params);
         }
 
         public List<Field> describe(char type, String portalOrStatement) {
+            LOGGER.debug("method=describe type={} portalOrStatement={}", type, portalOrStatement);
+
             if (throwable != null) {
                 return null;
             }
             if (analysis == null) {
-                throw new IllegalStateException("describe called, but there was no bind");
+                if (statement == null) {
+                    throwable = new IllegalStateException("describe was called without prior parse call");
+                    throw (RuntimeException) throwable;
+                }
+                analysis = analyzer.analyze(statement, new ParameterContext(getArgs(), EMPTY_BULK_ARGS, defaultSchema));
             }
             if (analysis.rootRelation() == null) {
                 return null;
@@ -168,24 +184,87 @@ public class SQLOperations {
             return fields;
         }
 
+        private Object[] getArgs() {
+            if (bulkParams.size() == 1) {
+                return bulkParams.get(0).toArray(new Object[0]);
+            } else {
+                return EMPTY_ARGS;
+            }
+        }
+
         public void execute(String portalName, int maxRows, ResultReceiver rowReceiver) {
+            LOGGER.debug("method=describe portalName={} maxRows={}", portalName, maxRows);
+
             if (throwable != null) {
                 return;
             }
-            this.rowReceiver = rowReceiver;
+            resultReceivers.add(rowReceiver);
         }
 
-        public void sync() {
+        public void sync(CompletionListener listener) {
+            LOGGER.debug("method=sync");
+
             if (throwable == null) {
-                if (plan == null || analysis == null || rowReceiver == null) {
-                    throw new IllegalStateException("sync called, but there was no bind or execute");
+                if (resultReceivers.isEmpty()) {
+                    throw new IllegalStateException("sync called, but there was no execute");
                 }
-                executor.execute(plan, rowReceiver);
+                if (resultReceivers.size() == 1) {
+                    execute(listener);
+                } else {
+                    executeBulk(listener);
+                }
             } else {
                 Throwable t = this.throwable;
                 this.throwable = null;
                 throw Throwables.propagate(t);
             }
+        }
+
+        private void execute(CompletionListener listener) {
+            Plan plan = planner.plan(analysis, jobId);
+            ResultReceiver resultReceiver = resultReceivers.get(0);
+            resultReceiver.addListener(listener);
+            executor.execute(plan, resultReceiver);
+            cleanup();
+        }
+
+        private void executeBulk(final CompletionListener listener) {
+            Object[][] bulkArgs = toBulkArgs(bulkParams);
+            analysis = analyzer.analyze(statement, new ParameterContext(new Object[0], bulkArgs, defaultSchema));
+            Plan plan = planner.plan(analysis, jobId);
+
+            List<? extends ListenableFuture<TaskResult>> futures = executor.executeBulk(plan);
+            Futures.addCallback(Futures.allAsList(futures), new FutureCallback<List<TaskResult>>() {
+                @Override
+                public void onSuccess(@Nullable List<TaskResult> result) {
+                    assert result != null && result.size() == resultReceivers.size()
+                        : "number of result must match number of rowReceivers";
+
+                    for (int i = 0; i < result.size(); i++) {
+                        ResultReceiver resultReceiver = resultReceivers.get(i);
+                        resultReceiver.setNextRow(result.get(i).rows().iterator().next());
+                        resultReceiver.finish();
+                    }
+                    listener.onSuccess(null);
+                    cleanup();
+                }
+
+                @Override
+                public void onFailure(@Nonnull Throwable t) {
+                    for (ResultReceiver resultReceiver : resultReceivers) {
+                        resultReceiver.fail(t);
+                    }
+                    listener.onFailure(t);
+                    cleanup();
+                }
+            });
+        }
+
+        private void cleanup() {
+            analysis = null;
+            bulkParams.clear();
+            resultReceivers.clear();
+            statement = null;
         }
 
         public List<? extends DataType> outputTypes() {
@@ -195,5 +274,13 @@ public class SQLOperations {
         public String query() {
             return query;
         }
+    }
+
+    private static Object[][] toBulkArgs(List<List<Object>> bulkParams) {
+        Object[][] bulkArgs = new Object[bulkParams.size()][];
+        for (int i = 0; i < bulkArgs.length; i++) {
+            bulkArgs[i] = bulkParams.get(i).toArray(new Object[0]);
+        }
+        return bulkArgs;
     }
 }
