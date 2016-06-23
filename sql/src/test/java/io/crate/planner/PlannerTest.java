@@ -1875,6 +1875,8 @@ public class PlannerTest extends CrateUnitTest {
         assertNoop(plan("select count(*) from users limit 1 offset 1"));
         assertNoop(plan("select count(*) from users limit 5 offset 1"));
         assertNoop(plan("select count(*) from users limit 0"));
+        assertNoop(plan("select * from users order by name limit 0"));
+        assertNoop(plan("select * from users order by name limit 0 offset 0"));
     }
 
     @Test

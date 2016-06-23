@@ -207,7 +207,7 @@ public class QueryThenFetchConsumer implements Consumer {
             }
 
             Planner.Context plannerContext = context.plannerContext();
-            if (querySpec.where().noMatch()) {
+            if (querySpec.where().noMatch() || (querySpec.limit().isPresent() && querySpec.limit().get() == 0)) {
                 return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
             }
 
