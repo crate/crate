@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - REFRESH TABLE statement now returns the number of affected partitions as row count.
+
  - Fixed error handling while preparing execution plans.
 
  - Fix: Number of bulk results were equal to the total number of items
