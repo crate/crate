@@ -31,9 +31,14 @@ import org.jboss.netty.buffer.ChannelBuffer;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 abstract class PGType {
+
+    private static final int INT32_BYTE_SIZE = Integer.SIZE / 8;
 
     final int oid;
     final int typeLen;
@@ -75,7 +80,7 @@ abstract class PGType {
             BytesRef bytesRef = (BytesRef) value;
             buffer.writeInt(bytesRef.length);
             buffer.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);
-            return 4 + bytesRef.length;
+            return INT32_BYTE_SIZE + bytesRef.length;
         }
 
         @Override
@@ -84,6 +89,34 @@ abstract class PGType {
             bytesRef.length = valueLength;
             buffer.readBytes(bytesRef.bytes);
             return bytesRef;
+        }
+    }
+
+    static class BooleanType extends PGType {
+
+        final static int OID = 16;
+
+        private final static List<String> TRUTH_VALUES = Arrays.asList(
+            "t", "true", "o", "on", "1");
+
+        BooleanType() {
+            super(OID, 1, -1, FormatCode.TEXT);
+        }
+
+        @Override
+        int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+            byte byteValue = (byte) ((boolean) value ? 't' : 'f');
+            buffer.writeInt(typeLen);
+            buffer.writeByte(byteValue);
+            return INT32_BYTE_SIZE + typeLen;
+        }
+
+        @Override
+        Object readValue(ChannelBuffer buffer, int valueLength) {
+            byte[] bytes = new byte[valueLength];
+            buffer.readBytes(bytes);
+            String value = new String(bytes);
+            return TRUTH_VALUES.contains(value);
         }
     }
 
@@ -104,7 +137,7 @@ abstract class PGType {
                 BytesReference bytes = builder.bytes();
                 buffer.writeInt(bytes.length());
                 buffer.writeBytes(bytes.toChannelBuffer());
-                return 4 + bytes.length();
+                return INT32_BYTE_SIZE + bytes.length();
             } catch (IOException e) {
                 throw Throwables.propagate(e);
             }
