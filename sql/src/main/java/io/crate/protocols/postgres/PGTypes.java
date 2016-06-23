@@ -34,6 +34,7 @@ class PGTypes {
 
     static final Map<DataType, PGType> CRATE_TO_PG_TYPES = ImmutableMap.<DataType, PGType>builder()
         .put(DataTypes.STRING, new PGType.StringType())
+        .put(DataTypes.BOOLEAN, new PGType.BooleanType())
         .put(DataTypes.OBJECT, new PGType.JsonType())
         .build();
 
@@ -41,6 +42,7 @@ class PGTypes {
     {{
         put(0, DataTypes.UNDEFINED);
         put(PGType.StringType.OID, DataTypes.STRING);
+        put(PGType.BooleanType.OID, DataTypes.BOOLEAN);
         put(PGType.JsonType.OID, DataTypes.OBJECT);
     }};
 
