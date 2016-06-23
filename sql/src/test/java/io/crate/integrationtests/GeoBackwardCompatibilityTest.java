@@ -39,14 +39,7 @@ public class GeoBackwardCompatibilityTest extends SQLTransportIntegrationTest{
      */
     @Test
     public void testWithinQuery() throws IOException {
-        /*
-         * Load the test index:
-         * CREATE TABLE legacy_geo_point (
-         *      id int primary key,
-         *      p geo_point);
-         * INSERT INTO legacy_geo_point (id, p) VALUES (1, 'POINT (10 10)');
-         */
-        Path zippedIndexDir = getDataPath("/indices/bwc/geo_point_1_7_5.zip");
+        Path zippedIndexDir = getDataPath("/indices/bwc/bwc-index-0.54.9.zip");
         Settings nodeSettings = prepareBackwardsDataDir(zippedIndexDir);
         internalCluster().startNode(nodeSettings);
         ensureYellow();
