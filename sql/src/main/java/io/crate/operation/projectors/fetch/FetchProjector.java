@@ -279,6 +279,7 @@ public class FetchProjector extends AbstractProjector {
             }
             throw new AssertionError("Unrecognized setNextRow result: " + result);
         }
+        context.clearBuckets();
         if (!isLast) {
             if (nextStage(Stage.EMIT, Stage.COLLECT)) {
                 return;
