@@ -22,6 +22,7 @@
 
 package io.crate.action.sql;
 
+import com.google.common.base.Throwables;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
@@ -64,6 +65,45 @@ public class SQLOperations {
         return new Session(executorProvider.get(), defaultSchema);
     }
 
+    /**
+     * Stateful Session
+     * In the PSQL case there is one session per connection.
+     *
+     *
+     * Methods are usually called in the following order:
+     *
+     * <pre>
+     * parse(...)
+     * bind(...)
+     * describe(...) // optional
+     * execute(...)
+     * sync()
+     * </pre>
+     *
+     * Or:
+     *
+     * <pre>
+     * parse(...)
+     * loop:
+     *      bind(...)
+     *      execute(...)
+     * sync()
+     * </pre>
+     *
+     * If during one of the operation an error occurs the error will be raised and all subsequent methods will become
+     * no-op operations until sync() is called which will again raise an error and "clear" it. (to be able to process new statements)
+     *
+     * This is done for compatibility with the postgres extended spec:
+     *
+     * > The purpose of Sync is to provide a resynchronization point for error recovery.
+     * > When an error is detected while processing any extended-query message, the backend issues ErrorResponse,
+     * > then reads and discards messages until a Sync is reached,
+     * > then issues ReadyForQuery and returns to normal message processing.
+     * > (But note that no skipping occurs if an error is detected while processing Sync —
+     * > this ensures that there is one and only one ReadyForQuery sent for each Sync.)
+     *
+     * (https://www.postgresql.org/docs/9.2/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY)
+     */
     public class Session {
 
         private final Executor executor;
@@ -78,6 +118,8 @@ public class SQLOperations {
         private List<DataType> outputTypes;
         private String query;
 
+        private Throwable throwable = null;
+
         private Session(Executor executor, String defaultSchema) {
             this.executor = executor;
             this.defaultSchema = defaultSchema;
@@ -85,9 +127,14 @@ public class SQLOperations {
         }
 
         public void parse(String statementName, String query, List<DataType> paramTypes) {
-            this.query = query;
-            this.statement = SqlParser.createStatement(query);
-            this.paramTypes = paramTypes;
+            try {
+                this.query = query;
+                this.statement = SqlParser.createStatement(query);
+                this.paramTypes = paramTypes;
+            } catch (Throwable t) {
+                throwable = t;
+                throw t;
+            }
         }
 
         public DataType getParamType(int idx) {
@@ -95,16 +142,24 @@ public class SQLOperations {
         }
 
         public void bind(String portalName, String statementName, List<Object> params) {
-            if (statement == null) {
-                throw new IllegalStateException("bind called without having a parsed statement");
+            if (throwable != null) {
+                return;
             }
-            analysis = analyzer.analyze(statement, new ParameterContext(params.toArray(new Object[0]), EMPTY_BULK_ARGS, defaultSchema));
-            plan = planner.plan(analysis, jobId);
+            try {
+                analysis = analyzer.analyze(statement, new ParameterContext(params.toArray(new Object[0]), EMPTY_BULK_ARGS, defaultSchema));
+                plan = planner.plan(analysis, jobId);
+            } catch (Throwable t) {
+                throwable = t;
+                throw t;
+            }
         }
 
         public List<Field> describe(char type, String portalOrStatement) {
+            if (throwable != null) {
+                return null;
+            }
             if (analysis == null) {
-                throw new IllegalStateException("describe called, but there was no bind() call");
+                throw new IllegalStateException("describe called, but there was no bind");
             }
             if (analysis.rootRelation() == null) {
                 return null;
@@ -115,17 +170,23 @@ public class SQLOperations {
         }
 
         public void execute(String portalName, int maxRows, RowReceiver rowReceiver) {
-            this.rowReceiver = rowReceiver;
-            if (plan == null || analysis == null) {
-                throw new IllegalStateException("execute called without plan/analysis");
+            if (throwable != null) {
+                return;
             }
+            this.rowReceiver = rowReceiver;
         }
 
         public void sync() {
-            if (plan == null || analysis == null || rowReceiver == null) {
-                throw new IllegalStateException("sync called, but there was no bind or execute");
+            if (throwable == null) {
+                if (plan == null || analysis == null || rowReceiver == null) {
+                    throw new IllegalStateException("sync called, but there was no bind or execute");
+                }
+                executor.execute(plan, rowReceiver);
+            } else {
+                Throwable t = this.throwable;
+                this.throwable = null;
+                throw Throwables.propagate(t);
             }
-            executor.execute(plan, rowReceiver);
         }
 
         public List<? extends DataType> outputTypes() {
