@@ -110,9 +110,8 @@ public class DDLStatementDispatcher {
                     new String[analysis.indexNames().size()]));
             request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
-            //noinspection UnnecessaryBoxing
             FutureActionListener<RefreshResponse, Long> listener =
-                new FutureActionListener<>(Functions.constant(Long.valueOf(analysis.indexNames().size())));
+                new FutureActionListener<>(Functions.constant((long) analysis.indexNames().size()));
             transportActionProvider.transportRefreshAction().execute(request, listener);
             return listener;
         }
