@@ -142,6 +142,18 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(0L, response.rowCount());
     }
 
+    @Test
+    public void testSelectZeroLimitOrderBy() throws Exception {
+        execute("create table test (\"type\" string) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into test (name) values (?)", new Object[]{"Arthur"});
+        execute("insert into test (name) values (?)", new Object[]{"Trillian"});
+        refresh();
+        execute("select * from test order by type limit 0");
+        assertEquals(0L, response.rowCount());
+
+    }
+
 
     @Test
     public void testSelectCountStarWithWhereClause() throws Exception {
