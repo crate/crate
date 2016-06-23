@@ -35,7 +35,7 @@ the table ``tweets`` with all columns we need::
     ...   text string INDEX using fulltext,
     ...   user_id string
     ... );
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 Now we are ready to insert our first tweet::
 

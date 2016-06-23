@@ -762,7 +762,7 @@ Examples::
 ::
 
     cr> refresh table locations;
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 ::
 

@@ -21,7 +21,7 @@ They are created using the :ref:`ref-create-repository` statement::
 
     cr> CREATE REPOSITORY where_my_snapshots_go TYPE fs
     ... WITH (location='repo_path', compress=true);
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 Repositories are uniquely identified by their name. Every repository
 has a specific type which determines how snapshots are stored.
@@ -52,7 +52,7 @@ a snapshots::
 
     cr> CREATE SNAPSHOT where_my_snapshots_go.snapshot1 ALL
     ... WITH (wait_for_completion=true, ignore_unavailable=true);
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 A snapshot is referenced by the name of the repository and the snapshot name,
 separated by a dot. If ``ALL`` is used, all *user created* tables of the
@@ -63,7 +63,7 @@ listing them explicitly::
 
     cr> CREATE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes, doc.locations
     ... WITH (wait_for_completion=true);
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 .. Hidden: create partitioned table
 
@@ -72,12 +72,12 @@ listing them explicitly::
     ...   value string,
     ...   date timestamp
     ... ) clustered into 1 shards partitioned by (date) with (number_of_replicas=0);
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
     cr> INSERT INTO parted_table (id, value, date)
     ... VALUES (1, 'foo', '1970-01-01'), (2, 'bar', '2015-10-19');
     INSERT OK, 2 rows affected (... sec)
     cr> REFRESH TABLE parted_table;
-    REFRESH OK (... sec)
+    REFRESH OK, 2 rows affected (... sec)
 
 Even single partition of :ref:`partitioned_tables` can be selected
 for backup. This is especially useful if old partitions need to be
@@ -87,7 +87,7 @@ deleted but it should be possible to restore them if needed::
     ...    locations,
     ...    parted_table PARTITION (date='1970-01-01')
     ... WITH (wait_for_completion=true);
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 Snapshots are **incremental**. Snapshots of the same cluster created later
 only store data not already contained in the repository.
@@ -125,7 +125,7 @@ To get basic information about snapshots the :ref:`sys.snapshots
 To restore a table from a snapshot we have to drop it beforehand::
 
     cr> DROP TABLE quotes;
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
 
 Restoring a snapshot using the :ref:`ref-restore-snapshot` statement.::
 
@@ -163,7 +163,7 @@ created during restore.
 ::
 
     cr> DROP TABLE parted_table;
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
 
     cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot3 TABLE
     ...    parted_table PARTITION (date=0)
@@ -183,7 +183,7 @@ might be very few files (e.g. for intermediate snapshots). Snapshots
 are dropped using the :ref:`ref-drop-snapshot` command::
 
     cr> DROP SNAPSHOT where_my_snapshots_go.snapshot3;
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
 
 
 Dropping Repositories
@@ -192,13 +192,13 @@ Dropping Repositories
 .. Hidden: create repository
 
     cr> CREATE REPOSITORY "OldRepository" TYPE fs WITH (location='old_path');
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 If a repository is not needed anymore, it can be dropped using the
 :ref:`ref-drop-repository` statement::
 
     cr> DROP REPOSITORY "OldRepository";
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
 
 This statement, like :ref:`ref-create-repository`, does not manipulate
 repository contents but only deletes stored configuration for this
@@ -208,13 +208,13 @@ repository in the cluster state, so it's not accessible any more.
 .. Hidden: cleanup
 
     cr> DROP TABLE parted_table;
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
     cr> DROP SNAPSHOT where_my_snapshots_go.snapshot1;
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
     cr> DROP SNAPSHOT where_my_snapshots_go.snapshot2;
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
     cr> DROP REPOSITORY where_my_snapshots_go;
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
 
 .. _snapshot-restore_hfs-requirements:
 

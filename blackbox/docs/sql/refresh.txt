@@ -15,7 +15,7 @@ to ensure that the latest state of the table gets fetched.
 ::
 
     cr> refresh table locations;
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 A table is refreshed periodically with a specified refresh interval. By
 default, the refresh interval is set to 1000 milliseconds. The refresh interval
@@ -35,7 +35,7 @@ Multiple Table Refresh
     ...   width double,
     ...   day timestamp
     ... ) CLUSTERED BY (title) INTO 4 SHARDS PARTITIONED BY (day);
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 .. Hidden: INSERT INTO::
 
@@ -51,7 +51,7 @@ table is completed.
 ::
 
     cr> REFRESH TABLE locations, parted_table;
-    REFRESH OK (... sec)
+    REFRESH OK, 2 rows affected (... sec)
 
 
 .. note::
@@ -75,7 +75,7 @@ request on partitioned tables see the SQL syntax and its synopsis (see :ref:`sql
 ::
 
     cr> REFRESH TABLE parted_table PARTITION (day='2014-04-08');
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 In case the ``PARTITION`` clause is omitted all partitions will be refreshed. If a
 table has many partitions this should be avoided due to performance reasons.
@@ -86,4 +86,4 @@ table has many partitions this should be avoided due to performance reasons.
 .. hide:
 
   cr> DROP TABLE parted_table;
-  DROP OK (... sec)
+  DROP OK, 1 row affected (... sec)

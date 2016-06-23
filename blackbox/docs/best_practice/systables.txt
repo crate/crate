@@ -42,7 +42,7 @@ opportunity to view the ongoing activity in the cluster.
 For these to work you have to enable status logging with::
 
     cr> SET GLOBAL stats.enabled = true;
-    SET OK (... sec)
+    SET OK, 1 row affected (... sec)
 
 before you query these tables. Each syntactically correct request that
 got parsed and planned is listed in the **sys.jobs** table while it’s

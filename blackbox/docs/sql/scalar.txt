@@ -1126,7 +1126,7 @@ It can be used to append elements to array fields
 ::
 
     cr> create table array_cat_example (list array(integer));
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 ::
 
@@ -1136,7 +1136,7 @@ It can be used to append elements to array fields
 .. Hidden: refresh array_cat_example
 
     cr> refresh table array_cat_example
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 ::
 
@@ -1146,7 +1146,7 @@ It can be used to append elements to array fields
 .. Hidden: refresh array_cat_example
 
     cr> refresh table array_cat_example
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 ::
 
@@ -1231,7 +1231,7 @@ It can be used to remove elements from array fields.
 ::
 
     cr> create table array_difference_example (list array(integer));
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 ::
 
@@ -1241,7 +1241,7 @@ It can be used to remove elements from array fields.
 .. Hidden: refresh array_difference_example
 
     cr> refresh table array_difference_example
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 ::
 
@@ -1251,7 +1251,7 @@ It can be used to remove elements from array fields.
 .. Hidden: refresh array_difference_example
 
     cr> refresh table array_difference_example
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 ::
 

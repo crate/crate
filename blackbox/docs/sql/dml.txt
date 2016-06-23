@@ -62,7 +62,7 @@ their value can be safely omitted. It is *generated* upon insert:
     ...   num_part2 int,
     ...   check_sum int GENERATED ALWAYS AS ((num_part1 + num_part2) * 42)
     ... );
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 ::
 
@@ -84,7 +84,7 @@ Inserting Data By Query
 .. Hidden: refresh locations
 
     cr> refresh table locations
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 It is possible to insert data using a query instead of values. Column
 data types of source and target table can differ as long as the values
@@ -103,7 +103,7 @@ Example of changing a field's data type, in this case, changing the
     ...     position short,
     ...     description string
     ... ) clustered by (id) into 2 shards with (number_of_replicas = 0);
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 ::
 
@@ -118,7 +118,7 @@ Example of changing a field's data type, in this case, changing the
 .. Hidden: drop previously created table
 
    cr> drop table locations2
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
 
 Example of creating a new partitioned table out of the ``locations``
 table with data partitioned by year::
@@ -132,7 +132,7 @@ table with data partitioned by year::
     ...     position integer
     ... ) clustered by (id) into 2 shards
     ... partitioned by (year) with (number_of_replicas = 0);
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 ::
 
@@ -166,7 +166,7 @@ Resulting partitions of the last insert by query::
 .. Hidden: drop previously created table
 
    cr> drop table locations_parted;
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
 
 .. note::
 
@@ -209,7 +209,7 @@ if a document with the same ``PRIMARY KEY`` already exists::
 .. Hidden: refresh uservisits
 
     cr> refresh table uservisits
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 ::
 
@@ -250,7 +250,7 @@ to refer to the current rows values::
 .. Hidden: refresh uservisits
 
     cr> refresh table uservisits
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 ::
 
@@ -275,7 +275,7 @@ This can also be done when using a query instead of values::
     ...   visits integer,
     ...   last_visit timestamp
     ... ) clustered by (id) into 2 shards with (number_of_replicas = 0);
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 ::
 
@@ -289,7 +289,7 @@ This can also be done when using a query instead of values::
 .. Hidden: refresh uservisits2
 
     cr> refresh table uservisits2
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 ::
 
@@ -306,7 +306,7 @@ This can also be done when using a query instead of values::
 .. Hidden: refresh uservisits2
 
     cr> refresh table uservisits2
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 ::
 
@@ -326,7 +326,7 @@ This can also be done when using a query instead of values::
 .. Hidden: drop previously created table
 
    cr> drop table uservisits2
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
 
 
 Updating Data
@@ -410,7 +410,7 @@ An example import from a file URI::
 .. Hidden: delete imported data
 
     cr> refresh table quotes;
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
     cr> delete from quotes;
     DELETE OK, 3 rows affected (... sec)
 
@@ -423,11 +423,11 @@ used::
 .. Hidden: delete imported data
 
     cr> refresh table quotes;
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
     cr> delete from quotes;
     DELETE OK, 3 rows affected (... sec)
     cr> refresh table quotes;
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 This wildcard can also be used to only match certain files::
 

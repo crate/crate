@@ -178,7 +178,7 @@ For further information see :ref:`sql_ddl_partitioned_by`.
 
     cr> create table a_partitioned_table (id int, content string)
     ... partitioned by (content);
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 ::
 
@@ -188,7 +188,7 @@ For further information see :ref:`sql_ddl_partitioned_by`.
 ::
 
     cr> alter table a_partitioned_table set (number_of_shards=5);
-    ALTER OK (... sec)
+    ALTER OK, -1 rows affected (... sec)
 
 ::
 
@@ -243,7 +243,7 @@ shards to 500 ms and sets the shard allocation for primary shards only::
 
     cr> create table parameterized_table (id int, content string)
     ... with ("refresh_interval"=500, "routing.allocation.enable"='primaries');
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 The settings can be verified by querying ``information_schema.tables``::
 
@@ -263,12 +263,12 @@ On existing tables this needs to be done with ``ALTER TABLE`` statement::
 
     cr> alter table parameterized_table
     ... set ("routing.allocation.enable"='none');
-    ALTER OK (... sec)
+    ALTER OK, -1 rows affected (... sec)
 
 .. hide:
 
     cr> drop table parameterized_table;
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
 
 
 Routines

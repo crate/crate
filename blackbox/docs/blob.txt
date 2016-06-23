@@ -16,7 +16,7 @@ Before adding blobs a ``blob table`` must be created. Lets use the
 crate shell ``crash`` to issue the SQL statement::
 
     sh$ crash -c "create blob table myblobs clustered into 3 shards with (number_of_replicas=1)"
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 Now crate is configured to allow blobs to be management under the
 ``/_blobs/myblobs`` endpoint.
@@ -36,7 +36,7 @@ A relative path value is relative to :ref:`env-crate-home`.
 
 Blob data will be stored under this path with the same directory
 layout like normal data.::
-  
+
   /custom/blob/path/<CLUSTER_NAME>/node/<NODE_NO>/indices/.blob_<INDEX_NAME>/<SHARD_ID>/blobs
 
 Global by config
@@ -60,7 +60,7 @@ See :ref:`ref-create-blob-table` for details.
 Creating a blob table with a custom blob data path::
 
     sh$ crash -c "create blob table myblobs clustered into 3 shards with (blobs_path='/tmp/crate_blob_data')" # doctest: +SKIP
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 
 Altering a blob table
@@ -70,7 +70,7 @@ The number of replicas a blob table has can be changed using the ``ALTER BLOB
 TABLE`` clause::
 
     sh$ crash -c "alter blob table myblobs set (number_of_replicas=0)"
-    ALTER OK (... sec)
+    ALTER OK, 1 row affected (... sec)
 
 Uploading
 =========
@@ -173,12 +173,12 @@ Deleting a blob table
 Blob tables can be deleted similar to normal tables (again using the crate shell here)::
 
     sh$ crash -c "drop blob table myblobs"
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
 
 .. Hidden: Re-create the blob table so information_schema will show it::
 
     sh$ crash -c "create blob table myblobs clustered into 3 shards with (number_of_replicas=1)"
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 
 .. _`binary large objects`: http://en.wikipedia.org/wiki/Binary_large_object

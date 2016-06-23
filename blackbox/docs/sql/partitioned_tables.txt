@@ -50,7 +50,7 @@ using the :ref:`partitioned_by_clause`::
     ...   width double,
     ...   day timestamp
     ... ) CLUSTERED BY (title) INTO 4 SHARDS PARTITIONED BY (day);
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 This creates an empty partitioned table which is not yet backed by
 real partitions. Nonetheless does it behave like a *normal* table.
@@ -67,7 +67,7 @@ can be used to create a suitable partition value from the given values on databa
     ...   created_at timestamp,
     ...   month timestamp GENERATED ALWAYS AS date_trunc('month', created_at)
     ... ) PARTITIONED BY (month);
-    CREATE OK (... sec)
+    CREATE OK, 1 row affected (... sec)
 
 
 Information Schema
@@ -159,7 +159,7 @@ no additional partition is created::
 ::
 
     cr> REFRESH TABLE parted_table;
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 ::
 
@@ -203,7 +203,7 @@ all the columns referenced in its *generation expression* cannot be updated as w
 ::
 
     cr> REFRESH TABLE parted_table;
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 ::
 
@@ -264,7 +264,7 @@ on the partition for ``day=1396915200000``:
 .. Hidden: refresh
 
     cr> REFRESH TABLE parted_table;
-    REFRESH OK (... sec)
+    REFRESH OK, 3 rows affected (... sec)
 
 ::
 
@@ -320,7 +320,7 @@ list of partitions from the ``PARTITIONED BY`` columns referenced in the ``WHERE
 .. Hidden: refresh::
 
     cr> REFRESH TABLE computed_parted_table;
-    REFRESH OK (... sec)
+    REFRESH OK, 2 rows affected (... sec)
 
 ::
 
@@ -347,7 +347,7 @@ both existing partitions and partitions that will be created in the future.
 ::
 
     cr> ALTER TABLE parted_table SET (number_of_replicas = '0-all')
-    ALTER OK (... sec)
+    ALTER OK, -1 rows affected (... sec)
 
 
 Altering schema information (such as the column policy or adding
@@ -357,7 +357,7 @@ and will take effect on both existing and future partitions of the table.
 ::
 
     cr> ALTER TABLE parted_table ADD COLUMN new_col string
-    ALTER OK (... sec)
+    ALTER OK, -1 rows affected (... sec)
 
 Unlike regular tables, it is possible to change the number of shards of
 a partitioned table. However, the shard configuration will only be applied
@@ -366,7 +366,7 @@ on **future** partitions.
 ::
 
     cr> ALTER TABLE parted_table SET (number_of_shards = 10)
-    ALTER OK (... sec)
+    ALTER OK, -1 rows affected (... sec)
 
 .. note::
 
@@ -382,7 +382,7 @@ on **future** partitions.
 .. Hidden: refresh table::
 
     cr> REFRESH TABLE parted_table;
-    REFRESH OK (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 ::
 
@@ -422,7 +422,7 @@ the :ref:`ref-alter-table-partition-clause`.
 ::
 
     cr> ALTER TABLE parted_table PARTITION (day=1396915200000) RESET (number_of_replicas)
-    ALTER OK (... sec)
+    ALTER OK, -1 rows affected (... sec)
 
 .. _partitioned_tables_alter_table_only:
 
@@ -436,7 +436,7 @@ done by using the ``ONLY`` keywword.
 ::
 
     cr> ALTER TABLE ONLY parted_table SET (number_of_replicas = 1);
-    ALTER OK (... sec)
+    ALTER OK, -1 rows affected (... sec)
 
 Limitations
 ===========
@@ -461,9 +461,9 @@ inserted/updated documents.
 .. Hidden: drop table::
 
     cr> drop table parted_table;
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
 
 .. Hidden: drop computed table::
 
     cr> DROP TABLE computed_parted_table;
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)

@@ -5,6 +5,32 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crash to 0.17.0 which contains following changes:
+
+      - Added support for OPTIMIZE table statement.
+
+      - All statements will respond with an affected rows count now.
+
+      - Added a configuration file that stores default values for Crash. The file is
+        placed inside the user's application config folder.
+        A path to a custom configuration file can be specified using the ``--config``
+        command line argument.
+
+      - Dropped Python 2.6 support
+
+      - Added support for client certificates
+
+      - It is now possible to disable autocompletion using ``--no-autocomplete``
+        command line argument and to toggle autocomplete using the ``\autocomplete``
+        crash command.
+
+      - Fixed "read file" command (``\r``) for legacy Python 2.7
+
+      - Fixed result info command output for whitespace other than space
+        characters in queries.
+
+      - Fixed call of `sysinfo` command when launching the shell.
+
  - Fix: Ordered queries with limit 0 failed
 
  - REFRESH TABLE statement now returns the number of affected tables/partitions as row count.

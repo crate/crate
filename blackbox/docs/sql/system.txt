@@ -47,7 +47,7 @@ the ``sys.cluster`` table:
 .. Hidden: reset settings
 
     cr> reset GLOBAL stats.enabled, stats.jobs_log_size, stats.operations_log_size;
-    RESET OK (... sec)
+    RESET OK, 1 row affected (... sec)
 
 The result has at most 1 row::
 
@@ -921,7 +921,7 @@ performance overhead.
 To activate stats tracking use :ref:`ref-set`::
 
     cr> set global stats.enabled = true;
-    SET OK (... sec)
+    SET OK, 1 row affected (... sec)
 
 .. _sys-jobs:
 
@@ -997,7 +997,7 @@ enabled using the ``SET`` statement. The same statement can be used to
 deactivate the stats tracking. This will wipe all existing log entries::
 
     cr> set global stats.enabled = false;
-    SET OK (... sec)
+    SET OK, 1 row affected (... sec)
 
 ::
 
@@ -1107,7 +1107,7 @@ create, manage and restore snapshots (see :ref:`snapshot-restore`).
 
    cr> CREATE REPOSITORY "my_repo" TYPE "fs"
    ... WITH (max_restore_bytes_per_sec='1000b', location='repo_location', compress=true);
-   CREATE OK (... sec)
+   CREATE OK, 1 row affected (... sec)
 
 ::
 
@@ -1201,7 +1201,7 @@ The mapping follows the following pattern:
 
    cr> CREATE SNAPSHOT "my_repo"."my_snapshot" ALL
    ... WITH (ignore_unavailable=true, wait_for_completion=true);
-   CREATE OK (... sec)
+   CREATE OK, 1 row affected (... sec)
 
 ::
 
@@ -1217,11 +1217,11 @@ The mapping follows the following pattern:
 .. Hidden: drop snapshot
 
     cr> DROP SNAPSHOT "my_repo"."my_snapshot";
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
 
 .. Hidden: drop repository
 
     cr> DROP REPOSITORY "my_repo";
-    DROP OK (... sec)
+    DROP OK, 1 row affected (... sec)
 
 .. _configuration: ../configuration.html
