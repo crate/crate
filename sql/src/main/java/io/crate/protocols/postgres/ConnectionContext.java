@@ -25,8 +25,9 @@ package io.crate.protocols.postgres;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.symbol.Field;
+import io.crate.concurrent.CompletionListener;
+import io.crate.concurrent.CompletionState;
 import io.crate.exceptions.Exceptions;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.types.DataType;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -35,6 +36,8 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.*;
 import org.jboss.netty.handler.codec.frame.FrameDecoder;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -199,6 +202,25 @@ class ConnectionContext {
             }
         }
         return sqlOperations.createSession(defaultSchema);
+    }
+
+    private static class ReadyForQueryListener implements CompletionListener {
+        private final Channel channel;
+
+        private ReadyForQueryListener(Channel channel) {
+            this.channel = channel;
+        }
+
+        @Override
+        public void onSuccess(@Nullable CompletionState result) {
+            Messages.sendReadyForQuery(channel);
+        }
+
+        @Override
+        public void onFailure(@Nonnull Throwable t) {
+            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+            Messages.sendReadyForQuery(channel);
+        }
     }
 
     private class MessageHandler extends SimpleChannelUpstreamHandler {
@@ -419,9 +441,9 @@ class ConnectionContext {
         return rowReceiver;
     }
 
-    private void handleSync(Channel channel) {
+    private void handleSync(final Channel channel) {
         try {
-            session.sync();
+            session.sync(new ReadyForQueryListener(channel));
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
             Messages.sendReadyForQuery(channel);
@@ -452,7 +474,7 @@ class ConnectionContext {
                 Messages.sendRowDescription(channel, fields);
             }
             session.execute("", 0, createRowReceiver(channel));
-            session.sync();
+            session.sync(new ReadyForQueryListener(channel));
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
             Messages.sendReadyForQuery(channel);

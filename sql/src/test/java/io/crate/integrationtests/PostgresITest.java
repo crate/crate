@@ -79,6 +79,27 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testExecuteBatch() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+            conn.setAutoCommit(true);
+
+            Statement stmt = conn.createStatement();
+            stmt.executeUpdate("create table t (x string) with (number_of_replicas = 0)");
+            ensureYellow();
+
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x) values (?)");
+            preparedStatement.setString(1, "Arthur");
+            preparedStatement.addBatch();
+
+            preparedStatement.setString(1, "Trillian");
+            preparedStatement.addBatch();
+
+            int[] results = preparedStatement.executeBatch();
+            assertThat(results, is(new int[] { 1, 1}));
+        }
+    }
+
+    @Test
     public void testCreateInsertSelect() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
