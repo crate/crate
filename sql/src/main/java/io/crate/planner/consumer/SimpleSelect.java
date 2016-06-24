@@ -25,8 +25,9 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.operation.Paging;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 
 import javax.annotation.Nullable;
 
@@ -37,7 +38,7 @@ public class SimpleSelect {
                                                 @Nullable Integer limit,
                                                 int offset,
                                                 String localNodeId) {
-        if (mergePhase == null || limit == null || (limit + offset) < Paging.PAGE_SIZE) {
+        if (mergePhase == null || limit == null || limit == TopN.NO_LIMIT || (limit + offset) < Paging.PAGE_SIZE) {
             return;
         }
         mergePhase.executionNodes(ImmutableList.of(localNodeId));

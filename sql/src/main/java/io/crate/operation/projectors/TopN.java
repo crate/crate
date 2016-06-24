@@ -22,6 +22,7 @@
 package io.crate.operation.projectors;
 
 public class TopN {
+
     public static final int NO_OFFSET = 0;
     public static final int NO_LIMIT = -1;
 }

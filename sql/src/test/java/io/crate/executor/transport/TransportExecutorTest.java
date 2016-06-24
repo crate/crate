@@ -93,6 +93,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     protected Planner.Context newPlannerContext() {
-        return new Planner.Context(clusterService(), UUID.randomUUID(), null);
+        return new Planner.Context(clusterService(), UUID.randomUUID(), null, 0, 0);
     }
 }
