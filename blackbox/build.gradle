@@ -1,13 +1,15 @@
 def crateDist = file("$projectDir/tmp/crate/")
 def crateClient = file("$projectDir/tmp/crateClient/")
 
+apply plugin: 'base'
+
 evaluationDependsOn(':app')
 evaluationDependsOn(':client')
 evaluationDependsOn(':es-repository-hdfs')
 
 task bootstrap (type:Exec) {
     inputs.file "$projectDir/bootstrap.sh"
-    outputs.file "$projectDir/.venv"
+    outputs.dir "$projectDir/.venv"
 
     commandLine 'sh', "$projectDir/bootstrap.sh"
 }
@@ -70,3 +72,4 @@ task clean << {
         delete file
     }
 }
+clean.dependsOn(cleanBootstrap)
