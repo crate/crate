@@ -22,7 +22,6 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Function;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -80,7 +79,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         assert multiGetAction != null;
         assert getAction != null;
         assert esGet.docKeys().size() > 0;
-        assert esGet.limit() == null || esGet.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
+        assert esGet.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
 
         ActionListener listener;
         ActionRequest request;
@@ -170,7 +169,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
     private FlatProjectorChain getFlatProjectorChain(ProjectorFactory projectorFactory,
                                                      ESGet node,
                                                      QueryResultRowDownstream queryResultRowDownstream) {
-        if (node.limit() != null || node.offset() > 0 || !node.sortSymbols().isEmpty()) {
+        if (node.limit() > TopN.NO_LIMIT || node.offset() > 0 || !node.sortSymbols().isEmpty()) {
             List<Symbol> orderBySymbols = new ArrayList<>(node.sortSymbols().size());
             for (Symbol symbol : node.sortSymbols()) {
                 int i = node.outputs().indexOf(symbol);
@@ -181,7 +180,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
                 }
             }
             TopNProjection topNProjection = new TopNProjection(
-                    MoreObjects.firstNonNull(node.limit(), TopN.NO_LIMIT),
+                    node.limit(),
                     node.offset(),
                     orderBySymbols,
                     node.reverseFlags(),

@@ -31,6 +31,7 @@ import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.Planner;
 import io.crate.planner.TableStatsService;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -227,12 +228,13 @@ public class NestedLoopConsumer implements Consumer {
                     }
                 }
             }
-            int topNLimit = querySpec.limit().or(TopN.NO_LIMIT);
+
+            Planner.Context.Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
             TopNProjection topN = ProjectionBuilder.topNProjection(
                     nlOutputs,
                     statement.remainingOrderBy().orNull(),
                     isDistributed ? 0 : querySpec.offset(),
-                    isDistributed ? topNLimit + querySpec.offset() : topNLimit,
+                    isDistributed ? limits.limitAndOffset() : limits.finalLimit(),
                     postNLOutputs
             );
             projections.add(topN);
@@ -255,7 +257,7 @@ public class NestedLoopConsumer implements Consumer {
                         postNLOutputs,
                         orderByBeforeSplit,
                         querySpec.offset(),
-                        topNLimit,
+                        limits.finalLimit(),
                         querySpec.outputs()
                 );
                 localMergePhase.addProjection(finalTopN);

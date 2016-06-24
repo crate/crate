@@ -33,7 +33,6 @@ import io.crate.planner.PlanVisitor;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
-import org.elasticsearch.common.Nullable;
 
 import java.util.List;
 import java.util.UUID;
@@ -54,10 +53,12 @@ public class ESGet extends PlanAndPlannedAnalyzedRelation {
     private final DocKeys docKeys;
     private final List<Symbol> outputs;
     private final List<DataType> outputTypes;
+    private final int limit;
 
     public ESGet(int executionPhaseId,
                  DocTableInfo tableInfo,
                  QuerySpec querySpec,
+                 int limit,
                  UUID jobId) {
 
         assert querySpec.where().docKeys().isPresent();
@@ -67,6 +68,7 @@ public class ESGet extends PlanAndPlannedAnalyzedRelation {
         this.docKeys = querySpec.where().docKeys().get();
         this.executionPhaseId = executionPhaseId;
         this.jobId = jobId;
+        this.limit = limit;
 
         outputTypes = Symbols.extractTypes(outputs);
 
@@ -97,9 +99,8 @@ public class ESGet extends PlanAndPlannedAnalyzedRelation {
         return docKeys;
     }
 
-    @Nullable
-    public Integer limit() {
-        return querySpec().limit().orNull();
+    public int limit() {
+        return limit;
     }
 
     public int offset() {
