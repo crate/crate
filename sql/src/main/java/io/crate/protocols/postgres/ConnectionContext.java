@@ -22,9 +22,11 @@
 
 package io.crate.protocols.postgres;
 
+import com.google.common.base.Function;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionState;
 import io.crate.exceptions.Exceptions;
@@ -422,23 +424,21 @@ class ConnectionContext {
         String portalName = readCString(buffer);
         int maxRows = buffer.readInt();
         try {
-            ResultReceiver rowReceiver = createRowReceiver(channel);
+            ResultReceiver rowReceiver = createRowReceiver(channel, session.query(), session.outputTypes());
             session.execute(portalName, maxRows, rowReceiver);
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
         }
     }
 
-    private ResultReceiver createRowReceiver(Channel channel) {
-        ResultReceiver rowReceiver;
-        if (session.outputTypes() == null) {
+    private static ResultReceiver createRowReceiver(Channel channel, String query, @Nullable List<? extends DataType> outputTypes) {
+        if (outputTypes == null) {
             // this is a DML query:
-            rowReceiver = new RowCountReceiver(session.query(), channel);
+            return new RowCountReceiver(query, channel);
         } else {
             // query with resultSet
-            rowReceiver = new ResultSetReceiver(session.query(), channel, session.outputTypes());
+            return new ResultSetReceiver(query, channel, outputTypes);
         }
-        return rowReceiver;
     }
 
     private void handleSync(final Channel channel) {
@@ -451,30 +451,30 @@ class ConnectionContext {
     }
 
     private void handleSimpleQuery(ChannelBuffer buffer, final Channel channel) {
-        String query = readCString(buffer);
+        final String query = readCString(buffer);
         assert query != null : "query must not be nulL";
 
-        // TODO: support multiple statements
-        if (query.endsWith(";")) {
-            query = query.substring(0, query.length() - 1);
-        }
-        LOGGER.trace("query={}", query);
-
         // TODO: hack for unsupported `SET datetype = 'ISO'` that's sent by psycopg2 if a connection is established
-        if (query.startsWith("SET")) {
+        if (query.startsWith("SET datetype")) {
             Messages.sendCommandComplete(channel, "SET", 0);
             Messages.sendReadyForQuery(channel);
             return;
         }
         try {
-            session.parse("", query, Collections.<DataType>emptyList());
-            session.bind("", "", Collections.emptyList());
-            List<Field> fields = session.describe('S', "");
-            if (fields != null) {
-                Messages.sendRowDescription(channel, fields);
-            }
-            session.execute("", 0, createRowReceiver(channel));
-            session.sync(new ReadyForQueryListener(channel));
+            session.simpleQuery(
+                query,
+                new Function<List<Field>, ResultReceiver>() {
+                    @Nullable
+                    @Override
+                    public ResultReceiver apply(@Nullable List<Field> columns) {
+                        if (columns == null) {
+                            return createRowReceiver(channel, query, null);
+                        }
+                        Messages.sendRowDescription(channel, columns);
+                        return createRowReceiver(channel, query, Symbols.extractTypes(columns));
+                    }
+                },
+                new ReadyForQueryListener(channel));
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
             Messages.sendReadyForQuery(channel);
