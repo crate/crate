@@ -48,6 +48,10 @@ public class ESGetStatementPlanner {
             return new NoopPlan(context.jobId());
         }
         table.tableRelation().validateOrderBy(table.querySpec().orderBy());
-        return new ESGet(context.nextExecutionPhaseId(), tableInfo, table.querySpec(), context.jobId()).plan();
+        return new ESGet(
+            context.nextExecutionPhaseId(),
+            tableInfo, table.querySpec(),
+            context.getLimits(true, table.querySpec()).finalLimit(),
+            context.jobId()).plan();
     }
 }

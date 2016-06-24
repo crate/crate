@@ -33,6 +33,7 @@ import io.crate.integrationtests.Setup;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.testing.TestingHelpers;
@@ -70,7 +71,7 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
         }
         WhereClause whereClause = new WhereClause(null, new DocKeys(keys, false, -1, null), null);
         querySpec.where(whereClause);
-        return new ESGet(executionNodeId, tableInfo, querySpec, UUID.randomUUID());
+        return new ESGet(executionNodeId, tableInfo, querySpec, TopN.NO_LIMIT, UUID.randomUUID());
     }
 
     @Before
@@ -96,6 +97,6 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
     }
 
     protected Planner.Context newPlannerContext() {
-        return new Planner.Context(clusterService(), UUID.randomUUID(), null);
+        return new Planner.Context(clusterService(), UUID.randomUUID(), null, 0, 0);
     }
 }

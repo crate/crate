@@ -4,7 +4,6 @@ import com.carrotsearch.hppc.IntSet;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.*;
@@ -1549,7 +1548,7 @@ public class PlannerTest extends AbstractPlannerTest {
     public void testBuildReaderAllocations() throws Exception {
         TableIdent custom = new TableIdent("custom", "t1");
         TableInfo tableInfo = TestingTableInfo.builder(custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
-        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, 0, 0);
         plannerContext.allocateRouting(tableInfo, WhereClause.MATCH_ALL, null);
 
         Planner.Context.ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
@@ -1579,7 +1578,7 @@ public class PlannerTest extends AbstractPlannerTest {
     public void testAllocateRouting() throws Exception {
         TableIdent custom = new TableIdent("custom", "t1");
         TableInfo tableInfo = TestingTableInfo.builder(custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
-        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, 0, 0);
 
         WhereClause whereClause = new WhereClause(
                 new Function(new FunctionInfo(
@@ -1601,7 +1600,7 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testExecutionPhaseIdSequence() throws Exception {
-        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, 0, 0);
 
         assertThat(plannerContext.nextExecutionPhaseId(), is(0));
         assertThat(plannerContext.nextExecutionPhaseId(), is(1));
@@ -1711,5 +1710,27 @@ public class PlannerTest extends AbstractPlannerTest {
         CollectAndMerge plan = plan("select * from unnest([1, 2], ['Arthur', 'Trillian'])");
         assertNotNull(plan);
         assertThat(plan.collectPhase().toCollect(), contains(isReference("col1"), isReference("col2")));
+    }
+
+    @Test
+    public void testSoftLimitIsApplied() throws Exception {
+        QueryThenFetch plan = plan("select * from users", 0, 10);
+        assertThat(plan.localMerge().projections(), contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
+        TopNProjection topNProjection = (TopNProjection) plan.localMerge().projections().get(0);
+        assertThat(topNProjection.limit(), is(10));
+
+        plan = plan("select * from users limit 5", 0, 10);
+        assertThat(plan.localMerge().projections(), contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
+        topNProjection = (TopNProjection) plan.localMerge().projections().get(0);
+        assertThat(topNProjection.limit(), is(5));
+    }
+
+    @Test
+    public void testMaxRowsIsApplied() throws Exception {
+        QueryThenFetch plan = plan("select * from users limit 20", 10, 0);
+        assertThat(plan.localMerge().projections(), contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
+        TopNProjection topNProjection = (TopNProjection) plan.localMerge().projections().get(0);
+
+        assertThat(topNProjection.limit(), is(10));
     }
 }
