@@ -421,6 +421,12 @@ public final class SqlFormatter {
         }
 
         @Override
+        public Void visitNotNullColumnConstraint(NotNullColumnConstraint node, Integer indent) {
+            builder.append("NOT NULL");
+            return null;
+        }
+
+        @Override
         public Void visitPrimaryKeyConstraint(PrimaryKeyConstraint node, Integer indent) {
             builder.append("PRIMARY KEY ");
             appendFlatNodeList(node.columns(), indent);

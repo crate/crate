@@ -142,6 +142,9 @@ public class TestStatementBuilder {
         printStatement("create table \"TABLE\" (o object(ignored))");
         printStatement("create table \"TABLE\" (o object(strict) as (inner_col object as (sub_inner_col timestamp, another_inner_col string)))");
 
+        printStatement("create table test (col1 int, col2 timestamp not null)");
+        printStatement("create table test (col1 int primary key not null, col2 timestamp)");
+
         printStatement("create table t (" +
                 "name string index off, " +
                 "another string index using plain, " +
