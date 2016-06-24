@@ -23,6 +23,7 @@ package io.crate.planner;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -37,6 +38,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.UpdateConsumer;
@@ -69,6 +71,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private final SelectStatementPlanner selectStatementPlanner;
     private final DeleteStatementPlanner deleteStatementPlanner;
 
+
     public static class Context {
 
         //index, shardId, node
@@ -77,15 +80,76 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private final ClusterService clusterService;
         private final UUID jobId;
         private final ConsumingPlanner consumingPlanner;
+        private final int softLimit;
+        private final int maxRows;
         private int executionPhaseId = 0;
         private final Multimap<TableIdent, TableRouting> tableRoutings = HashMultimap.create();
         private ReaderAllocations readerAllocations;
         private HashMultimap<TableIdent, String> tableIndices;
 
-        public Context(ClusterService clusterService, UUID jobId, ConsumingPlanner consumingPlanner) {
+        public Context(ClusterService clusterService,
+                       UUID jobId,
+                       ConsumingPlanner consumingPlanner,
+                       int softLimit,
+                       int maxRows) {
             this.clusterService = clusterService;
             this.jobId = jobId;
             this.consumingPlanner = consumingPlanner;
+            this.softLimit = softLimit;
+            this.maxRows = maxRows;
+        }
+
+        private static int finalLimit(@Nullable Integer queryLimit, int softLimit, int maxRows) {
+            if (maxRows > 0) {
+                return maxRows;
+            }
+            if (queryLimit == null) {
+                return softLimit > 0 ? softLimit : TopN.NO_LIMIT;
+            }
+            return queryLimit;
+        }
+
+        public Limits getLimits(boolean isRootRelation, QuerySpec querySpec) {
+            Optional<Integer> optLimit = querySpec.limit();
+            if (!isRootRelation && optLimit.isPresent()) {
+                /**
+                 * Don't apply softLimit or maxRows on child-relations,
+                 * The parent-relations might need more data to produce the correct result.
+                 * If the limit is present on the query it means the parent relation wanted it there, so keep it.
+                 */
+
+                //noinspection OptionalGetWithoutIsPresent it's present!
+                Integer limit = optLimit.get();
+                return new Limits(limit, querySpec.offset());
+            }
+            int finalLimit = finalLimit(optLimit.orNull(), softLimit, maxRows);
+            return new Limits(finalLimit, querySpec.offset());
+        }
+
+        public static class Limits {
+            public int finalLimit() {
+                return finalLimit;
+            }
+
+            public int limitAndOffset() {
+                return limitAndOffset;
+            }
+
+            public boolean hasLimit() {
+                return finalLimit != TopN.NO_LIMIT;
+            }
+
+            final int finalLimit;
+            final int limitAndOffset;
+
+            Limits(int finalLimit, int offset) {
+                this.finalLimit = finalLimit;
+                if (finalLimit > TopN.NO_LIMIT) {
+                    this.limitAndOffset = finalLimit + offset;
+                } else {
+                    this.limitAndOffset = TopN.NO_LIMIT;
+                }
+            }
         }
 
         public static class ReaderAllocations {
@@ -297,11 +361,17 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      * dispatch plan creation based on analysis type
      *
      * @param analysis analysis to create plan from
+     * @param softLimit A soft limit will be applied if there is no explicit limit within the query.
+     *                  0 for unlimited (query limit or maxRows will still apply)
+     *                  If the type of query doesn't have a resultSet this has no effect.
+     * @param maxRows Limit the number of rows that should be returned to a client.
+     *                If > 0 this overrides the limit that might be part of a query.
+     *                0 for unlimited (soft limit or query limit may still apply)
      * @return plan
      */
-    public Plan plan(Analysis analysis, UUID jobId) {
+    public Plan plan(Analysis analysis, UUID jobId, int softLimit, int maxRows) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        return process(analyzedStatement, new Context(clusterService, jobId, consumingPlanner));
+        return process(analyzedStatement, new Context(clusterService, jobId, consumingPlanner, softLimit, maxRows));
     }
 
     @Override

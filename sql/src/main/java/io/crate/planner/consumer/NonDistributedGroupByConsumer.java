@@ -36,6 +36,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.Planner;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.GroupByConsumer;
@@ -178,13 +179,13 @@ public class NonDistributedGroupByConsumer implements Consumer {
             boolean outputsMatch = table.querySpec().outputs().size() == collectOutputs.size() &&
                                     collectOutputs.containsAll(table.querySpec().outputs());
             if (isRootRelation || !outputsMatch) {
-                int limit = table.querySpec().limit().or(TopN.NO_LIMIT);
+                Planner.Context.Limits limits = context.plannerContext().getLimits(context.isRoot(), table.querySpec());
                 Integer offset = (isRootRelation ? table.querySpec().offset() : TopN.NO_OFFSET);
                 projections.add(ProjectionBuilder.topNProjection(
                         collectOutputs,
                         table.querySpec().orderBy().orNull(),
                         offset,
-                        limit,
+                        isRootRelation ? limits.finalLimit() : limits.limitAndOffset(),
                         table.querySpec().outputs()
                 ));
             }
