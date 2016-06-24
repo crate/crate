@@ -22,6 +22,7 @@
 
 package io.crate.action.sql;
 
+import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -48,6 +49,7 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -134,6 +136,23 @@ public class SQLOperations {
         private Session(Executor executor, String defaultSchema) {
             this.executor = executor;
             this.defaultSchema = defaultSchema;
+        }
+
+        public void simpleQuery(String query,
+                                Function<List<Field>, ResultReceiver> resultReceiverFactory,
+                                CompletionListener doneListener) {
+            // TODO: support multiple statements
+            if (query.endsWith(";")) {
+                query = query.substring(0, query.length() - 1);
+            }
+
+            parse("", query, Collections.<DataType>emptyList());
+            bind("", "", Collections.emptyList());
+            List<Field> fields = describe('S', "");
+
+            ResultReceiver resultReceiver = resultReceiverFactory.apply(fields);
+            execute("", 0, resultReceiver);
+            sync(doneListener);
         }
 
         public void parse(String statementName, String query, List<DataType> paramTypes) {
