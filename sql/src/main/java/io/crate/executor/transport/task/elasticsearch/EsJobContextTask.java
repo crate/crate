@@ -23,13 +23,13 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.sql.ResultReceiver;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.jobs.ESJobContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.support.TransportAction;
@@ -68,7 +68,7 @@ class EsJobContextTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver) {
+    public void execute(ResultReceiver resultReceiver) {
         assert builder != null : "Context must be created first";
         SettableFuture<TaskResult> result = results.get(0);
         try {
@@ -77,7 +77,7 @@ class EsJobContextTask extends JobTask {
         } catch (Throwable throwable) {
             result.setException(throwable);
         }
-        JobTask.resultToRowReceiver(result, rowReceiver);
+        JobTask.resultToResultReceiver(result, resultReceiver);
     }
 
     @Override

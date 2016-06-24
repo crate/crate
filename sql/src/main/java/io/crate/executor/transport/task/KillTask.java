@@ -23,6 +23,7 @@ package io.crate.executor.transport.task;
 
 import com.google.common.base.Function;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.action.sql.ResultReceiver;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
@@ -31,7 +32,6 @@ import io.crate.executor.transport.OneRowActionListener;
 import io.crate.executor.transport.kill.KillAllRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
-import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -54,7 +54,7 @@ public class KillTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver resultReceiver) {
+    public void execute(ResultReceiver resultReceiver) {
         nodeAction.broadcast(new KillAllRequest(),
             new OneRowActionListener<>(resultReceiver, KILL_RESPONSE_TO_ROW_FUNCTION));
     }

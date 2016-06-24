@@ -23,11 +23,11 @@ package io.crate.executor.transport.task;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.sql.ResultReceiver;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ddl.DropTablePlan;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -69,8 +69,8 @@ public class DropTableTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver) {
-        JobTask.resultToRowReceiver(result, rowReceiver);
+    public void execute(ResultReceiver resultReceiver) {
+        JobTask.resultToResultReceiver(result, resultReceiver);
         if (tableInfo.isPartitioned()) {
             String templateName = PartitionName.templateName(tableInfo.ident().schema(), tableInfo.ident().name());
             deleteTemplateAction.execute(new DeleteIndexTemplateRequest(templateName), new ActionListener<DeleteIndexTemplateResponse>() {

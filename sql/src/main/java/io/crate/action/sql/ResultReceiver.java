@@ -20,40 +20,37 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.action.sql;
 
-import com.google.common.base.Function;
-import com.google.common.util.concurrent.FutureCallback;
-import io.crate.action.sql.ResultReceiver;
+import io.crate.concurrent.CompletionListenable;
 import io.crate.core.collections.Row;
-import org.elasticsearch.action.ActionListener;
+import io.crate.planner.Plan;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
-public class OneRowActionListener<Response> implements ActionListener<Response>, FutureCallback<Response> {
+/**
+ * A subset / simplified form of {@link io.crate.operation.projectors.RowReceiver}.
+ *
+ * Used to receive the Result from {@link io.crate.executor.transport.TransportExecutor#execute(Plan, ResultReceiver)}
+ */
+public interface ResultReceiver extends CompletionListenable {
 
-    private final ResultReceiver rowReceiver;
-    private final Function<? super Response, ? extends Row> toRowFunction;
+    /**
+     * @return true if the receiver wants to receive more rows, otherwise false
+     */
+    boolean setNextRow(Row row);
 
-    public OneRowActionListener(ResultReceiver rowReceiver, Function<? super Response, ? extends Row> toRowFunction) {
-        this.rowReceiver = rowReceiver;
-        this.toRowFunction = toRowFunction;
-    }
+    /**
+     * Called once an upstream can't provide anymore rows.
+     *
+     * If this is called {@link #fail(Throwable)} must not be called.
+     */
+    void finish();
 
-    @Override
-    public void onResponse(Response response) {
-        rowReceiver.setNextRow(toRowFunction.apply(response));
-        rowReceiver.finish();
-    }
-
-    @Override
-    public void onSuccess(@Nullable Response result) {
-        onResponse(result);
-    }
-
-    @Override
-    public void onFailure(@Nonnull Throwable e) {
-        rowReceiver.fail(e);
-    }
+    /**
+     * Called once an upstream can't provide anymore rows and exited with an error.
+     *
+     * If this is called {@link #finish()} must not be called.
+     */
+    void fail(@Nonnull Throwable t);
 }

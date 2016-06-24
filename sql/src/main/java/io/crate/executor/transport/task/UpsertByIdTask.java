@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.action.sql.ResultReceiver;
 import io.crate.executor.JobTask;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
@@ -106,8 +107,8 @@ public class UpsertByIdTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver) {
-        JobTask.resultToRowReceiver(executeBulk().get(0), rowReceiver);
+    public void execute(ResultReceiver resultReceiver) {
+        JobTask.resultToResultReceiver(executeBulk().get(0), resultReceiver);
     }
 
     @Override

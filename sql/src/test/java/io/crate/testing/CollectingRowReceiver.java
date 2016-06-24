@@ -25,6 +25,9 @@ package io.crate.testing;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import io.crate.action.sql.ResultReceiver;
+import io.crate.concurrent.CompletionListener;
+import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
@@ -34,6 +37,7 @@ import io.crate.operation.projectors.Requirements;
 import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.common.unit.TimeValue;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -41,12 +45,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class CollectingRowReceiver implements RowReceiver {
+public class CollectingRowReceiver implements RowReceiver, ResultReceiver {
 
     public final List<Object[]> rows = new ArrayList<>();
     protected final SettableFuture<Bucket> resultFuture = SettableFuture.create();
     protected int numFailOrFinish = 0;
     protected RowUpstream upstream;
+    private CompletionListener listener = CompletionListener.NO_OP;
 
     public static CollectingRowReceiver withPauseAfter(int pauseAfter) {
         return new PausingReceiver(pauseAfter);
@@ -82,11 +87,13 @@ public class CollectingRowReceiver implements RowReceiver {
     @Override
     public void kill(Throwable throwable) {
         resultFuture.setException(throwable);
+        listener.onFailure(throwable);
     }
 
     @Override
     public void finish() {
         resultFuture.set(new CollectionBucket(rows));
+        listener.onSuccess(null);
         numFailOrFinish++;
     }
 
@@ -99,8 +106,9 @@ public class CollectingRowReceiver implements RowReceiver {
     }
 
     @Override
-    public void fail(Throwable throwable) {
+    public void fail(@Nonnull Throwable throwable) {
         resultFuture.setException(throwable);
+        listener.onFailure(throwable);
         numFailOrFinish++;
     }
 
@@ -132,6 +140,11 @@ public class CollectingRowReceiver implements RowReceiver {
 
     public void repeatUpstream() {
         upstream.repeat();
+    }
+
+    @Override
+    public void addListener(CompletionListener listener) {
+        this.listener = CompletionMultiListener.merge(this.listener, listener);
     }
 
     private static class LimitingReceiver extends CollectingRowReceiver {

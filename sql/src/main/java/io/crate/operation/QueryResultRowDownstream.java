@@ -22,6 +22,9 @@
 package io.crate.operation;
 
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.action.sql.ResultReceiver;
+import io.crate.concurrent.CompletionListener;
+import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.QueryResult;
@@ -30,6 +33,7 @@ import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.Requirements;
 import io.crate.operation.projectors.RowReceiver;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -38,11 +42,12 @@ import java.util.Set;
  * RowDownstream that will set a TaskResultFuture once the result is ready.
  * It will also close the associated context once it is done
  */
-public class QueryResultRowDownstream implements RowReceiver {
+public class QueryResultRowDownstream implements RowReceiver, ResultReceiver {
 
     private final SettableFuture<TaskResult> result;
     private final List<Object[]> rows = new ArrayList<>();
-    private boolean killed;
+    private CompletionListener listener = CompletionListener.NO_OP;
+    private boolean shouldContinue = true;
 
     public QueryResultRowDownstream(SettableFuture<TaskResult> result) {
         this.result = result;
@@ -50,31 +55,35 @@ public class QueryResultRowDownstream implements RowReceiver {
 
     @Override
     public boolean setNextRow(Row row) {
-        if (killed) {
-            return false;
-        }
         rows.add(row.materialize());
-        return true;
+        return shouldContinue;
     }
 
     @Override
     public void finish() {
+        shouldContinue = false;
         result.set(new QueryResult(new CollectionBucket(rows)));
+        listener.onSuccess(null);
     }
 
     @Override
-    public void fail(Throwable throwable) {
+    public void fail(@Nonnull Throwable throwable) {
+        shouldContinue = false;
         result.setException(throwable);
+        listener.onFailure(throwable);
     }
 
     @Override
     public void kill(Throwable throwable) {
-        killed = true;
-        result.setException(throwable);
+        fail(throwable);
     }
 
     @Override
     public void prepare() {
+    }
+
+    @Override
+    public void setUpstream(RowUpstream rowUpstream) {
     }
 
     @Override
@@ -83,6 +92,7 @@ public class QueryResultRowDownstream implements RowReceiver {
     }
 
     @Override
-    public void setUpstream(RowUpstream rowUpstream) {
+    public void addListener(CompletionListener listener) {
+        this.listener = CompletionMultiListener.merge(this.listener, listener);
     }
 }

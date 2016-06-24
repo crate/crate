@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.sql.DDLStatementDispatcher;
+import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.executor.Executor;
@@ -47,7 +48,6 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
@@ -142,7 +142,7 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public void execute(Plan plan, RowReceiver resultReceiver) {
+    public void execute(Plan plan, ResultReceiver resultReceiver) {
         plan2TaskVisitor.process(plan, null).execute(resultReceiver);
     }
 
