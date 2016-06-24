@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Failures on large bulk operations could lead to an
+   stackoverflow error and unresponsive cluster.
+
  - Fix: Ordered queries with limit 0 failed
 
  - Fix: Number of bulk results were equal to the total number of items

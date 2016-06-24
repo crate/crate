@@ -54,6 +54,7 @@ public class JobExecutionContext implements KeepAliveListener {
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final ArrayList<SubExecutionContextFuture> futures;
     private final ListenableFuture<List<SubExecutionContextFuture.State>> chainedFuture;
+    private final AtomicBoolean killSubContextsOngoing = new AtomicBoolean(false);
     private ThreadPool threadPool;
     private StatsTables statsTables;
     private volatile Throwable failure;
@@ -274,12 +275,14 @@ public class JobExecutionContext implements KeepAliveListener {
         public void onFailure(@Nonnull Throwable t) {
             failure = t;
             statsTables.operationFinished(id, jobId, Exceptions.messageOf(t), -1);
-            if (remove() == RemoveSubContextPosition.LAST){
+            if (remove() == RemoveSubContextPosition.LAST) {
                 return;
             }
-            LOGGER.trace("onFailure killing all other subContexts..");
-            for (ExecutionSubContext subContext : subContexts.values()) {
-                subContext.kill(t);
+            if (killSubContextsOngoing.compareAndSet(false, true)) {
+                LOGGER.trace("onFailure killing all other subContexts..");
+                for (ExecutionSubContext subContext : subContexts.values()) {
+                    subContext.kill(t);
+                }
             }
         }
     }
