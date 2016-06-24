@@ -4,6 +4,8 @@ Changes for Crate
 
 Unreleased
 ==========
+ 
+ - Fixed bug in range inclusion for geo distance calculation.
 
  - Implemented OPTIMIZE table statement which optimizes tables and partitions
    by merging the segments of which each table and partition consists.

@@ -903,13 +903,16 @@ public class LuceneQueryBuilder {
                         break;
                     case LtOperator.NAME:
                         to = distance;
+                        includeLower = true;
                         break;
                     case GteOperator.NAME:
                         from = distance;
                         includeLower = true;
+                        includeUpper = true;
                         break;
                     case GtOperator.NAME:
                         from = distance;
+                        includeUpper = true;
                         break;
                     default:
                         // invalid operator? give up
