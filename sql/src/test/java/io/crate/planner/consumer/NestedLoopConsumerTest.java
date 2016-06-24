@@ -91,7 +91,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
     private final ClusterService clusterService = mock(ClusterService.class);
     private NestedLoopConsumer consumer;
-    private final Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
+    private final Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, 0, 0);
     private TableStatsService statsService;
 
     @Before
@@ -146,7 +146,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
                 SqlParser.createStatement(statement),
                 new ParameterContext(new Object[0], new Object[0][], null));
         //noinspection unchecked
-        return (T) planner.plan(analysis, UUID.randomUUID());
+        return (T) planner.plan(analysis, UUID.randomUUID(), 0, 0);
     }
 
     @Test

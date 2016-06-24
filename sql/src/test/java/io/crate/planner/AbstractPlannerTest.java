@@ -271,14 +271,19 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
         }
     }
 
-    protected <T extends Plan> T plan(String statement) {
+    protected <T extends Plan> T plan(String statement, int maxRows, int softLimit) {
         //noinspection unchecked: for testing this is fine
         return (T) planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-            new ParameterContext(new Object[0], new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
+            new ParameterContext(new Object[0], new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)),
+            UUID.randomUUID(), softLimit, maxRows);
+    }
+
+    protected <T extends Plan> T plan(String statement) {
+        return plan(statement, 0, 0);
     }
 
     protected Plan plan(String statement, Object[][] bulkArgs) {
         return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-            new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID());
+            new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID(), 0, 0);
     }
 }

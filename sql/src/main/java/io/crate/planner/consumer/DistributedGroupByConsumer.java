@@ -37,7 +37,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.operation.projectors.TopN;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
@@ -151,17 +150,14 @@ public class DistributedGroupByConsumer implements Consumer {
                 }
             }
 
+            Planner.Context.Limits limits = plannerContext.getLimits(context.isRoot(), querySpec);
             boolean isRootRelation = context.rootRelation() == table;
             if (isRootRelation) {
-                int limit = TopN.NO_LIMIT;
-                if (querySpec.limit().isPresent()) {
-                    limit = querySpec.limit().get() + querySpec.offset();
-                }
                 reducerProjections.add(ProjectionBuilder.topNProjection(
                         collectOutputs,
                         querySpec.orderBy().orNull(),
                         0,
-                        limit,
+                        limits.limitAndOffset(),
                         querySpec.outputs()));
             }
 
@@ -184,7 +180,7 @@ public class DistributedGroupByConsumer implements Consumer {
                         querySpec.outputs(),
                         querySpec.orderBy().orNull(),
                         querySpec.offset(),
-                        querySpec.limit().or(TopN.NO_LIMIT),
+                        limits.finalLimit(),
                         null);
                 localMergeNode = MergePhase.localMerge(
                         plannerContext.jobId(),
