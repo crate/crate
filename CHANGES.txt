@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Failures on large bulk operations could lead to an
+   stackoverflow error and unresponsive cluster.
+
  - Updated crash to 0.17.0 which contains following changes:
 
       - Added support for OPTIMIZE table statement.
