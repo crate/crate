@@ -68,15 +68,7 @@ PRIMARY KEY Constraint
 The PRIMARY KEY constraint specifies that a column or columns of a
 table can contain only unique (non-duplicate), non-null values.
 
-Adding a PRIMARY KEY column is only possible if the table is empty.
-
-.. warning::
-
-    The verification if the table is empty and the schema update isn't atomic.
-    That means that it could be possible to add a primary key column to a table
-    that isn't empty.
-    If that is the case queries that contain the primary key columns in the
-    WHERE clause will not behave as expected.
+For further details see :ref:`primary_key_constraint`
 
 .. _ref-alter-table-partition-clause:
 

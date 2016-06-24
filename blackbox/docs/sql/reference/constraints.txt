@@ -1,0 +1,54 @@
+.. highlight:: psql
+.. _table_constraints:
+
+=================
+TABLE CONSTRAINTS
+=================
+
+Table constraints are constraints that are applied to more than one column or
+to the table as a whole.
+
+The supported table constraints currently are:
+
+ * :ref:`primary_key_constraint`
+ * :ref:`index-constraint`
+
+
+.. _primary_key_constraint:
+
+PRIMARY KEY Constraint
+======================
+
+The PRIMARY KEY constraint specifies that a column or columns of a
+table can contain only unique (non-duplicate), non-null values.
+
+Using columns of type ``object``, ``geo_point``, ``geo_shape`` or ``array`` as
+PRIMARY KEY is not supported.
+
+
+To use a whole ``object`` as PRIMARY KEY each column within the ``object`` can
+be declared as PRIMARY KEY instead.
+
+Adding a PRIMARY KEY column is only possible if the table is empty.
+
+.. warning::
+
+    The verification if the table is empty and the schema update isn't atomic.
+    That means that it could be possible to add a primary key column to a table
+    that isn't empty.
+    If that is the case queries that contain the primary key columns in the
+    WHERE clause will not behave as expected.
+
+.. _index-constraint:
+
+INDEX Constraint
+================
+
+The INDEX constraint specifies a specific index method on one or more
+columns.
+
+It is possible to define more than one index per table, whether as a
+column constraint or a table constraint.
+
+For further details about the meaning of the options see
+:ref:`indices_and_fulltext`.
