@@ -21,8 +21,9 @@ Synopsis
 
 where ``column_constraint`` is::
 
-    { PRIMARY KEY |
-      INDEX { OFF | USING { PLAIN |
+    { PRIMARY KEY
+      | NOT NULL |
+      | INDEX { OFF | USING { PLAIN |
                             FULLTEXT [ WITH ( analyzer = analyzer_name ) ]  }
     }
 
@@ -77,6 +78,20 @@ Adding a PRIMARY KEY column is only possible if the table is empty.
     that isn't empty.
     If that is the case queries that contain the primary key columns in the
     WHERE clause will not behave as expected.
+
+NOT NULL Constraint
+======================
+
+The NOT NULL constraint specifies that a column or columns of a
+table can contain only non-null values.
+
+Adding a NOT NULL to an existing column is only possible if the table is empty.
+
+.. warning::
+
+    The verification if the table is empty and the schema update isn't atomic.
+    That means that it could be possible to add a not null constraint to a column
+    if the table isn't empty.
 
 .. _ref-alter-table-partition-clause:
 

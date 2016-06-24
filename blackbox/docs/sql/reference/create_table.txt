@@ -116,6 +116,14 @@ The only table constraints currently supported are:
  * :ref:`primary_key_constraint`
  * :ref:`index-constraint`
 
+Column Constraints
+~~~~~~~~~~~~~~~~~~
+
+Column constraints are constraints that are applied on each column of the table separately.
+The only column constraints currently supported are:
+
+ * :ref:`not_null_constraint`
+
 Parameters
 ==========
 
@@ -171,6 +179,20 @@ column constraint or a table constraint.
 
 For further details about the meaning of the options see
 :ref:`indices_and_fulltext`.
+
+
+.. _not_null_constraint:
+
+NOT NULL Constraint
+======================
+
+The NOT NULL constraint specifies that a column of table can contain only non-null values.
+The columns that consist the primary key of a table are NOT NULL by default.
+
+.. note::
+
+    Currently not null constraint cannot be added once data is inserted.
+    New columns that are added to the table with ``ALTER`` statement can have NOT NULL constraint.
 
 .. _ref_clustered_clause:
 
