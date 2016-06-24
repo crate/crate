@@ -76,6 +76,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
     public static final String NODE_READ_ONLY_SETTING = "node.sql.read_only";
 
     private static final int MAX_SHARD_MISSING_RETRIES = 3;
+    private static final int DEFAULT_SOFT_LIMIT = 10_000;
 
 
     private final LoadingCache<String, Statement> statementCache = CacheBuilder.newBuilder()
@@ -157,7 +158,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                 // full retry is only used for read-only operations
                 listener = new KillAndRetryListenerWrapper(listener, statement, jobId, executor, request, startTime);
             }
-            Plan plan = planner.plan(analysis, jobId);
+            Plan plan = planner.plan(analysis, jobId, DEFAULT_SOFT_LIMIT, 0);
             assert plan != null;
             tracePlan(plan);
             executePlan(executor, analysis, plan, listener, request, startTime);
@@ -380,7 +381,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                     public void onResponse(KillResponse killResponse) {
                         logger.debug("Killed {} jobs before Retry", killResponse.numKilled());
                         Analysis analysis = analyzer.analyze(statement, getParamContext(request));
-                        Plan newPlan = planner.plan(analysis, jobId);
+                        Plan newPlan = planner.plan(analysis, jobId, DEFAULT_SOFT_LIMIT, 0);
                         executePlan(executor, analysis, newPlan, KillAndRetryListenerWrapper.this, request, startTime);
                     }
 

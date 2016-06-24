@@ -22,7 +22,6 @@
 
 package io.crate.planner;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.MultiSourceSelect;
@@ -126,9 +125,10 @@ public class SelectStatementPlanner {
 
             CollectAndMerge qaf = (CollectAndMerge) plannedSubQuery;
             RoutedCollectPhase collectPhase = ((RoutedCollectPhase) qaf.collectPhase());
-            Optional<Integer> limit = querySpec.limit();
-            if (collectPhase.nodePageSizeHint() == null && limit.isPresent()) {
-                collectPhase.nodePageSizeHint(limit.get() + querySpec.offset());
+
+            Planner.Context.Limits limits = context.getLimits(true, querySpec);
+            if (collectPhase.nodePageSizeHint() == null && limits.limitAndOffset > TopN.NO_LIMIT) {
+                collectPhase.nodePageSizeHint(limits.limitAndOffset);
             }
 
             Planner.Context.ReaderAllocations readerAllocations = context.buildReaderAllocations();
@@ -149,7 +149,7 @@ public class SelectStatementPlanner {
                     collectPhase.toCollect(),
                     null, // orderBy = null because stuff is pre-sorted in collectPhase and sortedLocalMerge is used
                     querySpec.offset(),
-                    querySpec.limit().or(TopN.NO_LIMIT),
+                    limits.finalLimit,
                     null
             );
             if (!querySpec.orderBy().isPresent()) {

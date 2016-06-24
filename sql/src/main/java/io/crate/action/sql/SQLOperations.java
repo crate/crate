@@ -128,6 +128,7 @@ public class SQLOperations {
         private Analysis analysis;
         private List<DataType> outputTypes;
         private String query;
+        private int maxRows = 0;
 
         private Throwable throwable = null;
         private List<List<Object>> bulkParams = new ArrayList<>();
@@ -218,6 +219,7 @@ public class SQLOperations {
                 return;
             }
             resultReceivers.add(rowReceiver);
+            this.maxRows = maxRows;
         }
 
         public void sync(CompletionListener listener) {
@@ -240,7 +242,7 @@ public class SQLOperations {
         }
 
         private void execute(CompletionListener listener) {
-            Plan plan = planner.plan(analysis, jobId);
+            Plan plan = planner.plan(analysis, jobId, maxRows, maxRows);
             ResultReceiver resultReceiver = resultReceivers.get(0);
             resultReceiver.addListener(listener);
             executor.execute(plan, resultReceiver);
@@ -250,7 +252,7 @@ public class SQLOperations {
         private void executeBulk(final CompletionListener listener) {
             Object[][] bulkArgs = toBulkArgs(bulkParams);
             analysis = analyzer.analyze(statement, new ParameterContext(new Object[0], bulkArgs, defaultSchema));
-            Plan plan = planner.plan(analysis, jobId);
+            Plan plan = planner.plan(analysis, jobId, maxRows, maxRows);
 
             List<? extends ListenableFuture<TaskResult>> futures = executor.executeBulk(plan);
             Futures.addCallback(Futures.allAsList(futures), new FutureCallback<List<TaskResult>>() {
