@@ -62,6 +62,7 @@ public class JobExecutionContext implements CompletionListenable {
     private final String coordinatorNodeId;
     private final StatsTables statsTables;
     private final SettableFuture<Void> finishedFuture = SettableFuture.create();
+    private final AtomicBoolean killSubContextsOngoing = new AtomicBoolean(false);
     private CompletionListener listener = CompletionListener.NO_OP;
     private volatile Throwable failure;
 
@@ -269,9 +270,11 @@ public class JobExecutionContext implements CompletionListenable {
             if (remove() == RemoveSubContextPosition.LAST) {
                 return;
             }
-            LOGGER.trace("onFailure killing all other subContexts..");
-            for (ExecutionSubContext subContext : subContexts.values()) {
-                subContext.kill(t);
+            if (killSubContextsOngoing.compareAndSet(false, true)) {
+                LOGGER.trace("onFailure killing all other subContexts..");
+                for (ExecutionSubContext subContext : subContexts.values()) {
+                    subContext.kill(t);
+                }
             }
         }
     }
