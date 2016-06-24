@@ -995,6 +995,7 @@ columnConstDef
 
 columnConst
     : PRIMARY_KEY
+    | NOT NULL
     | columnIndexConstraint
     ;
 
