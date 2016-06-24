@@ -75,7 +75,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     private Plan analyzeAndPlan(String stmt) {
         Analysis analysis = analyze(stmt);
         Planner planner = internalCluster().getInstance(Planner.class);
-        return planner.plan(analysis, UUID.randomUUID());
+        return planner.plan(analysis, UUID.randomUUID(), 0, 0);
     }
 
     private Analysis analyze(String stmt) {
