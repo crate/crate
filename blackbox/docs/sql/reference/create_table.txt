@@ -120,7 +120,7 @@ Column Constraints
 ~~~~~~~~~~~~~~~~~~
 
 Column constraints are constraints that are applied on each column of the table separately.
-The only column constraints currently supported are:
+The supported column constraints are:
 
  * :ref:`not_null_constraint`
 

@@ -259,7 +259,7 @@ Example::
 
 .. note::
 
-    Currently not null constraint cannot be added once data is inserted.
+    Not Null constraint cannot be added once data is inserted.
 
 See :ref:`not_null_constraint`.
 
