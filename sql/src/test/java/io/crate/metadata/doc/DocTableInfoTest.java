@@ -85,7 +85,8 @@ public class DocTableInfoTest extends CrateUnitTest {
                 RowGranularity.DOC,
                 DataTypes.OBJECT,
                 ColumnPolicy.STRICT,
-                ReferenceInfo.IndexType.NOT_ANALYZED
+                ReferenceInfo.IndexType.NOT_ANALYZED,
+                true
         );
 
         ImmutableMap<ColumnIdent, ReferenceInfo> references = ImmutableMap.<ColumnIdent, ReferenceInfo>builder()

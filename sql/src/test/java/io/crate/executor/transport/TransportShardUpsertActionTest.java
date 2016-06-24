@@ -21,15 +21,18 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Reference;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import org.apache.http.annotation.Immutable;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.support.ActionFilters;
@@ -95,6 +98,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                                               ShardUpsertRequest.Item item,
                                               IndexShard indexShard,
                                               boolean tryInsertFirst,
+                                              Collection<ColumnIdent> notUsedNonGeneratedColumns,
                                               int retryCount) throws ElasticsearchException {
             throw new DocumentAlreadyExistsException(new ShardId(request.index(), request.shardId().id()), request.type(), item.id());
         }
@@ -115,6 +119,11 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         indexShard = mock(IndexShard.class);
         when(indexService.shardSafe(0)).thenReturn(indexShard);
 
+        // Avoid null pointer exceptions
+        DocTableInfo tableInfo = mock(DocTableInfo.class);
+        Schemas schemas = mock(Schemas.class);
+        when(tableInfo.columns()).thenReturn(Collections.<ReferenceInfo>emptyList());
+        when(schemas.getWritableTable(any(TableIdent.class))).thenReturn(tableInfo);
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
                 Settings.EMPTY,
@@ -126,7 +135,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                 mock(JobContextService.class),
                 mock(ShardStateAction.class),
                 functions,
-                mock(Schemas.class),
+                schemas,
                 mock(MappingUpdatedAction.class),
                 mock(IndexNameExpressionResolver.class)
                 );

@@ -126,6 +126,7 @@ public class InformationSchemaIterables {
         private final Iterator<ReferenceInfo> columns;
 
         ColumnsIterator(TableInfo ti) {
+            context.tableInfo = ti;
             context.ordinal = 0;
             columns = FluentIterable.from(ti).filter(new Predicate<ReferenceInfo>() {
                 @Override

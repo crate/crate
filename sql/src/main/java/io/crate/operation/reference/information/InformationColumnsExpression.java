@@ -71,4 +71,16 @@ public abstract class InformationColumnsExpression<T>
             return new BytesRef(row.info.type().getName());
         }
     }
+
+    public static class ColumnsIsNullableExpression extends InformationColumnsExpression<Boolean> {
+
+        @Override
+        public Boolean value() {
+            if (row.tableInfo.primaryKey().contains(row.info.ident().columnIdent())) {
+                return false;
+            } else {
+                return row.info.isNullable();
+            }
+        }
+    }
 }

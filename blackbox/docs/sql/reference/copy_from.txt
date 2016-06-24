@@ -41,7 +41,8 @@ For examples see: :ref:`importing_data`.
   When importing data using ``COPY FROM`` Crate does not check if the types
   from the columns and the types from the import file match. It does not cast
   the types to their target but will always import the data as it is
-  in the source file.
+  in the source file. Furthermore Crate does not check if the imported data respect
+  :ref:`column_constraints` like ``NOT NULL``.
 
   e.g. a `WKT`_ string cannot be imported into a column of ``geo_shape`` or
   ``geo_point`` type, such as it won't be implicitly casted to `GeoJSON`_

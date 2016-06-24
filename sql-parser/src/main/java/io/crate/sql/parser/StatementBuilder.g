@@ -911,6 +911,7 @@ columnConstraints returns [List<ColumnConstraint> value = new ArrayList<>()]
 
 columnConstraint returns [ColumnConstraint value]
     : PRIMARY_KEY { $value = new PrimaryKeyColumnConstraint(); }
+    | NOT NULL { $value = new NotNullColumnConstraint(); }
     | INDEX_OFF   { $value = IndexColumnConstraint.OFF; }
     | ^(INDEX indexMethod=ident genericProperties?)
         {

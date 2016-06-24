@@ -141,7 +141,8 @@ public class FetchProjectorTest extends CrateUnitTest {
             RowGranularity.DOC,
             LongType.INSTANCE,
             ColumnPolicy.STRICT,
-            ReferenceInfo.IndexType.NOT_ANALYZED);
+            ReferenceInfo.IndexType.NOT_ANALYZED,
+            true);
 
         Map<TableIdent, FetchSource> tableToFetchSource = new HashMap<>(2);
         FetchSource fetchSource = new FetchSource(Collections.<ReferenceInfo>emptyList(),
@@ -167,7 +168,8 @@ public class FetchProjectorTest extends CrateUnitTest {
             RowGranularity.DOC,
             LongType.INSTANCE,
             ColumnPolicy.STRICT,
-            ReferenceInfo.IndexType.NOT_ANALYZED);
+            ReferenceInfo.IndexType.NOT_ANALYZED,
+            true);
 
         outputSymbols.add(new FetchReference(inputColumn, new Reference(referenceInfo)));
         return outputSymbols;

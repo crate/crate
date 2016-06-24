@@ -463,6 +463,10 @@ public abstract class AstVisitor<R, C>
         return visitNode(node, context);
     }
 
+    public R visitNotNullColumnConstraint(NotNullColumnConstraint node, C context) {
+        return visitNode(node, context);
+    }
+
     public R visitIndexColumnConstraint(IndexColumnConstraint node, C context) {
         return visitNode(node, context);
     }

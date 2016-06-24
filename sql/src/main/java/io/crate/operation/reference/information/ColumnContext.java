@@ -22,8 +22,10 @@
 package io.crate.operation.reference.information;
 
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.table.TableInfo;
 
 public class ColumnContext {
+    public TableInfo tableInfo;
     public ReferenceInfo info;
     public Short ordinal;
 }

@@ -95,6 +95,9 @@ public class MetaDataToASTNodeResolver {
 
                 String columnName = ident.isColumn() ? ident.name() : ident.path().get(ident.path().size()-1);
                 List<ColumnConstraint> constraints = new ArrayList<>();
+                if (!info.isNullable()) {
+                    constraints.add(new NotNullColumnConstraint());
+                }
                 if (info.indexType().equals(ReferenceInfo.IndexType.NO)
                         && !info.type().equals(DataTypes.OBJECT)
                         && !(info.type().id() == ArrayType.ID && ((CollectionType)info.type()).innerType().equals(DataTypes.OBJECT))) {

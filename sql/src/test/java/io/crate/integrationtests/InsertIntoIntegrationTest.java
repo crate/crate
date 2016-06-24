@@ -360,6 +360,17 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertWithNotNullConstraintViolation() throws Exception {
+        execute("create table t (pk_col int primary key, message string not null)");
+        ensureYellow();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("SQLParseException: Cannot insert null value for column message");
+        Object[] args = new Object[]{"1", null};
+        execute("insert into t (pk_col, message) values (?, ?)", args);
+    }
+
+    @Test
     public void testInsertWithUniqueConstraintViolation() throws Exception {
         this.setup.createTestTableWithPrimaryKey();
 
@@ -884,6 +895,34 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertNullSourceForNotNullGeneratedColumn() {
+        execute("create table generated_column (" +
+                " id int primary key," +
+                " ts timestamp," +
+                " gen_col as extract(year from ts) not null" +
+                ") with (number_of_replicas=0)");
+        ensureYellow();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("SQLParseException: Cannot insert null value for column gen_col");
+        execute("insert into generated_column (id, ts) values (1, null)");
+    }
+
+    @Test
+    public void testInsertNullTargetForNotNullGeneratedColumn() {
+        execute("create table generated_column (" +
+                " id int primary key," +
+                " ts timestamp," +
+                " gen_col as extract(year from ts) not null" +
+                ") with (number_of_replicas=0)");
+        ensureYellow();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("SQLParseException: Cannot insert null value for column gen_col");
+        execute("insert into generated_column (id, gen_col) values (1, null)");
+    }
+
+    @Test
     public void testInsertFromSubQueryWithGeneratedColumns() throws Exception {
         execute("create table source_table (" +
                 " id integer," +
@@ -1017,6 +1056,35 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Column \"col2\" is required but is missing from the insert statement");
         execute("insert into target (col1) (select col1 from source)");
+    }
+
+    @Test
+    public void testInsertFromSubQueryWithNotNullConstraint() throws Exception {
+        execute("create table source(col1 integer, col2 integer)");
+        execute("create table target(col1 integer primary key, col2 integer not null)");
+        ensureYellow();
+        execute("insert into source (col1) values (1)");
+        refresh();
+
+        execute("insert into target (col1, col2) (select col1, col2 from source)");
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
+    public void testInsertFromSubQueryWithNotNullConstraintAndGeneratedColumns() throws Exception {
+        execute("create table source(id int, ts timestamp)");
+        execute("create table target (" +
+                " id int primary key," +
+                " ts timestamp," +
+                " gen_col as extract(year from ts) not null" +
+                ") with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("insert into source (id) values (1)");
+        refresh();
+
+        execute("insert into target (id, ts) (select id, ts from source)");
+        assertEquals(0, response.rowCount());
     }
 
     @Test

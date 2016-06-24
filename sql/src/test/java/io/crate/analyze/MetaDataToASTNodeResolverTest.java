@@ -105,7 +105,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 partitionColumn ? RowGranularity.PARTITION : RowGranularity.DOC,
                 type,
                 policy == null ? ColumnPolicy.DYNAMIC : policy,
-                ReferenceInfo.IndexType.NOT_ANALYZED);
+                ReferenceInfo.IndexType.NOT_ANALYZED, true);
     }
 
     private static ImmutableMap<ColumnIdent, ReferenceInfo> referencesMap(List<ReferenceInfo> columns) {
@@ -231,6 +231,47 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
     }
 
     @Test
+    public void testBuildCreateTableNotNull() throws Exception {
+        TableIdent ident = new TableIdent("myschema", "test");
+
+        ReferenceInfo colA = new ReferenceInfo(new ReferenceIdent(ident, "col_a", null),
+            RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NOT_ANALYZED, true);
+        ReferenceInfo colB = new ReferenceInfo(new ReferenceIdent(ident, "col_b", null),
+            RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED, false);
+        List<ReferenceInfo> columns = ImmutableList.of(colA, colB);
+
+        List<ColumnIdent> primaryKeys = ImmutableList.of(new ColumnIdent("col_a"));
+
+        DocTableInfo tableInfo = new TestDocTableInfo(
+            ident,
+            5, "0-all",
+            columns,
+            ImmutableList.<ReferenceInfo>of(),
+            ImmutableList.<GeneratedReferenceInfo>of(),
+            ImmutableMap.<ColumnIdent, IndexReferenceInfo>of(),
+            referencesMap(columns),
+            ImmutableMap.<ColumnIdent, String>of(),
+            primaryKeys,
+            null,
+            ImmutableMap.<String, Object>of(),
+            ImmutableList.<ColumnIdent>of(),
+            ColumnPolicy.STRICT);
+
+        CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
+        assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
+                     "   \"col_a\" STRING,\n" +
+                     "   \"col_b\" STRING NOT NULL INDEX USING FULLTEXT,\n" +
+                     "   PRIMARY KEY (\"col_a\")\n" +
+                     ")\n" +
+                     "CLUSTERED INTO 5 SHARDS\n" +
+                     "WITH (\n" +
+                     "   column_policy = 'strict',\n" +
+                     "   number_of_replicas = '0-all'\n" +
+                     ")",
+            SqlFormatter.formatSql(node));
+    }
+
+    @Test
     public void testBuildCreateTableParameters() throws Exception {
         TableIdent ident = new TableIdent("myschema", "test");
 
@@ -322,15 +363,15 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
     public void testBuildCreateTableIndexes() throws Exception {
         TableIdent ident = new TableIdent("myschema", "test");
         ReferenceInfo colA = new ReferenceInfo(new ReferenceIdent(ident, "col_a", null),
-                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NOT_ANALYZED);
+                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NOT_ANALYZED, true);
         ReferenceInfo colB = new ReferenceInfo(new ReferenceIdent(ident, "col_b", null),
-                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED);
+                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED, true);
         ReferenceInfo colC = new ReferenceInfo(new ReferenceIdent(ident, "col_c", null),
-                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NO);
+                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NO, true);
         ReferenceInfo colD = new ReferenceInfo(new ReferenceIdent(ident, "col_d", null),
                 RowGranularity.DOC, DataTypes.OBJECT);
         ReferenceInfo colE = new ReferenceInfo(new ReferenceIdent(ident, "col_d", Arrays.asList("a")),
-                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NOT_ANALYZED);
+                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NOT_ANALYZED, true);
 
         List<ReferenceInfo> columns = ImmutableList.of(
                 newReferenceInfo(ident, "id", DataTypes.LONG),

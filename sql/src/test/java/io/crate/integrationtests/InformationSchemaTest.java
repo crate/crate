@@ -437,26 +437,27 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(337L, response.rowCount());
+        assertEquals(338L, response.rowCount());
     }
 
     @Test
     public void testColumnsColumns() throws Exception {
         execute("select * from information_schema.columns where schema_name='information_schema' and table_name='columns' order by ordinal_position asc");
-        assertThat(response.rowCount(), is(7L));
+        assertThat(response.rowCount(), is(8L));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "column_name| string| NULL| false| 1| information_schema| columns\n" +
-                "data_type| string| NULL| false| 2| information_schema| columns\n" +
-                "generation_expression| string| NULL| false| 3| information_schema| columns\n" +
-                "is_generated| boolean| NULL| false| 4| information_schema| columns\n" +
-                "ordinal_position| short| NULL| false| 5| information_schema| columns\n" +
-                "schema_name| string| NULL| false| 6| information_schema| columns\n" +
-                "table_name| string| NULL| false| 7| information_schema| columns\n"));
+                "column_name| string| NULL| false| false| 1| information_schema| columns\n" +
+                "data_type| string| NULL| false| true| 2| information_schema| columns\n" +
+                "generation_expression| string| NULL| false| true| 3| information_schema| columns\n" +
+                "is_generated| boolean| NULL| false| true| 4| information_schema| columns\n" +
+                "is_nullable| boolean| NULL| false| true| 5| information_schema| columns\n" +
+                "ordinal_position| short| NULL| false| true| 6| information_schema| columns\n" +
+                "schema_name| string| NULL| false| false| 7| information_schema| columns\n" +
+                "table_name| string| NULL| false| false| 8| information_schema| columns\n"));
     }
 
     @Test
     public void testSelectFromTableColumns() throws Exception {
-        execute("create table test (col1 integer, col2 string index off, age integer)");
+        execute("create table test (col1 integer primary key, col2 string index off, age integer not null)");
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Columns where schema_name='doc'");
         assertEquals(3L, response.rowCount());
@@ -464,13 +465,17 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("integer", response.rows()[0][1]);
         assertEquals(null, response.rows()[0][2]);
         assertEquals(false, response.rows()[0][3]);
+        assertEquals(false, response.rows()[0][4]);
         short expected = 1;
-        assertEquals(expected, response.rows()[0][4]);
-        assertEquals("doc", response.rows()[0][5]);
-        assertEquals("test", response.rows()[0][6]);
+        assertEquals(expected, response.rows()[0][5]);
+        assertEquals("doc", response.rows()[0][6]);
+        assertEquals("test", response.rows()[0][7]);
 
         assertEquals("col1", response.rows()[1][0]);
+        assertEquals(false, response.rows()[1][4]);
+
         assertEquals("col2", response.rows()[2][0]);
+        assertEquals(true, response.rows()[2][4]);
     }
 
     @Test

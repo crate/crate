@@ -25,10 +25,11 @@ package io.crate.executor.transport;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
+import io.crate.analyze.ConstraintsValidator;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
-import io.crate.exceptions.JobKilledException;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
 import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.jobs.JobContextService;
@@ -125,6 +126,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         IndexShard indexShard = indexService.shardSafe(shardId.id());
 
+        Collection<ColumnIdent> notUsedNonGeneratedColumns = ImmutableList.of();
+        if (request.validateConstraints()) {
+            notUsedNonGeneratedColumns = getNotUsedNonGeneratedColumns(request.insertColumns(), tableInfo);
+        }
+
         Translog.Location translogLocation = null;
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
@@ -143,6 +149,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         item,
                         indexShard,
                         item.insertValues() != null, // try insert first
+                        notUsedNonGeneratedColumns,
                         0);
                 shardResponse.add(location);
             } catch (Throwable t) {
@@ -189,13 +196,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                           ShardUpsertRequest.Item item,
                                           IndexShard indexShard,
                                           boolean tryInsertFirst,
+                                          Collection<ColumnIdent> notUsedNonGeneratedColumns,
                                           int retryCount) throws Throwable {
         try {
             long version = item.version();
             if (tryInsertFirst) {
                 // try insert first without fetching the document
                 try {
-                    item.source(prepareInsert(tableInfo, request, item));
+                    item.source(prepareInsert(tableInfo, notUsedNonGeneratedColumns, request, item));
                 } catch (IOException e) {
                     throw ExceptionsHelper.convertToElastic(e);
                 }
@@ -217,13 +225,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     logger.trace("[{}] VersionConflict, retrying operation for document id {}, retry count: {}",
                             indexShard.shardId(), item.id(), retryCount);
                 }
-                return indexItem(tableInfo, request, item, indexShard, false, retryCount + 1);
+                return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns,
+                    retryCount + 1);
             }
             throw e;
         } catch (DocumentAlreadyExistsException e) {
             if (tryInsertFirst && item.updateAssignments() != null) {
                 // insert failed, document already exists, try update
-                return indexItem(tableInfo, request, item, indexShard, false, 0);
+                return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns, 0);
             }
             throw e;
         }
@@ -275,15 +284,17 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             String columnPath = request.updateColumns()[i];
             Object value = SYMBOL_TO_FIELD_EXTRACTOR.convert(item.updateAssignments()[i], ctx).apply(getResult);
             ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(ColumnIdent.fromPath(columnPath));
+
+            ConstraintsValidator.validate(value, referenceInfo);
+
             if (referenceInfo instanceof GeneratedReferenceInfo) {
                 updatedGeneratedColumns.put(columnPath, value);
-
             } else {
                 pathsToUpdate.put(columnPath, value);
             }
         }
 
-        processGeneratedColumns(tableInfo, pathsToUpdate, updatedGeneratedColumns, request.validateGeneratedColumns(), getResult);
+        processGeneratedColumns(tableInfo, pathsToUpdate, updatedGeneratedColumns, request.validateConstraints(), getResult);
 
         updateSourceByPaths(updatedSourceAsMap, pathsToUpdate);
 
@@ -297,6 +308,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     private BytesReference prepareInsert(DocTableInfo tableInfo,
+                                         Collection<ColumnIdent> notUsedNonGeneratedColumns,
                                          ShardUpsertRequest request,
                                          ShardUpsertRequest.Item item) throws IOException {
         List<GeneratedReferenceInfo> generatedReferencesWithValue = new ArrayList<>();
@@ -306,12 +318,21 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             source = new BytesArray((BytesRef) item.insertValues()[0]);
         } else {
             XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
+
+            if (request.validateConstraints()) {
+                ConstraintsValidator.validateConstraintsForNotUsedColumns(notUsedNonGeneratedColumns, tableInfo);
+            }
+
             for (int i = 0; i < item.insertValues().length; i++) {
+                Object value = item.insertValues()[i];
                 Reference ref = request.insertColumns()[i];
+
+                ConstraintsValidator.validate(value, ref.info());
+
                 if (ref.info().granularity() == RowGranularity.DOC) {
                     // don't include values for partitions in the _source
                     // ideally columns with partition granularity shouldn't be part of the request
-                    builder.field(ref.ident().columnIdent().fqn(), item.insertValues()[i]);
+                    builder.field(ref.ident().columnIdent().fqn(), value);
                     if (ref.info() instanceof GeneratedReferenceInfo) {
                         generatedReferencesWithValue.add((GeneratedReferenceInfo) ref.info());
                     }
@@ -329,10 +350,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         int numMissingGeneratedColumns = generatedColumnSize - generatedReferencesWithValue.size();
         if (numMissingGeneratedColumns > 0 ||
-            (generatedReferencesWithValue.size() > 0 && request.validateGeneratedColumns())) {
+            (generatedReferencesWithValue.size() > 0 && request.validateConstraints())) {
             // we need to evaluate some generated column expressions
             Map<String, Object> sourceMap = processGeneratedColumnsOnInsert(tableInfo, request.insertColumns(), item.insertValues(),
-                    request.isRawSourceInsert(), request.validateGeneratedColumns());
+                    request.isRawSourceInsert(), request.validateConstraints());
             source = XContentFactory.jsonBuilder().map(sourceMap).bytes();
         }
 
@@ -459,34 +480,39 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     void processGeneratedColumns(final DocTableInfo tableInfo,
                                  Map<String, Object> updatedColumns,
                                  Map<String, Object> updatedGeneratedColumns,
-                                 boolean validateExpressionValue) {
-        processGeneratedColumns(tableInfo, updatedColumns, updatedGeneratedColumns, validateExpressionValue, null);
+                                 boolean validateConstraints) {
+        processGeneratedColumns(tableInfo, updatedColumns, updatedGeneratedColumns, validateConstraints, null);
     }
 
     private void processGeneratedColumns(final DocTableInfo tableInfo,
                                          Map<String, Object> updatedColumns,
                                          Map<String, Object> updatedGeneratedColumns,
-                                         boolean validateExpressionValue,
+                                         boolean validateConstraints,
                                          @Nullable GetResult getResult) {
         SymbolToFieldExtractorContext ctx = new SymbolToFieldExtractorContext(functions, updatedColumns);
 
         for (GeneratedReferenceInfo referenceInfo : tableInfo.generatedColumns()) {
             // partitionedBy columns cannot be updated
             if (!tableInfo.partitionedByColumns().contains(referenceInfo)) {
-                Object givenValue = updatedGeneratedColumns.get(referenceInfo.ident().columnIdent().fqn());
-                if ((givenValue != null && validateExpressionValue)
+                Object userSuppliedValue = updatedGeneratedColumns.get(referenceInfo.ident().columnIdent().fqn());
+                if (validateConstraints) {
+                    ConstraintsValidator.validate(userSuppliedValue, referenceInfo);
+                }
+
+                if ((userSuppliedValue != null && validateConstraints)
                     ||
                     generatedExpressionEvaluationNeeded(referenceInfo.referencedReferenceInfos(), updatedColumns.keySet())) {
                     // at least one referenced column was updated, need to evaluate expression and update column
                     Function<GetResult, Object> extractor = SYMBOL_TO_FIELD_EXTRACTOR.convert(referenceInfo.generatedExpression(), ctx);
-                    Object value = extractor.apply(getResult);
-                    if (givenValue == null) {
+                    Object generatedValue = extractor.apply(getResult);
+
+                    if (userSuppliedValue == null) {
                         // add column & value
-                        updatedColumns.put(referenceInfo.ident().columnIdent().fqn(), value);
-                    } else if (validateExpressionValue && referenceInfo.type().compareValueTo(value, givenValue) != 0) {
+                        updatedColumns.put(referenceInfo.ident().columnIdent().fqn(), generatedValue);
+                    } else if (validateConstraints && referenceInfo.type().compareValueTo(generatedValue, userSuppliedValue) != 0) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                 "Given value %s for generated column does not match defined generated expression value %s",
-                                givenValue, value));
+                                userSuppliedValue, generatedValue));
                     }
                 }
             }
@@ -541,6 +567,27 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 source.put(key, changesEntry.getValue());
             }
         }
+    }
+
+    public static Collection<ColumnIdent> getNotUsedNonGeneratedColumns(Reference[] targetColumns,
+                                                                       DocTableInfo tableInfo) {
+        Set<String> targetColumnsSet = new HashSet<>();
+        Collection<ColumnIdent> columnsNotUsed = new ArrayList<>();
+
+        if (targetColumns != null) {
+            for (Reference targetColumn : targetColumns) {
+                targetColumnsSet.add(targetColumn.ident().columnIdent().fqn());
+            }
+        }
+
+        for (ReferenceInfo referenceInfo : tableInfo.columns()) {
+            if (!(referenceInfo instanceof GeneratedReferenceInfo) && !referenceInfo.isNullable()) {
+                if (!targetColumnsSet.contains(referenceInfo.ident().columnIdent().fqn())) {
+                    columnsNotUsed.add(referenceInfo.ident().columnIdent());
+                }
+            }
+        }
+        return columnsNotUsed;
     }
 
     private static class SymbolToFieldExtractorContext extends SymbolToFieldExtractor.Context {
