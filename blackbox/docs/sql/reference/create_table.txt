@@ -38,6 +38,7 @@ where ``generated_column_definition`` is::
 where ``column_constraint`` is::
 
     { PRIMARY KEY |
+      NOT NULL |
       INDEX { OFF | USING { PLAIN |
                             FULLTEXT [ WITH ( analyzer = analyzer_name ) ]  }
     }
@@ -112,7 +113,15 @@ Table Constraints
 Table constraints are constraints that are applied to more than one column or
 to the table as a whole.
 
-For further details see :ref:`table_constraints`
+For further details see :ref:`table_constraints`.
+
+Column Constraints
+~~~~~~~~~~~~~~~~~~
+
+Column constraints are constraints that are applied on each column of the table separately.
+The supported column constraints are:
+
+For further details see :ref:`column_constraints`.
 
 Parameters
 ==========

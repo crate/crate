@@ -22,6 +22,7 @@ Synopsis
 where ``column_constraint`` is::
 
     { PRIMARY KEY |
+      NOT NULL |
       INDEX { OFF | USING { PLAIN |
                             FULLTEXT [ WITH ( analyzer = analyzer_name ) ]  }
     }
@@ -61,14 +62,6 @@ Parameters
 :data_type: data type of the column which should be added.
 
 See the CREATE TABLE :ref:`with_clause` for a list of available parameters.
-
-PRIMARY KEY Constraint
-======================
-
-The PRIMARY KEY constraint specifies that a column or columns of a
-table can contain only unique (non-duplicate), non-null values.
-
-For further details see :ref:`primary_key_constraint`
 
 .. _ref-alter-table-partition-clause:
 
