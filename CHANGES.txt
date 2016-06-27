@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/06/27 0.54.10
+==================
+
  - Fix: Failures on large bulk operations could lead to an
    stackoverflow error and unresponsive cluster.
 
