@@ -1,7 +1,7 @@
 #!/bin/sh
 
 PYTHON_EXECUTABLE=
-for PYTHON in python python2 python3
+for PYTHON in python3 python2 python
 do
     if [ -e "`which ${PYTHON}`" ]
     then
