@@ -315,16 +315,7 @@ class Messages {
      * | '1' | int32 len |
      */
     static void sendParseComplete(Channel channel) {
-        ChannelBuffer buffer = ChannelBuffers.buffer(5);
-        buffer.writeByte('1');
-        buffer.writeInt(4);
-
-        channel.write(buffer).addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) throws Exception {
-                LOGGER.trace("sentParseComplete");
-            }
-        });
+        sendShortMsg(channel, '1', "sentParseComplete");
     }
 
     /**
@@ -332,16 +323,7 @@ class Messages {
      * | '2' | int32 len |
      */
     static void sendBindComplete(Channel channel) {
-        ChannelBuffer buffer = ChannelBuffers.buffer(5);
-        buffer.writeByte('2');
-        buffer.writeInt(4);
-
-        channel.write(buffer).addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) throws Exception {
-                LOGGER.trace("sentBindComplete");
-            }
-        });
+        sendShortMsg(channel, '2', "sentBindComplete");
     }
 
     /**
@@ -349,8 +331,23 @@ class Messages {
      *  | 'I' | int32 len |
      */
     static void sendEmptyQueryResponse(Channel channel) {
+        sendShortMsg(channel, 'I', "sentEmptyQueryResponse");
+    }
+
+    /**
+     * NoData
+     *  | 'n' | int32 len |
+     */
+    static void sendNoData(Channel channel) {
+        sendShortMsg(channel, 'n', "sentNoData");
+    }
+
+    /**
+     * Send a message that just contains the msgType and the msg length
+     */
+    private static void sendShortMsg(Channel channel, char msgType, final String traceLogMsg) {
         ChannelBuffer buffer = ChannelBuffers.buffer(5);
-        buffer.writeByte('I');
+        buffer.writeByte(msgType);
         buffer.writeInt(4);
 
         ChannelFuture channelFuture = channel.write(buffer);
@@ -358,8 +355,7 @@ class Messages {
             channelFuture.addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace("sentEmptyQueryResponse");
-
+                    LOGGER.trace(traceLogMsg);
                 }
             });
         }
