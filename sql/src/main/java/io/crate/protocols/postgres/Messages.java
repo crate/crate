@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.symbol.Field;
 import io.crate.core.collections.Row;
 import io.crate.types.DataType;
@@ -127,12 +128,15 @@ class Messages {
         buffer.writeByte('Z');
         buffer.writeInt(5);
         buffer.writeByte('I');
-        channel.write(buffer).addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) throws Exception {
-                LOGGER.trace("sentReadyForQuery");
-            }
-        });
+        ChannelFuture channelFuture = channel.write(buffer);
+        if (LOGGER.isTraceEnabled()) {
+            channelFuture.addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    LOGGER.trace("sentReadyForQuery");
+                }
+            });
+        }
     }
 
     /**
@@ -254,7 +258,8 @@ class Messages {
         });
     }
 
-    private static void writeCString(ChannelBuffer buffer, byte[] valBytes) {
+    @VisibleForTesting
+    static void writeCString(ChannelBuffer buffer, byte[] valBytes) {
         buffer.writeBytes(valBytes);
         buffer.writeByte(0);
     }
@@ -337,5 +342,26 @@ class Messages {
                 LOGGER.trace("sentBindComplete");
             }
         });
+    }
+
+    /**
+     * EmptyQueryResponse
+     *  | 'I' | int32 len |
+     */
+    static void sendEmptyQueryResponse(Channel channel) {
+        ChannelBuffer buffer = ChannelBuffers.buffer(5);
+        buffer.writeByte('I');
+        buffer.writeInt(4);
+
+        ChannelFuture channelFuture = channel.write(buffer);
+        if (LOGGER.isTraceEnabled()) {
+            channelFuture.addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    LOGGER.trace("sentEmptyQueryResponse");
+
+                }
+            });
+        }
     }
 }
