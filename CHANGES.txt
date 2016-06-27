@@ -13,9 +13,6 @@ Unreleased
  - Implemented OPTIMIZE table statement which optimizes tables and partitions
    by merging the segments of which each table and partition consists.
 
- - Fix: Failures on large bulk operations could lead to an
-   stackoverflow error and unresponsive cluster.
-
  - Updated crash to 0.17.0 which contains following changes:
 
       - Added support for OPTIMIZE table statement.
@@ -42,14 +39,9 @@ Unreleased
 
       - Fixed call of `sysinfo` command when launching the shell.
 
- - Fix: Ordered queries with limit 0 failed
-
  - REFRESH TABLE statement now returns the number of affected tables/partitions as row count.
 
  - Fixed error handling while preparing execution plans.
-
- - Fix: Number of bulk results were equal to the total number of items
-   on bulk inserts/updates, ignoring possible multi-value bulk inserts/updates.
 
  - Fixed path to sigar lib in crate.bat for Windows
 
@@ -59,16 +51,7 @@ Unreleased
  - Fixed proper validation of the ``blocks.*`` table settings at all
    SQL operations.
 
- - Fix: Allow select statements with more than one level nested arrays in table columns.
-   eg: SELECT categories['items']['id'] FROM assets
-
  - Optimize count aggregations by using custom data type to avoid boxing of primitives into Objects.
-
- - Fixed an edge case that could cause sorted join queries to fail.
-
- - Fix: Allow concurrent deletion of partition without raising an exception.
-
- - Throw a more meaningful error if an attempt is made to order by an invalid field in a query with aggregations.
 
  - Fixed cpu used bug. It was returning -1, even if cpu info loaded from sigar.
 
@@ -86,9 +69,6 @@ Unreleased
 
  - Fix in Cloud AWS plugin: Use the current region of the instance if no EC2
    region is specified in the configuration.
-
- - Fixed a validation issue that allowed setting a primary key column value to
-   null
 
 2016/05/30 0.55.0
 =================
@@ -226,6 +206,43 @@ Unreleased
  - Exposed setting the default schema via HTTP header.
 
  - Added `lower`` and `upper`` string functions.
+
+2016/06/27 0.54.10
+==================
+
+ - Fix: Failures on large bulk operations could lead to an
+   stackoverflow error and unresponsive cluster.
+
+ - Fix: Ordered queries with limit 0 failed
+
+ - Fix: Number of bulk results were equal to the total number of items
+   on bulk inserts/updates, ignoring possible multi-value bulk inserts/updates.
+
+ - Fix: Allow select statements with more than one level nested arrays in table columns.
+   eg: SELECT categories['items']['id'] FROM assets
+
+ - Fixed an edge case that could cause sorted join queries to fail.
+
+ - Fix: Allow concurrent deletion of partition without raising an exception.
+
+ - Throw a more meaningful error if an attempt is made to order by an invalid field in a query with aggregations.
+
+ - Fixed a validation issue that allowed setting a primary key column value to
+   null
+
+ - Fixed a bug which prevented complete deletion of tables in custom
+   schemas.
+
+ - Improved the `KILL` behaviour for `COPY` and `UPDATE` statements
+
+ - Fixed a `ClassCastException` that occurred if the left side of a `IN`
+   predicate was a function.
+
+ - Improved performance of queries like `COPY FROM` which can create a lot of
+   partitions
+
+ - Fixed an issue that prevented altering a partitioned table by adding a new
+   column if the table already contains an array column.
 
 2016/05/12 0.54.9
 =================
