@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
@@ -450,9 +451,16 @@ class ConnectionContext {
         }
     }
 
-    private void handleSimpleQuery(ChannelBuffer buffer, final Channel channel) {
+    @VisibleForTesting
+    void handleSimpleQuery(ChannelBuffer buffer, final Channel channel) {
         final String query = readCString(buffer);
         assert query != null : "query must not be nulL";
+
+        if (query.isEmpty() || ";".equals(query)) {
+            Messages.sendEmptyQueryResponse(channel);
+            Messages.sendReadyForQuery(channel);
+            return;
+        }
 
         // TODO: hack for unsupported `SET datetype = 'ISO'` that's sent by psycopg2 if a connection is established
         if (query.startsWith("SET DATESTYLE")) {
