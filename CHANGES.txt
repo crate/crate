@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/06/27 0.54.11
+==================
+
+ - Fix packaging issue which caused the sigar plugin to load twice.
+
 2016/06/27 0.54.10
 ==================
 
