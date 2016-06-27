@@ -403,7 +403,7 @@ class ConnectionContext {
         try {
             Collection<Field> fields = session.describe((char) type, portalOrStatement);
             if (fields == null) {
-                // DML statement, no need for description
+                Messages.sendNoData(channel);
             } else {
                 Messages.sendRowDescription(channel, fields);
             }
