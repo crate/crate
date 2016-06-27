@@ -245,6 +245,20 @@ Or using a alternate syntax::
 
     Not all column types can be used as PRIMARY KEY. See :ref:`primary_key_constraint`.
 
+Not Null
+--------
+
+The not null constraint can be used on any table column and it prevents null values to be inserted.
+Example::
+
+    cr> create table my_table1 (
+    ...   first_column integer primary key,
+    ...   second_column string not null
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+For further details see :ref:`not_null_constraint`.
+
 .. _sql_ddl_sharding:
 
 Sharding
