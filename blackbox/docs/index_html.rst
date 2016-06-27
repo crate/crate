@@ -26,3 +26,4 @@ Contents
    plugins
    udc
    best_practice/index
+   protocols/index

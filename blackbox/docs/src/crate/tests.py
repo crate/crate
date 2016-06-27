@@ -395,7 +395,7 @@ def test_suite():
                              encoding='utf-8')
     s.layer = crate_layer
     docs_suite.addTest(s)
-    for fn in ('sql/rest.txt',):
+    for fn in ('protocols/http.txt',):
         s = doctest.DocFileSuite('../../' + fn,
                                  parser=bash_parser,
                                  setUp=setUpLocations,
