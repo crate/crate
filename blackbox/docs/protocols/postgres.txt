@@ -1,0 +1,83 @@
+
+======================
+Postgres Wire Protocol
+======================
+
+Crate contains experimental support for the `Postgresql wire protocol v3`_.
+
+By default this protocol is **disabled**. To enable it set ``psql.enabled`` to
+true.
+
+If a node is started with postgres support enabled it will by default bind to
+``0.0.0.0:4250``. See :doc:`Configuration <../configuration>` for options to
+change that.
+
+
+The SQL dialect that Crate supports is different to the SQL dialect that
+Postgresql supports. So even though the wire protocol is supported it doesn't
+imply that any postgres client can be used as those clients may use SQL
+statements which aren't supported.
+
+
+One notable difference is that Crate doesn't support transactions. Clients must
+therefore enable ``autocommit``.
+
+
+Compatibility & Implementation Status
+-------------------------------------
+
+Start-up
+~~~~~~~~
+
+The connection handshake is implemented without authentication support. Crate
+will always respond with ``AuthenticationOK``.
+If a Client sends a SSLRequest the server will answer with ``N`` to indicate
+that it doesn't support SSL.
+
+The ``database`` name a client sends will be used as default schema as Crate
+doesn't have database support.
+
+The server will inform the Client that ``UTF8`` encoding should be used. Any
+other encoding is not supported.
+
+Simple Query
+~~~~~~~~~~~~
+
+The `Simple Query`_ protocol is implemented with the following limitations:
+
+- The ``query`` may only contain one query. Sending multiple queries with one
+  message is not supported.
+
+
+Extended Query
+~~~~~~~~~~~~~~
+
+The `Extended Query`_ protocol is implemented with the following limitations:
+
+- Named portals and named statements are not supported. Clients mostly use them
+  with transactions which aren't supported by Crate.
+  Everything defaults to the unnamed statement and portal.
+
+- In order to optimize the execution of bulk operations the execution of
+  statements is delayed until the ``Sync`` message is received
+
+- The ``Close`` message is not supported as this is used to close named portals
+  or statement which are not supported.
+
+
+Copy Operations
+~~~~~~~~~~~~~~~
+
+The COPY sub-protocol is not supported as this lacks corresponding SQL support
+in Crate.
+
+Function Call
+~~~~~~~~~~~~~
+
+The Function call sub-protocol is not supported as this is considered a legacy
+feature.
+
+
+.. _Postgresql wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
+.. _Simple Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#AEN108745
+.. _Extended Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
