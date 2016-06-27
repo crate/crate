@@ -8,3 +8,4 @@ Client/Server Protocol
     :maxdepth: 1
 
     http
+    postgres
