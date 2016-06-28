@@ -31,6 +31,8 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionState;
 import io.crate.exceptions.Exceptions;
+import io.crate.protocols.postgres.types.PGType;
+import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;

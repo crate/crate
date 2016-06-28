@@ -20,33 +20,31 @@
  * agreement.
  */
 
-package io.crate.protocols.postgres;
+package io.crate.protocols.postgres.types;
 
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.IntObjectMap;
-import com.google.common.collect.ImmutableMap;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import org.junit.Test;
 
-import java.util.Map;
+public class BooleanTypeTest extends BasePGTypeTest<Boolean> {
 
-class PGTypes {
+    public BooleanTypeTest() {
+        super(new BooleanType());
+    }
 
-    static final Map<DataType, PGType> CRATE_TO_PG_TYPES = ImmutableMap.<DataType, PGType>builder()
-        .put(DataTypes.STRING, new PGType.StringType())
-        .put(DataTypes.BOOLEAN, new PGType.BooleanType())
-        .put(DataTypes.OBJECT, new PGType.JsonType())
-        .build();
+    @Test
+    public void testWriteValue() throws Exception {
+        assertBytesWritten(true, new byte[]{ 0, 0, 0, 1, 't' });
+        assertBytesWritten(false, new byte[]{ 0, 0, 0, 1, 'f' });
+    }
 
-    private static final IntObjectMap<DataType> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<DataType>()
-    {{
-        put(0, DataTypes.UNDEFINED);
-        put(PGType.StringType.OID, DataTypes.STRING);
-        put(PGType.BooleanType.OID, DataTypes.BOOLEAN);
-        put(PGType.JsonType.OID, DataTypes.OBJECT);
-    }};
+    @Test
+    public void testReadBinaryValue() throws Exception {
+        assertBytesReadBinary(new byte[] { 0 }, false);
+        assertBytesReadBinary(new byte[] { 1 }, true);
+    }
 
-    static DataType fromOID(int oid) {
-        return PG_TYPES_TO_CRATE_TYPE.get(oid);
+    @Test
+    public void testReadTextValue() throws Exception {
+        assertBytesReadText(new byte[] { 'f' }, false);
+        assertBytesReadText(new byte[] { 'T', 'R', 'U', 'E' }, true);
     }
 }
