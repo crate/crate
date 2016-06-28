@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.analyze.NumberOfShards;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -33,6 +34,7 @@ import java.util.Locale;
 import static org.hamcrest.core.Is.is;
 
 
+@UseJdbc
 public class ShowIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule

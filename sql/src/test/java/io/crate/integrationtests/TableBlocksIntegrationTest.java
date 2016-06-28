@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.core.Is;
@@ -33,6 +34,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
+@UseJdbc
 public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule

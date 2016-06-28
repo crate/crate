@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.testing.UseJdbc;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -29,6 +30,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Map;
 
+@UseJdbc
 public class TableSettingsTest extends SQLTransportIntegrationTest {
 
     @Rule

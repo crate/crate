@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLResponse;
+import io.crate.testing.UseJdbc;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -34,6 +35,7 @@ import java.util.List;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 
+@UseJdbc
 public class SysOperationsTest extends SQLTransportIntegrationTest {
 
 

@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.testing.UseJdbc;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
@@ -42,6 +43,7 @@ import java.util.Map;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
+@UseJdbc(false) // FIXME: missing column types
 public class SysRepositoriesTest extends SQLTransportIntegrationTest {
 
     @ClassRule

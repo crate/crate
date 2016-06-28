@@ -25,6 +25,7 @@ import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
@@ -43,10 +44,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(randomDynamicTemplates = false)
+@UseJdbc
 public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
@@ -534,6 +537,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // drop table has no rowcount
     public void testDropTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
@@ -564,6 +568,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // drop table has no rowcount
     public void testDropTableIfExists() {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
@@ -593,6 +598,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // drop table has no rowcount
     public void testDropIfExistsBlobTable() throws Exception {
         execute("create blob table screenshots with (number_of_replicas=0)");
         execute("drop blob table if exists screenshots");
@@ -651,6 +657,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // FIXME: estoCrateException rewrite is missing
     public void testCreateTableWithIllegalCustomSchemaCheckedByES() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("table name \"AAA.t\" is invalid.");
@@ -658,6 +665,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // drop table has no rowcount
     public void testDropTableWithCustomSchema() throws Exception {
         execute("create table a.t (name string) with (number_of_replicas=0)");
         ensureYellow();

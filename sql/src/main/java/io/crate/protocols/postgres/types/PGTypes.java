@@ -35,6 +35,7 @@ import java.util.Map;
 public class PGTypes {
 
     private static final Map<DataType, PGType> CRATE_TO_PG_TYPES = ImmutableMap.<DataType, PGType>builder()
+        .put(DataTypes.BYTE, CharType.INSTANCE)
         .put(DataTypes.STRING, VarCharType.INSTANCE)
         .put(DataTypes.BOOLEAN, BooleanType.INSTANCE)
         .put(DataTypes.OBJECT, JsonType.INSTANCE)
@@ -45,6 +46,8 @@ public class PGTypes {
         .put(DataTypes.DOUBLE, DoubleType.INSTANCE)
         .put(DataTypes.TIMESTAMP, TimestampType.INSTANCE)
         .put(DataTypes.IP, VarCharType.INSTANCE) // postgres has no IP type, so map it to varchar - it matches the client representation
+        .put(DataTypes.UNDEFINED, JsonType.INSTANCE)
+        .put(new ArrayType(DataTypes.BYTE), PGArray.CHAR_ARRAY)
         .put(new ArrayType(DataTypes.SHORT), PGArray.INT2_ARRAY)
         .put(new ArrayType(DataTypes.INTEGER), PGArray.INT4_ARRAY)
         .put(new ArrayType(DataTypes.LONG), PGArray.INT8_ARRAY)
@@ -53,6 +56,7 @@ public class PGTypes {
         .put(new ArrayType(DataTypes.BOOLEAN), PGArray.BOOL_ARRAY)
         .put(new ArrayType(DataTypes.TIMESTAMP), PGArray.TIMESTAMPZ_ARRAY)
         .put(new ArrayType(DataTypes.STRING), PGArray.VARCHAR_ARRAY)
+        .put(new ArrayType(DataTypes.OBJECT), JsonType.INSTANCE)
         .build();
 
     public static Iterable<PGType> pgTypes() {
@@ -62,7 +66,10 @@ public class PGTypes {
     private static final IntObjectMap<DataType> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
     static {
         for (Map.Entry<DataType, PGType> e : CRATE_TO_PG_TYPES.entrySet()) {
-            PG_TYPES_TO_CRATE_TYPE.put(e.getValue().oid(), e.getKey());
+            int oid = e.getValue().oid();
+            if (!PG_TYPES_TO_CRATE_TYPE.containsKey(oid)) {
+                PG_TYPES_TO_CRATE_TYPE.put(oid, e.getKey());
+            }
         }
         PG_TYPES_TO_CRATE_TYPE.put(0, DataTypes.UNDEFINED);
     }
