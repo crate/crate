@@ -8,6 +8,18 @@ Unreleased
  - Fix: Failures on large bulk operations could lead to an
    stackoverflow error and unresponsive cluster.
 
+ - Updated crash to 0.16.2 which contains following changes:
+
+     - Fix: crash_standalone could crash because it contained non-ascii character
+       but no encoding was declared
+
+     - Fixed "read file" command (``\r``) for legacy Python 2.7
+
+     - Fixed result info command output for whitespace other than space
+       characters in queries.
+
+     - Fixed call of `sysinfo` command when launching the shell.
+
  - Fix: Ordered queries with limit 0 failed
 
  - REFRESH TABLE statement now returns the number of affected tables/partitions as row count.
