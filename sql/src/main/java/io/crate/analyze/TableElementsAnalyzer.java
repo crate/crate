@@ -218,6 +218,11 @@ public class TableElementsAnalyzer {
             return null;
         }
 
+        @Override
+        public Void visitNotNullColumnConstraint(NotNullColumnConstraint node, ColumnDefinitionContext context) {
+            context.analyzedColumnDefinition.isNotNull(true);
+            return null;
+        }
 
         @Override
         public Void visitIndexDefinition(IndexDefinition node, ColumnDefinitionContext context) {

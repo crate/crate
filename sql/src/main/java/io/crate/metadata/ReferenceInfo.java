@@ -80,6 +80,7 @@ public class ReferenceInfo implements Streamable {
     private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
     private RowGranularity granularity;
     private IndexType indexType = IndexType.NOT_ANALYZED;
+    private boolean nullable = true;
 
     public ReferenceInfo() {
 
@@ -88,26 +89,28 @@ public class ReferenceInfo implements Streamable {
     public ReferenceInfo(ReferenceIdent ident,
                          RowGranularity granularity,
                          DataType type) {
-        this(ident, granularity, type, ColumnPolicy.DYNAMIC, IndexType.NOT_ANALYZED);
+        this(ident, granularity, type, ColumnPolicy.DYNAMIC, IndexType.NOT_ANALYZED, true);
     }
 
     public ReferenceInfo(ReferenceIdent ident,
                          RowGranularity granularity,
                          DataType type,
                          ColumnPolicy columnPolicy,
-                         IndexType indexType) {
+                         IndexType indexType,
+                         boolean nullable) {
         this.ident = ident;
         this.type = type;
         this.granularity = granularity;
         this.columnPolicy = columnPolicy;
         this.indexType = indexType;
+        this.nullable = nullable;
     }
 
     /**
      * Returns a cloned ReferenceInfo with the given ident
      */
     public ReferenceInfo getRelocated(ReferenceIdent newIdent){
-        return new ReferenceInfo(newIdent, granularity, type, columnPolicy, indexType);
+        return new ReferenceInfo(newIdent, granularity, type, columnPolicy, indexType, nullable);
     }
 
     public ReferenceIdent ident() {
@@ -130,6 +133,9 @@ public class ReferenceInfo implements Streamable {
         return indexType;
     }
 
+    public boolean isNullable() {
+        return nullable;
+    }
 
     public ReferenceInfoType referenceInfoType() {
         return ReferenceInfoType.DEFAULT;
@@ -147,13 +153,14 @@ public class ReferenceInfo implements Streamable {
         if (columnPolicy.ordinal() != that.columnPolicy.ordinal()) { return false; }
         if (indexType.ordinal() != that.indexType.ordinal()) { return false; }
         if (type != null ? !type.equals(that.type) : that.type != null) return false;
-
+        if (nullable != that.nullable) return false;
         return true;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(granularity, ident, type, columnPolicy, indexType);
+        int result = Objects.hashCode(granularity, ident, type, columnPolicy, indexType);
+        return 31 * result + (nullable ? 1 : 0);
     }
 
     @Override
@@ -166,6 +173,7 @@ public class ReferenceInfo implements Streamable {
             helper.add("column policy", columnPolicy.name());
         }
         helper.add("index type", indexType.toString());
+        helper.add("nullable", nullable);
         return helper.toString();
     }
 
@@ -178,6 +186,7 @@ public class ReferenceInfo implements Streamable {
 
         columnPolicy = ColumnPolicy.values()[in.readVInt()];
         indexType = IndexType.values()[in.readVInt()];
+        nullable = in.readBoolean();
     }
 
     @Override
@@ -188,6 +197,7 @@ public class ReferenceInfo implements Streamable {
 
         out.writeVInt(columnPolicy.ordinal());
         out.writeVInt(indexType.ordinal());
+        out.writeBoolean(nullable);
     }
 
     public static void toStream(ReferenceInfo referenceInfo, StreamOutput out) throws IOException {

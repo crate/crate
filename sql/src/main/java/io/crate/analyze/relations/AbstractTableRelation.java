@@ -27,11 +27,9 @@ import com.google.common.base.Predicate;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Reference;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -107,7 +105,8 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
                 referenceInfo.granularity(),
                 dataType,
                 referenceInfo.columnPolicy(),
-                referenceInfo.indexType());
+                referenceInfo.indexType(),
+                referenceInfo.isNullable());
         } else {
             return referenceInfo;
         }

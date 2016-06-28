@@ -87,7 +87,7 @@ public class IndexReferenceInfo extends ReferenceInfo {
                               IndexType indexType,
                               List<ReferenceInfo> columns,
                               @Nullable String analyzer) {
-        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType);
+        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false);
         this.columns = MoreObjects.firstNonNull(columns, Collections.<ReferenceInfo>emptyList());
         this.analyzer = analyzer;
     }

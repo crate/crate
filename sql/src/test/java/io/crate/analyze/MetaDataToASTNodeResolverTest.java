@@ -62,6 +62,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                                 ImmutableMap<ColumnIdent, ReferenceInfo> references,
                                 ImmutableMap<ColumnIdent, String> analyzers,
                                 List<ColumnIdent> primaryKeys,
+                                List<ColumnIdent> notNullColumns,
                                 ColumnIdent clusteredBy,
                                 ImmutableMap<String, Object> tableParameters,
                                 List<ColumnIdent> partitionedBy,
@@ -105,7 +106,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 partitionColumn ? RowGranularity.PARTITION : RowGranularity.DOC,
                 type,
                 policy == null ? ColumnPolicy.DYNAMIC : policy,
-                ReferenceInfo.IndexType.NOT_ANALYZED);
+                ReferenceInfo.IndexType.NOT_ANALYZED, false);
     }
 
     private static ImmutableMap<ColumnIdent, ReferenceInfo> referencesMap(List<ReferenceInfo> columns) {
@@ -151,6 +152,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 ImmutableMap.<ColumnIdent, IndexReferenceInfo>of(),
                 referencesMap(columns),
                 ImmutableMap.<ColumnIdent, String>of(),
+                ImmutableList.<ColumnIdent>of(),
                 ImmutableList.<ColumnIdent>of(),
                 null,
                 ImmutableMap.<String, Object>of(),
@@ -211,6 +213,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 referencesMap(columns),
                 ImmutableMap.<ColumnIdent, String>of(),
                 primaryKeys,
+                ImmutableList.<ColumnIdent>of(),
                 null,
                 ImmutableMap.<String, Object>of(),
                 ImmutableList.<ColumnIdent>of(),
@@ -256,6 +259,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 referencesMap(columns),
                 ImmutableMap.<ColumnIdent, String>of(),
                 ImmutableList.<ColumnIdent>of(),
+                ImmutableList.<ColumnIdent>of(),
                 null,
                 tableParameters.build(),
                 ImmutableList.<ColumnIdent>of(),
@@ -297,6 +301,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 referencesMap(columns),
                 ImmutableMap.<ColumnIdent, String>of(),
                 ImmutableList.<ColumnIdent>of(),
+                ImmutableList.<ColumnIdent>of(),
                 new ColumnIdent("cluster_column"),
                 ImmutableMap.<String, Object>of(),
                 ImmutableList.of(columns.get(1).ident().columnIdent()),
@@ -322,15 +327,15 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
     public void testBuildCreateTableIndexes() throws Exception {
         TableIdent ident = new TableIdent("myschema", "test");
         ReferenceInfo colA = new ReferenceInfo(new ReferenceIdent(ident, "col_a", null),
-                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NOT_ANALYZED);
+                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NOT_ANALYZED, false);
         ReferenceInfo colB = new ReferenceInfo(new ReferenceIdent(ident, "col_b", null),
-                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED);
+                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED, false);
         ReferenceInfo colC = new ReferenceInfo(new ReferenceIdent(ident, "col_c", null),
-                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NO);
+                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NO, false);
         ReferenceInfo colD = new ReferenceInfo(new ReferenceIdent(ident, "col_d", null),
                 RowGranularity.DOC, DataTypes.OBJECT);
         ReferenceInfo colE = new ReferenceInfo(new ReferenceIdent(ident, "col_d", Arrays.asList("a")),
-                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NOT_ANALYZED);
+                RowGranularity.DOC, DataTypes.STRING, null, ReferenceInfo.IndexType.NOT_ANALYZED, false);
 
         List<ReferenceInfo> columns = ImmutableList.of(
                 newReferenceInfo(ident, "id", DataTypes.LONG),
@@ -355,6 +360,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 indexBuilder.build(),
                 referencesMap(columns),
                 ImmutableMap.<ColumnIdent, String>of(),
+                ImmutableList.<ColumnIdent>of(),
                 ImmutableList.<ColumnIdent>of(),
                 null,
                 ImmutableMap.<String, Object>of(),

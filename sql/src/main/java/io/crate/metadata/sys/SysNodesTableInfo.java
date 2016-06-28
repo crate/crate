@@ -197,7 +197,7 @@ public class SysNodesTableInfo extends StaticTableInfo {
     public static ReferenceInfo tableColumnInfo(TableIdent tableIdent){
         return new ReferenceInfo(new ReferenceIdent(tableIdent, SYS_COL_IDENT),
                 RowGranularity.NODE, ObjectType.INSTANCE, ColumnPolicy.STRICT,
-                ReferenceInfo.IndexType.NOT_ANALYZED);
+                ReferenceInfo.IndexType.NOT_ANALYZED, true);
     }
 
     public TableColumn tableColumn() {
