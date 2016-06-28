@@ -22,11 +22,13 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.testing.UseJdbc;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Map;
 
+@UseJdbc
 public class TableSettingsTest extends SQLTransportIntegrationTest {
 
     @Before

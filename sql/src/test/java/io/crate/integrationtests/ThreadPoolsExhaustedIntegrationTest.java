@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -36,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @ESIntegTestCase.ClusterScope(maxNumDataNodes = 2)
+@UseJdbc
 public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegrationTest {
 
     @Override

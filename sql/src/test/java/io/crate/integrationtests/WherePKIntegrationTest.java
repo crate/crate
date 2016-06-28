@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -30,6 +31,7 @@ import java.util.Arrays;
 
 import static org.hamcrest.core.Is.is;
 
+@UseJdbc
 public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
@@ -156,6 +158,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // geo_point missing
     public void testEmptyClusteredByUnderId() throws Exception {
         // regression test that empty routing executes correctly
         execute("create table auto_id (" +
@@ -174,6 +177,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // geo_point missing
     public void testEmptyClusteredByExplicit() throws Exception {
         // regression test that empty routing executes correctly
         execute("create table explicit_routing (" +
@@ -228,6 +232,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // geo_point missing
     public void testDeleteByQueryCommaRouting() throws Exception {
         execute("create table explicit_routing (" +
                 "  name string," +

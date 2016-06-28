@@ -21,8 +21,10 @@
 
 package io.crate.integrationtests;
 
+import io.crate.testing.UseJdbc;
 import org.junit.Test;
 
+@UseJdbc
 public class SqlAlchemyIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

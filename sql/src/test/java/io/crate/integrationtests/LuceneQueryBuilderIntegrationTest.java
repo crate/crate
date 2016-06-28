@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
@@ -29,6 +30,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope (randomDynamicTemplates = false, transportClientRatio = 0)
+@UseJdbc
 public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
@@ -124,6 +126,7 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
     }
 
     @Test
+    @UseJdbc(false) // geo_point missing
     public void testWithinGenericFunction() throws Exception {
         execute("create table shaped (id int, point geo_point, shape geo_shape) with (number_of_replicas=0)");
         ensureYellow();

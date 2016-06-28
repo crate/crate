@@ -26,6 +26,7 @@ import io.crate.core.collections.CollectionBucket;
 import io.crate.exceptions.Exceptions;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -41,6 +42,7 @@ import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
+@UseJdbc
 public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
