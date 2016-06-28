@@ -78,6 +78,14 @@ The Function call sub-protocol is not supported as this is considered a legacy
 feature.
 
 
+Canceling Requests in Progress
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Operations can be cancelled using the ``KILL`` statement. There is no support
+for the ``CancelRequest`` message and the Server also won't send a
+``BackendKeyData`` message during connection initialization.
+
+
 .. _Postgresql wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
 .. _Simple Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#AEN108745
 .. _Extended Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
