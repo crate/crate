@@ -33,6 +33,7 @@ import org.postgresql.util.PSQLException;
 
 import java.sql.*;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
@@ -102,23 +103,25 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testCreateInsertSelect() throws Exception {
+    public void testCreateInsertSelectStringAndTimestamp() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
             Statement statement = conn.createStatement();
-            assertThat(statement.executeUpdate("create table t (x string) with (number_of_replicas = 0)"), is(0));
+            assertThat(statement.executeUpdate("create table t (x string, ts timestamp) with (number_of_replicas = 0)"), is(0));
             ensureYellow();
 
-            assertThat(statement.executeUpdate("insert into t (x) values ('Marvin'), ('Trillian')"), is(2));;
+            assertThat(statement.executeUpdate("insert into t (x, ts) values ('Marvin', '2016-05-14'), ('Trillian', '2016-06-28')"), is(2));;
             assertThat(statement.executeUpdate("refresh table t"), is(0));
 
-            statement.executeQuery("select x from t order by x");
+            statement.executeQuery("select x, ts from t order by x");
             ResultSet resultSet = statement.getResultSet();
             assertThat(resultSet.next(), is(true));
             assertThat(resultSet.getString(1), is("Marvin"));
+            assertThat(resultSet.getTimestamp(2), is(new Timestamp(1463184000000L)));
 
             assertThat(resultSet.next(), is(true));
             assertThat(resultSet.getString(1), is("Trillian"));
+            assertThat(resultSet.getTimestamp(2), is(new Timestamp(1467072000000L)));
         }
     }
 

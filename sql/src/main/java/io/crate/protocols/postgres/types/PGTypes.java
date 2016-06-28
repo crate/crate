@@ -42,6 +42,7 @@ public class PGTypes {
         .put(DataTypes.LONG, new BigIntType())
         .put(DataTypes.FLOAT, new RealType())
         .put(DataTypes.DOUBLE, new DoubleType())
+        .put(DataTypes.TIMESTAMP, new TimestampType())
         .build();
 
     private static final IntObjectMap<DataType> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<DataType>()
