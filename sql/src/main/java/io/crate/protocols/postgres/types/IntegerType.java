@@ -22,9 +22,12 @@
 
 package io.crate.protocols.postgres.types;
 
-import java.nio.ByteBuffer;
+import org.jboss.netty.buffer.ChannelBuffer;
 
-class IntegerType extends NumericPGType<Integer> {
+import javax.annotation.Nonnull;
+import java.nio.charset.StandardCharsets;
+
+class IntegerType extends PGType {
 
     static final int OID = 23;
 
@@ -37,17 +40,20 @@ class IntegerType extends NumericPGType<Integer> {
     }
 
     @Override
-    void writeTo(ByteBuffer byteBuffer, Object value) {
-        byteBuffer.putInt((int) value);
+    public int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+        buffer.writeInt(INT32_BYTE_SIZE);
+        buffer.writeInt(((int) value));
+        return 8;
     }
 
     @Override
-    Integer readFrom(ByteBuffer byteBuffer) {
-        return byteBuffer.getInt();
+    public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
+        assert valueLength == 4 : "length should be 4 because int is int32. Actual length: " + valueLength;
+        return buffer.readInt();
     }
 
     @Override
-    Integer fromString(String s) {
-        return Integer.parseInt(s);
+    Object valueFromUTF8Bytes(byte[] bytes) {
+        return Integer.parseInt(new String(bytes, StandardCharsets.UTF_8));
     }
 }
