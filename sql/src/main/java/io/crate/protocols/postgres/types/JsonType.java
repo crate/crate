@@ -63,6 +63,11 @@ class JsonType extends PGType {
     public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
         byte[] bytes = new byte[valueLength];
         buffer.readBytes(bytes);
+        return valueFromUTF8Bytes(bytes);
+    }
+
+    @Override
+    Object valueFromUTF8Bytes(byte[] bytes) {
         try {
             return JsonXContent.jsonXContent.createParser(bytes).map();
         } catch (IOException e) {
