@@ -51,7 +51,8 @@ public class GeneratedReferenceInfoTest extends CrateUnitTest {
         ReferenceIdent referenceIdent = new ReferenceIdent(T3.T1_INFO.ident(), "generated_column");
         String formattedGeneratedExpression = "concat(a, 'bar')";
         GeneratedReferenceInfo generatedReferenceInfo = new GeneratedReferenceInfo(referenceIdent, RowGranularity.DOC,
-                StringType.INSTANCE, ColumnPolicy.STRICT, ReferenceInfo.IndexType.ANALYZED, formattedGeneratedExpression);
+                StringType.INSTANCE, ColumnPolicy.STRICT, ReferenceInfo.IndexType.ANALYZED,
+                formattedGeneratedExpression, false);
 
         generatedReferenceInfo.generatedExpression(SQL_EXPRESSIONS.normalize(SQL_EXPRESSIONS.asSymbol(formattedGeneratedExpression)));
         generatedReferenceInfo.referencedReferenceInfos(ImmutableList.of(T3.T1_INFO.getReferenceInfo(new ColumnIdent("a"))));

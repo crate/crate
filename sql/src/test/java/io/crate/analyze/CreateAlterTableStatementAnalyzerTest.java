@@ -97,17 +97,17 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 "create table foo (id integer, name string, primary key (id, name))"
         );
 
-        List<String> primaryKeys = analysis.primaryKeys();
-        assertThat(primaryKeys.size(), is(2));
-        assertThat(primaryKeys.get(0), is("id"));
-        assertThat(primaryKeys.get(1), is("name"));
+        String[] primaryKeys = analysis.primaryKeys().toArray(new String[0]);
+        assertThat(primaryKeys.length, is(2));
+        assertThat(primaryKeys[0], is("id"));
+        assertThat(primaryKeys[1], is("name"));
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testSimpleCreateTable() throws Exception {
         CreateTableAnalyzedStatement analysis = analyze(
-                "create table foo (id integer primary key, name string) " +
+                "create table foo (id integer primary key, name string not null) " +
                 "clustered into 3 shards with (number_of_replicas=0)");
 
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS), is("3"));
@@ -127,9 +127,13 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat((Boolean)nameMapping.get("store"), is(false));
         assertThat((String)nameMapping.get("type"), is("string"));
 
-        List<String> primaryKeys = analysis.primaryKeys();
-        assertThat(primaryKeys.size(), is(1));
-        assertThat(primaryKeys.get(0), is("id"));
+        String[] primaryKeys = analysis.primaryKeys().toArray(new String[0]);
+        assertThat(primaryKeys.length, is(1));
+        assertThat(primaryKeys[0], is("id"));
+
+        String[] notNullColumns = analysis.notNullColumns().toArray(new String[0]);
+        assertThat(notNullColumns.length, is(1));
+        assertThat(notNullColumns[0], is("name"));
     }
 
     @Test
@@ -463,10 +467,10 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         CreateTableAnalyzedStatement analysis = analyze(
                 "create table test (id integer primary key, name string primary key)");
 
-        List<String> primaryKeys = analysis.primaryKeys();
-        assertThat(primaryKeys.size(), is(2));
-        assertThat(primaryKeys.get(0), is("id"));
-        assertThat(primaryKeys.get(1), is("name"));
+        String[] primaryKeys = analysis.primaryKeys().toArray(new String[0]);
+        assertThat(primaryKeys.length, is(2));
+        assertThat(primaryKeys[0], is("id"));
+        assertThat(primaryKeys[1], is("name"));
     }
 
     @Test
@@ -475,10 +479,10 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
                 "create table test (id integer primary key, name string primary key) " +
                         "clustered by(name)");
 
-        List<String> primaryKeys = analysis.primaryKeys();
-        assertThat(primaryKeys.size(), is(2));
-        assertThat(primaryKeys.get(0), is("id"));
-        assertThat(primaryKeys.get(1), is("name"));
+        String[] primaryKeys = analysis.primaryKeys().toArray(new String[0]);
+        assertThat(primaryKeys.length, is(2));
+        assertThat(primaryKeys[0], is("id"));
+        assertThat(primaryKeys[1], is("name"));
 
         Map<String, Object> meta = (Map)analysis.mapping().get("_meta");
         assertNotNull(meta);

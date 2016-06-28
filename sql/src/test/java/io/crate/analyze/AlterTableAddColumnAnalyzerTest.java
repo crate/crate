@@ -39,6 +39,7 @@ import org.junit.rules.ExpectedException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -153,6 +154,16 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot use columns of type \"array\" as primary key");
         analyze("alter table users add column newpk array(string) primary key");
+    }
+
+    @Test
+    public void testAddColumnToATableWithNotNull() throws Exception {
+        AddColumnAnalyzedStatement analysis = analyze("alter table users_clustered_by_only " +
+                                                      "add column notnullcol string not null");
+        Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
+
+        assertThat((String)((Set)((Map) mapping.get("_meta")).get("notnull_columns")).toArray(new String[0])[0],
+                    is("notnullcol"));
     }
 
     @Test

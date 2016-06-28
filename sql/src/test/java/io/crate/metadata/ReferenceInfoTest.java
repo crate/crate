@@ -49,8 +49,11 @@ public class ReferenceInfoTest extends CrateUnitTest {
     public void testStreaming() throws Exception {
         TableIdent tableIdent = new TableIdent("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(tableIdent, "object_column");
-        ReferenceInfo referenceInfo = new ReferenceInfo(referenceIdent, RowGranularity.DOC, new ArrayType(DataTypes.OBJECT),
-                ColumnPolicy.STRICT, ReferenceInfo.IndexType.ANALYZED);
+        ReferenceInfo referenceInfo = new ReferenceInfo(referenceIdent,
+                                                        RowGranularity.DOC,
+                                                        new ArrayType(DataTypes.OBJECT),
+                                                        ColumnPolicy.STRICT,
+                                                        ReferenceInfo.IndexType.ANALYZED, false);
 
         BytesStreamOutput out = new BytesStreamOutput();
         ReferenceInfo.toStream(referenceInfo, out);

@@ -48,10 +48,8 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.*;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -642,6 +640,60 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         md = newMeta(metaData, "test_no_pk2");
         assertThat(md.primaryKey().size(), is(1));
         assertThat(md.primaryKey(), hasItems(ColumnIdent.fromPath("_id")));
+    }
+
+    @Test
+    public void testSchemaWithNotNullColumns() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+            .startObject()
+            .startObject(Constants.DEFAULT_MAPPING_TYPE)
+            .startObject("_meta")
+            .array("notnull_columns", "id", "title")
+            .endObject()
+            .startObject("properties")
+            .startObject("id")
+            .field("type", "integer")
+            .field("index", "not_analyzed")
+            .endObject()
+            .startObject("title")
+            .field("type", "string")
+            .field("index", "no")
+            .endObject()
+            .endObject()
+            .endObject()
+            .endObject();
+        IndexMetaData metaData = getIndexMetaData("test_notnull_columns", builder);
+        DocIndexMetaData md = newMeta(metaData, "test_notnull_columns");
+        assertThat(md.columns().get(0).isNullable(), is(false));
+        assertThat(md.columns().get(1).isNullable(), is(false));
+    }
+
+    @Test
+    public void testSchemaWithNotNullGeneratedColumn() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+            .startObject()
+            .startObject("_meta")
+            .startObject("generated_columns")
+            .field("week", "date_trunc('week', ts)")
+            .endObject()
+            .array("notnull_columns", "week")
+            .endObject()
+            .startObject("properties")
+            .startObject("ts").field("type", "date").endObject()
+            .startObject("week").field("type", "long").endObject()
+            .endObject();
+
+        IndexMetaData metaData = getIndexMetaData("test1", builder, Settings.EMPTY, null);
+        DocIndexMetaData md = newMeta(metaData, "test1");
+
+        assertThat(md.columns().size(), is(2));
+        ReferenceInfo week = md.references().get(new ColumnIdent("week"));
+        assertThat(week, Matchers.notNullValue());
+        assertThat(week.isNullable(), is(false));
+        assertThat(week, instanceOf(GeneratedReferenceInfo.class));
+        assertThat(((GeneratedReferenceInfo) week).formattedGeneratedExpression(), is("date_trunc('week', ts)"));
+        assertThat(((GeneratedReferenceInfo) week).generatedExpression(), isFunction("date_trunc", isLiteral("week"), isReference("ts")));
+        assertThat(((GeneratedReferenceInfo) week).referencedReferenceInfos(), contains(isReferenceInfo("ts")));
     }
 
     @Test
