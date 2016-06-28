@@ -78,7 +78,8 @@ public class PGTypesTest {
             new Entry(DataTypes.SHORT, (short)42),
             new Entry(DataTypes.FLOAT, 42.3f),
             new Entry(DataTypes.DOUBLE, 42.00003),
-            new Entry(DataTypes.BOOLEAN, true)
+            new Entry(DataTypes.BOOLEAN, true),
+            new Entry(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-05-08"))
         )) {
 
             PGType pgType = PGTypes.get(entry.type);
