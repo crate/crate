@@ -2,14 +2,22 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import logging
 import os
 import zipfile
+import tarfile
+import urllib.request
+import tempfile
 from crate.testing.layer import CrateLayer
 from crate.client import connect
 
 
 CRATE_HTTP_PORT = '42222'
 CRATE_TRANSPORT_PORT = '43333'
+BASE_URL = "https://cdn.crate.io/downloads/releases/crate-{0}.tar.gz"
+
+logging.basicConfig(level=logging.ERROR)
+LOGGER = logging.getLogger(__name__)
 
 
 CREATE_INDEX_SQL = """
@@ -24,6 +32,20 @@ CREATE_INDEX_SQL = """
     INSERT INTO legacy_geo_point (id, p) VALUES (1, 'POINT (10 10)');
     REFRESH TABLE legacy_geo_point;
 """
+
+
+def download_crate(url):
+    LOGGER.info("Downloading crate")
+    try:
+        fname, headers = urllib.request.urlretrieve(url)
+    except urllib.error.HTTPError:
+        LOGGER.error("could not download crate from %s", url)
+        raise
+    with tarfile.open(fname, "r:gz") as tar:
+        tempdir = tempfile.mkdtemp()
+        home_dir = tar.firstmember.path
+        tar.extractall(tempdir)
+        return os.path.join(tempdir, home_dir)
 
 
 def compress_index(version, data_dir, output_dir):
@@ -47,10 +69,10 @@ def zipdir(path, ziph, basePath):
             ziph.write(filePath, inZipPath)
 
 
-def create_index(cfg):
+def create_index(crate_home, output_dir):
     crate_layer = CrateLayer(
         'data',
-        crate_home=cfg.crate_home,
+        crate_home=crate_home,
         port=CRATE_HTTP_PORT,
         transport_port=CRATE_TRANSPORT_PORT
     )
@@ -63,24 +85,32 @@ def create_index(cfg):
                 cur.execute(cmd)
             cur.execute("select version['number'] from sys.nodes")
             version = cur.fetchone()[0]
-            compress_index(version, crate_layer.wdPath(), cfg.output_dir)
+            compress_index(version, crate_layer.wdPath(), output_dir)
     finally:
         crate_layer.stop()
 
 
 def parse_config():
     parser = argparse.ArgumentParser(description='Builds a crate table for backwards compatibility tests')
-    parser.add_argument('--crate-home', '-d', default='backwards', metavar='DIR',
-                        help='The crate home directory')
     parser.add_argument('--output-dir', '-o', default='../sql/src/test/resources/indices/bwc',
                         help='The directory to write the zipped index into')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--crate-home', '-d', metavar='DIR',
+                        help='The crate home directory')
+    group.add_argument('--crate-version', '-v',
+                        help='Download a specific crate version to create the legacy index')
     cfg = parser.parse_args()
     return cfg
 
 
 def main():
+    LOGGER.setLevel(logging.INFO)
     cfg = parse_config()
-    create_index(cfg)
+    crate_home = cfg.crate_home
+    if crate_home is None:
+        url = BASE_URL.format(cfg.crate_version)
+        crate_home = download_crate(url)
+    create_index(crate_home, cfg.output_dir)
 
 
 if __name__ == '__main__':
