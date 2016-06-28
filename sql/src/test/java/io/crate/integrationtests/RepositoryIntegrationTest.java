@@ -23,6 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -33,6 +34,7 @@ import java.util.HashMap;
 
 import static org.hamcrest.Matchers.is;
 
+@UseJdbc
 public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
 
     @ClassRule
@@ -46,6 +48,7 @@ public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // drop repository has no rowcount
     public void testDropExistingRepository() throws Exception {
         execute("CREATE REPOSITORY existing_repo TYPE \"fs\" with (location=?, compress=True)",
                 new Object[]{
@@ -61,6 +64,7 @@ public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // result contains bytesref instead of string
     public void testCreateRepository() throws Throwable {
         String repoLocation = TEMPORARY_FOLDER.newFolder().getAbsolutePath();
         execute("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location=?, compress=True)",

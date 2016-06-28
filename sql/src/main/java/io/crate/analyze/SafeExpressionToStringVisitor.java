@@ -25,6 +25,7 @@ import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.StringLiteral;
+import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
@@ -46,6 +47,9 @@ public class SafeExpressionToStringVisitor extends AstVisitor<String, Object[]> 
     @Override
     public String visitParameterExpression(ParameterExpression node, Object[] parameters) {
         Object value = parameters[node.index()];
+        if (value instanceof BytesRef) {
+            return ((BytesRef) value).utf8ToString();
+        }
         if (!(value instanceof String)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Parameter %s not a string value, can't handle this.", value));
         }

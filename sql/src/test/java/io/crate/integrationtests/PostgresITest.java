@@ -65,11 +65,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Before
-    public void initDriver() throws Exception {
-        Class.forName("org.postgresql.Driver");
-    }
-
-    @Before
     public void initProperties() throws Exception {
         if (randomBoolean()) {
             properties.setProperty("prepareThreshold", "-1"); // force binary transfer

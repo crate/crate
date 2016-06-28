@@ -2,10 +2,12 @@ package io.crate.integrationtests;
 
 
 import io.crate.action.sql.SQLResponse;
+import io.crate.testing.UseJdbc;
 import org.junit.Test;
 
 import java.util.Locale;
 
+@UseJdbc
 public class CrateSettingsIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

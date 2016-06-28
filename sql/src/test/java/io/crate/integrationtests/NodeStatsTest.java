@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.Version;
 import io.crate.action.sql.SQLResponse;
+import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -37,6 +38,7 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2)
+@UseJdbc
 public class NodeStatsTest extends SQLTransportIntegrationTest {
 
     @Test
@@ -61,6 +63,7 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
 
     @SuppressWarnings("ConstantConditions")
     @Test
+    @UseJdbc(false) // because of json some values are transfered as integer instead of long
     public void testThreadPools() throws Exception {
         SQLResponse response = execute("select thread_pools from sys.nodes limit 1");
 
@@ -160,6 +163,7 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // because of json some values are transfered as integer instead of long
     public void testSysNodesOs() throws Exception {
         SQLResponse response = execute("select os from sys.nodes limit 1");
         Map results = (Map) response.rows()[0][0];
@@ -214,6 +218,7 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // because of json some values are transfered as integer instead of long
     public void testFs() throws Exception {
         SQLResponse response = execute("select fs from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));

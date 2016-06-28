@@ -28,6 +28,7 @@ import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -40,6 +41,7 @@ import static org.hamcrest.Matchers.*;
 
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
+@UseJdbc
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     final static Joiner commaJoiner = Joiner.on(", ");
@@ -967,11 +969,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select table_name, partition_ident, values from information_schema.table_partitions order by table_name, partition_ident");
         assertEquals(2, response.rowCount());
 
-        Object[] row1 = new Object[] { "my_table", "04130", ImmutableMap.of("metadata['date']", 0L) };
-        Object[] row2 = new Object[] { "my_table", "04732d1g64p36d9i60o30c1g", ImmutableMap.of("metadata['date']", 1401235200000L) };
-
-        assertArrayEquals(row1, response.rows()[0]);
-        assertArrayEquals(row2, response.rows()[1]);
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("my_table| 04130| {metadata['date']=0}\n" +
+               "my_table| 04732d1g64p36d9i60o30c1g| {metadata['date']=1401235200000}\n"));
     }
 
     @Test
