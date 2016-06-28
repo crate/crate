@@ -48,9 +48,9 @@ public class JsonTypeTest {
     }
 
     @Test
-    public void writeValue() throws Exception {
+    public void writeTextValue() throws Exception {
         ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
-        int bytesWritten = jsonType.writeValue(buffer, map);
+        int bytesWritten = jsonType.writeTextValue(buffer, map);
         assertThat(bytesWritten, is(24));
         byte[] bytes = new byte[24];
         buffer.getBytes(0, bytes);
@@ -60,15 +60,11 @@ public class JsonTypeTest {
         assertThat(bytes, is(expectedBytes));
     }
 
-
     @Test
-    public void readValue() throws Exception {
-        byte[] bytes = new byte[]{
-            123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 120, 34, 58, 49, 48, 125
-        };
-        ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(bytes);
-        Map<String, Object> value = (Map<String, Object>) jsonType.readValue(buffer, 20);
-
+    public void readTextValue() throws Exception {
+        String json = "{\"foo\":\"bar\",\"x\":10}";
+        ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(json.getBytes());
+        Map<String, Object> value = (Map<String, Object>) jsonType.readTextValue(buffer, json.length());
         assertThat(value, is(map));
     }
 
