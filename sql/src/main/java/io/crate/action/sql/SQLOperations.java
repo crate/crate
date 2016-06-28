@@ -49,7 +49,6 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -147,13 +146,19 @@ public class SQLOperations {
                 query = query.substring(0, query.length() - 1);
             }
 
-            parse("", query, Collections.<DataType>emptyList());
-            bind("", "", Collections.emptyList());
-            List<Field> fields = describe('S', "");
+            Statement statement = SqlParser.createStatement(query);
+            Analysis analysis = analyzer.analyze(statement, new ParameterContext(EMPTY_ARGS, EMPTY_BULK_ARGS, defaultSchema));
+            Plan plan = planner.plan(analysis, UUID.randomUUID(), 0, 0);
 
-            ResultReceiver resultReceiver = resultReceiverFactory.apply(fields);
-            execute("", 0, resultReceiver);
-            sync(doneListener);
+            ResultReceiver resultReceiver;
+            if (analysis.rootRelation() == null) {
+                resultReceiver = resultReceiverFactory.apply(null);
+            } else {
+                resultReceiver = resultReceiverFactory.apply(analysis.rootRelation().fields());
+            }
+            assert resultReceiver != null : "resultReceiver must not be null";
+            resultReceiver.addListener(doneListener);
+            executor.execute(plan, resultReceiver);
         }
 
         private Object[] getArgs() {
