@@ -25,6 +25,8 @@ package io.crate.protocols.postgres;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.symbol.Field;
 import io.crate.core.collections.Row;
+import io.crate.protocols.postgres.types.PGType;
+import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -245,7 +247,7 @@ class Messages {
             if (value == null) {
                 buffer.writeInt(-1);
             } else {
-                length += pgType.writeTextValue(buffer, value);
+                length += pgType.writeValue(buffer, value);
             }
         }
 
@@ -295,10 +297,10 @@ class Messages {
             buffer.writeShort(0);   // attr_num
 
             PGType pgType = PGTypes.CRATE_TO_PG_TYPES.get(column.valueType());
-            buffer.writeInt(pgType.oid);
-            buffer.writeShort(pgType.typeLen);
-            buffer.writeInt(pgType.typeMod);
-            buffer.writeShort(PGType.FormatCode.TEXT);
+            buffer.writeInt(pgType.oid());
+            buffer.writeShort(pgType.typeLen());
+            buffer.writeInt(pgType.typeMod());
+            buffer.writeShort(pgType.formatCode());
         }
 
         buffer.setInt(1, length);
