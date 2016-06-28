@@ -22,9 +22,12 @@
 
 package io.crate.protocols.postgres.types;
 
-import java.nio.ByteBuffer;
+import org.jboss.netty.buffer.ChannelBuffer;
 
-class DoubleType extends NumericPGType<Double> {
+import javax.annotation.Nonnull;
+import java.nio.charset.StandardCharsets;
+
+class DoubleType extends PGType {
 
     static final int OID = 701;
 
@@ -37,17 +40,20 @@ class DoubleType extends NumericPGType<Double> {
     }
 
     @Override
-    void writeTo(ByteBuffer byteBuffer, Object value) {
-        byteBuffer.putDouble((double) value);
+    public int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+        buffer.writeInt(8);
+        buffer.writeDouble(((double) value));
+        return 12;
     }
 
     @Override
-    Double readFrom(ByteBuffer byteBuffer) {
-        return byteBuffer.getDouble();
+    public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
+        assert valueLength == 8 : "length should be 8 because double is int64. Actual length: " + valueLength;
+        return buffer.readDouble();
     }
 
     @Override
-    Double fromString(String s) {
-        return Double.parseDouble(s);
+    Object valueFromUTF8Bytes(byte[] bytes) {
+        return Double.parseDouble(new String(bytes, StandardCharsets.UTF_8));
     }
 }

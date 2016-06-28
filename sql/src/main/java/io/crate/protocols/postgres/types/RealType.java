@@ -22,9 +22,12 @@
 
 package io.crate.protocols.postgres.types;
 
-import java.nio.ByteBuffer;
+import org.jboss.netty.buffer.ChannelBuffer;
 
-class RealType extends NumericPGType<Float> {
+import javax.annotation.Nonnull;
+import java.nio.charset.StandardCharsets;
+
+class RealType extends PGType {
 
     static final int OID = 700;
 
@@ -37,17 +40,20 @@ class RealType extends NumericPGType<Float> {
     }
 
     @Override
-    void writeTo(ByteBuffer byteBuffer, Object value) {
-        byteBuffer.putFloat((float) value);
+    public int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+        buffer.writeInt(4);
+        buffer.writeFloat(((float) value));
+        return 8;
     }
 
     @Override
-    Float readFrom(ByteBuffer byteBuffer) {
-        return byteBuffer.getFloat();
+    public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
+        assert valueLength == 4 : "length should be 4 because float is int32. Actual length: " + valueLength;
+        return buffer.readFloat();
     }
 
     @Override
-    Float fromString(String s) {
-        return Float.parseFloat(s);
+    Object valueFromUTF8Bytes(byte[] bytes) {
+        return Float.parseFloat(new String(bytes, StandardCharsets.UTF_8));
     }
 }

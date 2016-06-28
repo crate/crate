@@ -44,10 +44,7 @@ import org.jboss.netty.handler.codec.frame.FrameDecoder;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static io.crate.protocols.postgres.ConnectionContext.State.STARTUP_HEADER;
 
@@ -375,7 +372,7 @@ class ConnectionContext {
                 params.add(null);
             } else {
                 DataType paramType = session.getParamType(i);
-                PGType pgType = PGTypes.CRATE_TO_PG_TYPES.get(paramType);
+                PGType pgType = PGTypes.get(paramType);
                 short formatCode = getFormatCode(formatCodes, i);
                 switch (formatCode) {
                     case PGType.FormatCode.TEXT:
@@ -388,7 +385,7 @@ class ConnectionContext {
 
                     default:
                         Messages.sendErrorResponse(channel,
-                            String.format("Unsupported format code '%d' for param '%s'",
+                            String.format(Locale.ENGLISH, "Unsupported format code '%d' for param '%s'",
                                 formatCode, paramType.getName()));
                         return;
                 }

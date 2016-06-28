@@ -32,14 +32,14 @@ public class PGTypesTest {
 
     @Test
     public void testCrate2PGType() throws Exception {
-        assertThat(PGTypes.CRATE_TO_PG_TYPES.get(DataTypes.STRING), instanceOf(VarCharType.class));
-        assertThat(PGTypes.CRATE_TO_PG_TYPES.get(DataTypes.OBJECT), instanceOf(JsonType.class));
-        assertThat(PGTypes.CRATE_TO_PG_TYPES.get(DataTypes.BOOLEAN), instanceOf(BooleanType.class));
-        assertThat(PGTypes.CRATE_TO_PG_TYPES.get(DataTypes.SHORT), instanceOf(SmallIntType.class));
-        assertThat(PGTypes.CRATE_TO_PG_TYPES.get(DataTypes.INTEGER), instanceOf(IntegerType.class));
-        assertThat(PGTypes.CRATE_TO_PG_TYPES.get(DataTypes.LONG), instanceOf(BigIntType.class));
-        assertThat(PGTypes.CRATE_TO_PG_TYPES.get(DataTypes.FLOAT), instanceOf(RealType.class));
-        assertThat(PGTypes.CRATE_TO_PG_TYPES.get(DataTypes.DOUBLE), instanceOf(DoubleType.class));
+        assertThat(PGTypes.get(DataTypes.STRING), instanceOf(VarCharType.class));
+        assertThat(PGTypes.get(DataTypes.OBJECT), instanceOf(JsonType.class));
+        assertThat(PGTypes.get(DataTypes.BOOLEAN), instanceOf(BooleanType.class));
+        assertThat(PGTypes.get(DataTypes.SHORT), instanceOf(SmallIntType.class));
+        assertThat(PGTypes.get(DataTypes.INTEGER), instanceOf(IntegerType.class));
+        assertThat(PGTypes.get(DataTypes.LONG), instanceOf(BigIntType.class));
+        assertThat(PGTypes.get(DataTypes.FLOAT), instanceOf(RealType.class));
+        assertThat(PGTypes.get(DataTypes.DOUBLE), instanceOf(DoubleType.class));
     }
 
     @Test
