@@ -25,8 +25,10 @@ import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.metadata.*;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
@@ -104,8 +106,12 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
         return (Map) mapping().get("properties");
     }
 
-    public List<String> primaryKeys() {
+    public Collection<String> primaryKeys() {
         return analyzedTableElements.primaryKeys();
+    }
+
+    public Collection<String> notNullColumns() {
+        return analyzedTableElements.notNullColumns();
     }
 
     public Map<String, Object> mapping() {

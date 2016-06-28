@@ -45,18 +45,19 @@ import java.util.*;
 public class AnalyzedTableElements {
 
     List<AnalyzedColumnDefinition> partitionedByColumns = new ArrayList<>();
-    List<AnalyzedColumnDefinition> columns = new ArrayList<>();
-    Set<ColumnIdent> columnIdents = new HashSet<>();
-    Map<ColumnIdent, String> columnTypes = new HashMap<>();
-    List<String> primaryKeys;
-    List<List<String>> partitionedBy;
-    int numGeneratedColumns = 0;
+    private List<AnalyzedColumnDefinition> columns = new ArrayList<>();
+    private Set<ColumnIdent> columnIdents = new HashSet<>();
+    private Map<ColumnIdent, String> columnTypes = new HashMap<>();
+    private Set<String> primaryKeys;
+    private Set<String> notNullColumns;
+    private List<List<String>> partitionedBy;
+    private int numGeneratedColumns = 0;
 
 
     /**
      * additional primary keys that are not inline with a column definition
      */
-    private List<String> additionalPrimaryKeys = new ArrayList<>();
+    private Set<String> additionalPrimaryKeys = new LinkedHashSet<>();
     private Map<String, Set<String>> copyToMap = new HashMap<>();
 
 
@@ -88,6 +89,9 @@ public class AnalyzedTableElements {
         }
         if (!generatedColumns.isEmpty()) {
             meta.put("generated_columns", generatedColumns);
+        }
+        if (!notNullColumns().isEmpty()) {
+            meta.put("notnull_columns", notNullColumns());
         }
 
         mapping.put("_meta", meta);
@@ -130,9 +134,22 @@ public class AnalyzedTableElements {
         }
     }
 
-    public List<String> primaryKeys() {
+    public Set<String> notNullColumns() {
+        if (notNullColumns == null) {
+            notNullColumns = new HashSet<>();
+            for (AnalyzedColumnDefinition column : columns) {
+                String fqn = column.ident().fqn();
+                if (column.isNotNull() && !primaryKeys().contains(fqn)) { // Columns part of pk are implicitly not null
+                    notNullColumns.add(fqn);
+                }
+            }
+        }
+        return notNullColumns;
+    }
+
+    public Set<String> primaryKeys() {
         if (primaryKeys == null) {
-            primaryKeys = new ArrayList<>();
+            primaryKeys = new LinkedHashSet<>(); // To preserve order
             primaryKeys.addAll(additionalPrimaryKeys);
             for (AnalyzedColumnDefinition column : columns) {
                 addPrimaryKeys(primaryKeys, column);
@@ -141,7 +158,7 @@ public class AnalyzedTableElements {
         return primaryKeys;
     }
 
-    private static void addPrimaryKeys(List<String> primaryKeys, AnalyzedColumnDefinition column) {
+    private static void addPrimaryKeys(Set<String> primaryKeys, AnalyzedColumnDefinition column) {
         if (column.isPrimaryKey()) {
             String fqn = column.ident().fqn();
             checkPrimaryKeyAlreadyDefined(primaryKeys, fqn);
@@ -152,7 +169,7 @@ public class AnalyzedTableElements {
         }
     }
 
-    private static void checkPrimaryKeyAlreadyDefined(List<String> primaryKeys, String columnName) {
+    private static void checkPrimaryKeyAlreadyDefined(Set<String> primaryKeys, String columnName) {
         if (primaryKeys.contains(columnName)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Column \"%s\" appears twice in primary key constraint", columnName));
