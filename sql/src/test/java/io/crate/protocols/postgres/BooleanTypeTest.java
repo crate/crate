@@ -40,9 +40,9 @@ public class BooleanTypeTest {
     }
 
     @Test
-    public void writeValue() throws Exception {
+    public void writeTextValue() throws Exception {
         ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
-        int bytesWritten = booleanType.writeValue(buffer, true);
+        int bytesWritten = booleanType.writeTextValue(buffer, true);
         assertThat(bytesWritten, is(5));
 
         byte[] bytes = new byte[bytesWritten];
@@ -51,20 +51,39 @@ public class BooleanTypeTest {
         assertThat(bytes, is(expectedTrueBytes));
 
         buffer = ChannelBuffers.dynamicBuffer();
-        booleanType.writeValue(buffer, false);
+        booleanType.writeTextValue(buffer, false);
         buffer.getBytes(0, bytes);
         byte[] expectedFalseBytes = new byte[]{ 0, 0, 0, 1, 'f' };
         assertThat(bytes, is(expectedFalseBytes));
     }
 
     @Test
-    public void readValue() throws Exception {
+    public void readTextValue() throws Exception {
         ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(new byte[] { 'f' });
-        boolean value = (boolean) booleanType.readValue(buffer, 1);
+        boolean value = (boolean) booleanType.readTextValue(buffer, 1);
         assertThat(value, is(false));
 
-        buffer = ChannelBuffers.wrappedBuffer(new byte[] { 't', 'r', 'u', 'e' });
-        value = (boolean) booleanType.readValue(buffer, 4);
+        buffer = ChannelBuffers.wrappedBuffer(new byte[] { 'T', 'R', 'U', 'E' });
+        value = (boolean) booleanType.readTextValue(buffer, 4);
+        assertThat(value, is(true));
+    }
+
+    @Test
+    public void writeBinaryValue() throws Exception {
+        ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+        int bytesWritten = booleanType.writeBinaryValue(buffer, true);
+        assertThat(bytesWritten, is(5));
+
+        byte[] bytes = new byte[bytesWritten];
+        buffer.getBytes(0, bytes);
+        byte[] expectedTrueBytes = new byte[]{ 0, 0, 0, 1, 1 };
+        assertThat(bytes, is(expectedTrueBytes));
+    }
+
+    @Test
+    public void readBinaryValue() throws Exception {
+        ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(new byte[] { 1 });
+        boolean value = (boolean) booleanType.readBinaryValue(buffer, 1);
         assertThat(value, is(true));
     }
 }
