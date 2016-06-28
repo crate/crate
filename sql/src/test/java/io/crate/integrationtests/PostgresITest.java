@@ -148,15 +148,37 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL + "foo")) {
             conn.setAutoCommit(true);
             PreparedStatement stmt = conn.prepareStatement("select x from t");
-            expectedException.expect(PSQLException.class);
-            expectedException.expectMessage("Schema 'foo' unknown");
-            stmt.executeQuery();
-
-            // verify that queries can be made after an error occurred
-            stmt = conn.prepareStatement("select invalid_column from sys.cluster");
-            ResultSet resultSet = stmt.executeQuery();
-            assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-CHILD"));
+            try {
+                stmt.executeQuery();
+                assertFalse(true); // should've raised PSQLException
+            } catch (PSQLException e) {
+                assertThat(e.getMessage(), Matchers.containsString("Schema 'foo' unknown"));
+            }
+            assertSelectNameFromSysClusterWorks(conn);
         }
+    }
+
+    @Test
+    public void testErrorRecoveryFromErrorsOutsideSqlOperations() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+            conn.setAutoCommit(true);
+            PreparedStatement stmt = conn.prepareStatement("select * from information_schema.tables");
+            try {
+                stmt.executeQuery();
+                assertFalse(true); // should've raised PSQLException
+            } catch (PSQLException e) {
+                assertThat(e.getMessage(), Matchers.containsString("No type mapping from 'string_array' to"));
+            }
+
+            assertSelectNameFromSysClusterWorks(conn);
+        }
+    }
+
+    private void assertSelectNameFromSysClusterWorks(Connection conn) throws SQLException {
+        PreparedStatement stmt;// verify that queries can be made after an error occurred
+        stmt = conn.prepareStatement("select name from sys.cluster");
+        ResultSet resultSet = stmt.executeQuery();
+        assertThat(resultSet.next(), is(true));
+        assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-CHILD"));
     }
 }
