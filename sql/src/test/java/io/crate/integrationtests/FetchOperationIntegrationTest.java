@@ -32,6 +32,7 @@ import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.sql.parser.SqlParser;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
@@ -45,6 +46,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
+@UseJdbc
 public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
     TransportExecutor executor;

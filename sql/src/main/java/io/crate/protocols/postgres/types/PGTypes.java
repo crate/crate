@@ -29,12 +29,15 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public class PGTypes {
 
     private static final Map<DataType, PGType> CRATE_TO_PG_TYPES = ImmutableMap.<DataType, PGType>builder()
+        .put(DataTypes.BYTE, CharType.INSTANCE)
         .put(DataTypes.STRING, VarCharType.INSTANCE)
         .put(DataTypes.BOOLEAN, BooleanType.INSTANCE)
         .put(DataTypes.OBJECT, JsonType.INSTANCE)
@@ -45,6 +48,8 @@ public class PGTypes {
         .put(DataTypes.DOUBLE, DoubleType.INSTANCE)
         .put(DataTypes.TIMESTAMP, TimestampType.INSTANCE)
         .put(DataTypes.IP, VarCharType.INSTANCE) // postgres has no IP type, so map it to varchar - it matches the client representation
+        .put(DataTypes.UNDEFINED, JsonType.INSTANCE)
+        .put(new ArrayType(DataTypes.BYTE), PGArray.CHAR_ARRAY)
         .put(new ArrayType(DataTypes.SHORT), PGArray.INT2_ARRAY)
         .put(new ArrayType(DataTypes.INTEGER), PGArray.INT4_ARRAY)
         .put(new ArrayType(DataTypes.LONG), PGArray.INT8_ARRAY)
@@ -53,18 +58,27 @@ public class PGTypes {
         .put(new ArrayType(DataTypes.BOOLEAN), PGArray.BOOL_ARRAY)
         .put(new ArrayType(DataTypes.TIMESTAMP), PGArray.TIMESTAMPZ_ARRAY)
         .put(new ArrayType(DataTypes.STRING), PGArray.VARCHAR_ARRAY)
+        .put(new ArrayType(DataTypes.OBJECT), JsonType.INSTANCE)
         .build();
 
-    public static Iterable<PGType> pgTypes() {
-        return CRATE_TO_PG_TYPES.values();
-    }
-
     private static final IntObjectMap<DataType> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
+    private static final Set<PGType> TYPES;
+
     static {
         for (Map.Entry<DataType, PGType> e : CRATE_TO_PG_TYPES.entrySet()) {
-            PG_TYPES_TO_CRATE_TYPE.put(e.getValue().oid(), e.getKey());
+            int oid = e.getValue().oid();
+            // crate string and ip types both map to pg varchar, avoid overwriting the mapping that is first established.
+            if (!PG_TYPES_TO_CRATE_TYPE.containsKey(oid)) {
+                PG_TYPES_TO_CRATE_TYPE.put(oid, e.getKey());
+            }
         }
         PG_TYPES_TO_CRATE_TYPE.put(0, DataTypes.UNDEFINED);
+        TYPES = new HashSet<>(CRATE_TO_PG_TYPES.values()); // some pgTypes are used multiple times, de-dup them
+    }
+
+
+    public static Iterable<PGType> pgTypes() {
+        return TYPES;
     }
 
     public static DataType fromOID(int oid) {

@@ -25,6 +25,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
 import io.crate.analyze.UpdateStatementAnalyzer;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,6 +41,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.core.Is.is;
 
+@UseJdbc(false) // exception rewrite missing
 public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);

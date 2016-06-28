@@ -3,6 +3,7 @@ apply plugin: "maven"
 
 repositories {
     mavenCentral()
+    maven { url "https://jitpack.io" }
 }
 
 sourceCompatibility = "7"

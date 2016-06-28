@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Rule;
@@ -30,6 +31,7 @@ import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.is;
 
+@UseJdbc
 public class AnyIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule

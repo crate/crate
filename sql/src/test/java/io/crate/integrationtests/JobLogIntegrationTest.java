@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLResponse;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -33,6 +34,7 @@ import org.junit.rules.ExpectedException;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
+@UseJdbc
 public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
@@ -45,6 +47,7 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // SET extra_float_digits = 3 gets added to the jobs_log
     public void testJobLogWithEnabledAndDisabledStats() throws Exception {
         sqlExecutor.exec("select name from sys.cluster");
         SQLResponse response = sqlExecutor.exec("select * from sys.jobs_log");
@@ -69,6 +72,7 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // set has no rowcount
     public void testSetSingleStatement() throws Exception {
         SQLResponse response = sqlExecutor.exec("select settings['stats']['jobs_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));

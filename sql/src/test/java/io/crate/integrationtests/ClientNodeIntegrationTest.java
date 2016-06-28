@@ -40,6 +40,11 @@ public class ClientNodeIntegrationTest extends SQLTransportIntegrationTest {
                         // make sure we use a client node (started with client=true)
                         return internalCluster().clientNodeClient();
                     }
+
+                    @Override
+                    public String pgUrl() {
+                        return null;
+                    }
                 }
         ));
     }
