@@ -22,9 +22,12 @@
 
 package io.crate.protocols.postgres.types;
 
-import java.nio.ByteBuffer;
+import org.jboss.netty.buffer.ChannelBuffer;
 
-class SmallIntType extends NumericPGType<Short> {
+import javax.annotation.Nonnull;
+import java.nio.charset.StandardCharsets;
+
+class SmallIntType extends PGType {
 
     static final int OID = 21;
 
@@ -37,17 +40,20 @@ class SmallIntType extends NumericPGType<Short> {
     }
 
     @Override
-    void writeTo(ByteBuffer byteBuffer, Object value) {
-        byteBuffer.putShort((short) value);
+    public int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+        buffer.writeInt(2);
+        buffer.writeShort((short) value);
+        return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    Short readFrom(ByteBuffer byteBuffer) {
-        return byteBuffer.getShort();
+    public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
+        assert valueLength == 2 : "length should be 8 because short is int16. Actual length: " + valueLength;
+        return buffer.readShort();
     }
 
     @Override
-    Short fromString(String s) {
-        return Short.parseShort(s);
+    Object valueFromUTF8Bytes(byte[] bytes) {
+        return Short.parseShort(new String(bytes, StandardCharsets.UTF_8));
     }
 }

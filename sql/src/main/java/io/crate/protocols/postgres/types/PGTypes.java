@@ -28,11 +28,12 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import java.util.Locale;
 import java.util.Map;
 
 public class PGTypes {
 
-    public static final Map<DataType, PGType> CRATE_TO_PG_TYPES = ImmutableMap.<DataType, PGType>builder()
+    private static final Map<DataType, PGType> CRATE_TO_PG_TYPES = ImmutableMap.<DataType, PGType>builder()
         .put(DataTypes.STRING, new VarCharType())
         .put(DataTypes.BOOLEAN, new BooleanType())
         .put(DataTypes.OBJECT, new JsonType())
@@ -58,5 +59,14 @@ public class PGTypes {
 
     public static DataType fromOID(int oid) {
         return PG_TYPES_TO_CRATE_TYPE.get(oid);
+    }
+
+    public static PGType get(DataType type) {
+        PGType pgType = CRATE_TO_PG_TYPES.get(type);
+        if (pgType == null) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "No type mapping from '%s' to pg_type", type.getName()));
+        }
+        return pgType;
     }
 }

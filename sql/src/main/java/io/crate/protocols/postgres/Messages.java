@@ -242,7 +242,7 @@ class Messages {
 
         for (int i = 0; i < row.size(); i++) {
             DataType dataType = columnTypes.get(i);
-            PGType pgType = PGTypes.CRATE_TO_PG_TYPES.get(dataType);
+            PGType pgType = PGTypes.get(dataType);
             Object value = row.get(i);
             if (value == null) {
                 buffer.writeInt(-1);
@@ -296,7 +296,7 @@ class Messages {
             buffer.writeInt(0);     // table_oid
             buffer.writeShort(0);   // attr_num
 
-            PGType pgType = PGTypes.CRATE_TO_PG_TYPES.get(column.valueType());
+            PGType pgType = PGTypes.get(column.valueType());
             buffer.writeInt(pgType.oid());
             buffer.writeShort(pgType.typeLen());
             buffer.writeInt(pgType.typeMod());

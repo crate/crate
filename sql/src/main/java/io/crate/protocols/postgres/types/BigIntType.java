@@ -22,9 +22,12 @@
 
 package io.crate.protocols.postgres.types;
 
-import java.nio.ByteBuffer;
+import org.jboss.netty.buffer.ChannelBuffer;
 
-class BigIntType extends NumericPGType<Long> {
+import javax.annotation.Nonnull;
+import java.nio.charset.StandardCharsets;
+
+class BigIntType extends PGType {
 
     static final int OID = 20;
 
@@ -37,17 +40,20 @@ class BigIntType extends NumericPGType<Long> {
     }
 
     @Override
-    void writeTo(ByteBuffer byteBuffer, Object value) {
-        byteBuffer.putLong((long) value);
+    public int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+        buffer.writeInt(TYPE_LEN);
+        buffer.writeLong(((long) value));
+        return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    Long readFrom(ByteBuffer byteBuffer) {
-        return byteBuffer.getLong();
+    public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
+        assert valueLength == TYPE_LEN: "length should be 8 because long is int64. Actual length: " + valueLength;
+        return buffer.readLong();
     }
 
     @Override
-    Long fromString(String s) {
-        return Long.parseLong(s);
+    Object valueFromUTF8Bytes(byte[] bytes) {
+        return Long.parseLong(new String(bytes, StandardCharsets.UTF_8));
     }
 }
