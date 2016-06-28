@@ -156,8 +156,23 @@ public class SQLOperations {
             sync(doneListener);
         }
 
+        private Object[] getArgs() {
+            if (bulkParams.size() == 1) {
+                return bulkParams.get(0).toArray(new Object[0]);
+            } else {
+                return EMPTY_ARGS;
+            }
+        }
+
+        private void checkError() {
+            if (throwable != null) {
+                throw Throwables.propagate(throwable);
+            }
+        }
+
         public void parse(String statementName, String query, List<DataType> paramTypes) {
             LOGGER.debug("method=parse stmtName={} query={} paramTypes={}", statementName, query, paramTypes);
+            checkError();
 
             try {
                 this.jobId = UUID.randomUUID();
@@ -170,54 +185,38 @@ public class SQLOperations {
             }
         }
 
-        public DataType getParamType(int idx) {
-            return paramTypes.get(idx);
-        }
-
         public void bind(String portalName, String statementName, List<Object> params) {
             LOGGER.debug("method=bind portalName={} statementName={} params={}", portalName, statementName, params);
-
-            if (throwable != null) {
-                return;
-            }
+            checkError();
             bulkParams.add(params);
         }
 
         public List<Field> describe(char type, String portalOrStatement) {
             LOGGER.debug("method=describe type={} portalOrStatement={}", type, portalOrStatement);
+            checkError();
 
-            if (throwable != null) {
-                return null;
-            }
-            if (analysis == null) {
-                if (statement == null) {
-                    throwable = new IllegalStateException("describe was called without prior parse call");
-                    throw (RuntimeException) throwable;
+            try {
+                if (analysis == null) {
+                    // analyze only once in a batch operation where there is
+                    // Parse -> Bind -> Describe -> Execute -> Parse -> Bind -> Describe -> Execute -> ... -> Sync
+                    analysis = analyzer.analyze(statement, new ParameterContext(getArgs(), EMPTY_BULK_ARGS, defaultSchema));
                 }
-                analysis = analyzer.analyze(statement, new ParameterContext(getArgs(), EMPTY_BULK_ARGS, defaultSchema));
-            }
-            if (analysis.rootRelation() == null) {
-                return null;
-            }
-            List<Field> fields = analysis.rootRelation().fields();
-            outputTypes = Symbols.extractTypes(fields);
-            return fields;
-        }
-
-        private Object[] getArgs() {
-            if (bulkParams.size() == 1) {
-                return bulkParams.get(0).toArray(new Object[0]);
-            } else {
-                return EMPTY_ARGS;
+                if (analysis.rootRelation() == null) {
+                    return null;
+                }
+                List<Field> fields = analysis.rootRelation().fields();
+                outputTypes = Symbols.extractTypes(fields);
+                return fields;
+            } catch (Throwable t) {
+                throwable = t;
+                throw t;
             }
         }
 
         public void execute(String portalName, int maxRows, ResultReceiver rowReceiver) {
             LOGGER.debug("method=describe portalName={} maxRows={}", portalName, maxRows);
+            checkError();
 
-            if (throwable != null) {
-                return;
-            }
             resultReceivers.add(rowReceiver);
             this.maxRows = maxRows;
         }
@@ -226,15 +225,13 @@ public class SQLOperations {
             LOGGER.debug("method=sync");
 
             if (throwable == null) {
-                if (resultReceivers.isEmpty()) {
-                    throw new IllegalStateException("sync called, but there was no execute");
-                }
                 if (resultReceivers.size() == 1) {
                     execute(listener);
                 } else {
                     executeBulk(listener);
                 }
             } else {
+                cleanup();
                 Throwable t = this.throwable;
                 this.throwable = null;
                 throw Throwables.propagate(t);
@@ -284,6 +281,7 @@ public class SQLOperations {
         private void cleanup() {
             analysis = null;
             bulkParams.clear();
+            maxRows = 0;
             resultReceivers.clear();
             statement = null;
         }
@@ -294,6 +292,10 @@ public class SQLOperations {
 
         public String query() {
             return query;
+        }
+
+        public DataType getParamType(int idx) {
+            return paramTypes.get(idx);
         }
     }
 
