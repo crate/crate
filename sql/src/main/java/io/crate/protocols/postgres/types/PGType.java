@@ -71,7 +71,11 @@ public abstract class PGType {
 
     public abstract Object readBinaryValue(ChannelBuffer buffer, int valueLength);
 
+    abstract Object valueFromUTF8Bytes(byte[] bytes);
+
     public Object readTextValue(ChannelBuffer buffer, int valueLength) {
-        return readBinaryValue(buffer, valueLength);
+        byte[] bytes = new byte[valueLength];
+        buffer.readBytes(bytes);
+        return valueFromUTF8Bytes(bytes);
     }
 }

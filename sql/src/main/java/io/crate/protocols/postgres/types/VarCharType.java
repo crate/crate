@@ -26,6 +26,7 @@ import org.apache.lucene.util.BytesRef;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import javax.annotation.Nonnull;
+import java.nio.charset.StandardCharsets;
 
 class VarCharType extends PGType {
 
@@ -41,6 +42,13 @@ class VarCharType extends PGType {
 
     @Override
     public int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+        if (value instanceof String) {
+            // we sometimes still get String instead of BytesRef, e.g. from the ESGetTask
+            byte[] bytes = ((String) value).getBytes(StandardCharsets.UTF_8);
+            buffer.writeInt(bytes.length);
+            buffer.writeBytes(bytes);
+            return INT32_BYTE_SIZE + bytes.length;
+        }
         BytesRef bytesRef = (BytesRef) value;
         buffer.writeInt(bytesRef.length);
         buffer.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);
@@ -53,5 +61,10 @@ class VarCharType extends PGType {
         bytesRef.length = valueLength;
         buffer.readBytes(bytesRef.bytes);
         return bytesRef;
+    }
+
+    @Override
+    Object valueFromUTF8Bytes(byte[] bytes) {
+        return new BytesRef(bytes);
     }
 }

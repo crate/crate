@@ -26,8 +26,8 @@ import com.google.common.collect.ImmutableSet;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import javax.annotation.Nonnull;
+import java.nio.ByteBuffer;
 import java.util.Collection;
-import java.util.Locale;
 
 class BooleanType extends PGType {
 
@@ -36,8 +36,12 @@ class BooleanType extends PGType {
     private static final int TYPE_LEN = 1;
     private static final int TYPE_MOD = -1;
     private static final short DEFAULT_FORMAT_CODE = FormatCode.TEXT;
-    private static final Collection<String> TRUTH_VALUES = ImmutableSet.of(
-        "t", "true", "o", "on", "1");
+    private static final Collection<ByteBuffer> TRUTH_VALUES = ImmutableSet.of(
+        ByteBuffer.wrap(new byte[] { 't' }),
+        ByteBuffer.wrap(new byte[] { 'T' }),
+        ByteBuffer.wrap(new byte[] { 't', 'r', 'u', 'e'}),
+        ByteBuffer.wrap(new byte[] { 'T', 'R', 'U', 'E'})
+    );
 
     BooleanType() {
         super(OID, TYPE_LEN, TYPE_MOD, DEFAULT_FORMAT_CODE);
@@ -52,16 +56,14 @@ class BooleanType extends PGType {
     }
 
     @Override
-    public Object readTextValue(ChannelBuffer buffer, int valueLength) {
-        byte[] bytes = new byte[valueLength];
-        buffer.readBytes(bytes);
-        String value = new String(bytes).toLowerCase(Locale.ENGLISH);
-        return TRUTH_VALUES.contains(value);
+    public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
+        assert valueLength == 1 : "length should be 1 because boolean is just a byte. Actual length: " + valueLength;
+        byte value = buffer.readByte();
+        return value != 0;
     }
 
     @Override
-    public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
-        byte value = buffer.readByte();
-        return value != 0;
+    Object valueFromUTF8Bytes(byte[] bytes) {
+        return TRUTH_VALUES.contains(ByteBuffer.wrap(bytes));
     }
 }
