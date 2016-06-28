@@ -36,6 +36,11 @@ public class PGTypes {
         .put(DataTypes.STRING, new VarCharType())
         .put(DataTypes.BOOLEAN, new BooleanType())
         .put(DataTypes.OBJECT, new JsonType())
+        .put(DataTypes.SHORT, new SmallIntType())
+        .put(DataTypes.INTEGER, new IntegerType())
+        .put(DataTypes.LONG, new BigIntType())
+        .put(DataTypes.FLOAT, new RealType())
+        .put(DataTypes.DOUBLE, new DoubleType())
         .build();
 
     private static final IntObjectMap<DataType> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<DataType>()
@@ -44,6 +49,11 @@ public class PGTypes {
         put(VarCharType.OID, DataTypes.STRING);
         put(BooleanType.OID, DataTypes.BOOLEAN);
         put(JsonType.OID, DataTypes.OBJECT);
+        put(SmallIntType.OID, DataTypes.SHORT);
+        put(IntegerType.OID, DataTypes.INTEGER);
+        put(BigIntType.OID, DataTypes.LONG);
+        put(RealType.OID, DataTypes.FLOAT);
+        put(DoubleType.OID, DataTypes.DOUBLE);
     }};
 
     public static DataType fromOID(int oid) {
