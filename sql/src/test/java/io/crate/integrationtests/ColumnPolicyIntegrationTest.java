@@ -28,6 +28,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -49,6 +50,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.*;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
+@UseJdbc
 public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
     private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();

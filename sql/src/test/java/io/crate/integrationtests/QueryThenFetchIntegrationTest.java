@@ -24,12 +24,14 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.operation.Paging;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
+@UseJdbc
 public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
@@ -119,6 +121,7 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // byte/short are returned as 0 instead of NULL
     public void testOrderBySortTypes() throws Exception {
         execute("create table xxx (" +
                 "  b byte," +

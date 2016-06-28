@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.testing.UseJdbc;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutorService;
@@ -30,6 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.is;
 
+@UseJdbc
 public class CreateTableIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

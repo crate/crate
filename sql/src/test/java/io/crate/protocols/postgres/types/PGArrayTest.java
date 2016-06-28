@@ -22,9 +22,12 @@
 
 package io.crate.protocols.postgres.types;
 
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -49,6 +52,32 @@ public class PGArrayTest {
         assertThat(s, is("{\"10\",NULL,\"20\"}"));
         Object o = pgArray.decodeUTF8Text(bytes);
         assertThat(((Object[]) o), is(array));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testJsonArrayEncodeDecode() throws Exception {
+        String s = "{\"{\"names\":[\"Arthur\",\"Trillian\"]}\",\"{\"names\":[\"Ford\",\"Slarti\"]}\"}";
+        Object[] values = (Object[]) PGArray.JSON_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
+
+        List<String> firstNames = (List<String>) ((Map) values[0]).get("names");
+        assertThat(firstNames, Matchers.contains("Arthur", "Trillian"));
+
+        List<String> secondNames = (List<String>) ((Map) values[1]).get("names");
+        assertThat(secondNames, Matchers.contains("Ford", "Slarti"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testDecodeEncodeEscapedJson() throws Exception {
+        String s = "{\"{\\\"names\\\":[\\\"Arthur\\\",\\\"Trillian\\\"]}\",\"{\\\"names\\\":[\\\"Ford\\\",\\\"Slarti\\\"]}\"}";
+        Object[] values = (Object[]) PGArray.JSON_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
+
+        List<String> firstNames = (List<String>) ((Map) values[0]).get("names");
+        assertThat(firstNames, Matchers.contains("Arthur", "Trillian"));
+
+        List<String> secondNames = (List<String>) ((Map) values[1]).get("names");
+        assertThat(secondNames, Matchers.contains("Ford", "Slarti"));
     }
 
     @Test

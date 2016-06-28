@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
@@ -32,6 +33,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope
+@UseJdbc
 public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
     @Override

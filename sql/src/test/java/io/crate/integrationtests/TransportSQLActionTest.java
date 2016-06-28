@@ -31,6 +31,7 @@ import io.crate.action.sql.SQLBulkResponse;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.TaskResult;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -55,6 +56,7 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
+@UseJdbc()
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -213,6 +215,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // $1 style parameter substitution not supported
     public void testSelectWithParams() throws Exception {
         execute("create table test (first_name string, last_name string, age double) with (number_of_replicas = 0)");
         ensureYellow();
@@ -886,7 +889,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select * from quotes");
         execute("select quote, \"_score\" from quotes where match(quote_ft, ?) " +
                         "order by \"_score\" desc",
-                new Object[]{"time", "time"}
+                new Object[]{"time"}
         );
         assertEquals(2L, response.rowCount());
         assertEquals("Time is an illusion. Lunchtime doubly so", response.rows()[0][0]);
@@ -1433,6 +1436,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // geo_point support is missing
     public void testInsertAndSelectGeoType() throws Exception {
         execute("create table geo_point_table (id int primary key, p geo_point) with (number_of_replicas=0)");
         ensureYellow();
@@ -1448,6 +1452,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // geo type support missing
     public void testGeoTypeQueries() throws Exception {
         // setup
         execute("create table t (id int primary key, i int, p geo_point) " +
@@ -1512,6 +1517,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // geo_point/shape support is missing
     public void testWithinQuery() throws Exception {
         execute("create table t (id int primary key, p geo_point) " +
                 "clustered into 1 shards " +
@@ -1576,7 +1582,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectFailingSearchScript() throws Exception {
-        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
 
         execute("create table t (i integer, l long, d double) clustered into 1 shards with (number_of_replicas=0)");
@@ -1589,7 +1594,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGroupByFailingSearchScript() throws Exception {
-        expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("log(x, b): given arguments would result in: 'NaN'");
 
         execute("create table t (i integer, l long, d double) with (number_of_replicas=0)");
@@ -1863,6 +1867,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // TODO: probably fails because of additional statements being executed with jdbc and appearing in sys.jobs
     public void testUnknownTableJobGetsRemoved() throws Exception {
         execute("set global stats.enabled=true");
         try {

@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.junit.Test;
 
 import java.util.Locale;
@@ -30,6 +31,7 @@ import java.util.Locale;
 import static org.hamcrest.core.Is.is;
 
 
+@UseJdbc
 public class ShowIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

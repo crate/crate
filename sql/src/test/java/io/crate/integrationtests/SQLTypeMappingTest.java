@@ -27,6 +27,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.IntegerType;
@@ -41,6 +42,7 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2, transportClientRatio = 0)
+@UseJdbc(false) // lots of stuff failing
 public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     private void setUpSimple() throws IOException {

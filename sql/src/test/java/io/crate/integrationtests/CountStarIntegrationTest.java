@@ -22,10 +22,12 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.testing.UseJdbc;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
+@UseJdbc
 public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

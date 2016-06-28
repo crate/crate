@@ -25,6 +25,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLResponse;
 import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
@@ -32,6 +33,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
+@UseJdbc
 public class SysNodeCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
@@ -47,6 +49,7 @@ public class SysNodeCheckerIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false) // column index is out of range
     public void testUpdateAcknowledge() throws Exception {
         // gateway.expected_nodes is -1 in the test setup so this test always fails
         SQLResponse resp = execute("select id, passed from sys.node_checks where passed = false");

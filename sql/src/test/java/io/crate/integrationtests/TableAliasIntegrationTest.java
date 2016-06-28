@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -33,6 +34,7 @@ import java.util.Locale;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
+@UseJdbc
 public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
 
     private String tableAliasSetup() throws Exception {

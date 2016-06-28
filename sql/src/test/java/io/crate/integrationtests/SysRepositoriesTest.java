@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.testing.UseJdbc;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
@@ -44,6 +45,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(transportClientRatio = 0)
+@UseJdbc(false) // missing column types
 public class SysRepositoriesTest extends SQLTransportIntegrationTest {
 
     @ClassRule

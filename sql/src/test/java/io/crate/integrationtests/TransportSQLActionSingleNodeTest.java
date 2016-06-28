@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.*;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
@@ -38,6 +39,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
+@UseJdbc
 public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTest {
 
     @Test
