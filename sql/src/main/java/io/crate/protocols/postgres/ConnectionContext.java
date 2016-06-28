@@ -355,23 +355,40 @@ class ConnectionContext {
         String portalName = readCString(buffer);
         String statementName = readCString(buffer);
 
+        // numFormatCodes:
+        //   0 = uses default (TEXT)
+        //   1 = all params uses this format
+        //   n = one for each param
         short numFormatCodes = buffer.readShort();
+        List<Short> formatCodes = createList(numFormatCodes);
         for (int i = 0; i < numFormatCodes; i++) {
-            short formatNode = buffer.readShort();
+            formatCodes.add(buffer.readShort());
         }
 
         short numParams = buffer.readShort();
-        List<Object> params = Collections.emptyList();
-        if (numParams > 0) {
-            params = new ArrayList<>(numParams);
-            for (int i = 0; i < numParams; i++) {
-                int valueLength = buffer.readInt();
-                if (valueLength == -1) {
-                    params.add(null);
-                } else {
-                    DataType paramType = session.getParamType(i);
-                    PGType pgType = PGTypes.CRATE_TO_PG_TYPES.get(paramType);
-                    params.add(pgType.readValue(buffer, valueLength));
+        List<Object> params = createList(numParams);
+        for (int i = 0; i < numParams; i++) {
+            int valueLength = buffer.readInt();
+            if (valueLength == -1) {
+                params.add(null);
+            } else {
+                DataType paramType = session.getParamType(i);
+                PGType pgType = PGTypes.CRATE_TO_PG_TYPES.get(paramType);
+                short formatCode = getFormatCode(formatCodes, i);
+                switch (formatCode) {
+                    case PGType.FormatCode.TEXT:
+                        params.add(pgType.readTextValue(buffer, valueLength));
+                        break;
+
+                    case PGType.FormatCode.BINARY:
+                        params.add(pgType.readBinaryValue(buffer, valueLength));
+                        break;
+
+                    default:
+                        Messages.sendErrorResponse(channel,
+                            String.format("Unsupported format code '%d' for param '%s'",
+                                formatCode, paramType.getName()));
+                        return;
                 }
             }
         }
@@ -385,6 +402,18 @@ class ConnectionContext {
             Messages.sendBindComplete(channel);
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+        }
+    }
+
+    private <T> List<T> createList(short size) {
+        return size == 0 ? Collections.<T>emptyList() : new ArrayList<T>(size);
+    }
+
+    private short getFormatCode(List<Short> formatCodes, int i) {
+        if (formatCodes.isEmpty()) {
+            return PGType.FormatCode.TEXT;
+        } else {
+            return formatCodes.size() == 1 ? formatCodes.get(0) : formatCodes.get(i);
         }
     }
 
