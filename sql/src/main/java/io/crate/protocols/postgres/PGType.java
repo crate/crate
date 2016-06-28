@@ -43,40 +43,43 @@ abstract class PGType {
     final int oid;
     final int typeLen;
     final int typeMod;
-    final FormatCode formatCode;
 
-    enum FormatCode {
-        TEXT,   // 0
-        BINARY  // 1
+    static class FormatCode {
+        static final short TEXT = 0;
+        static final short BINARY = 1;
     }
 
     /**
      */
-    private PGType(int oid,  int typeLen, int typeMod, FormatCode formatCode) {
+    private PGType(int oid, int typeLen, int typeMod) {
         this.oid = oid;
         this.typeLen = typeLen;
         this.typeMod = typeMod;
-        this.formatCode = formatCode;
     }
 
     /**
      * write | int32 len | byteN value onto the buffer
+     *
      * @return the number of bytes written. (4 + N)
      */
-    abstract int writeValue(ChannelBuffer buffer, @Nonnull Object value);
+    abstract int writeTextValue(ChannelBuffer buffer, @Nonnull Object value);
 
-    abstract Object readValue(ChannelBuffer buffer, int valueLength);
+    abstract Object readTextValue(ChannelBuffer buffer, int valueLength);
+
+    abstract int writeBinaryValue(ChannelBuffer buffer, @Nonnull Object value);
+
+    abstract Object readBinaryValue(ChannelBuffer buffer, int valueLength);
 
     static class StringType extends PGType {
 
         final static int OID = 1043;
 
         StringType() {
-            super(OID, -1, -1, FormatCode.BINARY);
+            super(OID, -1, -1);
         }
 
         @Override
-        int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+        int writeTextValue(ChannelBuffer buffer, @Nonnull Object value) {
             BytesRef bytesRef = (BytesRef) value;
             buffer.writeInt(bytesRef.length);
             buffer.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);
@@ -84,11 +87,21 @@ abstract class PGType {
         }
 
         @Override
-        Object readValue(ChannelBuffer buffer, int valueLength) {
+        Object readTextValue(ChannelBuffer buffer, int valueLength) {
             BytesRef bytesRef = new BytesRef(valueLength);
             bytesRef.length = valueLength;
             buffer.readBytes(bytesRef.bytes);
             return bytesRef;
+        }
+
+        @Override
+        int writeBinaryValue(ChannelBuffer buffer, @Nonnull Object value) {
+            return writeTextValue(buffer, value);
+        }
+
+        @Override
+        Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
+            return readTextValue(buffer, valueLength);
         }
     }
 
@@ -100,11 +113,11 @@ abstract class PGType {
             "t", "true", "o", "on", "1");
 
         BooleanType() {
-            super(OID, 1, -1, FormatCode.TEXT);
+            super(OID, 1, -1);
         }
 
         @Override
-        int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+        int writeTextValue(ChannelBuffer buffer, @Nonnull Object value) {
             byte byteValue = (byte) ((boolean) value ? 't' : 'f');
             buffer.writeInt(typeLen);
             buffer.writeByte(byteValue);
@@ -112,11 +125,25 @@ abstract class PGType {
         }
 
         @Override
-        Object readValue(ChannelBuffer buffer, int valueLength) {
+        Object readTextValue(ChannelBuffer buffer, int valueLength) {
             byte[] bytes = new byte[valueLength];
             buffer.readBytes(bytes);
-            String value = new String(bytes);
+            String value = new String(bytes).toLowerCase();
             return TRUTH_VALUES.contains(value);
+        }
+
+        @Override
+        int writeBinaryValue(ChannelBuffer buffer, @Nonnull Object value) {
+            byte byteValue = (byte) ((boolean) value ? 1 : 0);
+            buffer.writeInt(typeLen);
+            buffer.writeByte(byteValue);
+            return INT32_BYTE_SIZE + typeLen;
+        }
+
+        @Override
+        Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
+            byte value = buffer.readByte();
+            return value != 0;
         }
     }
 
@@ -125,11 +152,11 @@ abstract class PGType {
         final static int OID = 114;
 
         JsonType() {
-            super(OID, -1, -1, FormatCode.TEXT);
+            super(OID, -1, -1);
         }
 
         @Override
-        int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+        int writeTextValue(ChannelBuffer buffer, @Nonnull Object value) {
             try {
                 XContentBuilder builder = JsonXContent.contentBuilder();
                 builder.map((Map) value);
@@ -144,7 +171,7 @@ abstract class PGType {
         }
 
         @Override
-        Object readValue(ChannelBuffer buffer, int valueLength) {
+        Object readTextValue(ChannelBuffer buffer, int valueLength) {
             byte[] bytes = new byte[valueLength];
             buffer.readBytes(bytes);
             try {
@@ -152,6 +179,16 @@ abstract class PGType {
             } catch (IOException e) {
                 throw Throwables.propagate(e);
             }
+        }
+
+        @Override
+        int writeBinaryValue(ChannelBuffer buffer, @Nonnull Object value) {
+            return writeTextValue(buffer, value);
+        }
+
+        @Override
+        Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
+            return readTextValue(buffer, valueLength);
         }
     }
 }
