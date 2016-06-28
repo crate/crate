@@ -245,7 +245,7 @@ class Messages {
             if (value == null) {
                 buffer.writeInt(-1);
             } else {
-                length += pgType.writeValue(buffer, value);
+                length += pgType.writeTextValue(buffer, value);
             }
         }
 
@@ -298,7 +298,7 @@ class Messages {
             buffer.writeInt(pgType.oid);
             buffer.writeShort(pgType.typeLen);
             buffer.writeInt(pgType.typeMod);
-            buffer.writeShort(pgType.formatCode.ordinal());
+            buffer.writeShort(PGType.FormatCode.TEXT);
         }
 
         buffer.setInt(1, length);
