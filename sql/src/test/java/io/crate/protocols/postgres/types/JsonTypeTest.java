@@ -20,52 +20,38 @@
  * agreement.
  */
 
-package io.crate.protocols.postgres;
+package io.crate.protocols.postgres.types;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.junit.Before;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Test;
 
-import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+public class JsonTypeTest extends BasePGTypeTest<Map<String, Object>> {
 
-public class JsonTypeTest {
+    private Map<String, Object> map = MapBuilder.<String, Object>newMapBuilder()
+        .put("foo", "bar")
+        .put("x", 10)
+        .map();
 
-    private PGType.JsonType jsonType;
-    private Map<String, Object> map;
-
-    @Before
-    public void setUp() throws Exception {
-        jsonType = new PGType.JsonType();
-
-        map = new HashMap<>();
-        map.put("foo", "bar");
-        map.put("x", 10);
+    public JsonTypeTest() {
+        super(new JsonType());
     }
 
     @Test
-    public void writeTextValue() throws Exception {
-        ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
-        int bytesWritten = jsonType.writeTextValue(buffer, map);
-        assertThat(bytesWritten, is(24));
-        byte[] bytes = new byte[24];
-        buffer.getBytes(0, bytes);
+    public void testWriteValue() throws Exception {
         byte[] expectedBytes = new byte[]{
             0, 0, 0, 20, 123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 120, 34, 58, 49, 48, 125
         };
-        assertThat(bytes, is(expectedBytes));
+        assertBytesWritten(map, expectedBytes, 24);
     }
 
     @Test
-    public void readTextValue() throws Exception {
-        String json = "{\"foo\":\"bar\",\"x\":10}";
-        ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(json.getBytes());
-        Map<String, Object> value = (Map<String, Object>) jsonType.readTextValue(buffer, json.length());
-        assertThat(value, is(map));
+    public void testReadValue() throws Exception {
+        byte[] bytes = new byte[]{
+            123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 120, 34, 58, 49, 48, 125
+        };
+        assertBytesReadBinary(bytes, map, 20);
+        assertBytesReadBinary(bytes, map, 20);
     }
-
 }
