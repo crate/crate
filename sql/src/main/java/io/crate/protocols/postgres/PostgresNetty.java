@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
 import io.crate.metadata.settings.CrateSettings;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -43,6 +44,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -65,6 +68,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private ExecutorService workerExecutor;
 
     private volatile List<Channel> serverChannels = new ArrayList<>();
+    private final List<InetSocketTransportAddress> boundAddresses = new ArrayList<>();
 
     @Inject
     public PostgresNetty(Settings settings, SQLOperations sqlOperations, NetworkService networkService) {
@@ -108,7 +112,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         try {
             InetAddress[] hostAddresses = networkService.resolveBindHostAddresses(null);
             for (InetAddress address : hostAddresses) {
-                bindAddress(address);
+                boundAddresses.add(bindAddress(address));
             }
         } catch (IOException e) {
             throw new BindPostgresException("Failed to resolve binding network host", e);
@@ -172,5 +176,10 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
     @Override
     protected void doClose() {
+    }
+
+    @VisibleForTesting
+    public Collection<InetSocketTransportAddress> boundAddresses() {
+        return Collections.unmodifiableCollection(boundAddresses);
     }
 }

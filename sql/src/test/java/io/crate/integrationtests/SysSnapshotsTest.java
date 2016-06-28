@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.testing.UseJdbc;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.StringType;
@@ -32,7 +33,10 @@ import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRes
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotState;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
@@ -43,6 +47,7 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.*;
 
+@UseJdbc(false) // missing column types
 public class SysSnapshotsTest extends SQLTransportIntegrationTest {
 
     @ClassRule

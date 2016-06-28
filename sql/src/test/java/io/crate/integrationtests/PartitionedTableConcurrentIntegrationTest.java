@@ -27,6 +27,7 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLTransportExecutor;
+import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -51,6 +52,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
+@UseJdbc
 public class PartitionedTableConcurrentIntegrationTest extends SQLTransportIntegrationTest {
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(10, TimeUnit.SECONDS);

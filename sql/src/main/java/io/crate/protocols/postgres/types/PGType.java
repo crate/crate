@@ -22,13 +22,17 @@
 
 package io.crate.protocols.postgres.types;
 
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import javax.annotation.Nonnull;
+import java.nio.charset.StandardCharsets;
 
 public abstract class PGType {
 
     static final int INT32_BYTE_SIZE = Integer.SIZE / 8;
+    private final static ESLogger LOGGER = Loggers.getLogger(PGType.class);
 
     private final int oid;
     private final int typeLen;
@@ -86,7 +90,15 @@ public abstract class PGType {
     public Object readTextValue(ChannelBuffer buffer, int valueLength) {
         byte[] bytes = new byte[valueLength];
         buffer.readBytes(bytes);
-        return decodeUTF8Text(bytes);
+        try {
+            return decodeUTF8Text(bytes);
+        } catch (Throwable t) {
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("decodeUTF8Text failed. input={} type={}",
+                    new String(bytes, StandardCharsets.UTF_8), typName);
+            }
+            throw t;
+        }
     }
 
     /**

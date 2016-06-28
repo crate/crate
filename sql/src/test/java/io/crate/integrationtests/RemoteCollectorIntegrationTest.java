@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
@@ -38,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
+@UseJdbc
 public class RemoteCollectorIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
