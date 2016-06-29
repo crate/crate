@@ -47,7 +47,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static io.crate.protocols.postgres.ConnectionContext.State.STARTUP_HEADER;
-
+import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
 
 
 /**
@@ -279,7 +279,7 @@ class ConnectionContext {
                             handleBindMessage(buffer, channel);
                             return;
                         case 'D':
-                            handleDescribeMessage(buffer, channel);
+                            handleDescribeMessage(buffer, channel, session.resultFormatCodes());
                             return;
                         case 'E':
                             handleExecute(buffer, channel);
@@ -354,15 +354,7 @@ class ConnectionContext {
         String portalName = readCString(buffer);
         String statementName = readCString(buffer);
 
-        // numFormatCodes:
-        //   0 = uses default (TEXT)
-        //   1 = all params uses this format
-        //   n = one for each param
-        short numFormatCodes = buffer.readShort();
-        List<Short> formatCodes = createList(numFormatCodes);
-        for (int i = 0; i < numFormatCodes; i++) {
-            formatCodes.add(buffer.readShort());
-        }
+        FormatCodes.FormatCode[] formatCodes = FormatCodes.fromBuffer(buffer);
 
         short numParams = buffer.readShort();
         List<Object> params = createList(numParams);
@@ -373,31 +365,28 @@ class ConnectionContext {
             } else {
                 DataType paramType = session.getParamType(i);
                 PGType pgType = PGTypes.get(paramType);
-                short formatCode = getFormatCode(formatCodes, i);
+                FormatCodes.FormatCode formatCode = getFormatCode(formatCodes, i);
                 switch (formatCode) {
-                    case PGType.FormatCode.TEXT:
+                    case TEXT:
                         params.add(pgType.readTextValue(buffer, valueLength));
                         break;
 
-                    case PGType.FormatCode.BINARY:
+                    case BINARY:
                         params.add(pgType.readBinaryValue(buffer, valueLength));
                         break;
 
                     default:
                         Messages.sendErrorResponse(channel,
                             String.format(Locale.ENGLISH, "Unsupported format code '%d' for param '%s'",
-                                formatCode, paramType.getName()));
+                                formatCode.ordinal(), paramType.getName()));
                         return;
                 }
             }
         }
-        short numResultFormatCodes = buffer.readShort();
-        for (int i = 0; i < numResultFormatCodes; i++) {
-            buffer.readShort();
-        }
 
+        FormatCodes.FormatCode[] resultFormatCodes = FormatCodes.fromBuffer(buffer);
         try {
-            session.bind(portalName, statementName, params);
+            session.bind(portalName, statementName, params, resultFormatCodes);
             Messages.sendBindComplete(channel);
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
@@ -408,13 +397,6 @@ class ConnectionContext {
         return size == 0 ? Collections.<T>emptyList() : new ArrayList<T>(size);
     }
 
-    private short getFormatCode(List<Short> formatCodes, int i) {
-        if (formatCodes.isEmpty()) {
-            return PGType.FormatCode.TEXT;
-        } else {
-            return formatCodes.size() == 1 ? formatCodes.get(0) : formatCodes.get(i);
-        }
-    }
 
     /**
      * Describe Message
@@ -425,7 +407,7 @@ class ConnectionContext {
      *  | 'S' = prepared statement or 'P' = portal
      *  | string nameOfPortalOrStatement
      */
-    private void handleDescribeMessage(ChannelBuffer buffer, Channel channel) {
+    private void handleDescribeMessage(ChannelBuffer buffer, Channel channel, @Nullable FormatCodes.FormatCode[] formatCodes) {
         byte type = buffer.readByte();
         String portalOrStatement = readCString(buffer);
         try {
@@ -433,7 +415,7 @@ class ConnectionContext {
             if (fields == null) {
                 Messages.sendNoData(channel);
             } else {
-                Messages.sendRowDescription(channel, fields);
+                Messages.sendRowDescription(channel, fields, formatCodes);
             }
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
@@ -453,20 +435,24 @@ class ConnectionContext {
         String portalName = readCString(buffer);
         int maxRows = buffer.readInt();
         try {
-            ResultReceiver rowReceiver = createRowReceiver(channel, session.query(), session.outputTypes());
+            ResultReceiver rowReceiver = createRowReceiver(
+                channel, session.query(), session.outputTypes(), session.resultFormatCodes());
             session.execute(portalName, maxRows, rowReceiver);
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
         }
     }
 
-    private static ResultReceiver createRowReceiver(Channel channel, String query, @Nullable List<? extends DataType> outputTypes) {
+    private static ResultReceiver createRowReceiver(Channel channel,
+                                                    String query,
+                                                    @Nullable List<? extends DataType> outputTypes,
+                                                    @Nullable FormatCodes.FormatCode[] formatCodes) {
         if (outputTypes == null) {
             // this is a DML query:
             return new RowCountReceiver(query, channel);
         } else {
             // query with resultSet
-            return new ResultSetReceiver(query, channel, outputTypes);
+            return new ResultSetReceiver(query, channel, outputTypes, formatCodes);
         }
     }
 
@@ -504,10 +490,10 @@ class ConnectionContext {
                     @Override
                     public ResultReceiver apply(@Nullable List<Field> columns) {
                         if (columns == null) {
-                            return createRowReceiver(channel, query, null);
+                            return createRowReceiver(channel, query, null, null);
                         }
-                        Messages.sendRowDescription(channel, columns);
-                        return createRowReceiver(channel, query, Symbols.extractTypes(columns));
+                        Messages.sendRowDescription(channel, columns, null);
+                        return createRowReceiver(channel, query, Symbols.extractTypes(columns), null);
                     }
                 },
                 new ReadyForQueryListener(channel));
