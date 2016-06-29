@@ -22,7 +22,6 @@
 
 package io.crate.protocols.postgres;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.symbol.Field;
 import io.crate.core.collections.Row;
 import io.crate.protocols.postgres.types.PGType;
@@ -37,6 +36,7 @@ import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
@@ -232,7 +232,7 @@ class Messages {
      * ByteN
      * The value of the column, in the format indicated by the associated format code. n is the above length.
      */
-    static void sendDataRow(Channel channel, Row row, List<? extends DataType> columnTypes) {
+    static void sendDataRow(Channel channel, Row row, List<? extends DataType> columnTypes, @Nullable FormatCodes.FormatCode[] formatCodes) {
         int length = 4 + 2;
 
         ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
@@ -247,7 +247,18 @@ class Messages {
             if (value == null) {
                 buffer.writeInt(-1);
             } else {
-                length += pgType.writeValue(buffer, value);
+                FormatCodes.FormatCode formatCode = FormatCodes.getFormatCode(formatCodes, i);
+                switch (formatCode) {
+                    case TEXT:
+                        length += pgType.writeAsText(buffer, value);
+                        break;
+                    case BINARY:
+                        length += pgType.writeAsBytes(buffer, value);
+                        break;
+
+                    default:
+                        throw new AssertionError("Unrecognized formatCode: " + formatCode);
+                }
             }
         }
 
@@ -260,8 +271,7 @@ class Messages {
         });
     }
 
-    @VisibleForTesting
-    static void writeCString(ChannelBuffer buffer, byte[] valBytes) {
+    public static void writeCString(ChannelBuffer buffer, byte[] valBytes) {
         buffer.writeBytes(valBytes);
         buffer.writeByte(0);
     }
@@ -277,7 +287,7 @@ class Messages {
      *
      * See https://www.postgresql.org/docs/current/static/protocol-message-formats.html
      */
-    static void sendRowDescription(Channel channel, Collection<Field> columns) {
+    static void sendRowDescription(Channel channel, Collection<Field> columns, @Nullable FormatCodes.FormatCode[] formatCodes) {
         int length = 4 + 2;
         int columnSize = 4 + 2 + 4 + 2 + 4 + 2;
         ChannelBuffer buffer = ChannelBuffers.dynamicBuffer(
@@ -287,6 +297,7 @@ class Messages {
         buffer.writeInt(0); // will be set at the end
         buffer.writeShort(columns.size());
 
+        int idx = 0;
         for (Field column : columns) {
             byte[] nameBytes = column.path().outputName().getBytes(StandardCharsets.UTF_8);
             length += nameBytes.length + 1;
@@ -300,7 +311,9 @@ class Messages {
             buffer.writeInt(pgType.oid());
             buffer.writeShort(pgType.typeLen());
             buffer.writeInt(pgType.typeMod());
-            buffer.writeShort(pgType.formatCode());
+            buffer.writeShort(FormatCodes.getFormatCode(formatCodes, idx).ordinal());
+
+            idx++;
         }
 
         buffer.setInt(1, length);

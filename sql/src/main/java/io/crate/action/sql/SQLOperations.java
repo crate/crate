@@ -37,6 +37,7 @@ import io.crate.executor.Executor;
 import io.crate.executor.TaskResult;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.protocols.postgres.FormatCodes;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
@@ -133,6 +134,9 @@ public class SQLOperations {
         private List<List<Object>> bulkParams = new ArrayList<>();
         private List<ResultReceiver> resultReceivers = new ArrayList<>();
 
+        @Nullable
+        private FormatCodes.FormatCode[] resultFormatCodes;
+
         private Session(Executor executor, String defaultSchema) {
             this.executor = executor;
             this.defaultSchema = defaultSchema;
@@ -190,10 +194,11 @@ public class SQLOperations {
             }
         }
 
-        public void bind(String portalName, String statementName, List<Object> params) {
+        public void bind(String portalName, String statementName, List<Object> params, @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
             LOGGER.debug("method=bind portalName={} statementName={} params={}", portalName, statementName, params);
             checkError();
             bulkParams.add(params);
+            this.resultFormatCodes = resultFormatCodes;
         }
 
         public List<Field> describe(char type, String portalOrStatement) {
@@ -289,6 +294,7 @@ public class SQLOperations {
             maxRows = 0;
             resultReceivers.clear();
             statement = null;
+            resultFormatCodes = null;
         }
 
         public List<? extends DataType> outputTypes() {
@@ -301,6 +307,11 @@ public class SQLOperations {
 
         public DataType getParamType(int idx) {
             return paramTypes.get(idx);
+        }
+
+        @Nullable
+        public FormatCodes.FormatCode[] resultFormatCodes() {
+            return resultFormatCodes;
         }
     }
 

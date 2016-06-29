@@ -33,17 +33,21 @@ class BigIntType extends PGType {
 
     private static final int TYPE_LEN = 8;
     private static final int TYPE_MOD = -1;
-    private static final short DEFAULT_FORMAT_CODE = FormatCode.BINARY;
 
     BigIntType() {
-        super(OID, TYPE_LEN, TYPE_MOD, DEFAULT_FORMAT_CODE);
+        super(OID, TYPE_LEN, TYPE_MOD);
     }
 
     @Override
-    public int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBytes(ChannelBuffer buffer, @Nonnull Object value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeLong(((long) value));
         return INT32_BYTE_SIZE + TYPE_LEN;
+    }
+
+    @Override
+    protected byte[] asUTF8StringBytes(@Nonnull Object value) {
+        return Long.toString(((long) value)).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override

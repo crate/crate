@@ -38,22 +38,27 @@ class JsonType extends PGType {
 
     private static final int TYPE_LEN = -1;
     private static final int TYPE_MOD = -1;
-    private static final short DEFAULT_FORMAT_CODE = FormatCode.TEXT;
 
     JsonType() {
-        super(OID, TYPE_LEN, TYPE_MOD, DEFAULT_FORMAT_CODE);
+        super(OID, TYPE_LEN, TYPE_MOD);
     }
 
     @Override
-    public int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBytes(ChannelBuffer buffer, @Nonnull Object value) {
+        byte[] bytes = asUTF8StringBytes(value);
+        buffer.writeInt(bytes.length);
+        buffer.writeBytes(bytes);
+        return INT32_BYTE_SIZE + bytes.length;
+    }
+
+    @Override
+    protected byte[] asUTF8StringBytes(@Nonnull Object value) {
         try {
             XContentBuilder builder = JsonXContent.contentBuilder();
             builder.map((Map) value);
             builder.close();
             BytesReference bytes = builder.bytes();
-            buffer.writeInt(bytes.length());
-            buffer.writeBytes(bytes.toChannelBuffer());
-            return INT32_BYTE_SIZE + bytes.length();
+            return bytes.toBytes();
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
