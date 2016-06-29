@@ -253,7 +253,7 @@ class Messages {
                         length += pgType.writeAsText(buffer, value);
                         break;
                     case BINARY:
-                        length += pgType.writeAsBytes(buffer, value);
+                        length += pgType.writeAsBinary(buffer, value);
                         break;
 
                     default:

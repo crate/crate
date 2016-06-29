@@ -64,7 +64,7 @@ public abstract class PGType {
      * @return the number of bytes written. (4 (int32)  + N)
      */
     public final int writeAsText(ChannelBuffer buffer, @Nonnull Object value) {
-        byte[] bytes = asUTF8StringBytes(value);
+        byte[] bytes = encodeAsUTF8Text(value);
         buffer.writeInt(bytes.length);
         buffer.writeBytes(bytes);
         return INT32_BYTE_SIZE + bytes.length;
@@ -73,7 +73,7 @@ public abstract class PGType {
     public Object readTextValue(ChannelBuffer buffer, int valueLength) {
         byte[] bytes = new byte[valueLength];
         buffer.readBytes(bytes);
-        return valueFromUTF8Bytes(bytes);
+        return decodeUTF8Text(bytes);
     }
 
     /**
@@ -86,7 +86,7 @@ public abstract class PGType {
      *
      * @return the number of bytes written. (4 (int32)  + N)
      */
-    public abstract int writeAsBytes(ChannelBuffer buffer, @Nonnull Object value);
+    public abstract int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value);
 
     public abstract Object readBinaryValue(ChannelBuffer buffer, int valueLength);
 
@@ -94,10 +94,10 @@ public abstract class PGType {
     /**
      * Return the UTF8 encoded text representation of the value
      */
-    abstract byte[] asUTF8StringBytes(@Nonnull Object value);
+    abstract byte[] encodeAsUTF8Text(@Nonnull Object value);
 
     /**
      * Convert a UTF8 encoded text representation into the actual value
      */
-    abstract Object valueFromUTF8Bytes(byte[] bytes);
+    abstract Object decodeUTF8Text(byte[] bytes);
 }

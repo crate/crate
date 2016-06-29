@@ -55,7 +55,7 @@ class TimestampType extends PGType {
     }
 
     @Override
-    public int writeAsBytes(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeDouble(toPgTimestamp((long)value));
         return INT32_BYTE_SIZE + TYPE_LEN;
@@ -83,13 +83,13 @@ class TimestampType extends PGType {
     }
 
     @Override
-    byte[] asUTF8StringBytes(@Nonnull Object value) {
+    byte[] encodeAsUTF8Text(@Nonnull Object value) {
         return ISO_FORMATTER.print(((long) value)).getBytes(StandardCharsets.UTF_8);
     }
 
 
     @Override
-    Object valueFromUTF8Bytes(byte[] bytes) {
+    Object decodeUTF8Text(byte[] bytes) {
         String s = new String(bytes, StandardCharsets.UTF_8);
         return ISO_FORMATTER.parseMillis(s);
     }

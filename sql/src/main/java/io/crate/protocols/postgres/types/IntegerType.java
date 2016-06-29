@@ -39,14 +39,14 @@ class IntegerType extends PGType {
     }
 
     @Override
-    public int writeAsBytes(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
         buffer.writeInt(INT32_BYTE_SIZE);
         buffer.writeInt(((int) value));
         return 8;
     }
 
     @Override
-    protected byte[] asUTF8StringBytes(@Nonnull Object value) {
+    protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
         return Integer.toString(((int) value)).getBytes(StandardCharsets.UTF_8);
     }
 
@@ -57,7 +57,7 @@ class IntegerType extends PGType {
     }
 
     @Override
-    Object valueFromUTF8Bytes(byte[] bytes) {
+    Object decodeUTF8Text(byte[] bytes) {
         return Integer.parseInt(new String(bytes, StandardCharsets.UTF_8));
     }
 }
