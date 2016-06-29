@@ -43,7 +43,7 @@ public abstract class BasePGTypeTest<T> extends CrateUnitTest {
 
     void assertBytesWritten(Object value, byte[] expectedBytes, int expectedLength) {
         ChannelBuffer writeBuffer = ChannelBuffers.dynamicBuffer();
-        int bytesWritten = pgType.writeAsBytes(writeBuffer, value);
+        int bytesWritten = pgType.writeAsBinary(writeBuffer, value);
         assertThat(bytesWritten, is(expectedLength));
 
         byte[] bytes = new byte[expectedLength];

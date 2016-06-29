@@ -39,14 +39,14 @@ class DoubleType extends PGType {
     }
 
     @Override
-    public int writeAsBytes(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
         buffer.writeInt(8);
         buffer.writeDouble(((double) value));
         return 12;
     }
 
     @Override
-    protected byte[] asUTF8StringBytes(@Nonnull Object value) {
+    protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
         return Double.toString(((double) value)).getBytes(StandardCharsets.UTF_8);
     }
 
@@ -57,7 +57,7 @@ class DoubleType extends PGType {
     }
 
     @Override
-    Object valueFromUTF8Bytes(byte[] bytes) {
+    Object decodeUTF8Text(byte[] bytes) {
         return Double.parseDouble(new String(bytes, StandardCharsets.UTF_8));
     }
 }

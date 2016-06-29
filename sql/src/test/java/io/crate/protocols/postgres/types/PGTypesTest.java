@@ -94,7 +94,7 @@ public class PGTypesTest {
 
     private Object writeAndReadBinary(Entry entry, PGType pgType) {
         ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
-        pgType.writeAsBytes(buffer, entry.value);
+        pgType.writeAsBinary(buffer, entry.value);
         int length = buffer.readInt();
         return pgType.readBinaryValue(buffer, length);
     }

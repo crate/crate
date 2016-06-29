@@ -39,14 +39,14 @@ class SmallIntType extends PGType {
     }
 
     @Override
-    public int writeAsBytes(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
         buffer.writeInt(2);
         buffer.writeShort((short) value);
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    protected byte[] asUTF8StringBytes(@Nonnull Object value) {
+    protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
         return Short.toString(((short) value)).getBytes(StandardCharsets.UTF_8);
     }
 
@@ -57,7 +57,7 @@ class SmallIntType extends PGType {
     }
 
     @Override
-    Object valueFromUTF8Bytes(byte[] bytes) {
+    Object decodeUTF8Text(byte[] bytes) {
         return Short.parseShort(new String(bytes, StandardCharsets.UTF_8));
     }
 }
