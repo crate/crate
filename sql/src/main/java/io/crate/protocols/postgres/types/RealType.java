@@ -33,17 +33,21 @@ class RealType extends PGType {
 
     private static final int TYPE_LEN = 4;
     private static final int TYPE_MOD = -1;
-    private static final short DEFAULT_FORMAT_CODE = FormatCode.BINARY;
 
     RealType() {
-        super(OID, TYPE_LEN, TYPE_MOD, DEFAULT_FORMAT_CODE);
+        super(OID, TYPE_LEN, TYPE_MOD);
     }
 
     @Override
-    public int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBytes(ChannelBuffer buffer, @Nonnull Object value) {
         buffer.writeInt(4);
         buffer.writeFloat(((float) value));
         return 8;
+    }
+
+    @Override
+    protected byte[] asUTF8StringBytes(@Nonnull Object value) {
+        return Float.toString(((float) value)).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override

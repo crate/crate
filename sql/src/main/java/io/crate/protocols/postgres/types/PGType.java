@@ -28,23 +28,16 @@ import javax.annotation.Nonnull;
 
 public abstract class PGType {
 
-    public static class FormatCode {
-        public static final short TEXT = 0;
-        public static final short BINARY = 1;
-    }
-
     static final int INT32_BYTE_SIZE = Integer.SIZE / 8;
 
     private final int oid;
     private final int typeLen;
     private final int typeMod;
-    private final short formatCode;
 
-    PGType(int oid, int typeLen, int typeMod, short formatCode) {
+    PGType(int oid, int typeLen, int typeMod) {
         this.oid = oid;
         this.typeLen = typeLen;
         this.typeMod = typeMod;
-        this.formatCode = formatCode;
     }
 
     public int oid() {
@@ -59,23 +52,52 @@ public abstract class PGType {
         return typeMod;
     }
 
-    public short formatCode() {
-        return formatCode;
-    }
 
     /**
-     * write | int32 len | byteN value onto the buffer
-     * @return the number of bytes written. (4 + N)
+     * Write the value as text into the buffer.
+     *
+     * Format:
+     * <pre>
+     *  | int32 len (excluding len itself) | byte<b>N</b> value onto the buffer
+     *  </pre>
+     *
+     * @return the number of bytes written. (4 (int32)  + N)
      */
-    public abstract int writeValue(ChannelBuffer buffer, @Nonnull Object value);
-
-    public abstract Object readBinaryValue(ChannelBuffer buffer, int valueLength);
-
-    abstract Object valueFromUTF8Bytes(byte[] bytes);
+    public final int writeAsText(ChannelBuffer buffer, @Nonnull Object value) {
+        byte[] bytes = asUTF8StringBytes(value);
+        buffer.writeInt(bytes.length);
+        buffer.writeBytes(bytes);
+        return INT32_BYTE_SIZE + bytes.length;
+    }
 
     public Object readTextValue(ChannelBuffer buffer, int valueLength) {
         byte[] bytes = new byte[valueLength];
         buffer.readBytes(bytes);
         return valueFromUTF8Bytes(bytes);
     }
+
+    /**
+     * Write the value as binary into the buffer.
+     *
+     * Format:
+     * <pre>
+     *  | int32 len (excluding len itself) | byte<b>N</b> value onto the buffer
+     *  </pre>
+     *
+     * @return the number of bytes written. (4 (int32)  + N)
+     */
+    public abstract int writeAsBytes(ChannelBuffer buffer, @Nonnull Object value);
+
+    public abstract Object readBinaryValue(ChannelBuffer buffer, int valueLength);
+
+
+    /**
+     * Return the UTF8 encoded text representation of the value
+     */
+    abstract byte[] asUTF8StringBytes(@Nonnull Object value);
+
+    /**
+     * Convert a UTF8 encoded text representation into the actual value
+     */
+    abstract Object valueFromUTF8Bytes(byte[] bytes);
 }
