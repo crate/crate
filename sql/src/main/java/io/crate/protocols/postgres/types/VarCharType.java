@@ -41,7 +41,7 @@ class VarCharType extends PGType {
     }
 
     @Override
-    public int writeAsBytes(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
         if (value instanceof String) {
             // we sometimes still get String instead of BytesRef, e.g. from the ESGetTask
             byte[] bytes = ((String) value).getBytes(StandardCharsets.UTF_8);
@@ -56,7 +56,7 @@ class VarCharType extends PGType {
     }
 
     @Override
-    protected byte[] asUTF8StringBytes(@Nonnull Object value) {
+    protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
         if (value instanceof String) {
             return ((String) value).getBytes(StandardCharsets.UTF_8);
         }
@@ -76,7 +76,7 @@ class VarCharType extends PGType {
     }
 
     @Override
-    Object valueFromUTF8Bytes(byte[] bytes) {
+    Object decodeUTF8Text(byte[] bytes) {
         return new BytesRef(bytes);
     }
 }

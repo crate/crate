@@ -52,7 +52,7 @@ class BooleanType extends PGType {
     }
 
     @Override
-    public int writeAsBytes(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
         byte byteValue = (byte) ((boolean) value ? 1 : 0);
         buffer.writeInt(TYPE_LEN);
         buffer.writeByte(byteValue);
@@ -60,7 +60,7 @@ class BooleanType extends PGType {
     }
 
     @Override
-    byte[] asUTF8StringBytes(@Nonnull Object value) {
+    byte[] encodeAsUTF8Text(@Nonnull Object value) {
         if ((boolean) value) {
             return TEXT_TRUE;
         }
@@ -82,7 +82,7 @@ class BooleanType extends PGType {
     }
 
     @Override
-    Object valueFromUTF8Bytes(byte[] bytes) {
+    Object decodeUTF8Text(byte[] bytes) {
         return TRUTH_VALUES.contains(ByteBuffer.wrap(bytes));
     }
 }
