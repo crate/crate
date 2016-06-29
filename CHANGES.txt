@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Implemented NOT NULL column constraint.
+
  - Fixed a NPE that occurred when inserting null values to a generated column.
 
  - Leverage new Lucene queries for geo point queries (``distance``, ``within``,
