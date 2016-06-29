@@ -84,14 +84,16 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             conn.setAutoCommit(true);
 
             Statement stmt = conn.createStatement();
-            stmt.executeUpdate("create table t (x string) with (number_of_replicas = 0)");
+            stmt.executeUpdate("create table t (x string, b boolean) with (number_of_replicas = 0)");
             ensureYellow();
 
-            PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x) values (?)");
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x, b) values (?, ?)");
             preparedStatement.setString(1, "Arthur");
+            preparedStatement.setBoolean(2, true);
             preparedStatement.addBatch();
 
             preparedStatement.setString(1, "Trillian");
+            preparedStatement.setBoolean(2, false);
             preparedStatement.addBatch();
 
             int[] results = preparedStatement.executeBatch();

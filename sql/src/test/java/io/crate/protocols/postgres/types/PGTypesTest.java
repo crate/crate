@@ -22,11 +22,16 @@
 
 package io.crate.protocols.postgres.types;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.types.*;
+import org.apache.lucene.util.BytesRef;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.Is.is;
 
 public class PGTypesTest {
 
@@ -52,5 +57,51 @@ public class PGTypesTest {
         assertThat(PGTypes.fromOID(BigIntType.OID), instanceOf(LongType.class));
         assertThat(PGTypes.fromOID(RealType.OID), instanceOf(FloatType.class));
         assertThat(PGTypes.fromOID(DoubleType.OID), instanceOf(io.crate.types.DoubleType.class));
+    }
+
+    private static class Entry {
+        final DataType type;
+        final Object value;
+
+        public Entry(DataType type, Object value) {
+            this.type = type;
+            this.value = value;
+        }
+    }
+
+    @Test
+    public void testByteReadWrite() throws Exception {
+        for (Entry entry : ImmutableList.of(
+            new Entry(DataTypes.STRING, new BytesRef("foobar")),
+            new Entry(DataTypes.LONG, 392873L),
+            new Entry(DataTypes.INTEGER, 1234),
+            new Entry(DataTypes.SHORT, (short)42),
+            new Entry(DataTypes.FLOAT, 42.3f),
+            new Entry(DataTypes.DOUBLE, 42.00003),
+            new Entry(DataTypes.BOOLEAN, true)
+        )) {
+
+            PGType pgType = PGTypes.get(entry.type);
+
+            Object streamedValue = writeAndReadBinary(entry, pgType);
+            assertThat(streamedValue, is(entry.value));
+
+            streamedValue = writeAndReadAsText(entry, pgType);
+            assertThat(streamedValue, is(entry.value));
+        }
+    }
+
+    private Object writeAndReadBinary(Entry entry, PGType pgType) {
+        ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+        pgType.writeAsBytes(buffer, entry.value);
+        int length = buffer.readInt();
+        return pgType.readBinaryValue(buffer, length);
+    }
+
+    private Object writeAndReadAsText(Entry entry, PGType pgType) {
+        ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+        pgType.writeAsText(buffer, entry.value);
+        int length = buffer.readInt();
+        return pgType.readTextValue(buffer, length);
     }
 }

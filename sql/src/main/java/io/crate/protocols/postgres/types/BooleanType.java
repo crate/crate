@@ -35,8 +35,12 @@ class BooleanType extends PGType {
 
     private static final int TYPE_LEN = 1;
     private static final int TYPE_MOD = -1;
-    private static final short DEFAULT_FORMAT_CODE = FormatCode.TEXT;
+
+    private final static byte[] TEXT_TRUE = new byte[] { 't' };
+    private final static byte[] TEXT_FALSE = new byte[] { 'f' };
+
     private static final Collection<ByteBuffer> TRUTH_VALUES = ImmutableSet.of(
+        ByteBuffer.wrap(new byte[] { '1' }),
         ByteBuffer.wrap(new byte[] { 't' }),
         ByteBuffer.wrap(new byte[] { 'T' }),
         ByteBuffer.wrap(new byte[] { 't', 'r', 'u', 'e'}),
@@ -44,22 +48,37 @@ class BooleanType extends PGType {
     );
 
     BooleanType() {
-        super(OID, TYPE_LEN, TYPE_MOD, DEFAULT_FORMAT_CODE);
+        super(OID, TYPE_LEN, TYPE_MOD);
     }
 
     @Override
-    public int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
-        byte byteValue = (byte) ((boolean) value ? 't' : 'f');
+    public int writeAsBytes(ChannelBuffer buffer, @Nonnull Object value) {
+        byte byteValue = (byte) ((boolean) value ? 1 : 0);
         buffer.writeInt(TYPE_LEN);
         buffer.writeByte(byteValue);
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
+    byte[] asUTF8StringBytes(@Nonnull Object value) {
+        if ((boolean) value) {
+            return TEXT_TRUE;
+        }
+        return TEXT_FALSE;
+    }
+
+    @Override
     public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
         assert valueLength == 1 : "length should be 1 because boolean is just a byte. Actual length: " + valueLength;
         byte value = buffer.readByte();
-        return value != 0;
+        switch (value) {
+            case 0:
+                return false;
+            case 1:
+                return true;
+            default:
+                throw new IllegalArgumentException("Unsupported binary bool: " + value);
+        }
     }
 
     @Override
