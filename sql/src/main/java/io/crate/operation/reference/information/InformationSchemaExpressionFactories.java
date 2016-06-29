@@ -208,6 +208,12 @@ public class InformationSchemaExpressionFactories {
                         };
                     }
                 })
+                .put(InformationColumnsTableInfo.Columns.IS_NULLABLE, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new InformationColumnsExpression.ColumnsIsNullableExpression();
+                    }
+                })
                 .put(InformationColumnsTableInfo.Columns.GENERATION_EXPRESSION, new RowCollectExpressionFactory() {
                     @Override
                     public RowCollectExpression create() {

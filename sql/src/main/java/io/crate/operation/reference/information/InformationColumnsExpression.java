@@ -71,4 +71,12 @@ public abstract class InformationColumnsExpression<T>
             return new BytesRef(row.info.type().getName());
         }
     }
+
+    public static class ColumnsIsNullableExpression extends InformationColumnsExpression<Boolean> {
+
+        @Override
+        public Boolean value() {
+            return row.info.isNullable();
+        }
+    }
 }
