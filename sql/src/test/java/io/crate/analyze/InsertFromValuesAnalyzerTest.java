@@ -70,7 +70,9 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
             .clusteredBy("o.c")
             .build();
 
+    private TableInfo notNullConstraintTableInfo;
     private TableInfo generatedColumnTableInfo;
+    private TableInfo generatedColumnNotNullTableInfo;
     private TableInfo generatedPkColumnTableInfo;
     private TableInfo generatedNestedClusteredByInfo;
     private TableInfo generatedClusteredByInfo;
@@ -112,6 +114,15 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
     @Before
     public void bindGeneratedColumnTable() {
+        TableIdent notNullColumnTableIdent = new TableIdent(null, "notnull_column");
+        notNullConstraintTableInfo = new TestingTableInfo.Builder(
+            notNullColumnTableIdent, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
+            .add("id", DataTypes.INTEGER, null)
+            .add("txt", DataTypes.STRING, null, false, false)
+            .build(injector.getInstance(Functions.class));
+        when(schemaInfo.getTableInfo(notNullColumnTableIdent.name()))
+            .thenReturn(notNullConstraintTableInfo);
+
         TableIdent generatedColumnTableIdent = new TableIdent(null, "generated_column");
         generatedColumnTableInfo = new TestingTableInfo.Builder(
                 generatedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
@@ -123,6 +134,18 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
                 .build(injector.getInstance(Functions.class));
         when(schemaInfo.getTableInfo(generatedColumnTableIdent.name()))
                 .thenReturn(generatedColumnTableInfo);
+
+        TableIdent generatedColumnNotNullTableIdent = new TableIdent(null, "generated_column_notnull");
+        generatedColumnNotNullTableInfo = new TestingTableInfo.Builder(
+            generatedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
+            .add("ts", DataTypes.TIMESTAMP, null)
+            .add("user", DataTypes.OBJECT, null)
+            .add("user", DataTypes.STRING, Arrays.asList("name"))
+            .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", false, false)
+            .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", false)
+            .build(injector.getInstance(Functions.class));
+        when(schemaInfo.getTableInfo(generatedColumnNotNullTableIdent.name()))
+            .thenReturn(generatedColumnNotNullTableInfo);
 
         TableIdent generatedPkColumnTableIdent = new TableIdent(null, "generated_pk_column");
         generatedPkColumnTableInfo = new TestingTableInfo.Builder(
@@ -841,6 +864,13 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testNullValueForColumnWithNotNullConstraint() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot insert null value for column txt");
+        analyze("insert into notnull_column (id, txt) values (1, null)");
+    }
+
+    @Test
     public void testInsertIntoTableWithNestedObjectPrimaryKeyAndNullInsert() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Primary key value must not be NULL");
@@ -1038,6 +1068,13 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat((Long) analysis.sourceMaps().get(0)[0], is(1447845060000L));
         assertThat((Long) analysis.sourceMaps().get(0)[1], is(1447804800000L));
+    }
+
+    @Test
+    public void testInsertNullValueForGeneratedColumnWithNotNullConstraint() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot insert null value for column day");
+        analyze("insert into generated_column_notnull (ts) values (?)", new Object[]{null});
     }
 
     @Test
