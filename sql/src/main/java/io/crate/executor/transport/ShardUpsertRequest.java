@@ -47,7 +47,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     private boolean continueOnError = false;
     private boolean overwriteDuplicates = false;
     private Boolean isRawSourceInsert = null;
-    private boolean validateGeneratedColumns = true;
+    private boolean validateConstraints = true;
 
     /**
      * List of column names used on update
@@ -120,12 +120,12 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         return this;
     }
 
-    public boolean validateGeneratedColumns() {
-        return validateGeneratedColumns;
+    public boolean validateConstraints() {
+        return validateConstraints;
     }
 
-    public ShardUpsertRequest validateGeneratedColumns(boolean validateGeneratedColumns) {
-        this.validateGeneratedColumns = validateGeneratedColumns;
+    public ShardUpsertRequest validateConstraints(boolean validateConstraints) {
+        this.validateConstraints = validateConstraints;
         return this;
     }
 
@@ -158,7 +158,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         }
         continueOnError = in.readBoolean();
         overwriteDuplicates = in.readBoolean();
-        validateGeneratedColumns = in.readBoolean();
+        validateConstraints = in.readBoolean();
         readItems(in, locations.size());
     }
 
@@ -184,7 +184,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         }
         out.writeBoolean(continueOnError);
         out.writeBoolean(overwriteDuplicates);
-        out.writeBoolean(validateGeneratedColumns);
+        out.writeBoolean(validateConstraints);
         writeItems(out);
     }
 
@@ -202,7 +202,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         ShardUpsertRequest items = (ShardUpsertRequest) o;
         return continueOnError == items.continueOnError &&
                overwriteDuplicates == items.overwriteDuplicates &&
-               validateGeneratedColumns == items.validateGeneratedColumns &&
+               validateConstraints == items.validateConstraints &&
                Objects.equal(isRawSourceInsert, items.isRawSourceInsert) &&
                Arrays.equals(updateColumns, items.updateColumns) &&
                Arrays.equals(insertColumns, items.insertColumns) &&
@@ -211,7 +211,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), continueOnError, overwriteDuplicates, isRawSourceInsert, validateGeneratedColumns, updateColumns, insertColumns, insertValuesStreamer);
+        return Objects.hashCode(super.hashCode(), continueOnError, overwriteDuplicates, isRawSourceInsert, validateConstraints, updateColumns, insertColumns, insertValuesStreamer);
     }
 
     /**
@@ -442,7 +442,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                     .timeout(timeout)
                     .continueOnError(continueOnError)
                     .overwriteDuplicates(overwriteDuplicates)
-                    .validateGeneratedColumns(validateGeneratedColumns);
+                    .validateConstraints(validateGeneratedColumns);
         }
     }
 }

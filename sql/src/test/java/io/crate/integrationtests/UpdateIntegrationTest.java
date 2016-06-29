@@ -75,6 +75,20 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testUpdateNotNullColumn() {
+        execute("create table test (id int primary key, message string not null)");
+        ensureYellow();
+        execute("insert into test (id, message) values(1, 'Ford'),(2, 'Arthur')");
+        assertEquals(2, response.rowCount());
+        refresh();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("SQLParseException: Cannot insert null value for column message");
+        execute("update test set message=null where id=1");
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
     public void testUpdateWithExpression() throws Exception {
         execute("create table test (id integer, other_id long, name string)");
         ensureYellow();
@@ -733,6 +747,40 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into computed (ts) values (1)");
         refresh();
         execute("update computed set gen_col=1745");
+    }
+
+    @Test
+    public void testUpdateNotNullSourceGeneratedColumn() {
+        execute("create table generated_column (" +
+                " id int primary key," +
+                " ts timestamp," +
+                " gen_col as extract(year from ts) not null" +
+                ") with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into generated_column (id, ts) values (1, '2015-11-18T11:11:00')");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("SQLParseException: Cannot insert null value for column gen_col");
+        execute("update generated_column set ts=null where id=1");
+    }
+
+    @Test
+    public void testUpdateNotNullTargetGeneratedColumn() {
+        execute("create table generated_column (" +
+                " id int primary key," +
+                " ts timestamp," +
+                " gen_col as extract(year from ts) not null" +
+                ") with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into generated_column (id, ts) values (1, '2015-11-18T11:11:00')");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("SQLParseException: Cannot insert null value for column gen_col");
+        execute("update generated_column set gen_col=null where id=1");
     }
 
     @Test
