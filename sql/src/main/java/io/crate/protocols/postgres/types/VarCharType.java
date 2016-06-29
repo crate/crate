@@ -27,6 +27,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 class VarCharType extends PGType {
 
@@ -34,14 +35,13 @@ class VarCharType extends PGType {
 
     private static final int TYPE_LEN = -1;
     private static final int TYPE_MOD = -1;
-    private static final short DEFAULT_FORMAT_CODE = FormatCode.BINARY;
 
     VarCharType() {
-        super(OID, TYPE_LEN, TYPE_MOD, DEFAULT_FORMAT_CODE);
+        super(OID, TYPE_LEN, TYPE_MOD);
     }
 
     @Override
-    public int writeValue(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBytes(ChannelBuffer buffer, @Nonnull Object value) {
         if (value instanceof String) {
             // we sometimes still get String instead of BytesRef, e.g. from the ESGetTask
             byte[] bytes = ((String) value).getBytes(StandardCharsets.UTF_8);
@@ -53,6 +53,18 @@ class VarCharType extends PGType {
         buffer.writeInt(bytesRef.length);
         buffer.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);
         return INT32_BYTE_SIZE + bytesRef.length;
+    }
+
+    @Override
+    protected byte[] asUTF8StringBytes(@Nonnull Object value) {
+        if (value instanceof String) {
+            return ((String) value).getBytes(StandardCharsets.UTF_8);
+        }
+        BytesRef bytesRef = (BytesRef) value;
+        if (bytesRef.offset == 0 && bytesRef.length == bytesRef.bytes.length) {
+            return bytesRef.bytes;
+        }
+        return Arrays.copyOfRange(bytesRef.bytes, bytesRef.offset, bytesRef.length);
     }
 
     @Override

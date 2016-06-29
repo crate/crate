@@ -31,6 +31,7 @@ import io.crate.types.DataType;
 import org.jboss.netty.channel.Channel;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 
 class ResultSetReceiver implements ResultReceiver {
@@ -38,19 +39,22 @@ class ResultSetReceiver implements ResultReceiver {
     private final String query;
     private final Channel channel;
     private final List<? extends DataType> columnTypes;
+    @Nullable
+    private final FormatCodes.FormatCode[] formatCodes;
 
     private CompletionListener listener = CompletionListener.NO_OP;
     private long rowCount = 0;
 
-    ResultSetReceiver(String query, Channel channel, List<? extends DataType> columnTypes) {
+    ResultSetReceiver(String query, Channel channel, List<? extends DataType> columnTypes, @Nullable FormatCodes.FormatCode[] formatCodes) {
         this.query = query;
         this.channel = channel;
         this.columnTypes = columnTypes;
+        this.formatCodes = formatCodes;
     }
 
     @Override
     public boolean setNextRow(Row row) {
-        Messages.sendDataRow(channel, row, columnTypes);
+        Messages.sendDataRow(channel, row, columnTypes, formatCodes);
         rowCount++;
         return true;
     }
