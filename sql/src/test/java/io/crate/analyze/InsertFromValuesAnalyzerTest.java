@@ -1055,6 +1055,15 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testInsertNullValueWithGeneratedColumn() throws Exception {
+        InsertFromValuesAnalyzedStatement analysis = analyze(
+            "insert into generated_column (day) values (?)",
+            new Object[]{null});
+        assertThat(analysis.sourceMaps().size(), is(1));
+        assertThat(analysis.sourceMaps().get(0)[0], is(Matchers.nullValue()));
+    }
+
+    @Test
     public void testInsertMultipleValuesWithGeneratedColumn() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = analyze(
                 "INSERT INTO generated_column (ts, user) values ('1970-01-01', {name='Johnny'}), ('1989-11-09T08:30:00', {name='Egon'})");

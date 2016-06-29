@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a NPE that occurred when inserting null values to a generated column.
+
 2016/06/27 0.54.11
 ==================
 
