@@ -40,6 +40,7 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
         public static final ColumnIdent ORDINAL_POSITION = new ColumnIdent("ordinal_position");
         public static final ColumnIdent DATA_TYPE = new ColumnIdent("data_type");
         public static final ColumnIdent IS_GENERATED = new ColumnIdent("is_generated");
+        public static final ColumnIdent IS_NULLABLE = new ColumnIdent("is_nullable");
         public static final ColumnIdent GENERATION_EXPRESSION = new ColumnIdent("generation_expression");
     }
 
@@ -50,6 +51,7 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
         public static final ReferenceInfo ORDINAL_POSITION = info(Columns.ORDINAL_POSITION, DataTypes.SHORT);
         public static final ReferenceInfo DATA_TYPE = info(Columns.DATA_TYPE, DataTypes.STRING);
         public static final ReferenceInfo IS_GENERATED = info(Columns.IS_GENERATED, DataTypes.BOOLEAN);
+        public static final ReferenceInfo IS_NULLABLE = info(Columns.IS_NULLABLE, DataTypes.BOOLEAN);
         public static final ReferenceInfo GENERATION_EXPRESSION = info(Columns.GENERATION_EXPRESSION, DataTypes.STRING);
     }
 
@@ -68,6 +70,7 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
                     .put(Columns.ORDINAL_POSITION, ReferenceInfos.ORDINAL_POSITION)
                     .put(Columns.DATA_TYPE, ReferenceInfos.DATA_TYPE)
                     .put(Columns.IS_GENERATED, ReferenceInfos.IS_GENERATED)
+                    .put(Columns.IS_NULLABLE, ReferenceInfos.IS_NULLABLE)
                     .put(Columns.GENERATION_EXPRESSION, ReferenceInfos.GENERATION_EXPRESSION)
                     .build()
         );
