@@ -79,7 +79,8 @@ public class PGTypesTest {
             new Entry(DataTypes.FLOAT, 42.3f),
             new Entry(DataTypes.DOUBLE, 42.00003),
             new Entry(DataTypes.BOOLEAN, true),
-            new Entry(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-05-08"))
+            new Entry(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-05-08")),
+            new Entry(DataTypes.IP, new BytesRef("192.168.1.1"))
         )) {
 
             PGType pgType = PGTypes.get(entry.type);
