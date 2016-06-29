@@ -461,7 +461,8 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             // only add value
             insertValues = Arrays.copyOf(insertValues, idx + 1);
             insertValues[idx] = value;
-        } else if (!insertValues[idx].equals(value)) {
+        } else if ((insertValues[idx] == null && value != null) ||
+                   (insertValues[idx] != null && !insertValues[idx].equals(value))) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Given value %s for generated column does not match defined generated expression value %s",
                     insertValues[idx], value));
