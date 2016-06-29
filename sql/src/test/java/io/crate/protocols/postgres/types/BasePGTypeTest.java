@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres.types;
 
+import io.crate.protocols.postgres.FormatCodes;
 import io.crate.test.integration.CrateUnitTest;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -42,7 +43,7 @@ public abstract class BasePGTypeTest<T> extends CrateUnitTest {
 
     void assertBytesWritten(Object value, byte[] expectedBytes, int expectedLength) {
         ChannelBuffer writeBuffer = ChannelBuffers.dynamicBuffer();
-        int bytesWritten = pgType.writeValue(writeBuffer, value);
+        int bytesWritten = pgType.writeAsBytes(writeBuffer, value);
         assertThat(bytesWritten, is(expectedLength));
 
         byte[] bytes = new byte[expectedLength];
@@ -55,7 +56,7 @@ public abstract class BasePGTypeTest<T> extends CrateUnitTest {
     }
 
     void assertBytesReadBinary(byte[] value, T expectedValue, int pos) {
-        assertBytesRead(value, expectedValue, pos, PGType.FormatCode.BINARY);
+        assertBytesRead(value, expectedValue, pos, FormatCodes.FormatCode.BINARY);
     }
 
     void assertBytesReadText(byte[] value, T expectedValue) {
@@ -63,14 +64,14 @@ public abstract class BasePGTypeTest<T> extends CrateUnitTest {
     }
 
     void assertBytesReadText(byte[] value, T expectedValue, int pos) {
-        assertBytesRead(value, expectedValue, pos, PGType.FormatCode.TEXT);
+        assertBytesRead(value, expectedValue, pos, FormatCodes.FormatCode.TEXT);
     }
 
     @SuppressWarnings("unchecked")
-    private void assertBytesRead(byte[] value, T expectedValue, int pos, short formatCode) {
+    private void assertBytesRead(byte[] value, T expectedValue, int pos, FormatCodes.FormatCode formatCode) {
         ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(value);
         T readValue;
-        if (formatCode == PGType.FormatCode.BINARY) {
+        if (formatCode == FormatCodes.FormatCode.BINARY) {
             readValue = (T) pgType.readBinaryValue(buffer, pos);
         } else {
             readValue = (T) pgType.readTextValue(buffer, pos);

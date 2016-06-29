@@ -52,6 +52,5 @@ public class JsonTypeTest extends BasePGTypeTest<Map<String, Object>> {
             123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 120, 34, 58, 49, 48, 125
         };
         assertBytesReadBinary(bytes, map, 20);
-        assertBytesReadBinary(bytes, map, 20);
     }
 }
