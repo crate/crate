@@ -43,6 +43,7 @@ public class PGTypes {
         .put(DataTypes.FLOAT, new RealType())
         .put(DataTypes.DOUBLE, new DoubleType())
         .put(DataTypes.TIMESTAMP, new TimestampType())
+        .put(DataTypes.IP, new VarCharType()) // postgres has no IP type, so map it to varchar - it matches the client representation
         .build();
 
     private static final IntObjectMap<DataType> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<DataType>()
