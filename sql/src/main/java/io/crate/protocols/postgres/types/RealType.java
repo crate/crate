@@ -39,14 +39,14 @@ class RealType extends PGType {
     }
 
     @Override
-    public int writeAsBytes(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
         buffer.writeInt(4);
         buffer.writeFloat(((float) value));
         return 8;
     }
 
     @Override
-    protected byte[] asUTF8StringBytes(@Nonnull Object value) {
+    protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
         return Float.toString(((float) value)).getBytes(StandardCharsets.UTF_8);
     }
 
@@ -57,7 +57,7 @@ class RealType extends PGType {
     }
 
     @Override
-    Object valueFromUTF8Bytes(byte[] bytes) {
+    Object decodeUTF8Text(byte[] bytes) {
         return Float.parseFloat(new String(bytes, StandardCharsets.UTF_8));
     }
 }

@@ -44,15 +44,15 @@ class JsonType extends PGType {
     }
 
     @Override
-    public int writeAsBytes(ChannelBuffer buffer, @Nonnull Object value) {
-        byte[] bytes = asUTF8StringBytes(value);
+    public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
+        byte[] bytes = encodeAsUTF8Text(value);
         buffer.writeInt(bytes.length);
         buffer.writeBytes(bytes);
         return INT32_BYTE_SIZE + bytes.length;
     }
 
     @Override
-    protected byte[] asUTF8StringBytes(@Nonnull Object value) {
+    protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
         try {
             XContentBuilder builder = JsonXContent.contentBuilder();
             builder.map((Map) value);
@@ -68,11 +68,11 @@ class JsonType extends PGType {
     public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
         byte[] bytes = new byte[valueLength];
         buffer.readBytes(bytes);
-        return valueFromUTF8Bytes(bytes);
+        return decodeUTF8Text(bytes);
     }
 
     @Override
-    Object valueFromUTF8Bytes(byte[] bytes) {
+    Object decodeUTF8Text(byte[] bytes) {
         try {
             return JsonXContent.jsonXContent.createParser(bytes).map();
         } catch (IOException e) {
