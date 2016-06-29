@@ -239,6 +239,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         String routingValue = null;
         List<ColumnIdent> primaryKey = context.tableInfo().primaryKey();
         Object[] insertValues = new Object[node.values().size()];
+        Reference[] columnReferences = new Reference[node.values().size()];
 
         for (int i = 0, valuesSize = node.values().size(); i < valuesSize; i++) {
             Expression expression = node.values().get(i);
@@ -246,6 +247,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
             // implicit type conversion
             Reference column = context.columns().get(i);
+            columnReferences[i] = column;
             final ColumnIdent columnIdent = column.info().ident().columnIdent();
             Object value;
             try {
@@ -291,6 +293,8 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 insertValues[i] = value;
             }
         }
+
+        ConstraintsValidator.validateNonGeneratedColumns(insertValues, columnReferences, context.tableInfo().columns());
 
         if (!assignments.isEmpty()) {
             valuesResolver.insertValues = insertValues;
@@ -450,6 +454,8 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                              Reference reference,
                                              Object value,
                                              Object[] insertValues) {
+        ConstraintsValidator.validate(value, reference.info());
+
         int idx = context.columns().indexOf(reference);
         if (idx == -1) {
             // add column & value
@@ -457,14 +463,16 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             int valuesIdx = insertValues.length;
             insertValues = Arrays.copyOf(insertValues, insertValues.length + 1);
             insertValues[valuesIdx] = value;
-        } else if (insertValues.length <= idx) {
-            // only add value
-            insertValues = Arrays.copyOf(insertValues, idx + 1);
-            insertValues[idx] = value;
-        } else if (!insertValues[idx].equals(value)) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+        } else {
+            if (insertValues.length <= idx) {
+                // only add value
+                insertValues = Arrays.copyOf(insertValues, idx + 1);
+                insertValues[idx] = value;
+            } else if (!insertValues[idx].equals(value)) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Given value %s for generated column does not match defined generated expression value %s",
                     insertValues[idx], value));
+            }
         }
         return insertValues;
     }

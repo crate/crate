@@ -181,26 +181,33 @@ public class TestingTableInfo extends DocTableInfo {
             return add(column, type, path, ColumnPolicy.DYNAMIC);
         }
         public Builder add(String column, DataType type, List<String> path, ColumnPolicy columnPolicy) {
-            return add(column, type, path, columnPolicy, ReferenceInfo.IndexType.NOT_ANALYZED, false);
+            return add(column, type, path, columnPolicy, ReferenceInfo.IndexType.NOT_ANALYZED, false, true);
         }
         public Builder add(String column, DataType type, List<String> path, ReferenceInfo.IndexType indexType) {
-            return add(column, type, path, ColumnPolicy.DYNAMIC, indexType, false);
+            return add(column, type, path, ColumnPolicy.DYNAMIC, indexType, false, true);
         }
         public Builder add(String column, DataType type, List<String> path,
                            boolean partitionBy) {
             return add(column, type, path, ColumnPolicy.DYNAMIC,
-                    ReferenceInfo.IndexType.NOT_ANALYZED, partitionBy);
+                    ReferenceInfo.IndexType.NOT_ANALYZED, partitionBy, true);
+        }
+
+        public Builder add(String column, DataType type, List<String> path,
+                           boolean partitionBy, boolean nullable) {
+            return add(column, type, path, ColumnPolicy.DYNAMIC,
+                ReferenceInfo.IndexType.NOT_ANALYZED, partitionBy, nullable);
         }
 
         public Builder add(String column, DataType type, List<String> path,
                            ColumnPolicy columnPolicy, ReferenceInfo.IndexType indexType,
-                           boolean partitionBy) {
+                           boolean partitionBy,
+                           boolean nullable) {
             RowGranularity rowGranularity = RowGranularity.DOC;
             if (partitionBy) {
                 rowGranularity = RowGranularity.PARTITION;
             }
             ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(ident, column, path),
-                    rowGranularity, type, columnPolicy, indexType, true);
+                    rowGranularity, type, columnPolicy, indexType, nullable);
             if (info.ident().isColumn()) {
                 columns.add(info);
             }
@@ -213,12 +220,18 @@ public class TestingTableInfo extends DocTableInfo {
         }
 
         public Builder addGeneratedColumn(String column, DataType type, String expression, boolean partitionBy) {
+            return addGeneratedColumn(column, type, expression, partitionBy, true);
+        }
+
+        public Builder addGeneratedColumn(String column, DataType type, String expression,
+                                          boolean partitionBy, boolean nullable) {
             RowGranularity rowGranularity = RowGranularity.DOC;
             if (partitionBy) {
                 rowGranularity = RowGranularity.PARTITION;
             }
             GeneratedReferenceInfo info = new GeneratedReferenceInfo(new ReferenceIdent(ident, column),
-                    rowGranularity, type, expression);
+                rowGranularity, type, ColumnPolicy.DYNAMIC, ReferenceInfo.IndexType.NOT_ANALYZED, expression, nullable);
+
             generatedColumns.add(info);
             if (info.ident().isColumn()) {
                 columns.add(info);

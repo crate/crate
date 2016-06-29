@@ -31,8 +31,8 @@ import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 
@@ -61,7 +61,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 missingAssignmentColumns,
                 "42",
                 jobId);
-        request.validateGeneratedColumns(false);
+        request.validateConstraints(false);
 
         request.add(123, new ShardUpsertRequest.Item(
                 "99",

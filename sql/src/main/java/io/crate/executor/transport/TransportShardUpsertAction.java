@@ -26,9 +26,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import io.crate.Constants;
+import io.crate.analyze.ConstraintsValidator;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
-import io.crate.exceptions.JobKilledException;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
 import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.jobs.JobContextService;
@@ -275,15 +275,17 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             String columnPath = request.updateColumns()[i];
             Object value = SYMBOL_TO_FIELD_EXTRACTOR.convert(item.updateAssignments()[i], ctx).apply(getResult);
             ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(ColumnIdent.fromPath(columnPath));
+
+            ConstraintsValidator.validate(value, referenceInfo);
+
             if (referenceInfo instanceof GeneratedReferenceInfo) {
                 updatedGeneratedColumns.put(columnPath, value);
-
             } else {
                 pathsToUpdate.put(columnPath, value);
             }
         }
 
-        processGeneratedColumns(tableInfo, pathsToUpdate, updatedGeneratedColumns, request.validateGeneratedColumns(), getResult);
+        processGeneratedColumns(tableInfo, pathsToUpdate, updatedGeneratedColumns, request.validateConstraints(), getResult);
 
         updateSourceByPaths(updatedSourceAsMap, pathsToUpdate);
 
@@ -306,6 +308,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             source = new BytesArray((BytesRef) item.insertValues()[0]);
         } else {
             XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
+
+            if (request.validateConstraints()) {
+                ConstraintsValidator.validateNonGeneratedColumns(item.insertValues(),
+                    request.insertColumns(), tableInfo.columns());
+            }
+
             for (int i = 0; i < item.insertValues().length; i++) {
                 Reference ref = request.insertColumns()[i];
                 if (ref.info().granularity() == RowGranularity.DOC) {
@@ -329,10 +337,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         int numMissingGeneratedColumns = generatedColumnSize - generatedReferencesWithValue.size();
         if (numMissingGeneratedColumns > 0 ||
-            (generatedReferencesWithValue.size() > 0 && request.validateGeneratedColumns())) {
+            (generatedReferencesWithValue.size() > 0 && request.validateConstraints())) {
             // we need to evaluate some generated column expressions
             Map<String, Object> sourceMap = processGeneratedColumnsOnInsert(tableInfo, request.insertColumns(), item.insertValues(),
-                    request.isRawSourceInsert(), request.validateGeneratedColumns());
+                    request.isRawSourceInsert(), request.validateConstraints());
             source = XContentFactory.jsonBuilder().map(sourceMap).bytes();
         }
 
@@ -459,34 +467,39 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     void processGeneratedColumns(final DocTableInfo tableInfo,
                                  Map<String, Object> updatedColumns,
                                  Map<String, Object> updatedGeneratedColumns,
-                                 boolean validateExpressionValue) {
-        processGeneratedColumns(tableInfo, updatedColumns, updatedGeneratedColumns, validateExpressionValue, null);
+                                 boolean validateConstraints) {
+        processGeneratedColumns(tableInfo, updatedColumns, updatedGeneratedColumns, validateConstraints, null);
     }
 
     private void processGeneratedColumns(final DocTableInfo tableInfo,
                                          Map<String, Object> updatedColumns,
                                          Map<String, Object> updatedGeneratedColumns,
-                                         boolean validateExpressionValue,
+                                         boolean validateConstraints,
                                          @Nullable GetResult getResult) {
         SymbolToFieldExtractorContext ctx = new SymbolToFieldExtractorContext(functions, updatedColumns);
 
         for (GeneratedReferenceInfo referenceInfo : tableInfo.generatedColumns()) {
             // partitionedBy columns cannot be updated
             if (!tableInfo.partitionedByColumns().contains(referenceInfo)) {
-                Object givenValue = updatedGeneratedColumns.get(referenceInfo.ident().columnIdent().fqn());
-                if ((givenValue != null && validateExpressionValue)
+                Object userSuppliedValue = updatedGeneratedColumns.get(referenceInfo.ident().columnIdent().fqn());
+                if (validateConstraints) {
+                    ConstraintsValidator.validate(userSuppliedValue, referenceInfo);
+                }
+
+                if ((userSuppliedValue != null && validateConstraints)
                     ||
                     generatedExpressionEvaluationNeeded(referenceInfo.referencedReferenceInfos(), updatedColumns.keySet())) {
                     // at least one referenced column was updated, need to evaluate expression and update column
                     Function<GetResult, Object> extractor = SYMBOL_TO_FIELD_EXTRACTOR.convert(referenceInfo.generatedExpression(), ctx);
-                    Object value = extractor.apply(getResult);
-                    if (givenValue == null) {
+                    Object generatedValue = extractor.apply(getResult);
+
+                    if (userSuppliedValue == null) {
                         // add column & value
-                        updatedColumns.put(referenceInfo.ident().columnIdent().fqn(), value);
-                    } else if (validateExpressionValue && referenceInfo.type().compareValueTo(value, givenValue) != 0) {
+                        updatedColumns.put(referenceInfo.ident().columnIdent().fqn(), generatedValue);
+                    } else if (validateConstraints && referenceInfo.type().compareValueTo(generatedValue, userSuppliedValue) != 0) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                 "Given value %s for generated column does not match defined generated expression value %s",
-                                givenValue, value));
+                                userSuppliedValue, generatedValue));
                     }
                 }
             }
