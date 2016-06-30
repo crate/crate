@@ -329,11 +329,16 @@ jar {
 }
 
 task downloadPlugins (
-    dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip']) << {
+    dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip', ':es-cloud-azure:jar']) << {
 
     copy {
         from(zipTree(project(':es-repository-hdfs').tasks.distZip.archivePath))
         into 'plugins/elasticsearch-repository-hdfs'
+    }
+
+    copy {
+        from (project(':es-cloud-azure').projectDir.path + '/build/libs')
+        into 'plugins/cloud-azure'
     }
 
     copy {
