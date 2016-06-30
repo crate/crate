@@ -391,14 +391,17 @@ public class DocIndexMetaData {
         Map<String, Object> metaMap = getNested(defaultMappingMap, "_meta");
         if (metaMap != null) {
             ImmutableSet.Builder<ColumnIdent> builder = ImmutableSet.builder();
-            Object notNullColumnsMeta = metaMap.get("notnull_columns");
-            if (notNullColumnsMeta != null) {
-                Collection notNullColumns = (Collection) notNullColumnsMeta;
-                if (!notNullColumns.isEmpty()) {
-                    for (Object notNullColumn : notNullColumns) {
-                        builder.add(ColumnIdent.fromPath(notNullColumn.toString()));
+            Map<String, Object> constraintsMap = getNested(metaMap, "constraints");
+            if (constraintsMap != null) {
+                Object notNullColumnsMeta =  constraintsMap.get("not_null");
+                if (notNullColumnsMeta != null) {
+                    Collection notNullColumns = (Collection) notNullColumnsMeta;
+                    if (!notNullColumns.isEmpty()) {
+                        for (Object notNullColumn : notNullColumns) {
+                            builder.add(ColumnIdent.fromPath(notNullColumn.toString()));
+                        }
+                        return builder.build();
                     }
-                    return builder.build();
                 }
             }
         }

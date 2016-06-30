@@ -91,7 +91,9 @@ public class AnalyzedTableElements {
             meta.put("generated_columns", generatedColumns);
         }
         if (!notNullColumns().isEmpty()) {
-            meta.put("notnull_columns", notNullColumns());
+            Map<String, Object> constraints = new HashMap<>();
+            constraints.put("not_null", notNullColumns());
+            meta.put("constraints", constraints);
         }
 
         mapping.put("_meta", meta);

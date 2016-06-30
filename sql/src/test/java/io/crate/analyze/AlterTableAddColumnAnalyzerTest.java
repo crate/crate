@@ -162,8 +162,8 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
                                                       "add column notnullcol string not null");
         Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
 
-        assertThat((String)((Set)((Map) mapping.get("_meta")).get("notnull_columns")).toArray(new String[0])[0],
-                    is("notnullcol"));
+        assertThat((String)((Set)((Map)((Map) mapping.get("_meta")).get("constraints")).get("not_null"))
+            .toArray(new String[0])[0], is("notnullcol"));
     }
 
     @Test
