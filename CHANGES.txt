@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed duplicate key error handling for multiple row inserts. Instead of
+   responding with an error the number of affected row is adjusted.
+
  - Fixed a NPE that occurred when inserting null values to a generated column.
 
  - Leverage new Lucene queries for geo point queries (``distance``, ``within``,

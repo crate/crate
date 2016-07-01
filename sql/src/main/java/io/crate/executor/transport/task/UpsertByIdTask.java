@@ -187,7 +187,9 @@ public class UpsertByIdTask extends JobTask {
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
             false, // do not overwrite duplicates
-            node.numBulkResponses() > 0 || node.updateColumns() != null, // continue on error on bulk and/or update
+            node.numBulkResponses() > 0 ||
+                node.items().size() > 1 ||
+                node.updateColumns() != null, // continue on error on bulk, on multiple values and/or update
             node.updateColumns(),
             node.insertColumns(),
             jobId(),
