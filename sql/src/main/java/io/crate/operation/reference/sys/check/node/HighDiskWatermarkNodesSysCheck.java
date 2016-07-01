@@ -20,40 +20,28 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.check;
+package io.crate.operation.reference.sys.check.node;
 
-import org.apache.lucene.util.BytesRef;
+import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.settings.StringSetting;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.monitor.fs.FsProbe;
 
-public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements SysNodeCheck {
+@Singleton
+public class HighDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysCheck {
 
-    private static final String LINK_PATTERN = "https://cr8.is/d-node-check-";
-    protected final ClusterService clusterService;
+    private static final StringSetting HIGH_DISK_WATERMARK_SETTING = CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_HIGH;
 
-    private BytesRef nodeId;
-    private boolean acknowledged;
+    private static final int ID = 5;
+    private static final String DESCRIPTION = "The high disk watermark is exceeded on the node." +
+            " The cluster will attempt to relocate shards to another node. Please check the node disk usage.";
 
-    public AbstractSysNodeCheck(int id, String description, Severity severity, ClusterService clusterService) {
-        super(id, description, severity, LINK_PATTERN);
-        this.clusterService = clusterService;
-        acknowledged = false;
+    @Inject
+    public HighDiskWatermarkNodesSysCheck(ClusterService clusterService, Settings settings, FsProbe fsProbe) {
+        super(ID, DESCRIPTION, HIGH_DISK_WATERMARK_SETTING, Severity.HIGH, clusterService, settings, fsProbe);
     }
 
-    @Override
-    public BytesRef nodeId() {
-        if (nodeId == null) {
-            nodeId = new BytesRef(clusterService.localNode().id());
-        }
-        return nodeId;
-    }
-
-    @Override
-    public boolean acknowledged() {
-        return acknowledged;
-    }
-
-    @Override
-    public void acknowledged(boolean value) {
-        acknowledged = value;
-    }
 }
