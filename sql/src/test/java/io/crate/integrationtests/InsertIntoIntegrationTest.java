@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.action.sql.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -36,6 +36,8 @@ import org.junit.rules.ExpectedException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
@@ -317,6 +319,22 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertWithPrimaryKeyFailing() throws Exception {
+        this.setup.createTestTableWithPrimaryKey();
+
+        Object[] args = new Object[]{"1",
+            "A towel is about the most massively useful thing an interstellar hitch hiker can have."};
+        execute("insert into test (pk_col, message) values (?, ?)", args);
+        refresh();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("A document with the same primary key exists already");
+        args = new Object[]{"1",
+            "I always thought something was fundamentally wrong with the universe."};
+        execute("insert into test (pk_col, message) values (?, ?)", args);
+    }
+
+    @Test
     public void testInsertWithPrimaryKeyMultiValues() throws Exception {
         this.setup.createTestTableWithPrimaryKey();
 
@@ -329,6 +347,16 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         GetResponse response = client().prepareGet("test", "default", "1").execute().actionGet();
         assertTrue(response.getSourceAsMap().containsKey("message"));
+    }
+
+    @Test
+    public void testInsertWithPrimaryKeyMultiValuesFailing() throws Exception {
+        execute("create table locations (id integer primary key)");
+        ensureYellow();
+        SQLResponse response = execute("insert into locations (id) values (1), (2)");
+        assertThat(response.rowCount(), is(2L));
+        response = execute("insert into locations (id) values (2), (3)");
+        assertThat(response.rowCount(), is(1L));
     }
 
     @Test
@@ -726,6 +754,30 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         for (SQLBulkResponse.Result result : bulkResponse.results()) {
             assertThat(result.rowCount(), is(2L));
         }
+    }
+
+    @Test
+    public void testBulkInsertWithMultiValueFailing() throws Exception {
+        execute("create table t (x int primary key)");
+        ensureYellow();
+        Object[][] bulkArgs = new Object[][] {
+            new Object[]{10, 11},
+            new Object[]{20, 21},
+        };
+        SQLBulkResponse bulkResponse = execute("insert into t values (?), (?)", bulkArgs);
+        assertThat(bulkResponse.results().length, is(2));
+        for (SQLBulkResponse.Result result : bulkResponse.results()) {
+            assertThat(result.rowCount(), is(2L));
+        }
+
+        bulkArgs = new Object[][] {
+            new Object[]{20, 21},
+            new Object[]{30, 31},
+        };
+        bulkResponse = execute("insert into t values (?), (?)", bulkArgs);
+        assertThat(bulkResponse.results().length, is(2));
+        assertThat(bulkResponse.results()[0].rowCount(), is(-2L));
+        assertThat(bulkResponse.results()[1].rowCount(), is(2L));
     }
 
     @Test

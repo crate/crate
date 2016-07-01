@@ -28,6 +28,10 @@ Inserting a row::
     ... );
     INSERT OK, 1 row affected (... sec)
 
+When inserting a single row, if an error occurs an error is returned as
+a response.
+
+
 Inserting multiple rows at once (aka. bulk insert) can be done by defining
 multiple values for the ``INSERT`` statement::
 
@@ -49,6 +53,10 @@ multiple values for the ``INSERT`` statement::
     ...   10
     ... );
     INSERT OK, 2 rows affected (... sec)
+
+When inserting multiple rows, if an error occurs for some of these rows there is
+no error returned but instead the number of rows affected would be decreased
+by the number of rows that failed to be inserted.
 
 
 When inserting into tables containing :ref:`ref-generated-columns`,
