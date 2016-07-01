@@ -22,10 +22,7 @@
 
 package io.crate.operation.reference.sys.check;
 
-import io.crate.operation.reference.sys.check.node.RecoveryAfterNodesSysCheck;
-import io.crate.operation.reference.sys.check.node.RecoveryAfterTimeSysCheck;
-import io.crate.operation.reference.sys.check.node.RecoveryExpectedNodesSysCheck;
-import io.crate.operation.reference.sys.check.node.JvmVersionSysCheck;
+import io.crate.operation.reference.sys.check.node.*;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.Multibinder;
 
@@ -38,5 +35,6 @@ public class SysNodeChecksModule extends AbstractModule {
         checksBinder.addBinding().to(RecoveryAfterTimeSysCheck.class);
         checksBinder.addBinding().to(RecoveryAfterNodesSysCheck.class);
         checksBinder.addBinding().to(JvmVersionSysCheck.class);
+        checksBinder.addBinding().to(HighDiskWatermarkNodesSysCheck.class);
     }
 }

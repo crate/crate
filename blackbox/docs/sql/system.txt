@@ -592,8 +592,9 @@ Example query::
   |  2 | ...         | The value of the cluster setting 'gateway.recover_after_nodes... |
   |  3 | ...         | The value of the cluster setting 'gateway.recover_after_time'... |
   |  4 | ...         | Crate is running with ... java version. Java 7 is deprecated ... |
+  |  5 | ...         | The high disk watermark is exceeded on the node. The cluster ... |
   +----+---------...-+--------------------------------------------------------------...-+
-  SELECT 4 rows in set (... sec)
+  SELECT 5 rows in set (... sec)
 
 .. _sys-node-checks-ack:
 
@@ -664,6 +665,15 @@ Java 7 deprecation warning
 Starting with Crate 0.55.0 using Java 7 runtime environment is
 deprecated. Please update to Java 8 (>= update 20). See also `here
 <https://crate.io/docs/reference/en/latest/installation.html#java-jvm-version>`_.
+
+Routing allocation disk watermark high
+......................................
+
+The check for the :ref:`cluster.routing.allocation.disk.watermark.high
+<cluster.routing.allocation.disk.watermark.high>` setting verifies that
+the high watermark is not exceeded on the current node. The usage of each disk
+for configured Crate data paths is verified against the threshold setting.
+If one or more verification fails the check is marked as not passed.
 
 .. _sys-shards:
 

@@ -32,7 +32,6 @@ import org.elasticsearch.common.settings.Settings;
 @Singleton
 public class RecoveryExpectedNodesSysCheck extends AbstractSysNodeCheck {
 
-    private final ClusterService clusterService;
     private final Settings settings;
 
     private static final int ID = 1;
@@ -42,7 +41,6 @@ public class RecoveryExpectedNodesSysCheck extends AbstractSysNodeCheck {
     @Inject
     public RecoveryExpectedNodesSysCheck(ClusterService clusterService, Settings settings) {
         super(ID, DESCRIPTION, Severity.HIGH, clusterService);
-        this.clusterService = clusterService;
         this.settings = settings;
     }
 

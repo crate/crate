@@ -22,15 +22,20 @@
 
 package io.crate.operation.reference.sys.check.node;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.monitor.fs.FsInfo;
+import org.elasticsearch.monitor.fs.FsProbe;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
 import org.mockito.Answers;
+
+import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -185,4 +190,55 @@ public class SysNodeChecksTest extends CrateUnitTest {
         assertThat(jvmVersionSysCheck.validateJavaVersion("1.8.0_72-internal"), is(true));
     }
 
+    private final FsInfo fsInfo = mock(FsInfo.class);
+
+    @Test
+    public void tesHighDiskWatermarkCheckInBytes() {
+        HighDiskWatermarkNodesSysCheck highDiskWatermarkNodesSysCheck
+                = new HighDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class));
+
+        FsInfo.Path sda = new FsInfo.Path("/middle", "/dev/sda", 300, 170, 160);
+        FsInfo.Path sdc = new FsInfo.Path("/most", "/dev/sdc", 300, 150, 140);
+        List<FsInfo.Path> paths = ImmutableList.of(sda, sdc);
+
+        // Percentage values refer to used disk space
+        // sda: 170b is free;
+        // sdc: 150b is free
+        assertThat(highDiskWatermarkNodesSysCheck.id(), is(5));
+        assertThat(highDiskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));
+        assertThat(highDiskWatermarkNodesSysCheck.severity(), is(SysCheck.Severity.HIGH));
+
+        // disk.watermark.high: 140b
+        when(fsInfo.iterator()).thenReturn(paths.iterator());
+        assertThat(highDiskWatermarkNodesSysCheck.validate(fsInfo, 100.0, 140), is(true));
+
+        // disk.watermark.high: 160b
+        when(fsInfo.iterator()).thenReturn(paths.iterator());
+        assertThat(highDiskWatermarkNodesSysCheck.validate(fsInfo, 100.0, 160), is(false));
+    }
+
+    @Test
+    public void tesHighDiskWatermarkCheckInPercents() {
+        HighDiskWatermarkNodesSysCheck highDiskWatermarkNodesSysCheck
+                = new HighDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class));
+
+        FsInfo.Path sda = new FsInfo.Path("/middle", "/dev/sda", 100, 40, 30);
+        FsInfo.Path sdc = new FsInfo.Path("/most", "/dev/sdc", 300, 150, 140);
+        List<FsInfo.Path> paths = ImmutableList.of(sda, sdc);
+
+        // Percentage values refer to used disk space
+        // sda: 60% is used;
+        // sdc: 50% is used
+        assertThat(highDiskWatermarkNodesSysCheck.id(), is(5));
+        assertThat(highDiskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));
+        assertThat(highDiskWatermarkNodesSysCheck.severity(), is(SysCheck.Severity.HIGH));
+
+        // disk.watermark.high: 75%
+        when(fsInfo.iterator()).thenReturn(paths.iterator());
+        assertThat(highDiskWatermarkNodesSysCheck.validate(fsInfo, 75.0, 0), is(true));
+
+        // disk.watermark.high: 55%
+        when(fsInfo.iterator()).thenReturn(paths.iterator());
+        assertThat(highDiskWatermarkNodesSysCheck.validate(fsInfo, 55.0, 0), is(false));
+    }
 }

@@ -28,7 +28,7 @@ import org.elasticsearch.cluster.ClusterService;
 public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements SysNodeCheck {
 
     private static final String LINK_PATTERN = "https://cr8.is/d-node-check-";
-    private final ClusterService clusterService;
+    protected final ClusterService clusterService;
 
     private BytesRef nodeId;
     private boolean acknowledged;
