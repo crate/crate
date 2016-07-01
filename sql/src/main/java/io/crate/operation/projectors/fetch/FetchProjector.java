@@ -232,7 +232,10 @@ public class FetchProjector extends AbstractProjector {
                 fetchRows[i].cells = readerBucket.get(docId);
                 assert !readerBucket.fetchRequired() || fetchRows[i].cells != null;
             }
-            downstream.setNextRow(outputRow);
+            boolean wantsMore = downstream.setNextRow(outputRow);
+            if (!wantsMore) {
+                break;
+            }
         }
         finishDownstream();
     }

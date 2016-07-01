@@ -22,6 +22,7 @@
 package io.crate.testing;
 
 import io.crate.core.collections.Row;
+import io.crate.core.collections.RowN;
 import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.collectors.TopRowUpstream;
 import io.crate.operation.projectors.RowReceiver;
@@ -99,5 +100,38 @@ public class RowSender implements Runnable, RowUpstream {
 
     public int numResumes() {
         return numResumes;
+    }
+
+
+    public static Iterable<Row> rowRange(final long num) {
+        return new Iterable<Row>() {
+
+            @Override
+            public Iterator<Row> iterator() {
+                return new Iterator<Row>() {
+
+                    private Object[] columns = new Object[1];
+                    private RowN sharedRow = new RowN(columns);
+                    private long i = 0;
+
+                    @Override
+                    public boolean hasNext() {
+                        return i < num;
+                    }
+
+                    @Override
+                    public Row next() {
+                        columns[0] = i;
+                        i++;
+                        return sharedRow;
+                    }
+
+                    @Override
+                    public void remove() {
+                        throw new UnsupportedOperationException("Remove not supported");
+                    }
+                };
+            }
+        };
     }
 }
