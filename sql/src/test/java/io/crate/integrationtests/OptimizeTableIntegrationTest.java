@@ -51,6 +51,7 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((long) response.rows()[0][0], lessThanOrEqualTo(3L));
 
         execute("delete from test where id=1");
+        refresh();
         execute("optimize table test");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows(), is(TaskResult.EMPTY_OBJS));
@@ -68,6 +69,7 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((long) response.rows()[0][0], lessThanOrEqualTo(3L));
 
         execute("delete from test where id=1");
+        refresh();
         execute("optimize table test with (max_num_segments=1, only_expunge_deletes=true)");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows(), is(TaskResult.EMPTY_OBJS));
@@ -89,11 +91,8 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testOptimizePartitionedTableAllPartitions() throws Exception {
-        execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=0)");
+        execute("create table parted (id integer, name string, date timestamp) partitioned by (date)");
         ensureYellow();
-
-        execute("refresh table parted");
-        assertThat(response.rowCount(), is(-1L));
 
         execute("insert into parted (id, name, date) values " +
                 "(1, 'Trillian', '1970-01-01'), " +
@@ -101,18 +100,18 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
                 "(3, 'Harpo', '1970-01-07'), " +
                 "(4, 'Arthur', '1970-01-07')");
         assertThat(response.rowCount(), is(4L));
-        ensureYellow();
+        refresh();
 
-        execute("refresh table parted");
         execute("select count(*) from parted");
         assertThat((Long) response.rows()[0][0], is(4L));
 
         execute("delete from parted where id in (1, 4)");
+        refresh();
         execute("optimize table parted");
         assertThat(response.rowCount(), is(2L));
         assertThat(response.rows(), is(TaskResult.EMPTY_OBJS));
 
-        // assert that all is available after optimize
+        // assert that all data is available after optimize
         execute("select count(*) from parted");
         assertThat((Long) response.rows()[0][0], is(2L));
     }
@@ -130,16 +129,14 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
                 "(5, 'Chico', '1970-01-07')," +
                 "(6, 'Arthur', '1970-01-08')");
         assertThat(response.rowCount(), is(6L));
+        refresh();
 
-        ensureYellow();
-        execute("refresh table parted");
-        assertThat(response.rowCount(), is(4L));
-
-        // assert that after refresh all columns are available
+        // assert that after refresh all rows are available
         execute("select * from parted");
         assertThat(response.rowCount(), is(6L));
 
         execute("delete from parted where id=3");
+        refresh();
         execute("optimize table parted PARTITION (date='1970-01-01')");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows(), is(TaskResult.EMPTY_OBJS));
@@ -149,6 +146,7 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(2L));
 
         execute("delete from parted where id=4");
+        refresh();
         execute("optimize table parted PARTITION (date='1970-01-07')");
         assertThat(response.rowCount(), is(1L));
 
@@ -174,17 +172,18 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
                 "(4, 'Zaphod', 90, '1970-01-01')");
         assertThat(response.rowCount(), is(4L));
 
-        execute("refresh table t1");
-        execute("select * from t1 where age in (50, 90)");
+        refresh();
+        execute("select * from t1");
         assertThat(response.rowCount(), is(4L));
 
         execute("delete from t1 where id in (1, 2)");
+        refresh();
         execute("optimize table t1 partition (age=50, date='1970-01-07')," +
                 "               t1 partition (age=90, date='1970-01-01')");
         assertThat(response.rowCount(), is(2L));
         assertThat(response.rows(), is(TaskResult.EMPTY_OBJS));
 
-        execute("select * from t1 where age in (50, 90) and date in ('1970-01-07', '1970-01-01')");
+        execute("select * from t1");
         assertThat(response.rowCount(), is(2L));
     }
 }
