@@ -48,7 +48,6 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
     }
 
     public FunctionInfo() {
-
     }
 
     public FunctionInfo(FunctionIdent ident, DataType returnType) {

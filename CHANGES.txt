@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Implemented basic conditional functions
+   (``coalesce()``, ``greatest()``, ``least()``, ``nullif()``).
+
  - Implemented NOT NULL column constraint.
 
  - Added high/low disk watermark node checks exposed via `sys.node_checks`.

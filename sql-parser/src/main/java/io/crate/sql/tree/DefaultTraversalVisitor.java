@@ -61,16 +61,6 @@ public abstract class DefaultTraversalVisitor<R, C>
     }
 
     @Override
-    protected R visitCoalesceExpression(CoalesceExpression node, C context)
-    {
-        for (Expression operand : node.getOperands()) {
-            process(operand, context);
-        }
-
-        return null;
-    }
-
-    @Override
     protected R visitComparisonExpression(ComparisonExpression node, C context)
     {
         process(node.getLeft(), context);
@@ -218,15 +208,6 @@ public abstract class DefaultTraversalVisitor<R, C>
         for (Expression value : node.getValues()) {
             process(value, context);
         }
-
-        return null;
-    }
-
-    @Override
-    protected R visitNullIfExpression(NullIfExpression node, C context)
-    {
-        process(node.getFirst(), context);
-        process(node.getSecond(), context);
 
         return null;
     }

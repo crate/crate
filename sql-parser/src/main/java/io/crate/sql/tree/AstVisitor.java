@@ -61,11 +61,6 @@ public abstract class AstVisitor<R, C>
         return visitExpression(node, context);
     }
 
-    protected R visitCoalesceExpression(CoalesceExpression node, C context)
-    {
-        return visitExpression(node, context);
-    }
-
     protected R visitComparisonExpression(ComparisonExpression node, C context)
     {
         return visitExpression(node, context);
@@ -232,11 +227,6 @@ public abstract class AstVisitor<R, C>
     }
 
     protected R visitQualifiedNameReference(QualifiedNameReference node, C context)
-    {
-        return visitExpression(node, context);
-    }
-
-    protected R visitNullIfExpression(NullIfExpression node, C context)
     {
         return visitExpression(node, context);
     }
