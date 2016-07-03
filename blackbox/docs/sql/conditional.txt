@@ -1,0 +1,50 @@
+.. highlight:: psql
+.. _conditional:
+
+=====================
+Conditional Functions
+=====================
+
+See below for a list of available conditional functions.
+
+
+greatest('first_arg', second_arg, ...) returns same type as arguments
+---------------------------------------------------------------------
+
+The ``greatest`` function takes one or more arguments of the same type
+and will return the largest value of these. NULL values in the arguments
+list are ignored. The result will be NULL only if all the arguments
+evaluate to NULL.
+
+::
+
+    cr> select greatest(number_of_replicas, number_of_shards)
+    ...   from information_schema.tables
+    ...   where table_name='nodes';
+    +------------------------------------------------+
+    | greatest(number_of_replicas, number_of_shards) |
+    +------------------------------------------------+
+    | 1                                              |
+    +------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+least('first_arg', second_arg, ...) returns same type as arguments
+------------------------------------------------------------------
+
+The ``least`` function takes one or more arguments of the same type
+and will return the smallest value of these. NULL values in the arguments
+list are ignored. The result will be NULL only if all the arguments
+evaluate to NULL.
+
+::
+
+    cr> select least(number_of_replicas, number_of_shards)
+    ...   from information_schema.tables
+    ...   where table_name='nodes';
+    +---------------------------------------------+
+    | least(number_of_replicas, number_of_shards) |
+    +---------------------------------------------+
+    | 0                                           |
+    +---------------------------------------------+
+    SELECT 1 row in set (... sec)
