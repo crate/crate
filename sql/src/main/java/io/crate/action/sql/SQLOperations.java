@@ -24,6 +24,7 @@ package io.crate.action.sql;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -184,9 +185,16 @@ public class SQLOperations {
             checkError();
 
             try {
-                this.jobId = UUID.randomUUID();
+                Statement statement = SqlParser.createStatement(query);
+                if (this.statement == null) {
+                    this.jobId = UUID.randomUUID();
+                } else if (!statement.equals(this.statement)) {
+                    // different query -> no bulk operation -> execute previous query
+                    sync(CompletionListener.NO_OP);
+                    this.jobId = UUID.randomUUID();
+                }
+                this.statement = statement;
                 this.query = query;
-                this.statement = SqlParser.createStatement(query);
                 this.paramTypes = paramTypes;
             } catch (Throwable t) {
                 throwable = t;
@@ -235,10 +243,34 @@ public class SQLOperations {
             LOGGER.debug("method=sync");
 
             if (throwable == null) {
+                /**
+                 * Execution is delayed to sync() to be able to make efficient bulk requests.
+                 *
+                 * JDBC batch execution can cause the following flow:
+                 *
+                 * Parse -> Bind -> Execute
+                 * Parse -> Bind -> Execute
+                 * Sync
+                 *
+                 * If the second parse is called with a *different* statement, the parse call will trigger sync.
+                 * Cleanup needs to happen before parse returns because clients don't wait for parseOk but follow up
+                 * with bind/execute immediately.
+                 *
+                 * This is why the global state is assigned to local variables and the cleanup is called immediately.
+                 * Otherwise there would be concurrency/async state modification.
+                 */
                 if (resultReceivers.size() == 1) {
-                    execute(listener);
+                    Plan plan = planner.plan(analysis, jobId, maxRows, maxRows);
+                    ResultReceiver resultReceiver = resultReceivers.get(0);
+                    cleanup();
+                    execute(plan, resultReceiver, listener);
                 } else {
-                    executeBulk(listener);
+                    Object[][] bulkArgs = toBulkArgs(bulkParams);
+                    Analysis analysis = analyzer.analyze(statement, new ParameterContext(new Object[0], bulkArgs, defaultSchema));
+                    ImmutableList<ResultReceiver> resultReceivers = ImmutableList.copyOf(this.resultReceivers);
+                    Plan plan = planner.plan(analysis, jobId, maxRows, maxRows);
+                    cleanup();
+                    executeBulk(plan, resultReceivers, listener);
                 }
             } else {
                 cleanup();
@@ -248,19 +280,12 @@ public class SQLOperations {
             }
         }
 
-        private void execute(CompletionListener listener) {
-            Plan plan = planner.plan(analysis, jobId, maxRows, maxRows);
-            ResultReceiver resultReceiver = resultReceivers.get(0);
+        private void execute(Plan plan, ResultReceiver resultReceiver, CompletionListener listener) {
             resultReceiver.addListener(listener);
             executor.execute(plan, resultReceiver);
-            cleanup();
         }
 
-        private void executeBulk(final CompletionListener listener) {
-            Object[][] bulkArgs = toBulkArgs(bulkParams);
-            analysis = analyzer.analyze(statement, new ParameterContext(new Object[0], bulkArgs, defaultSchema));
-            Plan plan = planner.plan(analysis, jobId, maxRows, maxRows);
-
+        private void executeBulk(Plan plan, final List<ResultReceiver> resultReceivers, final CompletionListener listener) {
             List<? extends ListenableFuture<TaskResult>> futures = executor.executeBulk(plan);
             Futures.addCallback(Futures.allAsList(futures), new FutureCallback<List<TaskResult>>() {
                 @Override
@@ -274,7 +299,6 @@ public class SQLOperations {
                         resultReceiver.finish();
                     }
                     listener.onSuccess(null);
-                    cleanup();
                 }
 
                 @Override
@@ -283,7 +307,6 @@ public class SQLOperations {
                         resultReceiver.fail(t);
                     }
                     listener.onFailure(t);
-                    cleanup();
                 }
             });
         }
