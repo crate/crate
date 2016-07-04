@@ -51,6 +51,7 @@ public class RowMergers {
      * Acts as a bridge from multiple RowUpstreams to a single RowReceiver
      *
      *
+     * <pre>
      *      +----+     +----+
      *      | U1 |     | U2 |
      *      +----+     +----+
@@ -64,6 +65,7 @@ public class RowMergers {
      *          +-------------+
      *          | RowReceiver |
      *          +-------------+
+     * </pre>
      */
     static class MultiUpstreamRowReceiver implements RowReceiver, RowMerger {
 
@@ -128,6 +130,7 @@ public class RowMergers {
          * pause handling is tricky:
          *
          *
+         * <pre>
          * u1:                                              u2:
          *  rw.setNextRow(r1)                                rw.setNextRow(r2)
          *      synchronized:                                   synchronized: // < blocked until u1 is done
@@ -143,13 +146,15 @@ public class RowMergers {
          *                                                         return
          *                                                     }
          *                                                     u2 pauses
+         *
+         *  </pre>
          */
         boolean synchronizedSetNextRow(Row row) {
             if (paused) {
                 pauseFifo.add(row.materialize());
                 return true;
             } else {
-                assert pauseFifo.size() == 0
+                assert pauseFifo.isEmpty()
                     : "resume should consume pauseFifo first before delegating resume to upstreams";
                 return delegate.setNextRow(row);
             }
@@ -216,28 +221,30 @@ public class RowMergers {
 
         @Override
         public void resume(boolean async) {
-            paused = false;
-            Object[] row;
-            if (!pauseFifo.isEmpty()) {
-                // clear pauseFifo first, otherwise it could grow very large
-                delegate.setUpstream(topRowUpstream);
-                while ((row = pauseFifo.poll()) != null) {
-                    sharedRow.cells(row);
-                    boolean wantMore = delegate.setNextRow(sharedRow);
-                    if (topRowUpstream.shouldPause()) {
-                        delegate.setUpstream(this);
-                        topRowUpstream.pauseProcessed();
-                        return;
+            synchronized (lock) {
+                paused = false;
+                if (!pauseFifo.isEmpty()) {
+                    // clear pauseFifo first, otherwise it could grow very large
+                    delegate.setUpstream(topRowUpstream);
+                    Object[] row;
+                    while ((row = pauseFifo.poll()) != null) {
+                        sharedRow.cells(row);
+                        boolean wantMore = delegate.setNextRow(sharedRow);
+                        if (topRowUpstream.shouldPause()) {
+                            delegate.setUpstream(this);
+                            topRowUpstream.pauseProcessed();
+                            return;
+                        }
+                        if (!wantMore) {
+                            downstreamFinished = true;
+                            pauseFifo.clear();
+                            // resume upstreams anyway so that they can finish and cleanup resources
+                            // they'll receive false on the next setNextRow call
+                            break;
+                        }
                     }
-                    if (!wantMore) {
-                        downstreamFinished = true;
-                        pauseFifo.clear();
-                        // resume upstreams anyway so that they can finish and cleanup resources
-                        // they'll receive false on the next setNextRow call
-                        break;
-                    }
+                    delegate.setUpstream(this);
                 }
-                delegate.setUpstream(this);
             }
             for (RowUpstream rowUpstream : rowUpstreams) {
                 rowUpstream.resume(async);
