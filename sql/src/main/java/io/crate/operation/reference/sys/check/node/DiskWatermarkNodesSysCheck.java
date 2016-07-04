@@ -54,9 +54,9 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
                                Settings settings,
                                FsProbe fsProbe) {
         super(id, description, severity, clusterService);
-        this.watermarkSetting = watermarkSetting;
         this.settings = settings;
         this.fsProbe = fsProbe;
+        this.watermarkSetting = watermarkSetting;
     }
 
     @Override
@@ -70,7 +70,19 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
         }
     }
 
-    protected abstract boolean validate(FsInfo fsInfo, double diskWatermarkPercents, long diskWatermarkBytes);
+    protected boolean validate(FsInfo fsInfo, double diskWatermarkPercents, long diskWatermarkBytes) {
+        for (FsInfo.Path path : fsInfo) {
+            double usedDiskAsPercentage = 100.0 - (path.getFree().bytes() / (double) path.getTotal().bytes()) * 100.0;
+
+            // Byte values refer to free disk space
+            // Percentage values refer to used disk space
+            if ((usedDiskAsPercentage > diskWatermarkPercents)
+                    || (path.getFree().bytes() < diskWatermarkBytes)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     private double thresholdPercentageFromWatermark() {
         try {

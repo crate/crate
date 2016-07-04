@@ -36,5 +36,6 @@ public class SysNodeChecksModule extends AbstractModule {
         checksBinder.addBinding().to(RecoveryAfterNodesSysCheck.class);
         checksBinder.addBinding().to(JvmVersionSysCheck.class);
         checksBinder.addBinding().to(HighDiskWatermarkNodesSysCheck.class);
+        checksBinder.addBinding().to(LowDiskWatermarkNodesSysCheck.class);
     }
 }

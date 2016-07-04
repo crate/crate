@@ -31,17 +31,17 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.monitor.fs.FsProbe;
 
 @Singleton
-public class HighDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysCheck {
+public class LowDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysCheck {
 
-    private static final StringSetting HIGH_DISK_WATERMARK_SETTING = CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_HIGH;
+    private static final StringSetting LOW_DISK_WATERMARK_SETTING = CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_LOW;
 
-    private static final int ID = 5;
-    private static final String DESCRIPTION = "The high disk watermark is exceeded on the node." +
-            " The cluster will attempt to relocate shards to another node. Please check the node disk usage.";
+    private static final int ID = 6;
+    private static final String DESCRIPTION = "The low disk watermark is exceeded on the node." +
+            " The cluster will not allocate new shards to the node. Please check the node disk usage.";
 
     @Inject
-    public HighDiskWatermarkNodesSysCheck(ClusterService clusterService, Settings settings, FsProbe fsProbe) {
-        super(ID, DESCRIPTION, HIGH_DISK_WATERMARK_SETTING, Severity.HIGH, clusterService, settings, fsProbe);
+    public LowDiskWatermarkNodesSysCheck(ClusterService clusterService, Settings settings, FsProbe fsProbe) {
+        super(ID, DESCRIPTION, LOW_DISK_WATERMARK_SETTING, Severity.HIGH, clusterService, settings, fsProbe);
     }
 
 }

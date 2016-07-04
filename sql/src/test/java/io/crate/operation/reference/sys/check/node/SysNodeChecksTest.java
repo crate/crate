@@ -193,52 +193,54 @@ public class SysNodeChecksTest extends CrateUnitTest {
     private final FsInfo fsInfo = mock(FsInfo.class);
 
     @Test
-    public void tesHighDiskWatermarkCheckInBytes() {
-        HighDiskWatermarkNodesSysCheck highDiskWatermarkNodesSysCheck
+    public void testValidationDiskWatermarkCheckInBytes() {
+        DiskWatermarkNodesSysCheck highDiskWatermarkNodesSysCheck
                 = new HighDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class));
 
-        FsInfo.Path sda = new FsInfo.Path("/middle", "/dev/sda", 300, 170, 160);
-        FsInfo.Path sdc = new FsInfo.Path("/most", "/dev/sdc", 300, 150, 140);
-        List<FsInfo.Path> paths = ImmutableList.of(sda, sdc);
+        assertThat(highDiskWatermarkNodesSysCheck.id(), is(5));
+        assertThat(highDiskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));
+        assertThat(highDiskWatermarkNodesSysCheck.severity(), is(SysCheck.Severity.HIGH));
 
         // Percentage values refer to used disk space
         // sda: 170b is free;
         // sdc: 150b is free
-        assertThat(highDiskWatermarkNodesSysCheck.id(), is(5));
-        assertThat(highDiskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));
-        assertThat(highDiskWatermarkNodesSysCheck.severity(), is(SysCheck.Severity.HIGH));
+        List<FsInfo.Path> sameSizeDisksGroup = ImmutableList.of(
+                new FsInfo.Path("/middle", "/dev/sda", 300, 170, 160),
+                new FsInfo.Path("/most", "/dev/sdc", 300, 150, 140)
+        );
 
         // disk.watermark.high: 140b
-        when(fsInfo.iterator()).thenReturn(paths.iterator());
+        when(fsInfo.iterator()).thenReturn(sameSizeDisksGroup.iterator());
         assertThat(highDiskWatermarkNodesSysCheck.validate(fsInfo, 100.0, 140), is(true));
 
         // disk.watermark.high: 160b
-        when(fsInfo.iterator()).thenReturn(paths.iterator());
+        when(fsInfo.iterator()).thenReturn(sameSizeDisksGroup.iterator());
         assertThat(highDiskWatermarkNodesSysCheck.validate(fsInfo, 100.0, 160), is(false));
     }
 
     @Test
-    public void tesHighDiskWatermarkCheckInPercents() {
-        HighDiskWatermarkNodesSysCheck highDiskWatermarkNodesSysCheck
-                = new HighDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class));
+    public void testValidationDiskWatermarkCheckInPercents() {
+        DiskWatermarkNodesSysCheck diskWatermarkNodesSysCheck
+                = new LowDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class));
 
-        FsInfo.Path sda = new FsInfo.Path("/middle", "/dev/sda", 100, 40, 30);
-        FsInfo.Path sdc = new FsInfo.Path("/most", "/dev/sdc", 300, 150, 140);
-        List<FsInfo.Path> paths = ImmutableList.of(sda, sdc);
-
+        assertThat(diskWatermarkNodesSysCheck.id(), is(6));
+        assertThat(diskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));
+        assertThat(diskWatermarkNodesSysCheck.severity(), is(SysCheck.Severity.HIGH));
         // Percentage values refer to used disk space
         // sda: 60% is used;
         // sdc: 50% is used
-        assertThat(highDiskWatermarkNodesSysCheck.id(), is(5));
-        assertThat(highDiskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));
-        assertThat(highDiskWatermarkNodesSysCheck.severity(), is(SysCheck.Severity.HIGH));
+        List<FsInfo.Path> differentSizeDisksGroup = ImmutableList.of(
+                new FsInfo.Path("/middle", "/dev/sda", 100, 40, 30),
+                new FsInfo.Path("/most", "/dev/sdc", 300, 150, 140)
+        );
 
         // disk.watermark.high: 75%
-        when(fsInfo.iterator()).thenReturn(paths.iterator());
-        assertThat(highDiskWatermarkNodesSysCheck.validate(fsInfo, 75.0, 0), is(true));
+        when(fsInfo.iterator()).thenReturn(differentSizeDisksGroup.iterator());
+        assertThat(diskWatermarkNodesSysCheck.validate(fsInfo, 75.0, 0), is(true));
 
         // disk.watermark.high: 55%
-        when(fsInfo.iterator()).thenReturn(paths.iterator());
-        assertThat(highDiskWatermarkNodesSysCheck.validate(fsInfo, 55.0, 0), is(false));
+        when(fsInfo.iterator()).thenReturn(differentSizeDisksGroup.iterator());
+        assertThat(diskWatermarkNodesSysCheck.validate(fsInfo, 55.0, 0), is(false));
     }
+
 }
