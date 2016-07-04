@@ -628,7 +628,7 @@ public class CrateSettings {
     };
 
     public static final StringSetting ROUTING_ALLOCATION_DISK_WATERMARK_LOW =
-            new StringSetting("low", null, true, "", ROUTING_ALLOCATION_DISK_WATERMARK);
+            new StringSetting("low", null, true, "85%", ROUTING_ALLOCATION_DISK_WATERMARK);
 
     public static final StringSetting ROUTING_ALLOCATION_DISK_WATERMARK_HIGH =
             new StringSetting("high", null, true, "90%", ROUTING_ALLOCATION_DISK_WATERMARK);
