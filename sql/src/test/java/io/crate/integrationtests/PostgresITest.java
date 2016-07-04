@@ -33,7 +33,6 @@ import org.postgresql.util.PSQLException;
 
 import java.sql.*;
 
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
@@ -99,6 +98,32 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
             int[] results = preparedStatement.executeBatch();
             assertThat(results, is(new int[] { 1, 1}));
+        }
+    }
+
+    @Test
+    public void testExecuteBatchWithDifferentStatements() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+            conn.setAutoCommit(true);
+
+            Statement stmt = conn.createStatement();
+            stmt.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
+            ensureYellow();
+
+            Statement statement = conn.createStatement();
+            statement.addBatch("insert into t (x) values (1)");
+            statement.addBatch("insert into t (x) values (2)");
+
+            int[] results = statement.executeBatch();
+            assertThat(results, is(new int[] { 1, 1}));
+
+            statement.executeUpdate("refresh table t");
+            ResultSet resultSet = statement.executeQuery("select * from t order by x");
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getInt(1), is(1));
+
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getInt(1), is(2));
         }
     }
 
