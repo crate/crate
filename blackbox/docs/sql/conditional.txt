@@ -8,8 +8,8 @@ Conditional Functions
 See below for a list of available conditional functions.
 
 
-coalesce('first_arg', second_arg, ...) returns same type as arguments
----------------------------------------------------------------------
+coalesce('first_arg', second_arg [, ... ]) returns same type as arguments
+-------------------------------------------------------------------------
 
 The ``coalesce`` function takes two or more arguments of the same type and
 returns the first non-null value of these. The result will be NULL only if all
@@ -28,8 +28,8 @@ the arguments evaluate to NULL.
     SELECT 1 row in set (... sec)
 
 
-greatest('first_arg', second_arg, ...) returns same type as arguments
----------------------------------------------------------------------
+greatest('first_arg', second_arg[ , ... ]) returns same type as arguments
+-------------------------------------------------------------------------
 
 The ``greatest`` function takes two or more arguments of the same type
 and will return the largest value of these. NULL values in the arguments
@@ -49,8 +49,8 @@ evaluate to NULL.
     SELECT 1 row in set (... sec)
 
 
-least('first_arg', second_arg, ...) returns same type as arguments
-------------------------------------------------------------------
+least('first_arg', second_arg[ , ... ]) returns same type as arguments
+----------------------------------------------------------------------
 
 The ``least`` function takes one or more arguments of the same type
 and will return the smallest value of these. NULL values in the arguments
@@ -68,3 +68,23 @@ evaluate to NULL.
     | 0                                           |
     +---------------------------------------------+
     SELECT 1 row in set (... sec)
+
+
+nullif('first_arg', second_arg) returns same type as arguments
+--------------------------------------------------------------
+
+The ``nullif`` function compares two arguments of the same type and, if they
+have the same value, returns NULL; otherwise returns the first argument.
+
+::
+
+    cr> select nullif(schema_name, 'sys')
+    ...   from information_schema.tables
+    ...   where table_name='nodes';
+    +-------------------------+
+    | nullif(settings, 'sys') |
+    +-------------------------+
+    | NULL                    |
+    +-------------------------+
+    SELECT 1 row in set (... sec)
+
