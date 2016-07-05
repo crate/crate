@@ -59,13 +59,16 @@ public abstract class MultiplyFunction extends ArithmeticFunction implements Ope
         @Override
         public Number evaluate(Input[] args) {
             assert args.length == 2;
-            if (args[0].value() == null) {
+            Object arg0Value = args[0].value();
+            Object arg1Value = args[1].value();
+
+            if (arg0Value == null) {
                 return null;
             }
-            if (args[1].value() == null) {
+            if (arg1Value == null) {
                 return null;
             }
-            return ((Number)args[0].value()).doubleValue() * ((Number)args[1].value()).doubleValue();
+            return ((Number) arg0Value).doubleValue() * ((Number) arg1Value).doubleValue();
         }
     }
 
@@ -78,13 +81,16 @@ public abstract class MultiplyFunction extends ArithmeticFunction implements Ope
         @Override
         public Number evaluate(Input[] args) {
             assert args.length == 2;
-            if (args[0].value() == null) {
+            Object arg0Value = args[0].value();
+            Object arg1Value = args[1].value();
+
+            if (arg0Value == null) {
                 return null;
             }
-            if (args[1].value() == null) {
+            if (arg1Value == null) {
                 return null;
             }
-            return ((Number)args[0].value()).longValue() * ((Number)args[1].value()).longValue();
+            return ((Number) arg0Value).longValue() * ((Number) arg1Value).longValue();
         }
     }
 

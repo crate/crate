@@ -118,8 +118,9 @@ public class Unnest implements TableFunctionImplementation {
     private static List<Object[]> extractValues(Collection<? extends Input> arguments) {
         List<Object[]> values = new ArrayList<>(arguments.size());
         for (Input argument : arguments) {
-            assert argument.value() instanceof Object[] : "must be an array because unnest only accepts array arguments";
-            Object[] columnValues = (Object[]) argument.value();
+            Object value = argument.value();
+            assert value instanceof Object[] : "must be an array because unnest only accepts array arguments";
+            Object[] columnValues = (Object[]) value;
             values.add(columnValues);
         }
         return values;

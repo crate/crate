@@ -5,6 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed performance issues with arithmetic operators and functions.
+
+ - Implemented NOT NULL column constraint.
+
+ - Added high/low disk watermark node checks exposed via `sys.node_checks`.
+
  - Fixed duplicate key error handling for multiple row inserts. Instead of
    responding with an error the number of affected row is adjusted.
 

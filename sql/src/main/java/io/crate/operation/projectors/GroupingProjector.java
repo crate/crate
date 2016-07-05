@@ -293,11 +293,12 @@ public class GroupingProjector extends AbstractProjector {
             List<Object> key = new ArrayList<>(keyInputs.size());
             int keyIdx = 0;
             for (Input keyInput : keyInputs) {
-                key.add(keyInput.value());
+                Object keyInputValue = keyInput.value();
+                key.add(keyInputValue);
                 // 4 bytes overhead per list entry + 4 bytes overhead for later hashCode
                 // calculation while using list.get()
                 ramAccountingContext.addBytes(RamAccountingContext.roundUp(
-                        sizeEstimators.get(keyIdx).estimateSize(keyInput.value()) + 4) + 4);
+                        sizeEstimators.get(keyIdx).estimateSize(keyInputValue) + 4) + 4);
                 keyIdx++;
             }
 
