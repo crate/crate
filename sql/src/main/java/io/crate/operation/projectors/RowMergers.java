@@ -67,7 +67,7 @@ public class RowMergers {
      *          +-------------+
      * </pre>
      */
-    static class MultiUpstreamRowReceiver implements RowReceiver, RowMerger {
+    static class MultiUpstreamRowReceiver implements RowDownstream, RowReceiver, RowUpstream {
 
         private static final ESLogger LOGGER = Loggers.getLogger(MultiUpstreamRowReceiver.class);
 
