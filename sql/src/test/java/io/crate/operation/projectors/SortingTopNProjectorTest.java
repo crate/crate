@@ -33,11 +33,11 @@ import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.core.Is.is;
 
 public class SortingTopNProjectorTest extends CrateUnitTest {
@@ -88,13 +88,8 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         assertThat(i, is(0)); // needs to collect all it can get
         pipe.finish();
         Bucket rows = rowReceiver.result();
-        assertThat(rows.size(), is(10));
-        int iterateLength = 0;
-        for (Row row : rowReceiver.result()) {
-            assertThat(row, isRow(iterateLength + 1, true));
-            iterateLength++;
-        }
-        assertThat(iterateLength, is(10));
+        assertThat(TestingHelpers.printedTable(rows),
+            is("1| true\n2| true\n3| true\n4| true\n5| true\n6| true\n7| true\n8| true\n9| true\n10| true\n"));
     }
 
     @Test
@@ -125,13 +120,8 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         assertThat(i, is(0)); // needs to collect all it can get
         pipe.finish();
         Bucket rows = rowReceiver.result();
-        assertThat(rows.size(), is(5));
-        int iterateLength = 0;
-        for (Row row : rows) {
-            assertThat(row, isRow(iterateLength + 6, true));
-            iterateLength++;
-        }
-        assertThat(iterateLength, is(5));
+        assertThat(TestingHelpers.printedTable(rows),
+            is("6| true\n7| true\n8| true\n9| true\n10| true\n"));
     }
 
     @Test
@@ -146,14 +136,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         assertThat(i, is(0)); // needs to collect all it can get
         pipe.finish();
         Bucket rows = rowReceiver.result();
-        assertThat(rows.size(), is(3));
-
-        int iterateLength = 0;
-        for (Row row : rows) {
-            assertThat(row, isRow(iterateLength + 6));
-            iterateLength++;
-        }
-        assertThat(iterateLength, is(3));
+        assertThat(TestingHelpers.printedTable(rows), is("6\n7\n8\n"));
     }
 
     @Test(expected = IllegalArgumentException.class)
