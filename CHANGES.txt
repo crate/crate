@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed performance issues with arithmetic operators and functions.
+
  - Fixed duplicate key error handling for multiple row inserts. Instead of
    responding with an error the number of affected row is adjusted.
 

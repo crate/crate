@@ -51,10 +51,11 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
     @Override
     public Long evaluate(Input<Collection<DataType>>... args) {
         // TODO: eliminate Integer.MAX_VALUE limitation of Set.size()
-        if (args[0].value() == null) {
+        Collection<DataType> arg0Value = args[0].value();
+        if (arg0Value == null) {
             return null;
         }
-        return ((Integer)((args[0].value()).size())).longValue();
+        return ((Integer)(arg0Value.size())).longValue();
     }
 
     @Override

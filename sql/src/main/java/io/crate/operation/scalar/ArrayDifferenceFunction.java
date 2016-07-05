@@ -94,12 +94,13 @@ public class ArrayDifferenceFunction extends Scalar<Object[], Object> {
         }
 
         Input input = (Input) symbol;
-        if(input.value() == null){
+        Object inputValue = input.value();
+        if (inputValue == null) {
             return this;
         }
 
         DataType innerType = ((ArrayType) this.info().returnType()).innerType();
-        Object[] array = (Object[]) input.value();
+        Object[] array = (Object[]) inputValue;
         Set<Object> subtractSet = new HashSet<>();
         if(array.length > 0){
             for(Object element : array){
@@ -112,25 +113,30 @@ public class ArrayDifferenceFunction extends Scalar<Object[], Object> {
 
     @Override
     public Object[] evaluate(Input[] args) {
-
-        if(args[0] == null || args[0].value() == null){
+        if (args[0] == null || args[0].value() == null) {
             return null;
         }
 
         DataType innerType = ((ArrayType) this.info().returnType()).innerType();
         Set<Object> localSubtractSet;
-        if(!optionalSubtractSet.isPresent()){
+        if (!optionalSubtractSet.isPresent()) {
             localSubtractSet = new HashSet<>();
-            for(int i = 1; i < args.length; i++){
-                if(args[i] == null || args[i].value() == null){
+            for (int i = 1; i < args.length; i++) {
+                if (args[i] == null) {
                     continue;
                 }
-                Object[] array = (Object[]) args[i].value();
-                for(Object element : array){
+
+                Object argValue = args[i].value();
+                if (argValue == null) {
+                    continue;
+                }
+
+                Object[] array = (Object[]) argValue;
+                for (Object element : array) {
                     localSubtractSet.add(innerType.value(element));
                 }
             }
-        }else{
+        } else {
             localSubtractSet = optionalSubtractSet.get();
         }
 

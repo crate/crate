@@ -84,12 +84,17 @@ public class ArrayUniqueFunction extends Scalar<Object[], Object> {
 
         DataType innerType   = ((ArrayType)this.info().returnType()).innerType();
         Set<Object> uniqueSet = new LinkedHashSet<>();
-        for(Input array : args){
-            if(array == null || array.value() == null){
+        for (Input array : args) {
+            if (array == null) {
                 continue;
             }
-            Object[] arg = (Object[]) array.value();
-            for(Object element: arg){
+            Object arrayValue = array.value();
+            if (arrayValue == null) {
+                continue;
+            }
+
+            Object[] arg = (Object[]) arrayValue;
+            for (Object element: arg) {
                 uniqueSet.add(innerType.value(element));
             }
         }

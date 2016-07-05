@@ -80,11 +80,16 @@ public class ArrayCatFunction extends Scalar<Object[], Object> {
     @Override
     public Object[] evaluate(Input[] args) {
         int counter = 0;
-        for(Input array : args){
-            if(array == null || array.value() == null){
+        for (Input array : args) {
+            if (array == null) {
                 continue;
             }
-            Object[] arg = (Object[]) array.value();
+            Object arrayValue = array.value();
+            if (arrayValue == null) {
+                continue;
+            }
+
+            Object[] arg = (Object[]) arrayValue;
             counter += arg.length;
         }
 
@@ -92,12 +97,17 @@ public class ArrayCatFunction extends Scalar<Object[], Object> {
 
         Object[] resultArray = new Object[counter];
         counter = 0;
-        for(Input array : args){
-            if(array == null || array.value() == null){
+        for (Input array : args) {
+            if (array == null) {
                 continue;
             }
-            Object[] arg = (Object[]) array.value();
-            for(Object element: arg){
+            Object arrayValue = array.value();
+            if (array.value() == null) {
+                continue;
+            }
+
+            Object[] arg = (Object[]) arrayValue;
+            for (Object element: arg) {
                 resultArray[counter++] = innerType.value(element);
             }
         }
