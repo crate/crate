@@ -31,10 +31,7 @@ import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
-import io.crate.operation.RowUpstream;
-import io.crate.operation.projectors.Requirement;
-import io.crate.operation.projectors.Requirements;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.*;
 import org.elasticsearch.common.unit.TimeValue;
 
 import javax.annotation.Nonnull;
@@ -48,10 +45,11 @@ import java.util.concurrent.TimeoutException;
 public class CollectingRowReceiver implements RowReceiver, ResultReceiver {
 
     public final List<Object[]> rows = new ArrayList<>();
-    protected final SettableFuture<Bucket> resultFuture = SettableFuture.create();
-    protected int numFailOrFinish = 0;
-    protected RowUpstream upstream;
+    final SettableFuture<Bucket> resultFuture = SettableFuture.create();
+    int numFailOrFinish = 0;
     private CompletionListener listener = CompletionListener.NO_OP;
+    private ResumeHandle resumeable;
+    private RepeatHandle repeatable;
 
     public static CollectingRowReceiver withPauseAfter(int pauseAfter) {
         return new PausingReceiver(pauseAfter);
@@ -74,20 +72,26 @@ public class CollectingRowReceiver implements RowReceiver, ResultReceiver {
     }
 
     @Override
-    public void setUpstream(RowUpstream rowUpstream) {
-        this.upstream = rowUpstream;
-    }
-
-    @Override
-    public boolean setNextRow(Row row) {
+    public Result setNextRow(Row row) {
         rows.add(row.materialize());
-        return true;
+        return Result.CONTINUE;
     }
 
     @Override
     public void kill(Throwable throwable) {
         resultFuture.setException(throwable);
         listener.onFailure(throwable);
+    }
+
+    @Override
+    public void finish(RepeatHandle repeatable) {
+        this.repeatable = repeatable;
+        finish();
+    }
+
+    @Override
+    public void pauseProcessed(ResumeHandle resumeable) {
+        this.resumeable = resumeable;
     }
 
     @Override
@@ -113,7 +117,7 @@ public class CollectingRowReceiver implements RowReceiver, ResultReceiver {
     }
 
     public void resumeUpstream(boolean async) {
-        upstream.resume(async);
+        resumeable.resume(async);
     }
 
     public Bucket result() throws Exception {
@@ -131,15 +135,14 @@ public class CollectingRowReceiver implements RowReceiver, ResultReceiver {
             }
             throw Throwables.propagate(cause);
         } catch (TimeoutException e) {
-            TimeoutException timeoutException = new TimeoutException(
-                    "Didn't receive fail or finish. Upstream was \"" + upstream + "\"");
+            TimeoutException timeoutException = new TimeoutException("Didn't receive fail or finish.");
             timeoutException.initCause(e);
             throw timeoutException;
         }
     }
 
     public void repeatUpstream() {
-        upstream.repeat();
+        repeatable.repeat();
     }
 
     @Override
@@ -157,14 +160,14 @@ public class CollectingRowReceiver implements RowReceiver, ResultReceiver {
         }
 
         @Override
-        public boolean setNextRow(Row row) {
-            boolean wantsMore = super.setNextRow(row);
+        public Result setNextRow(Row row) {
+            Result result = super.setNextRow(row);
             numRows++;
             //noinspection SimplifiableIfStatement
             if (numRows >= limit) {
-                return false;
+                return Result.STOP;
             }
-            return wantsMore;
+            return result;
         }
     }
 
@@ -178,14 +181,13 @@ public class CollectingRowReceiver implements RowReceiver, ResultReceiver {
         }
 
         @Override
-        public boolean setNextRow(Row row) {
-            boolean wantsMore = super.setNextRow(row);
+        public Result setNextRow(Row row) {
+            Result result = super.setNextRow(row);
             numRows++;
             if (numRows == pauseAfter) {
-                upstream.pause();
-                return true;
+                return Result.PAUSE;
             }
-            return wantsMore;
+            return result;
         }
     }
 }

@@ -82,17 +82,17 @@ abstract class DMLProjector<Request extends ShardRequest> extends AbstractProjec
     }
 
     @Override
-    public boolean setNextRow(Row row) {
+    public Result setNextRow(Row row) {
         // resolve the Uid
         collectUidExpression.setNextRow(row);
         Uid uid = Uid.createUid(((BytesRef)collectUidExpression.value()).utf8ToString());
         // routing is already resolved
         bulkShardProcessor.addForExistingShard(shardId, createItem(uid.id()), null);
-        return true;
+        return Result.CONTINUE;
     }
 
     @Override
-    public void finish() {
+    public void finish(RepeatHandle repeatHandle) {
         bulkShardProcessor.close();
     }
 

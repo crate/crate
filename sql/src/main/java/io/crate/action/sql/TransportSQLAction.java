@@ -33,6 +33,7 @@ import io.crate.executor.BytesRefUtils;
 import io.crate.executor.Executor;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.types.DataType;
@@ -105,24 +106,24 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
             }
 
             final List<Object[]> rows = new ArrayList<>();
-            boolean shouldContinue = true;
+            RowReceiver.Result setNextRowResult = RowReceiver.Result.CONTINUE;
 
             @Override
-            public boolean setNextRow(Row row) {
+            public RowReceiver.Result setNextRow(Row row) {
                 rows.add(row.materialize());
-                return shouldContinue;
+                return setNextRowResult;
             }
 
             @Override
             public void finish() {
-                shouldContinue = true;
+                setNextRowResult = RowReceiver.Result.STOP;
                 listener.onResponse(createResponse(analysis, request, rows, startTime));
                 completionListener.onSuccess(null);
             }
 
             @Override
             public void fail(@Nonnull Throwable t) {
-                shouldContinue = true;
+                setNextRowResult = RowReceiver.Result.STOP;
                 listener.onFailure(t);
                 completionListener.onFailure(t);
             }

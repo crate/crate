@@ -30,10 +30,7 @@ import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
-import io.crate.operation.RowUpstream;
-import io.crate.operation.projectors.Requirement;
-import io.crate.operation.projectors.Requirements;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.*;
 import org.elasticsearch.action.ActionListener;
 
 import javax.annotation.Nonnull;
@@ -80,21 +77,22 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
     }
 
     @Override
-    public void setUpstream(RowUpstream rowUpstream) {
-    }
-
-    @Override
     public Set<Requirement> requirements() {
         return Requirements.NO_REQUIREMENTS;
     }
 
     @Override
-    public boolean setNextRow(Row row) {
+    public Result setNextRow(Row row) {
         return resultReceiver.setNextRow(row);
     }
 
     @Override
-    public void finish() {
+    public void pauseProcessed(ResumeHandle resumeable) {
+
+    }
+
+    @Override
+    public void finish(RepeatHandle repeatHandle) {
         fail(null);
     }
 

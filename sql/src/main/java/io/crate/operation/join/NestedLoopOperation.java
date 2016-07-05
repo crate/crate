@@ -21,6 +21,7 @@
 
 package io.crate.operation.join;
 
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -29,11 +30,7 @@ import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionState;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.operation.RowUpstream;
-import io.crate.operation.projectors.ListenableRowReceiver;
-import io.crate.operation.projectors.Requirement;
-import io.crate.operation.projectors.Requirements;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -41,7 +38,61 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class NestedLoopOperation implements RowUpstream, CompletionListenable {
+
+/**
+ * Push based Nested Loop implementation:
+ *
+ * Basically it is:
+ * <pre>
+ *     for (leftRow in left) {
+ *         for (rightRow in right) {
+ *             emit(left + right)
+ *         }
+ *     }
+ * </pre>
+ *
+ * But push based:
+ * <pre>
+ *    +------+          +----+
+ *    |  lU  |          | rU |
+ *    +------+          +----+
+ *          \             /
+ *          \            /
+ *         left        right
+ *            NL-Operation
+ *                 |
+ *                 |
+ *             RowReceiver
+ * </pre>
+ *
+ * Implementation details:
+ *
+ * Both upstreams start concurrently. {@link #leadAcquired} is used to pause the first upstream and at then point
+ * it is single threaded.
+ *
+ * There are a couple of edge cases (like if one side is empty), but the common case looks as follows:
+ *
+ * <pre>
+ *     lU:                                          rU:
+ *                                                  r.setNextRow(row)
+ *     r.setNextRow(row)                                leadAcquired
+ *         not leadAcquired                             return pause
+ *         lastRow = row                            THREAD EXIT
+ *         switchToRight()
+ *              resumeHandle.resume (this might actually call repeat)
+ *                  rU:
+ *                  r.setNextRow
+ *                  [...]
+ *                  r.setNextRow
+ *                  r.finish
+ *         return CONTINUE
+ *     r.setNextRow(row)
+ *         lastRow = row
+ *         switchToRight()
+ *              [... same as before ...]
+ * </pre>
+ */
+public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopOperation.class);
     private final SettableFuture<CompletionState> completionFuture = SettableFuture.create();
@@ -51,33 +102,13 @@ public class NestedLoopOperation implements RowUpstream, CompletionListenable {
 
     private final int phaseId;
     private final RowReceiver downstream;
-    private volatile boolean downstreamWantsMore = true;
-    private volatile boolean paused;
-    private volatile Throwable upstreamFailure = null;
+
+    private volatile Throwable upstreamFailure;
+    private volatile boolean stop = false;
 
     @Override
     public void addListener(CompletionListener listener) {
         Futures.addCallback(completionFuture, listener);
-    }
-
-    /**
-     * state of the left and right side.
-     *
-     * LEAD_ELECTION is the initial state.
-     *
-     * If any side receives a row the other side can be in one of the following 3 states:
-     *
-     *    lead_election     (hasn't received a row yet, or is just about to receive one)
-     *    paused            (this state can only be changed by the side that is currently receiving a row)
-     *    finished          (this won't change anymore - but the right side can still receive rows if it is repeating)
-     *
-     * the lead_election state is only seen in the beginning until one side has has taken charge and set its next state.
-     * After that one side will always be paused and the other one will receive rows.
-     */
-    private enum State {
-        LEAD_ELECTION,
-        PAUSED,
-        FINISHED
     }
 
     private final AtomicBoolean leadAcquired = new AtomicBoolean(false);
@@ -85,7 +116,6 @@ public class NestedLoopOperation implements RowUpstream, CompletionListenable {
     public NestedLoopOperation(int phaseId, RowReceiver rowReceiver) {
         this.phaseId = phaseId;
         this.downstream = rowReceiver;
-        downstream.setUpstream(this);
         left = new LeftRowReceiver();
         right = new RightRowReceiver();
     }
@@ -99,23 +129,13 @@ public class NestedLoopOperation implements RowUpstream, CompletionListenable {
     }
 
     @Override
-    public void pause() {
-        paused = true;
-        right.upstream.pause();
-    }
-
-    @Override
-    public void resume(boolean async) {
-        paused = false;
-        right.upstream.resume(async);
-    }
-
-    @Override
     public void repeat() {
-        throw new UnsupportedOperationException();
+        RepeatHandle repeatHandle = left.repeatHandle;
+        left.repeatHandle = UNSUPPORTED;
+        repeatHandle.repeat();
     }
 
-    static class CombinedRow implements Row {
+    private static class CombinedRow implements Row {
 
         volatile Row outerRow;
         volatile Row innerRow;
@@ -156,9 +176,9 @@ public class NestedLoopOperation implements RowUpstream, CompletionListenable {
     private abstract class AbstractRowReceiver implements ListenableRowReceiver {
 
         final SettableFuture<Void> finished = SettableFuture.create();
-        final AtomicReference<State> state = new AtomicReference<>(State.LEAD_ELECTION);
+        final AtomicReference<ResumeHandle> resumeable = new AtomicReference<>(ResumeHandle.INVALID);
+        boolean upstreamFinished = false;
 
-        volatile RowUpstream upstream;
 
         @Override
         public ListenableFuture<Void> finishFuture() {
@@ -175,111 +195,88 @@ public class NestedLoopOperation implements RowUpstream, CompletionListenable {
             downstream.kill(throwable);
             completionFuture.setException(throwable);
         }
-
-        @Override
-        public void setUpstream(RowUpstream rowUpstream) {
-            assert rowUpstream != null : "rowUpstream must not be null";
-            this.upstream = rowUpstream;
-        }
-
-        private void finishThisSide() {
-            finished.set(null);
-            state.set(State.FINISHED);
-        }
-
-        protected void finish(AtomicReference<State> otherStateRef, RowUpstream otherUpstream) {
-            State otherState = otherStateRef.get();
-            if (otherState == State.LEAD_ELECTION) {
-                // other side hasn't received any rows
-                if (leadAcquired.compareAndSet(false, true)) {
-                    finishThisSide();
-                    return;
-                } else {
-                    otherState = waitForStateChange(otherStateRef);
-                }
-            }
-            finishThisSide();
-            if (otherState == State.FINISHED) {
-                Throwable upstreamFailure = NestedLoopOperation.this.upstreamFailure;
-                if (upstreamFailure == null) {
-                    downstream.finish();
-                    completionFuture.set(new CompletionState());
-                } else {
-                    downstream.fail(upstreamFailure);
-                    completionFuture.setException(upstreamFailure);
-                }
-            } else {
-                otherUpstream.resume(false);
-            }
-        }
     }
 
     private void killBoth(Throwable throwable) {
+        // make sure that switchTo unblocks
+        left.resumeable.set(ResumeHandle.NOOP);
+        right.resumeable.set(ResumeHandle.NOOP);
+
+        stop = true;
         left.finished.setException(throwable);
-        left.state.set(State.FINISHED);
         right.finished.setException(throwable);
-        right.state.set(State.FINISHED);
     }
 
     private class LeftRowReceiver extends AbstractRowReceiver {
 
-        private Row lastRow = null;
-        private boolean done = false;
+        private volatile Row lastRow = null; // TODO: volatile is only required for first access
+        private boolean firstCall = true;
+        private RepeatHandle repeatHandle;
+        private boolean wakeupRequired = true;
 
         @Override
-        public boolean setNextRow(Row row) {
-            assert !done : "shouldn't receive a row if finished";
-            State rightState = right.state.get();
-            LOGGER.trace("[{}] LEFT downstream received a row {}, rightState: {}", phaseId, row, rightState);
-            switch (rightState) {
-                case LEAD_ELECTION:
-                    if (leadAcquired.compareAndSet(false, true)) {
-                        lastRow = new RowN(row.materialize());
-                        upstream.pause();
-                        state.set(State.PAUSED);
-                        return true;
-                    } else {
-                        rightState = waitForStateChange(right.state);
-                        return handlePauseOrFinished(row, rightState);
-                    }
-                default:
-                    return handlePauseOrFinished(row, rightState);
+        public Result setNextRow(Row row) {
+            if (stop) {
+                LOGGER.trace("phase={} side=left method=setNextRow stop=true", phaseId);
+                return Result.STOP;
             }
-        }
+            // no need to materialize as it will be used before upstream is resumed
+            // TODO: is this really safe?
+            lastRow = row;
+            if (firstCall) {
+                firstCall = false;
+                if (leadAcquired.compareAndSet(false, true)) {
+                    LOGGER.trace("phase={} side=left method=setNextRow action=leadAcquired->pause", phaseId);
+                    return Result.PAUSE;
+                }
+            }
+            LOGGER.trace("phase={} side=left method=setNextRow switchOnPause=true", phaseId);
+            wakeupRequired = false;
+            switchTo(right.resumeable);
+            if (right.upstreamFinished) {
+                return Result.CONTINUE;
+            }
 
-        private boolean handlePauseOrFinished(Row row, State rightState) {
-            switch (rightState) {
-                case PAUSED:
-                    lastRow = row;
-                    upstream.pause();
-                    state.set(State.PAUSED);
-                    return right.resume(rightState);
-                case FINISHED:
-                    //noinspection SimplifiableIfStatement
-                    if (right.receivedRows && downstreamWantsMore) {
-                        lastRow = row;
-                        upstream.pause();
-                        state.set(State.PAUSED);
-                        return right.resume(rightState);
-                    }
-                    LOGGER.trace("[{}] LEFT: done, returning false", phaseId);
-                    done = true;
-                    return false;
-                default:
-                    throw new AssertionError("lead election state should have been handled already");
-            }
+            wakeupRequired = true;
+            return Result.PAUSE;
         }
 
         @Override
-        public void finish() {
-            LOGGER.trace("[{}] LEFT upstream called finish", phaseId);
-            finish(right.state, right.upstream);
+        public void pauseProcessed(ResumeHandle resumeable) {
+            if (!this.resumeable.compareAndSet(ResumeHandle.INVALID, resumeable)) {
+                throw new AssertionError("resumeable was already set");
+            }
+            LOGGER.trace("phase={} side=left method=pauseProcessed", phaseId);
+        }
+
+        @Override
+        public void finish(RepeatHandle repeatHandle) {
+            LOGGER.trace("phase={} side=left method=finish", phaseId);
+            this.repeatHandle = repeatHandle;
+            doFinish();
         }
 
         @Override
         public void fail(Throwable throwable) {
+            LOGGER.trace("phase={} side=left method=fail error={}", phaseId, throwable);
             upstreamFailure = throwable;
-            finish(right.state, right.upstream);
+            doFinish();
+        }
+
+        private void doFinish() {
+            upstreamFinished = true;
+            if (firstCall) {
+                firstCall = false;
+                stop = true;
+                if (leadAcquired.compareAndSet(false, true)) {
+                    LOGGER.trace("phase={} side=left method=doFinish leadAcquired", phaseId);
+                    return;
+                }
+            }
+
+            if (!tryFinish()) {
+                switchTo(right.resumeable);
+            }
         }
 
         @Override
@@ -288,86 +285,150 @@ public class NestedLoopOperation implements RowUpstream, CompletionListenable {
         }
     }
 
+    private void switchTo(AtomicReference<ResumeHandle> atomicResumeable) {
+        ResumeHandle resumeHandle;
+        int sleep = 10;
+        /**
+         * Usually this loop exits immediately.
+         * There is only a race condition during the "start/lead-acquisition" where that's not the case:
+         * E.g.
+         *
+         * <pre>
+         * side=right method=setNextRow action=leadAcquired->pause
+         * side=left method=setNextRow switchOnPause=true
+         * side=left method=pauseProcessed switchOnPause=true
+         * side=right method=pauseProcessed
+         * </pre>
+         */
+        while ((resumeHandle = atomicResumeable.get()) == ResumeHandle.INVALID) {
+            try {
+                Thread.sleep(sleep *= 2);
+                if (sleep > 100) {
+                    LOGGER.warn("phase={} method=switchTo sleep={} SLOW!", phaseId, sleep);
+                }
+            } catch (InterruptedException e) {
+                LOGGER.error("phase={} method=switchTo timeout", phaseId);
+                Thread.currentThread().interrupt();
+                throw Throwables.propagate(e);
+            }
+        }
+        atomicResumeable.set(ResumeHandle.INVALID);
+        LOGGER.trace("phase={} method=switchTo resumeable={}", phaseId, resumeHandle);
+        resumeHandle.resume(false);
+    }
+
     private class RightRowReceiver extends AbstractRowReceiver {
 
         private final CombinedRow combinedRow = new CombinedRow();
         private final Set<Requirement> requirements;
 
         Row lastRow = null;
-        boolean receivedRows = false;
+        boolean firstCall = true;
+        private boolean pauseFromDownstream = false;
 
-          // local non-volatile variable for faster access for the usual case
-        boolean leftIsSuspended = false;
 
-        public RightRowReceiver() {
+        RightRowReceiver() {
             requirements = Requirements.add(downstream.requirements(), Requirement.REPEAT);
         }
 
         @Override
-        public boolean setNextRow(final Row rightRow) {
-            receivedRows = true;
-            if (leftIsSuspended) {
-                return emitRow(rightRow);
+        public void pauseProcessed(final ResumeHandle resumeHandle) {
+            LOGGER.trace("phase={} side=right method=pauseProcessed", phaseId);
+
+            if (pauseFromDownstream) {
+                downstream.pauseProcessed(resumeHandle);
+                return;
             }
 
-            State leftState = left.state.get();
-            LOGGER.trace("[{}] RIGHT: left state: {}", phaseId, leftState);
-            switch (leftState) {
-                case LEAD_ELECTION:
-                    if (leadAcquired.compareAndSet(false, true)) {
-                        lastRow = rightRow;
-                        upstream.pause();
-                        state.set(State.PAUSED);
-                        LOGGER.trace("[{}] RIGHT: pausing, left doesn't has any rows yet. Left state: {}", phaseId, leftState);
-                        return true;
-                    } else {
-                        return handlePauseOrFinished(rightRow, waitForStateChange(left.state));
-                    }
-                default:
-                    return handlePauseOrFinished(rightRow, leftState);
+            if (!this.resumeable.compareAndSet(ResumeHandle.INVALID, new RightResumeHandle(resumeHandle))) {
+                throw new IllegalStateException("Right resumable wasn't null. It should be set to null after use");
             }
-        }
-
-        private boolean handlePauseOrFinished(Row rightRow, State leftState) {
-            switch (leftState) {
-                case FINISHED:
-                    if (left.lastRow == null) {
-                        // left never received a row
-                        return false;
-                    }
-                case PAUSED:
-                    leftIsSuspended = true;
-                    return emitRow(rightRow);
-                default:
-                    throw new AssertionError("There are only 3 different states");
-            }
-        }
-
-        private boolean emitRow(Row row) {
-            combinedRow.outerRow = left.lastRow;
-            combinedRow.innerRow = row;
-            boolean wantsMore = downstream.setNextRow(combinedRow);
-            assert downstreamWantsMore : "shouldn't emit rows if downstream doesn't need anymore";
-            if (!wantsMore) {
-                LOGGER.trace("[{}] downstream doesn't need any more rows", phaseId);
-            }
-            downstreamWantsMore = wantsMore;
-            return wantsMore;
         }
 
         @Override
-        public void finish() {
-            LOGGER.trace("[{}] RIGHT upstream called finish", phaseId);
+        public Result setNextRow(final Row rightRow) {
+            if (stop) {
+                return Result.STOP;
+            }
+            if (firstCall) {
+                firstCall = false;
+                if (leadAcquired.compareAndSet(false, true)) {
+                    lastRow = new RowN(rightRow.materialize());
+                    LOGGER.trace("phase={} side=right method=setNextRow action=leadAcquired->pause", phaseId);
+                    return Result.PAUSE;
+                } else if (left.lastRow == null) {
+                    assert left.upstreamFinished : "If left acquired lead it should either set a lastRow or be finished";
+                    return Result.STOP;
+                }
+            }
+            return emitRow(rightRow);
+        }
 
-            leftIsSuspended = false;
-            finish(left.state, left.upstream);
+        private Result emitRow(Row row) {
+            combinedRow.outerRow = left.lastRow;
+            combinedRow.innerRow = row;
+            Result result = downstream.setNextRow(combinedRow);
+            if (LOGGER.isTraceEnabled() && result != Result.CONTINUE) {
+                LOGGER.trace("phase={} side=right method=emitRow result={}", phaseId, result);
+            }
+            if (result == Result.PAUSE) {
+                pauseFromDownstream = true;
+            }
+            return result;
+        }
+
+        @Override
+        public void finish(final RepeatHandle repeatHandle) {
+            LOGGER.trace("phase={} side=right method=finish firstCall={}", phaseId, firstCall);
+
+            upstreamFinished = true;
+            pauseFromDownstream = false;
+
+            if (firstCall) {
+                stop = true; // if any side has no rows there is an empty result - so indicate left to stop.
+                firstCall = false;
+                if (leadAcquired.compareAndSet(false, true)) {
+                    return;
+                }
+            }
+            if (tryFinish()) {
+                return;
+            }
+            this.resumeable.set(new ResumeHandle() {
+                @Override
+                public void resume(boolean async) {
+                    RightRowReceiver.this.upstreamFinished = false;
+                    repeatHandle.repeat();
+                }
+            });
+            if (left.wakeupRequired) {
+                left.wakeupRequired = false;
+                switchTo(left.resumeable);
+            }
         }
 
         @Override
         public void fail(Throwable throwable) {
+            LOGGER.trace("phase={} side=right method=fail error={}", phaseId, throwable);
+
             upstreamFailure = throwable;
-            leftIsSuspended = true;
-            finish(left.state, left.upstream);
+            upstreamFinished = true;
+            pauseFromDownstream = false;
+            stop = true;
+
+            if (firstCall) {
+                firstCall = false;
+                if (leadAcquired.compareAndSet(false, true)) {
+                    return;
+                }
+            }
+            if (tryFinish()) {
+                return;
+            }
+            if (left.wakeupRequired) {
+                left.wakeupRequired = false;
+                switchTo(left.resumeable);
+            }
         }
 
         @Override
@@ -375,42 +436,60 @@ public class NestedLoopOperation implements RowUpstream, CompletionListenable {
             return requirements;
         }
 
-        boolean resume(State rightState) {
-            if (lastRow != null) {
-                boolean wantMore = emitRow(lastRow);
-                lastRow = null;
-                if (paused) {
-                    return wantMore;
-                }
-                if (!wantMore) {
-                    LOGGER.trace("[{}] LEFT - right resume - downstream doesn't need any more rows, return false", phaseId);
-                    upstream.resume(false);
-                    return false;
-                }
+        /**
+         * This Handle is only used if the right side starts before the left and is paused.
+         *
+         * After that the right side can only be paused by a downstream in which case the upstreams handle is passed through.
+         */
+        private class RightResumeHandle implements ResumeHandle {
+            private final ResumeHandle delegate;
+
+            RightResumeHandle(ResumeHandle delegate) {
+                this.delegate = delegate;
             }
 
-            if (rightState == State.FINISHED) {
-                if (receivedRows) {
-                    LOGGER.trace("[{}] repeat right", phaseId);
-                    upstream.repeat();
-                } else {
-                    LOGGER.trace("[{}] LEFT - resume right - right finished and no rows: return false", phaseId);
-                    return false;
+            @Override
+            public void resume(boolean async) {
+                if (left.upstreamFinished) {
+                    stop = true;
+                    delegate.resume(async);
+                    return;
                 }
-            } else {
-                LOGGER.trace("[{}] resume right on {}", phaseId, upstream);
-                upstream.resume(false);
+
+                assert lastRow != null : "lastRow should be present";
+                Result result = emitRow(lastRow);
+                lastRow = null;
+                switch (result) {
+                    case CONTINUE:
+                        break;
+                    case PAUSE:
+                        downstream.pauseProcessed(delegate);
+                        return;
+                    case STOP:
+                        stop = true;
+                        break; // need to resume so that STOP can be processed
+                }
+                delegate.resume(async);
             }
-            return true;
         }
     }
 
-    private State waitForStateChange(AtomicReference<State> stateRef) {
-        // loop shouldn't take long as other side has just acquired the lead and is about to change the state
-        State state;
-        do {
-            state = stateRef.get();
-        } while (state == State.LEAD_ELECTION);
-        return state;
+    private boolean tryFinish() {
+        LOGGER.trace("phase={} method=tryFinish leftFinished={} rightFinished={}", phaseId, left.upstreamFinished, right.upstreamFinished);
+        if (left.upstreamFinished && right.upstreamFinished) {
+            if (upstreamFailure == null) {
+                downstream.finish(this);
+                completionFuture.set(null);
+                left.finished.set(null);
+                right.finished.set(null);
+            } else {
+                downstream.fail(upstreamFailure);
+                completionFuture.setException(upstreamFailure);
+                left.finished.setException(upstreamFailure);
+                right.finished.setException(upstreamFailure);
+            }
+            return true;
+        }
+        return false;
     }
 }

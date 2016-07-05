@@ -28,6 +28,7 @@ import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.collections.Row;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
+import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -48,9 +49,9 @@ public class RowCountResultRowDownstream implements ResultReceiver {
     }
 
     @Override
-    public boolean setNextRow(Row row) {
+    public RowReceiver.Result setNextRow(Row row) {
         rows.add(row.materialize());
-        return true;
+        return RowReceiver.Result.CONTINUE;
     }
 
     @Override

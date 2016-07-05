@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.*;
 import io.crate.operation.PageConsumeListener;
+import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.test.integration.CrateUnitTest;
@@ -79,7 +80,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
 
         class FailingRowReceiver extends CollectingRowReceiver {
             @Override
-            public boolean setNextRow(Row row) {
+            public Result setNextRow(Row row) {
                 throw new CircuitBreakingException("foo");
             }
         }
@@ -118,7 +119,7 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         downstream.finish();
         downstream.finish();
 
-        verify(rowReceiver, times(1)).finish();
+        verify(rowReceiver, times(1)).finish(any(RepeatHandle.class));
     }
 
     @Test

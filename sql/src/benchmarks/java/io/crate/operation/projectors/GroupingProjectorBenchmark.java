@@ -117,7 +117,7 @@ public class GroupingProjectorBenchmark {
             groupingProjector.setNextRow(row);
         }
 
-        groupingProjector.finish();
+        groupingProjector.finish(RepeatHandle.UNSUPPORTED);
     }
 
     @Test
@@ -150,6 +150,6 @@ public class GroupingProjectorBenchmark {
             groupingProjector.setNextRow(row);
         }
 
-        groupingProjector.finish();
+        groupingProjector.finish(RepeatHandle.UNSUPPORTED);
     }
 }

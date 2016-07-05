@@ -46,8 +46,8 @@ public class RowReceivers {
         }
 
         @Override
-        public void finish() {
-            super.finish();
+        public void finish(RepeatHandle repeatHandle) {
+            super.finish(repeatHandle);
             finishedFuture.set(null);
         }
 

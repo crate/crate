@@ -80,7 +80,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
         Projector pipe = preparePipe(10, TopN.NO_OFFSET, rowReceiver);
         RowSender.generateRowsInRangeAndEmit(0, 5, pipe);
 
-        pipe.finish();
+        pipe.finish(RepeatHandle.UNSUPPORTED);
         Bucket projected = rowReceiver.result();
         assertThat(projected.size(), is(5));
 
@@ -106,7 +106,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         Projector pipe = preparePipe(10, TopN.NO_OFFSET, rowReceiver);
 
-        pipe.finish();
+        pipe.finish(RepeatHandle.UNSUPPORTED);
         Bucket projected = rowReceiver.result();
         assertThat(projected, emptyIterable());
 
@@ -165,12 +165,12 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
         pipe.prepare();
         int i;
         for (i = 0; i<12;i++) {
-            if (!pipe.setNextRow(row)) {
+            if (pipe.setNextRow(row) == RowReceiver.Result.STOP) {
                 break;
             }
         }
         assertThat(i, is(9));
-        pipe.finish();
+        pipe.finish(RepeatHandle.UNSUPPORTED);
         Bucket rows = rowReceiver.result();
         assertThat(rows.size(), is(10));
         assertThat(rows.iterator().next(), isRow(42L));
@@ -205,7 +205,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
     public void testProjectLimitOnly0UpStream() throws Throwable {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         Projector pipe = preparePipe(10, TopN.NO_OFFSET, rowReceiver);
-        pipe.finish();
+        pipe.finish(RepeatHandle.UNSUPPORTED);
         Bucket projected = rowReceiver.result();
         assertThat(projected, emptyIterable());
     }

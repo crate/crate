@@ -47,7 +47,7 @@ public class InputRowProjector extends AbstractProjector {
     }
 
     @Override
-    public boolean setNextRow(Row row) {
+    public Result setNextRow(Row row) {
         for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
@@ -55,8 +55,8 @@ public class InputRowProjector extends AbstractProjector {
     }
 
     @Override
-    public void finish() {
-        downstream.finish();
+    public void finish(RepeatHandle repeatable) {
+        downstream.finish(repeatable);
     }
 
     @Override

@@ -44,7 +44,7 @@ class BulkProcessorFutureCallback implements FutureCallback<BitSet> {
         if (!failed.get()) {
             long rowCount = result == null ? 0 : result.cardinality();
             rowReceiver.setNextRow(new Row1(rowCount));
-            rowReceiver.finish();
+            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
         }
     }
 

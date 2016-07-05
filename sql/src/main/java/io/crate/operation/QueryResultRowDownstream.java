@@ -29,9 +29,7 @@ import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.QueryResult;
 import io.crate.executor.TaskResult;
-import io.crate.operation.projectors.Requirement;
-import io.crate.operation.projectors.Requirements;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.*;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -47,28 +45,37 @@ public class QueryResultRowDownstream implements RowReceiver, ResultReceiver {
     private final SettableFuture<TaskResult> result;
     private final List<Object[]> rows = new ArrayList<>();
     private CompletionListener listener = CompletionListener.NO_OP;
-    private boolean shouldContinue = true;
+    private Result setNextRowResult = Result.CONTINUE;
 
     public QueryResultRowDownstream(SettableFuture<TaskResult> result) {
         this.result = result;
     }
 
     @Override
-    public boolean setNextRow(Row row) {
+    public Result setNextRow(Row row) {
         rows.add(row.materialize());
-        return shouldContinue;
+        return setNextRowResult;
+    }
+
+    @Override
+    public void pauseProcessed(ResumeHandle resumeable) {
     }
 
     @Override
     public void finish() {
-        shouldContinue = false;
+        finish(RepeatHandle.UNSUPPORTED);
+    }
+
+    @Override
+    public void finish(RepeatHandle repeatHandle) {
+        setNextRowResult = Result.STOP;
         result.set(new QueryResult(new CollectionBucket(rows)));
         listener.onSuccess(null);
     }
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        shouldContinue = false;
+        setNextRowResult = Result.STOP;
         result.setException(throwable);
         listener.onFailure(throwable);
     }
@@ -80,10 +87,6 @@ public class QueryResultRowDownstream implements RowReceiver, ResultReceiver {
 
     @Override
     public void prepare() {
-    }
-
-    @Override
-    public void setUpstream(RowUpstream rowUpstream) {
     }
 
     @Override

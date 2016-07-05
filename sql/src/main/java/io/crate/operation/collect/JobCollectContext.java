@@ -33,6 +33,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.ListenableRowReceiver;
+import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dql.CollectPhase;
@@ -170,7 +171,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     @Override
     protected void innerStart() {
         if (collectors.isEmpty()) {
-            rowReceiver.finish();
+            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
         } else {
             if (logger.isTraceEnabled()) {
                 measureCollectTime();

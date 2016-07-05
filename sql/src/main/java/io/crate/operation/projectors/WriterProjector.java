@@ -157,18 +157,18 @@ public class WriterProjector extends AbstractProjector {
     }
 
     @Override
-    public boolean setNextRow(Row row) {
+    public Result setNextRow(Row row) {
         rowWriter.write(row);
         counter.incrementAndGet();
-        return true;
+        return Result.CONTINUE;
     }
 
     @Override
-    public void finish() {
+    public void finish(RepeatHandle repeatHandle) {
         if (closeWriterAndOutput()) return;
 
         downstream.setNextRow(new Row1(counter.get()));
-        downstream.finish();
+        downstream.finish(RepeatHandle.UNSUPPORTED);
     }
 
     private boolean closeWriterAndOutput() {

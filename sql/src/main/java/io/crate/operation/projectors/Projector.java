@@ -22,9 +22,8 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.operation.RowUpstream;
 
-public interface Projector extends RowReceiver, RowUpstream {
+public interface Projector extends RowReceiver {
 
     void downstream(RowReceiver rowDownstreamHandle);
 }

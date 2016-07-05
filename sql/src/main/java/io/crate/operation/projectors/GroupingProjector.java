@@ -44,6 +44,9 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import javax.annotation.Nullable;
 import java.util.*;
 
+import static io.crate.operation.projectors.RowReceiver.Result.CONTINUE;
+import static io.crate.operation.projectors.RowReceiver.Result.STOP;
+
 public class GroupingProjector extends AbstractProjector {
 
 
@@ -93,15 +96,15 @@ public class GroupingProjector extends AbstractProjector {
 
 
     @Override
-    public boolean setNextRow(Row row) {
+    public Result setNextRow(Row row) {
         if (killed) {
-            return false;
+            return STOP;
         }
         return grouper.setNextRow(row);
     }
 
     @Override
-    public void finish() {
+    public void finish(RepeatHandle repeatHandle) {
         grouper.finish();
         if (logger.isDebugEnabled()) {
             logger.debug("grouping operation size is: {}", new ByteSizeValue(ramAccountingContext.totalBytes()));
@@ -153,7 +156,7 @@ public class GroupingProjector extends AbstractProjector {
     }
 
     private interface Grouper extends AutoCloseable {
-        boolean setNextRow(final Row row);
+        Result setNextRow(final Row row);
         void finish();
         void kill(Throwable t);
     }
@@ -179,7 +182,7 @@ public class GroupingProjector extends AbstractProjector {
         }
 
         @Override
-        public boolean setNextRow(Row row) {
+        public Result setNextRow(Row row) {
             for (CollectExpression collectExpression : collectExpressions) {
                 collectExpression.setNextRow(row);
             }
@@ -205,7 +208,7 @@ public class GroupingProjector extends AbstractProjector {
                 }
             }
 
-            return true;
+            return CONTINUE;
         }
 
         @Override
@@ -282,7 +285,7 @@ public class GroupingProjector extends AbstractProjector {
         }
 
         @Override
-        public boolean setNextRow(Row row) {
+        public Result setNextRow(Row row) {
             for (CollectExpression collectExpression : collectExpressions) {
                 collectExpression.setNextRow(row);
             }
@@ -321,7 +324,7 @@ public class GroupingProjector extends AbstractProjector {
                 }
             }
 
-            return true;
+            return CONTINUE;
         }
 
         @Override

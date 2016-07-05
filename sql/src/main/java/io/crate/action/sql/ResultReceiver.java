@@ -24,6 +24,7 @@ package io.crate.action.sql;
 
 import io.crate.concurrent.CompletionListenable;
 import io.crate.core.collections.Row;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;
 
 import javax.annotation.Nonnull;
@@ -38,7 +39,7 @@ public interface ResultReceiver extends CompletionListenable {
     /**
      * @return true if the receiver wants to receive more rows, otherwise false
      */
-    boolean setNextRow(Row row);
+    RowReceiver.Result setNextRow(Row row);
 
     /**
      * Called once an upstream can't provide anymore rows.

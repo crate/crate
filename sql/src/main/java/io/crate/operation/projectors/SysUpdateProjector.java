@@ -62,7 +62,7 @@ class SysUpdateProjector extends AbstractProjector {
 
     @SuppressWarnings("unchecked")
     @Override
-    public boolean setNextRow(Row row) {
+    public Result setNextRow(Row row) {
         assert row instanceof ValueAndInputRow;
 
         for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
@@ -73,13 +73,13 @@ class SysUpdateProjector extends AbstractProjector {
             writableExpression.updateValue(((ValueAndInputRow) row).get(), assignmentExpression.v2().value());
         }
         rowCount++;
-        return true;
+        return Result.CONTINUE;
     }
 
     @Override
-    public void finish() {
+    public void finish(RepeatHandle repeatHandle) {
         downstream.setNextRow(new Row1(rowCount));
-        downstream.finish();;
+        downstream.finish(RepeatHandle.UNSUPPORTED);;
     }
 
     @Override

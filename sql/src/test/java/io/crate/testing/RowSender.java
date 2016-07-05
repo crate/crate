@@ -24,76 +24,61 @@ package io.crate.testing;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.operation.RowUpstream;
-import io.crate.operation.collect.collectors.TopRowUpstream;
+import io.crate.operation.projectors.ExecutorResumeHandle;
+import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.Executor;
 
-public class RowSender implements Runnable, RowUpstream {
+public class RowSender implements Runnable, RepeatHandle {
 
+    private final Iterable<Row> rows;
     private final RowReceiver downstream;
-    private final TopRowUpstream topRowUpstream;
+    private final ExecutorResumeHandle resumeable;
 
     private volatile int numPauses = 0;
     private volatile int numResumes = 0;
     private Iterator<Row> iterator;
 
     public RowSender(final Iterable<Row> rows, RowReceiver rowReceiver, Executor executor) {
+        this.rows = rows;
         downstream = rowReceiver;
-        topRowUpstream = new TopRowUpstream(executor, new Runnable() {
+        iterator = rows.iterator();
+        this.resumeable = new ExecutorResumeHandle(executor, new Runnable() {
             @Override
             public void run() {
                 numResumes++;
                 RowSender.this.run();
             }
-        }, new Runnable() {
-            @Override
-            public void run() {
-                iterator = rows.iterator();
-                RowSender.this.run();
-            }
         });
-        rowReceiver.setUpstream(this);
-        iterator = rows.iterator();
     }
 
     @Override
     public void run() {
+        loop:
         while (iterator.hasNext()) {
-            final boolean wantsMore = downstream.setNextRow(iterator.next());
-            if (!wantsMore) {
-                break;
+            RowReceiver.Result result = downstream.setNextRow(iterator.next());
+            switch (result) {
+                case CONTINUE:
+                    continue ;
+                case PAUSE:
+                    numPauses++;
+                    downstream.pauseProcessed(resumeable);
+                    return;
+                case STOP:
+                    break loop;
             }
-            if (processPause()) return;
+            throw new AssertionError("Unrecognized setNextRow result: " + result);
         }
-        downstream.finish();
+        downstream.finish(this);
    }
-
-    private boolean processPause() {
-        if (topRowUpstream.shouldPause()) {
-            numPauses++;
-            topRowUpstream.pauseProcessed();
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public void pause() {
-        topRowUpstream.pause();
-    }
-
-    @Override
-    public void resume(boolean async) {
-        topRowUpstream.resume(async);
-    }
 
     @Override
     public void repeat() {
-        topRowUpstream.repeat();
+        iterator = rows.iterator();
+        RowSender.this.run();
     }
 
     public int numPauses() {

@@ -23,7 +23,6 @@
 package io.crate.operation.projectors;
 
 import io.crate.core.collections.Row;
-import io.crate.operation.RowUpstream;
 
 import java.util.Set;
 
@@ -33,6 +32,11 @@ public abstract class ForwardingRowReceiver implements RowReceiver {
 
     public ForwardingRowReceiver(RowReceiver rowReceiver) {
         this.rowReceiver = rowReceiver;
+    }
+
+    @Override
+    public void pauseProcessed(ResumeHandle resumeable) {
+        rowReceiver.pauseProcessed(resumeable);
     }
 
     @Override
@@ -46,18 +50,13 @@ public abstract class ForwardingRowReceiver implements RowReceiver {
     }
 
     @Override
-    public void setUpstream(RowUpstream rowUpstream) {
-        rowReceiver.setUpstream(rowUpstream);
-    }
-
-    @Override
-    public boolean setNextRow(Row row) {
+    public Result setNextRow(Row row) {
         return rowReceiver.setNextRow(row);
     }
 
     @Override
-    public void finish() {
-        rowReceiver.finish();
+    public void finish(RepeatHandle repeatHandle) {
+        rowReceiver.finish(repeatHandle);
     }
 
     @Override

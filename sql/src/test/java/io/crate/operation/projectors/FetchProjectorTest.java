@@ -36,7 +36,6 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
-import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.fetch.FetchOperation;
 import io.crate.operation.projectors.fetch.FetchProjector;
 import io.crate.operation.projectors.fetch.FetchProjectorContext;
@@ -57,7 +56,6 @@ import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.RowSender.rowRange;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
 
 public class FetchProjectorTest extends CrateUnitTest {
 
@@ -94,8 +92,7 @@ public class FetchProjectorTest extends CrateUnitTest {
                 return Futures.<IntObjectMap<? extends Bucket>>immediateFuture(readerToBuckets);
             }
         };
-        RowUpstream upstream = mock(RowUpstream.class);
-        FetchProjector fetchProjector = prepareFetchProjector(rowReceiver, fetchOperation, upstream);
+        FetchProjector fetchProjector = prepareFetchProjector(rowReceiver, fetchOperation);
 
         RowSender rowSender = new RowSender(rowRange(0, 5), fetchProjector, MoreExecutors.directExecutor());
         rowSender.run();
@@ -104,9 +101,7 @@ public class FetchProjectorTest extends CrateUnitTest {
     }
 
 
-    private FetchProjector prepareFetchProjector(CollectingRowReceiver rowReceiver,
-                                                 FetchOperation fetchOperation,
-                                                 RowUpstream upstream) {
+    private FetchProjector prepareFetchProjector(CollectingRowReceiver rowReceiver, FetchOperation fetchOperation ) {
         FetchProjector fetchProjector =
             new FetchProjector(
                 fetchOperation,
@@ -115,7 +110,6 @@ public class FetchProjectorTest extends CrateUnitTest {
                 buildOutputSymbols(),
                 buildFetchProjectorContext()
             );
-        fetchProjector.setUpstream(upstream);
         fetchProjector.downstream(rowReceiver);
         fetchProjector.prepare();
         return fetchProjector;

@@ -30,9 +30,9 @@ public class RowCountRowReceiver extends CollectingRowReceiver {
     private int rowCount = 0;
 
     @Override
-    public boolean setNextRow(Row row) {
+    public Result setNextRow(Row row) {
         rowCount++;
-        return true;
+        return Result.CONTINUE;
     }
 
     @Override

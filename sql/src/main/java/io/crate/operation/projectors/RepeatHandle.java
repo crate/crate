@@ -22,28 +22,14 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
+public interface RepeatHandle {
 
-public class MergeCountProjector extends AbstractProjector {
+    RepeatHandle UNSUPPORTED = new RepeatHandle() {
+        @Override
+        public void repeat() {
+            throw new UnsupportedOperationException("Repeat not supported");
+        }
+    };
 
-    private long sum;
-
-    @Override
-    public Result setNextRow(Row row) {
-        Long count = (Long)row.get(0);
-        sum += count;
-        return Result.CONTINUE;
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        downstream.setNextRow(new Row1(sum));
-        downstream.finish(RepeatHandle.UNSUPPORTED);
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        downstream.fail(throwable);
-    }
+    void repeat();
 }

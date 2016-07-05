@@ -25,34 +25,27 @@ package io.crate.operation.projectors;
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Row;
-import io.crate.operation.collect.collectors.TopRowUpstream;
 
 import java.util.Iterator;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class IterableRowEmitter implements Runnable {
+public class IterableRowEmitter implements Runnable, RepeatHandle {
 
     private final RowReceiver rowReceiver;
-    private final TopRowUpstream topRowUpstream;
+    private final Iterable<? extends Row> rows;
+    private final ExecutorResumeHandle resumeable;
     private Iterator<? extends Row> rowsIt;
+
+    private final AtomicBoolean finished = new AtomicBoolean(false);
 
     public IterableRowEmitter(RowReceiver rowReceiver,
                               final Iterable<? extends Row> rows,
                               Optional<Executor> executor) {
         this.rowReceiver = rowReceiver;
-        topRowUpstream = new TopRowUpstream(
-                executor.or(MoreExecutors.directExecutor()),
-                this,
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        rowsIt = rows.iterator();
-                        IterableRowEmitter.this.run();
-                    }
-                }
-        );
-        rowReceiver.setUpstream(topRowUpstream);
+        this.rows = rows;
         this.rowsIt = rows.iterator();
+        this.resumeable = new ExecutorResumeHandle(executor.or(MoreExecutors.directExecutor()), this);
     }
 
     public IterableRowEmitter(RowReceiver rowReceiver, Iterable<? extends Row> rows) {
@@ -66,19 +59,37 @@ public class IterableRowEmitter implements Runnable {
     @Override
     public void run() {
         try {
+            loop:
             while (rowsIt.hasNext()) {
-                boolean wantsMore = rowReceiver.setNextRow(rowsIt.next());
-                if (!wantsMore) {
-                    break;
+                RowReceiver.Result result = rowReceiver.setNextRow(rowsIt.next());
+                switch (result) {
+                    case CONTINUE:
+                        continue ;
+                    case PAUSE:
+                        rowReceiver.pauseProcessed(resumeable);
+                        return;
+                    case STOP:
+                        break loop;
                 }
-                if (topRowUpstream.shouldPause()) {
-                    topRowUpstream.pauseProcessed();
-                    return;
-                }
+                throw new AssertionError("Unrecognized setNextRow result: " + result);
             }
-            rowReceiver.finish();
+            if (finished.compareAndSet(false, true)) {
+                rowReceiver.finish(this);
+            } else {
+                throw new IllegalStateException("Illegal finished state. Should have been false but was true");
+            }
         } catch (Throwable t) {
             rowReceiver.fail(t);
+        }
+    }
+
+    @Override
+    public void repeat() {
+        if (finished.compareAndSet(true, false)) {
+            rowsIt = rows.iterator();
+            IterableRowEmitter.this.run();
+        } else {
+            throw new IllegalStateException("Downstream called repeat, but IterableRowEmitter wasn't finished");
         }
     }
 }

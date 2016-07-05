@@ -25,10 +25,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.operation.RowUpstream;
-import io.crate.operation.projectors.Requirement;
-import io.crate.operation.projectors.Requirements;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.*;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -66,7 +63,6 @@ public class DistributingDownstream implements RowReceiver {
     private final TransportDistributedResultAction transportDistributedResultAction;
     private final Streamer<?>[] streamers;
     private final int pageSize;
-    private RowUpstream upstream;
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private final AtomicInteger requestsPending = new AtomicInteger(0);
     private final Downstream[] downstreams;
@@ -74,9 +70,12 @@ public class DistributingDownstream implements RowReceiver {
     private final AtomicInteger finishedDownstreams = new AtomicInteger(0);
     private final Bucket[] buckets;
 
-    private volatile boolean gatherMoreRows = true;
+    private volatile Result setNextRowResult = Result.CONTINUE;
     private volatile boolean killed = false;
     private boolean hasUpstreamFinished = false;
+
+    private final AtomicInteger resumeLatch = new AtomicInteger(2);
+    private ResumeHandle resumeable = ResumeHandle.INVALID;
 
     public DistributingDownstream(ESLogger logger,
                                   UUID jobId,
@@ -108,16 +107,17 @@ public class DistributingDownstream implements RowReceiver {
     }
 
     @Override
-    public boolean setNextRow(Row row) {
+    public Result setNextRow(Row row) {
         if (killed) {
-            return false;
+            return Result.STOP;
         }
         multiBucketBuilder.add(row);
         synchronized (lock) {
             if (multiBucketBuilder.size() >= pageSize) {
+                resumeLatch.set(2);
                 if (requestsPending.get() > 0) {
                     traceLog("page is full and requests are pending");
-                    pause();
+                    return Result.PAUSE;
                 } else {
                     traceLog("page is full - sending request");
                     multiBucketBuilder.build(buckets);
@@ -125,7 +125,24 @@ public class DistributingDownstream implements RowReceiver {
                 }
             }
         }
-        return gatherMoreRows;
+        return setNextRowResult;
+    }
+
+    @Override
+    public void pauseProcessed(ResumeHandle resumeable) {
+        if (resumeLatch.decrementAndGet() == 0) {
+            resumeable.resume(true);
+        } else {
+            this.resumeable = resumeable;
+        }
+    }
+
+    private void resume() {
+        if (resumeLatch.decrementAndGet() == 0) {
+            ResumeHandle resumeable = this.resumeable;
+            this.resumeable = ResumeHandle.INVALID;
+            resumeable.resume(true);
+        }
     }
 
     private void traceLog(String msg) {
@@ -141,28 +158,20 @@ public class DistributingDownstream implements RowReceiver {
         }
     }
 
-    private void pause() {
-        upstream.pause();
-    }
-
     @Override
     public Set<Requirement> requirements() {
         return Requirements.NO_REQUIREMENTS;
     }
 
-    private void resume() {
-        upstream.resume(true);
-    }
-
     @Override
-    public void finish() {
+    public void finish(RepeatHandle repeatHandle) {
         upstreamFinished();
     }
 
     @Override
     public void fail(Throwable throwable) {
         failure.compareAndSet(null, throwable);
-        gatherMoreRows = false;
+        setNextRowResult = Result.STOP;
         upstreamFinished();
     }
 
@@ -196,11 +205,6 @@ public class DistributingDownstream implements RowReceiver {
                 downstream.forwardFailure(throwable);
             }
         }
-    }
-
-    @Override
-    public void setUpstream(RowUpstream rowUpstream) {
-        upstream = rowUpstream;
     }
 
     private class Downstream implements ActionListener<DistributedResultResponse> {
@@ -248,7 +252,7 @@ public class DistributingDownstream implements RowReceiver {
 
         @Override
         public void onFailure(Throwable e) {
-            gatherMoreRows = false;
+            setNextRowResult = Result.STOP;
             onResponse(false);
         }
 
@@ -283,7 +287,7 @@ public class DistributingDownstream implements RowReceiver {
                 }
             } else {
                 if (finishedDownstreams.incrementAndGet() == downstreams.length) {
-                    gatherMoreRows = false;
+                    setNextRowResult = Result.STOP;
                 }
                 resume();
             }

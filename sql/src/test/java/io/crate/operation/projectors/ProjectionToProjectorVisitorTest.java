@@ -128,12 +128,12 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         projector.prepare();
         int i;
         for (i = 0; i < 20; i++) {
-            if (!projector.setNextRow(spare(42))) {
+            if (projector.setNextRow(spare(42)) == RowReceiver.Result.STOP) {
                 break;
             }
         }
         assertThat(i, is(11));
-        projector.finish();
+        projector.finish(RepeatHandle.UNSUPPORTED);
         Bucket rows = collectingProjector.result();
         assertThat(rows.size(), is(10));
         assertThat(rows.iterator().next(), isRow("foo", 42));
@@ -168,7 +168,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         projector.prepare();
         projector.setNextRow(spare("foo", 10));
         projector.setNextRow(spare("bar", 20));
-        projector.finish();
+        projector.finish(RepeatHandle.UNSUPPORTED);
         Bucket rows = collectingProjector.result();
         assertThat(rows.size(), is(1));
         assertThat(rows, contains(isRow(15.0, 2L)));
@@ -216,7 +216,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         projector.setNextRow(spare(vogon, 40, male));
         projector.setNextRow(spare(vogon, 48, male));
         projector.setNextRow(spare(human, 34, male));
-        projector.finish();
+        projector.finish(RepeatHandle.UNSUPPORTED);
 
         Bucket rows = collector.result();
         assertThat(rows, contains(
@@ -244,7 +244,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         projector.setNextRow(spare("human", 2));
         projector.setNextRow(spare("vogon", 1));
 
-        projector.finish();
+        projector.finish(RepeatHandle.UNSUPPORTED);
 
         Bucket rows = collectingProjector.result();
         assertThat(rows.size(), is(1));

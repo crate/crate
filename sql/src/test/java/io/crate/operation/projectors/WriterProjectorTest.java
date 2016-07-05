@@ -78,7 +78,7 @@ public class WriterProjectorTest extends CrateUnitTest {
         for (int i = 0; i < 5; i++) {
             projector.setNextRow(new Row1(new BytesRef(String.format(Locale.ENGLISH, "input line %02d", i))));
         }
-        projector.finish();
+        projector.finish(RepeatHandle.UNSUPPORTED);
 
         Bucket rows = rowReceiver.result();
         assertThat(rows, contains(isRow(5L)));
@@ -121,7 +121,7 @@ public class WriterProjectorTest extends CrateUnitTest {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         projector.downstream(rowReceiver);
         projector.prepare();
-        projector.finish();
+        projector.finish(RepeatHandle.UNSUPPORTED);
         rowReceiver.result();
     }
 
@@ -144,7 +144,7 @@ public class WriterProjectorTest extends CrateUnitTest {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         projector.downstream(rowReceiver);
         projector.prepare();
-        projector.finish();
+        projector.finish(RepeatHandle.UNSUPPORTED);
         rowReceiver.result();
     }
 }

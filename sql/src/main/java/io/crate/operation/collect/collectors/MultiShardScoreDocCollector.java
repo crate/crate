@@ -32,10 +32,7 @@ import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.operation.merge.SortedPagingIterator;
-import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.operation.projectors.IterableRowEmitter;
-import io.crate.operation.projectors.Requirement;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
@@ -47,7 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
 
-public class MultiShardScoreDocCollector implements CrateCollector {
+public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle, RepeatHandle {
 
     private static final ESLogger LOGGER = Loggers.getLogger(MultiShardScoreDocCollector.class);
 
@@ -55,7 +52,6 @@ public class MultiShardScoreDocCollector implements CrateCollector {
     private final ObjectObjectHashMap<ShardId, OrderedDocCollector> orderedCollectorsMap;
     private final RowReceiver rowReceiver;
     private final PagingIterator<ShardId, Row> pagingIterator;
-    private final TopRowUpstream topRowUpstream;
     private final ListeningExecutorService executor;
     private final ListeningExecutorService directExecutor;
     private final FutureCallback<List<KeyIterable<ShardId, Row>>> futureCallback;
@@ -72,20 +68,7 @@ public class MultiShardScoreDocCollector implements CrateCollector {
         assert orderedDocCollectors.size() > 0 : "must have at least one shardContext";
         this.directExecutor = MoreExecutors.newDirectExecutorService();
         this.executor = executor;
-        this.topRowUpstream = new TopRowUpstream(executor, new Runnable() {
-            @Override
-            public void run() {
-                processIterator();
-            }
-        }, new Runnable() {
-            @Override
-            public void run() {
-                rowEmitter = new IterableRowEmitter(rowReceiver, pagingIterator.repeat());
-                rowEmitter.run();
-            }
-        });
         rowReceiver = flatProjectorChain.firstProjector();
-        rowReceiver.setUpstream(topRowUpstream);
         this.orderedDocCollectors = orderedDocCollectors;
         singleShard = orderedDocCollectors.size() == 1;
 
@@ -191,15 +174,17 @@ public class MultiShardScoreDocCollector implements CrateCollector {
     private Result emitRows() {
         while (pagingIterator.hasNext()) {
             Row row = pagingIterator.next();
-
-            boolean wantMore = rowReceiver.setNextRow(row);
-            if (!wantMore) {
-                return Result.FINISHED;
+            RowReceiver.Result result = rowReceiver.setNextRow(row);
+            switch (result) {
+                case CONTINUE:
+                    continue;
+                case PAUSE:
+                    rowReceiver.pauseProcessed(this);
+                    return Result.PAUSED;
+                case STOP:
+                    return Result.FINISHED;
             }
-            if (topRowUpstream.shouldPause()) {
-                topRowUpstream.pauseProcessed();
-                return Result.PAUSED;
-            }
+            throw new AssertionError("Unrecognized setNextRow result: " + result);
         }
         return Result.EXHAUSTED;
     }
@@ -215,7 +200,7 @@ public class MultiShardScoreDocCollector implements CrateCollector {
 
     private void finish() {
         closeShardContexts();
-        rowReceiver.finish();
+        rowReceiver.finish(this);
     }
 
     private void fail(@Nonnull Throwable t) {
@@ -236,5 +221,16 @@ public class MultiShardScoreDocCollector implements CrateCollector {
         } else {
             rowEmitter.kill(throwable);
         }
+    }
+
+    @Override
+    public void repeat() {
+        rowEmitter = new IterableRowEmitter(rowReceiver, pagingIterator.repeat());
+        rowEmitter.run();
+    }
+
+    @Override
+    public void resume(boolean async) {
+        processIterator();
     }
 }

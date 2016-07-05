@@ -28,10 +28,7 @@ import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.StreamBucket;
-import io.crate.operation.RowUpstream;
-import io.crate.operation.projectors.Requirement;
-import io.crate.operation.projectors.Requirements;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.*;
 
 import java.io.IOException;
 import java.util.Set;
@@ -47,13 +44,17 @@ public class SingleBucketBuilder implements RowReceiver {
     }
 
     @Override
-    public boolean setNextRow(Row row) {
+    public Result setNextRow(Row row) {
         try {
             bucketBuilder.add(row);
         } catch (Throwable e) {
             Throwables.propagate(e);
         }
-        return true;
+        return Result.CONTINUE;
+    }
+
+    @Override
+    public void pauseProcessed(ResumeHandle resumeable) {
     }
 
     public ListenableFuture<Bucket> result() {
@@ -61,7 +62,7 @@ public class SingleBucketBuilder implements RowReceiver {
     }
 
     @Override
-    public void finish() {
+    public void finish(RepeatHandle repeatHandle) {
         try {
             bucketFuture.set(bucketBuilder.build());
         } catch (IOException e) {
@@ -86,9 +87,5 @@ public class SingleBucketBuilder implements RowReceiver {
     @Override
     public Set<Requirement> requirements() {
         return Requirements.NO_REQUIREMENTS;
-    }
-
-    @Override
-    public void setUpstream(RowUpstream rowUpstream) {
     }
 }

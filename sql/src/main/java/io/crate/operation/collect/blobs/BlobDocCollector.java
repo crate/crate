@@ -22,13 +22,12 @@
 package io.crate.operation.collect.blobs;
 
 import io.crate.blob.BlobContainer;
-import io.crate.exceptions.JobKilledException;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
-import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.InputCondition;
+import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
@@ -36,7 +35,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-public class BlobDocCollector implements CrateCollector, RowUpstream {
+public class BlobDocCollector implements CrateCollector {
 
     private BlobContainer blobContainer;
     private final List<Input<?>> inputs;
@@ -44,7 +43,6 @@ public class BlobDocCollector implements CrateCollector, RowUpstream {
 
     private final Input<Boolean> condition;
     private RowReceiver downstream;
-    private volatile boolean killed;
 
     public BlobDocCollector(
             BlobContainer blobContainer,
@@ -57,7 +55,6 @@ public class BlobDocCollector implements CrateCollector, RowUpstream {
         this.expressions = expressions;
         this.condition = condition;
         this.downstream = downstream;
-        downstream.setUpstream(this);
     }
 
     @Override
@@ -65,7 +62,7 @@ public class BlobDocCollector implements CrateCollector, RowUpstream {
         BlobContainer.FileVisitor fileVisitor = new FileListingsFileVisitor();
         try {
             blobContainer.walkFiles(null, fileVisitor);
-            downstream.finish();
+            downstream.finish(RepeatHandle.UNSUPPORTED);
         } catch (Throwable t) {
             downstream.fail(t);
         }
@@ -74,24 +71,6 @@ public class BlobDocCollector implements CrateCollector, RowUpstream {
     @Override
     public void kill(@Nullable Throwable throwable) {
         downstream.kill(throwable);
-    }
-
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume(boolean async) {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * tells the RowUpstream that it should push all rows again
-     */
-    @Override
-    public void repeat() {
-        throw new UnsupportedOperationException();
     }
 
     private class FileListingsFileVisitor implements BlobContainer.FileVisitor {
@@ -105,7 +84,7 @@ public class BlobDocCollector implements CrateCollector, RowUpstream {
             }
             //noinspection SimplifiableIfStatement
             if (InputCondition.matches(condition)) {
-                return downstream.setNextRow(row);
+                return downstream.setNextRow(row) == RowReceiver.Result.CONTINUE;
             }
             return true;
         }

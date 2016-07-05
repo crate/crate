@@ -86,9 +86,8 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
     public class PausingCollectingRowReceiver extends CollectingRowReceiver {
 
         @Override
-        public boolean setNextRow(Row row) {
-            upstream.pause();
-            return true;
+        public Result setNextRow(Row row) {
+            return Result.PAUSE;
         }
     }
 

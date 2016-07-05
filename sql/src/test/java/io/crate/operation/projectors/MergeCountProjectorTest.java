@@ -43,7 +43,7 @@ public class MergeCountProjectorTest extends CrateUnitTest {
         for (int i = 0; i < 10; i++) {
             projector.setNextRow(row);
         }
-        projector.finish();
+        projector.finish(RepeatHandle.UNSUPPORTED);
         Bucket projected = rowReceiver.result();
         assertThat(projected.size(), is(1));
         assertThat(projected.iterator().next().get(0), instanceOf(Long.class));

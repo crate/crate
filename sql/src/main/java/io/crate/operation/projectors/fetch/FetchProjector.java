@@ -39,6 +39,7 @@ import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.fetch.FetchRowInputSymbolVisitor;
 import io.crate.operation.projectors.AbstractProjector;
+import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.Requirement;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -141,14 +142,14 @@ public class FetchProjector extends AbstractProjector {
     }
 
     @Override
-    public boolean setNextRow(Row row) {
+    public Result setNextRow(Row row) {
         Object[] cells = row.materialize();
         collectRowContext.inputRow().cells = cells;
         for (int i : collectRowContext.docIdPositions()) {
             context.require((long) cells[i]);
         }
         inputValues.add(cells);
-        return true;
+        return Result.CONTINUE;
     }
 
     private void sendRequests() {
@@ -220,6 +221,7 @@ public class FetchProjector extends AbstractProjector {
         final ArrayBackedRow[] partitionRows = collectRowContext.partitionRows();
         final int[] docIdPositions = collectRowContext.docIdPositions();
 
+        loop:
         for (Object[] cells : inputValues) {
             inputRow.cells = cells;
             for (int i = 0; i < docIdPositions.length; i++) {
@@ -232,10 +234,16 @@ public class FetchProjector extends AbstractProjector {
                 fetchRows[i].cells = readerBucket.get(docId);
                 assert !readerBucket.fetchRequired() || fetchRows[i].cells != null;
             }
-            boolean wantsMore = downstream.setNextRow(outputRow);
-            if (!wantsMore) {
-                break;
+            Result result = downstream.setNextRow(outputRow);
+            switch (result) {
+                case CONTINUE:
+                    continue;
+                case PAUSE:
+                    throw new UnsupportedOperationException("FetchProjector doesn't support pause");
+                case STOP:
+                    break loop;
             }
+            throw new AssertionError("Unrecognized setNextRow result: " + result);
         }
         finishDownstream();
     }
@@ -249,7 +257,7 @@ public class FetchProjector extends AbstractProjector {
     }
 
     @Override
-    public void finish() {
+    public void finish(RepeatHandle repeatHandle) {
         if (nextStage(Stage.COLLECT, Stage.FETCH)) {
             return;
         }
@@ -269,7 +277,7 @@ public class FetchProjector extends AbstractProjector {
         if (failIfNeeded()) {
             return;
         }
-        downstream.finish();
+        downstream.finish(RepeatHandle.UNSUPPORTED);
     }
 
     @Override

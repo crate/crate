@@ -22,28 +22,31 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
-public class MergeCountProjector extends AbstractProjector {
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 
-    private long sum;
+public class ExecutorResumeHandle implements ResumeHandle {
 
-    @Override
-    public Result setNextRow(Row row) {
-        Long count = (Long)row.get(0);
-        sum += count;
-        return Result.CONTINUE;
+    private final Executor executor;
+    private final Runnable runnable;
+
+    public ExecutorResumeHandle(Executor executor, Runnable runnable) {
+        this.executor = executor;
+        this.runnable = runnable;
     }
 
     @Override
-    public void finish(RepeatHandle repeatHandle) {
-        downstream.setNextRow(new Row1(sum));
-        downstream.finish(RepeatHandle.UNSUPPORTED);
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        downstream.fail(throwable);
+    public void resume(boolean async) {
+        if (async) {
+            try {
+                executor.execute(runnable);
+            } catch (EsRejectedExecutionException | RejectedExecutionException e) {
+                runnable.run();
+            }
+        } else {
+            runnable.run();
+        }
     }
 }

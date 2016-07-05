@@ -22,28 +22,20 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
+public interface ResumeHandle {
 
-public class MergeCountProjector extends AbstractProjector {
+    ResumeHandle INVALID = new ResumeHandle() {
+        @Override
+        public void resume(boolean async) {
+            throw new IllegalStateException("Invalid ResumeableUpstream used");
+        }
+    };
 
-    private long sum;
+    ResumeHandle NOOP = new ResumeHandle() {
+        @Override
+        public void resume(boolean async) {
+        }
+    };
 
-    @Override
-    public Result setNextRow(Row row) {
-        Long count = (Long)row.get(0);
-        sum += count;
-        return Result.CONTINUE;
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        downstream.setNextRow(new Row1(sum));
-        downstream.finish(RepeatHandle.UNSUPPORTED);
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        downstream.fail(throwable);
-    }
+    void resume(boolean async);
 }

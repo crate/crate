@@ -33,6 +33,7 @@ import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.merge.IteratorPageDownstream;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.operation.projectors.ListenableRowReceiver;
+import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.SimpleTopNProjector;
 import io.crate.test.integration.CrateUnitTest;
@@ -212,8 +213,6 @@ public class NestedLoopOperationTest extends CrateUnitTest {
     @Test
     @Repeat (iterations = 5)
     public void testNestedLoopWithTopNDownstream() throws Exception {
-
-
         InputCollectExpression firstCol = new InputCollectExpression(0);
         InputCollectExpression secondCol = new InputCollectExpression(1);
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
@@ -261,7 +260,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         List<ListenableRowReceiver> listenableRowReceivers = getRandomLeftAndRightRowReceivers(receiver);
 
         listenableRowReceivers.get(0).fail(new IllegalStateException("dummy1"));
-        listenableRowReceivers.get(1).finish();
+        listenableRowReceivers.get(1).finish(RepeatHandle.UNSUPPORTED);
         assertThat(receiver.getNumFailOrFinishCalls(), is(1));
 
         expectedException.expect(IllegalStateException.class);
@@ -296,7 +295,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                nl.leftRowReceiver().finish();
+                nl.leftRowReceiver().finish(RepeatHandle.UNSUPPORTED);
                 latch.countDown();
             }
         });

@@ -46,21 +46,25 @@ public class SimpleTopNProjector extends InputRowProjector {
     }
 
     @Override
-    public boolean setNextRow(Row row) {
+    public Result setNextRow(Row row) {
         if (toCollect < 1){
-            return false;
+            return Result.STOP;
         }
         if (remainingOffset > 0) {
             remainingOffset--;
-            return true;
+            return Result.CONTINUE;
         }
-        boolean wantMore = super.setNextRow(row);
-        if (!wantMore) {
-            toCollect = -1;
-            return false;
-        } else {
-            toCollect--;
-            return toCollect > 0;
+        toCollect--;
+        Result result = super.setNextRow(row);
+        switch (result) {
+            case PAUSE:
+                return result;
+            case CONTINUE:
+                return toCollect < 1 ? Result.STOP : Result.CONTINUE;
+            case STOP:
+                toCollect = -1;
+                return Result.STOP;
         }
+        throw new AssertionError("Unrecognized setNextRow result: " + result);
     }
 }

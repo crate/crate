@@ -19,7 +19,6 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.LongType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -78,7 +77,7 @@ public class GroupingProjectorTest extends CrateUnitTest {
         projector.setNextRow(emptyRow);
         projector.setNextRow(emptyRow);
         projector.setNextRow(emptyRow);
-        projector.finish();
+        projector.finish(RepeatHandle.UNSUPPORTED);
         Bucket rows = rowReceiver.result();
         assertThat(rows.size(), is(2));
         assertThat(rows.iterator().next().get(1), instanceOf(CountAggregation.LongState.class));

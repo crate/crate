@@ -76,7 +76,7 @@ public class SortingTopNProjector extends AbstractProjector {
     }
 
     @Override
-    public boolean setNextRow(Row row) {
+    public Result setNextRow(Row row) {
         for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
         }
@@ -88,16 +88,12 @@ public class SortingTopNProjector extends AbstractProjector {
             spare[i++] = input.value();
         }
         spare = pq.insertWithOverflow(spare);
-        return true;
+        return Result.CONTINUE;
     }
 
     @Override
-    public void finish() {
+    public void finish(RepeatHandle repeatHandle) {
         final int resultSize = Math.max(pq.size() - offset, 0);
-        if (resultSize == 0) {
-            downstream.finish();
-            return;
-        }
         rowEmitter = createRowEmitter(resultSize);
         rowEmitter.run();
     }
@@ -123,13 +119,6 @@ public class SortingTopNProjector extends AbstractProjector {
     @Override
     public void fail(Throwable t) {
         downstream.fail(t);
-    }
-
-    @Override
-    public void repeat() {
-        final int resultSize = Math.max(pq.size() - offset, 0);
-        rowEmitter = createRowEmitter(resultSize);
-        rowEmitter.run();
     }
 
     @Override

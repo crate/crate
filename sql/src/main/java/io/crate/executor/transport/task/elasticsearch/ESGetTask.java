@@ -44,9 +44,9 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.QueryResultRowDownstream;
-import io.crate.operation.RowUpstream;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectorFactory;
+import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.projection.Projection;
@@ -61,7 +61,7 @@ import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
 import java.util.*;
 
-public class ESGetTask extends EsJobContextTask implements RowUpstream {
+public class ESGetTask extends EsJobContextTask {
 
     private final static SymbolToFieldExtractor<GetResponse> SYMBOL_TO_FIELD_EXTRACTOR =
             new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
@@ -201,24 +201,6 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
     }
 
 
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume(boolean async) {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * tells the RowUpstream that it should push all rows again
-     */
-    @Override
-    public void repeat() {
-        throw new UnsupportedOperationException();
-    }
-
     static class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
 
         private final List<Function<GetResponse, Object>> fieldExtractors;
@@ -236,16 +218,24 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         public void onResponse(MultiGetResponse responses) {
             FieldExtractorRow<GetResponse> row = new FieldExtractorRow<>(fieldExtractors);
             try {
+                loop:
                 for (MultiGetItemResponse response : responses) {
                     if (response.isFailed() || !response.getResponse().isExists()) {
                         continue;
                     }
                     row.setCurrent(response.getResponse());
-                    if (!downstream.setNextRow(row)) {
-                        return;
+                    RowReceiver.Result result = downstream.setNextRow(row);
+                    switch (result) {
+                        case CONTINUE:
+                            continue;
+                        case PAUSE:
+                            throw new UnsupportedOperationException("ESGetTask doesn't support pause");
+                        case STOP:
+                            break loop;
                     }
+                    throw new AssertionError("Unrecognized setNextRow result: " + result);
                 }
-                downstream.finish();
+                downstream.finish(RepeatHandle.UNSUPPORTED);
             } catch (Exception e) {
                 downstream.fail(e);
             }

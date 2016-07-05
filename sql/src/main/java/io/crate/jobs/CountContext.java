@@ -27,8 +27,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Row1;
-import io.crate.operation.RowUpstream;
 import io.crate.operation.count.CountOperation;
+import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -39,7 +39,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-public class CountContext extends AbstractExecutionSubContext implements RowUpstream {
+public class CountContext extends AbstractExecutionSubContext {
 
     private static final ESLogger LOGGER = Loggers.getLogger(CountContext.class);
 
@@ -57,7 +57,6 @@ public class CountContext extends AbstractExecutionSubContext implements RowUpst
         super(id, LOGGER);
         this.countOperation = countOperation;
         this.rowReceiver = rowReceiver;
-        rowReceiver.setUpstream(this);
         this.indexShardMap = indexShardMap;
         this.whereClause = whereClause;
     }
@@ -99,7 +98,7 @@ public class CountContext extends AbstractExecutionSubContext implements RowUpst
     @Override
     protected void innerClose(@Nullable Throwable t) {
         if (t == null) {
-            rowReceiver.finish();
+            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
         } else {
             rowReceiver.fail(t);
         }
@@ -108,20 +107,5 @@ public class CountContext extends AbstractExecutionSubContext implements RowUpst
     @Override
     public String name() {
         return "count(*)";
-    }
-
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume(boolean async) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void repeat() {
-        throw new UnsupportedOperationException();
     }
 }

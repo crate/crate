@@ -24,11 +24,12 @@ package io.crate.operation.collect.files;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
-import io.crate.operation.RowUpstream;
 import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -50,7 +51,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
-public class FileReadingCollector implements CrateCollector, RowUpstream {
+public class FileReadingCollector implements CrateCollector {
 
     private static final ESLogger LOGGER = Loggers.getLogger(FileReadingCollector.class);
     public static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
@@ -72,24 +73,6 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
     };
     private final List<UriWithGlob> fileUris;
 
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void resume(boolean async) {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * tells the RowUpstream that it should push all rows again
-     */
-    @Override
-    public void repeat() {
-        throw new UnsupportedOperationException();
-    }
-
     public enum FileFormat {
         JSON
     }
@@ -106,7 +89,6 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
                                 int readerNumber) {
         this.fileUris = getUrisWithGlob(fileUris);
         this.downstream = downstream;
-        downstream.setUpstream(this);
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.row = new InputRow(inputs);
         this.collectorExpressions = collectorExpressions;
@@ -203,7 +185,7 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
                 return;
             }
         }
-        downstream.finish();
+        downstream.finish(RepeatHandle.UNSUPPORTED);
     }
 
     @Override
@@ -233,10 +215,16 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
                     continue;
                 }
                 collectorContext.lineContext().rawSource(line.getBytes(StandardCharsets.UTF_8));
-                if (!downstream.setNextRow(row)) {
-                    // stop collecting
-                    return false;
+                RowReceiver.Result result = downstream.setNextRow(row);
+                switch (result) {
+                    case CONTINUE:
+                        continue;
+                    case PAUSE:
+                        throw new UnsupportedOperationException("FileReadingCollector doesn't support pause");
+                    case STOP:
+                        return false;
                 }
+                throw new AssertionError("Unrecognized setNextRow result: " + result);
             }
         } catch (SocketTimeoutException e) {
             if (retry > MAX_SOCKET_TIMEOUT_RETRIES) {
@@ -249,7 +237,7 @@ public class FileReadingCollector implements CrateCollector, RowUpstream {
             // it's nice to know which exact file/uri threw an error
             // when COPY FROM returns less rows than expected
             LOGGER.info("Error during COPY FROM '{}'", e, uri.toString());
-            throw e;
+            throw Throwables.propagate(e);
         }
         return true;
     }

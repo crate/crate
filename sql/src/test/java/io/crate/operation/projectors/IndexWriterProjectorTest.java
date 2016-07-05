@@ -51,7 +51,6 @@ import java.util.UUID;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
 
 public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
@@ -123,8 +122,8 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
         t1.join();
         t2.join();
-        receiver1.finish();
-        receiver2.finish();
+        receiver1.finish(RepeatHandle.UNSUPPORTED);
+        receiver2.finish(RepeatHandle.UNSUPPORTED);
         Bucket objects = collectingRowReceiver.result();
 
         assertThat(objects, contains(isRow(200L)));
