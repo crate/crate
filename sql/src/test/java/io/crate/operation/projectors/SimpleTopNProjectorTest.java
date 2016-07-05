@@ -23,13 +23,10 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.FunctionExpression;
@@ -38,11 +35,11 @@ import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.RowSender;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -55,37 +52,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
     private static final InputCollectExpression input = new InputCollectExpression(0);
     private static final ImmutableList<Input<?>> INPUTS = ImmutableList.<Input<?>>of(input);
     private static final List<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = Collections.<CollectExpression<Row, ?>>singletonList(input);
-    private static final Row row = new Row1(42);
-
-    private static class TestFunction extends Scalar<Integer, Integer> {
-
-        public static final String NAME = "signum";
-        public static final FunctionInfo INFO = new FunctionInfo(
-                new FunctionIdent(NAME, Arrays.<DataType>asList(DataTypes.INTEGER)), DataTypes.INTEGER);
-
-        @Override
-        public Integer evaluate(Input<Integer>... args) {
-            Integer result = null;
-            if (args != null && args.length > 0) {
-                Integer value = args[0].value();
-                if (value != null) {
-                    result = (int) Math.signum(value);
-                }
-            }
-            return result;
-        }
-
-
-        @Override
-        public FunctionInfo info() {
-            return INFO;
-        }
-
-        @Override
-        public Symbol normalizeSymbol(Function symbol) {
-            return symbol;
-        }
-    }
+    private static final Row row = new Row1(42.3);
 
     private SimpleTopNProjector preparePipe(int limit, int offset, CollectingRowReceiver rowReceiver) {
         SimpleTopNProjector pipe = new SimpleTopNProjector(INPUTS, COLLECT_EXPRESSIONS, limit, offset);
@@ -189,7 +156,9 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
 
     @Test
     public void testFunctionExpression() throws Throwable {
-        FunctionExpression<Integer, ?> funcExpr = new FunctionExpression<>(new TestFunction(), new Input[]{input});
+        Scalar floor = (Scalar) TestingHelpers.getFunctions().get(
+            new FunctionIdent("floor", Collections.<DataType>singletonList(DataTypes.DOUBLE)));
+        FunctionExpression<Number, ?> funcExpr = new FunctionExpression<>(floor, new Input[]{input});
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         Projector pipe = new SimpleTopNProjector(ImmutableList.<Input<?>>of(funcExpr), COLLECT_EXPRESSIONS, 10, TopN.NO_OFFSET);
         pipe.downstream(rowReceiver);
@@ -204,7 +173,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
         pipe.finish();
         Bucket rows = rowReceiver.result();
         assertThat(rows.size(), is(10));
-        assertThat(rows.iterator().next(), isRow(1));
+        assertThat(rows.iterator().next(), isRow(42L));
     }
 
     @Test
