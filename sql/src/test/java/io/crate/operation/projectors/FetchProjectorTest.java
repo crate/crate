@@ -97,7 +97,7 @@ public class FetchProjectorTest extends CrateUnitTest {
         RowUpstream upstream = mock(RowUpstream.class);
         FetchProjector fetchProjector = prepareFetchProjector(rowReceiver, fetchOperation, upstream);
 
-        RowSender rowSender = new RowSender(rowRange(5), fetchProjector, MoreExecutors.directExecutor());
+        RowSender rowSender = new RowSender(rowRange(0, 5), fetchProjector, MoreExecutors.directExecutor());
         rowSender.run();
 
         assertThat(rowReceiver.result().size(), is(2));
