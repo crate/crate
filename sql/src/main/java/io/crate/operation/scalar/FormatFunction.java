@@ -58,7 +58,8 @@ public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicF
     @Override
     public BytesRef evaluate(Input<Object>... args) {
         assert args.length > 1;
-        assert args[0].value() != null;
+        Object arg0Value = args[0].value();
+        assert arg0Value != null;
 
         Object[] values = new Object[args.length - 1];
         for (int i = 0; i < args.length - 1; i++) {
@@ -70,7 +71,7 @@ public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicF
             }
         }
 
-        Object formatString = args[0].value();
+        Object formatString = arg0Value;
         return new BytesRef(String.format(Locale.ENGLISH, ((BytesRef) formatString).utf8ToString(), values));
     }
 
