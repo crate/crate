@@ -311,12 +311,6 @@ public final class ExpressionFormatter {
         }
 
         @Override
-        protected String visitCoalesceExpression(CoalesceExpression node, Void context)
-        {
-            return "COALESCE(" + joinExpressions(node.getOperands()) + ")";
-        }
-
-        @Override
         protected String visitNegativeExpression(NegativeExpression node, Void context)
         {
             return "-" + process(node.getValue(), null);

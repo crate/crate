@@ -610,7 +610,6 @@ specialFunction
 
 caseExpression
     : NULLIF '(' expr ',' expr ')'          -> ^(NULLIF expr expr)
-    | COALESCE '(' expr (',' expr)* ')'     -> ^(COALESCE expr+)
     | CASE expr whenClause+ elseClause? END -> ^(SIMPLE_CASE expr whenClause+ elseClause?)
     | CASE whenClause+ elseClause? END      -> ^(SEARCHED_CASE whenClause+ elseClause?)
     | IF '(' expr ',' expr (',' expr)? ')'  -> ^(IF expr expr expr?)
@@ -1157,7 +1156,6 @@ CURRENT_DATE: 'CURRENT_DATE';
 CURRENT_TIME: 'CURRENT_TIME';
 CURRENT_TIMESTAMP: 'CURRENT_TIMESTAMP';
 EXTRACT: 'EXTRACT';
-COALESCE: 'COALESCE';
 NULLIF: 'NULLIF';
 CASE: 'CASE';
 WHEN: 'WHEN';

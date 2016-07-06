@@ -562,7 +562,6 @@ matchPredicateIdent returns [MatchPredicateColumnIdent value]
 
 caseExpression returns [Expression value]
     : ^(NULLIF a=expr b=expr)                { $value = new NullIfExpression($a.value, $b.value); }
-    | ^(COALESCE exprList)                   { $value = new CoalesceExpression($exprList.value); }
     | ^(SIMPLE_CASE v=expr whenList e=expr?) { $value = new SimpleCaseExpression($v.value, $whenList.value, $e.value); }
     | ^(SEARCHED_CASE whenList e=expr?)      { $value = new SearchedCaseExpression($whenList.value, $e.value); }
     | ^(IF c=expr t=expr f=expr?)            { $value = new IfExpression($c.value, $t.value, $f.value); }
