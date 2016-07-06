@@ -24,6 +24,8 @@ package io.crate.monitor;
 
 import com.google.common.collect.Maps;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.SingleObjectCache;
 import org.elasticsearch.env.NodeEnvironment;
 import org.hyperic.sigar.*;
 
@@ -33,15 +35,31 @@ import java.util.Map;
 public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
 
     private final SigarService sigarService;
+    private final NodeEnvironment nodeEnvironment;
     private final Map<File, FileSystem> fileSystems = Maps.newHashMap();
+    private final ExtendedOsStatsCache osStatsCache;
+    private final ExtendedFsStatsCache fsStatsCache;
+    private final ExtendedNetworkStatsCache networkStatsCache;
+    private final ExtendedProcessCpuStatsCache processCpuStatsCache;
+
+    static final TimeValue PROBE_CACHE_TIME = TimeValue.timeValueMillis(500L);
 
     @Inject
-    public SigarExtendedNodeInfo(SigarService sigarService) {
+    public SigarExtendedNodeInfo(SigarService sigarService, NodeEnvironment nodeEnvironment) {
         this.sigarService = sigarService;
+        this.nodeEnvironment = nodeEnvironment;
+        this.osStatsCache = new ExtendedOsStatsCache(PROBE_CACHE_TIME, osStatsProbe());
+        this.fsStatsCache = new ExtendedFsStatsCache(PROBE_CACHE_TIME, fsStatsProbe());
+        this.networkStatsCache = new ExtendedNetworkStatsCache(PROBE_CACHE_TIME, networkStatsProbe());
+        this.processCpuStatsCache = new ExtendedProcessCpuStatsCache(PROBE_CACHE_TIME, processCpuStatsProbe());
     }
 
     @Override
-    public ExtendedNetworkStats networkStats() {
+    public synchronized ExtendedNetworkStats networkStats() {
+        return networkStatsCache.getOrRefresh();
+    }
+
+    private ExtendedNetworkStats networkStatsProbe() {
         Sigar sigar = sigarService.sigar();
         ExtendedNetworkStats.Tcp tcp;
         try {
@@ -83,7 +101,11 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
     }
 
     @Override
-    public ExtendedFsStats fsStats(NodeEnvironment nodeEnvironment) {
+    public synchronized ExtendedFsStats fsStats() {
+        return fsStatsCache.getOrRefresh();
+    }
+
+    private ExtendedFsStats fsStatsProbe() {
         if (!nodeEnvironment.hasNodeFile()) {
             return new ExtendedFsStats(new ExtendedFsStats.Info[0]);
         }
@@ -136,7 +158,11 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
     }
 
     @Override
-    public ExtendedOsStats osStats() {
+    public synchronized ExtendedOsStats osStats() {
+        return osStatsCache.getOrRefresh();
+    }
+
+    private ExtendedOsStats osStatsProbe() {
         Sigar sigar = sigarService.sigar();
 
         ExtendedOsStats.Cpu cpu;
@@ -178,7 +204,11 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
     }
 
     @Override
-    public ExtendedProcessCpuStats processCpuStats() {
+    public synchronized ExtendedProcessCpuStats processCpuStats() {
+        return processCpuStatsCache.getOrRefresh();
+    }
+
+    private ExtendedProcessCpuStats processCpuStatsProbe() {
         Sigar sigar = sigarService.sigar();
         try {
             ProcCpu cpu = sigar.getProcCpu(sigar.getPid());
@@ -191,6 +221,64 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
         } catch (SigarException e) {
             // ignore
             return new ExtendedProcessCpuStats();
+        }
+    }
+
+    /**
+     * Cache for networkStats()
+     */
+    private class ExtendedNetworkStatsCache extends SingleObjectCache<ExtendedNetworkStats> {
+        ExtendedNetworkStatsCache(TimeValue refreshInterval, ExtendedNetworkStats initialValue) {
+            super(refreshInterval, initialValue);
+        }
+
+        @Override
+        protected ExtendedNetworkStats refresh() {
+            return networkStatsProbe();
+        }
+    }
+
+    /**
+     * Cache for processCpuStats()
+     */
+    private class ExtendedProcessCpuStatsCache extends SingleObjectCache<ExtendedProcessCpuStats> {
+        ExtendedProcessCpuStatsCache(TimeValue refreshInterval, ExtendedProcessCpuStats initialValue) {
+            super(refreshInterval, initialValue);
+        }
+
+        @Override
+        protected ExtendedProcessCpuStats refresh() {
+            return processCpuStatsProbe();
+        }
+    }
+
+    /**
+     * Cache for fsStats()
+     */
+    private class ExtendedFsStatsCache extends SingleObjectCache<ExtendedFsStats> {
+
+        ExtendedFsStatsCache(TimeValue refreshInterval, ExtendedFsStats initialValue) {
+            super(refreshInterval, initialValue);
+        }
+
+        @Override
+        protected ExtendedFsStats refresh() {
+            return fsStatsProbe();
+        }
+    }
+
+    /**
+     * Cache for osStats()
+     */
+    private class ExtendedOsStatsCache extends SingleObjectCache<ExtendedOsStats> {
+
+        ExtendedOsStatsCache(TimeValue interval, ExtendedOsStats initValue) {
+            super(interval, initValue);
+        }
+
+        @Override
+        protected ExtendedOsStats refresh() {
+            return osStatsProbe();
         }
     }
 }

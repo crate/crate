@@ -22,15 +22,13 @@
 
 package io.crate.monitor;
 
-import org.elasticsearch.env.NodeEnvironment;
-
 public interface ExtendedNodeInfo {
 
     ExtendedNetworkStats networkStats();
 
     ExtendedNetworkInfo networkInfo();
 
-    ExtendedFsStats fsStats(NodeEnvironment nodeEnvironment);
+    ExtendedFsStats fsStats();
 
     ExtendedOsStats osStats();
 

@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: selecting ``os``, ``network``, ``fs`` or ``process`` from ``sys.nodes``
+   in very quick succession or multiple times in same select statement
+   could lead to wrong results for percentual values from the underlying sigar
+   library.
+
  - Fixed performance issues with arithmetic operators and functions.
 
  - Implemented NOT NULL column constraint.
