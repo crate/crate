@@ -59,7 +59,7 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
         return networkStatsCache.getOrRefresh();
     }
 
-    public ExtendedNetworkStats networkStatsProbe() {
+    private ExtendedNetworkStats networkStatsProbe() {
         Sigar sigar = sigarService.sigar();
         ExtendedNetworkStats.Tcp tcp;
         try {
@@ -228,7 +228,7 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
      * Cache for networkStats()
      */
     private class ExtendedNetworkStatsCache extends SingleObjectCache<ExtendedNetworkStats> {
-        public ExtendedNetworkStatsCache(TimeValue refreshInterval, ExtendedNetworkStats initialValue) {
+        ExtendedNetworkStatsCache(TimeValue refreshInterval, ExtendedNetworkStats initialValue) {
             super(refreshInterval, initialValue);
         }
 
@@ -242,7 +242,7 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
      * Cache for processCpuStats()
      */
     private class ExtendedProcessCpuStatsCache extends SingleObjectCache<ExtendedProcessCpuStats> {
-        public ExtendedProcessCpuStatsCache(TimeValue refreshInterval, ExtendedProcessCpuStats initialValue) {
+        ExtendedProcessCpuStatsCache(TimeValue refreshInterval, ExtendedProcessCpuStats initialValue) {
             super(refreshInterval, initialValue);
         }
 
@@ -257,7 +257,7 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
      */
     private class ExtendedFsStatsCache extends SingleObjectCache<ExtendedFsStats> {
 
-        public ExtendedFsStatsCache(TimeValue refreshInterval, ExtendedFsStats initialValue) {
+        ExtendedFsStatsCache(TimeValue refreshInterval, ExtendedFsStats initialValue) {
             super(refreshInterval, initialValue);
         }
 
@@ -272,7 +272,7 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
      */
     private class ExtendedOsStatsCache extends SingleObjectCache<ExtendedOsStats> {
 
-        public ExtendedOsStatsCache(TimeValue interval, ExtendedOsStats initValue) {
+        ExtendedOsStatsCache(TimeValue interval, ExtendedOsStats initValue) {
             super(interval, initValue);
         }
 
