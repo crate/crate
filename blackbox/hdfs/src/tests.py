@@ -1,3 +1,23 @@
+# -*- coding: utf-8; -*-
+#
+# Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+# license agreements.  See the NOTICE file distributed with this work for
+# additional information regarding copyright ownership.  Crate licenses
+# this file to you under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.  You may
+# obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# However, if you have executed another commercial license agreement
+# with Crate these terms will supersede the license and you may use the
+# software solely pursuant to the terms of the relevant commercial agreement.
 
 import unittest
 import os
@@ -6,6 +26,8 @@ import subprocess
 import socket
 import time
 import tarfile
+from testutils.ports import GLOBAL_PORT_POOL
+from testutils.paths import crate_path, project_root
 from crate.testing.layer import CrateLayer
 from crate.client import connect
 from urllib.request import urlretrieve
@@ -16,20 +38,18 @@ HADOOP_SOURCE = ('http://www-eu.apache.org/dist/hadoop/common/'
 CACHE_DIR = os.environ.get(
     'XDG_CACHE_HOME', os.path.join(os.path.expanduser('~'), '.cache', 'crate-tests'))
 
-CRATE_HTTP_PORT = '42220'
-CRATE_TRANSPORT_PORT = '42330'
+
+CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
+CRATE_TRANSPORT_PORT = GLOBAL_PORT_POOL.get()
 NN_PORT = '49000'
 
 
-here = os.path.dirname(__file__)  # blackbox/hdfs/src
-project_root = os.path.abspath(os.path.join(here, '..', '..', '..'))
 hdfs_repo_zip = os.path.join(
     project_root,
     'es-repository-hdfs',
     'build',
     'distributions',
     'es-repository-hdfs-hadoop2.zip')
-crate_folder = os.path.join(here, '..', '..', 'tmp', 'crate')  # blackbox/tmp/crate
 
 
 def add_hadoop_libs(hdfs_zip_path, path_to_dist):
@@ -123,7 +143,7 @@ class HadoopAndCrateLayer(object):
 class HdfsIntegrationTest(unittest.TestCase):
 
     def test_create_hdfs_repository(self):
-        conn = connect('localhost:' + CRATE_HTTP_PORT)
+        conn = connect('localhost:{}'.format(CRATE_HTTP_PORT))
         c = conn.cursor()
         stmt = '''create repository "test-repo" type hdfs with (uri = ?, path = '/data')'''
         # okay if it doesn't raise a exception
@@ -134,7 +154,7 @@ def test_suite():
     suite = unittest.TestSuite(unittest.makeSuite(HdfsIntegrationTest))
     crate_layer = HdfsCrateLayer(
         'crate',
-        crate_home=crate_folder,
+        crate_home=crate_path(),
         port=CRATE_HTTP_PORT,
         transport_port=CRATE_TRANSPORT_PORT
     )

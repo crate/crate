@@ -22,8 +22,6 @@
 
 package io.crate.monitor;
 
-import org.elasticsearch.env.NodeEnvironment;
-
 import java.util.Collections;
 
 public class ZeroExtendedNodeInfo implements ExtendedNodeInfo {
@@ -46,7 +44,7 @@ public class ZeroExtendedNodeInfo implements ExtendedNodeInfo {
     }
 
     @Override
-    public ExtendedFsStats fsStats(NodeEnvironment nodeEnvironment) {
+    public ExtendedFsStats fsStats() {
         return FS_STATS;
     }
 

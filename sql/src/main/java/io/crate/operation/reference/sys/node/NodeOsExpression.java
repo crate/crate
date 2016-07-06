@@ -36,10 +36,10 @@ public class NodeOsExpression extends SysNodeObjectReference {
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
     public NodeOsExpression(ExtendedOsStats extendedOsStats) {
-        addChildImplementations(extendedOsStats);
+        addChildImplementations(extendedOsStats, System.currentTimeMillis());
     }
 
-    private void addChildImplementations(final ExtendedOsStats extendedOsStats) {
+    private void addChildImplementations(final ExtendedOsStats extendedOsStats, final long ts) {
         childImplementations.put(UPTIME, new OsExpression() {
             @Override
             public Long value() {
@@ -50,7 +50,7 @@ public class NodeOsExpression extends SysNodeObjectReference {
         childImplementations.put(TIMESTAMP, new OsExpression() {
             @Override
             public Long value() {
-                return System.currentTimeMillis();
+                return ts;
             }
         });
         childImplementations.put(PROBE_TIMESTAMP, new OsExpression() {
