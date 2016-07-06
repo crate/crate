@@ -26,27 +26,42 @@ where `option` can be one of:
 Description
 ===========
 
-COPY FROM copies data from a URI to the specified table.
+``COPY FROM`` copies data from a URI to the specified table as a raw data import.
 
-The nodes in the cluster will attempt to access the resources available under
-the URI and import the data.
 
-The file(s) must contain one JSON formatted row per line and have to be encoded
-using UTF-8. Empty lines are skipped.
+The nodes in the cluster will attempt to access the resources available at
+the URI and import the data. The data must be provided as file(s) containing
+one JSON object per line and have to be encoded using UTF-8. Empty lines
+are skipped and *any additional keys in the object will be added as columns*,
+regardless of the previously defined table.
 
-For examples see: :ref:`importing_data`.
+Example JSON data::
+
+    {"id": 1, "quote": "Don't panic"}
+    {"id": 2, "quote": "Ford, you're turning into a penguin. Stop it."}
+
+
+See also: :ref:`importing_data`.
+
+
+Type Casts and Constraints
+--------------------------
+
+Crate does not check if the column's data types match the types from the
+import file. It does not cast the types but will always import the data
+as in the source file. Furthermore Crate will only check for primary key
+duplicates but not for other :ref:`column_constraints` like ``NOT NULL``.
+
+For example a `WKT`_ string cannot be imported into a column
+of ``geo_shape`` or ``geo_point`` type, since there is no implict cast to
+the `GeoJSON`_ format.
 
 .. note::
 
-  When importing data using ``COPY FROM`` Crate does not check if the types
-  from the columns and the types from the import file match. It does not cast
-  the types to their target but will always import the data as it is
-  in the source file. Furthermore Crate does not check if the imported data respect
-  :ref:`column_constraints` like ``NOT NULL``.
-
-  e.g. a `WKT`_ string cannot be imported into a column of ``geo_shape`` or
-  ``geo_point`` type, such as it won't be implicitly casted to `GeoJSON`_
-  format.
+  In case the ``COPY FROM`` statement fails, the log output on the node
+  will provide an error message. Any data that has been imported until then
+  has been written to the table and should be deleted before restarting
+  the import.
 
 
 URI
@@ -55,8 +70,8 @@ URI
 A string literal or array of string literals containing URIs.
 Each URI must be formatted according to the `URI Scheme`_.
 
-In case the scheme name is missing it is assumed that the value is a file-path
-instead and will be converted to an URI implicitly.
+In case the URI scheme is missing the value is assumed to be a file path
+ and will be converted to a ``file://`` URI implicitly.
 
 
 For example:
@@ -72,19 +87,18 @@ Is converted to:
     'file:///tmp%20folder/file.json'
 
 
-Supported schemes
+Supported Schemes
 -----------------
 
 file
 ^^^^
 
-The filepath given must be an absolute path and accessable by the crate
-process.
+The provided (absolute) path should point to files available *on every node* with
+read access to the Crate process there.
 
-By default each node will attempt to read the files specified. If the URI
-points to a shared folder the ``shared`` option must be set to true in order to
-avoid duplicate imports.
-
+By default each node will attempt to read the files specified. In case the URI
+points to a shared folder (where other Crate nodes also have access) the
+``shared`` option must be set to true in order to avoid importing duplicates.
 
 .. _copy_from_s3:
 
@@ -97,11 +111,11 @@ Can be used to access buckets on the Amazon AWS S3 Service:
 
     s3://[<accesskey>:<secretkey>@]<bucketname>/<path>
 
-If the accesskey and secret key is ommited an attempt to load the credentials
-from the environment or java settings is made.
+If ``accesskey`` and ``secretkey`` are ommited, Crate attempts to load the
+credentials from the environment or Java settings.
 
-Environment Variables - AWS_ACCESS_KEY_ID and AWS_SECRET_KEY
-Java System Properties - aws.accessKeyId and aws.secretKey
+Environment Variables - ``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_KEY``
+Java System Properties - ``aws.accessKeyId`` and ``aws.secretKey``
 
 If no credentials are set the s3 client will operate in anonymous mode, see
 `AWS Java Documentation`_.
@@ -111,9 +125,7 @@ Using a s3 URI will set the ``shared`` option implicitly.
 .. note::
 
    A ``secretkey`` provided by Amazon Web Service can contain characters such
-   as '/', '+' or '='. Such characters must be URI encoded. For example, if
-   the authentication code includes a plus (+) sign, encode it as %2B in the
-   request. Encode a forward slash as %2F and equals as %3D. For a detailed
+   as '/', '+' or '='. These characters must be `URL encoded`_. For a detailed
    explanation read the official `AWS documentation`_.
 
 .. note::
@@ -123,15 +135,13 @@ Using a s3 URI will set the ``shared`` option implicitly.
   firewall rules to allow outgoing connections on port ``443``.
 
 
-http, https and jar (Java URL protocols)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+http, https, and jar (Java URL protocols)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In addition to the schemes above, Crate supports all schemes supported by the
-`URL`_ implementation of the used JVM.
-These usually include ``http``, ``https``, ``ftp`` and ``jar``.
-Please refer to the documentation of the JVM vendor for an accurate list of
-supported protocols.
-
+In addition to the schemes above, Crate supports all protocols supported by the
+`URL`_ implementation of its JVM (typically ``http``, ``https``, ``ftp``,
+and ``jar``). Please refer to the documentation of the JVM vendor for an
+accurate list of supported protocols.
 
 These schemes *do not* support wildcard expansion.
 
@@ -141,15 +151,15 @@ Parameters
 :table_ident: The name (optionally schema-qualified) of an existing
     table where the data should be put.
 
-:uri: An expression which evaluates to a uri as defined in `RFC2396`_. The
+:uri: An expression which evaluates to a URI as defined in `RFC2396`_. The
       supported schemes are listed above. The last part of the path may also
       contain ``*`` wildcards to match multiple files.
 
 PARTITION Clause
 ================
 
-If the table is partitioned this clause can be used to import data into a
-specific partition. This clause takes one or more partition columns and for
+For partitioned tables this clause can be used to import data into the
+specified partition. This clause takes one or more partition columns and for
 each column a value.
 
 ::
@@ -162,14 +172,14 @@ each column a value.
                    :ref:`partitioned_by_clause` of the :ref:`ref-create-table`
                    statement must be specified.
 
-:value: The columns value.
+:value: The column's value.
 
-In a table that is partitioned the values for the columns by which the
-table is partitioned are not actually stored with each row.
+.. note::
 
-The files that are imported should *not* contain values for the partitioned
-columns as the ``COPY FROM ... PARTITION`` statement does not check that and
-will unnecessarily import them.
+   Partitioned tables do not store the value for the partition column in each
+   row, hence every row will be imported into the specified partition
+   regardless of the value provided for the partition columns.
+
 
 WITH Clause
 ===========
@@ -187,15 +197,14 @@ bulk_size
 ^^^^^^^^^
 
 Crate will process the lines it reads from the ``path`` in bulks. This option
-specifies the size of such a bulk. The default is 10000.
-
-Must be set to a number greater than 0
+specifies the size of one batch. The provided value must be greater than 0, the
+default value is 10000.
 
 shared
 ^^^^^^
 
-This option should be set if the URI points to a shared storage. It will
-prevent multiple nodes/readers from importing the same file.
+This option should be set to true if the URI points to a location accessible by
+ multiple Crate nodes to prevent them from importing the same file.
 
 The default value depends on the scheme of each URI.
 
@@ -206,8 +215,7 @@ default for *all* URIs.
 node_filters
 ^^^^^^^^^^^^
 
-A filter that can be used to control which nodes should be used to execute the
-*read* operations.
+A filter expression to select the nodes to run the *read* operation.
 
 It's an object in the form of::
 
@@ -218,27 +226,25 @@ It's an object in the form of::
 
 Only one of the keys is required.
 The ``name`` regular expression is applied on the ``name`` of all execution
-nodes. The ``id`` regex is applied on the ``node id``.
+nodes, whereas the ``id`` regex is applied on the ``node id``.
 
-If both keys are set *both* regular
+If both keys are set, *both* regular
 expressions have to match for a node to be included.
 
-If ``shared`` is set to false this option has to be used with caution as it
-might cause nodes to be excluded that are the only ones with access to the
-files which should be read.
+If the ``shared`` option if false, a strict node filter might exclude nodes
+with access to the data leading to a partial import.
 
-A dry run to verify which nodes match the filter can be executed using the
-:doc:`EXPLAIN <explain>` statement.
+To verify which nodes match the filter, run the statement with
+:doc:`EXPLAIN <explain>`.
 
 num_readers
 ^^^^^^^^^^^
 
 The number of nodes that will read the resources specified in the URI. Defaults
 to the number of nodes available in the cluster. If the option is set to a
-number greater than the number of available nodes it will still only use each
-node only once to do the import.
-
-Must be an integer that is greater than 0.
+number greater than the number of available nodes it will still use each
+node only once to do the import. However, the value must be an integer
+greater than 0.
 
 If ``shared`` is set to false this option has to be used with caution. It might
 exclude the wrong nodes, causing COPY FROM to read no files or only a subset of
@@ -247,7 +253,7 @@ the files.
 compression
 ^^^^^^^^^^^
 
-The default value is ``null``. Can be set to ``gzip`` to read gzipped files.
+The default value is ``null``, set to ``gzip`` to read gzipped files.
 
 overwrite_duplicates
 ^^^^^^^^^^^^^^^^^^^^
@@ -255,10 +261,8 @@ overwrite_duplicates
 Default: false
 
 ``COPY FROM`` by default won't overwrite rows if a document with the same
-primary key already exists.
+primary key already exists. Set to true to overwrite duplicate rows. 
 
-If this option is set to true this behaviour is changed so that documents will
-be overwritten.
 
 .. _`AWS documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
 
@@ -273,3 +277,5 @@ be overwritten.
 .. _WKT: http://en.wikipedia.org/wiki/Well-known_text
 
 .. _URL: http://docs.oracle.com/javase/8/docs/api/java/net/URL.html
+
+.. _`URL encoded`: https://en.wikipedia.org/wiki/Percent-encoding
