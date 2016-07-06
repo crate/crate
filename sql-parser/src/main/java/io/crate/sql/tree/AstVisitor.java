@@ -61,11 +61,6 @@ public abstract class AstVisitor<R, C>
         return visitExpression(node, context);
     }
 
-    protected R visitCoalesceExpression(CoalesceExpression node, C context)
-    {
-        return visitExpression(node, context);
-    }
-
     protected R visitComparisonExpression(ComparisonExpression node, C context)
     {
         return visitExpression(node, context);
