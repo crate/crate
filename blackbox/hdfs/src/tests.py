@@ -124,7 +124,7 @@ class HadoopLayer(object):
 
 class HdfsCrateLayer(CrateLayer):
     def setUp(self):
-        add_hadoop_libs(hdfs_repo_zip, crate_folder)
+        add_hadoop_libs(hdfs_repo_zip, crate_path())
         super(HdfsCrateLayer, self).setUp()
 
 
