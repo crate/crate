@@ -48,9 +48,10 @@ public class NodeOsExpression extends SysNodeObjectReference {
             }
         });
         childImplementations.put(TIMESTAMP, new OsExpression() {
+            final long ts = System.currentTimeMillis();
             @Override
             public Long value() {
-                return System.currentTimeMillis();
+                return ts;
             }
         });
         childImplementations.put(PROBE_TIMESTAMP, new OsExpression() {
