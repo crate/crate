@@ -55,7 +55,7 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
     }
 
     @Override
-    public synchronized ExtendedNetworkStats networkStats() {
+    public ExtendedNetworkStats networkStats() {
         return networkStatsCache.getOrRefresh();
     }
 
@@ -101,7 +101,7 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
     }
 
     @Override
-    public synchronized ExtendedFsStats fsStats() {
+    public ExtendedFsStats fsStats() {
         return fsStatsCache.getOrRefresh();
     }
 
@@ -158,7 +158,7 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
     }
 
     @Override
-    public synchronized ExtendedOsStats osStats() {
+    public ExtendedOsStats osStats() {
         return osStatsCache.getOrRefresh();
     }
 
@@ -204,7 +204,7 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
     }
 
     @Override
-    public synchronized ExtendedProcessCpuStats processCpuStats() {
+    public ExtendedProcessCpuStats processCpuStats() {
         return processCpuStatsCache.getOrRefresh();
     }
 
