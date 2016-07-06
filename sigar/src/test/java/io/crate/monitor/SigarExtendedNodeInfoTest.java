@@ -31,6 +31,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
+import org.elasticsearch.env.NodeEnvironmentModule;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,11 +53,19 @@ public class SigarExtendedNodeInfoTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
+        NodeEnvironment nodeEnvironment = mock(NodeEnvironment.class);
+        when(nodeEnvironment.hasNodeFile()).thenReturn(true);
+        Path tempDir = createTempDir();
+        NodeEnvironment.NodePath[] dataLocations = new NodeEnvironment.NodePath[]{new NodeEnvironment.NodePath(tempDir, mock(Environment.class))};
+        when(nodeEnvironment.nodePaths()).thenReturn(dataLocations);
+
+        NodeEnvironmentModule nodeEnvironmentModule = new NodeEnvironmentModule(nodeEnvironment);
         MonitorModule monitorModule = new MonitorModule(NODE_SETTINGS);
         monitorModule.addExtendedNodeInfoType(SigarPlugin.NODE_INFO_EXTENDED_TYPE, SigarExtendedNodeInfo.class);
         Injector injector = new ModulesBuilder().add(
                 new SettingsModule(NODE_SETTINGS),
                 monitorModule,
+                nodeEnvironmentModule,
                 new SigarModule(new SigarService(NODE_SETTINGS))
         ).createInjector();
         extendedNodeInfo = injector.getInstance(ExtendedNodeInfo.class);
@@ -78,13 +87,7 @@ public class SigarExtendedNodeInfoTest extends CrateUnitTest {
 
     @Test
     public void testFsStats() throws Exception {
-        NodeEnvironment nodeEnvironment = mock(NodeEnvironment.class);
-        when(nodeEnvironment.hasNodeFile()).thenReturn(true);
-        Path tempDir = createTempDir();
-        NodeEnvironment.NodePath[] dataLocations = new NodeEnvironment.NodePath[]{new NodeEnvironment.NodePath(tempDir, mock(Environment.class))};
-        when(nodeEnvironment.nodePaths()).thenReturn(dataLocations);
-
-        ExtendedFsStats stats = extendedNodeInfo.fsStats(nodeEnvironment);
+        ExtendedFsStats stats = extendedNodeInfo.fsStats();
         assertThat(stats.size(), is(1));
         ExtendedFsStats.Info info = stats.iterator().next();
         assertThat(info.path(), notNullValue());
