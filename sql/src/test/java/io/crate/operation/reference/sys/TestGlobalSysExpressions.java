@@ -47,6 +47,7 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.node.service.NodeService;
@@ -121,7 +122,9 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
             bind(ClusterService.class).toInstance(clusterService);
             bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
 
-            ExtendedNodeInfo extendedNodeInfo = new DummyExtendedNodeInfo();
+            NodeEnvironment nodeEnvironment = mock(NodeEnvironment.class);
+            when(nodeEnvironment.hasNodeFile()).thenReturn(true);
+            ExtendedNodeInfo extendedNodeInfo = new DummyExtendedNodeInfo(nodeEnvironment);
             NodeLoadExpression loadExpr = new NodeLoadExpression(extendedNodeInfo.osStats());
 
             MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder

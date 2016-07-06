@@ -23,6 +23,7 @@
 package io.crate.monitor;
 
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.env.NodeEnvironment;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -35,6 +36,13 @@ import java.util.List;
 import static org.mockito.Mockito.mock;
 
 public class DummyExtendedNodeInfo implements ExtendedNodeInfo {
+
+    private final NodeEnvironment nodeEnvironment;
+
+    @Inject
+    public DummyExtendedNodeInfo(NodeEnvironment nodeEnvironment) {
+        this.nodeEnvironment = nodeEnvironment;
+    }
 
     static List<Tuple<String, String>> FILE_SYSTEMS = Arrays.asList(
             Tuple.tuple("/dev/sda1", "/foo"),
@@ -57,20 +65,18 @@ public class DummyExtendedNodeInfo implements ExtendedNodeInfo {
         return new ExtendedNetworkInfo(ExtendedNetworkInfo.NA_INTERFACE);
     }
 
-    @Override
-    public ExtendedFsStats fsStats(NodeEnvironment nodeEnvironment) {
+    public ExtendedFsStats fsStats() {
         List<ExtendedFsStats.Info> infos = new ArrayList<>(FILE_SYSTEMS.size());
         if (nodeEnvironment.hasNodeFile()) {
             for (Tuple<String, String> fileSystem : FILE_SYSTEMS) {
                 ExtendedFsStats.Info info = new ExtendedFsStats.Info(
-                        fileSystem.v2(), fileSystem.v1(),
-                        42L, 42L, 42L,
-                        42L, 42L, 42L, 42L, 42L
+                    fileSystem.v2(), fileSystem.v1(),
+                    42L, 42L, 42L,
+                    42L, 42L, 42L, 42L, 42L
                 );
                 infos.add(info);
             }
         }
-
         return new ExtendedFsStats(infos.toArray(new ExtendedFsStats.Info[infos.size()]));
     }
 

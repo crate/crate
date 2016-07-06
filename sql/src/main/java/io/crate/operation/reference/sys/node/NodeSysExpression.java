@@ -42,7 +42,6 @@ public class NodeSysExpression extends NestedObjectExpression {
     private final NodeService nodeService;
     private final OsService osService;
     private final JvmService jvmService;
-    private final NodeEnvironment nodeEnvironment;
     private final ExtendedNodeInfo extendedNodeInfo;
 
     @Inject
@@ -50,14 +49,12 @@ public class NodeSysExpression extends NestedObjectExpression {
                              OsService osService,
                              NodeService nodeService,
                              JvmService jvmService,
-                             NodeEnvironment nodeEnvironment,
                              Discovery discovery,
                              ThreadPool threadPool,
                              ExtendedNodeInfo extendedNodeInfo) {
         this.nodeService = nodeService;
         this.osService = osService;
         this.jvmService = jvmService;
-        this.nodeEnvironment = nodeEnvironment;
         this.extendedNodeInfo = extendedNodeInfo;
         childImplementations.put(SysNodesTableInfo.SYS_COL_HOSTNAME,
                 new NodeHostnameExpression(clusterService));
@@ -104,7 +101,7 @@ public class NodeSysExpression extends NestedObjectExpression {
                 return new NodeNetworkExpression(extendedNodeInfo.networkStats());
 
             case SysNodesTableInfo.SYS_COL_FS:
-                return new NodeFsExpression(extendedNodeInfo.fsStats(nodeEnvironment));
+                return new NodeFsExpression(extendedNodeInfo.fsStats());
         }
         return super.getChildImplementation(name);
     }
