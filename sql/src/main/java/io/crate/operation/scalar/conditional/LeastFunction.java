@@ -22,36 +22,36 @@
 
 package io.crate.operation.scalar.conditional;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import io.crate.metadata.FunctionIdent;
+import io.crate.analyze.symbol.Function;
+import io.crate.metadata.DynamicFunctionResolver;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
+import io.crate.operation.Input;
+import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
-abstract class ConditionalFunction extends Scalar<Object, Object> {
-    private final FunctionInfo info;
+public class LeastFunction extends ConditionalCompareFunction {
+    public final static String NAME = "least";
 
-    protected ConditionalFunction(FunctionInfo info) {
-        this.info = info;
+    private LeastFunction(FunctionInfo info) {
+        super(info);
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    protected Object compare(List<Object> values) {
+        return ordering.nullsLast().min(values);
     }
 
-    @VisibleForTesting
-    static FunctionInfo createInfo(String name, List<DataType> dataTypes) {
-        Set<DataType> types = new HashSet<>(dataTypes);
-        Preconditions.checkArgument(types.size() > 0, "%s function requires at least one argument", name);
-        Preconditions.checkArgument(types.size() == 1 || (types.size() == 2 && types.contains(DataTypes.UNDEFINED)),
-            "all arguments for %s function must have the same data type", name);
-        return new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.tryFindNotNullType(dataTypes));
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new Resolver());
+    }
+
+    private static class Resolver implements DynamicFunctionResolver {
+        @Override
+        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            return new LeastFunction(createInfo(NAME, dataTypes));
+        }
     }
 }

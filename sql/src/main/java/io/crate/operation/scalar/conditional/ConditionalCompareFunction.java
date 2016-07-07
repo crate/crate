@@ -22,36 +22,37 @@
 
 package io.crate.operation.scalar.conditional;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import io.crate.metadata.FunctionIdent;
+import com.google.common.collect.Ordering;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.operation.Input;
 
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 
-abstract class ConditionalFunction extends Scalar<Object, Object> {
-    private final FunctionInfo info;
+abstract class ConditionalCompareFunction extends ConditionalFunction {
+    protected final Ordering<Object> ordering;
 
-    protected ConditionalFunction(FunctionInfo info) {
-        this.info = info;
+    ConditionalCompareFunction(FunctionInfo info) {
+        super(info);
+        this.ordering = Ordering.from(new InputComparator());
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Object evaluate(Input... args) {
+        List<Object> values = new ArrayList<>();
+        for (Input input : args) {
+            values.add(input.value());
+        }
+        return compare(values);
     }
 
-    @VisibleForTesting
-    static FunctionInfo createInfo(String name, List<DataType> dataTypes) {
-        Set<DataType> types = new HashSet<>(dataTypes);
-        Preconditions.checkArgument(types.size() > 0, "%s function requires at least one argument", name);
-        Preconditions.checkArgument(types.size() == 1 || (types.size() == 2 && types.contains(DataTypes.UNDEFINED)),
-            "all arguments for %s function must have the same data type", name);
-        return new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.tryFindNotNullType(dataTypes));
+    protected abstract Object compare(List<Object> values);
+
+    private class InputComparator implements Comparator {
+        @Override
+        public int compare(Object o1, Object o2) {
+            return info().returnType().compareValueTo(o1, o2);
+        }
     }
 }
