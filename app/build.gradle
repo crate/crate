@@ -52,7 +52,6 @@ dependencies {
     compileNotTransitive project(':dns-discovery')
     compileNotTransitive project(':es-discovery-multicast')
     compileNotTransitive project(':es-cloud-aws')
-    compileNotTransitive project(':es-cloud-azure')
 }
 
 task release(dependsOn: 'distTar') << {
@@ -329,7 +328,7 @@ jar {
 }
 
 task downloadPlugins (
-    dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip', ':es-cloud-azure:jar']) << {
+    dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip', ':es-cloud-azure:jarAndProperties']) << {
 
     copy {
         from(zipTree(project(':es-repository-hdfs').tasks.distZip.archivePath))
@@ -337,12 +336,17 @@ task downloadPlugins (
     }
 
     copy {
-        from (project(':es-cloud-azure').projectDir.path + '/build/libs')
+        from (project(':es-cloud-azure').buildDir.path + '/libs')
         into 'plugins/cloud-azure'
     }
 
     copy {
-        from (project(':admin-ui').projectDir.path + '/build/crate-admin')
+        from (project(':es-cloud-azure').buildDir.path + '/cloud-azure')
+        into 'plugins/cloud-azure'
+    }
+
+    copy {
+        from (project(':admin-ui').buildDir.path + '/crate-admin')
         into 'plugins/crate-admin'
     }
 
