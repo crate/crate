@@ -86,14 +86,14 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testUnsupportedExpressionNullIf() throws Exception {
+    public void testUnsupportedExpressionIf() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Unsupported expression NULLIF(1, 3)");
+        expectedException.expectMessage("Unsupported expression IF(1, 3)");
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 mockedAnalysisMetaData, emptyParameterContext, new FullQualifedNameFieldProvider(dummySources), null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
-        expressionAnalyzer.convert(SqlParser.createExpression("NULLIF ( 1 , 3 )"), expressionAnalysisContext);
+        expressionAnalyzer.convert(SqlParser.createExpression("IF ( 1 , 3 )"), expressionAnalysisContext);
     }
 
     @Test

@@ -81,10 +81,10 @@ have the same value, returns NULL; otherwise returns the first argument.
     cr> select nullif(schema_name, 'sys')
     ...   from information_schema.tables
     ...   where table_name='nodes';
-    +-------------------------+
-    | nullif(settings, 'sys') |
-    +-------------------------+
-    | NULL                    |
-    +-------------------------+
+    +----------------------------+
+    | nullif(schema_name, 'sys') |
+    +----------------------------+
+    | NULL                       |
+    +----------------------------+
     SELECT 1 row in set (... sec)
 
