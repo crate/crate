@@ -28,7 +28,6 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import com.google.common.collect.AbstractIterator;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.operation.projectors.ListenableRowReceiver;
@@ -41,7 +40,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.util.Iterator;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -119,55 +117,9 @@ public class NestedLoopOperationBenchmark {
         executeNestedLoop(100_000, 100);
     }
 
-    private static class RowIter implements Iterable<Row> {
-
-        private final int numRows;
-
-        public RowIter(int numRows) {
-            this.numRows = numRows;
-        }
-
-        @Override
-        public Iterator<Row> iterator() {
-            return new AbstractIterator<Row>() {
-                private final IncRow row = new IncRow();
-
-                @Override
-                protected Row computeNext() {
-                    if (row.counter >= numRows) {
-                        return endOfData();
-                    } else {
-                        row.counter++;
-                        return row;
-                    }
-                }
-            };
-        }
-    }
-
-    private static class IncRow implements Row {
-
-        public volatile int counter = 0;
-
-        @Override
-        public int size() {
-            return 1;
-        }
-
-        @Override
-        public Object get(int index) {
-            return counter;
-        }
-
-        @Override
-        public Object[] materialize() {
-            return new Object[] { counter };
-        }
-    }
-
     private Bucket executeNestedLoop(int leftSize, int rightSize) throws Exception {
-        Iterable<Row> left = new RowIter(leftSize);
-        Iterable<Row> right = new RowIter(rightSize);
+        Iterable<Row> left = RowSender.rowRange(0, leftSize);
+        Iterable<Row> right = RowSender.rowRange(0, rightSize);
 
         RowCountRowReceiver receiver = new RowCountRowReceiver();
         NestedLoopOperation operation = new NestedLoopOperation(0, receiver);
