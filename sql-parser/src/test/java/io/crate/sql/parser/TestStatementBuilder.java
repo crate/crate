@@ -364,6 +364,14 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testSetSession() throws Exception {
+        printStatement("set some_setting = '1'");
+        printStatement("set some_setting = '1', other_setting = 2");
+        printStatement("set session some_setting = '1'");
+        printStatement("set session some_setting = '1', other_setting = 2");
+    }
+
+    @Test
     public void testParameterExpressionLimitOffset() throws Exception {
         // ORMs like SQLAlchemy generate these kind of queries.
         printStatement("select * from foo limit ? offset ?");

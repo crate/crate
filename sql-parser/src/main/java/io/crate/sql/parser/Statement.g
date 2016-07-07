@@ -134,6 +134,8 @@ tokens {
     MATCH;
     MATCH_PREDICATE_IDENT;
     MATCH_PREDICATE_IDENT_LIST;
+    SET_GLOBAL;
+    SET_SESSION;
 }
 
 @header {
@@ -218,7 +220,7 @@ statement
     | updateStmt
     | COPY copyStatement -> copyStatement
     | refreshStmt
-    | setStmt
+    | SET setStmt -> setStmt
     | resetStmt
     | killStmt
     | RESTORE restoreStmt -> restoreStmt
@@ -1076,7 +1078,9 @@ refreshStmt
     ;
 
 setStmt
-    : SET GLOBAL settingsType? assignmentList -> ^(SET settingsType? assignmentList)
+    : (GLOBAL settingsType? assignmentList) => GLOBAL settingsType? assignmentList -> ^(SET_GLOBAL settingsType? assignmentList)
+    | (SESSION assignmentList) => SESSION assignmentList -> ^(SET_SESSION assignmentList)
+    | assignmentList -> ^(SET_SESSION assignmentList)
     ;
 
 resetStmt
@@ -1103,7 +1107,7 @@ nonReserved
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
     | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LOGICAL | MATERIALIZED | MINUTE
     | MONTH | OFF | ONLY | OVER | OPTIMIZE | PARTITION | PARTITIONED | PARTITIONS | PLAIN
-    | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND
+    | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND | SESSION
     | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS
@@ -1212,6 +1216,7 @@ STRING_TYPE: 'STRING';
 GEO_POINT: 'GEO_POINT';
 GEO_SHAPE: 'GEO_SHAPE';
 GLOBAL : 'GLOBAL';
+SESSION : 'SESSION';
 
 CONSTRAINT: 'CONSTRAINT';
 DESCRIBE: 'DESCRIBE';
