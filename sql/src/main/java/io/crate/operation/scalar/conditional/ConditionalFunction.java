@@ -49,6 +49,6 @@ public abstract class ConditionalFunction extends Scalar<Object, Object> {
         Set<DataType> types = new HashSet<>(dataTypes);
         Preconditions.checkArgument(types.size() == 1 || (types.size() == 2 && types.contains(DataTypes.UNDEFINED)),
             "all arguments for %s function must have the same data type", name);
-        return new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.getFirstNotNullType(dataTypes));
+        return new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.tryFindNotNullType(dataTypes));
     }
 }
