@@ -94,9 +94,10 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
     @Override
     public AnalyzedStatement visitUpdate(Update node, Analysis analysis) {
-        RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext(
+        StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
                 analysis.parameterContext(), analysisMetaData, Operation.UPDATE);
-        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), relationAnalysisContext);
+        RelationAnalysisContext currentRelationContext = statementAnalysisContext.startRelation();
+        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), statementAnalysisContext);
 
         FieldResolver fieldResolver = (FieldResolver) analyzedRelation;
         FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);
@@ -104,10 +105,10 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                 new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), columnFieldProvider, fieldResolver);
         columnExpressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
 
-        assert Iterables.getOnlyElement(relationAnalysisContext.sources().values()) == analyzedRelation;
-        FieldProvider fieldProvider = new FullQualifedNameFieldProvider(relationAnalysisContext.sources());
+        assert Iterables.getOnlyElement(currentRelationContext.sources().values()) == analyzedRelation;
         ExpressionAnalyzer expressionAnalyzer =
-                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), fieldProvider, fieldResolver);
+                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(),
+                    currentRelationContext.fieldProvider(), fieldResolver);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         int numNested = 1;
@@ -149,6 +150,8 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             }
             nestedAnalyzedStatements.add(nestedAnalyzedStatement);
         }
+
+        statementAnalysisContext.endRelation();
         return new UpdateAnalyzedStatement(analyzedRelation, nestedAnalyzedStatements);
     }
 
