@@ -1030,9 +1030,10 @@ tableWithPartitionList returns [List<Table> value = new ArrayList<>()]
     ;
 
 set returns [SetStatement value]
-    : ^(SET assignments=assignmentList) { $value = new SetStatement($assignments.value); }
-    | ^(SET TRANSIENT assignments=assignmentList) { $value = new SetStatement(SetStatement.SettingType.TRANSIENT, $assignments.value); }
-    | ^(SET PERSISTENT assignments=assignmentList) { $value = new SetStatement(SetStatement.SettingType.PERSISTENT, $assignments.value); }
+    : ^(SET_GLOBAL assignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.GLOBAL, $assignments.value); }
+    | ^(SET_GLOBAL TRANSIENT assignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.GLOBAL, SetStatement.SettingType.TRANSIENT, $assignments.value); }
+    | ^(SET_GLOBAL PERSISTENT assignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.GLOBAL, SetStatement.SettingType.PERSISTENT, $assignments.value); }
+    | ^(SET_SESSION assignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.SESSION, $assignments.value); }
     ;
 
 resetStatement returns [ResetStatement value]
