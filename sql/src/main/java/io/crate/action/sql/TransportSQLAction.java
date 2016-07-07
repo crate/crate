@@ -155,10 +155,11 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
             }
         } else {
             assert analysis.rootRelation() != null;
-            outputNames = new String[analysis.rootRelation().fields().size()];
-            outputTypes = new DataType[analysis.rootRelation().fields().size()];
-            for (int i = 0; i < analysis.rootRelation().fields().size(); i++) {
-                Field field = analysis.rootRelation().fields().get(i);
+            List<Field> fields = analysis.rootRelation().fields();
+            outputNames = new String[fields.size()];
+            outputTypes = new DataType[fields.size()];
+            for (int i = 0; i < fields.size(); i++) {
+                Field field = fields.get(i);
                 outputNames[i] = field.path().outputName();
                 outputTypes[i] = field.valueType();
             }
