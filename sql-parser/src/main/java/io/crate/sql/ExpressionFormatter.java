@@ -289,12 +289,6 @@ public final class ExpressionFormatter {
         }
 
         @Override
-        protected String visitNullIfExpression(NullIfExpression node, Void context)
-        {
-            return "NULLIF(" + process(node.getFirst(), null) + ", " + process(node.getSecond(), null) + ')';
-        }
-
-        @Override
         protected String visitIfExpression(IfExpression node, Void context)
         {
             StringBuilder builder = new StringBuilder();

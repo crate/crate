@@ -41,4 +41,25 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expectMessage("all arguments for coalesce function must have the same data type");
         assertEvaluate("coalesce(name, 11.2, 12)", null, Literal.NULL);
     }
+
+    @Test
+    public void testNullIf() throws Exception {
+        assertEvaluate("nullif(10, 12)", 10L);
+        assertEvaluate("nullif(name, 'foo')", null, Literal.newLiteral("foo"));
+        assertEvaluate("nullif(null, 'foo')", null);
+    }
+
+    @Test
+    public void testNullIfInvalidDataType() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("all arguments for nullif function must have the same data type");
+        assertEvaluate("nullif(name, age)", null, Literal.newLiteral("Trillian"), Literal.newLiteral(32));
+    }
+
+    @Test
+    public void testNullIfInvalidArgsLength() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("invalid size of arguments, 2 expected");
+        assertEvaluate("nullif(1, 2, 3)", null);
+    }
 }

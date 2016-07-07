@@ -213,15 +213,6 @@ public abstract class DefaultTraversalVisitor<R, C>
     }
 
     @Override
-    protected R visitNullIfExpression(NullIfExpression node, C context)
-    {
-        process(node.getFirst(), context);
-        process(node.getSecond(), context);
-
-        return null;
-    }
-
-    @Override
     protected R visitIfExpression(IfExpression node, C context)
     {
         process(node.getCondition(), context);
