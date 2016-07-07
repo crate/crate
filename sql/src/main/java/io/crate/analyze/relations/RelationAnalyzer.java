@@ -54,7 +54,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 @Singleton
-public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, RelationAnalysisContext> {
+public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
 
     private final static AggregationSearcher AGGREGATION_SEARCHER = new AggregationSearcher();
 
@@ -68,27 +68,27 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         this.analysisMetaData = analysisMetaData;
     }
 
-
-    public AnalyzedRelation analyze(Node node, RelationAnalysisContext relationAnalysisContext) {
-        return process(node, relationAnalysisContext);
+    public AnalyzedRelation analyze(Node node, StatementAnalysisContext relationAnalysisContext) {
+        AnalyzedRelation relation = process(node, relationAnalysisContext);
+        return RelationNormalizer.normalize(relation, analysisMetaData);
     }
 
     public AnalyzedRelation analyze(Node node, Analysis analysis) {
-        return analyze(node, new RelationAnalysisContext(analysis.parameterContext(), analysisMetaData));
+        return analyze(node, new StatementAnalysisContext(analysis.parameterContext(), analysisMetaData));
     }
 
     @Override
-    protected AnalyzedRelation visitQuery(Query node, RelationAnalysisContext context) {
+    protected AnalyzedRelation visitQuery(Query node, StatementAnalysisContext context) {
         return process(node.getQueryBody(), context);
     }
 
     @Override
-    protected AnalyzedRelation visitUnion(Union node, RelationAnalysisContext context) {
+    protected AnalyzedRelation visitUnion(Union node, StatementAnalysisContext context) {
         throw new UnsupportedOperationException("UNION is not supported");
     }
 
     @Override
-    protected AnalyzedRelation visitJoin(Join node, RelationAnalysisContext context) {
+    protected AnalyzedRelation visitJoin(Join node, StatementAnalysisContext context) {
         if (!ALLOWED_JOIN_TYPES.contains(node.getType())) {
             throw new UnsupportedOperationException("Explicit " + node.getType().name() + " join syntax is not supported");
         }
@@ -99,7 +99,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (optCriteria.isPresent()) {
             JoinCriteria joinCriteria = optCriteria.get();
             if (joinCriteria instanceof JoinOn) {
-                context.addJoinExpression(((JoinOn) joinCriteria).getExpression());
+                context.currentRelationContext().addJoinExpression(((JoinOn) joinCriteria).getExpression());
             } else {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
                         joinCriteria.getClass().getSimpleName()));
@@ -109,13 +109,17 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
-    protected AnalyzedRelation visitQuerySpecification(QuerySpecification node, RelationAnalysisContext context) {
+    protected AnalyzedRelation visitQuerySpecification(QuerySpecification node, StatementAnalysisContext statementContext) {
         if (node.getFrom() == null) {
             throw new IllegalArgumentException("FROM clause is missing.");
         }
+
+        statementContext.startRelation();
+
         for (Relation relation : node.getFrom()) {
-            process(relation, context);
+            process(relation, statementContext);
         }
+        RelationAnalysisContext context = statementContext.currentRelationContext();
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
         WhereClause whereClause = analyzeWhere(node.getWhere(), context);
 
@@ -146,27 +150,34 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 .groupBy(groupBy)
                 .hasAggregates(expressionAnalysisContext.hasAggregates);
 
+        QueriedRelation relation = null;
         if (context.sources().size() == 1) {
             AnalyzedRelation source = Iterables.getOnlyElement(context.sources().values());
-            QueriedTableRelation relation;
+            QueriedTableRelation tableRelation = null;
             if (source instanceof DocTableRelation) {
-                relation = new QueriedDocTable(
-                        (DocTableRelation) source, selectAnalysis.outputNames(), querySpec);
+                tableRelation = new QueriedDocTable((DocTableRelation) source, selectAnalysis.outputNames(), querySpec);
             } else if (source instanceof TableRelation) {
-                relation =  new QueriedTable((TableRelation) source, selectAnalysis.outputNames(), querySpec);
+                tableRelation = new QueriedTable((TableRelation) source, selectAnalysis.outputNames(), querySpec);
             } else {
-                throw new UnsupportedOperationException("Only tables are allowed in the FROM clause, got: " + source);
+                assert source instanceof QueriedRelation : "expecting relation to be an instance of QueriedRelation";
+                relation = new QueriedSelectRelation((QueriedRelation) source, selectAnalysis.outputNames(), querySpec);
             }
-            relation.normalize(analysisMetaData);
-            return relation;
+            if (tableRelation != null) {
+                tableRelation.normalize(analysisMetaData);
+                relation = tableRelation;
+            }
+        } else {
+            // TODO: implement multi table selects
+            // once this is used .normalize should for this class needs to be handled here too
+            relation = new MultiSourceSelect(
+                    context.sources(),
+                    selectAnalysis.outputNames(),
+                    querySpec
+                );
         }
-        // TODO: implement multi table selects
-        // once this is used .normalize should for this class needs to be handled here too
-        return new MultiSourceSelect(
-                context.sources(),
-                selectAnalysis.outputNames(),
-                querySpec
-        );
+
+        statementContext.endRelation();
+        return relation;
     }
 
     @Nullable
@@ -197,7 +208,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return AGGREGATION_SEARCHER.process(s, null);
     }
 
-    static class AggregationSearcher extends SymbolVisitor<Void, Boolean> {
+    private static class AggregationSearcher extends SymbolVisitor<Void, Boolean> {
 
         @Override
         protected Boolean visitSymbol(Symbol symbol, Void context) {
@@ -381,15 +392,16 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
-    protected AnalyzedRelation visitAliasedRelation(AliasedRelation node, RelationAnalysisContext context) {
-        AnalyzedRelation childRelation = process(node.getRelation(),
-                new RelationAnalysisContext(context.parameterContext(), analysisMetaData));
-        context.addSourceRelation(node.getAlias(), childRelation);
+    protected AnalyzedRelation visitAliasedRelation(AliasedRelation node, StatementAnalysisContext context) {
+        context.startRelation(true);
+        AnalyzedRelation childRelation = process(node.getRelation(), context);
+        context.endRelation();
+        context.currentRelationContext().addSourceRelation(node.getAlias(), childRelation);
         return childRelation;
     }
 
     @Override
-    protected AnalyzedRelation visitTable(Table node, RelationAnalysisContext context) {
+    protected AnalyzedRelation visitTable(Table node, StatementAnalysisContext context) {
         TableInfo tableInfo = analysisMetaData.schemas().getTableInfo(
                 TableIdent.of(node, context.parameterContext().defaultSchema()));
         Operation.blockedRaiseException(tableInfo, context.currentOperation());
@@ -400,14 +412,16 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         } else {
             tableRelation = new TableRelation(tableInfo);
         }
-        context.addSourceRelation(tableInfo.ident().schema(), tableInfo.ident().name(), tableRelation);
+        context.currentRelationContext().addSourceRelation(
+            tableInfo.ident().schema(), tableInfo.ident().name(), tableRelation);
         return tableRelation;
     }
 
     @Override
-    public AnalyzedRelation visitTableFunction(TableFunction node, RelationAnalysisContext context) {
+    public AnalyzedRelation visitTableFunction(TableFunction node, StatementAnalysisContext statementContext) {
+        RelationAnalysisContext context = statementContext.currentRelationContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData, context.parameterContext(), new FieldProvider() {
+                analysisMetaData, statementContext.parameterContext(), new FieldProvider() {
             @Override
             public Symbol resolveField(QualifiedName qualifiedName, Operation operation) {
                 throw new UnsupportedOperationException("Can only resolve literals");
@@ -426,9 +440,17 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
         TableFunctionImplementation tableFunction = analysisMetaData.functions().getTableFunctionSafe(node.name());
         TableInfo tableInfo = tableFunction.createTableInfo(clusterService, Symbols.extractTypes(arguments));
-        Operation.blockedRaiseException(tableInfo, context.currentOperation());
+        Operation.blockedRaiseException(tableInfo, statementContext.currentOperation());
         TableRelation tableRelation = new TableFunctionRelation(tableInfo, node.name(), arguments);
         context.addSourceRelation(node.name(), tableRelation);
         return tableRelation;
+    }
+
+    @Override
+    protected AnalyzedRelation visitTableSubquery(TableSubquery node, StatementAnalysisContext context) {
+        if (!context.currentRelationContext().isAliasedRelation()) {
+            throw new UnsupportedOperationException("subquery in FROM must have an alias");
+        }
+        return super.visitTableSubquery(node, context);
     }
 }

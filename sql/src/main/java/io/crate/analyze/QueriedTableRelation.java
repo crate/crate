@@ -29,7 +29,7 @@ import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 
-import java.util.ArrayList;
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -38,24 +38,25 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
 
     protected final TR tableRelation;
     private final QuerySpec querySpec;
-    private final ArrayList<Field> fields;
+    private final Fields fields;
 
-    public QueriedTableRelation(TR tableRelation, Collection<? extends Path> paths, QuerySpec querySpec) {
+    public QueriedTableRelation(TR tableRelation, Collection<? extends Path> outputNames, QuerySpec querySpec) {
         this.tableRelation = tableRelation;
         this.querySpec = querySpec;
-        this.fields = new ArrayList<>(paths.size());
-        Iterator<Symbol> qsIter = querySpec.outputs().iterator();
-        for (Path path : paths) {
-            fields.add(new Field(this, path, qsIter.next().valueType()));
+        this.fields = new Fields(outputNames.size());
+        Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
+        for (Path path : outputNames) {
+            fields.add(path, new Field(this, path, outputsIterator.next().valueType()));
         }
     }
 
     public QueriedTableRelation(TR tableRelation, QuerySpec querySpec) {
         this.tableRelation = tableRelation;
         this.querySpec = querySpec;
-        this.fields = new ArrayList<>(querySpec.outputs().size());
+        this.fields = new Fields(querySpec.outputs().size());
         for (int i = 0; i < querySpec.outputs().size(); i++) {
-            fields.add(new Field(this, new ColumnIndex(i), querySpec.outputs().get(i).valueType()));
+            ColumnIndex columnIndex = new ColumnIndex(i);
+            fields.add(columnIndex, new Field(this, columnIndex, querySpec.outputs().get(i).valueType()));
         }
     }
 
@@ -72,15 +73,17 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
         querySpec().normalize(normalizer);
     }
 
+    @Nullable
     @Override
     public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
-        throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is not implemented");
+        if (operation != Operation.READ) {
+            throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is only supported for READ operations");
+        }
+        return fields.get(path);
     }
 
     @Override
     public List<Field> fields() {
-        return fields;
+        return fields.asList();
     }
-
-
 }

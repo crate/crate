@@ -451,7 +451,7 @@ def test_suite():
                                  encoding='utf-8')
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/joins.txt', ):
+    for fn in ('sql/joins.txt', 'sql/subselects.txt',):
         path = os.path.join('..', '..', fn)
         s = doctest.DocFileSuite(path,
                                  parser=crash_parser,

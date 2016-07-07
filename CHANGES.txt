@@ -5,6 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for subselect statements that can be rewritten as a single query.
+
+ - BREAKING: Column names returned on queries does not include the table and schema
+   names anymore, i.e., ``select doc.t1.a from t1`` will return column name ``a`` instead of
+   ``doc.t1.a``.
+
  - Fixed a read isolation issue which could cause joins involving
    system and blob tables to return inconsistent results.
 

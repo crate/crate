@@ -25,6 +25,7 @@ package io.crate.planner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -52,7 +53,6 @@ import io.crate.planner.node.fetch.FetchSource;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -223,6 +223,11 @@ public class SelectStatementPlanner {
 
             plannedSubQuery.addProjection(fp);
             return new QueryThenFetch(plannedSubQuery.plan(), fetchPhase, null, context.jobId());
+        }
+
+        @Override
+        public Plan visitQueriedSelectRelation(QueriedSelectRelation relation, Planner.Context context) {
+            throw new UnsupportedOperationException("complex sub selects are not supported");
         }
     }
 

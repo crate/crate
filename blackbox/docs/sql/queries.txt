@@ -49,8 +49,8 @@ FROM Clause
 -----------
 
 The ``FROM`` clause is used to reference the relation this select query is
-based upon. Can be a single table, many tables or a table
-:ref:`JOIN <sql_joins>`.
+based upon. Can be a single table, many tables, table :ref:`JOIN <sql_joins>`
+or :ref:`Sub Select<sql_subselects>`
 
 A table is referenced by schema and table name and can optionally be aliased.
 If the table ``t`` is only referenced by table name, Crate assumes the table

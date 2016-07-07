@@ -40,6 +40,13 @@ public class Field extends Symbol {
         }
     };
 
+    public static final com.google.common.base.Function<Field, Path> TO_PATH = new com.google.common.base.Function<Field, Path>() {
+        @Override
+        public Path apply(Field input) {
+            return input.path();
+        }
+    };
+
     private AnalyzedRelation relation;
     private Path path;
     private DataType valueType;
