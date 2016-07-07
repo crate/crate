@@ -45,7 +45,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
 
 
-    static final DefaultTraversalVisitor<Void, InnerAnalysisContext> innerAnalyzer =
+    private static final DefaultTraversalVisitor<Void, InnerAnalysisContext> INNER_ANALYZER =
         new DefaultTraversalVisitor<Void, InnerAnalysisContext>() {
             @Override
             public Void visitDelete(Delete node, InnerAnalysisContext context) {
@@ -97,16 +97,18 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     public AnalyzedStatement visitDelete(Delete node, Analysis context) {
         int numNested = 1;
 
-        RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext(
+        StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
                 context.parameterContext(), analysisMetaData, Operation.DELETE);
+        RelationAnalysisContext relationAnalysisContext = statementAnalysisContext.startRelation();
+        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.getRelation(), statementAnalysisContext);
 
-        AnalyzedRelation analyzedRelation = relationAnalyzer.process(node.getRelation(), relationAnalysisContext);
         assert analyzedRelation instanceof DocTableRelation;
         DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);
         InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
                 new ExpressionAnalyzer(analysisMetaData, context.parameterContext(),
-                        new FullQualifedNameFieldProvider(relationAnalysisContext.sources()), docTableRelation),
+                    relationAnalysisContext.fieldProvider(),
+                    docTableRelation),
                 new ExpressionAnalysisContext(),
                 deleteAnalyzedStatement,
                 new WhereClauseAnalyzer(analysisMetaData, deleteAnalyzedStatement.analyzedRelation())
@@ -117,8 +119,10 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         }
         for (int i = 0; i < numNested; i++) {
             context.parameterContext().setBulkIdx(i);
-            innerAnalyzer.process(node, innerAnalysisContext);
+            INNER_ANALYZER.process(node, innerAnalysisContext);
         }
+
+        statementAnalysisContext.endRelation();
         return deleteAnalyzedStatement;
     }
 }

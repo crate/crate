@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
@@ -29,33 +30,32 @@ import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import javax.annotation.Nullable;
+import java.util.*;
 
 public abstract class QueriedTableRelation<TR extends AbstractTableRelation> implements QueriedRelation {
 
     protected final TR tableRelation;
     private final QuerySpec querySpec;
-    private final ArrayList<Field> fields;
+    private final Map<String, Field> fields;
 
     public QueriedTableRelation(TR tableRelation, Collection<? extends Path> paths, QuerySpec querySpec) {
         this.tableRelation = tableRelation;
         this.querySpec = querySpec;
-        this.fields = new ArrayList<>(paths.size());
+        this.fields = new HashMap<>(paths.size());
         Iterator<Symbol> qsIter = querySpec.outputs().iterator();
         for (Path path : paths) {
-            fields.add(new Field(this, path, qsIter.next().valueType()));
+            fields.put(path.outputName(), new Field(this, path, qsIter.next().valueType()));
         }
     }
 
     public QueriedTableRelation(TR tableRelation, QuerySpec querySpec) {
         this.tableRelation = tableRelation;
         this.querySpec = querySpec;
-        this.fields = new ArrayList<>(querySpec.outputs().size());
+        this.fields = new HashMap<>(querySpec.outputs().size());
         for (int i = 0; i < querySpec.outputs().size(); i++) {
-            fields.add(new Field(this, new ColumnIndex(i), querySpec.outputs().get(i).valueType()));
+            ColumnIndex columnIndex = new ColumnIndex(i);
+            fields.put(columnIndex.outputName(), new Field(this, columnIndex, querySpec.outputs().get(i).valueType()));
         }
     }
 
@@ -72,14 +72,18 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
         querySpec().normalize(normalizer);
     }
 
+    @Nullable
     @Override
     public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
-        throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is not implemented");
+        if (operation != Operation.READ) {
+            throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is only supported for READ operations");
+        }
+        return fields.get(path.outputName());
     }
 
     @Override
     public List<Field> fields() {
-        return fields;
+        return Lists.newArrayList(fields.values());
     }
 
 
