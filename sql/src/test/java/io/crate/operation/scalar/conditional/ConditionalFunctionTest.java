@@ -22,11 +22,31 @@
 
 package io.crate.operation.scalar.conditional;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Literal;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.junit.Test;
 
+import java.util.Collections;
+
 public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
+
+    @Test
+    public void testArgsLength() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("dummy function requires at least one argument");
+        ConditionalFunction.createInfo("dummy", Collections.<DataType>emptyList());
+    }
+
+    @Test
+    public void testInvalidDataType() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("all arguments for dummy function must have the same data type");
+        ConditionalFunction.createInfo("dummy",
+            ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.INTEGER));
+    }
 
     @Test
     public void testCoalesce() throws Exception {
@@ -36,10 +56,17 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testCoalesceInvalidDataType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("all arguments for coalesce function must have the same data type");
-        assertEvaluate("coalesce(name, 11.2, 12)", null, Literal.NULL);
+    public void testGreatest() throws Exception {
+        assertEvaluate("greatest(null)", null);
+        assertEvaluate("greatest(10, 20, 30)", 30L);
+        assertEvaluate("greatest(name, 'bar', 'foo')", "foo", Literal.NULL);
+    }
+
+    @Test
+    public void testLeast() throws Exception {
+        assertEvaluate("least(null)", null);
+        assertEvaluate("least(10, 20, 30)", 10L);
+        assertEvaluate("least(name, 'foo', 'bar')", "bar", Literal.NULL);
     }
 
     @Test
@@ -47,13 +74,6 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("nullif(10, 12)", 10L);
         assertEvaluate("nullif(name, 'foo')", null, Literal.newLiteral("foo"));
         assertEvaluate("nullif(null, 'foo')", null);
-    }
-
-    @Test
-    public void testNullIfInvalidDataType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("all arguments for nullif function must have the same data type");
-        assertEvaluate("nullif(name, age)", null, Literal.newLiteral("Trillian"), Literal.newLiteral(32));
     }
 
     @Test

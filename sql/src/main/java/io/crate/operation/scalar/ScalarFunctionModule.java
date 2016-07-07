@@ -30,6 +30,8 @@ import io.crate.operation.scalar.cast.ToGeoFunction;
 import io.crate.operation.scalar.cast.ToPrimitiveFunction;
 import io.crate.operation.scalar.cast.TryCastScalarFunction;
 import io.crate.operation.scalar.conditional.CoalesceFunction;
+import io.crate.operation.scalar.conditional.GreatestFunction;
+import io.crate.operation.scalar.conditional.LeastFunction;
 import io.crate.operation.scalar.conditional.NullIfFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.IntersectsFunction;
@@ -112,6 +114,8 @@ public class ScalarFunctionModule extends AbstractModule {
         ArrayUniqueFunction.register(this);
 
         CoalesceFunction.register(this);
+        GreatestFunction.register(this);
+        LeastFunction.register(this);
         NullIfFunction.register(this);
 
         // bind all registered functions and resolver

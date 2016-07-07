@@ -38,14 +38,13 @@ evaluate to NULL.
 
 ::
 
-    cr> select greatest(number_of_replicas, number_of_shards)
-    ...   from information_schema.tables
-    ...   where table_name='nodes';
-    +------------------------------------------------+
-    | greatest(number_of_replicas, number_of_shards) |
-    +------------------------------------------------+
-    | 1                                              |
-    +------------------------------------------------+
+    cr> select greatest(1, 2)
+    ...   from sys.cluster;
+    +----------------+
+    | greatest(1, 2) |
+    +----------------+
+    | 2              |
+    +----------------+
     SELECT 1 row in set (... sec)
 
 
@@ -59,14 +58,13 @@ evaluate to NULL.
 
 ::
 
-    cr> select least(number_of_replicas, number_of_shards)
-    ...   from information_schema.tables
-    ...   where table_name='nodes';
-    +---------------------------------------------+
-    | least(number_of_replicas, number_of_shards) |
-    +---------------------------------------------+
-    | 0                                           |
-    +---------------------------------------------+
+    cr> select least(1, 2)
+    ...   from sys.cluster;
+    +-------------+
+    | least(1, 2) |
+    +-------------+
+    | 1           |
+    +-------------+
     SELECT 1 row in set (... sec)
 
 
