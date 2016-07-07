@@ -292,4 +292,13 @@ public class DataTypes {
         }
         return streamer;
     }
+
+    public static DataType getFirstNotNullType(List<DataType> dataTypes) {
+        for (DataType dataType : dataTypes) {
+            if (dataType != UNDEFINED) {
+                return dataType;
+            }
+        }
+        return dataTypes.get(0);
+    }
 }

@@ -22,33 +22,42 @@
 
 package io.crate.operation.scalar.conditional;
 
-import com.google.common.base.Preconditions;
-import io.crate.metadata.FunctionIdent;
+import io.crate.analyze.symbol.Function;
+import io.crate.metadata.DynamicFunctionResolver;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
+import io.crate.operation.Input;
+import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
-public abstract class ConditionalFunction extends Scalar<Object, Object> {
-    private final FunctionInfo info;
+public class CoalesceFunction extends ConditionalFunction {
+    public final static String NAME = "coalesce";
 
-    protected ConditionalFunction(FunctionInfo info) {
-        this.info = info;
+    private CoalesceFunction(FunctionInfo info) {
+        super(info);
     }
 
     @Override
-    public FunctionInfo info() {
-        return info;
+    public Object evaluate(Input... args) {
+        for (Input input : args) {
+            Object value = input.value();
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
     }
 
-    protected static FunctionInfo createInfo(String name, List<DataType> dataTypes) {
-        Set<DataType> types = new HashSet<>(dataTypes);
-        Preconditions.checkArgument(types.size() == 1 || (types.size() == 2 && types.contains(DataTypes.UNDEFINED)),
-            "all arguments for %s function must have the same data type", name);
-        return new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.getFirstNotNullType(dataTypes));
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new Resolver());
+    }
+
+    private static class Resolver implements DynamicFunctionResolver {
+        @Override
+        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            return new CoalesceFunction(createInfo(NAME, dataTypes));
+        }
     }
 }
