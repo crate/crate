@@ -17,13 +17,13 @@ the arguments evaluate to NULL.
 
 ::
 
-    cr> select coalesce(settings, 'no settings')
+    cr> select coalesce(clustered_by, 'nothing')
     ...   from information_schema.tables
     ...   where table_name='nodes';
     +-----------------------------------+
-    | coalesce(settings, 'no settings') |
+    | coalesce(clustered_by, 'nothing') |
     +-----------------------------------+
-    | 'no settings'                     |
+    | nothing                           |
     +-----------------------------------+
     SELECT 1 row in set (... sec)
 

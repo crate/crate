@@ -29,7 +29,7 @@ import io.crate.operation.scalar.cast.ToArrayFunction;
 import io.crate.operation.scalar.cast.ToGeoFunction;
 import io.crate.operation.scalar.cast.ToPrimitiveFunction;
 import io.crate.operation.scalar.cast.TryCastScalarFunction;
-import io.crate.operation.scalar.conditional.ConditionalFunction;
+import io.crate.operation.scalar.conditional.CoalesceFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.IntersectsFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
@@ -110,7 +110,7 @@ public class ScalarFunctionModule extends AbstractModule {
         ArrayDifferenceFunction.register(this);
         ArrayUniqueFunction.register(this);
 
-        ConditionalFunction.register(this);
+        CoalesceFunction.register(this);
 
         // bind all registered functions and resolver
         // by doing it here instead of the register functions, plugins can also use the

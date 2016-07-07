@@ -21,9 +21,11 @@
 
 package io.crate.types;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import io.crate.Streamer;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
@@ -291,5 +293,19 @@ public class DataTypes {
             idx++;
         }
         return streamer;
+    }
+
+    private static final Predicate<DataType> NOT_NULL_TYPE_FILTER = new Predicate<DataType>() {
+        @Override
+        public boolean apply(DataType input) {
+            return input != UNDEFINED;
+        }
+    };
+
+    /**
+     * Returns the first data type that is not {@link UNDEFINED}, or {@code UNDEFINED} if none found.
+     */
+    public static DataType tryFindNotNullType(Iterable<? extends DataType> dataTypes) {
+        return Iterables.find(dataTypes, NOT_NULL_TYPE_FILTER, UNDEFINED);
     }
 }
