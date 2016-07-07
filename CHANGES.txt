@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/07/07 0.55.2
+=================
+
  - Fix: selecting ``os['timestamp']`` multiple times in same ``sys.nodes``
    statement could result in different values.
 
