@@ -5,24 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fix: selecting ``os['timestamp']`` multiple times in same ``sys.nodes``
-   statement could result in different values.
-
- - Fix: selecting ``os``, ``network``, ``fs`` or ``process`` from ``sys.nodes``
-   in very quick succession or multiple times in same select statement
-   could lead to wrong results for percentual values from the underlying sigar
-   library.
-
- - Fixed performance issues with arithmetic operators and functions.
-
  - Implemented NOT NULL column constraint.
 
  - Added high/low disk watermark node checks exposed via `sys.node_checks`.
-
- - Fixed duplicate key error handling for multiple row inserts. Instead of
-   responding with an error the number of affected row is adjusted.
-
- - Fixed a NPE that occurred when inserting null values to a generated column.
 
  - Leverage new Lucene queries for geo point queries (``distance``, ``within``,
    ``match`` using ``within``). Newly created tables with geo_point columns
@@ -67,6 +52,24 @@ Unreleased
    that conflicts with multiple shards.
 
  - Optimize count aggregations by using custom data type to avoid boxing of primitives into Objects.
+
+2016/07/07 0.55.2
+=================
+
+ - Fix: selecting ``os['timestamp']`` multiple times in same ``sys.nodes``
+   statement could result in different values.
+
+ - Fix: selecting ``os``, ``network``, ``fs`` or ``process`` from ``sys.nodes``
+   in very quick succession or multiple times in same select statement
+   could lead to wrong results for percentual values from the underlying sigar
+   library.
+
+ - Fixed performance issues with arithmetic operators and functions.
+
+ - Fixed duplicate key error handling for multiple row inserts. Instead of
+   responding with an error the number of affected row is adjusted.
+
+ - Fixed a NPE that occurred when inserting null values to a generated column.
 
 2016/06/28 0.55.1
 =================
