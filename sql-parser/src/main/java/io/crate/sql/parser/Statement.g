@@ -1079,9 +1079,9 @@ refreshStmt
     ;
 
 setStmt
-    : (GLOBAL settingsType? assignmentList) => GLOBAL settingsType? assignmentList -> ^(SET_GLOBAL settingsType? assignmentList)
-    | (SESSION assignmentList) => SESSION assignmentList -> ^(SET_SESSION assignmentList)
-    | assignmentList -> ^(SET_SESSION assignmentList)
+    : (GLOBAL settingsType? setAssignmentList) => GLOBAL settingsType? setAssignmentList -> ^(SET_GLOBAL settingsType? setAssignmentList)
+    | (SESSION setAssignmentList) => SESSION setAssignmentList -> ^(SET_SESSION setAssignmentList)
+    | setAssignmentList -> ^(SET_SESSION setAssignmentList)
     ;
 
 resetStmt
@@ -1091,6 +1091,14 @@ resetStmt
 settingsType
     : TRANSIENT
     | PERSISTENT
+    ;
+
+setAssignmentList
+    : setAssignment ( ',' setAssignment )* -> ^(ASSIGNMENT_LIST setAssignment+)
+    ;
+
+setAssignment
+    : numericExpr (EQ|TO) expr -> ^(ASSIGNMENT numericExpr expr)
     ;
 
 killStmt
