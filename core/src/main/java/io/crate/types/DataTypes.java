@@ -295,12 +295,17 @@ public class DataTypes {
         return streamer;
     }
 
+    private static final Predicate<DataType> NOT_NULL_TYPE_FILTER = new Predicate<DataType>() {
+        @Override
+        public boolean apply(DataType input) {
+            return input != UNDEFINED;
+        }
+    };
+
+    /**
+     * Returns the first data type that is not {@link UNDEFINED}, or {@code UNDEFINED} if none found.
+     */
     public static DataType tryFindNotNullType(Iterable<? extends DataType> dataTypes) {
-        return Iterables.find(dataTypes, new Predicate<DataType>() {
-            @Override
-            public boolean apply(DataType input) {
-                return input != UNDEFINED;
-            }
-        }, UNDEFINED);
+        return Iterables.find(dataTypes, NOT_NULL_TYPE_FILTER, UNDEFINED);
     }
 }
