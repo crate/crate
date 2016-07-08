@@ -68,6 +68,13 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testOldProtocolVersion() throws Exception {
+        expectedException.expect(PSQLException.class);
+        expectedException.expectMessage("A connection could not be made using the requested protocol 2.0.");
+        DriverManager.getConnection(JDBC_POSTGRESQL_URL+"?protocolVersion=2.0");
+    }
+
+    @Test
     public void testSelectPreparedStatement() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
