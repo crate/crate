@@ -51,10 +51,7 @@ import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static io.crate.action.sql.SQLBulkRequest.EMPTY_BULK_ARGS;
 import static io.crate.action.sql.SQLRequest.EMPTY_ARGS;
@@ -136,7 +133,7 @@ public class SQLOperations {
         private Throwable throwable = null;
         private List<List<Object>> bulkParams = new ArrayList<>();
         private List<ResultReceiver> resultReceivers = new ArrayList<>();
-        private Map<String, String> settings;
+        private Map<String, String> settings = new HashMap<>();
 
         @Nullable
         private FormatCodes.FormatCode[] resultFormatCodes;
