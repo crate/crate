@@ -38,6 +38,7 @@ import io.crate.executor.Executor;
 import io.crate.executor.TaskResult;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.statement.SetSessionPlan;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -52,6 +53,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static io.crate.action.sql.SQLBulkRequest.EMPTY_BULK_ARGS;
@@ -134,6 +136,7 @@ public class SQLOperations {
         private Throwable throwable = null;
         private List<List<Object>> bulkParams = new ArrayList<>();
         private List<ResultReceiver> resultReceivers = new ArrayList<>();
+        private Map<String, String> settings;
 
         @Nullable
         private FormatCodes.FormatCode[] resultFormatCodes;
@@ -163,6 +166,7 @@ public class SQLOperations {
             }
             assert resultReceiver != null : "resultReceiver must not be null";
             resultReceiver.addListener(doneListener);
+            applySessionSettings(plan);
             executor.execute(plan, resultReceiver);
         }
 
@@ -207,6 +211,11 @@ public class SQLOperations {
             checkError();
             bulkParams.add(params);
             this.resultFormatCodes = resultFormatCodes;
+            if (analysis == null) {
+                // analyze only once in a batch operation where there is
+                // Parse -> Bind -> Describe -> Execute -> Parse -> Bind -> Describe -> Execute -> ... -> Sync
+                analysis = analyzer.analyze(statement, new ParameterContext(getArgs(), EMPTY_BULK_ARGS, defaultSchema));
+            }
         }
 
         public List<Field> describe(char type, String portalOrStatement) {
@@ -214,11 +223,6 @@ public class SQLOperations {
             checkError();
 
             try {
-                if (analysis == null) {
-                    // analyze only once in a batch operation where there is
-                    // Parse -> Bind -> Describe -> Execute -> Parse -> Bind -> Describe -> Execute -> ... -> Sync
-                    analysis = analyzer.analyze(statement, new ParameterContext(getArgs(), EMPTY_BULK_ARGS, defaultSchema));
-                }
                 if (analysis.rootRelation() == null) {
                     return null;
                 }
@@ -263,6 +267,7 @@ public class SQLOperations {
                     Plan plan = planner.plan(analysis, jobId, maxRows, maxRows);
                     ResultReceiver resultReceiver = resultReceivers.get(0);
                     cleanup();
+                    applySessionSettings(plan);
                     execute(plan, resultReceiver, listener);
                 } else {
                     Object[][] bulkArgs = toBulkArgs(bulkParams);
@@ -309,6 +314,12 @@ public class SQLOperations {
                     listener.onFailure(t);
                 }
             });
+        }
+
+        private void applySessionSettings(Plan plan) {
+            if (plan instanceof SetSessionPlan) {
+                settings.putAll(((SetSessionPlan) plan).settings().getAsMap());
+            }
         }
 
         private void cleanup() {
