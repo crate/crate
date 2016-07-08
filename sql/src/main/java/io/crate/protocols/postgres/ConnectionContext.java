@@ -260,6 +260,7 @@ class ConnectionContext {
                     session = readStartupMessage(buffer);
                     Messages.sendAuthenticationOK(channel);
                     // TODO: probably need to send more stuff
+                    Messages.sendParameterStatus(channel, "server_version", "95000");
                     Messages.sendParameterStatus(channel, "server_encoding", "UTF8");
                     Messages.sendParameterStatus(channel, "client_encoding", "UTF8");
                     Messages.sendParameterStatus(channel, "datestyle", "ISO");
@@ -476,12 +477,6 @@ class ConnectionContext {
             return;
         }
 
-        // TODO: hack for unsupported `SET datetype = 'ISO'` that's sent by psycopg2 if a connection is established
-        if (query.startsWith("SET DATESTYLE")) {
-            Messages.sendCommandComplete(channel, "SET", 0);
-            Messages.sendReadyForQuery(channel);
-            return;
-        }
         try {
             session.simpleQuery(
                 query,
