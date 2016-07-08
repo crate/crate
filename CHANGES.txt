@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Implemented basic conditional functions
+   (``coalesce()``, ``greatest()``, ``least()``, ``nullif()``).
+
  - Fixed duplicate key error handling for multiple row inserts. Instead of
    responding with an error the number of affected row is adjusted.
 
