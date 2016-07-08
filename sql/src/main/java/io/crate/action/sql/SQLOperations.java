@@ -29,11 +29,13 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.Analysis;
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.concurrent.CompletionListener;
+import io.crate.exceptions.ReadOnlyException;
 import io.crate.executor.Executor;
 import io.crate.executor.TaskResult;
 import io.crate.planner.Plan;
@@ -48,6 +50,7 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -55,6 +58,7 @@ import java.util.*;
 
 import static io.crate.action.sql.SQLBulkRequest.EMPTY_BULK_ARGS;
 import static io.crate.action.sql.SQLRequest.EMPTY_ARGS;
+import static io.crate.action.sql.TransportBaseSQLAction.NODE_READ_ONLY_SETTING;
 
 @Singleton
 public class SQLOperations {
@@ -64,14 +68,17 @@ public class SQLOperations {
     private final Analyzer analyzer;
     private final Planner planner;
     private final Provider<Executor> executorProvider;
+    private final boolean isReadOnly;
 
     @Inject
     public SQLOperations(Analyzer analyzer,
                          Planner planner,
-                         Provider<Executor> executorProvider) {
+                         Provider<Executor> executorProvider,
+                         Settings settings) {
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
+        this.isReadOnly = settings.getAsBoolean(NODE_READ_ONLY_SETTING, false);
     }
 
     public Session createSession(@Nullable String defaultSchema) {
@@ -153,6 +160,7 @@ public class SQLOperations {
 
             Statement statement = SqlParser.createStatement(query);
             Analysis analysis = analyzer.analyze(statement, new ParameterContext(EMPTY_ARGS, EMPTY_BULK_ARGS, defaultSchema));
+            validateReadOnly();
             Plan plan = planner.plan(analysis, UUID.randomUUID(), 0, 0);
 
             ResultReceiver resultReceiver;
@@ -235,6 +243,7 @@ public class SQLOperations {
         public void execute(String portalName, int maxRows, ResultReceiver rowReceiver) {
             LOGGER.debug("method=describe portalName={} maxRows={}", portalName, maxRows);
             checkError();
+            validateReadOnly();
 
             resultReceivers.add(rowReceiver);
             this.maxRows = maxRows;
@@ -316,6 +325,12 @@ public class SQLOperations {
         private void applySessionSettings(Plan plan) {
             if (plan instanceof SetSessionPlan) {
                 settings.putAll(((SetSessionPlan) plan).settings().getAsMap());
+            }
+        }
+
+        private void validateReadOnly() {
+            if (analysis.analyzedStatement().isWriteOperation() && isReadOnly) {
+                throw new ReadOnlyException();
             }
         }
 
