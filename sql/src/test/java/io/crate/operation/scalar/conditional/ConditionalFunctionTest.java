@@ -57,16 +57,20 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testGreatest() throws Exception {
-        assertEvaluate("greatest(null)", null);
-        assertEvaluate("greatest(10, 20, 30)", 30L);
-        assertEvaluate("greatest(name, 'bar', 'foo')", "foo", Literal.NULL);
+        assertEvaluate("greatest(null, null)", null);
+        assertEvaluate("greatest(10)", 10L);
+        assertEvaluate("greatest(10, 20, null, 30)", 30L);
+        assertEvaluate("greatest(11.1, 22.2, null)", 22.2);
+        assertEvaluate("greatest('foo', name, 'bar')", "foo", Literal.NULL);
     }
 
     @Test
     public void testLeast() throws Exception {
-        assertEvaluate("least(null)", null);
-        assertEvaluate("least(10, 20, 30)", 10L);
-        assertEvaluate("least(name, 'foo', 'bar')", "bar", Literal.NULL);
+        assertEvaluate("least(null, null)", null);
+        assertEvaluate("least(10)", 10L);
+        assertEvaluate("least(10, 20, null, 30)", 10L);
+        assertEvaluate("least(11.1, 22.2, null)", 11.1);
+        assertEvaluate("least('foo', name, 'bar')", "bar", Literal.NULL);
     }
 
     @Test

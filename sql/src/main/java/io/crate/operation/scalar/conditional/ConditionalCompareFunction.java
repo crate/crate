@@ -22,37 +22,40 @@
 
 package io.crate.operation.scalar.conditional;
 
-import com.google.common.collect.Ordering;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 
-import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.List;
 
-abstract class ConditionalCompareFunction extends ConditionalFunction {
-    protected final Ordering<Object> ordering;
+abstract class ConditionalCompareFunction extends ConditionalFunction implements Comparator {
 
     ConditionalCompareFunction(FunctionInfo info) {
         super(info);
-        this.ordering = Ordering.from(new InputComparator());
     }
 
     @Override
     public Object evaluate(Input... args) {
-        List<Object> values = new ArrayList<>();
-        for (Input input : args) {
-            values.add(input.value());
+        assert (args != null);
+        assert (args.length > 0);
+
+        if (args.length == 1) {
+            return args[0].value();
         }
-        return compare(values);
+
+        Object result = null;
+        for (Input input : args) {
+            result = extrema(result, input.value());
+        }
+
+        return result;
     }
 
-    protected abstract Object compare(List<Object> values);
-
-    private class InputComparator implements Comparator {
-        @Override
-        public int compare(Object o1, Object o2) {
-            return info().returnType().compareValueTo(o1, o2);
+    private Object extrema(Object value1, Object value2) {
+        if (value1 == null) {
+            return value2;
+        } else if (value2 == null) {
+            return value1;
         }
+        return compare(value1, value2) < 0 ? value1 : value2;
     }
 }
