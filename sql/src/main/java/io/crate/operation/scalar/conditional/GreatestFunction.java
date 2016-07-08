@@ -26,7 +26,6 @@ import io.crate.analyze.symbol.Function;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 
@@ -40,8 +39,8 @@ public class GreatestFunction extends ConditionalCompareFunction {
     }
 
     @Override
-    protected Object compare(List<Object> values) {
-        return ordering.max(values);
+    public int compare(Object o1, Object o2) {
+        return info().returnType().compareValueTo(o2, o1);
     }
 
     public static void register(ScalarFunctionModule module) {
