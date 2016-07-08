@@ -22,9 +22,12 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.TransportBaseSQLAction;
+import io.crate.action.sql.TransportSQLAction;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,22 +38,29 @@ import java.sql.*;
 
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class PostgresITest extends SQLTransportIntegrationTest {
 
     private static final String JDBC_POSTGRESQL_URL = "jdbc:postgresql://127.0.0.1:4242/";
+    private static final String JDBC_POSTGRESQL_URL_READ_ONLY = "jdbc:postgresql://127.0.0.1:4243/";
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.builder()
-            .put(super.nodeSettings(nodeOrdinal))
+        Settings.Builder builder = Settings.builder();
+        builder.put(super.nodeSettings(nodeOrdinal))
             .put("network.psql", true)
-            .put("psql.host", "127.0.0.1")
-            .put("psql.port", "4242")
-            .build();
+            .put("psql.host", "127.0.0.1");
+
+        if ((nodeOrdinal + 1) % 2 == 0) {
+            builder.put("psql.port", "4242");
+        } else {
+            builder.put(TransportBaseSQLAction.NODE_READ_ONLY_SETTING, true);
+            builder.put("psql.port", "4243");
+        }
+        return builder.build();
     }
 
     @Before
@@ -185,6 +195,17 @@ public class PostgresITest extends SQLTransportIntegrationTest {
                 assertThat(e.getMessage(), Matchers.containsString("Schema 'foo' unknown"));
             }
             assertSelectNameFromSysClusterWorks(conn);
+        }
+    }
+
+    @Test
+    public void testStatementReadOnlyFailure() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL_READ_ONLY)) {
+            conn.setAutoCommit(true);
+            PreparedStatement stmt = conn.prepareStatement("create table test(a integer)");
+            expectedException.expect(PSQLException.class);
+            expectedException.expectMessage("ERROR: Only read operations are allowed on this node");
+            stmt.executeQuery();
         }
     }
 

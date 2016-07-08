@@ -55,6 +55,6 @@ public class SetAnalyzedStatement implements AnalyzedStatement {
 
     @Override
     public boolean isWriteOperation() {
-        return true;
+        return SetStatement.Scope.GLOBAL.equals(scope);
     }
 }
