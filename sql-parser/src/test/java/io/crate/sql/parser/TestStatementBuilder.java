@@ -372,6 +372,8 @@ public class TestStatementBuilder {
         printStatement("set some_setting = '1', other_setting = 2");
         printStatement("set session some_setting = '1'");
         printStatement("set session some_setting = '1', other_setting = 2");
+        printStatement("set session some_setting TO '1'");
+        printStatement("set session some_setting TO '1', other_setting TO 2");
     }
 
     @Test
