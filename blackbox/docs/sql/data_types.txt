@@ -210,6 +210,10 @@ Alternatively a `WKT`_ string can also be used to declare geo points::
 
 .. note::
 
+    Empty geo points are not supported.
+
+.. note::
+
     If a column is dynamically created the type detection won't recognize
     neither WKT strings nor double arrays. That means columns of type geo_point
     must always be declared beforehand.
@@ -234,6 +238,10 @@ The ``geo_shape`` type is used to store geometric shapes as defined in
 A geo_shape column can store different kinds of `GeoJSON geometry objects`_.
 Thus it is possible to store e.g. ``LineString`` and ``MultiPolygon`` shapes
 into the same column.
+
+.. note::
+
+    Empty ``Polygon`` and ``LineString`` geo shapes are not supported.
 
 Definition
 ----------
