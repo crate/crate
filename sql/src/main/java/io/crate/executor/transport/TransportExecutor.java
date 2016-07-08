@@ -65,6 +65,7 @@ import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
+import io.crate.planner.statement.SetSessionPlan;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -156,6 +157,11 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Task visitNoopPlan(NoopPlan plan, Void context) {
+            return NoopTask.INSTANCE;
+        }
+
+        @Override
+        public Task visitSetSessionPlan(SetSessionPlan plan, Void context) {
             return NoopTask.INSTANCE;
         }
 

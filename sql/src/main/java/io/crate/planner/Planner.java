@@ -52,6 +52,8 @@ import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.statement.CopyStatementPlanner;
 import io.crate.planner.statement.DeleteStatementPlanner;
+import io.crate.planner.statement.SetSessionPlan;
+import io.crate.sql.tree.SetStatement;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -476,14 +478,15 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
-    public Plan visitSetStatement(SetAnalyzedStatement analysis, Context context) {
-        if (analysis.settings() == null) {
+    public Plan visitSetStatement(SetAnalyzedStatement setStatement, Context context) {
+        if (setStatement.settings() == null) {
             return new NoopPlan(context.jobId());
-        }
-        if (analysis.isPersistent()) {
-            return new ESClusterUpdateSettingsPlan(context.jobId(), analysis.settings());
+        } else if (SetStatement.Scope.SESSION.equals(setStatement.scope())) {
+            return new SetSessionPlan(context.jobId(), setStatement.settings());
+        } else if (setStatement.isPersistent()) {
+            return new ESClusterUpdateSettingsPlan(context.jobId(), setStatement.settings());
         } else {
-            return new ESClusterUpdateSettingsPlan(context.jobId(), Settings.EMPTY, analysis.settings());
+            return new ESClusterUpdateSettingsPlan(context.jobId(), Settings.EMPTY, setStatement.settings());
         }
     }
 

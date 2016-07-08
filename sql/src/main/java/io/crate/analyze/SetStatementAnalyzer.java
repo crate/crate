@@ -40,19 +40,27 @@ public class SetStatementAnalyzer {
     private SetStatementAnalyzer() {}
 
     public static SetAnalyzedStatement analyze(SetStatement node, ParameterContext parameterContext) {
+        if (SetStatement.Scope.SESSION.equals(node.scope())) {
+            logger.debug("SET SESSION STATEMENT: {}", node.toString());
+        }
         Settings.Builder builder = Settings.builder();
         for (Assignment assignment : node.assignments()) {
             String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(),
                     parameterContext.parameters());
 
-            SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(settingsName);
-            for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
-                checkIfSettingIsRuntime(setting);
-            }
+            if (SetStatement.Scope.SESSION.equals(node.scope())) {
+                builder.put(settingsName, assignment.expression());
+            } else {
+                SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(settingsName);
+                for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
+                    checkIfSettingIsRuntime(setting);
+                }
 
-            settingsApplier.apply(builder, parameterContext.parameters(), assignment.expression());
+                settingsApplier.apply(builder, parameterContext.parameters(), assignment.expression());
+            }
         }
-        return new SetAnalyzedStatement(builder.build(), node.settingType().equals(SetStatement.SettingType.PERSISTENT));
+        return new SetAnalyzedStatement(node.scope(), builder.build(),
+            node.settingType().equals(SetStatement.SettingType.PERSISTENT));
     }
 
     public static ResetAnalyzedStatement analyze(ResetStatement node, ParameterContext parameterContext) {

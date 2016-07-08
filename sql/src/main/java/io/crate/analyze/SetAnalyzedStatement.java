@@ -21,16 +21,23 @@
 
 package io.crate.analyze;
 
+import io.crate.sql.tree.SetStatement;
 import org.elasticsearch.common.settings.Settings;
 
 public class SetAnalyzedStatement implements AnalyzedStatement {
 
     private final Settings settings;
+    private final SetStatement.Scope scope;
     private final boolean persistent;
 
-    public SetAnalyzedStatement(Settings settings, boolean persistent) {
+    public SetAnalyzedStatement(SetStatement.Scope scope, Settings settings, boolean persistent) {
+        this.scope = scope;
         this.settings = settings;
         this.persistent = persistent;
+    }
+
+    public SetStatement.Scope scope() {
+        return scope;
     }
 
     public Settings settings() {
