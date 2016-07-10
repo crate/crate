@@ -22,8 +22,12 @@
 package io.crate.integrationtests;
 
 
+import io.crate.common.Hex;
+import io.crate.test.utils.Blobs;
+import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -35,6 +39,8 @@ import org.junit.Before;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Locale;
+
+import static org.hamcrest.Matchers.is;
 
 public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -61,7 +67,6 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
     protected CloseableHttpClient httpClient = HttpClients.createDefault();
 
     protected CloseableHttpResponse post(String body) throws IOException {
-
         if(body != null){
             StringEntity bodyEntity = new StringEntity(body);
             httpPost.setEntity(bodyEntity);
@@ -73,4 +78,16 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
         return post(null);
     }
 
+    protected String upload(String table, String content) throws IOException {
+        String digest = Hex.encodeHexString(Blobs.digest(content));
+        String url = Blobs.url(address, table, digest);
+        HttpPut httpPut = new HttpPut(url);
+        httpPut.setEntity(new StringEntity(content));
+
+        CloseableHttpResponse response = httpClient.execute(httpPut);
+        assertThat(response.getStatusLine().getStatusCode(), is(201));
+        response.close();
+
+        return url;
+    }
 }
