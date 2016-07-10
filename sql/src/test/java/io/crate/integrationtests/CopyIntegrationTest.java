@@ -25,11 +25,7 @@ import com.carrotsearch.randomizedtesting.LifecycleScope;
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
-import io.crate.common.Hex;
-import io.crate.test.utils.Blobs;
 import io.crate.testing.TestingHelpers;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.StringEntity;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
@@ -39,7 +35,6 @@ import org.junit.rules.TemporaryFolder;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -513,7 +508,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         String r1 = "{\"id\": 1, \"name\":\"Marvin\"}";
         String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
-        String[] urls = { upload(r1), upload(r2) };
+        String[] urls = { upload("blobs", r1), upload("blobs", r2) };
 
         execute("copy names from ?", new Object[] { urls });
         assertThat(response.rowCount(), is(2L));
@@ -533,21 +528,12 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
 
         Files.write(file.toPath(), Collections.singletonList(r1), StandardCharsets.UTF_8);
-        String[] urls = { tmpDir.toAbsolutePath() + "/*.json", upload(r2) };
+        String[] urls = { tmpDir.toAbsolutePath() + "/*.json", upload("blobs", r2) };
 
         execute("copy names from ?", new Object[] { urls });
         assertThat(response.rowCount(), is(2L));
         execute("refresh table names");
         execute("select name from names order by id");
         assertThat(TestingHelpers.printedTable(response.rows()), is("Arthur\nSlartibartfast\n"));
-    }
-
-    private String upload(String content) throws IOException {
-        String url = Blobs.url(address, "blobs", Hex.encodeHexString(Blobs.digest(content)));
-        HttpPut httpPut = new HttpPut(url);
-        httpPut.setEntity(new StringEntity(content));
-
-        httpClient.execute(httpPut);
-        return url;
     }
 }
