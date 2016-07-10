@@ -24,16 +24,15 @@ package io.crate.blob;
 import com.google.common.base.Throwables;
 import io.crate.blob.exceptions.DigestNotFoundException;
 import io.crate.common.Hex;
-import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
+import java.util.*;
 
 public class BlobContainer {
 
@@ -91,24 +90,8 @@ public class BlobContainer {
         }
     }
 
-    public interface FileVisitor {
-
-        boolean visit(File file) throws IOException;
-
-    }
-
-    public void walkFiles(FilenameFilter filter, FileVisitor visitor) throws IOException {
-        for (File dir : subDirs) {
-            File[] files = dir.listFiles(filter);
-            if (files == null) {
-                continue;
-            }
-            for (File file : files) {
-                if (!visitor.visit(file)) {
-                    return;
-                }
-            }
-        }
+    public Iterable<File> getFiles() {
+        return new RecursiveFileIterable(subDirs);
     }
 
     /**
@@ -183,6 +166,65 @@ public class BlobContainer {
             return new RandomAccessFile(getFile(digest), "r");
         } catch (FileNotFoundException e) {
             throw new DigestNotFoundException(digest);
+        }
+    }
+
+    private static class RecursiveFileIterable implements Iterable<File> {
+
+        private final File[] subDirs;
+
+        public RecursiveFileIterable(File[] subDirs) {
+            this.subDirs = subDirs;
+        }
+
+        @Override
+        public Iterator<File> iterator() {
+            return new RecursiveFileIterator(subDirs);
+        }
+
+    }
+
+    private static class RecursiveFileIterator implements Iterator<File> {
+
+        private final File[] subDirs;
+        private int subDirIndex = -1;
+
+        private File[] files = null;
+        private int fileIndex = -1;
+
+        public RecursiveFileIterator(File[] subDirs) {
+            this.subDirs = subDirs;
+        }
+
+        /**
+         * Returns {@code true} if the current sub-directory have files to traverse. Otherwise, iterates
+         * until it finds the next sub-directory with files inside it.
+         * Returns {@code false} only after reaching the last file of the last sub-directory.
+         */
+        @Override
+        public boolean hasNext() {
+            if (files == null || (fileIndex + 1) == files.length) {
+                files = null;
+                fileIndex = -1;
+                while (subDirIndex + 1 < subDirs.length && (files == null || files.length == 0)) {
+                    files = subDirs[++subDirIndex].listFiles();
+                }
+            }
+            return (files != null && fileIndex + 1 < files.length);
+        }
+
+        @Override
+        public File next() {
+            if (hasNext()) {
+                return files[++fileIndex];
+            }
+
+            throw new NoSuchElementException();
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
         }
     }
 }
