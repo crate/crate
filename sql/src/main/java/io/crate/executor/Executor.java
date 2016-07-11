@@ -22,14 +22,14 @@
 package io.crate.executor;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.action.sql.ResultReceiver;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;
 
 import java.util.List;
 
 public interface Executor {
 
-    void execute(Plan plan, ResultReceiver resultReceiver);
+    void execute(Plan plan, RowReceiver rowReceiver);
 
     List<? extends ListenableFuture<TaskResult>> executeBulk(Plan plan);
 }

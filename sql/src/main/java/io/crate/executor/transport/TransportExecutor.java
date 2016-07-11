@@ -48,6 +48,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
@@ -143,8 +144,8 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public void execute(Plan plan, ResultReceiver resultReceiver) {
-        plan2TaskVisitor.process(plan, null).execute(resultReceiver);
+    public void execute(Plan plan, RowReceiver rowReceiver) {
+        plan2TaskVisitor.process(plan, null).execute(rowReceiver);
     }
 
     @Override

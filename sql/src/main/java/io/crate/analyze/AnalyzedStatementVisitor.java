@@ -148,4 +148,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, C context) {
         return visitAnalyzedStatement(explainAnalyzedStatement, context);
     }
+
+    public R visitBegin(AnalyzedBegin analyzedBegin, C context) {
+        return visitAnalyzedStatement(analyzedBegin, context);
+    }
 }

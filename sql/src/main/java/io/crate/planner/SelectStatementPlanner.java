@@ -140,7 +140,8 @@ public class SelectStatementPlanner {
                     readerAllocations.tableIndices(),
                     fetchPushDown.fetchRefs()
             );
-            FetchProjection fp = createFetchProjection(table, querySpec, fetchPushDown, readerAllocations, fetchPhase);
+            FetchProjection fp = createFetchProjection(
+                table, querySpec, fetchPushDown, readerAllocations, fetchPhase, context.fetchSize());
 
             MergePhase localMergePhase;
             assert qaf.localMerge() == null : "subRelation shouldn't plan localMerge";
@@ -208,14 +209,13 @@ public class SelectStatementPlanner {
                     docRefs
             );
             FetchProjection fp = new FetchProjection(
-                    fetchPhase.executionPhaseId(),
-                //FIXME: pass fetchSize
-                10000,
-                    pd.fetchSources(),
-                    pd.remainingOutputs(),
-                    readerAllocations.nodeReaders(),
-                    readerAllocations.indices(),
-                    readerAllocations.indicesToIdents());
+                fetchPhase.executionPhaseId(),
+                context.fetchSize(),
+                pd.fetchSources(),
+                pd.remainingOutputs(),
+                readerAllocations.nodeReaders(),
+                readerAllocations.indices(),
+                readerAllocations.indicesToIdents());
 
             plannedSubQuery.addProjection(fp);
             return new QueryThenFetch(plannedSubQuery.plan(), fetchPhase, null, context.jobId());
@@ -226,20 +226,20 @@ public class SelectStatementPlanner {
                                                          QuerySpec querySpec,
                                                          FetchPushDown fetchPushDown,
                                                          Planner.Context.ReaderAllocations readerAllocations,
-                                                         FetchPhase fetchPhase) {
+                                                         FetchPhase fetchPhase,
+                                                         int fetchSize) {
         Map<TableIdent, FetchSource> fetchSources = ImmutableMap.of(table.tableRelation().tableInfo().ident(),
                 new FetchSource(table.tableRelation().tableInfo().partitionedByColumns(),
                         ImmutableList.of(fetchPushDown.docIdCol()),
                         fetchPushDown.fetchRefs()));
 
         return new FetchProjection(
-                fetchPhase.executionPhaseId(),
-            //FIXME: pass fetchSize
-            10000,
-                fetchSources,
-                querySpec.outputs(),
-                readerAllocations.nodeReaders(),
-                readerAllocations.indices(),
-                readerAllocations.indicesToIdents());
+            fetchPhase.executionPhaseId(),
+            fetchSize,
+            fetchSources,
+            querySpec.outputs(),
+            readerAllocations.nodeReaders(),
+            readerAllocations.indices(),
+            readerAllocations.indicesToIdents());
     }
 }

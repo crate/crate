@@ -40,6 +40,7 @@ import io.crate.exceptions.ReadOnlyException;
 import io.crate.executor.Executor;
 import io.crate.executor.TaskResult;
 import io.crate.operation.collect.StatsTables;
+import io.crate.operation.projectors.ResumeHandle;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.statement.SetSessionPlan;
@@ -61,6 +62,7 @@ import java.util.*;
 import static io.crate.action.sql.SQLBulkRequest.EMPTY_BULK_ARGS;
 import static io.crate.action.sql.SQLRequest.EMPTY_ARGS;
 import static io.crate.action.sql.TransportBaseSQLAction.NODE_READ_ONLY_SETTING;
+
 
 @Singleton
 public class SQLOperations {
@@ -137,18 +139,14 @@ public class SQLOperations {
         private UUID jobId;
         private List<DataType> paramTypes;
         private Statement statement;
-        private Analysis analysis;
-        private List<DataType> outputTypes;
         private String query;
-        private int maxRows = 0;
 
         private Throwable throwable = null;
-        private List<List<Object>> bulkParams = new ArrayList<>();
-        private List<ResultReceiver> resultReceivers = new ArrayList<>();
         private Map<String, String> settings = new HashMap<>();
 
-        @Nullable
-        private FormatCodes.FormatCode[] resultFormatCodes;
+        private Map<String, Portal> portals = new HashMap<>();
+        private String lastPortalName;
+
 
         private Session(Executor executor, String defaultSchema) {
             this.executor = executor;
@@ -179,21 +177,30 @@ public class SQLOperations {
             resultReceiver.addListener(doneListener);
             resultReceiver.addListener(new StatsTablesUpdateListener(jobId, statsTables));
             applySessionSettings(plan);
-            executor.execute(plan, resultReceiver);
-        }
-
-        private Object[] getArgs() {
-            if (bulkParams.size() == 1) {
-                return bulkParams.get(0).toArray(new Object[0]);
-            } else {
-                return EMPTY_ARGS;
-            }
+            executor.execute(plan, new RowReceiverToResultReceiver(resultReceiver, 0));
         }
 
         private void checkError() {
             if (throwable != null) {
                 throw Throwables.propagate(throwable);
             }
+        }
+
+        private Portal getOrCreatePortal(String portalName, String statementName) {
+            Portal portal = portals.get(portalName);
+            if (portal == null) {
+                portal = new Portal();
+                portals.put(portalName, portal);
+            }
+            return portal;
+        }
+
+        private Portal getSafePortal(String portalOrStatement) {
+            Portal portal = portals.get(portalOrStatement);
+            if (portal == null) {
+                throw new IllegalArgumentException("Cannot find portal: " + portalOrStatement);
+            }
+            return portal;
         }
 
         public void parse(String statementName, String query, List<DataType> paramTypes) {
@@ -223,12 +230,19 @@ public class SQLOperations {
         public void bind(String portalName, String statementName, List<Object> params, @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
             LOGGER.debug("method=bind portalName={} statementName={} params={}", portalName, statementName, params);
             checkError();
-            bulkParams.add(params);
-            this.resultFormatCodes = resultFormatCodes;
-            if (analysis == null) {
-                // analyze only once in a batch operation where there is
-                // Parse -> Bind -> Describe -> Execute -> Parse -> Bind -> Describe -> Execute -> ... -> Sync
-                analysis = analyzer.analyze(statement, new ParameterContext(getArgs(), EMPTY_BULK_ARGS, defaultSchema));
+
+            try {
+                Portal portal = getOrCreatePortal(portalName, statementName);
+                portal.resultFormatCodes = resultFormatCodes;
+                portal.bulkParams.add(params);
+                if (portal.analysis == null) {
+                    // analyze only once in a batch operation where there is
+                    // Parse -> Bind -> Describe -> Execute -> Parse -> Bind -> Describe -> Execute -> ... -> Sync
+                    portal.analysis = analyzer.analyze(statement, new ParameterContext(portal.getArgs(), EMPTY_BULK_ARGS, defaultSchema));
+                }
+            } catch (Throwable t) {
+                this.throwable = t;
+                throw t;
             }
         }
 
@@ -237,11 +251,13 @@ public class SQLOperations {
             checkError();
 
             try {
+                Portal portal = getSafePortal(portalOrStatement);
+                Analysis analysis = portal.analysis;
                 if (analysis.rootRelation() == null) {
                     return null;
                 }
                 List<Field> fields = analysis.rootRelation().fields();
-                outputTypes = Symbols.extractTypes(fields);
+                portal.outputTypes = Symbols.extractTypes(fields);
                 return fields;
             } catch (Throwable t) {
                 throwable = t;
@@ -250,12 +266,19 @@ public class SQLOperations {
         }
 
         public void execute(String portalName, int maxRows, ResultReceiver rowReceiver) {
-            LOGGER.debug("method=describe portalName={} maxRows={}", portalName, maxRows);
-            checkError();
-            validateReadOnly(analysis);
+            LOGGER.debug("method=execute portalName={} maxRows={}", portalName, maxRows);
 
-            resultReceivers.add(rowReceiver);
-            this.maxRows = maxRows;
+            checkError();
+            try {
+                Portal portal = getSafePortal(portalName);
+                validateReadOnly(portal.analysis);
+                portal.addRowReceiver(rowReceiver);
+                portal.maxRows = maxRows;
+                lastPortalName = portalName;
+            } catch (Throwable t) {
+                throwable = t;
+                throw t;
+            }
         }
 
         public void sync(CompletionListener listener) {
@@ -278,32 +301,51 @@ public class SQLOperations {
                  * This is why the global state is assigned to local variables and the cleanup is called immediately.
                  * Otherwise there would be concurrency/async state modification.
                  */
-                if (resultReceivers.size() == 1) {
-                    Plan plan = planner.plan(analysis, jobId, maxRows, maxRows);
-                    ResultReceiver resultReceiver = resultReceivers.get(0);
-                    cleanup();
+                Portal portal = getSafePortal(lastPortalName);
+                if (portal.resultReceivers.size() == 1) {
+                    Plan plan = planner.plan(portal.analysis, jobId, 0, portal.maxRows);
+                    ResultReceiver resultReceiver = portal.resultReceivers.get(0);
+                    if (portal.maxRows > 0) {
+                        portal.resultReceivers.clear();
+                    }
+                    cleanup(lastPortalName);
                     applySessionSettings(plan);
-                    execute(plan, resultReceiver, listener);
+                    resultReceiver.addListener(listener);
+                    resultReceiver.addListener(new StatsTablesUpdateListener(jobId, statsTables));
+
+                    if (resumeIfSuspended(portal, resultReceiver)) return;
+                    RowReceiverToResultReceiver rowReceiver = new RowReceiverToResultReceiver(resultReceiver, portal.maxRows);
+                    portal.rowReceiver = rowReceiver;
+                    executor.execute(plan, rowReceiver);
                 } else {
-                    Object[][] bulkArgs = toBulkArgs(bulkParams);
+                    Object[][] bulkArgs = toBulkArgs(portal.bulkParams);
                     Analysis analysis = analyzer.analyze(statement, new ParameterContext(new Object[0], bulkArgs, defaultSchema));
-                    ImmutableList<ResultReceiver> resultReceivers = ImmutableList.copyOf(this.resultReceivers);
-                    Plan plan = planner.plan(analysis, jobId, maxRows, maxRows);
-                    cleanup();
+                    ImmutableList<ResultReceiver> resultReceivers = ImmutableList.copyOf(portal.resultReceivers);
+                    Plan plan = planner.plan(analysis, jobId, 0, portal.maxRows);
+                    cleanup(lastPortalName);
                     executeBulk(plan, resultReceivers, listener);
                 }
             } else {
-                cleanup();
                 Throwable t = this.throwable;
-                this.throwable = null;
+                cleanup(lastPortalName);
                 throw Throwables.propagate(t);
             }
         }
 
-        private void execute(Plan plan, ResultReceiver resultReceiver, CompletionListener listener) {
-            resultReceiver.addListener(listener);
-            resultReceiver.addListener(new StatsTablesUpdateListener(jobId, statsTables));
-            executor.execute(plan, resultReceiver);
+        private boolean resumeIfSuspended(Portal portal, ResultReceiver resultReceiver) {
+            LOGGER.trace("method=resumeIfSuspended");
+            if (portal.rowReceiver == null) {
+                return false;
+            }
+            RowReceiverToResultReceiver rowReceiver = portal.rowReceiver;
+            ResumeHandle resumeHandle = rowReceiver.resumeHandle();
+            if (resumeHandle == null) {
+                return false;
+            }
+            rowReceiver.replaceResultReceiver(resultReceiver, portal.maxRows);
+            LOGGER.trace("Resuming {}", resumeHandle);
+            resumeHandle.resume(true);
+            return true;
         }
 
         private void executeBulk(Plan plan, final List<ResultReceiver> resultReceivers, final CompletionListener listener) {
@@ -317,7 +359,7 @@ public class SQLOperations {
                     for (int i = 0; i < result.size(); i++) {
                         ResultReceiver resultReceiver = resultReceivers.get(i);
                         resultReceiver.setNextRow(result.get(i).rows().iterator().next());
-                        resultReceiver.finish();
+                        resultReceiver.allFinished();
                     }
                     listener.onSuccess(null);
                     statsTables.jobFinished(jobId, null);
@@ -341,23 +383,29 @@ public class SQLOperations {
         }
 
         private void validateReadOnly(Analysis analysis) {
-            if (analysis.analyzedStatement().isWriteOperation() && isReadOnly) {
+            if (analysis != null && analysis.analyzedStatement().isWriteOperation() && isReadOnly) {
                 throw new ReadOnlyException();
             }
         }
 
-        private void cleanup() {
-            analysis = null;
-            bulkParams.clear();
-            maxRows = 0;
-            resultReceivers.clear();
+        private void cleanup(String portalName) {
+            if ("".equals(portalName)) { // only close unnamed portal - others require close calls
+                Portal portal = portals.remove("");
+                if (portal != null) {
+                    portal.close();
+                }
+            }
+            throwable = null;
             statement = null;
-            resultFormatCodes = null;
-            outputTypes = null;
         }
 
-        public List<? extends DataType> outputTypes() {
-            return outputTypes;
+        @Nullable
+        public List<? extends DataType> getOutputTypes(String portalName) {
+            Portal portal = portals.get(portalName);
+            if (portal == null) {
+                return null;
+            }
+            return portal.outputTypes;
         }
 
         public String query() {
@@ -369,8 +417,62 @@ public class SQLOperations {
         }
 
         @Nullable
-        public FormatCodes.FormatCode[] resultFormatCodes() {
-            return resultFormatCodes;
+        public FormatCodes.FormatCode[] getResultFormatCodes(String portalOrStatement) {
+            Portal portal = portals.get(portalOrStatement);
+            if (portal == null) {
+                return null;
+            }
+            return portal.resultFormatCodes;
+        }
+
+        public void closePortal(byte portalOrStatement, String portalOrStatementName) {
+            if (portalOrStatement == 'P') {
+                Portal portal = portals.remove(portalOrStatementName);
+                if (portal != null) {
+                    portal.close();
+                }
+            }
+        }
+
+        public void close() {
+            for (Portal portal : portals.values()) {
+                portal.close();
+            }
+        }
+    }
+
+    private static class Portal {
+
+        private Analysis analysis;
+        private final List<List<Object>> bulkParams = new ArrayList<>();
+        private final List<ResultReceiver> resultReceivers = new ArrayList<>();
+
+        @Nullable
+        private FormatCodes.FormatCode[] resultFormatCodes;
+        private int maxRows = 0;
+        private RowReceiverToResultReceiver rowReceiver = null;
+        private List<? extends DataType> outputTypes;
+
+        private Object[] getArgs() {
+            if (bulkParams.size() == 1) {
+                return bulkParams.get(0).toArray(new Object[0]);
+            } else {
+                return EMPTY_ARGS;
+            }
+        }
+
+        void addRowReceiver(ResultReceiver resultReceiver) {
+            resultReceivers.add(resultReceiver);
+        }
+
+        void close() {
+            if (rowReceiver != null) {
+                ResumeHandle resumeHandle = rowReceiver.resumeHandle();
+                if (resumeHandle != null) {
+                    rowReceiver.kill(new InterruptedException("Client closed portal"));
+                    resumeHandle.resume(false);
+                }
+            }
         }
     }
 

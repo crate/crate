@@ -89,7 +89,10 @@ class Messages {
          * For an INSERT command, the tag is INSERT oid rows, where rows is the number of rows inserted.
          * oid is the object ID of the inserted row if rows is 1 and the target table has OIDs; otherwise oid is 0.
          */
-        if ("INSERT".equals(query)) {
+        if ("BEGIN".equals(query)) {
+            commandTag = "BEGIN";
+        }
+        else if ("INSERT".equals(query)) {
             commandTag = "INSERT 0 " + rowCount;
         } else {
             commandTag = query + " " + rowCount;
@@ -374,5 +377,17 @@ class Messages {
                 }
             });
         }
+    }
+
+    static void sendPortalSuspended(Channel channel) {
+        sendShortMsg(channel, 's', "sentPortalSuspended");
+    }
+
+    /**
+     * CloseComplete
+     * | '3' | int32 len |
+     */
+    static void sendCloseComplete(Channel channel) {
+        sendShortMsg(channel, '3', "sentCloseComplete");
     }
 }

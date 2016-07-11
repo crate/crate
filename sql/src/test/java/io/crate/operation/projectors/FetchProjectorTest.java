@@ -29,15 +29,12 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.symbol.FetchReference;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.CollectionBucket;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.operation.projectors.fetch.FetchOperation;
@@ -64,26 +61,13 @@ public class FetchProjectorTest extends CrateUnitTest {
 
     private static final TableIdent USER_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users");
     private ExecutorService executorService;
-    private FetchOperation fetchOperation;
+    private DummyFetchOperation fetchOperation;
 
     @Before
     public void before() throws Exception {
         executorService = Executors.newFixedThreadPool(2);
         // dummy FetchOperation that returns buckets for each reader-id where each row contains a column that is the same as the docId
-        fetchOperation = new FetchOperation() {
-            @Override
-            public ListenableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId, IntObjectMap<? extends IntContainer> toFetch, boolean closeContext) {
-                IntObjectHashMap<Bucket> readerToBuckets = new IntObjectHashMap<>();
-                for (IntObjectCursor<? extends IntContainer> cursor : toFetch) {
-                    List<Object[]> rows = new ArrayList<>();
-                    for (IntCursor docIdCursor : cursor.value) {
-                        rows.add(new Object[] { docIdCursor.value });
-                    }
-                    readerToBuckets.put(cursor.key, new CollectionBucket(rows));
-                }
-                return Futures.<IntObjectMap<? extends Bucket>>immediateFuture(readerToBuckets);
-            }
-        };
+        fetchOperation = new DummyFetchOperation();
     }
 
     @After
@@ -95,7 +79,7 @@ public class FetchProjectorTest extends CrateUnitTest {
     @Test
     public void testPauseSupport() throws Exception {
         final CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(2);
-        int fetchSize = 4;
+        int fetchSize = random().nextInt(20);
         FetchProjector fetchProjector = prepareFetchProjector(fetchSize, rowReceiver, fetchOperation);
         final RowSender rowSender = new RowSender(RowSender.rowRange(0, 10), fetchProjector, MoreExecutors.directExecutor());
         rowSender.run();
@@ -103,10 +87,10 @@ public class FetchProjectorTest extends CrateUnitTest {
         assertBusy(new Runnable() {
             @Override
             public void run() {
-                assertThat(rowSender.numPauses(), is(1));
                 assertThat(rowReceiver.rows.size(), is(2));
             }
         });
+        assertThat(rowReceiver.getNumFailOrFinishCalls(), is(0));
         rowReceiver.resumeUpstream(false);
         assertThat(TestingHelpers.printedTable(rowReceiver.result()),
             is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n"));
@@ -115,31 +99,18 @@ public class FetchProjectorTest extends CrateUnitTest {
     @Test
     public void testMultipleFetchRequests() throws Throwable {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-
-
         int fetchSize = 3;
         FetchProjector fetchProjector = prepareFetchProjector(fetchSize, rowReceiver, fetchOperation);
-        long i;
-        for (i = 1; i <= 10; i++) {
-            Row row = new Row1(i);
-            RowReceiver.Result result = fetchProjector.setNextRow(row);
+        final RowSender rowSender = new RowSender(RowSender.rowRange(0, 10), fetchProjector, MoreExecutors.directExecutor());
+        rowSender.run();
 
-            if (i % fetchSize == 0) {
-                assertThat(result, is(RowReceiver.Result.PAUSE));
-                final SettableFuture<Void> resumeCalled = SettableFuture.create();
-                fetchProjector.pauseProcessed(new ResumeHandle() {
-                    @Override
-                    public void resume(boolean async) {
-                        resumeCalled.set(null);
-                    }
-                });
-                resumeCalled.get(1000, TimeUnit.MILLISECONDS);
-            } else {
-                assertThat(result, is(RowReceiver.Result.CONTINUE));
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                assertThat(rowSender.numPauses(), is(3));
             }
-        }
-        assertThat(i, is(11L));
-        fetchProjector.finish(RepeatHandle.UNSUPPORTED);
+        });
+        assertThat(fetchOperation.numFetches, is(5));
 
         Bucket projected = rowReceiver.result();
         assertThat(projected.size(), is(10));
@@ -218,5 +189,24 @@ public class FetchProjectorTest extends CrateUnitTest {
 
         outputSymbols.add(new FetchReference(inputColumn, new Reference(referenceInfo)));
         return outputSymbols;
+    }
+
+    private static class DummyFetchOperation implements FetchOperation {
+
+        int numFetches = 0;
+
+        @Override
+        public ListenableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId, IntObjectMap<? extends IntContainer> toFetch, boolean closeContext) {
+            numFetches++;
+            IntObjectHashMap<Bucket> readerToBuckets = new IntObjectHashMap<>();
+            for (IntObjectCursor<? extends IntContainer> cursor : toFetch) {
+                List<Object[]> rows = new ArrayList<>();
+                for (IntCursor docIdCursor : cursor.value) {
+                    rows.add(new Object[] { docIdCursor.value });
+                }
+                readerToBuckets.put(cursor.key, new CollectionBucket(rows));
+            }
+            return Futures.<IntObjectMap<? extends Bucket>>immediateFuture(readerToBuckets);
+        }
     }
 }

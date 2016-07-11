@@ -165,12 +165,12 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
          pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), new PageConsumeListener() {
              @Override
              public void needMore() {
-                 rowReceiver.finish();
+                 rowReceiver.finish(RepeatHandle.UNSUPPORTED);
              }
 
              @Override
              public void finish() {
-                 rowReceiver.finish();
+                 rowReceiver.finish(RepeatHandle.UNSUPPORTED);
              }
          });
          rowReceiver.result();

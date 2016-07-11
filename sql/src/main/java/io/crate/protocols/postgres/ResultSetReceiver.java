@@ -27,7 +27,6 @@ import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.collections.Row;
 import io.crate.exceptions.Exceptions;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.types.DataType;
 import org.jboss.netty.channel.Channel;
 
@@ -40,13 +39,17 @@ class ResultSetReceiver implements ResultReceiver {
     private final String query;
     private final Channel channel;
     private final List<? extends DataType> columnTypes;
+
     @Nullable
     private final FormatCodes.FormatCode[] formatCodes;
 
     private CompletionListener listener = CompletionListener.NO_OP;
     private long rowCount = 0;
 
-    ResultSetReceiver(String query, Channel channel, List<? extends DataType> columnTypes, @Nullable FormatCodes.FormatCode[] formatCodes) {
+    ResultSetReceiver(String query,
+                      Channel channel,
+                      List<? extends DataType> columnTypes,
+                      @Nullable FormatCodes.FormatCode[] formatCodes) {
         this.query = query;
         this.channel = channel;
         this.columnTypes = columnTypes;
@@ -54,14 +57,19 @@ class ResultSetReceiver implements ResultReceiver {
     }
 
     @Override
-    public RowReceiver.Result setNextRow(Row row) {
-        Messages.sendDataRow(channel, row, columnTypes, formatCodes);
+    public void setNextRow(Row row) {
         rowCount++;
-        return RowReceiver.Result.CONTINUE;
+        Messages.sendDataRow(channel, row, columnTypes, formatCodes);
     }
 
     @Override
-    public void finish() {
+    public void batchFinished() {
+        Messages.sendPortalSuspended(channel);
+        Messages.sendReadyForQuery(channel);
+    }
+
+    @Override
+    public void allFinished() {
         Messages.sendCommandComplete(channel, query, rowCount);
         listener.onSuccess(null);
     }

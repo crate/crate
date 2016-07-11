@@ -24,6 +24,7 @@ package io.crate.testing;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.core.collections.SingleRowBucket;
+import io.crate.operation.projectors.RepeatHandle;
 
 public class RowCountRowReceiver extends CollectingRowReceiver {
 
@@ -36,7 +37,7 @@ public class RowCountRowReceiver extends CollectingRowReceiver {
     }
 
     @Override
-    public void finish() {
+    public void finish(RepeatHandle repeatHandle) {
         resultFuture.set(new SingleRowBucket(new Row1(rowCount)));
         numFailOrFinish++;
     }

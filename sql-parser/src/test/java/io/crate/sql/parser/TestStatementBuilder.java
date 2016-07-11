@@ -30,7 +30,6 @@ import org.antlr.runtime.tree.CommonTree;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Strings.repeat;
@@ -42,6 +41,11 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.*;
 
 public class TestStatementBuilder {
+
+    @Test
+    public void testBegin() throws Exception {
+        printStatement("BEGIN");
+    }
 
     @Test
     public void testStatementBuilder()
