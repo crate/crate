@@ -83,7 +83,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private final UUID jobId;
         private final ConsumingPlanner consumingPlanner;
         private final int softLimit;
-        private final int maxRows;
+        private final int fetchSize;
         private int executionPhaseId = 0;
         private final Multimap<TableIdent, TableRouting> tableRoutings = HashMultimap.create();
         private ReaderAllocations readerAllocations;
@@ -93,18 +93,15 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                        UUID jobId,
                        ConsumingPlanner consumingPlanner,
                        int softLimit,
-                       int maxRows) {
+                       int fetchSize) {
             this.clusterService = clusterService;
             this.jobId = jobId;
             this.consumingPlanner = consumingPlanner;
             this.softLimit = softLimit;
-            this.maxRows = maxRows;
+            this.fetchSize = fetchSize;
         }
 
-        private static int finalLimit(@Nullable Integer queryLimit, int softLimit, int maxRows) {
-            if (maxRows > 0) {
-                return maxRows;
-            }
+        private static int finalLimit(@Nullable Integer queryLimit, int softLimit) {
             if (queryLimit == null) {
                 return softLimit > 0 ? softLimit : TopN.NO_LIMIT;
             }
@@ -124,8 +121,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 Integer limit = optLimit.get();
                 return new Limits(limit, querySpec.offset());
             }
-            int finalLimit = finalLimit(optLimit.orNull(), softLimit, maxRows);
+            int finalLimit = finalLimit(optLimit.orNull(), softLimit);
             return new Limits(finalLimit, querySpec.offset());
+        }
+
+        public int fetchSize() {
+            return fetchSize;
         }
 
         public static class Limits {
@@ -366,19 +367,25 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      * @param softLimit A soft limit will be applied if there is no explicit limit within the query.
      *                  0 for unlimited (query limit or maxRows will still apply)
      *                  If the type of query doesn't have a resultSet this has no effect.
-     * @param maxRows Limit the number of rows that should be returned to a client.
+     * @param fetchSize Limit the number of rows that should be returned to a client.
      *                If > 0 this overrides the limit that might be part of a query.
      *                0 for unlimited (soft limit or query limit may still apply)
      * @return plan
      */
-    public Plan plan(Analysis analysis, UUID jobId, int softLimit, int maxRows) {
+    public Plan plan(Analysis analysis, UUID jobId, int softLimit, int fetchSize) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        return process(analyzedStatement, new Context(clusterService, jobId, consumingPlanner, softLimit, maxRows));
+        return process(analyzedStatement, new Context(clusterService, jobId, consumingPlanner, softLimit, fetchSize));
     }
 
     @Override
     protected Plan visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Context context) {
-        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "AnalyzedStatement \"%s\" not supported.", analyzedStatement));
+        throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+            "Cannot create Plan from AnalyzedStatement \"%s\"  - not supported.", analyzedStatement));
+    }
+
+    @Override
+    public Plan visitBegin(AnalyzedBegin analyzedBegin, Context context) {
+        return new NoopPlan(context.jobId);
     }
 
     @Override

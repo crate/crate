@@ -24,8 +24,9 @@ package io.crate.executor;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.action.sql.ResultReceiver;
 import io.crate.core.collections.Row;
+import io.crate.operation.projectors.RepeatHandle;
+import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -44,21 +45,21 @@ public abstract class JobTask implements Task {
     }
 
 
-    public static void resultToResultReceiver(final ListenableFuture<? extends TaskResult> resultFuture, final ResultReceiver resultReceiver) {
+    public static void resultToRowReceiver(final ListenableFuture<? extends TaskResult> resultFuture, final RowReceiver rowReceiver) {
         Futures.addCallback(resultFuture, new FutureCallback<TaskResult>() {
             @Override
             public void onSuccess(@Nullable TaskResult result) {
                 if (result != null) {
                     for (Row row : result.rows()) {
-                        resultReceiver.setNextRow(row);
+                        rowReceiver.setNextRow(row);
                     }
                 }
-                resultReceiver.finish();
+                rowReceiver.finish(RepeatHandle.UNSUPPORTED);
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                resultReceiver.fail(t);
+                rowReceiver.fail(t);
             }
         });
     }

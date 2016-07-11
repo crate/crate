@@ -24,7 +24,6 @@ package io.crate.executor.transport.executionphases;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import io.crate.action.sql.ResultReceiver;
 import io.crate.core.collections.Row;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.kill.KillJobsRequest;
@@ -45,17 +44,17 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
 
     private final AtomicInteger upstreams = new AtomicInteger(2);
     private final UUID jobId;
-    private final ResultReceiver resultReceiver;
+    private final RowReceiver rowReceiver;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final AtomicBoolean rowReceiverDone = new AtomicBoolean(false);
     private Throwable failure;
 
     InterceptingRowReceiver(UUID jobId,
-                            ResultReceiver resultReceiver,
+                            RowReceiver rowReceiver,
                             InitializationTracker jobsInitialized,
                             TransportKillJobsNodeAction transportKillJobsNodeAction) {
         this.jobId = jobId;
-        this.resultReceiver = resultReceiver;
+        this.rowReceiver = rowReceiver;
         this.transportKillJobsNodeAction = transportKillJobsNodeAction;
         Futures.addCallback(jobsInitialized.future, this);
     }
@@ -83,12 +82,12 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
 
     @Override
     public Result setNextRow(Row row) {
-        return resultReceiver.setNextRow(row);
+        return rowReceiver.setNextRow(row);
     }
 
     @Override
     public void pauseProcessed(ResumeHandle resumeable) {
-
+        rowReceiver.pauseProcessed(resumeable);
     }
 
     @Override
@@ -114,18 +113,18 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
             return;
         }
         if (failure == null) {
-            resultReceiver.finish();
+            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
         } else {
             transportKillJobsNodeAction.executeKillOnAllNodes(
                 new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<KillResponse>() {
                     @Override
                     public void onResponse(KillResponse killResponse) {
-                        resultReceiver.fail(failure);
+                        rowReceiver.fail(failure);
                     }
 
                     @Override
                     public void onFailure(Throwable e) {
-                        resultReceiver.fail(failure);
+                        rowReceiver.fail(failure);
                     }
                 });
         }

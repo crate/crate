@@ -20,27 +20,30 @@
  * agreement.
  */
 
-package io.crate.action.sql;
+package io.crate.sql.tree;
 
-import io.crate.concurrent.CompletionListenable;
-import io.crate.core.collections.Row;
-import io.crate.operation.projectors.RowReceiver;
-import io.crate.planner.Plan;
+public class BeginStatement extends Statement {
 
-import javax.annotation.Nonnull;
+    public BeginStatement() {
+    }
 
-/**
- * A subset / simplified form of {@link io.crate.operation.projectors.RowReceiver}.
- *
- * Used to receive the Result from {@link io.crate.executor.transport.TransportExecutor#execute(Plan, RowReceiver)}
- */
-public interface ResultReceiver extends CompletionListenable {
+    @Override
+    public int hashCode() {
+        return 0;
+    }
 
-    void setNextRow(Row row);
+    @Override
+    public boolean equals(Object obj) {
+        return this == obj;
+    }
 
-    void batchFinished();
+    @Override
+    public String toString() {
+        return "BEGIN";
+    }
 
-    void allFinished();
-
-    void fail(@Nonnull Throwable t);
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitBegin(this, context);
+    }
 }

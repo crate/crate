@@ -20,27 +20,17 @@
  * agreement.
  */
 
-package io.crate.action.sql;
+package io.crate.analyze;
 
-import io.crate.concurrent.CompletionListenable;
-import io.crate.core.collections.Row;
-import io.crate.operation.projectors.RowReceiver;
-import io.crate.planner.Plan;
+public class AnalyzedBegin implements AnalyzedStatement {
 
-import javax.annotation.Nonnull;
+    @Override
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitBegin(this, context);
+    }
 
-/**
- * A subset / simplified form of {@link io.crate.operation.projectors.RowReceiver}.
- *
- * Used to receive the Result from {@link io.crate.executor.transport.TransportExecutor#execute(Plan, RowReceiver)}
- */
-public interface ResultReceiver extends CompletionListenable {
-
-    void setNextRow(Row row);
-
-    void batchFinished();
-
-    void allFinished();
-
-    void fail(@Nonnull Throwable t);
+    @Override
+    public boolean isWriteOperation() {
+        return false;
+    }
 }

@@ -103,6 +103,7 @@ statement returns [Statement value]
     | set                       { $value = $set.value; }
     | resetStatement            { $value = $resetStatement.value; }
     | killStatement             { $value = $killStatement.value; }
+    | begin                     { $value = $begin.value; }
     ;
 
 query returns [Query value]
@@ -1034,6 +1035,10 @@ set returns [SetStatement value]
     | ^(SET_GLOBAL TRANSIENT assignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.GLOBAL, SetStatement.SettingType.TRANSIENT, $assignments.value); }
     | ^(SET_GLOBAL PERSISTENT assignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.GLOBAL, SetStatement.SettingType.PERSISTENT, $assignments.value); }
     | ^(SET_SESSION assignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.SESSION, $assignments.value); }
+    ;
+
+begin returns [BeginStatement value]
+    : BEGIN { $value = new BeginStatement(); }
     ;
 
 resetStatement returns [ResetStatement value]

@@ -1724,13 +1724,4 @@ public class PlannerTest extends AbstractPlannerTest {
         topNProjection = (TopNProjection) plan.localMerge().projections().get(0);
         assertThat(topNProjection.limit(), is(5));
     }
-
-    @Test
-    public void testMaxRowsIsApplied() throws Exception {
-        QueryThenFetch plan = plan("select * from users limit 20", 10, 0);
-        assertThat(plan.localMerge().projections(), contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
-        TopNProjection topNProjection = (TopNProjection) plan.localMerge().projections().get(0);
-
-        assertThat(topNProjection.limit(), is(10));
-    }
 }
