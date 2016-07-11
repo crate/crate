@@ -29,15 +29,17 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.Analysis;
-import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.concurrent.CompletionListener;
+import io.crate.concurrent.CompletionState;
+import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.executor.Executor;
 import io.crate.executor.TaskResult;
+import io.crate.operation.collect.StatsTables;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.statement.SetSessionPlan;
@@ -68,16 +70,19 @@ public class SQLOperations {
     private final Analyzer analyzer;
     private final Planner planner;
     private final Provider<Executor> executorProvider;
+    private final StatsTables statsTables;
     private final boolean isReadOnly;
 
     @Inject
     public SQLOperations(Analyzer analyzer,
                          Planner planner,
                          Provider<Executor> executorProvider,
+                         StatsTables statsTables,
                          Settings settings) {
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
+        this.statsTables = statsTables;
         this.isReadOnly = settings.getAsBoolean(NODE_READ_ONLY_SETTING, false);
     }
 
@@ -159,6 +164,7 @@ public class SQLOperations {
             }
 
             Statement statement = SqlParser.createStatement(query);
+            statsTables.jobStarted(jobId, query);
             Analysis analysis = analyzer.analyze(statement, new ParameterContext(EMPTY_ARGS, EMPTY_BULK_ARGS, defaultSchema));
             validateReadOnly();
             Plan plan = planner.plan(analysis, UUID.randomUUID(), 0, 0);
@@ -171,6 +177,7 @@ public class SQLOperations {
             }
             assert resultReceiver != null : "resultReceiver must not be null";
             resultReceiver.addListener(doneListener);
+            resultReceiver.addListener(new StatsTablesUpdateListener(jobId, statsTables));
             applySessionSettings(plan);
             executor.execute(plan, resultReceiver);
         }
@@ -197,10 +204,12 @@ public class SQLOperations {
                 Statement statement = SqlParser.createStatement(query);
                 if (this.statement == null) {
                     this.jobId = UUID.randomUUID();
+                    statsTables.jobStarted(jobId, query);
                 } else if (!statement.equals(this.statement)) {
                     // different query -> no bulk operation -> execute previous query
                     sync(CompletionListener.NO_OP);
                     this.jobId = UUID.randomUUID();
+                    statsTables.jobStarted(jobId, query);
                 }
                 this.statement = statement;
                 this.query = query;
@@ -293,6 +302,7 @@ public class SQLOperations {
 
         private void execute(Plan plan, ResultReceiver resultReceiver, CompletionListener listener) {
             resultReceiver.addListener(listener);
+            resultReceiver.addListener(new StatsTablesUpdateListener(jobId, statsTables));
             executor.execute(plan, resultReceiver);
         }
 
@@ -310,6 +320,7 @@ public class SQLOperations {
                         resultReceiver.finish();
                     }
                     listener.onSuccess(null);
+                    statsTables.jobFinished(jobId, null);
                 }
 
                 @Override
@@ -318,6 +329,7 @@ public class SQLOperations {
                         resultReceiver.fail(t);
                     }
                     listener.onFailure(t);
+                    statsTables.jobFinished(jobId, Exceptions.messageOf(t));
                 }
             });
         }
@@ -341,6 +353,7 @@ public class SQLOperations {
             resultReceivers.clear();
             statement = null;
             resultFormatCodes = null;
+            outputTypes = null;
         }
 
         public List<? extends DataType> outputTypes() {
@@ -367,5 +380,25 @@ public class SQLOperations {
             bulkArgs[i] = bulkParams.get(i).toArray(new Object[0]);
         }
         return bulkArgs;
+    }
+
+    private static class StatsTablesUpdateListener implements CompletionListener {
+
+        private final UUID jobId;
+        private final StatsTables statsTables;
+
+        StatsTablesUpdateListener(UUID jobId, StatsTables statsTables) {
+            this.jobId = jobId;
+            this.statsTables = statsTables;
+        }
+        @Override
+        public void onSuccess(@Nullable CompletionState result) {
+            statsTables.jobFinished(jobId, null);
+        }
+
+        @Override
+        public void onFailure(Throwable t) {
+            statsTables.jobFinished(jobId, Exceptions.messageOf(t));
+        }
     }
 }
