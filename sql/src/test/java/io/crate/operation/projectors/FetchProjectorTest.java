@@ -28,6 +28,7 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.symbol.FetchReference;
 import io.crate.analyze.symbol.InputColumn;
@@ -45,6 +46,7 @@ import io.crate.operation.projectors.fetch.FetchProjectorContext;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.RowSender;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.LongType;
 import org.junit.After;
@@ -62,24 +64,13 @@ public class FetchProjectorTest extends CrateUnitTest {
 
     private static final TableIdent USER_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users");
     private ExecutorService executorService;
+    private FetchOperation fetchOperation;
 
     @Before
     public void before() throws Exception {
         executorService = Executors.newFixedThreadPool(2);
-    }
-
-    @After
-    public void after() throws Exception {
-        executorService.shutdown();
-        executorService.awaitTermination(1, TimeUnit.SECONDS);
-    }
-
-    @Test
-    public void testMultipleFetchRequests() throws Throwable {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-
         // dummy FetchOperation that returns buckets for each reader-id where each row contains a column that is the same as the docId
-        FetchOperation fetchOperation = new FetchOperation() {
+        fetchOperation = new FetchOperation() {
             @Override
             public ListenableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId, IntObjectMap<? extends IntContainer> toFetch, boolean closeContext) {
                 IntObjectHashMap<Bucket> readerToBuckets = new IntObjectHashMap<>();
@@ -93,6 +84,38 @@ public class FetchProjectorTest extends CrateUnitTest {
                 return Futures.<IntObjectMap<? extends Bucket>>immediateFuture(readerToBuckets);
             }
         };
+    }
+
+    @After
+    public void after() throws Exception {
+        executorService.shutdown();
+        executorService.awaitTermination(1, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void testPauseSupport() throws Exception {
+        final CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(2);
+        int fetchSize = 4;
+        FetchProjector fetchProjector = prepareFetchProjector(fetchSize, rowReceiver, fetchOperation);
+        final RowSender rowSender = new RowSender(RowSender.rowRange(0, 10), fetchProjector, MoreExecutors.directExecutor());
+        rowSender.run();
+
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                assertThat(rowSender.numPauses(), is(1));
+                assertThat(rowReceiver.rows.size(), is(2));
+            }
+        });
+        rowReceiver.resumeUpstream(false);
+        assertThat(TestingHelpers.printedTable(rowReceiver.result()),
+            is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n"));
+    }
+
+    @Test
+    public void testMultipleFetchRequests() throws Throwable {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+
 
         int fetchSize = 3;
         FetchProjector fetchProjector = prepareFetchProjector(fetchSize, rowReceiver, fetchOperation);

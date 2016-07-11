@@ -38,10 +38,7 @@ import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.fetch.FetchRowInputSymbolVisitor;
-import io.crate.operation.projectors.AbstractProjector;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.Requirement;
-import io.crate.operation.projectors.ResumeHandle;
+import io.crate.operation.projectors.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
@@ -209,7 +206,7 @@ public class FetchProjector extends AbstractProjector {
 
                                 @Override
                                 protected void doRun() throws Exception {
-                                    sendToDownstream(isLast);
+                                    sendToDownstream(isLast, 0);
                                     if (isLast) {
                                         finishDownstream();
                                     }
@@ -228,7 +225,7 @@ public class FetchProjector extends AbstractProjector {
             }
         }
         if (!anyRequestSent) {
-            sendToDownstream(isLast);
+            sendToDownstream(isLast, 0);
             if (isLast) {
                 finishDownstream();
             }
@@ -246,8 +243,8 @@ public class FetchProjector extends AbstractProjector {
         return toFetch;
     }
 
-    private void sendToDownstream(boolean isLast) {
-        if (nextStage(Stage.FETCH, Stage.EMIT)) {
+    private void sendToDownstream(final boolean isLast, final int rowStartIdx) {
+        if (rowStartIdx == 0 && nextStage(Stage.FETCH, Stage.EMIT)) {
             return;
         }
         final ArrayBackedRow inputRow = collectRowContext.inputRow();
@@ -256,24 +253,37 @@ public class FetchProjector extends AbstractProjector {
         final int[] docIdPositions = collectRowContext.docIdPositions();
 
         loop:
-        for (Object[] cells : inputValues) {
+        for (int i = rowStartIdx; i < inputValues.size(); i++) {
+            Object[] cells = inputValues.get(i);
             inputRow.cells = cells;
-            for (int i = 0; i < docIdPositions.length; i++) {
-                long doc = (long) cells[docIdPositions[i]];
+            for (int j = 0; j < docIdPositions.length; j++) {
+                long doc = (long) cells[docIdPositions[j]];
                 int readerId = (int) (doc >> 32);
                 int docId = (int) (long) doc;
                 ReaderBucket readerBucket = context.getReaderBucket(readerId);
                 assert readerBucket != null;
-                setPartitionRow(partitionRows, i, readerBucket);
-                fetchRows[i].cells = readerBucket.get(docId);
-                assert !readerBucket.fetchRequired() || fetchRows[i].cells != null;
+                setPartitionRow(partitionRows, j, readerBucket);
+                fetchRows[j].cells = readerBucket.get(docId);
+                assert !readerBucket.fetchRequired() || fetchRows[j].cells != null;
             }
             Result result = downstream.setNextRow(outputRow);
             switch (result) {
                 case CONTINUE:
                     continue;
                 case PAUSE:
-                    throw new UnsupportedOperationException("FetchProjector doesn't support pause");
+                    final int startIdx = i + 1;
+                    downstream.pauseProcessed(new ResumeHandle() {
+                        @Override
+                        public void resume(boolean async) {
+                            ExecutorResumeHandle.resume(resultExecutor, new Runnable() {
+                                @Override
+                                public void run() {
+                                    sendToDownstream(isLast, startIdx);
+                                }
+                            }, async);
+                        }
+                    });
+                    return;
                 case STOP:
                     break loop;
             }
