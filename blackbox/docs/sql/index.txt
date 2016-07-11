@@ -17,7 +17,6 @@ see :doc:`sql`. For general information about SQL please refer to
    joins
    data_types
    aggregation
-   conditional
    scalar
    table_functions
    arithmetic
