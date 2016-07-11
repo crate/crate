@@ -437,7 +437,6 @@ def test_suite():
                'sql/partitioned_tables.txt',
                'sql/aggregation.txt',
                'sql/arithmetic.txt',
-               'sql/conditional.txt',
                'sql/scalar.txt',
                'sql/table_functions.txt',
                'sql/system.txt',
