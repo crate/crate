@@ -39,6 +39,10 @@ public class ExecutorResumeHandle implements ResumeHandle {
 
     @Override
     public void resume(boolean async) {
+        resume(executor, runnable, async);
+    }
+
+    public static void resume(Executor executor, Runnable runnable, boolean async) {
         if (async) {
             try {
                 executor.execute(runnable);
