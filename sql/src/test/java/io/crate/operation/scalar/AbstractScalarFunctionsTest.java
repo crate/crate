@@ -55,6 +55,25 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     protected Functions functions;
     protected Map<QualifiedName, AnalyzedRelation> tableSources;
 
+    @Before
+    public void prepareFunctions() throws Exception {
+        TableInfo tableInfo = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "users"), null)
+            .add("id", DataTypes.INTEGER)
+            .add("name", DataTypes.STRING)
+            .add("tags", new ArrayType(DataTypes.STRING))
+            .add("age", DataTypes.INTEGER)
+            .add("shape", DataTypes.GEO_SHAPE)
+            .add("timestamp", DataTypes.TIMESTAMP)
+            .add("timezone", DataTypes.STRING)
+            .add("time_format", DataTypes.STRING)
+            .add("long_array", new ArrayType(DataTypes.LONG))
+            .add("regex_pattern", DataTypes.STRING)
+            .build();
+        TableRelation tableRelation = new TableRelation(tableInfo);
+        tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), tableRelation);
+        sqlExpressions = new SqlExpressions(tableSources);
+        functions = sqlExpressions.getInstance(Functions.class);
+    }
 
     /**
      * Assert that the functionExpression normalizes to the expectedSymbol
@@ -165,25 +184,5 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         FunctionImplementation<Function> function = getFunction(functionName, argTypes);
         return function.normalizeSymbol(new Function(function.info(),
                 Arrays.asList(args)));
-    }
-
-    @Before
-    public void prepareFunctions() throws Exception {
-        TableInfo tableInfo = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "users"), null)
-                .add("id", DataTypes.INTEGER)
-                .add("name", DataTypes.STRING)
-                .add("tags", new ArrayType(DataTypes.STRING))
-                .add("age", DataTypes.INTEGER)
-                .add("shape", DataTypes.GEO_SHAPE)
-                .add("timestamp", DataTypes.TIMESTAMP)
-                .add("timezone", DataTypes.STRING)
-                .add("time_format", DataTypes.STRING)
-                .add("long_array", new ArrayType(DataTypes.LONG))
-                .add("regex_pattern", DataTypes.STRING)
-                .build();
-        TableRelation tableRelation = new TableRelation(tableInfo);
-        tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), tableRelation);
-        sqlExpressions = new SqlExpressions(tableSources);
-        functions = sqlExpressions.getInstance(Functions.class);
     }
 }
