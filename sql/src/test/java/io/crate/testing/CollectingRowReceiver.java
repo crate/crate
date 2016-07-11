@@ -155,7 +155,7 @@ public class CollectingRowReceiver implements RowReceiver, ResultReceiver {
         private final int limit;
         private int numRows = 0;
 
-        public LimitingReceiver(int limit) {
+        LimitingReceiver(int limit) {
             this.limit = limit;
         }
 
@@ -176,7 +176,7 @@ public class CollectingRowReceiver implements RowReceiver, ResultReceiver {
         private final int pauseAfter;
         private int numRows = 0;
 
-        public PausingReceiver(int pauseAfter) {
+        PausingReceiver(int pauseAfter) {
             this.pauseAfter = pauseAfter;
         }
 

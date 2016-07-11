@@ -95,7 +95,7 @@ public class FetchProjectorTest extends CrateUnitTest {
     @Test
     public void testPauseSupport() throws Exception {
         final CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(2);
-        int fetchSize = 4;
+        int fetchSize = random().nextInt(20);
         FetchProjector fetchProjector = prepareFetchProjector(fetchSize, rowReceiver, fetchOperation);
         final RowSender rowSender = new RowSender(RowSender.rowRange(0, 10), fetchProjector, MoreExecutors.directExecutor());
         rowSender.run();
@@ -103,10 +103,10 @@ public class FetchProjectorTest extends CrateUnitTest {
         assertBusy(new Runnable() {
             @Override
             public void run() {
-                assertThat(rowSender.numPauses(), is(1));
                 assertThat(rowReceiver.rows.size(), is(2));
             }
         });
+        assertThat(rowReceiver.getNumFailOrFinishCalls(), is(0));
         rowReceiver.resumeUpstream(false);
         assertThat(TestingHelpers.printedTable(rowReceiver.result()),
             is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n"));

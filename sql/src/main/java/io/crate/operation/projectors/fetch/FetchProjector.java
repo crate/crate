@@ -207,9 +207,6 @@ public class FetchProjector extends AbstractProjector {
                                 @Override
                                 protected void doRun() throws Exception {
                                     sendToDownstream(isLast, 0);
-                                    if (isLast) {
-                                        finishDownstream();
-                                    }
                                 }
                             });
                         }
@@ -226,9 +223,6 @@ public class FetchProjector extends AbstractProjector {
         }
         if (!anyRequestSent) {
             sendToDownstream(isLast, 0);
-            if (isLast) {
-                finishDownstream();
-            }
         }
     }
 
@@ -297,6 +291,8 @@ public class FetchProjector extends AbstractProjector {
             inputValues.clear();
             currentRowCount = 0;
             resume();
+        } else {
+            finishDownstream();
         }
     }
 
