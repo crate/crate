@@ -118,7 +118,9 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
                 if (newSettings.get(name) == null) {
                     applySettings(setting.children(), newSettings);
                 }
-                if (!newValue.equals(values.get(name))) {
+                if (!newValue.equals(values.get(name)) ||
+                    (setting.parent() != null &&
+                     CrateSettings.STATS.settingName().equals(setting.parent().settingName()))) {
                     if (newSettings.get(name) != null) {
                         logger.info("updating [{}] from [{}] to [{}]", name, values.get(name), newValue);
                     }
