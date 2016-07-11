@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed bug with system statistics (sys.jobs[_log], sys.operations[_log])
+   being unintentionally disabled while processing cluster change events.
+
  - Implemented basic conditional functions
    (``coalesce()``, ``greatest()``, ``least()``, ``nullif()``).
 
