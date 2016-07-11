@@ -33,6 +33,9 @@ import org.junit.rules.ExpectedException;
 import org.postgresql.util.PSQLException;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 
@@ -70,8 +73,39 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     public void testNoAutoCommit() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(false);
-            expectedException.expectMessage("no viable alternative at input 'BEGIN'");
-            conn.prepareStatement("select name from sys.cluster").executeQuery();
+            ResultSet resultSet = conn.prepareStatement("select name from sys.cluster").executeQuery();
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-CHILD"));
+        }
+    }
+
+    @Test
+    public void testFetchSize() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+            conn.createStatement().executeUpdate("create table t (x int) with (number_of_replicas = 0)");
+            ensureGreen();
+
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x) values (?)");
+            for (int i = 0; i < 20; i++) {
+                preparedStatement.setInt(1, i);
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+
+            conn.createStatement().executeUpdate("refresh table t");
+
+            conn.setAutoCommit(false);
+            try (Statement st = conn.createStatement()) {
+                st.setFetchSize(2);
+                try (ResultSet resultSet = st.executeQuery("select x from t")) {
+                    List<Integer> result = new ArrayList<>();
+                    while (resultSet.next()) {
+                        result.add(resultSet.getInt(1));
+                    }
+                    Collections.sort(result);
+                    assertThat(result, Matchers.contains(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19));
+                }
+            }
         }
     }
 

@@ -221,6 +221,7 @@ statement
     | COPY copyStatement -> copyStatement
     | refreshStmt
     | SET setStmt -> setStmt
+    | beginStmt
     | resetStmt
     | killStmt
     | RESTORE restoreStmt -> restoreStmt
@@ -1078,6 +1079,10 @@ refreshStmt
     : REFRESH TABLE tableWithPartitionList -> ^(REFRESH tableWithPartitionList)
     ;
 
+beginStmt
+    : BEGIN
+    ;
+
 setStmt
     : (GLOBAL settingsType? setAssignmentList) => GLOBAL settingsType? setAssignmentList -> ^(SET_GLOBAL settingsType? setAssignmentList)
     | (SESSION setAssignmentList) => SESSION setAssignmentList -> ^(SET_SESSION setAssignmentList)
@@ -1119,7 +1124,7 @@ nonReserved
     | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND | SESSION
     | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
-    | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS
+    | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
     ;
 
 SELECT: 'SELECT';
@@ -1226,6 +1231,7 @@ GEO_POINT: 'GEO_POINT';
 GEO_SHAPE: 'GEO_SHAPE';
 GLOBAL : 'GLOBAL';
 SESSION : 'SESSION';
+BEGIN: 'BEGIN';
 
 CONSTRAINT: 'CONSTRAINT';
 DESCRIBE: 'DESCRIBE';

@@ -620,4 +620,8 @@ public abstract class AstVisitor<R, C>
     public R visitTableFunction(TableFunction node, C context) {
         return visitQueryBody(node, context);
     }
+
+    public R visitBegin(BeginStatement node, C context) {
+        return visitStatement(node, context);
+    }
 }

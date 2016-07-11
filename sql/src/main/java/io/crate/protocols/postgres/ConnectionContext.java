@@ -279,7 +279,7 @@ class ConnectionContext {
                             handleBindMessage(buffer, channel);
                             return;
                         case 'D':
-                            handleDescribeMessage(buffer, channel, session.resultFormatCodes());
+                            handleDescribeMessage(buffer, channel);
                             return;
                         case 'E':
                             handleExecute(buffer, channel);
@@ -287,9 +287,12 @@ class ConnectionContext {
                         case 'S':
                             handleSync(channel);
                             return;
+                        case 'C':
+                            handleClose(buffer, channel);
+                            return;
                         case 'X': // Terminate
                             channel.close();
-                            session = null;
+                            closeSession();
                             return;
                         default:
                             Messages.sendErrorResponse(channel, "Unsupported messageType: " + msgType);
@@ -299,10 +302,22 @@ class ConnectionContext {
             throw new IllegalStateException("Illegal state: " + state);
         }
 
+        private void closeSession() {
+            if (session != null) {
+                session.close();
+                session = null;
+            }
+        }
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
             LOGGER.error(e.toString(), e.getCause());
+        }
+
+        @Override
+        public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+            super.channelDisconnected(ctx, e);
+            closeSession();
         }
     }
 
@@ -407,7 +422,7 @@ class ConnectionContext {
      *  | 'S' = prepared statement or 'P' = portal
      *  | string nameOfPortalOrStatement
      */
-    private void handleDescribeMessage(ChannelBuffer buffer, Channel channel, @Nullable FormatCodes.FormatCode[] formatCodes) {
+    private void handleDescribeMessage(ChannelBuffer buffer, Channel channel) {
         byte type = buffer.readByte();
         String portalOrStatement = readCString(buffer);
         try {
@@ -415,7 +430,7 @@ class ConnectionContext {
             if (fields == null) {
                 Messages.sendNoData(channel);
             } else {
-                Messages.sendRowDescription(channel, fields, formatCodes);
+                Messages.sendRowDescription(channel, fields, session.getResultFormatCodes(portalOrStatement));
             }
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
@@ -436,7 +451,7 @@ class ConnectionContext {
         int maxRows = buffer.readInt();
         try {
             ResultReceiver rowReceiver = createRowReceiver(
-                channel, session.query(), session.outputTypes(), session.resultFormatCodes());
+                channel, session.query(), session.getOutputTypes(portalName), session.getResultFormatCodes(portalName));
             session.execute(portalName, maxRows, rowReceiver);
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
@@ -463,6 +478,16 @@ class ConnectionContext {
             Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
             Messages.sendReadyForQuery(channel);
         }
+    }
+
+    /**
+     * | 'C' | int32 len | byte portalOrStatement | string portalOrStatementName |
+     */
+    private void handleClose(ChannelBuffer buffer, Channel channel) {
+        byte b = buffer.readByte();
+        String portalOrStatementName = readCString(buffer);
+        session.closePortal(b, portalOrStatementName);
+        Messages.sendCloseComplete(channel);
     }
 
     @VisibleForTesting
@@ -536,7 +561,6 @@ class ConnectionContext {
                     }
                     msgType = buffer.readByte();
                     msgLength = buffer.readInt() - 4; // exclude length itself
-                    LOGGER.trace("Received msg={} length={}", ((char) msgType), msgLength);
                     state = State.MSG_BODY;
                     return nullOrBuffer(buffer);
                 case MSG_BODY:

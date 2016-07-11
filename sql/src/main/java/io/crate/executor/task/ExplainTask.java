@@ -23,10 +23,11 @@
 package io.crate.executor.task;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.action.sql.ResultReceiver;
 import io.crate.core.collections.Row1;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
+import io.crate.operation.projectors.RepeatHandle;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.node.management.ExplainPlan;
 
@@ -42,13 +43,13 @@ public class ExplainTask implements Task {
     }
 
     @Override
-    public void execute(ResultReceiver resultReceiver) {
+    public void execute(RowReceiver rowReceiver) {
         try {
             Map<String, Object> map = PlanPrinter.objectMap(explainPlan.subPlan());
-            resultReceiver.setNextRow(new Row1(map));
-            resultReceiver.finish();
+            rowReceiver.setNextRow(new Row1(map));
+            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
         } catch (Throwable t) {
-            resultReceiver.fail(t);
+            rowReceiver.fail(t);
         }
     }
 

@@ -27,7 +27,6 @@ import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.collections.Row;
 import io.crate.exceptions.Exceptions;
-import io.crate.operation.projectors.RowReceiver;
 import org.jboss.netty.channel.Channel;
 
 import javax.annotation.Nonnull;
@@ -45,13 +44,16 @@ class RowCountReceiver implements ResultReceiver {
     }
 
     @Override
-    public RowReceiver.Result setNextRow(Row row) {
+    public void setNextRow(Row row) {
         rowCount = (long) row.get(0);
-        return RowReceiver.Result.CONTINUE;
     }
 
     @Override
-    public void finish() {
+    public void batchFinished() {
+    }
+
+    @Override
+    public void allFinished() {
         Messages.sendCommandComplete(channel, query, rowCount);
         listener.onSuccess(null);
     }

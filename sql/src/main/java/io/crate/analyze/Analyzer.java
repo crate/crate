@@ -273,6 +273,11 @@ public class Analyzer {
         }
 
         @Override
+        public AnalyzedStatement visitBegin(BeginStatement node, Analysis context) {
+            return new AnalyzedBegin();
+        }
+
+        @Override
         protected AnalyzedStatement visitNode(Node node, Analysis context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "cannot analyze statement: '%s'", node));
         }
