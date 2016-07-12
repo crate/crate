@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: the ``within`` scalar function now allows querying geo_shapes within
+   geo_shapes.
+
 2016/07/07 0.55.2
 =================
 
