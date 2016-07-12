@@ -148,6 +148,28 @@ Finally use the ``COPY FROM`` statement to import your newly generated json file
   Read :ref:`efficient_data_import` for more information how to import huge datasets into Crate.
 
 
+3rd Party Tool: csvkit
+======================
+
+The tools provided by `csvkit`_ allow you to directly insert CSV data
+into Crate via SQLAlchemy, using Crate’s native driver to create the table,
+guess the corresponding data types, and insert any data found in the CSV file.
+
+The simplest way to do so is like this:
+
+.. code-block:: sh
+
+  $ csvsql --db crate://localhost:4200 --insert /tmp/dump.csv
+
+.. note::
+
+  See also the documentation of `csvsql`_. To use the SQLAlchemy driver of Crate,
+  the latest version of the `Crate Python package`_ is required.
+
+
 .. _`MySQL`: http://mysql.com
 .. _`Crate`: https://crate.io
 .. _`csv2json.py`: https://github.com/crate/crate-utils/tree/master/migrations/mysql
+.. _`csvkit`: https://csvkit.readthedocs.io/en/540/index.html
+.. _`csvsql`: https://csvkit.readthedocs.io/en/540/scripts/csvsql.html
+.. _`Crate Python package`: https://pypi.python.org/pypi/crate
