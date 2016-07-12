@@ -166,7 +166,7 @@ public class SQLOperations {
             Statement statement = SqlParser.createStatement(query);
             statsTables.jobStarted(jobId, query);
             Analysis analysis = analyzer.analyze(statement, new ParameterContext(EMPTY_ARGS, EMPTY_BULK_ARGS, defaultSchema));
-            validateReadOnly();
+            validateReadOnly(analysis);
             Plan plan = planner.plan(analysis, UUID.randomUUID(), 0, 0);
 
             ResultReceiver resultReceiver;
@@ -252,7 +252,7 @@ public class SQLOperations {
         public void execute(String portalName, int maxRows, ResultReceiver rowReceiver) {
             LOGGER.debug("method=describe portalName={} maxRows={}", portalName, maxRows);
             checkError();
-            validateReadOnly();
+            validateReadOnly(analysis);
 
             resultReceivers.add(rowReceiver);
             this.maxRows = maxRows;
@@ -340,7 +340,7 @@ public class SQLOperations {
             }
         }
 
-        private void validateReadOnly() {
+        private void validateReadOnly(Analysis analysis) {
             if (analysis.analyzedStatement().isWriteOperation() && isReadOnly) {
                 throw new ReadOnlyException();
             }
