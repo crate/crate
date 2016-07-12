@@ -24,6 +24,7 @@ package io.crate.action.sql;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import io.crate.Constants;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
@@ -73,7 +74,6 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
     public static final String NODE_READ_ONLY_SETTING = "node.sql.read_only";
 
-    public static final int MAX_SHARD_MISSING_RETRIES = 3;
     private static final int DEFAULT_SOFT_LIMIT = 10_000;
 
 
@@ -346,7 +346,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
         @Override
         public void onFailure(Throwable e) {
-            if (attempt <= MAX_SHARD_MISSING_RETRIES && Exceptions.isShardFailure(e)) {
+            if (attempt <= Constants.MAX_SHARD_MISSING_RETRIES && Exceptions.isShardFailure(e)) {
                 attempt += 1;
                 killAndRetry();
             } else {
