@@ -37,25 +37,25 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
 
     protected final TR tableRelation;
     private final QuerySpec querySpec;
-    private final Map<String, Field> fields;
+    private final Fields fields;
 
     public QueriedTableRelation(TR tableRelation, Collection<? extends Path> paths, QuerySpec querySpec) {
         this.tableRelation = tableRelation;
         this.querySpec = querySpec;
-        this.fields = new HashMap<>(paths.size());
+        this.fields = new Fields(paths.size());
         Iterator<Symbol> qsIter = querySpec.outputs().iterator();
         for (Path path : paths) {
-            fields.put(path.outputName(), new Field(this, path, qsIter.next().valueType()));
+            fields.add(path.outputName(), new Field(this, path, qsIter.next().valueType()));
         }
     }
 
     public QueriedTableRelation(TR tableRelation, QuerySpec querySpec) {
         this.tableRelation = tableRelation;
         this.querySpec = querySpec;
-        this.fields = new HashMap<>(querySpec.outputs().size());
+        this.fields = new Fields(querySpec.outputs().size());
         for (int i = 0; i < querySpec.outputs().size(); i++) {
             ColumnIndex columnIndex = new ColumnIndex(i);
-            fields.put(columnIndex.outputName(), new Field(this, columnIndex, querySpec.outputs().get(i).valueType()));
+            fields.add(columnIndex.outputName(), new Field(this, columnIndex, querySpec.outputs().get(i).valueType()));
         }
     }
 
@@ -83,7 +83,7 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
 
     @Override
     public List<Field> fields() {
-        return Lists.newArrayList(fields.values());
+        return Lists.newArrayList(fields.asList());
     }
 
 

@@ -65,7 +65,7 @@ public class MultiSourceSelect implements QueriedRelation {
     }
 
     private final HashMap<QualifiedName, Source> sources;
-    private final List<Field> fields;
+    private final Fields fields;
     private final QuerySpec querySpec;
 
     public MultiSourceSelect(
@@ -77,9 +77,10 @@ public class MultiSourceSelect implements QueriedRelation {
         this.sources = new LinkedHashMap<>(sources.size());
         this.splitter = initSources(sources);
         assert outputNames.size() == querySpec.outputs().size() : "size of outputNames and outputSymbols must match";
-        fields = new ArrayList<>(outputNames.size());
+        fields = new Fields(outputNames.size());
         for (int i = 0; i < outputNames.size(); i++) {
-            fields.add(new Field(this, outputNames.get(i), querySpec.outputs().get(i).valueType()));
+            Path path = outputNames.get(i);
+            fields.add(path.outputName(), new Field(this, path, querySpec.outputs().get(i).valueType()));
         }
     }
 
@@ -102,12 +103,15 @@ public class MultiSourceSelect implements QueriedRelation {
 
     @Override
     public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
-        throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is not implemented");
+        if (operation != Operation.READ) {
+            throw new UnsupportedOperationException("getField on MultiSourceSelect is only supported for READ operations");
+        }
+        return fields.get(path.outputName());
     }
 
     @Override
     public List<Field> fields() {
-        return fields;
+        return fields.asList();
     }
 
     public QuerySpec querySpec() {

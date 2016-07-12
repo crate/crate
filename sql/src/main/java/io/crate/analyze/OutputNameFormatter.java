@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedNameReference;
@@ -47,7 +47,7 @@ public class OutputNameFormatter {
             for (String part : node.getName().getParts()) {
                 parts.add(part);
             }
-            return Joiner.on('.').join(parts);
+            return Iterables.getLast(parts);
         }
 
         @Override

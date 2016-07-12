@@ -23,6 +23,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.SchemaInfo;
@@ -75,7 +76,7 @@ public class SubSelectAnalyzerTest extends BaseAnalyzerTest {
             "select ausers.id / ausers.other_id from (select id, other_id from users) as ausers");
         QueriedSelectRelation relation = (QueriedSelectRelation) statement.relation();
         assertThat(relation.fields().size(), is(1));
-        assertThat(relation.fields().get(0), isField("(ausers.id / ausers.other_id)"));
+        assertThat(relation.fields().get(0), isField("(id / other_id)"));
 
         QueriedDocTable docTable = (QueriedDocTable) relation.relation();
         assertThat(docTable.tableRelation().tableInfo(), is(USER_TABLE_INFO));
@@ -87,7 +88,7 @@ public class SubSelectAnalyzerTest extends BaseAnalyzerTest {
             "select ausers.ID from (select id from users) as AUSERS");
         QueriedSelectRelation relation = (QueriedSelectRelation) statement.relation();
         assertThat(relation.fields().size(), is(1));
-        assertThat(relation.fields().get(0), isField("ausers.id"));
+        assertThat(relation.fields().get(0), isField("id"));
     }
 
     @Test
@@ -103,9 +104,30 @@ public class SubSelectAnalyzerTest extends BaseAnalyzerTest {
             "select ausers.aid from (select id as aid from users) as ausers");
         QueriedSelectRelation relation = (QueriedSelectRelation) statement.relation();
         assertThat(relation.fields().size(), is(1));
-        assertThat(relation.fields().get(0), isField("ausers.aid"));
+        assertThat(relation.fields().get(0), isField("aid"));
 
         QueriedDocTable docTable = (QueriedDocTable) relation.relation();
         assertThat(docTable.tableRelation().tableInfo(), is(USER_TABLE_INFO));
+    }
+
+    @Test
+    public void testSubSelectWithJoins() throws Exception {
+        SelectAnalyzedStatement statement = analyze(
+            "select ausers.id, ausers.name from (select a.id, b.name from users as a, users_multi_pk as b) as ausers");
+        QueriedSelectRelation relation = (QueriedSelectRelation) statement.relation();
+        assertThat(relation.fields().size(), is(2));
+        assertThat(relation.fields().get(0), isField("id"));
+        assertThat(relation.fields().get(1), isField("name"));
+
+        MultiSourceSelect multiSourceSelect = (MultiSourceSelect) relation.relation();
+        assertThat(multiSourceSelect.sources().size(), is(2));
+    }
+
+    @Test
+    public void testSubSelectWithJoinsAmbiguousColumn() throws Exception {
+        expectedException.expect(AmbiguousColumnAliasException.class);
+        expectedException.expectMessage("Column alias \"id\" is ambiguous");
+        analyze("select ausers.id, ausers.name from (select a.id, b.id, b.name from users as a, users_multi_pk as b) as ausers");
+
     }
 }
