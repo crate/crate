@@ -30,7 +30,6 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionState;
-import io.crate.exceptions.Exceptions;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
@@ -292,10 +291,9 @@ class ConnectionContext {
                             return;
                         case 'X': // Terminate
                             channel.close();
-                            closeSession();
                             return;
                         default:
-                            Messages.sendErrorResponse(channel, "Unsupported messageType: " + msgType);
+                            Messages.sendErrorResponse(channel, new UnsupportedOperationException("Unsupported messageType: " + msgType));
                             return;
                     }
             }
@@ -316,8 +314,9 @@ class ConnectionContext {
 
         @Override
         public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-            super.channelDisconnected(ctx, e);
+            LOGGER.trace("channelDisconnected");
             closeSession();
+            super.channelDisconnected(ctx, e);
         }
     }
 
@@ -343,7 +342,8 @@ class ConnectionContext {
             session.parse(statementName, query, paramTypes);
             Messages.sendParseComplete(channel);
         } catch (Throwable t) {
-            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+            session.setThrowable(t);
+            Messages.sendErrorResponse(channel, t);
         }
     }
 
@@ -391,9 +391,9 @@ class ConnectionContext {
                         break;
 
                     default:
-                        Messages.sendErrorResponse(channel,
+                        Messages.sendErrorResponse(channel, new UnsupportedOperationException(
                             String.format(Locale.ENGLISH, "Unsupported format code '%d' for param '%s'",
-                                formatCode.ordinal(), paramType.getName()));
+                                formatCode.ordinal(), paramType.getName())));
                         return;
                 }
             }
@@ -404,7 +404,8 @@ class ConnectionContext {
             session.bind(portalName, statementName, params, resultFormatCodes);
             Messages.sendBindComplete(channel);
         } catch (Throwable t) {
-            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+            session.setThrowable(t);
+            Messages.sendErrorResponse(channel, t);
         }
     }
 
@@ -433,7 +434,8 @@ class ConnectionContext {
                 Messages.sendRowDescription(channel, fields, session.getResultFormatCodes(portalOrStatement));
             }
         } catch (Throwable t) {
-            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+            session.setThrowable(t);
+            Messages.sendErrorResponse(channel, t);
         }
     }
 
@@ -454,7 +456,8 @@ class ConnectionContext {
                 channel, session.query(), session.getOutputTypes(portalName), session.getResultFormatCodes(portalName));
             session.execute(portalName, maxRows, rowReceiver);
         } catch (Throwable t) {
-            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+            session.setThrowable(t);
+            Messages.sendErrorResponse(channel, t);
         }
     }
 
@@ -475,7 +478,7 @@ class ConnectionContext {
         try {
             session.sync(new ReadyForQueryListener(channel));
         } catch (Throwable t) {
-            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+            Messages.sendErrorResponse(channel, t);
             Messages.sendReadyForQuery(channel);
         }
     }
@@ -517,7 +520,7 @@ class ConnectionContext {
                 },
                 new ReadyForQueryListener(channel));
         } catch (Throwable t) {
-            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
+            Messages.sendErrorResponse(channel, t);
             Messages.sendReadyForQuery(channel);
         }
     }

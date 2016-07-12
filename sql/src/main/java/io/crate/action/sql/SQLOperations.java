@@ -455,6 +455,14 @@ public class SQLOperations {
                 portal.close();
             }
         }
+
+        /**
+         * Register an error to make all methods up to sync no-ops.
+         * Sync will raise the error and clear the state so that further method calls work again.
+         */
+        public void setThrowable(Throwable t) {
+            this.throwable = t;
+        }
     }
 
     private static class Portal {
