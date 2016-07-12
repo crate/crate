@@ -26,7 +26,6 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.collections.Row;
-import io.crate.exceptions.Exceptions;
 import org.jboss.netty.channel.Channel;
 
 import javax.annotation.Nonnull;
@@ -60,7 +59,7 @@ class RowCountReceiver implements ResultReceiver {
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        Messages.sendErrorResponse(channel, Exceptions.messageOf(throwable));
+        Messages.sendErrorResponse(channel, throwable);
         listener.onFailure(throwable);
     }
 
