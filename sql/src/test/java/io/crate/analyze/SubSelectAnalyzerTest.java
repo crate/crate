@@ -96,6 +96,15 @@ public class SubSelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testNestedSubSelect() throws Exception {
+        SelectAnalyzedStatement statement = analyze(
+            "select aliased_sub.a from (select nested_sub.a from (select a from t1) as nested_sub) as aliased_sub");
+        QueriedSelectRelation relation = (QueriedSelectRelation) statement.relation();
+        assertThat(relation.fields().size(), is(1));
+        assertThat(relation.fields().get(0), isField("a"));
+    }
+
+    @Test
     public void testSubSelectWithJoins() throws Exception {
         SelectAnalyzedStatement statement = analyze(
             "select aliased_sub.a, aliased_sub.b from (select t1.a, t2.b from t1, t2) as aliased_sub");
