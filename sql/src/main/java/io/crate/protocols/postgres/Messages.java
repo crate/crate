@@ -24,6 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.analyze.symbol.Field;
 import io.crate.core.collections.Row;
+import io.crate.exceptions.Exceptions;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
@@ -35,7 +36,6 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -190,7 +190,8 @@ class Messages {
      * See https://www.postgresql.org/docs/9.2/static/protocol-error-fields.html for a list of error codes
      *
      */
-    static void sendErrorResponse(Channel channel, @Nonnull final String message) {
+    static void sendErrorResponse(Channel channel, Throwable throwable) {
+        final String message = Exceptions.messageOf(throwable);
         byte[] msg = message.getBytes(StandardCharsets.UTF_8);
         byte[] severity = "ERROR".getBytes(StandardCharsets.UTF_8);
         int length =
