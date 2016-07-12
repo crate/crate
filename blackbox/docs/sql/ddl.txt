@@ -878,11 +878,11 @@ value on a restart::
 ::
 
     cr> select sys.cluster.settings['stats']['enabled'] from sys.cluster;
-    +------------------------------------------+
-    | sys.cluster.settings['stats']['enabled'] |
-    +------------------------------------------+
-    | FALSE                                    |
-    +------------------------------------------+
+    +------------------------------+
+    | settings['stats']['enabled'] |
+    +------------------------------+
+    | FALSE                        |
+    +------------------------------+
     SELECT 1 row in set (... sec)
 
 You can change multiple values at once::

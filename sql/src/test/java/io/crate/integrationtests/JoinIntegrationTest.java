@@ -390,8 +390,8 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testJoinTableWithEmptyRouting() throws Exception {
         // no shards in sys.shards -> empty routing
-        execute("SELECT s.id, n.name FROM sys.shards s, sys.nodes n");
-        assertThat(response.cols(), arrayContaining("s.id", "n.name"));
+        execute("SELECT s.id, n.id, n.name FROM sys.shards s, sys.nodes n");
+        assertThat(response.cols(), arrayContaining("id", "id", "name"));
         assertThat(response.rowCount(), is(0L));
     }
 
