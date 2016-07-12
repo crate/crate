@@ -66,14 +66,14 @@ the other table::
     ... where s.table_name = t.table_name
     ... and s.table_name = 'employees'
     ... order by s.id;
-    +------+--------------+--------------------+
-    | s.id | s.table_name | t.number_of_shards |
-    +------+--------------+--------------------+
-    |    0 | employees    |                  4 |
-    |    1 | employees    |                  4 |
-    |    2 | employees    |                  4 |
-    |    3 | employees    |                  4 |
-    +------+--------------+--------------------+
+    +----+------------+------------------+
+    | id | table_name | number_of_shards |
+    +----+------------+------------------+
+    |  0 | employees  |                4 |
+    |  1 | employees  |                4 |
+    |  2 | employees  |                4 |
+    |  3 | employees  |                4 |
+    +----+------------+------------------+
     SELECT 4 rows in set (... sec)
 
 Join Conditions
@@ -88,12 +88,12 @@ Example with ``within`` scalar function::
     ... from countries, photos
     ... where within(location, geo)
     ... order by countries.name, photos.name;
-    +--------------+----------------+
-    | photos.name  | countries.name |
-    +--------------+----------------+
-    | Eiffel Tower | France         |
-    | Berlin Wall  | Germany        |
-    +--------------+----------------+
+    +--------------+---------+
+    | name         | name    |
+    +--------------+---------+
+    | Eiffel Tower | France  |
+    | Berlin Wall  | Germany |
+    +--------------+---------+
     SELECT 2 rows in set (... sec)
 
 .. note::

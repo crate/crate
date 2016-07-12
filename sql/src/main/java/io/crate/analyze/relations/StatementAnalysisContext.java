@@ -25,12 +25,15 @@ import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.metadata.table.Operation;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class StatementAnalysisContext {
 
     private final Operation currentOperation;
     private ParameterContext parameterContext;
     private AnalysisMetaData analysisMetaData;
-    private RelationAnalysisContext lastRelationContext;
+    private List<RelationAnalysisContext> lastRelationContextQueue = new ArrayList<>();
     private RelationAnalysisContext currentRelationContext;
 
     StatementAnalysisContext(ParameterContext parameterContext, AnalysisMetaData analysisMetaData) {
@@ -61,14 +64,20 @@ public class StatementAnalysisContext {
         return startRelation(false);
     }
 
-    public RelationAnalysisContext startRelation(boolean aliasedRelation) {
-        lastRelationContext = currentRelationContext;
+    RelationAnalysisContext startRelation(boolean aliasedRelation) {
+        if (currentRelationContext != null) {
+            lastRelationContextQueue.add(currentRelationContext);
+        }
         currentRelationContext = new RelationAnalysisContext(this, aliasedRelation);
         return currentRelationContext;
     }
 
     public void endRelation() {
-        currentRelationContext = lastRelationContext;
+        if (lastRelationContextQueue.size() > 0) {
+            currentRelationContext = lastRelationContextQueue.remove(lastRelationContextQueue.size() - 1);
+        } else {
+            currentRelationContext = null;
+        }
     }
 
     RelationAnalysisContext currentRelationContext() {

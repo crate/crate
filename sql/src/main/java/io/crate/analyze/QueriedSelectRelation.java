@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedRelation;
@@ -33,21 +32,23 @@ import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
 public class QueriedSelectRelation implements QueriedRelation {
 
     private final AnalyzedRelation analyzedRelation;
     private final QuerySpec querySpec;
-    private final Map<String, Field> fields;
+    private final Fields fields;
 
     public QueriedSelectRelation(AnalyzedRelation analyzedRelation, Collection<? extends Path> paths, QuerySpec querySpec) {
         this.analyzedRelation = analyzedRelation;
         this.querySpec = querySpec;
-        this.fields = new HashMap<>(paths.size());
+        this.fields = new Fields(paths.size());
         Iterator<Symbol> qsIter = querySpec.outputs().iterator();
         for (Path path : paths) {
-            fields.put(path.outputName(), new Field(this, path, qsIter.next().valueType()));
+            fields.add(path.outputName(), new Field(this, path, qsIter.next().valueType()));
         }
     }
 
@@ -76,6 +77,6 @@ public class QueriedSelectRelation implements QueriedRelation {
 
     @Override
     public List<Field> fields() {
-        return Lists.newArrayList(fields.values());
+        return fields.asList();
     }
 }
