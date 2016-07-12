@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.Constants;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
@@ -35,10 +36,14 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionState;
+import io.crate.core.collections.Row;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.executor.Executor;
 import io.crate.executor.TaskResult;
+import io.crate.executor.transport.kill.KillJobsRequest;
+import io.crate.executor.transport.kill.KillResponse;
+import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.ResumeHandle;
 import io.crate.planner.Plan;
@@ -48,6 +53,7 @@ import io.crate.protocols.postgres.FormatCodes;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
@@ -72,6 +78,7 @@ public class SQLOperations {
     private final Analyzer analyzer;
     private final Planner planner;
     private final Provider<Executor> executorProvider;
+    private final Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider;
     private final StatsTables statsTables;
     private final boolean isReadOnly;
 
@@ -79,17 +86,19 @@ public class SQLOperations {
     public SQLOperations(Analyzer analyzer,
                          Planner planner,
                          Provider<Executor> executorProvider,
+                         Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider,
                          StatsTables statsTables,
                          Settings settings) {
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
+        this.transportKillJobsNodeActionProvider = transportKillJobsNodeActionProvider;
         this.statsTables = statsTables;
         this.isReadOnly = settings.getAsBoolean(NODE_READ_ONLY_SETTING, false);
     }
 
     public Session createSession(@Nullable String defaultSchema) {
-        return new Session(executorProvider.get(), defaultSchema);
+        return new Session(executorProvider.get(), transportKillJobsNodeActionProvider.get(), defaultSchema);
     }
 
     /**
@@ -134,6 +143,7 @@ public class SQLOperations {
     public class Session {
 
         private final Executor executor;
+        private final TransportKillJobsNodeAction transportKillJobsNodeAction;
         private final String defaultSchema;
 
         private UUID jobId;
@@ -148,8 +158,9 @@ public class SQLOperations {
         private String lastPortalName;
 
 
-        private Session(Executor executor, String defaultSchema) {
+        private Session(Executor executor, TransportKillJobsNodeAction transportKillJobsNodeAction, String defaultSchema) {
             this.executor = executor;
+            this.transportKillJobsNodeAction = transportKillJobsNodeAction;
             this.defaultSchema = defaultSchema;
         }
 
@@ -312,6 +323,11 @@ public class SQLOperations {
                     applySessionSettings(plan);
                     resultReceiver.addListener(listener);
                     resultReceiver.addListener(new StatsTablesUpdateListener(jobId, statsTables));
+
+                    if (!portal.analysis.analyzedStatement().isWriteOperation()) {
+                        resultReceiver = new ResultReceiverRetryWrapper(resultReceiver, this, portal, analyzer,
+                            planner, transportKillJobsNodeAction);
+                    }
 
                     if (resumeIfSuspended(portal, resultReceiver)) return;
                     RowReceiverToResultReceiver rowReceiver = new RowReceiverToResultReceiver(resultReceiver, portal.maxRows);
@@ -501,6 +517,85 @@ public class SQLOperations {
         @Override
         public void onFailure(Throwable t) {
             statsTables.jobFinished(jobId, Exceptions.messageOf(t));
+        }
+    }
+
+    private static class ResultReceiverRetryWrapper implements ResultReceiver {
+
+        private final ResultReceiver delegate;
+        private final Session session;
+        private final Portal portal;
+        private final Analyzer analyzer;
+        private final Planner planner;
+        private final TransportKillJobsNodeAction transportKillJobsNodeAction;
+        int attempt = 1;
+
+        ResultReceiverRetryWrapper(ResultReceiver delegate,
+                                   Session session,
+                                   Portal portal,
+                                   Analyzer analyzer,
+                                   Planner planner,
+                                   TransportKillJobsNodeAction transportKillJobsNodeAction) {
+            this.delegate = delegate;
+            this.session = session;
+            this.portal = portal;
+            this.analyzer = analyzer;
+            this.planner = planner;
+            this.transportKillJobsNodeAction = transportKillJobsNodeAction;
+        }
+
+        @Override
+        public void setNextRow(Row row) {
+            delegate.setNextRow(row);
+        }
+
+        @Override
+        public void batchFinished() {
+            delegate.batchFinished();
+        }
+
+        @Override
+        public void allFinished() {
+            delegate.allFinished();
+        }
+
+        @Override
+        public void fail(@Nonnull Throwable t) {
+            if (attempt <= Constants.MAX_SHARD_MISSING_RETRIES && Exceptions.isShardFailure(t)) {
+                attempt += 1;
+                killAndRetry();
+            } else {
+                delegate.fail(t);
+            }
+        }
+
+        private void killAndRetry() {
+            transportKillJobsNodeAction.executeKillOnAllNodes(
+                new KillJobsRequest(Collections.singletonList(session.jobId)), new ActionListener<KillResponse>() {
+                    @Override
+                    public void onResponse(KillResponse killResponse) {
+                        LOGGER.debug("Killed {} jobs before Retry", killResponse.numKilled());
+
+                        portal.analysis = analyzer.analyze(
+                            session.statement,
+                            new ParameterContext(portal.getArgs(),EMPTY_BULK_ARGS, session.defaultSchema));
+                        Plan plan = planner.plan(portal.analysis, session.jobId, 0, portal.maxRows);
+                        session.executor.execute(plan, portal.rowReceiver);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable e) {
+                        LOGGER.warn("Failed to kill job before Retry", e);
+                        delegate.fail(e);
+                    }
+                }
+            );
+
+        }
+
+        @Override
+        public void addListener(CompletionListener listener) {
+            throw new UnsupportedOperationException("not supported, listener should be registered already");
         }
     }
 }
