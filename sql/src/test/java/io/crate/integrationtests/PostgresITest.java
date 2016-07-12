@@ -70,6 +70,33 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testWriteOperationsWithoutAutocommitAndCommitAndRollback() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+            conn.setAutoCommit(false);
+            try (Statement statement = conn.createStatement()) {
+                statement.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
+            }
+            try (PreparedStatement stmt = conn.prepareStatement("insert into t (x) values (1), (2)")) {
+                stmt.executeUpdate();
+            }
+            try (Statement statement = conn.createStatement()) {
+                statement.executeUpdate("refresh table t");
+            }
+
+            // Because our ReadyForQuery messages always sends transaction-status IDLE, rollback and commit don't do anything
+            conn.rollback();
+            conn.commit();
+
+            try (Statement statement = conn.createStatement()) {
+                // no error because table was created
+                ResultSet resultSet = statement.executeQuery("select * from t");
+                assertThat(resultSet.next(), is(true));
+                assertThat(resultSet.next(), is(true));
+            }
+        }
+    }
+
+    @Test
     public void testNoAutoCommit() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(false);
