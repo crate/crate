@@ -32,9 +32,7 @@ import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class TwoTableJoin implements QueriedRelation {
@@ -87,12 +85,6 @@ public class TwoTableJoin implements QueriedRelation {
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitTwoTableJoin(this, context);
-    }
-
-    @Nullable
-    @Override
-    public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField is not supported");
     }
 
     @Override

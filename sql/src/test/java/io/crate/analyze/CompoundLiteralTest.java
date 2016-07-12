@@ -56,7 +56,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -120,12 +119,6 @@ public class CompoundLiteralTest extends CrateUnitTest {
 
         @Override
         public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-            return null;
-        }
-
-        @Nullable
-        @Override
-        public Field getField(Path path) {
             return null;
         }
 

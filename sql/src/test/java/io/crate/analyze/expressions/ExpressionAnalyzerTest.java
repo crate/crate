@@ -214,17 +214,12 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         }
 
         @Override
-        public Field getField(Path path) {
+        public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
             ColumnIdent columnIdent = (ColumnIdent) path;
             if (supportedReference.contains(columnIdent)) {
                 return new Field(this, columnIdent, DataTypes.STRING);
             }
             return null;
-        }
-
-        @Override
-        public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
-            return getField(path);
         }
 
         @Override

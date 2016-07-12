@@ -65,7 +65,6 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
     }
 
     @Nullable
-    @Override
     public Field getField(Path path) {
         ColumnIdent ci = toColumnIdent(path);
         ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(ci);

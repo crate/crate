@@ -73,11 +73,6 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
     }
 
     @Override
-    public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is not implemented");
-    }
-
-    @Override
     public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
         throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is not implemented");
     }

@@ -31,7 +31,6 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 
-import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -89,12 +88,6 @@ public class UpdateAnalyzedStatement implements AnalyzedRelation, AnalyzedStatem
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitUpdateAnalyzedStatement(this, context);
-    }
-
-    @Nullable
-    @Override
-    public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField on UpdateAnalyzedStatement is not implemented");
     }
 
     @Override

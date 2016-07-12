@@ -68,13 +68,8 @@ public class ReferenceToTrueVisitorTest extends CrateUnitTest {
         }
 
         @Override
-        public Field getField(Path path) {
-            return new Field(this, path, DataTypes.STRING);
-        }
-
-        @Override
         public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
-            return getField(path);
+            return new Field(this, path, DataTypes.STRING);
         }
 
         @Override

@@ -28,7 +28,6 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public abstract class PlanAndPlannedAnalyzedRelation implements PlannedAnalyzedRelation, Plan {
@@ -41,12 +40,6 @@ public abstract class PlanAndPlannedAnalyzedRelation implements PlannedAnalyzedR
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitPlanedAnalyzedRelation(this, context);
-    }
-
-    @Nullable
-    @Override
-    public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField is not supported");
     }
 
     @Override

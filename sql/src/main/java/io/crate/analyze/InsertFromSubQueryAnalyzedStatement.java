@@ -178,12 +178,6 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
 
     @Nullable
     @Override
-    public Field getField(Path path) {
-        return null;
-    }
-
-    @Nullable
-    @Override
     public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
         return null;
     }

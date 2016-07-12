@@ -31,7 +31,6 @@ import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 
@@ -57,12 +56,6 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitExplain(this, context);
-    }
-
-    @Nullable
-    @Override
-    public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField is not supported");
     }
 
     @Override

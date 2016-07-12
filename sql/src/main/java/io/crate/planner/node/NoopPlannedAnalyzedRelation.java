@@ -33,7 +33,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.UUID;
 
@@ -55,12 +54,6 @@ public class NoopPlannedAnalyzedRelation implements PlannedAnalyzedRelation {
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitPlanedAnalyzedRelation(this, context);
-    }
-
-    @Nullable
-    @Override
-    public Field getField(Path path) {
-        return relation.getField(path);
     }
 
     @Override

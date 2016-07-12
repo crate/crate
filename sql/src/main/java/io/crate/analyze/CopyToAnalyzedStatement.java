@@ -103,12 +103,6 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement imple
 
     @Nullable
     @Override
-    public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField not implemented on CopyToAnalyzedStatement");
-    }
-
-    @Nullable
-    @Override
     public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
         throw new UnsupportedOperationException("getField not implemented on CopyToAnalyzedStatement");
     }

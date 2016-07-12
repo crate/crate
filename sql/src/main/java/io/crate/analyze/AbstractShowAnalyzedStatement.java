@@ -26,7 +26,6 @@ import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
-import org.elasticsearch.common.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -36,12 +35,6 @@ public abstract class AbstractShowAnalyzedStatement implements AnalyzedStatement
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitShowAnalyzedStatement(this, context);
-    }
-
-    @Nullable
-    @Override
-    public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField() is not supported on ShowCreateTableAnalyzedStatement");
     }
 
     @Override

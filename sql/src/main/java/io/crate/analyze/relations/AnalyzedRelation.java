@@ -26,15 +26,11 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public interface AnalyzedRelation {
 
     <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context);
-
-    @Nullable
-    Field getField(Path path);
 
     Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException;
 
