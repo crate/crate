@@ -56,6 +56,7 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
     private static final Set<DataType> SUPPORTED_TYPES = ImmutableSet.<DataType>of(
             DataTypes.STRING,
             DataTypes.OBJECT,
+            DataTypes.GEO_POINT,
             DataTypes.GEO_SHAPE
     );
 

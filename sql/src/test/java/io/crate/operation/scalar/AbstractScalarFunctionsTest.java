@@ -68,6 +68,8 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             .add("time_format", DataTypes.STRING)
             .add("long_array", new ArrayType(DataTypes.LONG))
             .add("regex_pattern", DataTypes.STRING)
+            .add("geopoint", DataTypes.GEO_POINT)
+            .add("geoshape", DataTypes.GEO_SHAPE)
             .build();
         TableRelation tableRelation = new TableRelation(tableInfo);
         tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), tableRelation);
