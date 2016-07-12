@@ -33,13 +33,18 @@ task jarAndProperties (dependsOn: [jar, writePropertiesFile]) {
 
 dependencies {
     compileOnly(project(':es'))
-    compileOnly('com.microsoft.azure:azure-storage:4.0.0')
-    compileOnly('com.microsoft.azure:azure-svc-mgmt-compute:0.9.3') {
+    compile('com.microsoft.azure:azure-storage:4.3.0')
+    compile('com.microsoft.azure:azure-mgmt-utility:0.9.3') {
         exclude group: 'stax', module: 'stax-api'
+        exclude group: 'com.squareup.okhttp3', module: 'okhttp'
+        exclude group: 'javax.mail', module: 'mail'
     }
+    compile('javax.mail:mail:1.4.7')
+    /*
     compileOnly('com.microsoft.azure:azure-core:0.9.3') {
         exclude group: 'stax', module: 'stax-api'
     }
+    compileOnly('com.microsoft.azure:azure-mgmt-utility:0.9.3')*/
 }
 
 def pluginDir = project(":es").file('upstream/plugins/cloud-azure')
