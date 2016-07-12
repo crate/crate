@@ -25,7 +25,6 @@ package io.crate.operation.scalar.geo;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ConversionException;
-import io.crate.geo.GeoJSONUtils;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -37,7 +36,7 @@ import static org.hamcrest.Matchers.*;
 
 public class IntersectsFunctionTest extends AbstractScalarFunctionsTest {
 
-    public static final String FUNCTION_NAME = IntersectsFunction.NAME;
+    private static final String FUNCTION_NAME = IntersectsFunction.NAME;
 
     @Test
     public void testNormalizeFromStringLiterals() throws Exception {
@@ -87,7 +86,6 @@ public class IntersectsFunctionTest extends AbstractScalarFunctionsTest {
                 Literal.newLiteral(DataTypes.GEO_SHAPE, null),
                 sqlExpressions.asSymbol("shape"));
         assertThat(normalized, isLiteral(null));
-
     }
 
     @Test
@@ -98,44 +96,41 @@ public class IntersectsFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateFromString() throws Exception {
-        IntersectsFunction stringFn = getFunction(FUNCTION_NAME, DataTypes.STRING, DataTypes.STRING);
-        Object value = stringFn.evaluate(
+        assertEvaluate("intersects(geopoint, geoshape)", true,
                 Literal.newLiteral(DataTypes.STRING, "POINT (0 0)"),
                 Literal.newLiteral(DataTypes.STRING, "POLYGON ((1 1, 1 -1, -1 -1, -1 1, 1 1))"));
-        assertThat(value, is((Object)Boolean.TRUE));
     }
 
     @Test
     public void testEvaluateMixed() throws Exception {
-        IntersectsFunction stringFn = getFunction(FUNCTION_NAME, DataTypes.STRING, DataTypes.GEO_SHAPE); // actual types don't matter here
-        Object value = stringFn.evaluate(
+        assertEvaluate("intersects(geopoint, geoshape)", false,
                 Literal.newLiteral(DataTypes.STRING, "POINT (100 0)"),
-                Literal.newLiteral(DataTypes.GEO_SHAPE, GeoJSONUtils.wkt2Map("POLYGON ((1 1, 1 -1, -1 -1, -1 1, 1 1))")));
-        assertThat(value, is((Object)Boolean.FALSE));
+                Literal.newLiteral(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("POLYGON ((1 1, 1 -1, -1 -1, -1 1, 1 1))")));
+    }
+
+    @Test
+    public void testEvaluateGeoPointIntersectsGeoShape() throws Exception {
+        assertEvaluate("intersects(geopoint, geoshape)", true,
+                Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (0 0)")),
+                Literal.newLiteral(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("POLYGON ((1 1, 1 -1, -1 -1, -1 1, 1 1))")));
     }
 
     @Test
     public void testEvaluateLowercaseGeoJSON() throws Exception {
-        IntersectsFunction stringFn = getFunction(FUNCTION_NAME, DataTypes.STRING, DataTypes.GEO_SHAPE); // actual types don't matter here
-        Object value = stringFn.evaluate(
+        assertEvaluate("intersects(geopoint, geoshape)", false,
                 Literal.newLiteral(DataTypes.STRING, "POINT (100 0)"),
                 Literal.newLiteral(DataTypes.GEO_SHAPE, jsonMap("{type:\"linestring\", coordinates:[[0, 0], [10, 10]]}")));
-        assertThat(value, is((Object)Boolean.FALSE));
     }
 
     @Test
     public void testExactIntersect() throws Exception {
         // validate how exact the intersection detection is
-        IntersectsFunction stringFn = getFunction(FUNCTION_NAME, DataTypes.STRING, DataTypes.GEO_SHAPE); // actual types don't matter here
-        Object value = stringFn.evaluate(
+        assertEvaluate("intersects(geopoint, geoshape)", true,
                 Literal.newLiteral(DataTypes.STRING, "POINT (100.00000000000001 0.0)"),
                 Literal.newLiteral(DataTypes.GEO_SHAPE, jsonMap("{type:\"linestring\", coordinates:[[100.00000000000001, 0.0], [10, 10]]}")));
-        assertThat(value, is((Object)Boolean.TRUE));
 
-        Object value2 = stringFn.evaluate(
+        assertEvaluate("intersects(geopoint, geoshape)", false,
                 Literal.newLiteral(DataTypes.STRING, "POINT (100.00000000000001 0.0)"),
                 Literal.newLiteral(DataTypes.GEO_SHAPE, jsonMap("{type:\"linestring\", coordinates:[[100.00000000000003, 0.0], [10, 10]]}")));
-        assertThat(value2, is((Object)Boolean.FALSE));
-
     }
 }

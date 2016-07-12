@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: the ``intersects`` scalar function now allows using the ``geo_point`` data
+   type as arguments.
+
  - Implemented basic conditional functions
    (``coalesce()``, ``greatest()``, ``least()``, ``nullif()``).
 
