@@ -220,7 +220,6 @@ class ConnectionContext {
 
         @Override
         public void onFailure(@Nonnull Throwable t) {
-            Messages.sendErrorResponse(channel, Exceptions.messageOf(t));
             Messages.sendReadyForQuery(channel);
         }
     }
