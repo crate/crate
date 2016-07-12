@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: the ``within`` scalar function now allows querying geo_shapes within
+   geo_shapes.
+
  - Implemented basic conditional functions
    (``coalesce()``, ``greatest()``, ``least()``, ``nullif()``).
 

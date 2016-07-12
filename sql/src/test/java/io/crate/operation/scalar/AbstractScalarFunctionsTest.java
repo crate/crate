@@ -68,6 +68,9 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             .add("time_format", DataTypes.STRING)
             .add("long_array", new ArrayType(DataTypes.LONG))
             .add("regex_pattern", DataTypes.STRING)
+            .add("geoshape", DataTypes.GEO_SHAPE)
+            .add("geopoint", DataTypes.GEO_POINT)
+            .add("geostring", DataTypes.STRING)
             .build();
         TableRelation tableRelation = new TableRelation(tableInfo);
         tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), tableRelation);
@@ -120,6 +123,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
      *     assertEvaluate("foo('literalName', age)", "expectedValue", inputForAge)
      * </code>
      */
+    @SuppressWarnings("unchecked")
     public void assertEvaluate(String functionExpression, Object expectedValue, Input ... inputs) {
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
         if (functionSymbol instanceof Literal) {
