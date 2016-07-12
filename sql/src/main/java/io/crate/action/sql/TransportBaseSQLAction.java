@@ -51,8 +51,6 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.mapper.MapperParsingException;
-import org.elasticsearch.index.shard.IllegalIndexShardStateException;
-import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
@@ -75,7 +73,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
     public static final String NODE_READ_ONLY_SETTING = "node.sql.read_only";
 
-    private static final int MAX_SHARD_MISSING_RETRIES = 3;
+    public static final int MAX_SHARD_MISSING_RETRIES = 3;
     private static final int DEFAULT_SOFT_LIMIT = 10_000;
 
 
@@ -166,11 +164,6 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             logger.debug("Error executing SQLRequest", e);
             listener.onFailure(e);
         }
-    }
-
-    private static boolean isShardFailure(Throwable e) {
-        e = Exceptions.unwrap(e);
-        return e instanceof ShardNotFoundException || e instanceof IllegalIndexShardStateException;
     }
 
     private void tracePlan(Plan plan) {
@@ -353,7 +346,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
         @Override
         public void onFailure(Throwable e) {
-            if (attempt <= MAX_SHARD_MISSING_RETRIES && isShardFailure(e)) {
+            if (attempt <= MAX_SHARD_MISSING_RETRIES && Exceptions.isShardFailure(e)) {
                 attempt += 1;
                 killAndRetry();
             } else {

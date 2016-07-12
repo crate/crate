@@ -24,6 +24,8 @@ package io.crate.exceptions;
 import com.google.common.base.MoreObjects;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
+import org.elasticsearch.index.shard.IllegalIndexShardStateException;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.transport.RemoteTransportException;
 
 import javax.annotation.Nonnull;
@@ -62,5 +64,10 @@ public class Exceptions {
         @SuppressWarnings("all") // throwable not thrown
         Throwable unwrappedT = unwrap(t);
         return MoreObjects.firstNonNull(unwrappedT.getMessage(), unwrappedT.toString());
+    }
+
+    public static boolean isShardFailure(Throwable e) {
+        e = Exceptions.unwrap(e);
+        return e instanceof ShardNotFoundException || e instanceof IllegalIndexShardStateException;
     }
 }
