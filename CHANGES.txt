@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved the error message of `COPY FROM` statements which fail due to
+   invalid entries in the files being imported.
+
  - Fix: the ``within`` scalar function now allows querying geo_shapes within
    geo_shapes.
 

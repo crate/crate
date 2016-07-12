@@ -31,6 +31,7 @@ import io.crate.operation.InputRow;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
+import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -43,10 +44,7 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
@@ -233,6 +231,10 @@ public class FileReadingCollector implements CrateCollector {
             } else {
                 return readLines(fileInput, collectorContext, uri, linesRead + 1, retry + 1);
             }
+        } catch (ElasticsearchParseException e) {
+            throw new ElasticsearchParseException(String.format(Locale.ENGLISH,
+                "Failed to parse JSON in line: %d in file: \"%s\"%n" +
+                "Original error message: %s", linesRead, uri, e.getMessage()), e);
         } catch (Exception e) {
             // it's nice to know which exact file/uri threw an error
             // when COPY FROM returns less rows than expected

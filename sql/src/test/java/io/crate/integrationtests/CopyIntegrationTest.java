@@ -196,7 +196,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             writer.write("{|}");
         }
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Failed to parse content to map");
+        expectedException.expectMessage("Failed to parse JSON in line: 1 in file:");
         execute("copy foo from ?", new Object[]{newFile.getPath()});
     }
 
