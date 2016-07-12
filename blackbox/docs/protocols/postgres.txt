@@ -19,8 +19,21 @@ imply that any postgres client can be used as those clients may use SQL
 statements which aren't supported.
 
 
-One notable difference is that Crate doesn't support transactions. Clients must
-therefore enable ``autocommit``.
+One notable difference is that Crate doesn't support transactions.
+Therefore clients should generally enable ``autocommit``.
+
+.. note::
+
+    In order to use ``setFetchSize`` in JDBC it is possible to set autocommit
+    to false.
+    The client will utilize the fetchSize on SELECT statements and only load up
+    to fetchSize rows into memory.
+    See `Postgres JDBC Query docs
+    <https://jdbc.postgresql.org/documentation/head/query.html>` for more
+    information.
+
+    Write operations will still behave as if autocommit was enabled and commit
+    or rollback calls are ignored.
 
 
 Compatibility & Implementation Status
@@ -54,16 +67,11 @@ Extended Query
 
 The `Extended Query`_ protocol is implemented with the following limitations:
 
-- Named portals and named statements are not supported. Clients mostly use them
-  with transactions which aren't supported by Crate.
-  Everything defaults to the unnamed statement and portal.
+- Named statements are not fully supported. Clients mostly use them with
+  transactions which aren't supported by Crate.
 
 - In order to optimize the execution of bulk operations the execution of
   statements is delayed until the ``Sync`` message is received
-
-- The ``Close`` message is not supported as this is used to close named portals
-  or statement which are not supported.
-
 
 Copy Operations
 ~~~~~~~~~~~~~~~
