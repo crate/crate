@@ -92,7 +92,7 @@ public class ManyTableConsumerTest {
         TwoTableJoin t1AndT2 = ((TwoTableJoin) root.left().relation());
 
         assertThat(t1AndT2.querySpec().where().query(), isSQL("(RELCOL(doc.t1, 0) = RELCOL(doc.t2, 0))"));
-        assertThat(root.querySpec().where().query(), isSQL("(RELCOL(join.doc.t1.doc.t2, 2) = RELCOL(doc.t3, 0))"));
+        assertThat(root.querySpec().where().query(), isSQL("(RELCOL(join.doc.t1.doc.t2, 3) = RELCOL(doc.t3, 0))"));
     }
 
     @Test
