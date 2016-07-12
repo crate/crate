@@ -47,12 +47,14 @@ public class T3 {
     public static final DocTableInfo T1_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t1"), null)
             .add("a", DataTypes.STRING)
             .add("x", DataTypes.INTEGER)
+            .add("i", DataTypes.INTEGER)
             .build();
     public static final DocTableRelation TR_1 = new DocTableRelation(T1_INFO);
 
     public static final DocTableInfo T2_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t2"), null)
             .add("b", DataTypes.STRING)
             .add("y", DataTypes.INTEGER)
+            .add("i", DataTypes.INTEGER)
             .build();
     public static final DocTableRelation TR_2 = new DocTableRelation(T2_INFO);
 
