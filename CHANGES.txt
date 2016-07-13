@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a bug that prevented joins on blob tables.
+
  - Fix: the ``within`` scalar function now allows querying geo_shapes within
    geo_shapes.
 
