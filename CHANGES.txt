@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a bug that prevented joins on blob tables.
+
 2016/07/07 0.55.2
 =================
 

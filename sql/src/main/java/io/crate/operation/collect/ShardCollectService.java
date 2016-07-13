@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.collect.Iterables;
 import io.crate.action.job.SharedShardContext;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.action.sql.query.LuceneSortGenerator;
@@ -28,6 +29,7 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.blob.v2.BlobIndices;
+import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.CrateDocIndexService;
 import io.crate.metadata.AbstractReferenceResolver;
@@ -39,10 +41,10 @@ import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
-import io.crate.operation.collect.blobs.BlobDocCollector;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.collect.collectors.CrateDocCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
+import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.ShardProjectorChain;
@@ -64,6 +66,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.util.List;
 import java.util.concurrent.Executor;
 
@@ -200,13 +203,11 @@ public class ShardCollectService {
         } else {
             condition = Literal.newLiteral(true);
         }
-        return new BlobDocCollector(
-                blobIndices.blobShardSafe(shardId).blobContainer(),
-                ctx.topLevelInputs(),
-                ctx.docLevelExpressions(),
-                condition,
-                downstream
-        );
+        Iterable<File> files = blobIndices.blobShardSafe(shardId).blobContainer().getFiles();
+        Iterable<Row> rows = Iterables.filter(
+            Iterables.transform(files, new ValueAndInputRow<>(ctx.topLevelInputs(), ctx.docLevelExpressions())),
+            InputCondition.asPredicate(condition));
+        return new RowsCollector(downstream, rows);
     }
 
     private CrateCollector getLuceneIndexCollector(ThreadPool threadPool,
