@@ -26,6 +26,7 @@ import io.crate.action.sql.TransportBaseSQLAction;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,6 +63,13 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             builder.put("psql.port", "4243");
         }
         return builder.build();
+    }
+
+    @After
+    public void resetSettings() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+            conn.createStatement().execute("reset global stats.enabled");
+        }
     }
 
     @Before
@@ -295,7 +303,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
                 .executeQuery();
             assertThat(resultSet.next(), is(true));
             assertThat(resultSet.getString(1), is("select name from sys.cluster"));
-            conn.createStatement().execute("reset global stats.enabled");
         }
     }
 
@@ -315,7 +322,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             assertThat(resultSet.next(), is(true));
             assertThat(resultSet.getString(1), is("insert into t(a,b) values(null, 'test')"));
             assertThat(resultSet.getString(2), is("Cannot insert null value for column a"));
-            conn.createStatement().execute("reset global stats.enabled");
         }
     }
 
