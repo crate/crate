@@ -250,6 +250,7 @@ class Messages {
             Object value = row.get(i);
             if (value == null) {
                 buffer.writeInt(-1);
+                length += 4;
             } else {
                 FormatCodes.FormatCode formatCode = FormatCodes.getFormatCode(formatCodes, i);
                 switch (formatCode) {
