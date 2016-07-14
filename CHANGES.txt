@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added initial experimental support for the postgres wire protocol. This is
+   disabled by default.
+
  - Fixed an issue that caused select statements to get stuck if used as part of
    a bulk request. Now a proper error is raised.
    
