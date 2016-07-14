@@ -1724,4 +1724,25 @@ public class PlannerTest extends AbstractPlannerTest {
         topNProjection = (TopNProjection) plan.localMerge().projections().get(0);
         assertThat(topNProjection.limit(), is(5));
     }
+
+    @Test
+    public void testNestedGroupByAggregation() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("sub selects with nested aggregations are not supported");
+        plan("select count(*) from (" +
+             "  select max(load['1']) as maxLoad, hostname " +
+             "  from sys.nodes " +
+             "  group by hostname having max(load['1']) > 50) as nodes " +
+             "group by hostname");
+    }
+
+    @Test
+    public void testReferenceToNestedAggregatedField() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("sub selects with nested aggregations are not supported");
+        plan("select ii, xx from ( " +
+             "  select i + i as ii, xx from (" +
+             "    select i, sum(x) as xx from t1 group by i) as t) as tt " +
+             "where (ii * 2) > 4 and (xx * 2) > 120");
+    }
 }

@@ -44,11 +44,8 @@ public class QueriedDocTable extends QueriedTableRelation<DocTableRelation> {
         return visitor.visitQueriedDocTable(this, context);
     }
 
-    public void normalize(AnalysisMetaData analysisMetaData){
-        super.normalize(analysisMetaData);
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
+    public void analyzeWhereClause(AnalysisMetaData analysisMetaData) {
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation());
         querySpec().where(whereClauseAnalyzer.analyze(querySpec().where()));
     }
-
-
 }

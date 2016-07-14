@@ -25,6 +25,7 @@ package io.crate.planner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -57,6 +58,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Map;
 
 @Singleton
@@ -223,6 +225,11 @@ public class SelectStatementPlanner {
 
             plannedSubQuery.addProjection(fp);
             return new QueryThenFetch(plannedSubQuery.plan(), fetchPhase, null, context.jobId());
+        }
+
+        @Override
+        public Plan visitQueriedSelectRelation(QueriedSelectRelation relation, Planner.Context context) {
+            throw new UnsupportedOperationException("sub selects with nested aggregations are not supported");
         }
     }
 

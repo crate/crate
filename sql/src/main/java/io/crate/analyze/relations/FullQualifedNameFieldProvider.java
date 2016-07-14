@@ -102,8 +102,7 @@ public class FullQualifedNameFieldProvider implements FieldProvider<Field> {
             }
             tableNameMatched = true;
 
-            Field newField;
-            newField = sourceRelation.getField(columnIdent, operation);
+            Field newField = sourceRelation.getField(columnIdent, operation);
             if (newField != null) {
                 if (lastField != null) {
                     throw new AmbiguousColumnException(columnIdent);
