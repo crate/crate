@@ -27,7 +27,7 @@ import io.crate.operation.projectors.*;
 
 import java.util.Set;
 
-class RowReceiverToResultReceiver implements RowReceiver {
+public class RowReceiverToResultReceiver implements RowReceiver {
 
     private ResultReceiver resultReceiver;
     private int maxRows;
@@ -36,7 +36,7 @@ class RowReceiverToResultReceiver implements RowReceiver {
     private ResumeHandle resumeHandle = null;
     private RowReceiver.Result nextRowResult = Result.CONTINUE;
 
-    RowReceiverToResultReceiver(ResultReceiver resultReceiver, int maxRows) {
+    public RowReceiverToResultReceiver(ResultReceiver resultReceiver, int maxRows) {
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
     }
@@ -83,11 +83,11 @@ class RowReceiverToResultReceiver implements RowReceiver {
         return Requirements.NO_REQUIREMENTS;
     }
 
-    ResumeHandle resumeHandle() {
+    public ResumeHandle resumeHandle() {
         return resumeHandle;
     }
 
-    void replaceResultReceiver(ResultReceiver resultReceiver, int maxRows) {
+    public void replaceResultReceiver(ResultReceiver resultReceiver, int maxRows) {
         this.resumeHandle = null;
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
