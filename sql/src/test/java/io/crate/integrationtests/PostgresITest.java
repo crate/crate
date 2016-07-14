@@ -25,6 +25,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.TransportBaseSQLAction;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -115,6 +116,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @TestLogging("io.crate.protocols:TRACE,io.crate.action.sql:DEBUG")
     public void testFetchSize() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.createStatement().executeUpdate("create table t (x int) with (number_of_replicas = 0)");
@@ -128,7 +130,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             preparedStatement.executeBatch();
 
             conn.createStatement().executeUpdate("refresh table t");
-
             conn.setAutoCommit(false);
             try (Statement st = conn.createStatement()) {
                 st.setFetchSize(2);
@@ -174,7 +175,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             preparedStatement.addBatch();
 
             int[] results = preparedStatement.executeBatch();
-            assertThat(results, is(new int[] { 1, 1}));
+            assertThat(results, is(new int[] {1, 1}));
         }
     }
 
