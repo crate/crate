@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated Elasticsearch to 2.3.4
+
  - Fix: the ``within`` scalar function now allows querying geo_shapes within
    geo_shapes.
 
