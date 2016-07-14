@@ -51,6 +51,7 @@ import io.crate.planner.Planner;
 import io.crate.planner.statement.SetSessionPlan;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
@@ -224,10 +225,11 @@ public class SQLOperations {
                     this.jobId = UUID.randomUUID();
                     statsTables.jobStarted(jobId, query);
                 } else if (!statement.equals(this.statement)) {
-                    // different query -> no bulk operation -> execute previous query
-                    sync(CompletionListener.NO_OP);
-                    this.jobId = UUID.randomUUID();
-                    statsTables.jobStarted(jobId, query);
+                    if (this.statement instanceof BeginStatement) {
+                        sync(CompletionListener.NO_OP);
+                    } else {
+                        throw new UnsupportedOperationException("Cannot use mixed statements in batch operations");
+                    }
                 }
                 this.statement = statement;
                 this.query = query;
