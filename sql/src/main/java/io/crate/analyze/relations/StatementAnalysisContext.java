@@ -85,4 +85,7 @@ public class StatementAnalysisContext {
         return currentRelationContext;
     }
 
+    public int queueSize() {
+        return lastRelationContextQueue.size();
+    }
 }

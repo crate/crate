@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
@@ -31,7 +30,9 @@ import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
 public abstract class QueriedTableRelation<TR extends AbstractTableRelation> implements QueriedRelation {
 
@@ -83,7 +84,7 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
 
     @Override
     public List<Field> fields() {
-        return Lists.newArrayList(fields.asList());
+        return fields.asList();
     }
 
 

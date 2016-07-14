@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
@@ -38,12 +37,12 @@ import java.util.List;
 
 public class QueriedSelectRelation implements QueriedRelation {
 
-    private final AnalyzedRelation analyzedRelation;
+    private final QueriedRelation queriedRelation;
     private final QuerySpec querySpec;
     private final Fields fields;
 
-    public QueriedSelectRelation(AnalyzedRelation analyzedRelation, Collection<? extends Path> paths, QuerySpec querySpec) {
-        this.analyzedRelation = analyzedRelation;
+    public QueriedSelectRelation(QueriedRelation queriedRelation, Collection<? extends Path> paths, QuerySpec querySpec) {
+        this.queriedRelation = queriedRelation;
         this.querySpec = querySpec;
         this.fields = new Fields(paths.size());
         Iterator<Symbol> qsIter = querySpec.outputs().iterator();
@@ -52,8 +51,8 @@ public class QueriedSelectRelation implements QueriedRelation {
         }
     }
 
-    public AnalyzedRelation relation() {
-        return analyzedRelation;
+    public QueriedRelation relation() {
+        return queriedRelation;
     }
 
     @Override

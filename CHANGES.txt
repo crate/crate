@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for subselect statements without nested aggregations.
+
  - BREAKING: On Hunspell dictionary configuration, the parameter
    indices.analysis.hunspell.dictionary.location has been removed and <path.conf>/hunspell
    is always used.
