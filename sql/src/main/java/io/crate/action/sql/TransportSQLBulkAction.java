@@ -38,7 +38,6 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequestHandler;
@@ -91,7 +90,9 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
                                                        boolean expectsAffectedRows,
                                                        SQLBulkRequest request,
                                                        float duration) {
-        assert expectsAffectedRows : "bulk operations only works with statements that return rowcounts";
+        if (!expectsAffectedRows) {
+            throw new UnsupportedOperationException("Bulk operations for statements that return result sets is not supported");
+        }
         SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[result.size()];
         for (int i = 0, resultSize = result.size(); i < resultSize; i++) {
             assert result.get(i) instanceof RowCountResult : "Query operation not supported with bulk requests";
