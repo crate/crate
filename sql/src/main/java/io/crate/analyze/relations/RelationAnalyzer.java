@@ -68,7 +68,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         this.analysisMetaData = analysisMetaData;
     }
 
-
     public AnalyzedRelation analyze(Node node, StatementAnalysisContext relationAnalysisContext) {
         return process(node, relationAnalysisContext);
     }
@@ -155,16 +154,19 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             AnalyzedRelation source = Iterables.getOnlyElement(context.sources().values());
             QueriedTableRelation tableRelation = null;
             if (source instanceof DocTableRelation) {
-                tableRelation = new QueriedDocTable(
-                        (DocTableRelation) source, selectAnalysis.outputNames(), querySpec);
+                tableRelation = new QueriedDocTable((DocTableRelation) source, selectAnalysis.outputNames(), querySpec);
             } else if (source instanceof TableRelation) {
-                tableRelation =  new QueriedTable((TableRelation) source, selectAnalysis.outputNames(), querySpec);
+                tableRelation = new QueriedTable((TableRelation) source, selectAnalysis.outputNames(), querySpec);
             } else {
-                relation = new QueriedSelectRelation(source, selectAnalysis.outputNames(), querySpec);
+                assert source instanceof QueriedRelation : "expecting relation to be an instance of QueriedRelation";
+                relation = new QueriedSelectRelation((QueriedRelation) source, selectAnalysis.outputNames(), querySpec);
             }
             if (tableRelation != null) {
                 tableRelation.normalize(analysisMetaData);
                 relation = tableRelation;
+            }
+            if (statementContext.queueSize() == 0) {
+                relation = RelationNormalizer.normalize(relation, analysisMetaData);
             }
         } else {
             // TODO: implement multi table selects

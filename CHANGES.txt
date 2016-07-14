@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for subselect statements without nested aggregations.
+
  - Fixed a read isolation issue which could cause joins involving
    system and blob tables to return inconsistent results.
 
