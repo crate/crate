@@ -85,7 +85,11 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
                      final ActionListener<SQLBulkResponse> listener,
                      final SQLBulkRequest request,
                      final long startTime) {
-        assert analysis.expectsAffectedRows() : "bulk operations only works with statements that return rowcounts";
+        if (!analysis.expectsAffectedRows()) {
+            listener.onFailure(new UnsupportedOperationException(
+                "Bulk operations for statements that return result sets is not supported"));
+            return;
+        }
 
         ListenableFuture<List<TaskResult>> future = Futures.allAsList(executor.executeBulk(plan));
         Futures.addCallback(future, new FutureCallback<List<TaskResult>>() {

@@ -1922,6 +1922,12 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSelectWithBulkArgsRaisesUnsupportedError() throws Exception {
+        expectedException.expectMessage("Bulk operations for statements that return result sets is not supported");
+        execute("select * from sys.cluster", new Object[0][]);
+    }
+
+    @Test
     public void testWeirdIdentifiersAndLiterals() throws Exception {
         execute("CREATE TABLE with_quote (\"\"\"\" string) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
