@@ -206,7 +206,7 @@ public class MultiShardScoreDocCollector implements CrateCollector {
 
     private boolean allExhausted() {
         for (OrderedDocCollector orderedDocCollector : orderedDocCollectors) {
-            if (!orderedDocCollector.exhausted) {
+            if (!orderedDocCollector.exhausted()) {
                 return false;
             }
         }
