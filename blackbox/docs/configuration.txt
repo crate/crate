@@ -366,7 +366,7 @@ Ports
   | *Runtime:*   ``no``
 
   This defines the TCP port range to which the Crate HTTP service will be bound to.
-  It defaults to ``4200-4249``. Always the first free port in this range is used. If this is set
+  It defaults to ``4200-4300``. Always the first free port in this range is used. If this is set
   to an integer value it is considered as an explicit single port.
 
   The HTTP protocol is used for the REST endpoint which is used by all clients except the Java client.
@@ -409,7 +409,7 @@ Ports
   | *Runtime:*   ``no``
 
   This defines the TCP port range to which the Crate Postgres service will be bound to.
-  It defaults to ``5432-5482``. Always the first free port in this range is used. If this is set
+  It defaults to ``5432-5532``. Always the first free port in this range is used. If this is set
   to an integer value it is considered as an explicit single port.
 
 
