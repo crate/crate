@@ -128,7 +128,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             preparedStatement.executeBatch();
 
             conn.createStatement().executeUpdate("refresh table t");
-
             conn.setAutoCommit(false);
             try (Statement st = conn.createStatement()) {
                 st.setFetchSize(2);
@@ -174,7 +173,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             preparedStatement.addBatch();
 
             int[] results = preparedStatement.executeBatch();
-            assertThat(results, is(new int[] { 1, 1}));
+            assertThat(results, is(new int[] {1, 1}));
         }
     }
 
@@ -205,7 +204,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             assertThat(statement.executeUpdate("create table t (x string, ts timestamp) with (number_of_replicas = 0)"), is(0));
             ensureYellow();
 
-            assertThat(statement.executeUpdate("insert into t (x, ts) values ('Marvin', '2016-05-14'), ('Trillian', '2016-06-28')"), is(2));;
+            assertThat(statement.executeUpdate("insert into t (x, ts) values ('Marvin', '2016-05-14'), ('Trillian', '2016-06-28')"), is(2));
             assertThat(statement.executeUpdate("refresh table t"), is(0));
 
             statement.executeQuery("select x, ts from t order by x");

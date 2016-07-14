@@ -452,19 +452,20 @@ class ConnectionContext {
         String portalName = readCString(buffer);
         int maxRows = buffer.readInt();
         try {
-            ResultReceiver rowReceiver = createRowReceiver(
-                channel, session.query(), session.getOutputTypes(portalName), session.getResultFormatCodes(portalName));
-            session.execute(portalName, maxRows, rowReceiver);
+            ResultReceiver resultReceiver = createResultReceiver(channel, session.getQuery(portalName),
+                session.getOutputTypes(portalName),
+                session.getResultFormatCodes(portalName));
+            session.execute(portalName, maxRows, resultReceiver);
         } catch (Throwable t) {
             session.setThrowable(t);
             Messages.sendErrorResponse(channel, t);
         }
     }
 
-    private static ResultReceiver createRowReceiver(Channel channel,
-                                                    String query,
-                                                    @Nullable List<? extends DataType> outputTypes,
-                                                    @Nullable FormatCodes.FormatCode[] formatCodes) {
+    private static ResultReceiver createResultReceiver(Channel channel,
+                                                       String query,
+                                                       @Nullable List<? extends DataType> outputTypes,
+                                                       @Nullable FormatCodes.FormatCode[] formatCodes) {
         if (outputTypes == null) {
             // this is a DML query:
             return new RowCountReceiver(query, channel);
@@ -512,10 +513,10 @@ class ConnectionContext {
                     @Override
                     public ResultReceiver apply(@Nullable List<Field> columns) {
                         if (columns == null) {
-                            return createRowReceiver(channel, query, null, null);
+                            return createResultReceiver(channel, query, null, null);
                         }
                         Messages.sendRowDescription(channel, columns, null);
-                        return createRowReceiver(channel, query, Symbols.extractTypes(columns), null);
+                        return createResultReceiver(channel, query, Symbols.extractTypes(columns), null);
                     }
                 },
                 new ReadyForQueryListener(channel));
