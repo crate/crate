@@ -50,7 +50,6 @@ import static org.mockito.Mockito.when;
 
 public class MultiShardScoreDocCollectorTest {
 
-
     @Test
     public void testSingleCollectorGetsExhausted() throws Exception {
         ListeningExecutorService executor = MoreExecutors.newDirectExecutorService();
@@ -77,9 +76,10 @@ public class MultiShardScoreDocCollectorTest {
         assertThat(TestingHelpers.printedTable(result), is("1\n1\n2\n2\n2\n2\n"));
     }
 
-    private OrderedDocCollector mockedCollector(final ShardId shardId, final int numRepeats, final Iterable<Row> iterable) throws Exception {
-        final OrderedDocCollector collector = mock(OrderedDocCollector.class);
+    private LuceneOrderedDocCollector mockedCollector(final ShardId shardId, final int numRepeats, final Iterable<Row> iterable) throws Exception {
+        final LuceneOrderedDocCollector collector = mock(LuceneOrderedDocCollector.class);
         when(collector.shardId()).thenReturn(shardId);
+        when(collector.exhausted()).thenCallRealMethod();
         when(collector.call()).then(new Answer<Object>() {
             int repeat = 0;
 

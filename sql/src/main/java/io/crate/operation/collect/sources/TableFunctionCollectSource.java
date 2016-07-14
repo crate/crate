@@ -23,7 +23,6 @@
 package io.crate.operation.collect.sources;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Ordering;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
@@ -35,10 +34,8 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.operation.BaseImplementationSymbolVisitor;
 import io.crate.operation.Input;
-import io.crate.operation.InputRow;
 import io.crate.operation.collect.*;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.TableFunctionCollectPhase;
 import org.elasticsearch.cluster.ClusterService;
@@ -81,10 +78,10 @@ public class TableFunctionCollectSource implements CollectSource {
         }
         Iterable<Row> rows = Iterables.transform(
             tableFunctionSafe.execute(inputs),
-            new ValueAndInputRow<Row>(topLevelInputs, context.collectExpressions));
+            new ValueAndInputRow<>(topLevelInputs, context.collectExpressions));
         OrderBy orderBy = phase.orderBy();
         if (orderBy != null) {
-            rows = SystemCollectSource.sortRows(Iterables.transform(rows, Row.MATERIALIZE), phase);
+            rows = RowsTransformer.sortRows(Iterables.transform(rows, Row.MATERIALIZE), phase);
         }
         RowsCollector rowsCollector = new RowsCollector(downstream, rows);
         return Collections.<CrateCollector>singletonList(rowsCollector);

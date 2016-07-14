@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a bug that prevented join and sort on blob tables.
+
  - Fix: the ``hostname`` column of the ``sys.nodes`` table returns a hostname
    instead of an IP address.
 

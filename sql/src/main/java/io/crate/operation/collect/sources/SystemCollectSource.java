@@ -23,21 +23,13 @@ package io.crate.operation.collect.sources;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.*;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.information.*;
 import io.crate.metadata.sys.*;
-import io.crate.operation.Input;
 import io.crate.operation.collect.*;
-import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.operation.reference.sys.check.SysChecker;
@@ -46,7 +38,6 @@ import io.crate.operation.reference.sys.repositories.SysRepositories;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
 
@@ -94,45 +85,8 @@ public class SystemCollectSource implements CollectSource {
         this.discoveryService = discoveryService;
     }
 
-    public Iterable<Row> toRowsIterable(RoutedCollectPhase collectPhase, Iterable<?> iterable) {
-        WhereClause whereClause = collectPhase.whereClause();
-        if (whereClause.noMatch()) {
-            return Collections.emptyList();
-        }
-
-        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectPhase.toCollect());
-        OrderBy orderBy = collectPhase.orderBy();
-        if (orderBy != null) {
-            for (Symbol symbol : orderBy.orderBySymbols()) {
-                docInputSymbolVisitor.process(symbol, ctx);
-            }
-        }
-
-        Input<Boolean> condition;
-        if (whereClause.hasQuery()) {
-            assert DataTypes.BOOLEAN.equals(whereClause.query().valueType());
-            //noinspection unchecked  whereClause().query() is a symbol of type boolean so it must become Input<Boolean>
-            condition = (Input<Boolean>) docInputSymbolVisitor.process(whereClause.query(), ctx);
-        } else {
-            condition = Literal.BOOLEAN_TRUE;
-        }
-
-        @SuppressWarnings("unchecked")
-        Iterable<Row> rows = Iterables.filter(
-            Iterables.transform(iterable, new ValueAndInputRow<>(ctx.topLevelInputs(), ctx.docLevelExpressions())),
-            InputCondition.asPredicate(condition));
-
-        if (orderBy == null) {
-            return rows;
-        }
-        return sortRows(Iterables.transform(rows, Row.MATERIALIZE), collectPhase);
-    }
-
-    static Iterable<Row> sortRows(Iterable<Object[]> rows, RoutedCollectPhase collectPhase) {
-        ArrayList<Object[]> objects = Lists.newArrayList(rows);
-        Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(collectPhase);
-        Collections.sort(objects, ordering.reverse());
-        return Iterables.transform(objects, Buckets.arrayToRowFunction());
+    Iterable<Row> toRowsIterable(RoutedCollectPhase collectPhase, Iterable<?> iterable) {
+        return RowsTransformer.toRowsIterable(docInputSymbolVisitor, collectPhase, iterable);
     }
 
     @Override

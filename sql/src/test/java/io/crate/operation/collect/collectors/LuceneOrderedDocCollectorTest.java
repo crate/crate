@@ -57,7 +57,7 @@ import java.nio.file.Path;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-public class OrderedDocCollectorTest extends RandomizedTest {
+public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     private static final ReferenceInfo INFO = new ReferenceInfo(new ReferenceIdent(new TableIdent(null, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
 
@@ -117,7 +117,7 @@ public class OrderedDocCollectorTest extends RandomizedTest {
         sortField.setMissingValue(missingValue);
         Sort sort = new Sort(sortField);
 
-        Query nextPageQuery = OrderedDocCollector.nextPageQuery(lastCollected, orderBy, new Object[]{missingValue});
+        Query nextPageQuery = LuceneOrderedDocCollector.nextPageQuery(lastCollected, orderBy, new Object[]{missingValue});
         TopFieldDocs result = search(reader, nextPageQuery, sort);
         Long results[] = new Long[result.scoreDocs.length];
         for (int i = 0; i < result.scoreDocs.length; i++) {

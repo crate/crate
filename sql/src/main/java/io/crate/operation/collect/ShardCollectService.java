@@ -21,12 +21,10 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.collect.Iterables;
 import io.crate.action.job.SharedShardContext;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.action.sql.query.LuceneSortGenerator;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.core.collections.Row;
@@ -41,10 +39,7 @@ import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
-import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
-import io.crate.operation.collect.collectors.CrateDocCollector;
-import io.crate.operation.collect.collectors.OrderedDocCollector;
-import io.crate.operation.projectors.InputCondition;
+import io.crate.operation.collect.collectors.*;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.ShardProjectorChain;
@@ -189,25 +184,15 @@ public class ShardCollectService {
         assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
         if (isBlobShard) {
             RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
-            return getBlobIndexCollector(normalizedCollectNode, downstream);
+            return new RowsCollector(downstream, getBlobRows(collectPhase));
         } else {
             return getLuceneIndexCollector(threadPool, normalizedCollectNode, projectorChain, jobCollectContext);
         }
     }
 
-    private CrateCollector getBlobIndexCollector(RoutedCollectPhase collectNode, RowReceiver downstream) {
-        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectNode);
-        Input<Boolean> condition;
-        if (collectNode.whereClause().hasQuery()) {
-            condition = (Input)docInputSymbolVisitor.process(collectNode.whereClause().query(), ctx);
-        } else {
-            condition = Literal.newLiteral(true);
-        }
+    private Iterable<Row> getBlobRows(RoutedCollectPhase collectPhase) {
         Iterable<File> files = blobIndices.blobShardSafe(shardId).blobContainer().getFiles();
-        Iterable<Row> rows = Iterables.filter(
-            Iterables.transform(files, new ValueAndInputRow<>(ctx.topLevelInputs(), ctx.docLevelExpressions())),
-            InputCondition.asPredicate(condition));
-        return new RowsCollector(downstream, rows);
+        return RowsTransformer.toRowsIterable(docInputSymbolVisitor, collectPhase, files);
     }
 
     private CrateCollector getLuceneIndexCollector(ThreadPool threadPool,
@@ -249,10 +234,22 @@ public class ShardCollectService {
     }
 
     public OrderedDocCollector getOrderedCollector(RoutedCollectPhase collectPhase,
-                                                SharedShardContext sharedShardContext,
-                                                JobCollectContext jobCollectContext) {
-        collectPhase = collectPhase.normalize(shardNormalizer);
+                                                   SharedShardContext sharedShardContext,
+                                                   JobCollectContext jobCollectContext) {
+        RoutedCollectPhase normalizedCollectPhase = collectPhase.normalize(shardNormalizer);
 
+        if (isBlobShard) {
+            return getBlobOrderedDocCollector(normalizedCollectPhase);
+        } else {
+            return getLuceneOrderedDocCollector(normalizedCollectPhase, sharedShardContext, jobCollectContext);
+        }
+    }
+
+    private OrderedDocCollector getBlobOrderedDocCollector(RoutedCollectPhase collectPhase) {
+        return new BlobOrderedDocCollector(shardId, getBlobRows(collectPhase));
+    }
+
+    private OrderedDocCollector getLuceneOrderedDocCollector(RoutedCollectPhase collectPhase, SharedShardContext sharedShardContext, JobCollectContext jobCollectContext) {
         CrateSearchContext searchContext = null;
         CollectorContext collectorContext;
         CollectInputSymbolVisitor.Context ctx;
@@ -280,12 +277,12 @@ public class ShardCollectService {
         }
         int batchSize = collectPhase.shardQueueSize(clusterService.localNode().id());
         if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("[{}][{}] creating OrderedDocCollector. Expected number of rows to be collected: {}",
-                    sharedShardContext.indexShard().routingEntry().currentNodeId(),
-                    sharedShardContext.indexShard().shardId(),
-                    batchSize);
+            LOGGER.trace("[{}][{}] creating LuceneOrderedDocCollector. Expected number of rows to be collected: {}",
+                sharedShardContext.indexShard().routingEntry().currentNodeId(),
+                sharedShardContext.indexShard().shardId(),
+                batchSize);
         }
-        return new OrderedDocCollector(
+        return new LuceneOrderedDocCollector(
                 searchContext,
                 Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
                 batchSize,

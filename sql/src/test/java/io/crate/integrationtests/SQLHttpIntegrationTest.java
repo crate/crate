@@ -79,7 +79,7 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
     }
 
     protected String upload(String table, String content) throws IOException {
-        String digest = Hex.encodeHexString(Blobs.digest(content));
+        String digest = blobDigest(content);
         String url = Blobs.url(address, table, digest);
         HttpPut httpPut = new HttpPut(url);
         httpPut.setEntity(new StringEntity(content));
@@ -89,5 +89,9 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
         response.close();
 
         return url;
+    }
+
+    protected String blobDigest(String content) {
+        return Hex.encodeHexString(Blobs.digest(content));
     }
 }
