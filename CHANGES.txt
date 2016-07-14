@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated Elasticsearch to 2.3.4
+
  - Improved the error message of `COPY FROM` statements which fail due to
    invalid entries in the files being imported.
 
