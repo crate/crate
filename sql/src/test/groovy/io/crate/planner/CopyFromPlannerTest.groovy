@@ -23,10 +23,12 @@
 package io.crate.planner
 
 import io.crate.analyze.symbol.Literal
+import io.crate.analyze.symbol.Reference
+import io.crate.metadata.doc.DocSysColumns
 import io.crate.planner.node.dql.CollectAndMerge
 import io.crate.planner.node.dql.FileUriCollectPhase
 import io.crate.planner.projection.SourceIndexWriterProjection
-import io.crate.test.GroovyTestSanitizer
+import io.crate.testing.T3
 import org.apache.lucene.util.BytesRef
 import org.junit.Test
 
@@ -64,6 +66,16 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
         collectPhase = (FileUriCollectPhase)collectAndMerge.collectPhase();
         assert collectPhase.compression() == null;
         assert collectPhase.sharedStorage() == null;
+    }
+
+    @Test
+    public void test_IdIsNotCollectedOrUsedAsClusteredBy() throws Exception {
+        CollectAndMerge collectAndMerge = plan("copy t1 from '/path/file.ext'");
+        SourceIndexWriterProjection projection =
+                (SourceIndexWriterProjection) collectAndMerge.collectPhase().projections().get(0);
+        assert projection.clusteredBy() == null;
+        assert collectAndMerge.collectPhase().toCollect() ==
+                [new Reference(T3.T1_INFO.getReferenceInfo(DocSysColumns.RAW))]
     }
 
     @Test (expected = IllegalArgumentException.class)

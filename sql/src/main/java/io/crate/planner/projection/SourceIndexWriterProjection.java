@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
@@ -37,6 +38,7 @@ import org.elasticsearch.common.settings.Settings;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -84,15 +86,20 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
         int currentInputIndex = primaryKeys.size();
 
-        List<Symbol> idSymbols = new ArrayList<>(primaryKeys.size());
-        for (int i = 0; i < primaryKeys.size(); i++) {
-            InputColumn ic = new InputColumn(i, null);
-            idSymbols.add(ic);
-            if (i==clusteredByIdx){
-                clusteredBySymbol = ic;
+        // "_id" is always generated, no need to try to parse it from the source.
+        if (primaryKeys.size() == 1 && primaryKeys.get(0).equals(DocSysColumns.ID)) {
+            idSymbols = Collections.emptyList();
+        } else {
+            List<Symbol> idSymbols = new ArrayList<>(primaryKeys.size());
+            for (int i = 0; i < primaryKeys.size(); i++) {
+                InputColumn ic = new InputColumn(i, null);
+                idSymbols.add(ic);
+                if (i == clusteredByIdx) {
+                    clusteredBySymbol = ic;
+                }
             }
+            this.idSymbols = idSymbols;
         }
-        this.idSymbols = idSymbols;
 
         List<Symbol> partitionedBySymbols = new ArrayList<>(partitionedBy.size());
         for (int i = 0, length = partitionedBy.size(); i < length; i++) {
@@ -116,10 +123,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             partitionedBySymbols.add(partitionSymbol);
         }
         this.partitionedBySymbols = partitionedBySymbols;
-
-        if (clusteredByIdx == -1) {
-            clusteredBySymbol = new InputColumn(currentInputIndex++, null);
-        }
 
         overwriteDuplicates = settings.getAsBoolean(OVERWRITE_DUPLICATES, OVERWRITE_DUPLICATES_DEFAULT);
         rawSourceSymbol = new InputColumn(currentInputIndex, DataTypes.STRING);

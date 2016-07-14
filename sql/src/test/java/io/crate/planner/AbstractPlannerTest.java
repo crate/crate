@@ -44,6 +44,7 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.T3;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -235,6 +236,7 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
             when(schemaInfo.getTableInfo(multiplePartitionedTableIdent.name())).thenReturn(multiplePartitionedTableInfo);
             when(schemaInfo.getTableInfo(clusteredByPartitionedIdent.name())).thenReturn(clusteredByPartitionedTableInfo);
             when(schemaInfo.getTableInfo(BaseAnalyzerTest.IGNORED_NESTED_TABLE_IDENT.name())).thenReturn(BaseAnalyzerTest.IGNORED_NESTED_TABLE_INFO);
+            when(schemaInfo.getTableInfo(T3.T1_INFO.ident().name())).thenReturn(T3.T1_INFO);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
             schemaBinder.addBinding(SysSchemaInfo.NAME).toInstance(mockSysSchemaInfo());
             schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(mockBlobSchemaInfo());

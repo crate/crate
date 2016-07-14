@@ -147,7 +147,7 @@ public class CopyStatementPlanner {
             toCollect.add(symbol);
         }
         // add clusteredBy column (if not part of primaryKey)
-        if (clusteredByPrimaryKeyIdx == -1) {
+        if (clusteredByPrimaryKeyIdx == -1 && table.clusteredBy() != null && !DocSysColumns.ID.equals(table.clusteredBy())) {
             toCollect.add(
                 new Reference(table.getReferenceInfo(table.clusteredBy())));
         }
