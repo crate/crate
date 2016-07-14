@@ -1300,7 +1300,7 @@ public class CrateSettings {
     };
 
     public static final StringSetting PSQL_PORT =
-        new StringSetting("port", null, false, "4250-4300", PSQL);
+        new StringSetting("port", null, false, "5432-5482", PSQL);
 
     public static final List<Setting<?, ?>> CRATE_SETTINGS = ImmutableList.<Setting<?, ?>>of(
         STATS,

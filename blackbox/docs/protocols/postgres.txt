@@ -9,7 +9,7 @@ By default this protocol is **disabled**. To enable it set ``psql.enabled`` to
 true.
 
 If a node is started with postgres support enabled it will by default bind to
-``0.0.0.0:4250``. See :doc:`Configuration <../configuration>` for options to
+``0.0.0.0:5432``. See :doc:`Configuration <../configuration>` for options to
 change that.
 
 
