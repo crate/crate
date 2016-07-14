@@ -79,7 +79,11 @@ public class LineContext {
             parentMap = (Map)o;
         }
 
-        return parentMap.get(path.peekFirst());
+        Object o = parentMap.get(path.peekFirst());
+        if (o instanceof String) {
+            return new BytesRef((String) o);
+        }
+        return o;
     }
 
     public void rawSource(byte[] bytes) {
