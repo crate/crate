@@ -46,6 +46,7 @@ import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.RowSender;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.LongType;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -88,6 +89,7 @@ public class FetchProjectorTest extends CrateUnitTest {
             @Override
             public void run() {
                 assertThat(rowReceiver.rows.size(), is(2));
+                assertThat(rowReceiver.numPauseProcessed(), is(1));
             }
         });
         assertThat(rowReceiver.getNumFailOrFinishCalls(), is(0));
@@ -110,7 +112,7 @@ public class FetchProjectorTest extends CrateUnitTest {
                 assertThat(rowSender.numPauses(), is(3));
             }
         });
-        assertThat(fetchOperation.numFetches, is(5));
+        assertThat(fetchOperation.numFetches, Matchers.greaterThan(1));
 
         Bucket projected = rowReceiver.result();
         assertThat(projected.size(), is(10));

@@ -38,12 +38,14 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class CollectingRowReceiver implements RowReceiver {
 
     public final List<Object[]> rows = new ArrayList<>();
     final SettableFuture<Bucket> resultFuture = SettableFuture.create();
     int numFailOrFinish = 0;
+    private AtomicInteger numPauseProcessed = new AtomicInteger(0);
     private ResumeHandle resumeable;
     private RepeatHandle repeatHandle;
 
@@ -80,6 +82,7 @@ public class CollectingRowReceiver implements RowReceiver {
 
     @Override
     public void pauseProcessed(ResumeHandle resumeable) {
+        this.numPauseProcessed.incrementAndGet();
         this.resumeable = resumeable;
     }
 
@@ -131,6 +134,10 @@ public class CollectingRowReceiver implements RowReceiver {
 
     public void repeatUpstream() {
         repeatHandle.repeat();
+    }
+
+    public int numPauseProcessed() {
+        return numPauseProcessed.get();
     }
 
     private static class LimitingReceiver extends CollectingRowReceiver {
