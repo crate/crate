@@ -82,7 +82,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     private ThreadPool threadPool;
 
     @Mock
-    private static SchemaInfo schemaInfo;
+    private SchemaInfo schemaInfo;
 
     @Before
     public void setUp() throws Exception {

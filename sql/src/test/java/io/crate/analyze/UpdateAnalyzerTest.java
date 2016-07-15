@@ -55,7 +55,7 @@ import static org.mockito.Mockito.when;
 
 public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
-    public static final String VERSION_EX_FROM_VALIDATOR = "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value";
+    private static final String VERSION_EX_FROM_VALIDATOR = "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value";
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
@@ -63,7 +63,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     private final static TableInfo NESTED_CLUSTERED_BY_TABLE_INFO = TestingTableInfo.builder(
             NESTED_CLUSTERED_BY_TABLE_IDENT, SHARD_ROUTING)
             .add("obj", DataTypes.OBJECT, null)
-            .add("obj", DataTypes.STRING, Arrays.asList("name"))
+            .add("obj", DataTypes.STRING, Collections.singletonList("name"))
             .add("other_obj", DataTypes.OBJECT, null)
             .clusteredBy("obj.name").build();
 
@@ -82,14 +82,11 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         .addPrimaryKey("o.x")
         .build();
 
-    static TableInfo partedGeneratedColumnTableInfo;
-    static TableInfo nestedPartedGeneratedColumnTableInfo;
-
 
     @Mock
-    private static SchemaInfo schemaInfo;
+    private SchemaInfo schemaInfo;
 
-    static class TestMetaDataModule extends MetaDataModule {
+    private class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void bindSchemas() {
             super.bindSchemas();
@@ -122,21 +119,21 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Before
     public void bindGeneratedColumnTables() {
         TableIdent partedGeneratedColumnTableIdent = new TableIdent(null, "parted_generated_column");
-        partedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
-                partedGeneratedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
-                .add("ts", DataTypes.TIMESTAMP, null)
-                .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true)
-                .build(injector.getInstance(Functions.class));
+        TableInfo partedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
+            partedGeneratedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+            .add("ts", DataTypes.TIMESTAMP, null)
+            .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true)
+            .build(injector.getInstance(Functions.class));
         when(schemaInfo.getTableInfo(partedGeneratedColumnTableIdent.name()))
                 .thenReturn(partedGeneratedColumnTableInfo);
 
         TableIdent nestedPartedGeneratedColumnTableIdent = new TableIdent(null, "nested_parted_generated_column");
-        nestedPartedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
-                nestedPartedGeneratedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
-                .add("user", DataTypes.OBJECT, null)
-                .add("user", DataTypes.STRING, Arrays.asList("name"))
-                .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", true)
-                .build(injector.getInstance(Functions.class));
+        TableInfo nestedPartedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
+            nestedPartedGeneratedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+            .add("user", DataTypes.OBJECT, null)
+            .add("user", DataTypes.STRING, Arrays.asList("name"))
+            .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", true)
+            .build(injector.getInstance(Functions.class));
         when(schemaInfo.getTableInfo(nestedPartedGeneratedColumnTableIdent.name()))
                 .thenReturn(nestedPartedGeneratedColumnTableInfo);
     }

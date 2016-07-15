@@ -76,9 +76,9 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     private TableInfo generatedClusteredByInfo;
 
     @Mock
-    private static SchemaInfo schemaInfo;
+    private SchemaInfo schemaInfo;
 
-    static class TestMetaDataModule extends MetaDataModule {
+    class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void bindSchemas() {
             super.bindSchemas();

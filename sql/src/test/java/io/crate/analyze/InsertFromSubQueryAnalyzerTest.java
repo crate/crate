@@ -63,9 +63,9 @@ import static org.mockito.Mockito.when;
 public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
 
     @Mock
-    private static SchemaInfo schemaInfo;
+    private SchemaInfo schemaInfo;
 
-    static class TestMetaDataModule extends MetaDataModule {
+    private class TestMetaDataModule extends MetaDataModule {
 
         @Override
         protected void bindSchemas() {
