@@ -35,6 +35,7 @@ import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.IndexService;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -85,7 +86,11 @@ public class NodeFetchOperation {
     }
 
     public IntObjectMap<StreamBucket> doFetch(
-            FetchContext fetchContext, IntObjectMap<? extends IntContainer> toFetch) throws Exception {
+        FetchContext fetchContext, @Nullable IntObjectMap<? extends IntContainer> toFetch) throws Exception {
+
+        if (toFetch == null) {
+            return new IntObjectHashMap<>(0);
+        }
 
         IntObjectHashMap<StreamBucket> fetched = new IntObjectHashMap<>(toFetch.size());
         HashMap<TableIdent, TableFetchInfo> tableFetchInfos = getTableFetchInfos(fetchContext);
@@ -99,6 +104,5 @@ public class NodeFetchOperation {
             fetched.put(toFetchCursor.key, builder.build());
         }
         return fetched;
-
     }
 }

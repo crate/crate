@@ -16,7 +16,7 @@ Synopsis
 
 ::
 
-    SET GLOBAL [ PERSISTENT | TRANSIENT ] setting_ident = value [ , ... ]
+    SET GLOBAL [ PERSISTENT | TRANSIENT ] setting_ident [ = | TO ] value [ , ... ]
 
     RESET GLOBAL setting_ident [ , ... ]
 

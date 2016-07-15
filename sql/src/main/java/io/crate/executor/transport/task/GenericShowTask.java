@@ -22,12 +22,13 @@
 package io.crate.executor.transport.task;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.AbstractShowAnalyzedStatement;
 import io.crate.core.collections.Row1;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
+import io.crate.operation.projectors.RepeatHandle;
+import io.crate.operation.projectors.RowReceiver;
 
 import java.util.List;
 import java.util.UUID;
@@ -45,12 +46,12 @@ public class GenericShowTask implements Task {
     }
 
     @Override
-    public void execute(ResultReceiver resultReceiver) {
+    public void execute(RowReceiver rowReceiver) {
         try {
-            resultReceiver.setNextRow(new Row1(showStatementDispatcher.process(statement, jobId)));
-            resultReceiver.finish();
+            rowReceiver.setNextRow(new Row1(showStatementDispatcher.process(statement, jobId)));
+            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
         } catch (Throwable t) {
-            resultReceiver.fail(t);
+            rowReceiver.fail(t);
         }
     }
 

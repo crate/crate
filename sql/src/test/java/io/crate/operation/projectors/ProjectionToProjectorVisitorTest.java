@@ -34,12 +34,10 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.EqOperator;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.FilterProjection;
-import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.*;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.RowSender;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -125,18 +123,12 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
 
-        projector.prepare();
-        int i;
-        for (i = 0; i < 20; i++) {
-            if (projector.setNextRow(spare(42)) == RowReceiver.Result.STOP) {
-                break;
-            }
-        }
-        assertThat(i, is(11));
-        projector.finish(RepeatHandle.UNSUPPORTED);
+
+        long lastEmittedValue = RowSender.generateRowsInRangeAndEmit(0, 20, projector);
+        assertThat(lastEmittedValue, is(11L));
         Bucket rows = collectingProjector.result();
         assertThat(rows.size(), is(10));
-        assertThat(rows.iterator().next(), isRow("foo", 42));
+        assertThat(rows.iterator().next(), isRow("foo", 2L));
     }
 
     @Test
@@ -149,6 +141,18 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0), new InputColumn(1)));
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         assertThat(projector, instanceOf(SortingTopNProjector.class));
+    }
+
+    @Test
+    public void testTopNProjectionToSortingProjector() throws Exception {
+        TopNProjection projection = new TopNProjection(TopN.NO_LIMIT, TopN.NO_OFFSET,
+                Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)),
+                new boolean[]{false, false},
+                new Boolean[]{null, null}
+        );
+        projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0), new InputColumn(1)));
+        Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
+        assertThat(projector, instanceOf(SortingProjector.class));
     }
 
     @Test

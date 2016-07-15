@@ -4,7 +4,6 @@ import com.carrotsearch.hppc.IntSet;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.*;
@@ -327,38 +326,6 @@ public class PlannerTest extends AbstractPlannerTest {
     }
 
     @Test
-    public void testCollectAndMergePlanDefaultLimit() throws Exception {
-        QueryThenFetch plan = plan("select name from users");
-        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((CollectAndMerge) plan.subPlan()).collectPhase());
-        assertThat(collectPhase.nodePageSizeHint(), is(Constants.DEFAULT_SELECT_LIMIT));
-
-        MergePhase mergeNode = plan.localMerge();
-        assertThat(mergeNode.projections().size(), is(2));
-        assertThat(mergeNode.finalProjection().get(), instanceOf(FetchProjection.class));
-        TopNProjection topN = (TopNProjection)mergeNode.projections().get(0);
-        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
-        assertThat(topN.offset(), is(0));
-        assertNull(topN.orderBy());
-
-        FetchProjection fetchProjection = (FetchProjection)mergeNode.projections().get(1);
-
-        // with offset
-        plan = plan("select name from users offset 20");
-        collectPhase = ((RoutedCollectPhase) ((CollectAndMerge) plan.subPlan()).collectPhase());
-        assertThat(collectPhase.nodePageSizeHint(), is(Constants.DEFAULT_SELECT_LIMIT + 20));
-
-        mergeNode = plan.localMerge();
-        assertThat(mergeNode.projections().size(), is(2));
-        assertThat(mergeNode.finalProjection().get(), instanceOf(FetchProjection.class));
-        topN = (TopNProjection)mergeNode.projections().get(0);
-        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
-        assertThat(topN.offset(), is(20));
-        assertNull(topN.orderBy());
-
-        fetchProjection = (FetchProjection)mergeNode.projections().get(1);
-    }
-
-    @Test
     public void testCollectAndMergePlanHighLimit() throws Exception {
         QueryThenFetch plan = plan("select name from users limit 100000");
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((CollectAndMerge) plan.subPlan()).collectPhase());
@@ -587,7 +554,7 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
 
         TopNProjection topNProjection = (TopNProjection) planNode.reducerMergeNode().projections().get(1);
-        assertThat(topNProjection.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topNProjection.limit(), is(TopN.NO_LIMIT));
         assertThat(topNProjection.offset(), is(0));
 
         MergePhase mergeNode = planNode.localMergeNode();
@@ -1162,7 +1129,7 @@ public class PlannerTest extends AbstractPlannerTest {
         TopNProjection topN = (TopNProjection)mergeNode.projections().get(2);
         assertThat(topN.outputs().get(0).valueType(), Is.<DataType>is(DataTypes.DOUBLE));
         assertThat(topN.outputs().get(1).valueType(), Is.<DataType>is(DataTypes.STRING));
-        assertThat(topN.limit(), is(Constants.DEFAULT_SELECT_LIMIT));
+        assertThat(topN.limit(), is(TopN.NO_LIMIT));
     }
 
     @Test
@@ -1581,7 +1548,7 @@ public class PlannerTest extends AbstractPlannerTest {
     public void testBuildReaderAllocations() throws Exception {
         TableIdent custom = new TableIdent("custom", "t1");
         TableInfo tableInfo = TestingTableInfo.builder(custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
-        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, 0, 0);
         plannerContext.allocateRouting(tableInfo, WhereClause.MATCH_ALL, null);
 
         Planner.Context.ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
@@ -1611,7 +1578,7 @@ public class PlannerTest extends AbstractPlannerTest {
     public void testAllocateRouting() throws Exception {
         TableIdent custom = new TableIdent("custom", "t1");
         TableInfo tableInfo = TestingTableInfo.builder(custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
-        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, 0, 0);
 
         WhereClause whereClause = new WhereClause(
                 new Function(new FunctionInfo(
@@ -1633,7 +1600,7 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testExecutionPhaseIdSequence() throws Exception {
-        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, 0, 0);
 
         assertThat(plannerContext.nextExecutionPhaseId(), is(0));
         assertThat(plannerContext.nextExecutionPhaseId(), is(1));
@@ -1743,5 +1710,18 @@ public class PlannerTest extends AbstractPlannerTest {
         CollectAndMerge plan = plan("select * from unnest([1, 2], ['Arthur', 'Trillian'])");
         assertNotNull(plan);
         assertThat(plan.collectPhase().toCollect(), contains(isReference("col1"), isReference("col2")));
+    }
+
+    @Test
+    public void testSoftLimitIsApplied() throws Exception {
+        QueryThenFetch plan = plan("select * from users", 0, 10);
+        assertThat(plan.localMerge().projections(), contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
+        TopNProjection topNProjection = (TopNProjection) plan.localMerge().projections().get(0);
+        assertThat(topNProjection.limit(), is(10));
+
+        plan = plan("select * from users limit 5", 0, 10);
+        assertThat(plan.localMerge().projections(), contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
+        topNProjection = (TopNProjection) plan.localMerge().projections().get(0);
+        assertThat(topNProjection.limit(), is(5));
     }
 }

@@ -403,6 +403,15 @@ Ports
   of the node is not directly reachable from outside, e.g. running it
   behind a firewall or inside a Docker container.
 
+.. _psql.port:
+
+**psql.port**
+  | *Runtime:*   ``no``
+
+  This defines the TCP port range to which the Crate Postgres service will be bound to.
+  It defaults to ``5432-5532``. Always the first free port in this range is used. If this is set
+  to an integer value it is considered as an explicit single port.
+
 
 .. _conf-node-attributes:
 

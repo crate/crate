@@ -24,9 +24,10 @@ package io.crate.executor.task;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.action.sql.ResultReceiver;
 import io.crate.executor.Task;
 import io.crate.executor.TaskResult;
+import io.crate.operation.projectors.RepeatHandle;
+import io.crate.operation.projectors.RowReceiver;
 
 import java.util.List;
 
@@ -43,8 +44,8 @@ public class NoopTask implements Task {
     }
 
     @Override
-    public void execute(ResultReceiver resultReceiver) {
-        resultReceiver.finish();
+    public void execute(RowReceiver rowReceiver) {
+        rowReceiver.finish(RepeatHandle.UNSUPPORTED);
     }
 
     @Override

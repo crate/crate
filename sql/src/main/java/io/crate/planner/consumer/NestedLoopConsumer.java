@@ -25,13 +25,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import io.crate.Constants;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.Planner;
 import io.crate.planner.TableStatsService;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -228,16 +228,13 @@ public class NestedLoopConsumer implements Consumer {
                     }
                 }
             }
-            // due to weird subplanning, context.isRoot() is false here, so apply this hack
-            boolean isRoot = context.rootRelation() instanceof MultiSourceSelect;
-            int topNLimit = querySpec.limit().or(
-                    isRoot ? Constants.DEFAULT_SELECT_LIMIT : TopN.NO_LIMIT
-            );
+
+            Planner.Context.Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
             TopNProjection topN = ProjectionBuilder.topNProjection(
                     nlOutputs,
                     statement.remainingOrderBy().orNull(),
                     isDistributed ? 0 : querySpec.offset(),
-                    isDistributed ? topNLimit + querySpec.offset() : topNLimit,
+                    isDistributed ? limits.limitAndOffset() : limits.finalLimit(),
                     postNLOutputs
             );
             projections.add(topN);
@@ -260,7 +257,7 @@ public class NestedLoopConsumer implements Consumer {
                         postNLOutputs,
                         orderByBeforeSplit,
                         querySpec.offset(),
-                        topNLimit,
+                        limits.finalLimit(),
                         querySpec.outputs()
                 );
                 localMergePhase.addProjection(finalTopN);

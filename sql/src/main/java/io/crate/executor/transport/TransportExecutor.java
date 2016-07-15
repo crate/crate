@@ -48,6 +48,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
@@ -65,6 +66,7 @@ import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
+import io.crate.planner.statement.SetSessionPlan;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -142,8 +144,8 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public void execute(Plan plan, ResultReceiver resultReceiver) {
-        plan2TaskVisitor.process(plan, null).execute(resultReceiver);
+    public void execute(Plan plan, RowReceiver rowReceiver) {
+        plan2TaskVisitor.process(plan, null).execute(rowReceiver);
     }
 
     @Override
@@ -156,6 +158,11 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Task visitNoopPlan(NoopPlan plan, Void context) {
+            return NoopTask.INSTANCE;
+        }
+
+        @Override
+        public Task visitSetSessionPlan(SetSessionPlan plan, Void context) {
             return NoopTask.INSTANCE;
         }
 

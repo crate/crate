@@ -23,7 +23,6 @@ package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
@@ -119,6 +118,8 @@ public class QueryAndFetchConsumer implements Consumer {
             MergePhase mergeNode = null;
             Optional<OrderBy> orderBy = querySpec.orderBy();
             Planner.Context plannerContext = context.plannerContext();
+
+            Planner.Context.Limits limits = plannerContext.getLimits(context.isRoot(), querySpec);
             if (querySpec.isLimited() || orderBy.isPresent()) {
                 /**
                  * select id, name, order by id, date
@@ -139,12 +140,13 @@ public class QueryAndFetchConsumer implements Consumer {
 
                 List<Projection> projections = ImmutableList.of();
                 Integer nodePageSizeHint = null;
-                if (context.isRoot() || querySpec.limit().isPresent()) {
-                    int limit = querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT);
-                    TopNProjection topNProjection = new TopNProjection(querySpec.offset() + limit, 0);
+
+
+                if (limits.hasLimit()) {
+                    TopNProjection topNProjection = new TopNProjection(limits.limitAndOffset(), 0);
                     topNProjection.outputs(allOutputs);
                     projections = ImmutableList.<Projection>of(topNProjection);
-                    nodePageSizeHint = limit + querySpec.offset();
+                    nodePageSizeHint = limits.limitAndOffset();
                 }
                 collectPhase = RoutedCollectPhase.forQueriedTable(
                         plannerContext,
@@ -157,7 +159,7 @@ public class QueryAndFetchConsumer implements Consumer {
 
                 // MERGE
                 if (context.isRoot()) {
-                    TopNProjection tnp = new TopNProjection(querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT), querySpec.offset());
+                    TopNProjection tnp = new TopNProjection(limits.finalLimit(), querySpec.offset());
                     tnp.outputs(finalOutputs);
                     if (!orderBy.isPresent()) {
                         // no sorting needed
@@ -205,7 +207,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 collectPhase.pageSizeHint(context.requiredPageSize());
             }
             SimpleSelect.enablePagingIfApplicable(
-                    collectPhase, mergeNode, querySpec.limit().orNull(), querySpec.offset(), plannerContext.clusterService().localNode().id());
+                    collectPhase, mergeNode, limits.finalLimit(), querySpec.offset(), plannerContext.clusterService().localNode().id());
             return new CollectAndMerge(collectPhase, mergeNode);
         }
     }

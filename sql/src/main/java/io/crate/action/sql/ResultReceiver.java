@@ -32,26 +32,15 @@ import javax.annotation.Nonnull;
 /**
  * A subset / simplified form of {@link io.crate.operation.projectors.RowReceiver}.
  *
- * Used to receive the Result from {@link io.crate.executor.transport.TransportExecutor#execute(Plan, ResultReceiver)}
+ * Used to receive the Result from {@link io.crate.executor.transport.TransportExecutor#execute(Plan, RowReceiver)}
  */
 public interface ResultReceiver extends CompletionListenable {
 
-    /**
-     * @return true if the receiver wants to receive more rows, otherwise false
-     */
-    RowReceiver.Result setNextRow(Row row);
+    void setNextRow(Row row);
 
-    /**
-     * Called once an upstream can't provide anymore rows.
-     *
-     * If this is called {@link #fail(Throwable)} must not be called.
-     */
-    void finish();
+    void batchFinished();
 
-    /**
-     * Called once an upstream can't provide anymore rows and exited with an error.
-     *
-     * If this is called {@link #finish()} must not be called.
-     */
+    void allFinished();
+
     void fail(@Nonnull Throwable t);
 }

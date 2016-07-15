@@ -22,9 +22,6 @@
 package io.crate.operation;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.action.sql.ResultReceiver;
-import io.crate.concurrent.CompletionListener;
-import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.QueryResult;
@@ -40,11 +37,10 @@ import java.util.Set;
  * RowDownstream that will set a TaskResultFuture once the result is ready.
  * It will also close the associated context once it is done
  */
-public class QueryResultRowDownstream implements RowReceiver, ResultReceiver {
+public class QueryResultRowDownstream implements RowReceiver {
 
     private final SettableFuture<TaskResult> result;
     private final List<Object[]> rows = new ArrayList<>();
-    private CompletionListener listener = CompletionListener.NO_OP;
     private Result setNextRowResult = Result.CONTINUE;
 
     public QueryResultRowDownstream(SettableFuture<TaskResult> result) {
@@ -62,22 +58,15 @@ public class QueryResultRowDownstream implements RowReceiver, ResultReceiver {
     }
 
     @Override
-    public void finish() {
-        finish(RepeatHandle.UNSUPPORTED);
-    }
-
-    @Override
     public void finish(RepeatHandle repeatHandle) {
         setNextRowResult = Result.STOP;
         result.set(new QueryResult(new CollectionBucket(rows)));
-        listener.onSuccess(null);
     }
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
         setNextRowResult = Result.STOP;
         result.setException(throwable);
-        listener.onFailure(throwable);
     }
 
     @Override
@@ -92,10 +81,5 @@ public class QueryResultRowDownstream implements RowReceiver, ResultReceiver {
     @Override
     public Set<Requirement> requirements() {
         return Requirements.NO_REQUIREMENTS;
-    }
-
-    @Override
-    public void addListener(CompletionListener listener) {
-        this.listener = CompletionMultiListener.merge(this.listener, listener);
     }
 }

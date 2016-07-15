@@ -24,8 +24,9 @@ package io.crate.executor.transport;
 
 import com.google.common.base.Function;
 import com.google.common.util.concurrent.FutureCallback;
-import io.crate.action.sql.ResultReceiver;
 import io.crate.core.collections.Row;
+import io.crate.operation.projectors.RepeatHandle;
+import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.action.ActionListener;
 
 import javax.annotation.Nonnull;
@@ -33,10 +34,10 @@ import javax.annotation.Nullable;
 
 public class OneRowActionListener<Response> implements ActionListener<Response>, FutureCallback<Response> {
 
-    private final ResultReceiver rowReceiver;
+    private final RowReceiver rowReceiver;
     private final Function<? super Response, ? extends Row> toRowFunction;
 
-    public OneRowActionListener(ResultReceiver rowReceiver, Function<? super Response, ? extends Row> toRowFunction) {
+    public OneRowActionListener(RowReceiver rowReceiver, Function<? super Response, ? extends Row> toRowFunction) {
         this.rowReceiver = rowReceiver;
         this.toRowFunction = toRowFunction;
     }
@@ -44,7 +45,7 @@ public class OneRowActionListener<Response> implements ActionListener<Response>,
     @Override
     public void onResponse(Response response) {
         rowReceiver.setNextRow(toRowFunction.apply(response));
-        rowReceiver.finish();
+        rowReceiver.finish(RepeatHandle.UNSUPPORTED);
     }
 
     @Override

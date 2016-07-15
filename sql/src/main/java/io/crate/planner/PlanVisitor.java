@@ -31,6 +31,7 @@ import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
+import io.crate.planner.statement.SetSessionPlan;
 import org.elasticsearch.common.Nullable;
 
 public class PlanVisitor<C, R> {
@@ -44,6 +45,10 @@ public class PlanVisitor<C, R> {
     }
 
     public R visitNoopPlan(NoopPlan plan, C context) {
+        return visitPlan(plan, context);
+    }
+
+    public R visitSetSessionPlan(SetSessionPlan plan, C context) {
         return visitPlan(plan, context);
     }
 

@@ -26,14 +26,12 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
-import io.crate.concurrent.CompletionListener;
-import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.collections.Row;
 import io.crate.executor.BytesRefUtils;
 import io.crate.executor.Executor;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.*;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.types.DataType;
@@ -53,6 +51,7 @@ import org.elasticsearch.transport.TransportService;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 
 @Singleton
@@ -96,14 +95,7 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
                      final SQLRequest request,
                      final long startTime) {
 
-        executor.execute(plan, new ResultReceiver() {
-
-            private CompletionListener completionListener = CompletionListener.NO_OP;
-
-            @Override
-            public void addListener(CompletionListener listener) {
-                this.completionListener = CompletionMultiListener.merge(this.completionListener, listener);
-            }
+        executor.execute(plan, new RowReceiver() {
 
             final List<Object[]> rows = new ArrayList<>();
             RowReceiver.Result setNextRowResult = RowReceiver.Result.CONTINUE;
@@ -115,17 +107,35 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
             }
 
             @Override
-            public void finish() {
+            public void pauseProcessed(ResumeHandle resumeable) {
+
+            }
+
+            @Override
+            public void finish(RepeatHandle repeatable) {
                 setNextRowResult = RowReceiver.Result.STOP;
                 listener.onResponse(createResponse(analysis, request, rows, startTime));
-                completionListener.onSuccess(null);
             }
 
             @Override
             public void fail(@Nonnull Throwable t) {
                 setNextRowResult = RowReceiver.Result.STOP;
                 listener.onFailure(t);
-                completionListener.onFailure(t);
+            }
+
+            @Override
+            public void kill(Throwable throwable) {
+                fail(throwable);
+            }
+
+            @Override
+            public void prepare() {
+
+            }
+
+            @Override
+            public Set<Requirement> requirements() {
+                return Requirements.NO_REQUIREMENTS;
             }
         });
     }

@@ -24,7 +24,6 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.Constants;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.SelectAnalyzedStatement;
@@ -36,6 +35,7 @@ import io.crate.analyze.symbol.Reference;
 import io.crate.exceptions.ValidationException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.TableIdent;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.ESGetStatementPlanner;
@@ -125,8 +125,10 @@ public class SelectStatementPlanner {
 
             CollectAndMerge qaf = (CollectAndMerge) plannedSubQuery;
             RoutedCollectPhase collectPhase = ((RoutedCollectPhase) qaf.collectPhase());
-            if (collectPhase.nodePageSizeHint() == null) {
-                collectPhase.nodePageSizeHint(Constants.DEFAULT_SELECT_LIMIT + querySpec.offset());
+
+            Planner.Context.Limits limits = context.getLimits(true, querySpec);
+            if (collectPhase.nodePageSizeHint() == null && limits.limitAndOffset > TopN.NO_LIMIT) {
+                collectPhase.nodePageSizeHint(limits.limitAndOffset);
             }
 
             Planner.Context.ReaderAllocations readerAllocations = context.buildReaderAllocations();
@@ -138,7 +140,8 @@ public class SelectStatementPlanner {
                     readerAllocations.tableIndices(),
                     fetchPushDown.fetchRefs()
             );
-            FetchProjection fp = createFetchProjection(table, querySpec, fetchPushDown, readerAllocations, fetchPhase);
+            FetchProjection fp = createFetchProjection(
+                table, querySpec, fetchPushDown, readerAllocations, fetchPhase, context.fetchSize());
 
             MergePhase localMergePhase;
             assert qaf.localMerge() == null : "subRelation shouldn't plan localMerge";
@@ -147,7 +150,7 @@ public class SelectStatementPlanner {
                     collectPhase.toCollect(),
                     null, // orderBy = null because stuff is pre-sorted in collectPhase and sortedLocalMerge is used
                     querySpec.offset(),
-                    querySpec.limit().or(Constants.DEFAULT_SELECT_LIMIT),
+                    limits.finalLimit,
                     null
             );
             if (!querySpec.orderBy().isPresent()) {
@@ -206,12 +209,13 @@ public class SelectStatementPlanner {
                     docRefs
             );
             FetchProjection fp = new FetchProjection(
-                    fetchPhase.executionPhaseId(),
-                    pd.fetchSources(),
-                    pd.remainingOutputs(),
-                    readerAllocations.nodeReaders(),
-                    readerAllocations.indices(),
-                    readerAllocations.indicesToIdents());
+                fetchPhase.executionPhaseId(),
+                context.fetchSize(),
+                pd.fetchSources(),
+                pd.remainingOutputs(),
+                readerAllocations.nodeReaders(),
+                readerAllocations.indices(),
+                readerAllocations.indicesToIdents());
 
             plannedSubQuery.addProjection(fp);
             return new QueryThenFetch(plannedSubQuery.plan(), fetchPhase, null, context.jobId());
@@ -222,18 +226,20 @@ public class SelectStatementPlanner {
                                                          QuerySpec querySpec,
                                                          FetchPushDown fetchPushDown,
                                                          Planner.Context.ReaderAllocations readerAllocations,
-                                                         FetchPhase fetchPhase) {
+                                                         FetchPhase fetchPhase,
+                                                         int fetchSize) {
         Map<TableIdent, FetchSource> fetchSources = ImmutableMap.of(table.tableRelation().tableInfo().ident(),
                 new FetchSource(table.tableRelation().tableInfo().partitionedByColumns(),
                         ImmutableList.of(fetchPushDown.docIdCol()),
                         fetchPushDown.fetchRefs()));
 
         return new FetchProjection(
-                fetchPhase.executionPhaseId(),
-                fetchSources,
-                querySpec.outputs(),
-                readerAllocations.nodeReaders(),
-                readerAllocations.indices(),
-                readerAllocations.indicesToIdents());
+            fetchPhase.executionPhaseId(),
+            fetchSize,
+            fetchSources,
+            querySpec.outputs(),
+            readerAllocations.nodeReaders(),
+            readerAllocations.indices(),
+            readerAllocations.indicesToIdents());
     }
 }

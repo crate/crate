@@ -30,7 +30,6 @@ import org.antlr.runtime.tree.CommonTree;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Strings.repeat;
@@ -42,6 +41,11 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.*;
 
 public class TestStatementBuilder {
+
+    @Test
+    public void testBegin() throws Exception {
+        printStatement("BEGIN");
+    }
 
     @Test
     public void testStatementBuilder()
@@ -364,6 +368,16 @@ public class TestStatementBuilder {
         printStatement("set global persistent sys.cluster['some_settings'] = '1'");
 
         printStatement("reset global some_setting['nested'], other_setting");
+    }
+
+    @Test
+    public void testSetSession() throws Exception {
+        printStatement("set some_setting = '1'");
+        printStatement("set some_setting = '1', other_setting = 2");
+        printStatement("set session some_setting = '1'");
+        printStatement("set session some_setting = '1', other_setting = 2");
+        printStatement("set session some_setting TO '1'");
+        printStatement("set session some_setting TO '1', other_setting TO 2");
     }
 
     @Test

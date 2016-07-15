@@ -33,11 +33,11 @@ import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.RowSender;
-import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.core.Is.is;
 
 public class SortingTopNProjectorTest extends CrateUnitTest {
@@ -66,14 +66,36 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     }
 
     @Test
-    public void testOrderByWithoutLimitAndOffset() throws Exception {
+    public void testOrderBy() throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        Projector pipe = getProjector(2, TopN.NO_LIMIT, TopN.NO_OFFSET, rowReceiver);
-        long lastEmitted = RowSender.generateRowsInRangeAndEmit(10, 0, pipe);
-        assertThat(lastEmitted, is(0L)); // needs to collect all it can get
+        Projector pipe = getProjector(1, 3, 5, rowReceiver);
+        RowSender.generateRowsInRangeAndEmit(1, 11, pipe);
+
         Bucket rows = rowReceiver.result();
-        assertThat(TestingHelpers.printedTable(rows),
-            is("1| true\n2| true\n3| true\n4| true\n5| true\n6| true\n7| true\n8| true\n9| true\n10| true\n"));
+        assertThat(rows.size(), is(3));
+
+        long iterateLength = 0;
+        for (Row row : rows) {
+            assertThat(row, isRow(iterateLength + 6));
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(3L));
+    }
+
+    @Test
+    public void testOrderByWithoutOffset() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        Projector pipe = getProjector(2, 10, TopN.NO_OFFSET, rowReceiver);
+        RowSender.generateRowsInRangeAndEmit(1, 11, pipe);
+
+        Bucket rows = rowReceiver.result();
+        assertThat(rows.size(), is(10));
+        long iterateLength = 0;
+        for (Row row : rowReceiver.result()) {
+            assertThat(row, isRow(iterateLength + 1, true));
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(10L));
     }
 
     @Test
@@ -85,33 +107,26 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     }
 
     @Test
-    public void testOrderByWithoutLimit() throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        Projector pipe = getProjector(2, TopN.NO_LIMIT, 5, rowReceiver);
-        long lastEmitted = RowSender.generateRowsInRangeAndEmit(10, 0, pipe);
-        assertThat(lastEmitted, is(0L)); // needs to collect all it can get
-        Bucket rows = rowReceiver.result();
-        assertThat(TestingHelpers.printedTable(rows),
-            is("6| true\n7| true\n8| true\n9| true\n10| true\n"));
+    public void testInvalidNegativeLimit() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid limit -1, this projector only supports positive limits");
+
+        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, -1, 0);
     }
 
     @Test
-    public void testOrderBy() throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        Projector pipe = getProjector(1, 3, 5, rowReceiver);
-        long lastEmitted = RowSender.generateRowsInRangeAndEmit(10, 0, pipe);
-        assertThat(lastEmitted, is(0L)); // needs to collect all it can get
-        Bucket rows = rowReceiver.result();
-        assertThat(TestingHelpers.printedTable(rows), is("6\n7\n8\n"));
+    public void testInvalidZeroLimit() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid limit 0, this projector only supports positive limits");
+
+        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, 0, 0);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testNegativeOffset() {
-        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, TopN.NO_LIMIT, -10);
-    }
+    @Test
+    public void testInvalidOffset() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid offset -1");
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testNegativeLimit() {
-        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, -100, 10);
+        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, 1, -1);
     }
 }

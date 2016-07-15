@@ -21,6 +21,7 @@
 
 package io.crate.core.collections;
 
+import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterators;
 
@@ -31,9 +32,16 @@ import java.util.Iterator;
 public class CollectionBucket implements Bucket {
 
     private final Collection<Object[]> rows;
+    private final Function<Object[], Row> arrayToRowFunction;
 
     public CollectionBucket(Collection<Object[]> rows) {
         this.rows = rows;
+        arrayToRowFunction = Buckets.arrayToRowFunction();
+    }
+
+    public CollectionBucket(Collection<Object[]> rows, int numColumns) {
+        this.rows = rows;
+        arrayToRowFunction = Buckets.arrayToRowFunction(numColumns);
     }
 
     @Override
@@ -43,7 +51,7 @@ public class CollectionBucket implements Bucket {
 
     @Override
     public Iterator<Row> iterator() {
-        return Iterators.transform(rows.iterator(), Buckets.arrayToRowFunction());
+        return Iterators.transform(rows.iterator(), arrayToRowFunction);
     }
 
     @Override

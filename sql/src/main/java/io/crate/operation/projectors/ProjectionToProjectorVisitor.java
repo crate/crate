@@ -128,14 +128,24 @@ public class ProjectionToProjectorVisitor
                 orderByIndices[idx++] = i;
             }
 
-            projector = new SortingTopNProjector(
+            if (projection.limit() > TopN.NO_LIMIT) {
+                projector = new SortingTopNProjector(
                     inputs,
                     collectExpressions,
                     numOutputs,
                     OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
                     projection.limit(),
                     projection.offset()
-            );
+                );
+            } else {
+                projector = new SortingProjector(
+                    inputs,
+                    collectExpressions,
+                    numOutputs,
+                    OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
+                    projection.offset()
+                );
+            }
         } else if (projection.limit() == TopN.NO_LIMIT
                    && projection.offset() == TopN.NO_OFFSET) {
             projector = new InputRowProjector(inputs, collectExpressions);
@@ -240,6 +250,7 @@ public class ProjectionToProjectorVisitor
         return objectMap;
     }
 
+    @Override
     public Projector visitSourceIndexWriterProjection(SourceIndexWriterProjection projection, Context context) {
         ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
         List<Input<?>> partitionedByInputs = new ArrayList<>(projection.partitionedBySymbols().size());
@@ -385,7 +396,8 @@ public class ProjectionToProjectorVisitor
             threadPool.executor(ThreadPool.Names.SUGGEST),
             symbolVisitor.functions(),
             projection.outputSymbols(),
-            projectorContext
+            projectorContext,
+            projection.getFetchSize()
         );
     }
 

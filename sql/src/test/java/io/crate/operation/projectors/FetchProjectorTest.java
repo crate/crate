@@ -25,6 +25,7 @@ package io.crate.operation.projectors;
 import com.carrotsearch.hppc.*;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -54,17 +55,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.testing.RowSender.rowRange;
 import static org.hamcrest.core.Is.is;
 
 public class FetchProjectorTest extends CrateUnitTest {
 
     private static final TableIdent USER_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users");
     private ExecutorService executorService;
+    private DummyFetchOperation fetchOperation;
 
     @Before
     public void before() throws Exception {
         executorService = Executors.newFixedThreadPool(2);
+        // dummy FetchOperation that returns buckets for each reader-id where each row contains a column that is the same as the docId
+        fetchOperation = new DummyFetchOperation();
     }
 
     @After
@@ -74,45 +77,64 @@ public class FetchProjectorTest extends CrateUnitTest {
     }
 
     @Test
-    public void testFetchProjectorStopsEmittingRows() throws Throwable {
-        CollectingRowReceiver rowReceiver = CollectingRowReceiver.withLimit(2);
-
-        // dummy FetchOperation that returns buckets for each reader-id where each row contains a column that is the same as the docId
-        FetchOperation fetchOperation = new FetchOperation() {
-            @Override
-            public ListenableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId, IntObjectMap<? extends IntContainer> toFetch) {
-                IntObjectHashMap<Bucket> readerToBuckets = new IntObjectHashMap<>();
-                for (IntObjectCursor<? extends IntContainer> cursor : toFetch) {
-                    List<Object[]> rows = new ArrayList<>();
-                    for (IntCursor docIdCursor : cursor.value) {
-                        rows.add(new Object[] { docIdCursor.value });
-                    }
-                    readerToBuckets.put(cursor.key, new CollectionBucket(rows));
-                }
-                return Futures.<IntObjectMap<? extends Bucket>>immediateFuture(readerToBuckets);
-            }
-        };
-        FetchProjector fetchProjector = prepareFetchProjector(rowReceiver, fetchOperation);
-
-        RowSender rowSender = new RowSender(rowRange(0, 5), fetchProjector, MoreExecutors.directExecutor());
+    public void testPauseSupport() throws Exception {
+        final CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(2);
+        int fetchSize = random().nextInt(20);
+        FetchProjector fetchProjector = prepareFetchProjector(fetchSize, rowReceiver, fetchOperation);
+        final RowSender rowSender = new RowSender(RowSender.rowRange(0, 10), fetchProjector, MoreExecutors.directExecutor());
         rowSender.run();
 
-        assertThat(rowReceiver.result().size(), is(2));
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                assertThat(rowReceiver.rows.size(), is(2));
+            }
+        });
+        assertThat(rowReceiver.getNumFailOrFinishCalls(), is(0));
+        rowReceiver.resumeUpstream(false);
+        assertThat(TestingHelpers.printedTable(rowReceiver.result()),
+            is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n"));
+    }
+
+    @Test
+    public void testMultipleFetchRequests() throws Throwable {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        int fetchSize = 3;
+        FetchProjector fetchProjector = prepareFetchProjector(fetchSize, rowReceiver, fetchOperation);
+        final RowSender rowSender = new RowSender(RowSender.rowRange(0, 10), fetchProjector, MoreExecutors.directExecutor());
+        rowSender.run();
+
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                assertThat(rowSender.numPauses(), is(3));
+            }
+        });
+        assertThat(fetchOperation.numFetches, is(5));
+
+        Bucket projected = rowReceiver.result();
+        assertThat(projected.size(), is(10));
+
+        int iterateLength = Iterables.size(rowReceiver.result());
+        assertThat(iterateLength, is(10));
     }
 
 
-    private FetchProjector prepareFetchProjector(CollectingRowReceiver rowReceiver, FetchOperation fetchOperation ) {
-        FetchProjector fetchProjector =
+    private FetchProjector prepareFetchProjector(int fetchSize,
+                                                 CollectingRowReceiver rowReceiver,
+                                                 FetchOperation fetchOperation) {
+        FetchProjector pipe =
             new FetchProjector(
                 fetchOperation,
                 executorService,
                 TestingHelpers.getFunctions(),
                 buildOutputSymbols(),
-                buildFetchProjectorContext()
+                buildFetchProjectorContext(),
+                fetchSize
             );
-        fetchProjector.downstream(rowReceiver);
-        fetchProjector.prepare();
-        return fetchProjector;
+        pipe.downstream(rowReceiver);
+        pipe.prepare();
+        return pipe;
     }
 
     private FetchProjectorContext buildFetchProjectorContext() {
@@ -167,5 +189,24 @@ public class FetchProjectorTest extends CrateUnitTest {
 
         outputSymbols.add(new FetchReference(inputColumn, new Reference(referenceInfo)));
         return outputSymbols;
+    }
+
+    private static class DummyFetchOperation implements FetchOperation {
+
+        int numFetches = 0;
+
+        @Override
+        public ListenableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId, IntObjectMap<? extends IntContainer> toFetch, boolean closeContext) {
+            numFetches++;
+            IntObjectHashMap<Bucket> readerToBuckets = new IntObjectHashMap<>();
+            for (IntObjectCursor<? extends IntContainer> cursor : toFetch) {
+                List<Object[]> rows = new ArrayList<>();
+                for (IntCursor docIdCursor : cursor.value) {
+                    rows.add(new Object[] { docIdCursor.value });
+                }
+                readerToBuckets.put(cursor.key, new CollectionBucket(rows));
+            }
+            return Futures.<IntObjectMap<? extends Bucket>>immediateFuture(readerToBuckets);
+        }
     }
 }

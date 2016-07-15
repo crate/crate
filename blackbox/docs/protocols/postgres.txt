@@ -1,0 +1,96 @@
+
+======================
+Postgres Wire Protocol
+======================
+
+Crate contains experimental support for the `Postgresql wire protocol v3`_.
+
+By default this protocol is **disabled**. To enable it set ``psql.enabled`` to
+true.
+
+If a node is started with postgres support enabled it will by default bind to
+``0.0.0.0:5432``. See :doc:`Configuration <../configuration>` for options to
+change that.
+
+The SQL dialect that Crate supports is different to the SQL dialect that
+Postgresql supports. So even though the wire protocol is supported it doesn't
+imply that any postgres client can be used as those clients may use SQL
+statements which aren't supported.
+
+One notable difference is that Crate doesn't support transactions.
+Therefore clients should generally enable ``autocommit``.
+
+.. note::
+
+    In order to use ``setFetchSize`` in JDBC it is possible to set autocommit
+    to false.
+    The client will utilize the fetchSize on SELECT statements and only load up
+    to fetchSize rows into memory.
+    See `Postgres JDBC Query docs
+    <https://jdbc.postgresql.org/documentation/head/query.html>` for more
+    information.
+
+    Write operations will still behave as if autocommit was enabled and commit
+    or rollback calls are ignored.
+
+
+Compatibility & Implementation Status
+-------------------------------------
+
+Start-up
+~~~~~~~~
+
+The connection handshake is implemented without authentication support. Crate
+will always respond with ``AuthenticationOK``.
+If a Client sends a SSLRequest the server will answer with ``N`` to indicate
+that it doesn't support SSL.
+
+The ``database`` name a client sends will be used as default schema as Crate
+doesn't have database support.
+
+The server will inform the Client that ``UTF8`` encoding should be used. Any
+other encoding is not supported.
+
+Simple Query
+~~~~~~~~~~~~
+
+The `Simple Query`_ protocol is implemented with the following limitations:
+
+- The ``query`` may only contain one query. Sending multiple queries with one
+  message is not supported.
+
+
+Extended Query
+~~~~~~~~~~~~~~
+
+The `Extended Query`_ protocol is implemented with the following limitations:
+
+- Named statements are not fully supported. Clients mostly use them with
+  transactions which aren't supported by Crate.
+
+- In order to optimize the execution of bulk operations the execution of
+  statements is delayed until the ``Sync`` message is received
+
+Copy Operations
+~~~~~~~~~~~~~~~
+
+The COPY sub-protocol is not supported as this lacks corresponding SQL support
+in Crate.
+
+Function Call
+~~~~~~~~~~~~~
+
+The Function call sub-protocol is not supported as this is considered a legacy
+feature.
+
+Canceling Requests in Progress
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Operations can be cancelled using the ``KILL`` statement. There is no support
+for the ``CancelRequest`` message and the Server also won't send a
+``BackendKeyData`` message during connection initialization.
+
+
+.. _Postgresql wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
+.. _Simple Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#AEN108745
+.. _Extended Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY

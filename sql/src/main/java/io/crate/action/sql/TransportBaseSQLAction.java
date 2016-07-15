@@ -24,6 +24,7 @@ package io.crate.action.sql;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import io.crate.Constants;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
@@ -51,8 +52,6 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.mapper.MapperParsingException;
-import org.elasticsearch.index.shard.IllegalIndexShardStateException;
-import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
@@ -75,7 +74,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
     public static final String NODE_READ_ONLY_SETTING = "node.sql.read_only";
 
-    private static final int MAX_SHARD_MISSING_RETRIES = 3;
+    private static final int DEFAULT_SOFT_LIMIT = 10_000;
 
 
     private final LoadingCache<String, Statement> statementCache = CacheBuilder.newBuilder()
@@ -157,7 +156,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                 // full retry is only used for read-only operations
                 listener = new KillAndRetryListenerWrapper(listener, statement, jobId, executor, request, startTime);
             }
-            Plan plan = planner.plan(analysis, jobId);
+            Plan plan = planner.plan(analysis, jobId, DEFAULT_SOFT_LIMIT, 0);
             assert plan != null;
             tracePlan(plan);
             executePlan(executor, analysis, plan, listener, request, startTime);
@@ -165,11 +164,6 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             logger.debug("Error executing SQLRequest", e);
             listener.onFailure(e);
         }
-    }
-
-    private static boolean isShardFailure(Throwable e) {
-        e = Exceptions.unwrap(e);
-        return e instanceof ShardNotFoundException || e instanceof IllegalIndexShardStateException;
     }
 
     private void tracePlan(Plan plan) {
@@ -352,7 +346,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
 
         @Override
         public void onFailure(Throwable e) {
-            if (attempt <= MAX_SHARD_MISSING_RETRIES && isShardFailure(e)) {
+            if (attempt <= Constants.MAX_SHARD_MISSING_RETRIES && Exceptions.isShardFailure(e)) {
                 attempt += 1;
                 killAndRetry();
             } else {
@@ -380,7 +374,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                     public void onResponse(KillResponse killResponse) {
                         logger.debug("Killed {} jobs before Retry", killResponse.numKilled());
                         Analysis analysis = analyzer.analyze(statement, getParamContext(request));
-                        Plan newPlan = planner.plan(analysis, jobId);
+                        Plan newPlan = planner.plan(analysis, jobId, DEFAULT_SOFT_LIMIT, 0);
                         executePlan(executor, analysis, newPlan, KillAndRetryListenerWrapper.this, request, startTime);
                     }
 

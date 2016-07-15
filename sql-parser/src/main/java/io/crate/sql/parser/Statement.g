@@ -134,6 +134,8 @@ tokens {
     MATCH;
     MATCH_PREDICATE_IDENT;
     MATCH_PREDICATE_IDENT_LIST;
+    SET_GLOBAL;
+    SET_SESSION;
 }
 
 @header {
@@ -218,7 +220,8 @@ statement
     | updateStmt
     | COPY copyStatement -> copyStatement
     | refreshStmt
-    | setStmt
+    | SET setStmt -> setStmt
+    | beginStmt
     | resetStmt
     | killStmt
     | RESTORE restoreStmt -> restoreStmt
@@ -1074,8 +1077,14 @@ refreshStmt
     : REFRESH TABLE tableWithPartitionList -> ^(REFRESH tableWithPartitionList)
     ;
 
+beginStmt
+    : BEGIN
+    ;
+
 setStmt
-    : SET GLOBAL settingsType? assignmentList -> ^(SET settingsType? assignmentList)
+    : (GLOBAL settingsType? setAssignmentList) => GLOBAL settingsType? setAssignmentList -> ^(SET_GLOBAL settingsType? setAssignmentList)
+    | (SESSION setAssignmentList) => SESSION setAssignmentList -> ^(SET_SESSION setAssignmentList)
+    | setAssignmentList -> ^(SET_SESSION setAssignmentList)
     ;
 
 resetStmt
@@ -1085,6 +1094,14 @@ resetStmt
 settingsType
     : TRANSIENT
     | PERSISTENT
+    ;
+
+setAssignmentList
+    : setAssignment ( ',' setAssignment )* -> ^(ASSIGNMENT_LIST setAssignment+)
+    ;
+
+setAssignment
+    : numericExpr (EQ|TO) expr -> ^(ASSIGNMENT numericExpr expr)
     ;
 
 killStmt
@@ -1102,10 +1119,10 @@ nonReserved
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
     | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LOGICAL | MATERIALIZED | MINUTE
     | MONTH | OFF | ONLY | OVER | OPTIMIZE | PARTITION | PARTITIONED | PARTITIONS | PLAIN
-    | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND
+    | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND | SESSION
     | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
-    | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS
+    | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
     ;
 
 SELECT: 'SELECT';
@@ -1209,6 +1226,8 @@ STRING_TYPE: 'STRING';
 GEO_POINT: 'GEO_POINT';
 GEO_SHAPE: 'GEO_SHAPE';
 GLOBAL : 'GLOBAL';
+SESSION : 'SESSION';
+BEGIN: 'BEGIN';
 
 CONSTRAINT: 'CONSTRAINT';
 DESCRIBE: 'DESCRIBE';

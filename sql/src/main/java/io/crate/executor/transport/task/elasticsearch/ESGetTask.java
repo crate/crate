@@ -22,7 +22,6 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Function;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -44,10 +43,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.QueryResultRowDownstream;
-import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.operation.projectors.ProjectorFactory;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.*;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -79,7 +75,7 @@ public class ESGetTask extends EsJobContextTask {
         assert multiGetAction != null;
         assert getAction != null;
         assert esGet.docKeys().size() > 0;
-        assert esGet.limit() == null || esGet.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
+        assert esGet.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
 
         ActionListener listener;
         ActionRequest request;
@@ -169,7 +165,7 @@ public class ESGetTask extends EsJobContextTask {
     private FlatProjectorChain getFlatProjectorChain(ProjectorFactory projectorFactory,
                                                      ESGet node,
                                                      QueryResultRowDownstream queryResultRowDownstream) {
-        if (node.limit() != null || node.offset() > 0 || !node.sortSymbols().isEmpty()) {
+        if (node.limit() > TopN.NO_LIMIT || node.offset() > 0 || !node.sortSymbols().isEmpty()) {
             List<Symbol> orderBySymbols = new ArrayList<>(node.sortSymbols().size());
             for (Symbol symbol : node.sortSymbols()) {
                 int i = node.outputs().indexOf(symbol);
@@ -180,8 +176,7 @@ public class ESGetTask extends EsJobContextTask {
                 }
             }
             TopNProjection topNProjection = new TopNProjection(
-                    // TODO: use TopN.NO_LIMIT as default once this can be used as subrelation
-                    MoreObjects.firstNonNull(node.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    node.limit(),
                     node.offset(),
                     orderBySymbols,
                     node.reverseFlags(),
@@ -207,8 +202,8 @@ public class ESGetTask extends EsJobContextTask {
         private final RowReceiver downstream;
 
 
-        public MultiGetResponseListener(List<Function<GetResponse, Object>> extractors,
-                                        RowReceiver rowDownstreamHandle) {
+        MultiGetResponseListener(List<Function<GetResponse, Object>> extractors,
+                                 RowReceiver rowDownstreamHandle) {
             downstream = rowDownstreamHandle;
             this.fieldExtractors = extractors;
         }
@@ -247,13 +242,13 @@ public class ESGetTask extends EsJobContextTask {
         }
     }
 
-    static class GetResponseListener implements ActionListener<GetResponse> {
+    private static class GetResponseListener implements ActionListener<GetResponse> {
 
         private final Bucket bucket;
         private final FieldExtractorRow<GetResponse> row;
         private final SettableFuture<TaskResult> result;
 
-        public GetResponseListener(SettableFuture<TaskResult> result, List<Function<GetResponse, Object>> extractors) {
+        GetResponseListener(SettableFuture<TaskResult> result, List<Function<GetResponse, Object>> extractors) {
             this.result = result;
             row = new FieldExtractorRow<>(extractors);
             bucket = Buckets.of(row);
@@ -279,7 +274,7 @@ public class ESGetTask extends EsJobContextTask {
         private final HashMap<String, DocKeys.DocKey> ids2Keys;
         private final ESGet node;
 
-        public GetResponseContext(Functions functions, ESGet node) {
+        GetResponseContext(Functions functions, ESGet node) {
             super(functions, node.outputs().size());
             this.node = node;
             ids2Keys = new HashMap<>(node.docKeys().size());
@@ -294,7 +289,7 @@ public class ESGetTask extends EsJobContextTask {
         }
     }
 
-    static class GetResponseFieldExtractorFactory implements FieldExtractorFactory<GetResponse, GetResponseContext> {
+    private static class GetResponseFieldExtractorFactory implements FieldExtractorFactory<GetResponse, GetResponseContext> {
 
         @Override
         public Function<GetResponse, Object> build(final Reference reference, final GetResponseContext context) {

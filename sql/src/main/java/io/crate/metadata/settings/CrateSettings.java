@@ -1258,6 +1258,34 @@ public class CrateSettings {
 
     public static final StringSetting UDC_URL = new StringSetting("url", null, true, "https://udc.crate.io", UDC);
 
+    public static final NestedSetting PSQL = new NestedSetting() {
+        @Override
+        public String name() {
+            return "psql";
+        }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(PSQL_PORT, PSQL_ENABLED);
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return false;
+        }
+    };
+
+    public static final StringSetting PSQL_PORT =
+        new StringSetting("port", null, false, "5432-5532", PSQL);
+
+
+    public static final BoolSetting PSQL_ENABLED = new BoolSetting("enabled", false, false) {
+        @Override
+        public Setting parent() {
+            return PSQL;
+        }
+    };
+
     public static final List<Setting<?, ?>> CRATE_SETTINGS = ImmutableList.<Setting<?, ?>>of(
         STATS,
         BULK,
@@ -1265,9 +1293,9 @@ public class CrateSettings {
     );
 
     public static final List<Setting> SETTINGS = ImmutableList.<Setting>of(
-            STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC);
+            STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC, PSQL);
 
-    public static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
+    static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
             .put(CrateSettings.STATS.settingName(),
                     new SettingsAppliers.ObjectSettingsApplier(CrateSettings.STATS))
             .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(),
@@ -1426,6 +1454,12 @@ public class CrateSettings {
                     new SettingsAppliers.TimeSettingsApplier(CrateSettings.GATEWAY_RECOVER_AFTER_TIME))
             .put(CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.settingName(),
                     new SettingsAppliers.IntSettingsApplier(CrateSettings.GATEWAY_RECOVERY_AFTER_NODES))
+            .put(CrateSettings.PSQL.settingName(),
+                new SettingsAppliers.ObjectSettingsApplier(CrateSettings.PSQL))
+            .put(CrateSettings.PSQL_PORT.settingName(),
+                new SettingsAppliers.StringSettingsApplier(CrateSettings.PSQL_PORT))
+            .put(CrateSettings.PSQL_ENABLED.settingName(),
+                new SettingsAppliers.BooleanSettingsApplier(CrateSettings.PSQL_ENABLED))
             .build();
 
     /**

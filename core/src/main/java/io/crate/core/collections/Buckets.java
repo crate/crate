@@ -40,6 +40,18 @@ public class Buckets {
         };
     }
 
+    public static Function<Object[], Row> arrayToRowFunction(final int numColumns) {
+        return new Function<Object[], Row>() {
+            final RowN row = new RowN(numColumns);
+
+            @Override
+            public Row apply(Object[] input) {
+                row.cells(input);
+                return row;
+            }
+        };
+    }
+
     public static Object[][] materialize(Bucket bucket) {
         Object[][] res = new Object[bucket.size()][];
         int i = 0;

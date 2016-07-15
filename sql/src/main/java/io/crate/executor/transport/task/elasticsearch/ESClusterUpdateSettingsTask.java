@@ -24,12 +24,12 @@ package io.crate.executor.transport.task.elasticsearch;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.action.sql.ResultReceiver;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.OneRowActionListener;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
@@ -60,8 +60,8 @@ public class ESClusterUpdateSettingsTask extends JobTask {
     }
 
     @Override
-    public void execute(ResultReceiver resultReceiver) {
-        OneRowActionListener<ClusterUpdateSettingsResponse> actionListener = new OneRowActionListener<>(resultReceiver, TO_ONE_ROW);
+    public void execute(RowReceiver rowReceiver) {
+        OneRowActionListener<ClusterUpdateSettingsResponse> actionListener = new OneRowActionListener<>(rowReceiver, TO_ONE_ROW);
         transport.execute(request, actionListener);
     }
 
