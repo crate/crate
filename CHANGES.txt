@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: the ``hostname`` column of the ``sys.nodes`` table returns a hostname
+   instead of an IP address.
+
  - Fixed an issue that caused select statements to get stuck if used as part of
    a bulk request. Now a proper error is raised.
 

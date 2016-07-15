@@ -21,6 +21,7 @@
 package io.crate.operation.reference.sys;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.net.InetAddresses;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.metadata.NestedReferenceResolver;
@@ -42,6 +43,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -76,6 +78,7 @@ import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -133,7 +136,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
             }
 
             DiscoveryNode node = mock(DiscoveryNode.class);
-            when(node.getHostName()).thenReturn("localhost");
+            when(node.getHostAddress()).thenReturn("127.0.0.1");
             when(nodeStats.getNode()).thenReturn(node);
             when(clusterService.localNode()).thenReturn(node);
 
@@ -272,8 +275,10 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     @Test
     public void testHostname() throws Exception {
         ReferenceInfo refInfo = refInfo("sys.nodes.hostname", DataTypes.STRING, RowGranularity.NODE);
-        SimpleObjectExpression<BytesRef> hostname = (SimpleObjectExpression<BytesRef>) resolver.getImplementation(refInfo);
-        assertEquals(new BytesRef("localhost"), hostname.value());
+        SimpleObjectExpression<BytesRef> expression = (SimpleObjectExpression) resolver.getImplementation(refInfo);
+        BytesRef hostname = expression.value();
+        assertThat(hostname, notNullValue());
+        assertThat(InetAddresses.isInetAddress(BytesRefs.toString(hostname)), is(false));
     }
 
     @Test
