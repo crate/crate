@@ -135,7 +135,7 @@ public class FetchProjector extends AbstractProjector {
     }
 
     private boolean nextStage(Stage from, Stage to) {
-        LOGGER.debug("Changing state from {} to {}", from, to);
+        LOGGER.trace("Changing state from {} to {}", from, to);
         synchronized (failureLock) {
             if (failIfNeeded()) return true;
             Stage was = stage.getAndSet(to);
