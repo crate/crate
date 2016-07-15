@@ -29,7 +29,6 @@ import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.Discovery;
-import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.node.service.NodeService;
@@ -57,7 +56,7 @@ public class NodeSysExpression extends NestedObjectExpression {
         this.jvmService = jvmService;
         this.extendedNodeInfo = extendedNodeInfo;
         childImplementations.put(SysNodesTableInfo.SYS_COL_HOSTNAME,
-                new NodeHostnameExpression(clusterService));
+                new NodeHostnameExpression());
         childImplementations.put(SysNodesTableInfo.SYS_COL_REST_URL,
                 new NodeRestUrlExpression(clusterService));
         childImplementations.put(SysNodesTableInfo.SYS_COL_ID,

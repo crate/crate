@@ -22,24 +22,20 @@
 package io.crate.operation.reference.sys.node;
 
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class NodeHostnameExpression extends SysNodeExpression<BytesRef> {
 
-    private final ClusterService clusterService;
-
-    public NodeHostnameExpression(ClusterService clusterService) {
-        this.clusterService = clusterService;
-    }
-
     @Override
     public BytesRef value() {
-        DiscoveryNode localNode = clusterService.localNode();
-        if (localNode != null) {
-            return new BytesRef(localNode.getHostName());
+        try {
+            String hostname = InetAddress.getLocalHost().getHostName();
+            return new BytesRef(hostname);
+        } catch (UnknownHostException e) {
+            return null;
         }
-        return null;
     }
 
 }
