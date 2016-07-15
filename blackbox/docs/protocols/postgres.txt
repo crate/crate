@@ -12,7 +12,6 @@ If a node is started with postgres support enabled it will by default bind to
 ``0.0.0.0:5432``. See :doc:`Configuration <../configuration>` for options to
 change that.
 
-
 The SQL dialect that Crate supports is different to the SQL dialect that
 Postgresql supports. So even though the wire protocol is supported it doesn't
 imply that any postgres client can be used as those clients may use SQL
