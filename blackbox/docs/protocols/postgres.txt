@@ -12,12 +12,10 @@ If a node is started with postgres support enabled it will by default bind to
 ``0.0.0.0:5432``. See :doc:`Configuration <../configuration>` for options to
 change that.
 
-
 The SQL dialect that Crate supports is different to the SQL dialect that
 Postgresql supports. So even though the wire protocol is supported it doesn't
 imply that any postgres client can be used as those clients may use SQL
 statements which aren't supported.
-
 
 One notable difference is that Crate doesn't support transactions.
 Therefore clients should generally enable ``autocommit``.
@@ -84,7 +82,6 @@ Function Call
 
 The Function call sub-protocol is not supported as this is considered a legacy
 feature.
-
 
 Canceling Requests in Progress
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

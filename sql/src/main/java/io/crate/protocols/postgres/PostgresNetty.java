@@ -72,7 +72,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;
 
-        enabled = CrateSettings.NETWORK_PSQL.extract(settings);
+        enabled = CrateSettings.PSQL_ENABLED.extract(settings);
         port = CrateSettings.PSQL_PORT.extract(settings);
     }
 
