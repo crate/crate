@@ -26,6 +26,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Locale;
 import java.util.Set;
@@ -90,6 +91,11 @@ public class StringSetting extends Setting<String, String> {
     @Override
     public String extract(Settings settings) {
         return settings.get(settingName(), defaultValue());
+    }
+
+    @Override
+    public String extract(Settings settings, @Nonnull String defaultValue) {
+        return settings.get(settingName(), defaultValue);
     }
 
     /**

@@ -71,9 +71,13 @@ public class StatsTables {
     private final LongAdder activeRequests = new LongAdder();
 
     protected final NodeSettingsService.Listener listener = new NodeSettingListener();
-    protected volatile int lastOperationsLogSize;
-    protected volatile int lastJobsLogSize;
-    protected volatile boolean lastIsEnabled;
+
+    private int initialOperationsLogSize;
+    private int initialJobsLogSize;
+    private boolean initialIsEnabled;
+    volatile int lastOperationsLogSize;
+    volatile int lastJobsLogSize;
+    private volatile boolean lastIsEnabled;
 
     public long activeRequests() {
         return activeRequests.longValue();
@@ -93,6 +97,9 @@ public class StatsTables {
             setOperationsLog(0);
         }
 
+        initialIsEnabled = isEnabled;
+        initialJobsLogSize = jobsLogSize;
+        initialOperationsLogSize = operationsLogSize;
         lastOperationsLogSize = operationsLogSize;
         lastJobsLogSize = jobsLogSize;
         lastIsEnabled = isEnabled;
@@ -250,16 +257,16 @@ public class StatsTables {
         @Override
         public void onRefreshSettings(Settings settings) {
             boolean wasEnabled = lastIsEnabled;
-            boolean becomesEnabled = CrateSettings.STATS_ENABLED.extract(settings);
+            boolean becomesEnabled = extractIsEnabled(settings);
 
             if (wasEnabled && becomesEnabled) {
-                int opSize = CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings);
+                int opSize = extractOperationsLogSize(settings);
                 if (opSize != lastOperationsLogSize) {
                     lastOperationsLogSize = opSize;
                     setOperationsLog(opSize);
                 }
 
-                int jobSize = CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings);
+                int jobSize = extractJobsLogSize(settings);
                 if (jobSize != lastJobsLogSize) {
                     lastJobsLogSize = jobSize;
                     setJobsLog(jobSize);
@@ -270,20 +277,32 @@ public class StatsTables {
                 setJobsLog(0);
                 lastIsEnabled = false;
 
-                lastOperationsLogSize = CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings);
-                lastJobsLogSize = CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings);
+                lastOperationsLogSize = extractOperationsLogSize(settings);
+                lastJobsLogSize = extractJobsLogSize(settings);
             } else if (becomesEnabled) { // !wasEnabled
                 lastIsEnabled = true;
 
                 // queue sizes was zero before so we have to change it
-                int opSize = CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings);
+                int opSize = extractOperationsLogSize(settings);
                 lastOperationsLogSize = opSize;
                 setOperationsLog(opSize);
 
-                int jobSize = CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings);
+                int jobSize = extractJobsLogSize(settings);
                 lastJobsLogSize = jobSize;
                 setJobsLog(jobSize);
             }
         }
+    }
+
+    private Integer extractJobsLogSize(Settings settings) {
+        return CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings, initialJobsLogSize);
+    }
+
+    private Boolean extractIsEnabled(Settings settings) {
+        return CrateSettings.STATS_ENABLED.extract(settings, initialIsEnabled);
+    }
+
+    private Integer extractOperationsLogSize(Settings settings) {
+        return CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings, initialOperationsLogSize);
     }
 }

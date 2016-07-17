@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Adapted behaviour of stats.enabled, stats.jobs_log_size and stats.operations_log_size settings
+   to match behaviour of other cluster wide settings like for example minimum_master_nodes.
+
  - Fix: Do not fetch table stats when node is not fully available yet.
    This could have led to NullPointerExceptions during long recovery
    process on node start.

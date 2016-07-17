@@ -26,6 +26,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class ByteSizeSetting extends Setting<ByteSizeValue, String> {
@@ -80,6 +81,11 @@ public class ByteSizeSetting extends Setting<ByteSizeValue, String> {
     }
 
     @Override
+    public String extract(Settings settings, @Nonnull ByteSizeValue defaultValue) {
+        return extractByteSizeValue(settings, defaultValue).toString();
+    }
+
+    @Override
     public boolean isRuntime() {
         return isRuntime;
     }
@@ -88,7 +94,11 @@ public class ByteSizeSetting extends Setting<ByteSizeValue, String> {
         return extractByteSizeValue(settings).bytes();
     }
 
-    public ByteSizeValue extractByteSizeValue(Settings settings) {
+    private ByteSizeValue extractByteSizeValue(Settings settings) {
         return settings.getAsBytesSize(settingName(), defaultValue());
+    }
+
+    private ByteSizeValue extractByteSizeValue(Settings settings, @Nonnull ByteSizeValue defaultValue) {
+        return settings.getAsBytesSize(settingName(), defaultValue);
     }
 }
