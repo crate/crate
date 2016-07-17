@@ -20,35 +20,18 @@
  * agreement.
  */
 
-package io.crate.protocols.postgres;
+package io.crate.exceptions;
 
-import io.crate.action.sql.ResultReceiver;
-import io.crate.analyze.symbol.Field;
-import io.crate.concurrent.CompletionListener;
-import io.crate.operation.collect.StatsTables;
-import io.crate.planner.Planner;
-import io.crate.sql.tree.Statement;
-import io.crate.types.DataType;
+public class BatchModeWriteOnlyException extends ForbiddenException {
 
-import javax.annotation.Nullable;
-import java.util.List;
+    private static final String MESSAGE = "Only write operations are allowed in Batch mode";
 
-public interface Portal {
+    public BatchModeWriteOnlyException() {
+        super(MESSAGE);
+    }
 
-    FormatCodes.FormatCode[] getLastResultFormatCodes();
-
-    List<? extends DataType> getLastOutputTypes();
-
-    String getLastQuery();
-
-    Portal bind(String statementName, String query, Statement statement,
-                List<Object> params, @Nullable FormatCodes.FormatCode[] resultFormatCodes);
-
-    List<Field> describe();
-
-    void execute(ResultReceiver resultReceiver, int maxRows);
-
-    void sync(Planner planner, StatsTables statsTables, CompletionListener listener);
-
-    void close();
+    @Override
+    public int errorCode() {
+        return 1;
+    }
 }

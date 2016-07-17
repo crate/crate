@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.TransportBaseSQLAction;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -37,6 +38,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
 
@@ -178,6 +180,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @Repeat(iterations = 1000)
     public void testExecuteBatchWithDifferentStatements() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
@@ -190,9 +193,16 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             statement.addBatch("insert into t (x) values (1)");
             statement.addBatch("insert into t (x) values (2)");
 
-            // mixed statements not supported
-            expectedException.expect(BatchUpdateException.class);
-            statement.executeBatch();
+            int[] results = statement.executeBatch();
+            assertThat(results, is(new int[] {1, 1}));
+
+            statement.executeUpdate("refresh table t");
+            ResultSet resultSet = statement.executeQuery("select * from t order by x");
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getInt(1), is(1));
+
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getInt(1), is(2));
         }
     }
 
@@ -289,12 +299,16 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
             conn.createStatement().execute("set global stats.enabled=true");
-            conn.prepareStatement("select name from sys.cluster").execute();
+            conn.createStatement().execute("select name, 'adfa' from sys.cluster");
+            String uniqueId = UUID.randomUUID().toString();
+            String stmtStr = "select name, '" + uniqueId + "' from sys.cluster";
+            String stmtStrWhere = "select name, ''" + uniqueId + "'' from sys.cluster";
 
-            ResultSet resultSet = conn.prepareStatement("select stmt from sys.jobs_log order by ended desc;")
-                .executeQuery();
+            conn.prepareStatement(stmtStr).execute();
+            ResultSet resultSet = conn.prepareStatement("select stmt from sys.jobs_log " +
+                                                        "where stmt='" + stmtStrWhere + "'").executeQuery();
             assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getString(1), is("select name from sys.cluster"));
+            assertThat(resultSet.getString(1), is(stmtStr));
         }
     }
 
@@ -305,15 +319,18 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             conn.createStatement().execute("set global stats.enabled=true");
             conn.prepareStatement("create table t (a integer not null, b string)").execute();
 
+            String uniqueId = UUID.randomUUID().toString();
+            String stmtStr = "insert into t(a,b) values(null, '" + uniqueId + "')";
+            String stmtStrWhere = "insert into t(a,b) values(null, ''" + uniqueId + "'')";
             try {
-                conn.prepareStatement("insert into t(a,b) values(null, 'test')").execute();
-            } catch (Exception e) {}
-
-            ResultSet resultSet = conn.prepareStatement("select stmt, error from sys.jobs_log order by ended desc;")
-                .executeQuery();
-            assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getString(1), is("insert into t(a,b) values(null, 'test')"));
-            assertThat(resultSet.getString(2), is("Cannot insert null value for column a"));
+                conn.prepareStatement(stmtStr).execute();
+            } catch (Exception e) {
+                ResultSet resultSet = conn.prepareStatement("select stmt, error from sys.jobs_log " +
+                                                            "where stmt='" + stmtStrWhere + "'").executeQuery();
+                assertThat(resultSet.next(), is(true));
+                assertThat(resultSet.getString(1), is(stmtStr));
+                assertThat(resultSet.getString(2), is("Cannot insert null value for column a"));
+            }
         }
     }
 

@@ -27,10 +27,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.analyze.Analysis;
-import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Symbols;
 import io.crate.concurrent.CompletionListener;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -48,24 +46,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static io.crate.action.sql.SQLRequest.EMPTY_ARGS;
-
 class BulkPortal extends AbstractPortal {
 
     private final List<List<Object>> bulkParams = new ArrayList<>();
     private final List<ResultReceiver> resultReceivers = new ArrayList<>();
     private String query;
     private Statement statement;
-    private Analysis analysis;
-    private Plan plan;
     private int maxRows = 0;
     private List<? extends DataType> outputTypes;
 
     BulkPortal(String name,
                String query,
                Statement statement,
-               Analysis analysis,
-               Plan plan,
                List<? extends DataType> outputTypes,
                ResultReceiver resultReceiver,
                int maxRows,
@@ -74,8 +66,6 @@ class BulkPortal extends AbstractPortal {
         super(name, sessionData);
         this.query = query;
         this.statement = statement;
-        this.analysis = analysis;
-        this.plan = plan;
         this.outputTypes = outputTypes;
         this.resultReceivers.add(resultReceiver);
         this.maxRows = maxRows;
@@ -83,12 +73,12 @@ class BulkPortal extends AbstractPortal {
     }
 
     @Override
-    public FormatCodes.FormatCode[] getResultFormatCodes() {
+    public FormatCodes.FormatCode[] getLastResultFormatCodes() {
         return new FormatCodes.FormatCode[0];
     }
 
     @Override
-    public List<? extends DataType> getOutputTypes() {
+    public List<? extends DataType> getLastOutputTypes() {
         return outputTypes;
     }
 
@@ -122,18 +112,13 @@ class BulkPortal extends AbstractPortal {
     }
 
     @Override
-    public Plan prepareSync(Planner planner) {
+    public void sync(Planner planner, StatsTables statsTables, CompletionListener listener) {
         Object[][] bulkArgs = toBulkArgs(bulkParams);
         Analysis analysis = sessionData.getAnalyzer().analyze(statement,
             new ParameterContext(new Object[0],
                 bulkArgs,
                 sessionData.getDefaultSchema()));
-        plan = planner.plan(analysis, sessionData.getJobId(), 0, maxRows);
-        return plan;
-    }
-
-    @Override
-    public void sync(Planner planner, StatsTables statsTables, CompletionListener listener) {
+        Plan plan = planner.plan(analysis, sessionData.getJobId(), 0, maxRows);
         executeBulk(sessionData.getExecutor(), plan, sessionData.getJobId(), statsTables, listener);
     }
 
