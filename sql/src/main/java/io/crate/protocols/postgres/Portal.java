@@ -23,11 +23,9 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.ResultReceiver;
-import io.crate.analyze.Analyzer;
 import io.crate.analyze.symbol.Field;
 import io.crate.concurrent.CompletionListener;
 import io.crate.operation.collect.StatsTables;
-import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
@@ -37,9 +35,9 @@ import java.util.List;
 
 public interface Portal {
 
-    FormatCodes.FormatCode[] getResultFormatCodes();
+    FormatCodes.FormatCode[] getLastResultFormatCodes();
 
-    List<? extends DataType> getOutputTypes();
+    List<? extends DataType> getLastOutputTypes();
 
     String getLastQuery();
 
@@ -49,8 +47,6 @@ public interface Portal {
     List<Field> describe();
 
     void execute(ResultReceiver resultReceiver, int maxRows);
-
-    Plan prepareSync(Planner planner);
 
     void sync(Planner planner, StatsTables statsTables, CompletionListener listener);
 
