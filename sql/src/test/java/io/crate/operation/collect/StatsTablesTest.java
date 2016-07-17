@@ -41,7 +41,6 @@ import static org.hamcrest.core.Is.is;
 
 public class StatsTablesTest extends CrateUnitTest {
 
-
     @Test
     public void testSettingsChanges() {
         NodeSettingsService nodeSettingsService = new NodeSettingsService(Settings.EMPTY);
@@ -54,12 +53,16 @@ public class StatsTablesTest extends CrateUnitTest {
         // even though logSizes are > 0 it must be a NoopQueue because the stats are disabled
         assertThat(stats.jobsLog.get(), Matchers.instanceOf(NoopQueue.class));
 
+        stats = new StatsTables(Settings.builder()
+            .put(CrateSettings.STATS_ENABLED.settingName(), true)
+            .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 100)
+            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 100).build(), nodeSettingsService);
+
         stats.listener.onRefreshSettings(Settings.builder()
-                .put(CrateSettings.STATS_ENABLED.settingName(), true)
                 .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 200).build());
 
         assertThat(stats.isEnabled(), is(true));
-        assertThat(stats.lastJobsLogSize, is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
+        assertThat(stats.lastJobsLogSize, is(100));
         assertThat(stats.lastOperationsLogSize, is(200));
 
         assertThat(stats.jobsLog.get(), Matchers.instanceOf(BlockingEvictingQueue.class));

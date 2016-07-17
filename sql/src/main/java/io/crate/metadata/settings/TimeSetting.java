@@ -26,6 +26,8 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 
+import javax.annotation.Nonnull;
+
 public abstract class TimeSetting extends Setting<TimeValue, String> {
 
     @Override
@@ -51,11 +53,20 @@ public abstract class TimeSetting extends Setting<TimeValue, String> {
         return extractTimeValue(settings).toString();
     }
 
+    @Override
+    public String extract(Settings settings, @Nonnull TimeValue defaultValue) {
+        return extractTimeValue(settings, defaultValue).toString();
+    }
+
     public long extractMillis(Settings settings) {
-        return extractTimeValue(settings).millis();
+        return extractTimeValue(settings, null).millis();
     }
 
     public TimeValue extractTimeValue(Settings settings) {
         return settings.getAsTime(settingName(), defaultValue());
+    }
+
+    private TimeValue extractTimeValue(Settings settings, @Nonnull TimeValue defaultValue) {
+        return settings.getAsTime(settingName(), defaultValue);
     }
 }

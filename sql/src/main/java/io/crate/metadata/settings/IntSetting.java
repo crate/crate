@@ -25,6 +25,8 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nonnull;
+
 public class IntSetting extends Setting<Integer, Integer> {
 
     private final String name;
@@ -80,5 +82,10 @@ public class IntSetting extends Setting<Integer, Integer> {
     @Override
     public Integer extract(Settings settings) {
         return settings.getAsInt(settingName(), defaultValue());
+    }
+
+    @Override
+    public Integer extract(Settings settings, @Nonnull Integer defaultValue) {
+        return settings.getAsInt(settingName(), defaultValue);
     }
 }

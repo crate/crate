@@ -34,6 +34,11 @@ public abstract class NestedSetting extends Setting<Object, Object> {
     }
 
     @Override
+    public Object extract(Settings settings, Object defaultValue) {
+        return extract(settings);
+    }
+
+    @Override
     public DataType dataType() {
         return DataTypes.OBJECT;
     }

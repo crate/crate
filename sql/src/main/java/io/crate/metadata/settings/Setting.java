@@ -27,6 +27,7 @@ import io.crate.types.DataType;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 
 public abstract class Setting<T, E> {
@@ -42,6 +43,8 @@ public abstract class Setting<T, E> {
     public abstract T defaultValue();
 
     public abstract E extract(Settings settings);
+
+    public abstract E extract(Settings settings, @Nonnull T defaultValue);
 
     public abstract boolean isRuntime();
 

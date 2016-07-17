@@ -25,6 +25,8 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nonnull;
+
 public class BoolSetting extends Setting<Boolean, Boolean> {
 
     private final String name;
@@ -50,6 +52,11 @@ public class BoolSetting extends Setting<Boolean, Boolean> {
     @Override
     public Boolean extract(Settings settings) {
         return settings.getAsBoolean(settingName(), defaultValue());
+    }
+
+    @Override
+    public Boolean extract(Settings settings, @Nonnull Boolean defaultValue) {
+        return settings.getAsBoolean(settingName(), defaultValue);
     }
 
     @Override

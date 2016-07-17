@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Adapted behaviour of stats.enabled, stats.jobs_log_size and stats.operations_log_size settings
+   to match behaviour of other cluster wide settings like for example minimum_master_nodes.
+
  - Fixed an issue which prevented running join queries on empty partitioned
    tables.
 

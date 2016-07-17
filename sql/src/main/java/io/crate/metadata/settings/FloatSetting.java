@@ -25,6 +25,8 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nonnull;
+
 public abstract class FloatSetting extends Setting<Float, Float> {
 
     public Float maxValue() {
@@ -43,5 +45,10 @@ public abstract class FloatSetting extends Setting<Float, Float> {
     @Override
     public Float extract(Settings settings) {
         return settings.getAsFloat(settingName(), defaultValue());
+    }
+
+    @Override
+    public Float extract(Settings settings, @Nonnull Float defaultValue) {
+        return settings.getAsFloat(settingName(), defaultValue);
     }
 }
