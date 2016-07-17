@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.TransportBaseSQLAction;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -179,6 +180,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @Repeat(iterations = 1000)
     public void testExecuteBatchWithDifferentStatements() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
@@ -191,9 +193,16 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             statement.addBatch("insert into t (x) values (1)");
             statement.addBatch("insert into t (x) values (2)");
 
-            // mixed statements not supported
-            expectedException.expect(BatchUpdateException.class);
-            statement.executeBatch();
+            int[] results = statement.executeBatch();
+            assertThat(results, is(new int[] {1, 1}));
+
+            statement.executeUpdate("refresh table t");
+            ResultSet resultSet = statement.executeQuery("select * from t order by x");
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getInt(1), is(1));
+
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getInt(1), is(2));
         }
     }
 

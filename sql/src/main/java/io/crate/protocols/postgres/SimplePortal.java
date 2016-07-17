@@ -64,7 +64,6 @@ public class SimplePortal extends AbstractPortal {
     private String query;
     private Statement statement;
     private Analysis analysis;
-    private Plan plan;
     @Nullable
     private FormatCodes.FormatCode[] resultFormatCodes;
     private List<? extends DataType> outputTypes;
@@ -84,12 +83,12 @@ public class SimplePortal extends AbstractPortal {
 
     @Override
     @Nullable
-    public FormatCodes.FormatCode[] getResultFormatCodes() {
+    public FormatCodes.FormatCode[] getLastResultFormatCodes() {
         return resultFormatCodes;
     }
 
     @Override
-    public List<? extends DataType> getOutputTypes() {
+    public List<? extends DataType> getLastOutputTypes() {
         return outputTypes;
     }
 
@@ -106,8 +105,15 @@ public class SimplePortal extends AbstractPortal {
             if (sessionData.isReadOnly()) { // Cannot have a bulk operation in read only mode
                 throw new ReadOnlyException();
             }
-            BulkPortal portal = new BulkPortal(name, this.query, this.statement, analysis, plan, outputTypes,
+            BulkPortal portal = new BulkPortal(name, this.query, this.statement, outputTypes,
                 resultReceiver, maxRows, this.params, sessionData);
+            return portal.bind(statementName, query, statement, params, resultFormatCodes);
+        } else if (this.statement != null) {
+            if (sessionData.isReadOnly()) { // Cannot have a batch operation in read only mode
+                throw new ReadOnlyException();
+            }
+            BatchPortal portal = new BatchPortal(name, this.query, analysis, outputTypes, resultReceiver,
+                this.params, sessionData);
             return portal.bind(statementName, query, statement, params, resultFormatCodes);
         }
 
@@ -142,13 +148,8 @@ public class SimplePortal extends AbstractPortal {
     }
 
     @Override
-    public Plan prepareSync(Planner planner) {
-        plan = planner.plan(analysis, sessionData.getJobId(), 0, maxRows);
-        return plan;
-    }
-
-    @Override
     public void sync(Planner planner, StatsTables statsTables, CompletionListener listener) {
+        Plan plan =planner.plan(analysis, sessionData.getJobId(), 0, maxRows);
         resultReceiver.addListener(listener);
         resultReceiver.addListener(new StatsTablesUpdateListener(sessionData.getJobId(), statsTables));
 

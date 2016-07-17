@@ -224,8 +224,6 @@ public class SQLOperations {
                 } else if (!statement.equals(this.statement)) {
                     if (this.statement instanceof BeginStatement) {
                         sync(CompletionListener.NO_OP);
-                    } else {
-                        throw new UnsupportedOperationException("Cannot use mixed statements in batch operations");
                     }
                 }
                 this.statement = statement;
@@ -286,8 +284,8 @@ public class SQLOperations {
 
             if (throwable == null) {
                 Portal portal = getSafePortal(lastPortalName);
-                Plan plan = portal.prepareSync(planner);
-                applySessionSettings(plan);
+//FIXME: re-enable apply session settings functionality
+//                applySessionSettings(plan);
                 portal.sync(planner, statsTables, listener);
                 cleanup(lastPortalName);
             } else {
@@ -320,7 +318,7 @@ public class SQLOperations {
             if (portal == null) {
                 return null;
             }
-            return portal.getOutputTypes();
+            return portal.getLastOutputTypes();
         }
 
         public String getQuery(String portalName) {
@@ -337,7 +335,7 @@ public class SQLOperations {
             if (portal == null) {
                 return null;
             }
-            return portal.getResultFormatCodes();
+            return portal.getLastResultFormatCodes();
         }
 
         public void closePortal(byte portalOrStatement, String portalOrStatementName) {
