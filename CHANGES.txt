@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue which prevented running join queries on empty partitioned
+   tables.
+
  - Fix: the ``hostname`` column of the ``sys.nodes`` table returns a hostname
    instead of an IP address.
 

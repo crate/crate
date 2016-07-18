@@ -108,6 +108,15 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testJoinOnEmptyPartitionedTables() throws Exception {
+        execute("create table foo (id long) partitioned by (id)");
+        execute("create table bar (id long) partitioned by (id)");
+        ensureYellow();
+        execute("select * from foo f, bar b where f.id = b.id");
+        assertThat(printedTable(response.rows()), is(""));
+    }
+
+    @Test
     public void testCrossJoinJoinUnordered() throws Exception {
         execute("create table employees (size float, name string) clustered by (size) into 1 shards");
         execute("create table offices (height float, name string) clustered by (height) into 1 shards");

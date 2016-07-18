@@ -42,6 +42,7 @@ import io.crate.planner.consumer.ESGetStatementPlanner;
 import io.crate.planner.consumer.SimpleSelect;
 import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.fetch.MultiSourceFetchPushDown;
+import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryThenFetch;
@@ -189,6 +190,11 @@ public class SelectStatementPlanner {
             ConsumerContext consumerContext = new ConsumerContext(mss, context);
             // plan sub relation as if root so that it adds a mergePhase
             PlannedAnalyzedRelation plannedSubQuery = consumingPlanner.plan(mss, consumerContext);
+            // NestedLoopConsumer can return NoopPlannedAnalyzedRelation if its left or right plan
+            // is noop. E.g. it is the case with creating NestedLoopConsumer for empty partitioned tables.
+            if (plannedSubQuery instanceof NoopPlannedAnalyzedRelation) {
+                return new NoopPlan(context.jobId());
+            }
             assert plannedSubQuery != null : "consumingPlanner should have created a subPlan";
             assert !plannedSubQuery.resultIsDistributed() : "subQuery must not have a distributed result";
 
