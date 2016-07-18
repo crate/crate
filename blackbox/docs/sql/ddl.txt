@@ -203,6 +203,7 @@ compute the value to partition by from existing columns in the table::
     DROP OK (... sec)
 
 
+.. _column_constraints:
 
 Constraints
 ===========
