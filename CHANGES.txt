@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Do not fetch table stats when node is not fully available yet.
+   This could have led to NullPointerExceptions during long recovery
+   process on node start.
+
  - Fetch operations are now threaded per shard instead of per node.
 
  - BREAKING: On Hunspell dictionary configuration, the parameter
