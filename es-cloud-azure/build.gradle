@@ -40,11 +40,6 @@ dependencies {
         exclude group: 'javax.mail', module: 'mail'
     }
     compile('javax.mail:mail:1.4.7')
-    /*
-    compileOnly('com.microsoft.azure:azure-core:0.9.3') {
-        exclude group: 'stax', module: 'stax-api'
-    }
-    compileOnly('com.microsoft.azure:azure-mgmt-utility:0.9.3')*/
 }
 
 def pluginDir = project(":es").file('upstream/plugins/cloud-azure')
