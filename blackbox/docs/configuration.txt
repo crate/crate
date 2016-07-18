@@ -1002,51 +1002,40 @@ Discovery on Microsoft Azure
 Crate has built-in support for discovery via the Azure Virtual Machine API.
 To enable Azure discovery set the ``discovery.type`` setting to ``azure``.
 
-**cloud.azure.management.keystore.path**
+**cloud.azure.management.resourcegroup.name**
   | *Runtime:*  ``no``
 
-  Path to the keystore.
-
-**cloud.azure.management.keystore.type**
-  | *Runtime:*  ``no``
-  | *Default:* ``pkcs12``
-  | *Allowed Values:* ``pkcs12 | jceks | jks``
-
-  The type of the keystore.
-
-**cloud.azure.management.keystore.password**
-  | *Runtime:*  ``no``
-
-  The password of the keystore.
+    the azure resource group name
 
 **cloud.azure.management.subscription.id**
   | *Runtime:*  ``no``
 
-  The Id of your Azure subscription, in the format of a UUID
-  ``xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx``.
+    the azure subscription id
 
-**cloud.azure.management.cloud.service.name**
+**cloud.azure.management.tenant.id**
   | *Runtime:*  ``no``
 
-**discovery.azure.host.type**
-  | *Runtime:*  ``no``
-  | *Default:* ``private_ip``
-  | *Allowed Values:* ``public_ip | private_ip``
+    the azure tenant id
 
-  Defines via which host type to communicate with other instances.
-
-**discovery.azure.endpoint.name**
+**cloud.azure.management.app.id**
   | *Runtime:*  ``no``
 
-**discovery.azure.deployment.name**
+    the azure active directory application id
+
+**cloud.azure.management.app.secret**
   | *Runtime:*  ``no``
 
-**discovery.azure.deployment.slot**
-  | *Runtime:*  ``no``
-  | *Default:* ``production``
-  | *Allowed Values:* ``staging | production``
+    the password for the azure active directory application
 
+**discovery.azure.method**
+  | *Runtime:* ``no``
+  | *Default:* ``vnet``
+  | *Allowed Values:* ``vnet | subnet``
 
+     Discovery method ``vnet`` means that all vms
+     in the same vnet will be discovered, ``subnet`` means
+     that all virtual machines in the same subnet will be added
+     to the cluster
 
 .. _conf_routing:
 
