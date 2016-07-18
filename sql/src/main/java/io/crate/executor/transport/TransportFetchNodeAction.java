@@ -22,6 +22,9 @@
 package io.crate.executor.transport;
 
 import com.carrotsearch.hppc.IntObjectMap;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
@@ -35,13 +38,13 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Locale;
-import java.util.concurrent.Executor;
 
 @Singleton
 public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, NodeFetchResponse> {
@@ -55,12 +58,10 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
     private final NodeFetchOperation nodeFetchOperation;
     private final CircuitBreaker circuitBreaker;
     private final JobContextService jobContextService;
-    private final ThreadPool threadPool;
 
     @Inject
     public TransportFetchNodeAction(TransportService transportService,
                                     Transports transports,
-                                    ThreadPool threadPool,
                                     StatsTables statsTables,
                                     CircuitBreakerService breakerService,
                                     JobContextService jobContextService,
@@ -70,7 +71,6 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
         this.nodeFetchOperation = nodeFetchOperation;
         this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         this.jobContextService = jobContextService;
-        this.threadPool = threadPool;
 
         transportService.registerRequestHandler(TRANSPORT_ACTION,
                 NodeFetchRequest.class,
@@ -115,32 +115,30 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
 
             JobExecutionContext jobExecutionContext = jobContextService.getContext(request.jobId());
             final FetchContext fetchContext = jobExecutionContext.getSubContext(request.fetchPhaseId());
-            Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
-            executor.execute(new AbstractRunnable() {
-                @Override
-                public void onFailure(Throwable t) {
-                    fetchContext.kill(t);
-                    fetchResponse.onFailure(t);
-                    statsTables.operationFinished(request.fetchPhaseId(), request.jobId(), Exceptions.messageOf(t),
-                            ramAccountingContext.totalBytes());
-                }
 
+            ListenableFuture<IntObjectMap<StreamBucket>> fetchedBucketFuture =
+                nodeFetchOperation.doFetch(fetchContext, request.toFetch());
+
+            Futures.addCallback(fetchedBucketFuture, new FutureCallback<IntObjectMap<StreamBucket>>() {
                 @Override
-                protected void doRun() throws Exception {
-                    IntObjectMap<StreamBucket> fetched = nodeFetchOperation.doFetch(
-                            fetchContext, request.toFetch());
-                    // no streamers needed to serialize, since the buckets are StreamBuckets
-                    NodeFetchResponse response = NodeFetchResponse.forSending(fetched);
+                public void onSuccess(@Nullable IntObjectMap<StreamBucket> result) {
+                    assert result != null : "result of nodeFetchOperation.doFetch must not be null";
+                    NodeFetchResponse response = NodeFetchResponse.forSending(result);
                     if (request.isCloseContext()) {
                         fetchContext.close();
                     }
                     fetchResponse.onResponse(response);
                     statsTables.operationFinished(request.fetchPhaseId(), request.jobId(), null,
-                            ramAccountingContext.totalBytes());
+                        ramAccountingContext.totalBytes());
+                    ramAccountingContext.close();
                 }
 
                 @Override
-                public void onAfter() {
+                public void onFailure(@Nonnull Throwable t) {
+                    fetchContext.kill(t);
+                    fetchResponse.onFailure(t);
+                    statsTables.operationFinished(request.fetchPhaseId(), request.jobId(), Exceptions.messageOf(t),
+                        ramAccountingContext.totalBytes());
                     ramAccountingContext.close();
                 }
             });

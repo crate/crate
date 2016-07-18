@@ -25,6 +25,9 @@ import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbols;
@@ -32,17 +35,26 @@ import io.crate.executor.transport.StreamBucket;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Singleton
 public class NodeFetchOperation {
+
+    private final Executor executor;
 
     private static class TableFetchInfo {
 
@@ -50,30 +62,33 @@ public class NodeFetchOperation {
         private final Collection<Reference> refs;
         private final FetchContext fetchContext;
 
-        public TableFetchInfo(Collection<Reference> refs, FetchContext fetchContext) {
+        TableFetchInfo(Collection<Reference> refs, FetchContext fetchContext) {
             this.refs = refs;
             this.fetchContext = fetchContext;
             this.streamers = Symbols.streamerArray(refs);
         }
 
-        public Streamer<?>[] streamers() {
-            return streamers;
-        }
-
-        public FetchCollector createCollector(int readerId) {
+        FetchCollector createCollector(int readerId) {
             IndexService indexService = fetchContext.indexService(readerId);
             LuceneReferenceResolver resolver = new LuceneReferenceResolver(indexService.mapperService());
             ArrayList<LuceneCollectorExpression<?>> exprs = new ArrayList<>(refs.size());
             for (Reference reference : refs) {
                 exprs.add(resolver.getImplementation(reference.info()));
             }
-            return new FetchCollector(exprs,
-                    indexService.mapperService(),
-                    fetchContext.searcher(readerId),
-                    indexService.fieldData(),
-                    readerId
+            return new FetchCollector(
+                exprs,
+                streamers,
+                indexService.mapperService(),
+                fetchContext.searcher(readerId),
+                indexService.fieldData(),
+                readerId
             );
         }
+    }
+
+    @Inject
+    public NodeFetchOperation(ThreadPool threadPool) {
+        executor = threadPool.executor(ThreadPool.Names.SEARCH);
     }
 
     private HashMap<TableIdent, TableFetchInfo> getTableFetchInfos(FetchContext fetchContext) {
@@ -85,24 +100,88 @@ public class NodeFetchOperation {
         return result;
     }
 
-    public IntObjectMap<StreamBucket> doFetch(
-        FetchContext fetchContext, @Nullable IntObjectMap<? extends IntContainer> toFetch) throws Exception {
-
+    public ListenableFuture<IntObjectMap<StreamBucket>> doFetch(
+        final FetchContext fetchContext, @Nullable IntObjectMap<? extends IntContainer> toFetch) throws Exception {
         if (toFetch == null) {
-            return new IntObjectHashMap<>(0);
+            return Futures.<IntObjectMap<StreamBucket>>immediateFuture(new IntObjectHashMap<StreamBucket>(0));
         }
 
-        IntObjectHashMap<StreamBucket> fetched = new IntObjectHashMap<>(toFetch.size());
+        final IntObjectHashMap<StreamBucket> fetched = new IntObjectHashMap<>(toFetch.size());
         HashMap<TableIdent, TableFetchInfo> tableFetchInfos = getTableFetchInfos(fetchContext);
+        final AtomicReference<Throwable> lastThrowable = new AtomicReference<>(null);
+        final AtomicInteger threadLatch = new AtomicInteger(toFetch.size());
 
+        final SettableFuture<IntObjectMap<StreamBucket>> resultFuture = SettableFuture.create();
         for (IntObjectCursor<? extends IntContainer> toFetchCursor : toFetch) {
-            TableIdent ident = fetchContext.tableIdent(toFetchCursor.key);
-            TableFetchInfo tfi = tableFetchInfos.get(ident);
+            final int readerId = toFetchCursor.key;
+            final IntContainer docIds = toFetchCursor.value;
+
+            TableIdent ident = fetchContext.tableIdent(readerId);
+            final TableFetchInfo tfi = tableFetchInfos.get(ident);
             assert tfi != null;
-            StreamBucket.Builder builder = new StreamBucket.Builder(tfi.streamers());
-            tfi.createCollector(toFetchCursor.key).collect(toFetchCursor.value, builder);
-            fetched.put(toFetchCursor.key, builder.build());
+
+            CollectRunnable runnable = new CollectRunnable(
+                tfi.createCollector(readerId),
+                docIds,
+                fetched,
+                readerId,
+                lastThrowable,
+                threadLatch,
+                resultFuture
+            );
+            try {
+                executor.execute(runnable);
+            } catch (EsRejectedExecutionException | RejectedExecutionException e) {
+                runnable.run();
+            }
         }
-        return fetched;
+        return resultFuture;
+    }
+
+    private static class CollectRunnable implements Runnable {
+        private final FetchCollector collector;
+        private final IntContainer docIds;
+        private final IntObjectHashMap<StreamBucket> fetched;
+        private final int readerId;
+        private final AtomicReference<Throwable> lastThrowable;
+        private final AtomicInteger threadLatch;
+        private final SettableFuture<IntObjectMap<StreamBucket>> resultFuture;
+
+        CollectRunnable(FetchCollector collector,
+                        IntContainer docIds,
+                        IntObjectHashMap<StreamBucket> fetched,
+                        int readerId,
+                        AtomicReference<Throwable> lastThrowable,
+                        AtomicInteger threadLatch,
+                        SettableFuture<IntObjectMap<StreamBucket>> resultFuture) {
+            this.collector = collector;
+            this.docIds = docIds;
+            this.fetched = fetched;
+            this.readerId = readerId;
+            this.lastThrowable = lastThrowable;
+            this.threadLatch = threadLatch;
+            this.resultFuture = resultFuture;
+        }
+
+        @Override
+        public void run() {
+            try {
+                StreamBucket bucket = collector.collect(docIds);
+                synchronized (fetched) {
+                    fetched.put(readerId, bucket);
+                }
+            } catch (Exception e) {
+                lastThrowable.set(e);
+            } finally {
+                if (threadLatch.decrementAndGet() == 0) {
+                    Throwable throwable = lastThrowable.get();
+                    if (throwable == null) {
+                        resultFuture.set(fetched);
+                    } else {
+                        resultFuture.setException(throwable);
+                    }
+                }
+            }
+        }
     }
 }

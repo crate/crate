@@ -24,12 +24,12 @@ package io.crate.operation.fetch;
 
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
+import io.crate.Streamer;
 import io.crate.executor.transport.StreamBucket;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.elasticsearch.index.engine.Engine;
@@ -37,26 +37,28 @@ import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.MapperService;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 
-public class FetchCollector {
+class FetchCollector {
 
     private final CollectorFieldsVisitor fieldsVisitor;
     private final boolean visitorEnabled;
-    private final Collection<LuceneCollectorExpression<?>> collectorExpressions;
+    private final LuceneCollectorExpression[] collectorExpressions;
     private final InputRow row;
-    private LeafReader currentReader;
+    private final Streamer<?>[] streamers;
     private final List<LeafReaderContext> readerContexts;
 
-    public FetchCollector(List<LuceneCollectorExpression<?>> collectorExpressions,
-                          MapperService mapperService,
-                          Engine.Searcher searcher,
-                          IndexFieldDataService indexFieldDataService,
-                          int readerId) {
-        this.collectorExpressions = collectorExpressions;
+    FetchCollector(List<LuceneCollectorExpression<?>> collectorExpressions,
+                   Streamer<?>[] streamers,
+                   MapperService mapperService,
+                   Engine.Searcher searcher,
+                   IndexFieldDataService indexFieldDataService,
+                   int readerId) {
+         // use toArray to avoid iterator allocations in docIds loop
+        this.collectorExpressions = collectorExpressions.toArray(new LuceneCollectorExpression[0]);
+        this.streamers = streamers;
         this.readerContexts = searcher.searcher().getIndexReader().leaves();
-        this.fieldsVisitor = new CollectorFieldsVisitor(this.collectorExpressions.size());
+        this.fieldsVisitor = new CollectorFieldsVisitor(this.collectorExpressions.length);
         CollectorContext collectorContext = new CollectorContext(mapperService, indexFieldDataService, fieldsVisitor, readerId);
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
@@ -66,31 +68,26 @@ public class FetchCollector {
 
     }
 
-    public void setNextReader(LeafReaderContext context) throws IOException {
-        currentReader = context.reader();
-        for (LuceneCollectorExpression expr : collectorExpressions) {
-            expr.setNextReader(context);
-        }
-    }
-
-    public void setNextDocId(int doc) throws IOException {
+    private void setNextDocId(LeafReaderContext readerContext, int doc) throws IOException {
         if (visitorEnabled) {
             fieldsVisitor.reset();
-            currentReader.document(doc, fieldsVisitor);
+            readerContext.reader().document(doc, fieldsVisitor);
         }
         for (LuceneCollectorExpression e : collectorExpressions) {
+            e.setNextReader(readerContext);
             e.setNextDocId(doc);
         }
     }
 
-    public void collect(IntContainer docIds, StreamBucket.Builder builder) throws IOException {
+    public StreamBucket collect(IntContainer docIds) throws IOException {
+        StreamBucket.Builder builder = new StreamBucket.Builder(streamers);
         for (IntCursor cursor : docIds) {
-            final int docId = cursor.value;
+            int docId = cursor.value;
             int readerIndex = ReaderUtil.subIndex(docId, readerContexts);
             LeafReaderContext subReaderContext = readerContexts.get(readerIndex);
-            setNextReader(subReaderContext);
-            setNextDocId(docId - subReaderContext.docBase);
+            setNextDocId(subReaderContext, docId - subReaderContext.docBase);
             builder.add(row);
         }
+        return builder.build();
     }
 }

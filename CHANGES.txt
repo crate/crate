@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fetch operations are now threaded per shard instead of per node.
+
  - BREAKING: On Hunspell dictionary configuration, the parameter
    indices.analysis.hunspell.dictionary.location has been removed and <path.conf>/hunspell
    is always used.
