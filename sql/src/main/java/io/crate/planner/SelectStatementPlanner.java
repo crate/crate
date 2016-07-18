@@ -65,8 +65,8 @@ public class SelectStatementPlanner {
     private final Visitor visitor;
 
     @Inject
-    public SelectStatementPlanner(ClusterService clusterService, ConsumingPlanner consumingPlanner) {
-        visitor = new Visitor(clusterService, consumingPlanner);
+    public SelectStatementPlanner(ConsumingPlanner consumingPlanner) {
+        visitor = new Visitor(consumingPlanner);
     }
 
     public Plan plan(SelectAnalyzedStatement statement, Planner.Context context) {
@@ -86,11 +86,9 @@ public class SelectStatementPlanner {
 
     private static class Visitor extends AnalyzedRelationVisitor<Planner.Context, Plan> {
 
-        private final ClusterService clusterService;
         private final ConsumingPlanner consumingPlanner;
 
-        public Visitor(ClusterService clusterService, ConsumingPlanner consumingPlanner) {
-            this.clusterService = clusterService;
+        public Visitor(ConsumingPlanner consumingPlanner) {
             this.consumingPlanner = consumingPlanner;
         }
 
