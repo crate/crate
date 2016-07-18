@@ -38,10 +38,10 @@ import org.elasticsearch.action.support.ActionFilter;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
@@ -55,6 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TableStatsServiceTest extends CrateUnitTest  {
 
@@ -71,21 +72,19 @@ public class TableStatsServiceTest extends CrateUnitTest  {
         threadPool.awaitTermination(30, TimeUnit.SECONDS);
     }
 
-    @Test
-    public void testNumDocs() throws Exception {
-        final AtomicInteger numRequests = new AtomicInteger(0);
-        final TransportSQLAction transportSQLAction = new TransportSQLAction(
-                mock(ClusterService.class),
-                Settings.EMPTY,
-                threadPool,
-                mock(Analyzer.class),
-                mock(Planner.class),
-                mock(Provider.class),
-                mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
-                mock(StatsTables.class),
-                new ActionFilters(ImmutableSet.<ActionFilter>of()),
-                mock(IndexNameExpressionResolver.class),
-                mock(TransportKillJobsNodeAction.class)
+    private TransportSQLAction getTransportSQLAction(final AtomicInteger numRequests) {
+        return new TransportSQLAction(
+            mock(ClusterService.class),
+            Settings.EMPTY,
+            threadPool,
+            mock(Analyzer.class),
+            mock(Planner.class),
+            mock(Provider.class),
+            mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
+            mock(StatsTables.class),
+            new ActionFilters(ImmutableSet.<ActionFilter>of()),
+            mock(IndexNameExpressionResolver.class),
+            mock(TransportKillJobsNodeAction.class)
         ) {
             @Override
             protected void doExecute(SQLRequest request, ActionListener<SQLResponse> listener) {
@@ -96,19 +95,31 @@ public class TableStatsServiceTest extends CrateUnitTest  {
                     row = new Object[] { 4L, "foo", "bar"};
                 }
                 listener.onResponse(new SQLResponse(
-                        new String[] {"cast(sum(num_docs) as long)", "schema_name", "table_name"},
-                        new Object[][] { row },
-                        new DataType[] {DataTypes.LONG, DataTypes.STRING, DataTypes.STRING},
-                        1L,
-                        1,
-                        false
+                    new String[] {"cast(sum(num_docs) as long)", "schema_name", "table_name"},
+                    new Object[][] { row },
+                    new DataType[] {DataTypes.LONG, DataTypes.STRING, DataTypes.STRING},
+                    1L,
+                    1,
+                    false
                 ));
                 numRequests.incrementAndGet();
             }
         };
+    }
 
-        TableStatsService statsService = new TableStatsService(
-                Settings.EMPTY, threadPool, TimeValue.timeValueMillis(100), new Provider<TransportSQLAction>() {
+    @Test
+    public void testNumDocs() throws Exception {
+        final AtomicInteger numRequests = new AtomicInteger(0);
+        final TransportSQLAction transportSQLAction = getTransportSQLAction(numRequests);
+
+        ClusterService clusterService = mock(ClusterService.class);
+        when(clusterService.localNode()).thenReturn(mock(DiscoveryNode.class));
+
+        TableStatsService statsService = new TableStatsService(Settings.EMPTY,
+                                                               threadPool,
+                                                               clusterService,
+                                                               TimeValue.timeValueMillis(100),
+                                                               new Provider<TransportSQLAction>() {
             @Override
             public TransportSQLAction get() {
                 return transportSQLAction;
@@ -127,5 +138,29 @@ public class TableStatsServiceTest extends CrateUnitTest  {
         assertThat(statsService.numDocs(new TableIdent("foo", "bar")), is(4L));
 
         assertThat(statsService.numDocs(new TableIdent("unknown", "table")), is(-1L));
+    }
+
+    @Test
+    public void testNoUpdateIfLocalNodeNotAvailable() throws Exception {
+        final AtomicInteger numRequests = new AtomicInteger(0);
+        final TransportSQLAction transportSQLAction = getTransportSQLAction(numRequests);
+
+        ClusterService clusterService = mock(ClusterService.class);
+        when(clusterService.localNode()).thenReturn(null);
+
+        TableStatsService statsService = new TableStatsService(Settings.EMPTY,
+            threadPool,
+            clusterService,
+            TimeValue.timeValueSeconds(60L),
+            new Provider<TransportSQLAction>() {
+                @Override
+                public TransportSQLAction get() {
+                    return transportSQLAction;
+                }
+            });
+
+        statsService.run();
+        assertThat(statsService.numDocs(new TableIdent("foo", "bar")), is(-1L));
+        assertThat(numRequests.get(), Matchers.greaterThanOrEqualTo(0));
     }
 }

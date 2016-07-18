@@ -30,6 +30,7 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.action.sql.TransportSQLAction;
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.BindingAnnotation;
 import org.elasticsearch.common.inject.Inject;
@@ -50,6 +51,7 @@ public class TableStatsService extends AbstractComponent implements Runnable {
 
     private static final SQLRequest REQUEST = new SQLRequest(
             "select cast(sum(num_docs) as long), schema_name, table_name from sys.shards group by 2, 3");
+    private final ClusterService clusterService;
     private final Provider<TransportSQLAction> transportSQLAction;
     private volatile ObjectLongMap<TableIdent> tableStats = null;
 
@@ -61,9 +63,11 @@ public class TableStatsService extends AbstractComponent implements Runnable {
     @Inject
     public TableStatsService(Settings settings,
                              ThreadPool threadPool,
+                             ClusterService clusterService,
                              @StatsUpdateInterval TimeValue updateInterval,
                              Provider<TransportSQLAction> transportSQLAction) {
         super(settings);
+        this.clusterService = clusterService;
         this.transportSQLAction = transportSQLAction;
         threadPool.scheduleWithFixedDelay(this, updateInterval);
     }
@@ -74,6 +78,14 @@ public class TableStatsService extends AbstractComponent implements Runnable {
     }
 
     private void updateStats() {
+        if (clusterService.localNode() == null) {
+            /**
+             * During a long startup (e.g. during an upgrade process) the localNode() may be null
+             * and this would lead to NullPointerException in the TransportExecutor.
+             */
+            logger.debug("Could not retrieve table stats. localNode is not fully available yet.");
+            return;
+        }
         transportSQLAction.get().execute(
                 REQUEST,
                 new ActionListener<SQLResponse>() {
@@ -108,11 +120,11 @@ public class TableStatsService extends AbstractComponent implements Runnable {
      */
     public long numDocs(TableIdent tableIdent) {
         ObjectLongMap<TableIdent> stats = tableStats;
-        if (stats == null) {
+        if (stats == null && clusterService.localNode() != null) {
             stats = statsFromResponse(transportSQLAction.get().execute(REQUEST).actionGet(30, TimeUnit.SECONDS));
             tableStats = stats;
         }
-        if (stats.containsKey(tableIdent)) {
+        if (stats != null && stats.containsKey(tableIdent)) {
             return stats.get(tableIdent);
         }
         return -1;
