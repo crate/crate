@@ -934,12 +934,10 @@ hunspell
 
 ``type='hunspell'``
 
-Basic support for hunspell stemming.
-Hunspell dictionaries will be picked up from a dedicated hunspell directory on the filesystem
-(defaults to <path.conf>/hunspell).
-Each dictionary is expected to have its own directory named after its associated locale (language).
-This dictionary directory is expected to hold both the \*.aff and \*.dic files (all of which will
-automatically be picked up).
+Basic support for Hunspell stemming. Hunspell dictionaries will be picked up from the dedicated
+directory ``<path.conf>/hunspell``. Each dictionary is expected to have its own directory named
+after its associated locale (language). This dictionary directory is expected to hold both the
+\*.aff and \*.dic files (all of which will automatically be picked up).
 
 Parameters
 ..........
@@ -956,8 +954,7 @@ locale
     of these has to be set.
 
 dictionary
-    The name of a dictionary. The path to your hunspell dictionaries should be configured
-    via indices.analysis.hunspell.dictionary.location in the crate.yml config file.
+    The name of a dictionary contained in ``<path.conf>/hunspell``.
 
 dedup
     If only unique terms should be returned, this needs to be set to true. Defaults to true.

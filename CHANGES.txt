@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - BREAKING: On Hunspell dictionary configuration, the parameter
+   indices.analysis.hunspell.dictionary.location has been removed and <path.conf>/hunspell
+   is always used.
+
  - Fixed a bug that prevented join and sort on blob tables.
 
  - Adapted behaviour of stats.enabled, stats.jobs_log_size and stats.operations_log_size settings
