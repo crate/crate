@@ -20,37 +20,19 @@
  * agreement.
  */
 
-package io.crate.protocols.postgres.types;
+package io.crate.metadata.pg_catalog;
 
-import org.elasticsearch.common.collect.MapBuilder;
-import org.junit.Test;
+import io.crate.metadata.table.SchemaInfo;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-import java.util.Map;
+public class PgCatalogModule extends AbstractModule {
 
-public class JsonTypeTest extends BasePGTypeTest<Map<String, Object>> {
+    protected MapBinder<String, SchemaInfo> schemaBinder;
 
-    private Map<String, Object> map = MapBuilder.<String, Object>newMapBuilder()
-        .put("foo", "bar")
-        .put("x", 10)
-        .map();
-
-    public JsonTypeTest() {
-        super(JsonType.INSTANCE);
-    }
-
-    @Test
-    public void testWriteValue() throws Exception {
-        byte[] expectedBytes = new byte[]{
-            0, 0, 0, 20, 123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 120, 34, 58, 49, 48, 125
-        };
-        assertBytesWritten(map, expectedBytes, 24);
-    }
-
-    @Test
-    public void testReadValue() throws Exception {
-        byte[] bytes = new byte[]{
-            123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 120, 34, 58, 49, 48, 125
-        };
-        assertBytesReadBinary(bytes, map, 20);
+    @Override
+    protected void configure() {
+        schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
+        schemaBinder.addBinding(PgCatalogSchemaInfo.NAME).to(PgCatalogSchemaInfo.class).asEagerSingleton();
     }
 }

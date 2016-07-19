@@ -41,6 +41,7 @@ import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.blob.MetaDataBlobModule;
 import io.crate.metadata.doc.MetaDataDocModule;
 import io.crate.metadata.information.MetaDataInformationModule;
+import io.crate.metadata.pg_catalog.PgCatalogModule;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
 import io.crate.metadata.settings.SettingsAppliers;
@@ -136,6 +137,7 @@ public class SQLPlugin extends Plugin {
         modules.add(new MetaDataSysModule());
         modules.add(new MetaDataDocModule());
         modules.add(new MetaDataBlobModule());
+        modules.add(new PgCatalogModule());
         modules.add(new MetaDataInformationModule());
         modules.add(new OperatorModule());
         modules.add(new PredicateModule());

@@ -34,8 +34,10 @@ class IntegerType extends PGType {
     private static final int TYPE_LEN = 4;
     private static final int TYPE_MOD = -1;
 
-    IntegerType() {
-        super(OID, TYPE_LEN, TYPE_MOD);
+    public static final IntegerType INSTANCE = new IntegerType();
+
+    private IntegerType() {
+        super(OID, TYPE_LEN, TYPE_MOD, "int4");
     }
 
     @Override

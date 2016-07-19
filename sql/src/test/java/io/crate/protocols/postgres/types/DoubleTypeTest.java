@@ -27,7 +27,7 @@ import org.junit.Test;
 public class DoubleTypeTest extends BasePGTypeTest<Double> {
 
     public DoubleTypeTest() {
-        super(new DoubleType());
+        super(DoubleType.INSTANCE);
     }
 
     @Test

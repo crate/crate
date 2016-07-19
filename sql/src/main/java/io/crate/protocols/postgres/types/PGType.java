@@ -33,11 +33,13 @@ public abstract class PGType {
     private final int oid;
     private final int typeLen;
     private final int typeMod;
+    private final String typName;
 
-    PGType(int oid, int typeLen, int typeMod) {
+    PGType(int oid, int typeLen, int typeMod, @Nonnull String typName) {
         this.oid = oid;
         this.typeLen = typeLen;
         this.typeMod = typeMod;
+        this.typName = typName;
     }
 
     public int oid() {
@@ -52,6 +54,17 @@ public abstract class PGType {
         return typeMod;
     }
 
+    public String typName() {
+        return typName;
+    }
+
+    public int typElem() {
+        return 0;
+    }
+
+    public String typDelim() {
+        return ",";
+    }
 
     /**
      * Write the value as text into the buffer.
@@ -100,4 +113,5 @@ public abstract class PGType {
      * Convert a UTF8 encoded text representation into the actual value
      */
     abstract Object decodeUTF8Text(byte[] bytes);
+
 }

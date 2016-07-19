@@ -29,13 +29,14 @@ import java.nio.charset.StandardCharsets;
 
 class RealType extends PGType {
 
+    public static final RealType INSTANCE = new RealType();
     static final int OID = 700;
 
     private static final int TYPE_LEN = 4;
     private static final int TYPE_MOD = -1;
 
-    RealType() {
-        super(OID, TYPE_LEN, TYPE_MOD);
+    private RealType() {
+        super(OID, TYPE_LEN, TYPE_MOD, "float4");
     }
 
     @Override

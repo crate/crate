@@ -31,6 +31,7 @@ import java.util.Collection;
 
 class BooleanType extends PGType {
 
+    public static final PGType INSTANCE = new BooleanType();
     static final int OID = 16;
 
     private static final int TYPE_LEN = 1;
@@ -47,8 +48,8 @@ class BooleanType extends PGType {
         ByteBuffer.wrap(new byte[] { 'T', 'R', 'U', 'E'})
     );
 
-    BooleanType() {
-        super(OID, TYPE_LEN, TYPE_MOD);
+    private BooleanType() {
+        super(OID, TYPE_LEN, TYPE_MOD, "bool");
     }
 
     @Override

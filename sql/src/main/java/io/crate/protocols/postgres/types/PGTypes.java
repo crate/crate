@@ -25,6 +25,7 @@ package io.crate.protocols.postgres.types;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.google.common.collect.ImmutableMap;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -34,30 +35,37 @@ import java.util.Map;
 public class PGTypes {
 
     private static final Map<DataType, PGType> CRATE_TO_PG_TYPES = ImmutableMap.<DataType, PGType>builder()
-        .put(DataTypes.STRING, new VarCharType())
-        .put(DataTypes.BOOLEAN, new BooleanType())
-        .put(DataTypes.OBJECT, new JsonType())
-        .put(DataTypes.SHORT, new SmallIntType())
-        .put(DataTypes.INTEGER, new IntegerType())
-        .put(DataTypes.LONG, new BigIntType())
-        .put(DataTypes.FLOAT, new RealType())
-        .put(DataTypes.DOUBLE, new DoubleType())
-        .put(DataTypes.TIMESTAMP, new TimestampType())
-        .put(DataTypes.IP, new VarCharType()) // postgres has no IP type, so map it to varchar - it matches the client representation
+        .put(DataTypes.STRING, VarCharType.INSTANCE)
+        .put(DataTypes.BOOLEAN, BooleanType.INSTANCE)
+        .put(DataTypes.OBJECT, JsonType.INSTANCE)
+        .put(DataTypes.SHORT, SmallIntType.INSTANCE)
+        .put(DataTypes.INTEGER, IntegerType.INSTANCE)
+        .put(DataTypes.LONG, BigIntType.INSTANCE)
+        .put(DataTypes.FLOAT, RealType.INSTANCE)
+        .put(DataTypes.DOUBLE, DoubleType.INSTANCE)
+        .put(DataTypes.TIMESTAMP, TimestampType.INSTANCE)
+        .put(DataTypes.IP, VarCharType.INSTANCE) // postgres has no IP type, so map it to varchar - it matches the client representation
+        .put(new ArrayType(DataTypes.SHORT), PGArray.INT2_ARRAY)
+        .put(new ArrayType(DataTypes.INTEGER), PGArray.INT4_ARRAY)
+        .put(new ArrayType(DataTypes.LONG), PGArray.INT8_ARRAY)
+        .put(new ArrayType(DataTypes.FLOAT), PGArray.FLOAT4_ARRAY)
+        .put(new ArrayType(DataTypes.DOUBLE), PGArray.FLOAT8_ARRAY)
+        .put(new ArrayType(DataTypes.BOOLEAN), PGArray.BOOL_ARRAY)
+        .put(new ArrayType(DataTypes.TIMESTAMP), PGArray.TIMESTAMPZ_ARRAY)
+        .put(new ArrayType(DataTypes.STRING), PGArray.VARCHAR_ARRAY)
         .build();
 
-    private static final IntObjectMap<DataType> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<DataType>()
-    {{
-        put(0, DataTypes.UNDEFINED);
-        put(VarCharType.OID, DataTypes.STRING);
-        put(BooleanType.OID, DataTypes.BOOLEAN);
-        put(JsonType.OID, DataTypes.OBJECT);
-        put(SmallIntType.OID, DataTypes.SHORT);
-        put(IntegerType.OID, DataTypes.INTEGER);
-        put(BigIntType.OID, DataTypes.LONG);
-        put(RealType.OID, DataTypes.FLOAT);
-        put(DoubleType.OID, DataTypes.DOUBLE);
-    }};
+    public static Iterable<PGType> pgTypes() {
+        return CRATE_TO_PG_TYPES.values();
+    }
+
+    private static final IntObjectMap<DataType> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
+    static {
+        for (Map.Entry<DataType, PGType> e : CRATE_TO_PG_TYPES.entrySet()) {
+            PG_TYPES_TO_CRATE_TYPE.put(e.getValue().oid(), e.getKey());
+        }
+        PG_TYPES_TO_CRATE_TYPE.put(0, DataTypes.UNDEFINED);
+    }
 
     public static DataType fromOID(int oid) {
         return PG_TYPES_TO_CRATE_TYPE.get(oid);

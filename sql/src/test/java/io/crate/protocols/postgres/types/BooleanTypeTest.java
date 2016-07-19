@@ -27,7 +27,7 @@ import org.junit.Test;
 public class BooleanTypeTest extends BasePGTypeTest<Boolean> {
 
     public BooleanTypeTest() {
-        super(new BooleanType());
+        super(BooleanType.INSTANCE);
     }
 
     @Test

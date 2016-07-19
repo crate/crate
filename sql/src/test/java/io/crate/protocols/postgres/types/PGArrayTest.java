@@ -22,35 +22,38 @@
 
 package io.crate.protocols.postgres.types;
 
-import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Test;
 
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
 
-public class JsonTypeTest extends BasePGTypeTest<Map<String, Object>> {
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
-    private Map<String, Object> map = MapBuilder.<String, Object>newMapBuilder()
-        .put("foo", "bar")
-        .put("x", 10)
-        .map();
+public class PGArrayTest {
 
-    public JsonTypeTest() {
-        super(JsonType.INSTANCE);
+    private PGArray pgArray = PGArray.INT4_ARRAY;
+
+    @Test
+    public void testEncodeUTF8Text() throws Exception {
+        byte[] bytes = pgArray.encodeAsUTF8Text(new Object[] { 10, 20 });
+        String s = new String(bytes, StandardCharsets.UTF_8);
+
+        assertThat(s, is("{\"10\",\"20\"}"));
     }
 
     @Test
-    public void testWriteValue() throws Exception {
-        byte[] expectedBytes = new byte[]{
-            0, 0, 0, 20, 123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 120, 34, 58, 49, 48, 125
-        };
-        assertBytesWritten(map, expectedBytes, 24);
+    public void testArrayWithNullValues() throws Exception {
+        Object[] array = {10, null, 20};
+        byte[] bytes = pgArray.encodeAsUTF8Text(array);
+        String s = new String(bytes, StandardCharsets.UTF_8);
+        assertThat(s, is("{\"10\",NULL,\"20\"}"));
+        Object o = pgArray.decodeUTF8Text(bytes);
+        assertThat(((Object[]) o), is(array));
     }
 
     @Test
-    public void testReadValue() throws Exception {
-        byte[] bytes = new byte[]{
-            123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 120, 34, 58, 49, 48, 125
-        };
-        assertBytesReadBinary(bytes, map, 20);
+    public void testDecodeUTF8Text() throws Exception {
+        Object o = pgArray.decodeUTF8Text("{\"10\",\"20\"}".getBytes(StandardCharsets.UTF_8));
+        assertThat((Object[]) o, is(new Object[] { 10, 20}));
     }
 }

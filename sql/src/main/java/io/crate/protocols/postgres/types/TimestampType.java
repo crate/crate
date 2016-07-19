@@ -31,6 +31,8 @@ import java.nio.charset.StandardCharsets;
 
 class TimestampType extends PGType {
 
+    public static final PGType INSTANCE = new TimestampType();
+
     /**
      * this oid is TIMESTAMPZ (with timezone) instead of TIMESTAMP
      * the timezone is always GMT
@@ -49,9 +51,8 @@ class TimestampType extends PGType {
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss +00").withZoneUTC();
 
 
-
-    TimestampType() {
-        super(OID, TYPE_LEN, TYPE_MOD);
+    private TimestampType() {
+        super(OID, TYPE_LEN, TYPE_MOD, "timestampz");
     }
 
     @Override

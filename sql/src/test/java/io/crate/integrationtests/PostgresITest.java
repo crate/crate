@@ -107,6 +107,32 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testArrayTypeSupport() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+            conn.createStatement().executeUpdate(
+                "create table t (" +
+                "   ints array(int)," +
+                "   strings array(string)) with (number_of_replicas = 0)");
+
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into t (ints, strings) values (?, ?)");
+            preparedStatement.setArray(1, conn.createArrayOf("int4", new Integer[] { 10, 20 }));
+            preparedStatement.setArray(2, conn.createArrayOf("varchar", new String[] { "foo", "bar" }));
+            preparedStatement.executeUpdate();
+
+            conn.createStatement().executeUpdate("refresh table t");
+
+            ResultSet resultSet = conn.createStatement().executeQuery("select ints, strings from t");
+            assertThat(resultSet.next(), is(true));
+
+            Object object = ((Array) resultSet.getObject(1)).getArray();
+            assertThat((Object[]) object, is(new Object[] { 10, 20 }));
+
+            object = ((Array) resultSet.getObject(2)).getArray();
+            assertThat((Object[]) object, is(new Object[] { "foo", "bar" }));
+        }
+    }
+
+    @Test
     public void testFetchSize() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.createStatement().executeUpdate("create table t (x int) with (number_of_replicas = 0)");
@@ -173,7 +199,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     public void testExecuteBatchWithDifferentStatements() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
-
             Statement stmt = conn.createStatement();
             stmt.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
             ensureYellow();
@@ -271,12 +296,12 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     public void testErrorRecoveryFromErrorsOutsideSqlOperations() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
-            PreparedStatement stmt = conn.prepareStatement("select * from information_schema.tables");
+            PreparedStatement stmt = conn.prepareStatement("select cast([10.3, 20.2] as geo_point) from information_schema.tables");
             try {
                 stmt.executeQuery();
                 assertFalse(true); // should've raised PSQLException
             } catch (PSQLException e) {
-                assertThat(e.getMessage(), Matchers.containsString("No type mapping from 'string_array' to"));
+                assertThat(e.getMessage(), Matchers.containsString("No type mapping from 'geo_point' to"));
             }
 
             assertSelectNameFromSysClusterWorks(conn);

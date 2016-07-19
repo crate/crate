@@ -27,7 +27,7 @@ import org.junit.Test;
 public class RealTypeTest extends BasePGTypeTest<Float> {
 
     public RealTypeTest() {
-        super(new RealType());
+        super(RealType.INSTANCE);
     }
 
     @Test

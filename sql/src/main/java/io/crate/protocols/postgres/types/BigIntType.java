@@ -29,13 +29,15 @@ import java.nio.charset.StandardCharsets;
 
 class BigIntType extends PGType {
 
+    public static final BigIntType INSTANCE = new BigIntType();
     static final int OID = 20;
 
     private static final int TYPE_LEN = 8;
     private static final int TYPE_MOD = -1;
 
-    BigIntType() {
-        super(OID, TYPE_LEN, TYPE_MOD);
+
+    private BigIntType() {
+        super(OID, TYPE_LEN, TYPE_MOD, "int8");
     }
 
     @Override

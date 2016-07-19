@@ -29,13 +29,14 @@ import java.nio.charset.StandardCharsets;
 
 class DoubleType extends PGType {
 
+    public static final DoubleType INSTANCE = new DoubleType();
     static final int OID = 701;
 
     private static final int TYPE_LEN = 8;
     private static final int TYPE_MOD = -1;
 
-    DoubleType() {
-        super(OID, TYPE_LEN, TYPE_MOD);
+    private DoubleType() {
+        super(OID, TYPE_LEN, TYPE_MOD, "float8");
     }
 
     @Override
