@@ -50,12 +50,12 @@ import static io.crate.action.sql.SQLBulkRequest.EMPTY_BULK_ARGS;
 
 class BatchPortal extends AbstractPortal {
 
-    private List<List<Object>> batchParams = new ArrayList<>();
-    private List<String> queries = new ArrayList<>();
-    private List<Analysis> analysis= new ArrayList<>();
-    private List<FormatCodes.FormatCode[]> resultFormatCodes = new ArrayList<>();
-    private List<List<? extends DataType>> outputTypes = new ArrayList<>();
-    private List<ResultReceiver> resultReceivers = new ArrayList<>();
+    private final List<List<Object>> batchParams = new ArrayList<>();
+    private final List<String> queries = new ArrayList<>();
+    private final List<Analysis> analysis= new ArrayList<>();
+    private final List<FormatCodes.FormatCode[]> resultFormatCodes = new ArrayList<>();
+    private final List<List<? extends DataType>> outputTypes = new ArrayList<>();
+    private final List<ResultReceiver> resultReceivers = new ArrayList<>();
 
     BatchPortal(String name,
                 String query,
@@ -126,7 +126,11 @@ class BatchPortal extends AbstractPortal {
     public void sync(Planner planner, StatsTables statsTables, CompletionListener listener) {
         BatchCompletionListener batchCompletionListener = new BatchCompletionListener(analysis.size(), listener);
         for (int i = 0; i < analysis.size(); i++) {
-            UUID jobId = UUID.randomUUID();
+            UUID jobId = sessionData.getJobId();
+            if (i > 0) {
+                jobId = UUID.randomUUID();
+                statsTables.jobStarted(jobId, queries.get(i));
+            }
             Plan plan = planner.plan(analysis.get(i), jobId, 0, 0);
             ResultReceiver resultReceiver = resultReceivers.get(i);
             resultReceiver.addListener(new StatsTablesUpdateListener(jobId, statsTables));

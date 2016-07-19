@@ -36,7 +36,6 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
 
@@ -54,7 +53,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         Settings.Builder builder = Settings.builder();
         builder.put(super.nodeSettings(nodeOrdinal))
             .put("psql.enabled", true)
-            .put("psql.host", "127.0.0.1");
+            .put("network.host", "127.0.0.1");
 
         if ((nodeOrdinal + 1) % 2 == 0) {
             builder.put("psql.port", "4242");
@@ -281,54 +280,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             }
 
             assertSelectNameFromSysClusterWorks(conn);
-        }
-    }
-
-    @Test
-    public void testStatsTableSuccess() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
-            conn.setAutoCommit(true);
-            conn.createStatement().execute("set global stats.enabled=true");
-            String uniqueId = UUID.randomUUID().toString();
-            String stmtStr = "select name, '" + uniqueId + "' from sys.cluster";
-            String stmtStrWhere = "select name, ''" + uniqueId + "'' from sys.cluster";
-
-            conn.prepareStatement(stmtStr).execute();
-            ResultSet resultSet = conn.prepareStatement("select stmt from sys.jobs_log " +
-                                                        "where stmt='" + stmtStrWhere + "'").executeQuery();
-            assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getString(1), is(stmtStr));
-        } finally {
-            try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
-                conn.createStatement().execute("reset global stats.enabled");
-            }
-        }
-    }
-
-    @Test
-    public void testStatsTableFailure() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
-            conn.setAutoCommit(true);
-            conn.createStatement().execute("set global stats.enabled=true");
-            conn.prepareStatement("create table t (a integer not null, b string)").execute();
-
-            String uniqueId = UUID.randomUUID().toString();
-            String stmtStr = "insert into t(a,b) values(null, '" + uniqueId + "')";
-            String stmtStrWhere = "insert into t(a,b) values(null, ''" + uniqueId + "'')";
-            try {
-                conn.prepareStatement(stmtStr).execute();
-                fail("NOT NULL constraint is not respected");
-            } catch (Exception e) {
-                ResultSet resultSet = conn.prepareStatement("select stmt, error from sys.jobs_log " +
-                                                            "where stmt='" + stmtStrWhere + "'").executeQuery();
-                assertThat(resultSet.next(), is(true));
-                assertThat(resultSet.getString(1), is(stmtStr));
-                assertThat(resultSet.getString(2), is("Cannot insert null value for column a"));
-            }
-        } finally {
-            try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
-                conn.createStatement().execute("reset global stats.enabled");
-            }
         }
     }
 
