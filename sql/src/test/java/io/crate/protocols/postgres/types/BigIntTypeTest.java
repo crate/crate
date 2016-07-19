@@ -27,7 +27,7 @@ import org.junit.Test;
 public class BigIntTypeTest extends BasePGTypeTest<Long> {
 
     public BigIntTypeTest() {
-        super(new BigIntType());
+        super(BigIntType.INSTANCE);
     }
 
     @Test

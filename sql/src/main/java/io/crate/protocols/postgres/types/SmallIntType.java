@@ -29,13 +29,14 @@ import java.nio.charset.StandardCharsets;
 
 class SmallIntType extends PGType {
 
+    public static final SmallIntType INSTANCE = new SmallIntType();
     static final int OID = 21;
 
     private static final int TYPE_LEN = 2;
     private static final int TYPE_MOD = -1;
 
-    SmallIntType() {
-        super(OID, TYPE_LEN, TYPE_MOD);
+    private SmallIntType() {
+        super(OID, TYPE_LEN, TYPE_MOD, "int2");
     }
 
     @Override

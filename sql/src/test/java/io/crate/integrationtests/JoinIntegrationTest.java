@@ -290,24 +290,34 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         // sys table with doc granularity on single node
         execute("select * from information_schema.schemata t1, information_schema.schemata t2 " +
                 "order by t1.schema_name, t2.schema_name");
-        assertThat(response.rowCount(), is(16L));
-        assertThat(printedTable(response.rows()), is("" +
-                "blob| blob\n" +
-                "blob| doc\n" +
-                "blob| information_schema\n" +
-                "blob| sys\n" +
-                "doc| blob\n" +
-                "doc| doc\n" +
-                "doc| information_schema\n" +
-                "doc| sys\n" +
-                "information_schema| blob\n" +
-                "information_schema| doc\n" +
-                "information_schema| information_schema\n" +
-                "information_schema| sys\n" +
-                "sys| blob\n" +
-                "sys| doc\n" +
-                "sys| information_schema\n" +
-                "sys| sys\n"));
+        assertThat(response.rowCount(), is(25L));
+        assertThat(printedTable(response.rows()),
+            is("" +
+               "blob| blob\n" +
+               "blob| doc\n" +
+               "blob| information_schema\n" +
+               "blob| pg_catalog\n" +
+               "blob| sys\n" +
+               "doc| blob\n" +
+               "doc| doc\n" +
+               "doc| information_schema\n" +
+               "doc| pg_catalog\n" +
+               "doc| sys\n" +
+               "information_schema| blob\n" +
+               "information_schema| doc\n" +
+               "information_schema| information_schema\n" +
+               "information_schema| pg_catalog\n" +
+               "information_schema| sys\n" +
+               "pg_catalog| blob\n" +
+               "pg_catalog| doc\n" +
+               "pg_catalog| information_schema\n" +
+               "pg_catalog| pg_catalog\n" +
+               "pg_catalog| sys\n" +
+               "sys| blob\n" +
+               "sys| doc\n" +
+               "sys| information_schema\n" +
+               "sys| pg_catalog\n" +
+               "sys| sys\n"));
     }
 
     @Test

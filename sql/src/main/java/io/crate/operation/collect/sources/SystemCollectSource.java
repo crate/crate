@@ -29,6 +29,8 @@ import io.crate.core.collections.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.information.*;
+import io.crate.metadata.pg_catalog.PgCatalogTables;
+import io.crate.metadata.pg_catalog.PgTypeTable;
 import io.crate.metadata.sys.*;
 import io.crate.operation.collect.*;
 import io.crate.operation.projectors.Requirement;
@@ -69,7 +71,8 @@ public class SystemCollectSource implements CollectSource {
                                Set<SysCheck> sysChecks,
                                Set<SysNodeCheck> sysNodeChecks,
                                SysRepositories sysRepositories,
-                               SysSnapshots sysSnapshots) {
+                               SysSnapshots sysSnapshots,
+                               PgCatalogTables pgCatalogTables) {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextReferenceResolver.INSTANCE);
 
         iterableGetters = ImmutableMap.<String, Supplier<Iterable<?>>>builder()
@@ -87,6 +90,7 @@ public class SystemCollectSource implements CollectSource {
             .put(SysNodeChecksTableInfo.IDENT.fqn(), new SysChecker(sysNodeChecks))
             .put(SysRepositoriesTableInfo.IDENT.fqn(), sysRepositories)
             .put(SysSnapshotsTableInfo.IDENT.fqn(), sysSnapshots)
+            .put(PgTypeTable.IDENT.fqn(), pgCatalogTables.pgTypes())
             .build();
         this.discoveryService = discoveryService;
     }

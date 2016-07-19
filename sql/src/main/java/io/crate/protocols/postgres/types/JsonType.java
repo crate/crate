@@ -34,13 +34,14 @@ import java.util.Map;
 
 class JsonType extends PGType {
 
+    public static final PGType INSTANCE = new JsonType();
     static final int OID = 114;
 
     private static final int TYPE_LEN = -1;
     private static final int TYPE_MOD = -1;
 
-    JsonType() {
-        super(OID, TYPE_LEN, TYPE_MOD);
+    private JsonType() {
+        super(OID, TYPE_LEN, TYPE_MOD, "json");
     }
 
     @Override

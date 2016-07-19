@@ -27,7 +27,7 @@ import org.junit.Test;
 public class SmallIntTypeTest extends BasePGTypeTest<Short> {
 
     public SmallIntTypeTest() {
-        super(new SmallIntType());
+        super(SmallIntType.INSTANCE);
     }
 
     @Test

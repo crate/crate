@@ -30,6 +30,7 @@ import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pg_catalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -78,6 +79,7 @@ public class CollectSourceResolver {
                                  BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                  InformationSchemaInfo informationSchemaInfo,
                                  SysSchemaInfo sysSchemaInfo,
+                                 PgCatalogSchemaInfo pgCatalogSchemaInfo,
                                  ShardCollectSource shardCollectSource,
                                  FileCollectSource fileCollectSource,
                                  TableFunctionCollectSource tableFunctionCollectSource,
@@ -110,6 +112,9 @@ public class CollectSourceResolver {
             if (tableInfo.rowGranularity().equals(RowGranularity.DOC)) {
                 nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);
             }
+        }
+        for (TableInfo tableInfo : pgCatalogSchemaInfo) {
+            nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);
         }
         for (TableInfo tableInfo : informationSchemaInfo) {
             nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);

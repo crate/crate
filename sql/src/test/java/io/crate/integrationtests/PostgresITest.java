@@ -25,6 +25,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.TransportBaseSQLAction;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
@@ -36,6 +37,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import static org.hamcrest.core.Is.is;
 
@@ -107,6 +109,31 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @TestLogging("io.crate.action.sql:DEBUG")
+    public void testArrayTypeSupport() throws Exception {
+        Locale.setDefault(Locale.ENGLISH);
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+            conn.createStatement().executeUpdate("create table t (x array(int)) with (number_of_replicas = 0)");
+
+            conn.createStatement().executeUpdate("insert into t (x) values ([10, 20])");
+            conn.createStatement().executeUpdate("refresh table t");
+
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x) values (?)");
+            preparedStatement.setArray(1, conn.createArrayOf("int4", new Integer[] { 10, 20 }));
+            preparedStatement.executeUpdate();
+
+            assertThat(((Object[]) execute("select x from t").rows()[0][0]), is(new Object[] { 10, 20 }));
+
+            ResultSet resultSet = conn.createStatement().executeQuery("select x from t");
+            assertThat(resultSet.next(), is(true));
+
+            Object object = resultSet.getObject(1);
+            object = ((Array) object).getArray();
+            assertThat((Object[]) object, is(new Object[] { 10, 20 }));
+        }
+    }
+
+    @Test
     public void testFetchSize() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.createStatement().executeUpdate("create table t (x int) with (number_of_replicas = 0)");
@@ -173,7 +200,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     public void testExecuteBatchWithDifferentStatements() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
-
             Statement stmt = conn.createStatement();
             stmt.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
             ensureYellow();
@@ -271,12 +297,12 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     public void testErrorRecoveryFromErrorsOutsideSqlOperations() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
-            PreparedStatement stmt = conn.prepareStatement("select * from information_schema.tables");
+            PreparedStatement stmt = conn.prepareStatement("select cast([10.3, 20.2] as geo_point) from information_schema.tables");
             try {
                 stmt.executeQuery();
                 assertFalse(true); // should've raised PSQLException
             } catch (PSQLException e) {
-                assertThat(e.getMessage(), Matchers.containsString("No type mapping from 'string_array' to"));
+                assertThat(e.getMessage(), Matchers.containsString("No type mapping from 'geo_point' to"));
             }
 
             assertSelectNameFromSysClusterWorks(conn);

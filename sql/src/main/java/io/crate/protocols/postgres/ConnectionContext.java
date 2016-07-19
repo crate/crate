@@ -33,6 +33,7 @@ import io.crate.concurrent.CompletionState;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -257,8 +258,9 @@ class ConnectionContext {
                     state = State.MSG_HEADER;
                     session = readStartupMessage(buffer);
                     Messages.sendAuthenticationOK(channel);
-                    // TODO: probably need to send more stuff
-                    Messages.sendParameterStatus(channel, "server_version", "95000");
+
+                    // version between 7.3 and 8 to get simpler pg_type queries from jdbc client
+                    Messages.sendParameterStatus(channel, "server_version", "79000");
                     Messages.sendParameterStatus(channel, "server_encoding", "UTF8");
                     Messages.sendParameterStatus(channel, "client_encoding", "UTF8");
                     Messages.sendParameterStatus(channel, "datestyle", "ISO");
@@ -336,7 +338,13 @@ class ConnectionContext {
         short numParams = buffer.readShort();
         List<DataType> paramTypes = new ArrayList<>(numParams);
         for (int i = 0; i < numParams; i++) {
-            paramTypes.add(PGTypes.fromOID(buffer.readInt()));
+            int oid = buffer.readInt();
+            DataType dataType = PGTypes.fromOID(oid);
+            if (dataType == null) {
+                LOGGER.warn("Can't map PGType with oid={} to Crate type", oid);
+                dataType = DataTypes.UNDEFINED;
+            }
+            paramTypes.add(dataType);
         }
         try {
             session.parse(statementName, query, paramTypes);
