@@ -202,7 +202,10 @@ public class ShardCollectSource implements CollectSource {
                 try {
                     Injector shardInjector = context.indexService().shardInjectorSafe(shardId);
                     ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
-                    orderedDocCollectors.add(shardCollectService.getOrderedCollector(collectPhase, context, jobCollectContext));
+                    orderedDocCollectors.add(shardCollectService.getOrderedCollector(collectPhase,
+                        context,
+                        jobCollectContext,
+                        flatProjectorChain.firstProjector().requirements().contains(Requirement.REPEAT)));
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     throw e;
                 } catch (IndexNotFoundException e) {
@@ -319,7 +322,7 @@ public class ShardCollectSource implements CollectSource {
             // since unassigned shards aren't really on any node we use the collectPhase which is NOT normalized here
             // because otherwise if _node was also selected it would contain something which is wrong
             for (Object[] objects : Iterables.transform(
-                    systemCollectSource.toRowsIterable(collectPhase, unassignedShards), Row.MATERIALIZE)) {
+                    systemCollectSource.toRowsIterable(collectPhase, unassignedShards, false), Row.MATERIALIZE)) {
                 rows.add(objects);
             }
         }

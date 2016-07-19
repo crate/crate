@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a read isolation issue which could cause joins involving
+   system and blob tables to return inconsistent results.
+
  - Fix: Do not fetch table stats when node is not fully available yet.
    This could have led to NullPointerExceptions during long recovery
    process on node start.

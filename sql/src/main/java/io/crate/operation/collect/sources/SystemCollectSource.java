@@ -22,13 +22,16 @@
 package io.crate.operation.collect.sources;
 
 import com.google.common.base.Supplier;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import io.crate.core.collections.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.information.*;
 import io.crate.metadata.sys.*;
 import io.crate.operation.collect.*;
+import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.check.SysCheck;
@@ -41,7 +44,10 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
@@ -85,7 +91,10 @@ public class SystemCollectSource implements CollectSource {
         this.discoveryService = discoveryService;
     }
 
-    Iterable<Row> toRowsIterable(RoutedCollectPhase collectPhase, Iterable<?> iterable) {
+    Iterable<Row> toRowsIterable(RoutedCollectPhase collectPhase, Iterable<?> iterable, boolean requiresRepeat) {
+        if (requiresRepeat) {
+            iterable = ImmutableList.copyOf(iterable);
+        }
         return RowsTransformer.toRowsIterable(docInputSymbolVisitor, collectPhase, iterable);
     }
 
@@ -97,6 +106,7 @@ public class SystemCollectSource implements CollectSource {
         Supplier<Iterable<?>> iterableGetter = iterableGetters.get(table);
         assert iterableGetter != null : "iterableGetter for " + table + " must exist";
         return ImmutableList.<CrateCollector>of(
-            new RowsCollector(downstream, toRowsIterable(collectPhase, iterableGetter.get())));
+            new RowsCollector(downstream, toRowsIterable(collectPhase, iterableGetter.get(),
+                downstream.requirements().contains(Requirement.REPEAT))));
     }
 }
