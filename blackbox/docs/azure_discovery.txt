@@ -16,8 +16,8 @@ Requirements to use Azure api for node discovery
 ------------------------------------------------
 
 The mechanisms for discovery on Microsoft Azure are built
-in with crate, but the required sdk librarier are not included in
-any crate distribution and needed to be added to Crate's Azure plugin
+in with Crate, but the required sdk librarier are not included in
+any Crate distribution and needed to be added to Crate's Azure plugin
 libs folder. By default this is
 ``$CRATE_HOME/plugins/cloud-azure/azure-libs``
 
