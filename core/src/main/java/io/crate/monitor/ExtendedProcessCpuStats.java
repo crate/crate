@@ -22,14 +22,25 @@
 
 package io.crate.monitor;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.unit.TimeValue;
 
-public class ExtendedProcessCpuStats {
+import java.io.IOException;
 
-    private final short percent;
-    private final TimeValue sys;
-    private final TimeValue user;
-    private final TimeValue total;
+public class ExtendedProcessCpuStats implements Streamable {
+
+    private short percent;
+    private TimeValue sys;
+    private TimeValue user;
+    private TimeValue total;
+
+    public static ExtendedProcessCpuStats readExtendedProcessCpuStats(StreamInput in) throws IOException {
+        ExtendedProcessCpuStats stat = new ExtendedProcessCpuStats();
+        stat.readFrom(in);
+        return stat;
+    }
 
     public ExtendedProcessCpuStats() {
         this((short) -1, -1L, -1L, -1L);
@@ -51,6 +62,10 @@ public class ExtendedProcessCpuStats {
         return percent;
     }
 
+    public void percent(short percent) {
+        this.percent = percent;
+    }
+
     /**
      * Get the Process cpu kernel time.
      * <p/>
@@ -58,6 +73,10 @@ public class ExtendedProcessCpuStats {
      */
     public TimeValue sys() {
         return sys;
+    }
+
+    public void sys(TimeValue sys) {
+        this.sys = sys;
     }
 
     /**
@@ -69,6 +88,10 @@ public class ExtendedProcessCpuStats {
         return user;
     }
 
+    public void user(TimeValue user) {
+        this.user = user;
+    }
+
     /**
      * Get the Process cpu time (sum of User and Sys).
      * <p/>
@@ -76,5 +99,25 @@ public class ExtendedProcessCpuStats {
      */
     public TimeValue total() {
         return total;
+    }
+
+    public void total(TimeValue total) {
+        this.total = total;
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        percent = in.readShort();
+        sys = TimeValue.readTimeValue(in);
+        user = TimeValue.readTimeValue(in);
+        total = TimeValue.readTimeValue(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeShort(percent);
+        sys.writeTo(out);
+        user.writeTo(out);
+        total.writeTo(out);
     }
 }

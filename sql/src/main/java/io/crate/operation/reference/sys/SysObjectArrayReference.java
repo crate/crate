@@ -32,8 +32,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
-public abstract class SysObjectArrayReference extends SimpleObjectExpression<Object[]>
-        implements ReferenceImplementation<Object[]> {
+public abstract class SysObjectArrayReference extends SimpleObjectExpression<Object[]> {
 
     protected abstract List<NestedObjectExpression> getChildImplementations();
 

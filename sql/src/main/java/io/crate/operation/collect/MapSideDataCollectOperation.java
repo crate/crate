@@ -31,8 +31,8 @@ import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.sources.CollectSource;
 import io.crate.operation.collect.sources.CollectSourceResolver;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.reference.sys.node.NodeSysExpression;
-import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
+import io.crate.operation.reference.sys.node.local.NodeSysExpression;
+import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.inject.Inject;
@@ -103,7 +103,7 @@ public class MapSideDataCollectOperation {
                 case NODE:
                 case DOC:
                     EvaluatingNormalizer normalizer =
-                            new EvaluatingNormalizer(functions, RowGranularity.NODE, new NodeSysReferenceResolver(nodeSysExpression));
+                        new EvaluatingNormalizer(functions, RowGranularity.DOC, new NodeSysReferenceResolver(nodeSysExpression));
                     return collectPhase.normalize(normalizer, null);
             }
         }
@@ -115,8 +115,8 @@ public class MapSideDataCollectOperation {
         Executor executor = threadPool.executor(threadPoolName);
         if (executor instanceof ThreadPoolExecutor) {
             ThreadPools.runWithAvailableThreads(
-                    (ThreadPoolExecutor) executor,
-                    collectors2Runnables(shardCollectors));
+                (ThreadPoolExecutor) executor,
+                collectors2Runnables(shardCollectors));
         } else {
             // assume executor is just a wrapper to 1 thread
             for (CrateCollector collector : shardCollectors) {

@@ -44,8 +44,8 @@ import io.crate.operation.collect.collectors.MultiShardScoreDocCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.*;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
-import io.crate.operation.reference.sys.node.NodeSysExpression;
-import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
+import io.crate.operation.reference.sys.node.local.NodeSysExpression;
+import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -116,7 +116,7 @@ public class ShardCollectSource implements CollectSource {
         NodeSysReferenceResolver referenceResolver = new NodeSysReferenceResolver(nodeSysExpression);
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         EvaluatingNormalizer nodeNormalizer = new EvaluatingNormalizer(functions,
-                RowGranularity.NODE,
+                RowGranularity.DOC,
                 referenceResolver);
         RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer, null);
 

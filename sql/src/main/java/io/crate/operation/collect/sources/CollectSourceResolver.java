@@ -1,22 +1,23 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
 package io.crate.operation.collect.sources;
@@ -32,6 +33,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pg_catalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -63,7 +65,6 @@ public class CollectSourceResolver {
     private final Map<String, CollectSource> nodeDocCollectSources = new HashMap<>();
     private final ShardCollectSource shardCollectSource;
     private final CollectSource fileCollectSource;
-    private final CollectSource singleRowSource;
     private final ClusterService clusterService;
     private final CollectPhaseVisitor visitor;
     private final ProjectorSetupCollectSource tableFunctionSource;
@@ -84,7 +85,8 @@ public class CollectSourceResolver {
                                  FileCollectSource fileCollectSource,
                                  TableFunctionCollectSource tableFunctionCollectSource,
                                  SingleRowSource singleRowSource,
-                                 SystemCollectSource systemCollectSource) {
+                                 SystemCollectSource systemCollectSource,
+                                 NodeStatsCollectSource nodeStatsCollectSource) {
         this.clusterService = clusterService;
 
         ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
@@ -102,10 +104,9 @@ public class CollectSourceResolver {
         );
         this.shardCollectSource = shardCollectSource;
         this.fileCollectSource = new ProjectorSetupCollectSource(fileCollectSource, projectorFactory);
-        this.singleRowSource = new ProjectorSetupCollectSource(singleRowSource, projectorFactory);
         this.tableFunctionSource = new ProjectorSetupCollectSource(tableFunctionCollectSource, projectorFactory);
 
-        nodeDocCollectSources.put(SysClusterTableInfo.IDENT.fqn(), this.singleRowSource);
+        nodeDocCollectSources.put(SysClusterTableInfo.IDENT.fqn(), new ProjectorSetupCollectSource(singleRowSource, projectorFactory));
 
         ProjectorSetupCollectSource sysSource = new ProjectorSetupCollectSource(systemCollectSource, projectorFactory);
         for (TableInfo tableInfo : sysSchemaInfo) {
@@ -113,6 +114,8 @@ public class CollectSourceResolver {
                 nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);
             }
         }
+        nodeDocCollectSources.put(SysNodesTableInfo.IDENT.fqn(), new ProjectorSetupCollectSource(nodeStatsCollectSource, projectorFactory));
+
         for (TableInfo tableInfo : pgCatalogSchemaInfo) {
             nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);
         }
@@ -152,10 +155,6 @@ public class CollectSourceResolver {
             if (indexShards == null) {
                 throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + phase);
             }
-            if (indexShards.size() == 0) {
-                // select * from sys.nodes
-                return singleRowSource;
-            }
 
             String indexName = Iterables.getFirst(indexShards.keySet(), null);
             if (indexName == null) {
@@ -178,7 +177,7 @@ public class CollectSourceResolver {
         return visitor.process(collectPhase, null);
     }
 
-    static class VoidCollectSource implements CollectSource {
+    private static class VoidCollectSource implements CollectSource {
 
         @Override
         public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {

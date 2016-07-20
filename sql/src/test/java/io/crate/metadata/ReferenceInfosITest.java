@@ -121,9 +121,9 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
         TableInfo ti = schemas.getTableInfo(new TableIdent("sys", "nodes"));
         Routing routing = ti.getRouting(null, null);
         assertTrue(routing.hasLocations());
-        assertEquals(2, routing.nodes().size());
+        assertEquals(1, routing.nodes().size());
         for (Map<String, List<Integer>> indices : routing.locations().values()) {
-            assertEquals(0, indices.size());
+            assertEquals(1, indices.size());
         }
     }
 

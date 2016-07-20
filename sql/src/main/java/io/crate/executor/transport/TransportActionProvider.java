@@ -80,6 +80,7 @@ public class TransportActionProvider {
     private final Provider<TransportCreateSnapshotAction> transportCreateSnapshotActionProvider;
     private final Provider<TransportDeleteSnapshotAction> transportDeleteSnapshotActionProvider;
     private final Provider<TransportRestoreSnapshotAction> transportRestoreSnapshotActionProvider;
+    private final Provider<TransportNodeStatsAction> transportStatTablesActionProvider;
 
     private final Provider<TransportSQLAction> transportSQLActionProvider;
 
@@ -108,6 +109,7 @@ public class TransportActionProvider {
                                    Provider<TransportDeleteSnapshotAction> transportDeleteSnapshotActionProvider,
                                    Provider<TransportCreateSnapshotAction> transportCreateSnapshotActionProvider,
                                    Provider<TransportRestoreSnapshotAction> transportRestoreSnapshotActionProvider,
+                                   Provider<TransportNodeStatsAction> transportStatTablesActionProvider,
                                    Provider<TransportSQLAction> transportSQLActionProvider) {
         this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
@@ -133,6 +135,7 @@ public class TransportActionProvider {
         this.transportDeleteSnapshotActionProvider = transportDeleteSnapshotActionProvider;
         this.transportCreateSnapshotActionProvider = transportCreateSnapshotActionProvider;
         this.transportRestoreSnapshotActionProvider = transportRestoreSnapshotActionProvider;
+        this.transportStatTablesActionProvider = transportStatTablesActionProvider;
         this.transportSQLActionProvider = transportSQLActionProvider;
     }
 
@@ -234,5 +237,9 @@ public class TransportActionProvider {
 
     public TransportRestoreSnapshotAction transportRestoreSnapshotAction() {
         return transportRestoreSnapshotActionProvider.get();
+    }
+
+    public TransportNodeStatsAction transportStatTablesActionProvider() {
+        return transportStatTablesActionProvider.get();
     }
 }

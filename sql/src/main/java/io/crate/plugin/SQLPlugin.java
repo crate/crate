@@ -58,7 +58,7 @@ import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.reference.sys.check.SysChecksModule;
 import io.crate.operation.reference.sys.check.SysNodeChecksModule;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
-import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
+import io.crate.operation.reference.sys.node.local.SysNodeExpressionModule;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
 import io.crate.operation.reference.sys.shard.blob.BlobShardExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;

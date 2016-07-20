@@ -236,7 +236,7 @@ public class PlannerTest extends AbstractPlannerTest {
         assertEquals(CountAggregation.LongStateType.INSTANCE, collectPhase.outputTypes().get(1));
 
         MergePhase mergeNode = planNode.localMerge();
-        assertThat(mergeNode.numUpstreams(), is(2));
+        assertThat(mergeNode.numUpstreams(), is(1));
         assertThat(mergeNode.projections().size(), is(2));
 
         assertEquals(DataTypes.LONG, mergeNode.outputTypes().get(0));
