@@ -39,9 +39,9 @@ Azure discovery by *simply* setting the ``discovery.type`` to ``azure``::
     discovery.type: azure
 
 To be able to use the Azure API, you have to create an ``Active Directory``
-application with password. We recommened to follow the `AD Application Guide`_ .
+application with a password. We recommened to follow the `AD Application Guide`_ .
 
-After the application is created you can add resourcegroup, app id, app secret
+After the application is created you can add the resourcegroup, the app id, the app secret
 and all the required settings to the config,
 see :ref:`conf_azure_discovery`.
 
