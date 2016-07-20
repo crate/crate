@@ -1020,10 +1020,9 @@ To enable Azure discovery set the ``discovery.type`` setting to ``azure``.
   | *Default:* ``vnet``
   | *Allowed Values:* ``vnet | subnet``
 
-     Discovery method ``vnet`` means that all vms
-     in the same vnet will be discovered, ``subnet`` means
-     that all virtual machines in the same subnet will be added
-     to the cluster
+     Discovery method ``vnet`` will discover all VMs in the same virtual network.
+The use of method ``subnet`` will add all virtual machines in the same subnet to the cluster.
+
 
 .. _conf_routing:
 

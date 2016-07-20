@@ -1,0 +1,49 @@
+.. highlight:: yaml
+.. _azure_discovery:
+
+===============
+Azure Discovery
+===============
+
+When running Crate on Microsoft Azure you usually face
+the problem that Crate's default discovery mechanism does
+not work out of the box.
+
+Luckily Crate has a built-in mechanism for unicast host
+discovery in an Azure environment.
+
+Requirements to use Azure api for node discovery
+------------------------------------------------
+
+The mechanisms for discovery on Microsoft Azure are built
+in with Crate, but the required sdk librarier are not included in
+any Crate distribution and needed to be added to Crate's Azure plugin
+libs folder. By default this is
+``$CRATE_HOME/plugins/cloud-azure/azure-libs``
+
+Please add the following libraries into the libs folder::
+
+    - azure-mgmt-utility-
+    ...
+
+
+Basic Configuration
+-------------------
+
+The most important step for Azure discovery is that you have to launch your instances within the same vnet or even within
+the same subnet. 
+
+Once you have your instances running and Crate installed, you can enable the
+Azure discovery by *simply* setting the ``discovery.type`` to ``azure``::
+
+    discovery.type: azure
+
+To be able to use the Azure API, you have to create an ``Active Directory``
+application with a password. We recommened to follow the `AD Application Guide`_ .
+
+After the application is created you can add the resourcegroup, the app id, the app secret
+and all the required settings to the config,
+see :ref:`conf_azure_discovery`.
+
+
+.. _`AD Application Guide`: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/#_create-ad-application-with-password
