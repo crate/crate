@@ -35,6 +35,7 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -45,19 +46,20 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
 public class ShardCollectServiceTest extends SQLHttpIntegrationTest {
+
+    private ShardCollectService shardCollectService;
 
     @Test
     public void testReadIsolation() throws Exception {
         execute("create blob table b1 clustered into 1 shards with (number_of_replicas = 0)");
-        ensureGreen();
         upload("b1", "foo");
         upload("b1", "bar");
+        ensureGreen();
 
-        Injector injector = internalCluster().getInstance(IndicesService.class).indexService(".blob_b1")
-            .shardInjectorSafe(0);
-        ShardCollectService shardCollectService = injector.getInstance(ShardCollectService.class);
+        assertBusy(new Initializer());
+
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             UUID.randomUUID(),
             1,
@@ -81,5 +83,21 @@ public class ShardCollectServiceTest extends SQLHttpIntegrationTest {
         assertThat(Iterables.size(iterable), is(3));
         upload("b1", "newEntry2");
         assertThat(Iterables.size(iterable), is(3));
+    }
+
+    private final class Initializer implements Runnable {
+        @Override
+        public void run() {
+            try {
+                IndexService indexService = internalCluster().getInstance(IndicesService.class).indexService(".blob_b1");
+                assertNotNull(indexService);
+                Injector injector = indexService.shardInjectorSafe(0);
+                assertNotNull(injector);
+                shardCollectService = injector.getInstance(ShardCollectService.class);
+                assertNotNull(shardCollectService);
+            } catch (Exception e) {
+                fail("Exception shouldn't be thrown: " + e.getMessage());
+            }
+        }
     }
 }
