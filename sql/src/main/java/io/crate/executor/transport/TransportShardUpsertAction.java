@@ -634,7 +634,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
     }
 
-    private static class GetResultFieldExtractorFactory implements FieldExtractorFactory<GetResult, SymbolToFieldExtractor.Context> {
+    public static class GetResultFieldExtractorFactory implements FieldExtractorFactory<GetResult, SymbolToFieldExtractor.Context> {
         @Override
         public Function<GetResult, Object> build(final Reference reference, SymbolToFieldExtractor.Context context) {
             return new Function<GetResult, Object>() {

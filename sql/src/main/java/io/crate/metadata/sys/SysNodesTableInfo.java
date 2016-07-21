@@ -315,12 +315,6 @@ public class SysNodesTableInfo extends StaticTableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        DiscoveryNodes nodes = service.state().nodes();
-        TreeMapBuilder<String, Map<String, List<Integer>>> builder = TreeMapBuilder.newMapBuilder();
-        Map<String, List<Integer>> emptyTableMap = Collections.emptyMap();
-        for (DiscoveryNode node : nodes) {
-            builder.put(node.id(), emptyTableMap);
-        }
-        return new Routing(builder.map());
+        return Routing.forTableOnSingleNode(IDENT, service.localNode().id());
     }
 }
