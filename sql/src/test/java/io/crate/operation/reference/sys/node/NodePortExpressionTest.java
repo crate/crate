@@ -41,7 +41,7 @@ public class NodePortExpressionTest extends CrateUnitTest {
 
 
         NodePortExpression nodePortExpression = new NodePortExpression(nodeService);
-        Object value = nodePortExpression.getChildImplementation(NodePortExpression.HTTP).value();
+        Object value = nodePortExpression.getChildImplementation("http").value();
         assertThat(value, Matchers.nullValue());
     }
 }

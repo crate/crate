@@ -34,13 +34,13 @@ public class NodeThreadPoolExpression extends SysNodeObjectReference {
     abstract class ThreadPoolExpression<ChildType> extends SysNodeExpression<ChildType> {
     }
 
-    public static final String POOL_NAME = "name";
-    public static final String ACTIVE = "active";
-    public static final String REJECTED = "rejected";
-    public static final String LARGEST = "largest";
-    public static final String COMPLETED = "completed";
-    public static final String THREADS = "threads";
-    public static final String QUEUE = "queue";
+    private static final String POOL_NAME = "name";
+    private static final String ACTIVE = "active";
+    private static final String REJECTED = "rejected";
+    private static final String LARGEST = "largest";
+    private static final String COMPLETED = "completed";
+    private static final String THREADS = "threads";
+    private static final String QUEUE = "queue";
 
     private final ThreadPoolExecutor threadPoolExecutor;
     private final BytesRef name;

@@ -29,12 +29,12 @@ public class NodeHeapExpression extends SysNodeObjectReference {
     abstract class HeapExpression extends SysNodeExpression<Object> {
     }
 
-    public static final String MAX = "max";
-    public static final String FREE = "free";
-    public static final String USED = "used";
-    public static final String PROBE_TIMESTAMP = "probe_timestamp";
+    private static final String MAX = "max";
+    private static final String FREE = "free";
+    private static final String USED = "used";
+    private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
-    public NodeHeapExpression(JvmStats stats) {
+    NodeHeapExpression(JvmStats stats) {
         addChildImplementations(stats);
     }
 

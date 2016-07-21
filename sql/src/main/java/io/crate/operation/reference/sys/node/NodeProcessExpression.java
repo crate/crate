@@ -21,16 +21,17 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import io.crate.monitor.ExtendedProcessCpuStats;
 import org.elasticsearch.monitor.process.ProcessStats;
 
+
 public class NodeProcessExpression extends SysNodeObjectReference {
 
-    public static final String OPEN_FILE_DESCRIPTORS = "open_file_descriptors";
-    public static final String MAX_OPEN_FILE_DESCRIPTORS = "max_open_file_descriptors";
+    private static final String OPEN_FILE_DESCRIPTORS = "open_file_descriptors";
+    private static final String MAX_OPEN_FILE_DESCRIPTORS = "max_open_file_descriptors";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
+    private static final String CPU = "cpu";
 
 
     public NodeProcessExpression(ProcessStats processStats, ExtendedProcessCpuStats cpuStats) {
@@ -68,6 +69,6 @@ public class NodeProcessExpression extends SysNodeObjectReference {
                 }
             }
         });
-        childImplementations.put(SysNodesTableInfo.SYS_COL_PROCESS_CPU, new NodeProcessCpuExpression(cpuStats));
+        childImplementations.put(CPU, new NodeProcessCpuExpression(cpuStats));
     }
 }

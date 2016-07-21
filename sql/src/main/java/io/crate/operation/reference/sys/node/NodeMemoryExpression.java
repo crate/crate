@@ -29,11 +29,11 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
     abstract class MemoryExpression extends SysNodeExpression<Object> {
     }
 
-    public static final String FREE = "free";
-    public static final String USED = "used";
-    public static final String FREE_PERCENT = "free_percent";
-    public static final String USED_PERCENT = "used_percent";
-    public static final String PROBE_TIMESTAMP = "probe_timestamp";
+    private static final String FREE = "free";
+    private static final String USED = "used";
+    private static final String FREE_PERCENT = "free_percent";
+    private static final String USED_PERCENT = "used_percent";
+    private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
     public NodeMemoryExpression(final OsStats stats) {
         addChildImplementations(stats.getMem());

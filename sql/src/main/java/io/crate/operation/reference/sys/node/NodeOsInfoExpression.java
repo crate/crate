@@ -21,7 +21,6 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Constants;
@@ -34,6 +33,7 @@ public class NodeOsInfoExpression extends SysNodeObjectReference {
     private static final String OS = "name";
     private static final String ARCH = "arch";
     private static final String VERSION = "version";
+    private static final String JVM = "jvm";
 
     private static final BytesRef OS_NAME = BytesRefs.toBytesRef(Constants.OS_NAME);
     private static final BytesRef OS_ARCH = BytesRefs.toBytesRef(Constants.OS_ARCH);
@@ -72,7 +72,7 @@ public class NodeOsInfoExpression extends SysNodeObjectReference {
                 return OS_VERSION;
             }
         });
-        childImplementations.put(SysNodesTableInfo.SYS_COL_OS_INFO_JVM, new NodeOsJvmExpression());
+        childImplementations.put(JVM, new NodeOsJvmExpression());
     }
 
 }

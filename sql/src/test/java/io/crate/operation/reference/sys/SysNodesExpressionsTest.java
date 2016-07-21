@@ -447,8 +447,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
         refInfo = refInfo("sys.nodes.version", DataTypes.STRING, RowGranularity.NODE, "number");
         SysNodeExpression<BytesRef> versionNumber = (SysNodeExpression<BytesRef>) resolver.getImplementation(refInfo);
 
-        assertThat(version.value().get(NodeVersionExpression.NUMBER), instanceOf(String.class));
-        assertThat(versionNumber.value(), is(new BytesRef(version.value().get(NodeVersionExpression.NUMBER).toString())));
+        assertThat(version.value().get("number"), instanceOf(String.class));
+        assertThat(versionNumber.value(), is(new BytesRef(version.value().get("number").toString())));
 
     }
 

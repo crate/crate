@@ -37,15 +37,10 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.operation.reference.sys.node.fs.NodeFsExpression.*;
+
 public class NodeFsTotalExpression extends SysNodeObjectReference {
 
-    public static final String SIZE = "size";
-    public static final String USED = "used";
-    public static final String AVAILABLE = "available";
-    public static final String READS = "reads";
-    public static final String BYTES_READ = "bytes_read";
-    public static final String WRITES = "writes";
-    public static final String BYTES_WRITTEN = "bytes_written";
 
     private static final List<String> ALL_TOTALS = ImmutableList.of(
             SIZE, USED, AVAILABLE, READS, BYTES_READ, WRITES, BYTES_WRITTEN);

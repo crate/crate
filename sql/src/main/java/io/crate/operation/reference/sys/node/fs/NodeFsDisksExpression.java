@@ -30,6 +30,8 @@ import org.apache.lucene.util.BytesRef;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.crate.operation.reference.sys.node.fs.NodeFsExpression.*;
+
 public class NodeFsDisksExpression extends SysObjectArrayReference {
 
     private final ExtendedFsStats extendedFsStats;
@@ -49,14 +51,7 @@ public class NodeFsDisksExpression extends SysObjectArrayReference {
 
     private static class NodeFsDiskChildExpression extends SysNodeObjectReference {
 
-        public static final String DEV = "dev";
-        public static final String SIZE = "size";
-        public static final String USED = "used";
-        public static final String AVAILABLE = "available";
-        public static final String READS = "reads";
-        public static final String BYTES_READ = "bytes_read";
-        public static final String WRITES = "writes";
-        public static final String BYTES_WRITTEN = "bytes_written";
+        private static final String DEV = "dev";
 
         private final ExtendedFsStats.Info fsInfo;
 

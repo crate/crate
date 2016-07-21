@@ -28,9 +28,9 @@ import org.apache.lucene.util.BytesRef;
 
 public class NodeVersionExpression extends SysNodeObjectReference {
 
-    public static final String NUMBER = "number";
-    public static final String BUILD_HASH = "build_hash";
-    public static final String BUILD_SNAPSHOT = "build_snapshot";
+    private static final String NUMBER = "number";
+    private static final String BUILD_HASH = "build_hash";
+    private static final String BUILD_SNAPSHOT = "build_snapshot";
 
     protected NodeVersionExpression() {
         childImplementations.put(NUMBER, new VersionNumberExpression());

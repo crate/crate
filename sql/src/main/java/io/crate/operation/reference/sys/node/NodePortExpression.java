@@ -35,8 +35,8 @@ public class NodePortExpression extends SysNodeObjectReference {
     abstract class PortExpression extends SysNodeExpression<Integer> {
     }
 
-    public static final String HTTP = "http";
-    public static final String TRANSPORT = "transport";
+    private static final String HTTP = "http";
+    private static final String TRANSPORT = "transport";
 
     private final NodeService nodeService;
 

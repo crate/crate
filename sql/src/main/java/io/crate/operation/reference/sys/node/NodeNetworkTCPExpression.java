@@ -43,7 +43,7 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
         private static final String DROPPED = "dropped";
         private static final String EMBRYONIC_DROPPED = "embryonic_dropped";
 
-        protected TCPConnectionsExpression(ExtendedNetworkStats stats) {
+        TCPConnectionsExpression(ExtendedNetworkStats stats) {
             addChildImplementations(stats.tcp());
         }
 
@@ -109,7 +109,7 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
         private static final String ERRORS_RECEIVED = "errors_received";
         private static final String RST_SENT = "rst_sent";
 
-        protected TCPPacketsExpression(ExtendedNetworkStats stats) {
+        TCPPacketsExpression(ExtendedNetworkStats stats) {
             addChildImplementations(stats.tcp());
         }
 

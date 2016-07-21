@@ -21,16 +21,30 @@
 
 package io.crate.operation.reference.sys.node.fs;
 
-import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import io.crate.monitor.ExtendedFsStats;
 
 public class NodeFsExpression extends SysNodeObjectReference {
 
+    private static final String TOTAL = "total";
+    private static final String DISKS = "disks";
+    private static final String DATA = "data";
+
+    /**
+     * Names of subcolumns that are common across NodeFSTotalExpression and NodeFsDiskExpression.
+     */
+    static final String SIZE = "size";
+    static final String USED = "used";
+    static final String AVAILABLE = "available";
+    static final String READS = "reads";
+    static final String BYTES_READ = "bytes_read";
+    static final String WRITES = "writes";
+    static final String BYTES_WRITTEN = "bytes_written";
+
     public NodeFsExpression(ExtendedFsStats fsStats) {
-        childImplementations.put(SysNodesTableInfo.SYS_COL_FS_TOTAL, new NodeFsTotalExpression(fsStats));
-        childImplementations.put(SysNodesTableInfo.SYS_COL_FS_DISKS, new NodeFsDisksExpression(fsStats));
-        childImplementations.put(SysNodesTableInfo.SYS_COL_FS_DATA, new NodeFsDataExpression(fsStats));
+        childImplementations.put(TOTAL, new NodeFsTotalExpression(fsStats));
+        childImplementations.put(DISKS, new NodeFsDisksExpression(fsStats));
+        childImplementations.put(DATA, new NodeFsDataExpression(fsStats));
     }
 
 }
