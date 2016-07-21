@@ -291,7 +291,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             ensureGreen();
 
             PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x) values (?)");
-            Statement statement = conn.createStatement();
             for (int i = 0; i < 100; i++) {
                 for (int j = 0; j < 10; j++) {
                     preparedStatement.setInt(1, (i + j));
@@ -300,6 +299,8 @@ public class PostgresITest extends SQLTransportIntegrationTest {
                 int[] results = preparedStatement.executeBatch();
                 assertThat(results, is(new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}));
             }
+
+            Statement statement = conn.createStatement();
             for (int i = 0; i < 100; i++) {
                 for (int j = 10; j < 20; j++) {
                     statement.addBatch("insert into t(x) values(" + (i + j) + ")");

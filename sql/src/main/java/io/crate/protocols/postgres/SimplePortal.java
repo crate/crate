@@ -102,13 +102,11 @@ public class SimplePortal extends AbstractPortal {
     @Override
     public Portal bind(String statementName, String query, Statement statement,
                        List<Object> params, @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
-        boolean shouldAnalyze = this.analysis == null;
         if (statement == null) { // handle multiple executions of the same prepared Statement
             if (params.isEmpty()) {
                 return new DummyPortal();
-            } else {
-                statement = SqlParser.createStatement(query);
             }
+            statement = SqlParser.createStatement(query);
         }
 
         if (statement.equals(this.statement)) {
@@ -131,7 +129,7 @@ public class SimplePortal extends AbstractPortal {
         this.statement = statement;
         this.params = params;
         this.resultFormatCodes = resultFormatCodes;
-        if (shouldAnalyze) {
+        if (this.analysis == null) {
             analysis = sessionData.getAnalyzer().analyze(statement,
                 new ParameterContext(getArgs(),
                     EMPTY_BULK_ARGS,
