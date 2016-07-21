@@ -21,26 +21,22 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.sys.SysNodeObjectReference;
 import io.crate.monitor.ExtendedNetworkStats;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
-@Singleton
-public class NodeNetworkExpression extends SysNodeObjectReference {
+public class NodeNetworkExpression extends NestedDiscoveryNodeExpression {
 
     private static final String TCP = "tcp";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
-    @Inject
-    public NodeNetworkExpression(final ExtendedNetworkStats stats) {
-        childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
+    public NodeNetworkExpression() {
+        childImplementations.put(PROBE_TIMESTAMP, new SimpleDiscoveryNodeExpression<Long>() {
             @Override
             public Long value() {
+                ExtendedNetworkStats stats = this.row.networkStats;
                 return stats.timestamp();
             }
         });
-        childImplementations.put(TCP, new NodeNetworkTCPExpression(stats));
+        childImplementations.put(TCP, new NodeNetworkTCPExpression());
     }
 
 }

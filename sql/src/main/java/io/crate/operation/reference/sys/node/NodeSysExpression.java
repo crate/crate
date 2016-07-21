@@ -21,88 +21,13 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.operation.reference.NestedObjectExpression;
-import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.discovery.Discovery;
-import org.elasticsearch.monitor.jvm.JvmService;
-import org.elasticsearch.monitor.os.OsService;
-import org.elasticsearch.node.service.NodeService;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import java.io.IOException;
 
 public class NodeSysExpression extends NestedObjectExpression {
 
-    private final NodeService nodeService;
-    private final OsService osService;
-    private final JvmService jvmService;
-    private final ExtendedNodeInfo extendedNodeInfo;
-
     @Inject
-    public NodeSysExpression(ClusterService clusterService,
-                             OsService osService,
-                             NodeService nodeService,
-                             JvmService jvmService,
-                             Discovery discovery,
-                             ThreadPool threadPool,
-                             ExtendedNodeInfo extendedNodeInfo) {
-        this.nodeService = nodeService;
-        this.osService = osService;
-        this.jvmService = jvmService;
-        this.extendedNodeInfo = extendedNodeInfo;
-        childImplementations.put(SysNodesTableInfo.SYS_COL_HOSTNAME,
-                new NodeHostnameExpression());
-        childImplementations.put(SysNodesTableInfo.SYS_COL_REST_URL,
-                new NodeRestUrlExpression(clusterService));
-        childImplementations.put(SysNodesTableInfo.SYS_COL_ID,
-                new NodeIdExpression(clusterService));
-        childImplementations.put(SysNodesTableInfo.SYS_COL_NODE_NAME,
-                new NodeNameExpression(discovery));
-        childImplementations.put(SysNodesTableInfo.SYS_COL_PORT,
-                new NodePortExpression(nodeService));
-        childImplementations.put(SysNodesTableInfo.SYS_COL_VERSION,
-                new NodeVersionExpression());
-        childImplementations.put(SysNodesTableInfo.SYS_COL_THREAD_POOLS,
-                new NodeThreadPoolsExpression(threadPool));
-        childImplementations.put(SysNodesTableInfo.SYS_COL_OS_INFO,
-                new NodeOsInfoExpression(osService.info()));
-    }
-
-    @Override
-    public ReferenceImplementation getChildImplementation(String name) {
-        switch (name) {
-            case SysNodesTableInfo.SYS_COL_MEM:
-                return new NodeMemoryExpression(osService.stats());
-
-            case SysNodesTableInfo.SYS_COL_LOAD:
-                return new NodeLoadExpression(extendedNodeInfo.osStats());
-
-            case SysNodesTableInfo.SYS_COL_OS:
-                return new NodeOsExpression(extendedNodeInfo.osStats());
-
-            case SysNodesTableInfo.SYS_COL_PROCESS:
-                try {
-                    return new NodeProcessExpression(nodeService.stats().getProcess(), extendedNodeInfo.processCpuStats());
-                } catch (IOException e) {
-                    // This is a bug in ES method signature, IOException is never thrown
-                }
-                break;
-
-            case SysNodesTableInfo.SYS_COL_HEAP:
-                return new NodeHeapExpression(jvmService.stats());
-
-            case SysNodesTableInfo.SYS_COL_NETWORK:
-                return new NodeNetworkExpression(extendedNodeInfo.networkStats());
-
-            case SysNodesTableInfo.SYS_COL_FS:
-                return new NodeFsExpression(extendedNodeInfo.fsStats());
-        }
-        return super.getChildImplementation(name);
+    public NodeSysExpression() {
     }
 
 }

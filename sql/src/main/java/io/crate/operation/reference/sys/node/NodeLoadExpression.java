@@ -21,42 +21,38 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.sys.SysNodeObjectReference;
-import io.crate.monitor.ExtendedOsStats;
 
-public class NodeLoadExpression extends SysNodeObjectReference {
+public class NodeLoadExpression extends NestedDiscoveryNodeExpression {
 
     private static final String ONE = "1";
     private static final String FIVE = "5";
     private static final String FIFTEEN = "15";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
-    public NodeLoadExpression(final ExtendedOsStats os) {
-        childImplementations.put(ONE, new LoadExpression(os, 0));
-        childImplementations.put(FIVE, new LoadExpression(os, 1));
-        childImplementations.put(FIFTEEN, new LoadExpression(os, 2));
-        childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
+    public NodeLoadExpression() {
+        childImplementations.put(ONE, new LoadExpression(0));
+        childImplementations.put(FIVE, new LoadExpression(1));
+        childImplementations.put(FIFTEEN, new LoadExpression(2));
+        childImplementations.put(PROBE_TIMESTAMP, new SimpleDiscoveryNodeExpression<Long>() {
             @Override
             public Long value() {
-                return os.timestamp();
+                return this.row.osStats.timestamp();
             }
         });
     }
 
-    static class LoadExpression extends SysNodeExpression<Double> {
+    private static class LoadExpression extends SimpleDiscoveryNodeExpression<Double> {
 
         private final int idx;
-        private final ExtendedOsStats stats;
 
-        LoadExpression(ExtendedOsStats stats, int idx) {
+        LoadExpression(int idx) {
             this.idx = idx;
-            this.stats = stats;
         }
 
         @Override
         public Double value() {
             try {
-                return stats.loadAverage()[idx];
+                return this.row.osStats.loadAverage()[idx];
             } catch (IndexOutOfBoundsException e) {
                 return -1d;
             }

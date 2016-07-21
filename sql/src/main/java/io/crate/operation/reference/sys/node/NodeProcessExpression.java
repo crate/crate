@@ -21,27 +21,24 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.sys.SysNodeObjectReference;
-import io.crate.monitor.ExtendedProcessCpuStats;
 import org.elasticsearch.monitor.process.ProcessStats;
 
 
-public class NodeProcessExpression extends SysNodeObjectReference {
+public class NodeProcessExpression extends NestedDiscoveryNodeExpression {
 
     private static final String OPEN_FILE_DESCRIPTORS = "open_file_descriptors";
     private static final String MAX_OPEN_FILE_DESCRIPTORS = "max_open_file_descriptors";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
     private static final String CPU = "cpu";
 
-
-    public NodeProcessExpression(ProcessStats processStats, ExtendedProcessCpuStats cpuStats) {
-        addChildImplementations(processStats, cpuStats);
+    private abstract class ProcessExpression extends SimpleDiscoveryNodeExpression<Long> {
     }
 
-    private void addChildImplementations(final ProcessStats processStats, ExtendedProcessCpuStats cpuStats) {
-        childImplementations.put(OPEN_FILE_DESCRIPTORS, new SysNodeExpression<Long>() {
+    public NodeProcessExpression() {
+        childImplementations.put(OPEN_FILE_DESCRIPTORS, new ProcessExpression() {
             @Override
             public Long value() {
+                ProcessStats processStats = this.row.processStats;
                 if (processStats != null) {
                     return processStats.getOpenFileDescriptors();
                 } else {
@@ -49,9 +46,10 @@ public class NodeProcessExpression extends SysNodeObjectReference {
                 }
             }
         });
-        childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, new SysNodeExpression<Long>() {
+        childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, new ProcessExpression() {
             @Override
             public Long value() {
+                ProcessStats processStats = this.row.processStats;
                 if (processStats != null) {
                     return processStats.getMaxFileDescriptors();
                 } else {
@@ -59,9 +57,10 @@ public class NodeProcessExpression extends SysNodeObjectReference {
                 }
             }
         });
-        childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
+        childImplementations.put(PROBE_TIMESTAMP, new ProcessExpression() {
             @Override
             public Long value() {
+                ProcessStats processStats = this.row.processStats;
                 if (processStats != null) {
                     return processStats.getTimestamp();
                 } else {
@@ -69,6 +68,6 @@ public class NodeProcessExpression extends SysNodeObjectReference {
                 }
             }
         });
-        childImplementations.put(CPU, new NodeProcessCpuExpression(cpuStats));
+        childImplementations.put(CPU, new NodeProcessCpuExpression());
     }
 }

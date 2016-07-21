@@ -21,17 +21,16 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.util.concurrent.XRejectedExecutionHandler;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.common.lucene.BytesRefs;
 
-import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ThreadPoolExecutor;
 
-public class NodeThreadPoolExpression extends SysNodeObjectReference {
+public class NodeThreadPoolExpression extends NestedDiscoveryNodeExpression {
 
-    abstract class ThreadPoolExpression<ChildType> extends SysNodeExpression<ChildType> {
+    /**
+     * Marker class for child implementations
+     */
+    private abstract class ThreadPoolExpression<T> extends SimpleDiscoveryNodeExpression<T> {
     }
 
     private static final String POOL_NAME = "name";
@@ -42,61 +41,61 @@ public class NodeThreadPoolExpression extends SysNodeObjectReference {
     private static final String THREADS = "threads";
     private static final String QUEUE = "queue";
 
-    private final ThreadPoolExecutor threadPoolExecutor;
-    private final BytesRef name;
+    private final String name;
+    private DiscoveryNodeContext.ThreadPoolExecutorContext threadPoolExecutor;
 
-    public NodeThreadPoolExpression(ThreadPool threadPool, String name) {
-        this.threadPoolExecutor = (ThreadPoolExecutor) threadPool.executor(name);
-        this.name = new BytesRef(name);
+    public NodeThreadPoolExpression(String name) {
+        this.name = name;
         addChildImplementations();
+    }
+
+    @Override
+    public void setNextRow(DiscoveryNodeContext row) {
+        super.setNextRow(row);
+        threadPoolExecutor = this.row.threadPools.get(name);
     }
 
     private void addChildImplementations() {
         childImplementations.put(POOL_NAME, new ThreadPoolExpression<BytesRef>() {
             @Override
             public BytesRef value() {
-                return name;
+                return BytesRefs.toBytesRef(name);
             }
         });
         childImplementations.put(ACTIVE, new ThreadPoolExpression<Integer>() {
             @Override
             public Integer value() {
-                return threadPoolExecutor.getActiveCount();
+                return threadPoolExecutor.activeCount;
             }
         });
         childImplementations.put(REJECTED, new ThreadPoolExpression<Long>() {
             @Override
             public Long value() {
-                long rejected = -1;
-                RejectedExecutionHandler rejectedExecutionHandler = threadPoolExecutor.getRejectedExecutionHandler();
-                if (rejectedExecutionHandler instanceof XRejectedExecutionHandler) {
-                    rejected = ((XRejectedExecutionHandler) rejectedExecutionHandler).rejected();
-                }
-                return rejected;
+                return threadPoolExecutor.rejectedCount;
             }
         });
         childImplementations.put(LARGEST, new ThreadPoolExpression<Integer>() {
             @Override
             public Integer value() {
-                return threadPoolExecutor.getLargestPoolSize();
+                return threadPoolExecutor.largestPoolSize;
             }
         });
         childImplementations.put(COMPLETED, new ThreadPoolExpression<Long>() {
             @Override
             public Long value() {
-                return threadPoolExecutor.getCompletedTaskCount();
+                return threadPoolExecutor.completedTaskCount;
             }
         });
         childImplementations.put(THREADS, new ThreadPoolExpression<Integer>() {
             @Override
             public Integer value() {
-                return threadPoolExecutor.getPoolSize();
+                return threadPoolExecutor.poolSize;
             }
         });
         childImplementations.put(QUEUE, new ThreadPoolExpression<Integer>() {
             @Override
             public Integer value() {
-                return threadPoolExecutor.getQueue().size();
+                return threadPoolExecutor.queueSize;
             }
         });
     }

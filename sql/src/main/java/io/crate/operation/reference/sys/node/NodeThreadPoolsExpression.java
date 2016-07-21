@@ -21,21 +21,15 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.sys.SysStaticObjectArrayReference;
-import org.elasticsearch.threadpool.ThreadPool;
 
-public class NodeThreadPoolsExpression extends SysStaticObjectArrayReference {
+public class NodeThreadPoolsExpression extends StaticObjectArrayRowContextCollectorExpression<DiscoveryNodeContext> {
 
-    private final ThreadPool threadPool;
-
-    protected NodeThreadPoolsExpression(ThreadPool threadPool) {
-        this.threadPool = threadPool;
-        addChildImplementations();
+    public NodeThreadPoolsExpression() {
     }
 
-    private void addChildImplementations() {
-        for (ThreadPool.Info info : threadPool.info()) {
-            childImplementations.add(new NodeThreadPoolExpression(threadPool, info.getName()));
+    public void addChildImplementations() {
+        for (String name : this.row.threadPools) {
+            childImplementations.add(new NodeThreadPoolExpression(name));
         }
     }
 

@@ -21,58 +21,30 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.sys.SysNodeObjectReference;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.node.service.NodeService;
-
-import java.io.IOException;
+import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.operation.reference.RowCollectNestedObjectExpression;
 
 
-public class NodePortExpression extends SysNodeObjectReference {
+public class NodePortExpression extends RowCollectNestedObjectExpression<DiscoveryNodeContext> {
 
-    abstract class PortExpression extends SysNodeExpression<Integer> {
+    private abstract class PortExpression extends RowContextCollectorExpression<DiscoveryNodeContext, Integer> {
     }
 
     private static final String HTTP = "http";
     private static final String TRANSPORT = "transport";
 
-    private final NodeService nodeService;
-
-    public NodePortExpression(NodeService nodeService) {
-        this.nodeService = nodeService;
-        addChildImplementations();
-    }
-
-    private void addChildImplementations() {
+    public NodePortExpression() {
         childImplementations.put(HTTP, new PortExpression() {
             @Override
             public Integer value() {
-                if (nodeService.info().getHttp() == null) {
-                    return null;
-                }
-                return portFromAddress(nodeService.info().getHttp().address().publishAddress());
+                return this.row.port.get("http");
             }
         });
         childImplementations.put(TRANSPORT, new PortExpression() {
             @Override
             public Integer value() {
-                try {
-                    return portFromAddress(nodeService.stats().getNode().address());
-                } catch (IOException e) {
-                    throw new ElasticsearchException("unable to get transport statistics");
-                }
+                return this.row.port.get("transport");
             }
         });
     }
-
-    private Integer portFromAddress(TransportAddress address) {
-        Integer port = 0;
-        if (address instanceof InetSocketTransportAddress) {
-            port = ((InetSocketTransportAddress) address).address().getPort();
-        }
-        return port;
-    }
-
 }

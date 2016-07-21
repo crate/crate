@@ -21,10 +21,9 @@
 
 package io.crate.operation.reference.sys.node.fs;
 
-import io.crate.operation.reference.sys.SysNodeObjectReference;
-import io.crate.monitor.ExtendedFsStats;
+import io.crate.operation.reference.sys.node.NestedDiscoveryNodeExpression;
 
-public class NodeFsExpression extends SysNodeObjectReference {
+public class NodeFsExpression extends NestedDiscoveryNodeExpression {
 
     private static final String TOTAL = "total";
     private static final String DISKS = "disks";
@@ -41,10 +40,10 @@ public class NodeFsExpression extends SysNodeObjectReference {
     static final String WRITES = "writes";
     static final String BYTES_WRITTEN = "bytes_written";
 
-    public NodeFsExpression(ExtendedFsStats fsStats) {
-        childImplementations.put(TOTAL, new NodeFsTotalExpression(fsStats));
-        childImplementations.put(DISKS, new NodeFsDisksExpression(fsStats));
-        childImplementations.put(DATA, new NodeFsDataExpression(fsStats));
+    public NodeFsExpression() {
+        childImplementations.put(TOTAL, new NodeFsTotalExpression());
+        childImplementations.put(DISKS, new NodeFsDisksExpression());
+        childImplementations.put(DATA, new NodeFsDataExpression());
     }
 
 }

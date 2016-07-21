@@ -21,57 +21,21 @@
 
 package io.crate.operation.reference.sys.node.fs;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
-import io.crate.operation.reference.sys.SysNodeObjectReference;
 import io.crate.monitor.ExtendedFsStats;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
+import io.crate.operation.reference.sys.node.DiscoveryNodeContext;
+import io.crate.operation.reference.sys.node.NestedDiscoveryNodeExpression;
+import io.crate.operation.reference.sys.node.SimpleDiscoveryNodeExpression;
 
-import javax.annotation.Nonnull;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import static io.crate.operation.reference.sys.node.fs.NodeFsExpression.*;
 
-public class NodeFsTotalExpression extends SysNodeObjectReference {
+public class NodeFsTotalExpression extends NestedDiscoveryNodeExpression {
 
+    private Map<String, Long> totals;
 
-    private static final List<String> ALL_TOTALS = ImmutableList.of(
-            SIZE, USED, AVAILABLE, READS, BYTES_READ, WRITES, BYTES_WRITTEN);
-    private static final ESLogger logger = Loggers.getLogger(NodeFsTotalExpression.class);
-
-    private final ExtendedFsStats extendedFsStats;
-
-
-    // cache that collects all totals at once, even if only one total value is queried
-    private final LoadingCache<String, Long> totals = CacheBuilder.newBuilder()
-            .expireAfterWrite(500, TimeUnit.MILLISECONDS)
-            .maximumSize(ALL_TOTALS.size())
-            .build(new CacheLoader<String, Long>() {
-                @Override
-                public Long load(@Nonnull String key) throws Exception {
-                    // actually not needed if only queried with getAll()
-                    throw new UnsupportedOperationException("load not supported on sys.nodes.fs.total cache");
-                }
-
-                @Override
-                public Map<String, Long> loadAll(@Nonnull Iterable<? extends String> keys) throws Exception {
-                    return getTotals();
-                }
-            });
-
-    protected NodeFsTotalExpression(ExtendedFsStats extendedFsStats) {
-        this.extendedFsStats = extendedFsStats;
-        addChildImplementations();
-    }
-
-    private void addChildImplementations() {
+    protected NodeFsTotalExpression() {
         childImplementations.put(SIZE, new NodeFSTotalChildExpression(SIZE));
         childImplementations.put(USED, new NodeFSTotalChildExpression(USED));
         childImplementations.put(AVAILABLE, new NodeFSTotalChildExpression(AVAILABLE));
@@ -81,9 +45,15 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
         childImplementations.put(BYTES_WRITTEN, new NodeFSTotalChildExpression(BYTES_WRITTEN));
     }
 
+    @Override
+    public void setNextRow(DiscoveryNodeContext row) {
+        super.setNextRow(row);
+        totals = getTotals();
+    }
+
     private Map<String, Long> getTotals() {
-        Map<String, Long> totals = new HashMap<>(ALL_TOTALS.size());
-        ExtendedFsStats.Info totalInfo = extendedFsStats.total();
+        Map<String, Long> totals = new HashMap<>();
+        ExtendedFsStats.Info totalInfo = this.row.fsStats.total();
         totals.put(SIZE, totalInfo.total() == -1 ? -1 : totalInfo.total() * 1024);
         totals.put(USED, totalInfo.used() == -1 ? - 1 : totalInfo.used() * 1024);
         totals.put(AVAILABLE, totalInfo.available() == -1 ? -1 : totalInfo.available() * 1024);
@@ -94,7 +64,7 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
         return totals;
     }
 
-    protected class NodeFSTotalChildExpression extends ChildExpression<Long> {
+    protected class NodeFSTotalChildExpression extends SimpleDiscoveryNodeExpression<Long> {
 
         private final String name;
 
@@ -104,12 +74,7 @@ public class NodeFsTotalExpression extends SysNodeObjectReference {
 
         @Override
         public Long value() {
-            try {
-                return totals.getAll(ALL_TOTALS).get(name);
-            } catch (ExecutionException e) {
-                logger.trace("error getting fs {} total", e, name);
-                return null;
-            }
+            return totals.get(name);
         }
     }
 }

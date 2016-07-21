@@ -21,55 +21,45 @@
 
 package io.crate.operation.reference.sys.node.fs;
 
-import io.crate.operation.reference.NestedObjectExpression;
-import io.crate.operation.reference.sys.SysNodeObjectReference;
-import io.crate.operation.reference.sys.SysStaticObjectArrayReference;
 import io.crate.monitor.ExtendedFsStats;
+import io.crate.operation.reference.RowCollectNestedObjectExpression;
+import io.crate.operation.reference.sys.node.*;
 import org.apache.lucene.util.BytesRef;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public class NodeFsDataExpression extends SysStaticObjectArrayReference {
 
-    private final ExtendedFsStats extendedFsStats;
-    private final AtomicBoolean initialized = new AtomicBoolean(false);
+public class NodeFsDataExpression extends ObjectArrayRowContextCollectorExpression<DiscoveryNodeContext> {
 
-    protected NodeFsDataExpression(ExtendedFsStats extendedFsStats) {
-        this.extendedFsStats = extendedFsStats;
+    public NodeFsDataExpression() {
     }
 
     @Override
-    protected List<NestedObjectExpression> getChildImplementations() {
-        if (!initialized.getAndSet(true)) {
-            addChildImplementations();
+    protected List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> getChildImplementations() {
+        List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> children = new ArrayList<>(this.row.fsStats.size());
+        for (ExtendedFsStats.Info info : this.row.fsStats) {
+            children.add(new NodeFsDataChildExpression(info));
         }
-        return childImplementations;
+        return children;
     }
 
-    private void addChildImplementations() {
-        for (ExtendedFsStats.Info info : extendedFsStats) {
-            childImplementations.add(new NodeFsDataChildExpression(info));
-        }
-    }
-
-
-    private class NodeFsDataChildExpression extends SysNodeObjectReference {
+    private class NodeFsDataChildExpression extends NestedDiscoveryNodeExpression {
 
         public static final String DEV = "dev";
         public static final String PATH = "path";
 
-        protected NodeFsDataChildExpression(final ExtendedFsStats.Info fsInfo) {
-            childImplementations.put(DEV, new ChildExpression<BytesRef>() {
+        protected NodeFsDataChildExpression(final ExtendedFsStats.Info info) {
+            childImplementations.put(DEV, new SimpleDiscoveryNodeExpression<BytesRef>() {
                 @Override
                 public BytesRef value() {
-                    return fsInfo.dev();
+                    return info.dev();
                 }
             });
-            childImplementations.put(PATH, new ChildExpression<BytesRef>() {
+            childImplementations.put(PATH, new SimpleDiscoveryNodeExpression<BytesRef>() {
                 @Override
                 public BytesRef value() {
-                    return fsInfo.path();
+                    return info.path();
                 }
             });
         }

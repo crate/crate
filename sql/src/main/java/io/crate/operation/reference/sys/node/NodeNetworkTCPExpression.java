@@ -21,21 +21,21 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.sys.SysNodeObjectReference;
 import io.crate.monitor.ExtendedNetworkStats;
 
-class NodeNetworkTCPExpression extends SysNodeObjectReference {
+class NodeNetworkTCPExpression extends NestedDiscoveryNodeExpression {
 
     private static final Long VALUE_UNAVAILABLE = -1L;
 
-    public NodeNetworkTCPExpression(ExtendedNetworkStats stats) {
-        childImplementations.put(TCPConnectionsExpression.NAME, new TCPConnectionsExpression(stats));
-        childImplementations.put(TCPPacketsExpression.NAME, new TCPPacketsExpression(stats));
+    public static final String CONNECTIONS = "connections";
+    public static final String PACKETS = "packets";
+
+    public NodeNetworkTCPExpression() {
+        childImplementations.put(CONNECTIONS, new TCPConnectionsExpression());
+        childImplementations.put(PACKETS, new TCPPacketsExpression());
     }
 
-    static class TCPConnectionsExpression extends SysNodeObjectReference {
-
-        public static final String NAME = "connections";
+    static class TCPConnectionsExpression extends NestedDiscoveryNodeExpression {
 
         private static final String INITIATED = "initiated";
         private static final String ACCEPTED = "accepted";
@@ -43,14 +43,11 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
         private static final String DROPPED = "dropped";
         private static final String EMBRYONIC_DROPPED = "embryonic_dropped";
 
-        TCPConnectionsExpression(ExtendedNetworkStats stats) {
-            addChildImplementations(stats.tcp());
-        }
-
-        private void addChildImplementations(final ExtendedNetworkStats.Tcp tcp) {
+        TCPConnectionsExpression() {
             childImplementations.put(INITIATED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
+                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.activeOpens();
                     }
@@ -60,6 +57,7 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
             childImplementations.put(ACCEPTED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
+                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.passiveOpens();
                     }
@@ -69,6 +67,7 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
             childImplementations.put(CURR_ESTABLISHED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
+                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.currEstab();
                     }
@@ -78,6 +77,7 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
             childImplementations.put(DROPPED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
+                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.estabResets();
                     }
@@ -87,6 +87,7 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
             childImplementations.put(EMBRYONIC_DROPPED, new TCPConnectionsChildExpression() {
                 @Override
                 public Long value() {
+                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.attemptFails();
                     }
@@ -95,13 +96,11 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
             });
         }
 
-        private abstract class TCPConnectionsChildExpression extends SysNodeExpression<Long> {
+        private abstract class TCPConnectionsChildExpression extends SimpleDiscoveryNodeExpression<Long> {
         }
     }
 
-    static class TCPPacketsExpression extends SysNodeObjectReference {
-
-        public static final String NAME = "packets";
+    static class TCPPacketsExpression extends NestedDiscoveryNodeExpression {
 
         private static final String SENT = "sent";
         private static final String RECEIVED = "received";
@@ -109,14 +108,11 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
         private static final String ERRORS_RECEIVED = "errors_received";
         private static final String RST_SENT = "rst_sent";
 
-        TCPPacketsExpression(ExtendedNetworkStats stats) {
-            addChildImplementations(stats.tcp());
-        }
-
-        private void addChildImplementations(final ExtendedNetworkStats.Tcp tcp) {
+        TCPPacketsExpression() {
             childImplementations.put(SENT, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
+                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.outSegs();
                     }
@@ -126,6 +122,7 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
             childImplementations.put(RECEIVED, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
+                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.inSegs();
                     }
@@ -135,6 +132,7 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
             childImplementations.put(RETRANSMITTED, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
+                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.retransSegs();
                     }
@@ -144,6 +142,7 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
             childImplementations.put(ERRORS_RECEIVED, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
+                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.inErrs();
                     }
@@ -153,6 +152,7 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
             childImplementations.put(RST_SENT, new TCPPacketsChildExpression() {
                 @Override
                 public Long value() {
+                    ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.outRsts();
                     }
@@ -161,7 +161,7 @@ class NodeNetworkTCPExpression extends SysNodeObjectReference {
             });
         }
 
-        private abstract class TCPPacketsChildExpression extends SysNodeExpression<Long> {
+        private abstract class TCPPacketsChildExpression extends SimpleDiscoveryNodeExpression<Long> {
         }
 
     }

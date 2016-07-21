@@ -21,12 +21,11 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.sys.SysNodeObjectReference;
 import io.crate.monitor.ExtendedOsStats;
 
-public class NodeOsCpuExpression extends SysNodeObjectReference {
+public class NodeOsCpuExpression extends NestedDiscoveryNodeExpression {
 
-    abstract class CpuExpression extends SysNodeExpression<Object> {
+    private abstract class CpuExpression extends SimpleDiscoveryNodeExpression<Short> {
     }
 
     public static final String SYS = "system";
@@ -35,14 +34,11 @@ public class NodeOsCpuExpression extends SysNodeObjectReference {
     public static final String USAGE = "used";
     public static final String STOLEN = "stolen";
 
-    public NodeOsCpuExpression(ExtendedOsStats.Cpu cpuInfo) {
-        addChildImplementations(cpuInfo);
-    }
-
-    private void addChildImplementations(final ExtendedOsStats.Cpu cpu) {
+    public NodeOsCpuExpression() {
         childImplementations.put(SYS, new CpuExpression() {
             @Override
             public Short value() {
+                ExtendedOsStats.Cpu cpu = this.row.osStats.cpu();
                 if (cpu != null) {
                     return cpu.sys();
                 } else {
@@ -53,6 +49,7 @@ public class NodeOsCpuExpression extends SysNodeObjectReference {
         childImplementations.put(USER, new CpuExpression() {
             @Override
             public Short value() {
+                ExtendedOsStats.Cpu cpu = this.row.osStats.cpu();
                 if (cpu != null) {
                     return cpu.user();
                 } else {
@@ -63,6 +60,7 @@ public class NodeOsCpuExpression extends SysNodeObjectReference {
         childImplementations.put(IDLE, new CpuExpression() {
             @Override
             public Short value() {
+                ExtendedOsStats.Cpu cpu = this.row.osStats.cpu();
                 if (cpu != null) {
                     return cpu.idle();
                 } else {
@@ -73,6 +71,7 @@ public class NodeOsCpuExpression extends SysNodeObjectReference {
         childImplementations.put(USAGE, new CpuExpression() {
             @Override
             public Short value() {
+                ExtendedOsStats.Cpu cpu = this.row.osStats.cpu();
                 if (cpu != null && cpu.sys() != -1) {
                     return (short) (cpu.sys() + cpu.user());
                 } else {
@@ -83,6 +82,7 @@ public class NodeOsCpuExpression extends SysNodeObjectReference {
         childImplementations.put(STOLEN, new CpuExpression() {
             @Override
             public Short value() {
+                ExtendedOsStats.Cpu cpu = this.row.osStats.cpu();
                 if (cpu != null) {
                     return cpu.stolen();
                 } else {

@@ -21,13 +21,9 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.Constants;
-import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.monitor.os.OsInfo;
 
-public class NodeOsInfoExpression extends SysNodeObjectReference {
+public class NodeOsInfoExpression extends NestedDiscoveryNodeExpression {
 
     private static final String AVAILABLE_PROCESSORS = "available_processors";
     private static final String OS = "name";
@@ -35,41 +31,32 @@ public class NodeOsInfoExpression extends SysNodeObjectReference {
     private static final String VERSION = "version";
     private static final String JVM = "jvm";
 
-    private static final BytesRef OS_NAME = BytesRefs.toBytesRef(Constants.OS_NAME);
-    private static final BytesRef OS_ARCH = BytesRefs.toBytesRef(Constants.OS_ARCH);
-    private static final BytesRef OS_VERSION = BytesRefs.toBytesRef(Constants.OS_VERSION);
-
-
-    abstract class OsInfoExpression extends SysNodeExpression<Object> {
+    private abstract class OsInfoExpression extends SimpleDiscoveryNodeExpression<Object> {
     }
 
-    public NodeOsInfoExpression(OsInfo info) {
-        addChildImplementations(info);
-    }
-
-    private void addChildImplementations(final OsInfo info) {
+    public NodeOsInfoExpression() {
         childImplementations.put(AVAILABLE_PROCESSORS, new OsInfoExpression() {
             @Override
             public Integer value() {
-                return info.getAvailableProcessors();
+                return this.row.osInfo.getAvailableProcessors();
             }
         });
         childImplementations.put(OS, new OsInfoExpression() {
             @Override
             public BytesRef value() {
-                return OS_NAME;
+                return this.row.OS_NAME;
             }
         });
         childImplementations.put(ARCH, new OsInfoExpression() {
             @Override
             public BytesRef value() {
-                return OS_ARCH;
+                return this.row.OS_ARCH;
             }
         });
         childImplementations.put(VERSION, new OsInfoExpression() {
             @Override
             public BytesRef value() {
-                return OS_VERSION;
+                return this.row.OS_VERSION;
             }
         });
         childImplementations.put(JVM, new NodeOsJvmExpression());

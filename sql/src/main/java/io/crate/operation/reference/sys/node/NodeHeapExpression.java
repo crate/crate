@@ -21,12 +21,11 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.monitor.jvm.JvmStats;
 
-public class NodeHeapExpression extends SysNodeObjectReference {
+public class NodeHeapExpression extends NestedDiscoveryNodeExpression {
 
-    abstract class HeapExpression extends SysNodeExpression<Object> {
+    abstract class HeapExpression extends SimpleDiscoveryNodeExpression<Long> {
     }
 
     private static final String MAX = "max";
@@ -34,32 +33,32 @@ public class NodeHeapExpression extends SysNodeObjectReference {
     private static final String USED = "used";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
-    NodeHeapExpression(JvmStats stats) {
-        addChildImplementations(stats);
-    }
-
-    private void addChildImplementations(final JvmStats stats) {
+    NodeHeapExpression() {
         childImplementations.put(FREE, new HeapExpression() {
             @Override
             public Long value() {
+                JvmStats stats = this.row.jvmStats;
                 return stats.getMem().getHeapMax().bytes() - stats.getMem().getHeapUsed().bytes();
             }
         });
         childImplementations.put(USED, new HeapExpression() {
             @Override
             public Long value() {
+                JvmStats stats = this.row.jvmStats;
                 return stats.getMem().getHeapUsed().bytes();
             }
         });
         childImplementations.put(MAX, new HeapExpression() {
             @Override
             public Long value() {
+                JvmStats stats = this.row.jvmStats;
                 return stats.getMem().getHeapMax().bytes();
             }
         });
-        childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
+        childImplementations.put(PROBE_TIMESTAMP, new SimpleDiscoveryNodeExpression<Long>() {
             @Override
             public Long value() {
+                JvmStats stats = this.row.jvmStats;
                 return stats.getTimestamp();
             }
         });

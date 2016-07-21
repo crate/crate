@@ -23,20 +23,14 @@ package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
-import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.*;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 public class SysNodesTableInfo extends StaticTableInfo {
 
@@ -45,6 +39,8 @@ public class SysNodesTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "nodes");
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("id"));
+
+    private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
     public static final String SYS_COL_ID = "id";
     public static final String SYS_COL_NODE_NAME = "name";
@@ -178,10 +174,10 @@ public class SysNodesTableInfo extends StaticTableInfo {
     }
 
     private final TableColumn tableColumn;
-    private final ClusterService service;
+    private final ClusterService clusterService;
 
-    public SysNodesTableInfo(ClusterService service) {
-        super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.NODE)
+    public SysNodesTableInfo(ClusterService clusterService) {
+        super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
                         .register(Columns.ID, DataTypes.STRING)
                         .register(Columns.NAME, DataTypes.STRING)
                         .register(Columns.HOSTNAME, DataTypes.STRING)
@@ -293,7 +289,7 @@ public class SysNodesTableInfo extends StaticTableInfo {
                         .register(Columns.FS_DATA_DEV, DataTypes.STRING)
                         .register(Columns.FS_DATA_PATH, DataTypes.STRING),
             PRIMARY_KEY);
-        this.service = service;
+        this.clusterService = clusterService;
         this.tableColumn = new TableColumn(SYS_COL_IDENT, columnMap);
     }
 
@@ -310,11 +306,11 @@ public class SysNodesTableInfo extends StaticTableInfo {
 
     @Override
     public RowGranularity rowGranularity() {
-        return RowGranularity.NODE;
+        return GRANULARITY;
     }
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        return Routing.forTableOnSingleNode(IDENT, service.localNode().id());
+        return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().id());
     }
 }

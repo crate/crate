@@ -21,12 +21,11 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.monitor.os.OsStats;
 
-public class NodeMemoryExpression extends SysNodeObjectReference {
+public class NodeMemoryExpression extends NestedDiscoveryNodeExpression {
 
-    abstract class MemoryExpression extends SysNodeExpression<Object> {
+    abstract class MemoryExpression extends SimpleDiscoveryNodeExpression<Object> {
     }
 
     private static final String FREE = "free";
@@ -35,20 +34,11 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
     private static final String USED_PERCENT = "used_percent";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
-    public NodeMemoryExpression(final OsStats stats) {
-        addChildImplementations(stats.getMem());
-        childImplementations.put(PROBE_TIMESTAMP, new SysNodeExpression<Long>() {
-            @Override
-            public Long value() {
-                return stats.getTimestamp();
-            }
-        });
-    }
-
-    private void addChildImplementations(final OsStats.Mem mem) {
+    public NodeMemoryExpression() {
         childImplementations.put(FREE, new MemoryExpression() {
             @Override
             public Long value() {
+                OsStats.Mem mem = this.row.osStats.getMem();
                 if (mem != null) {
                     return mem.getFree().bytes();
                 }
@@ -58,6 +48,7 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
         childImplementations.put(USED, new MemoryExpression() {
             @Override
             public Long value() {
+                OsStats.Mem mem = this.row.osStats.getMem();
                 if (mem != null) {
                     return mem.getUsed().bytes();
                 }
@@ -67,6 +58,7 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
         childImplementations.put(FREE_PERCENT, new MemoryExpression() {
             @Override
             public Short value() {
+                OsStats.Mem mem = this.row.osStats.getMem();
                 if (mem != null) {
                     return mem.getFreePercent();
                 }
@@ -76,10 +68,18 @@ public class NodeMemoryExpression extends SysNodeObjectReference {
         childImplementations.put(USED_PERCENT, new MemoryExpression() {
             @Override
             public Short value() {
+                OsStats.Mem mem = this.row.osStats.getMem();
                 if (mem != null) {
                     return mem.getUsedPercent();
                 }
                 return -1;
+            }
+        });
+        childImplementations.put(PROBE_TIMESTAMP, new SimpleDiscoveryNodeExpression<Long>() {
+            @Override
+            public Long value() {
+                OsStats stats = this.row.osStats;
+                return stats.getTimestamp();
             }
         });
     }

@@ -21,23 +21,21 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.sys.SysNodeObjectReference;
 import io.crate.monitor.ExtendedProcessCpuStats;
 
-public class NodeProcessCpuExpression extends SysNodeObjectReference {
+public class NodeProcessCpuExpression extends NestedDiscoveryNodeExpression {
 
     public static final String PERCENT = "percent";
     public static final String USER = "user";
     public static final String SYSTEM = "system";
 
-    public NodeProcessCpuExpression(ExtendedProcessCpuStats cpuStats) {
-        addChildImplementations(cpuStats);
-    }
+    private abstract class ProcessCpuExpression extends SimpleDiscoveryNodeExpression<Object> {}
 
-    private void addChildImplementations(final ExtendedProcessCpuStats cpuStats) {
-        childImplementations.put(PERCENT, new SysNodeExpression<Short>() {
+    public NodeProcessCpuExpression() {
+        childImplementations.put(PERCENT, new ProcessCpuExpression() {
             @Override
             public Short value() {
+                ExtendedProcessCpuStats cpuStats = this.row.cpuStats;
                 if (cpuStats != null) {
                     return cpuStats.percent();
                 } else {
@@ -45,9 +43,10 @@ public class NodeProcessCpuExpression extends SysNodeObjectReference {
                 }
             }
         });
-        childImplementations.put(USER, new SysNodeExpression<Long>() {
+        childImplementations.put(USER, new ProcessCpuExpression() {
             @Override
             public Long value() {
+                ExtendedProcessCpuStats cpuStats = this.row.cpuStats;
                 if (cpuStats != null) {
                     return cpuStats.user().millis();
                 } else {
@@ -55,9 +54,10 @@ public class NodeProcessCpuExpression extends SysNodeObjectReference {
                 }
             }
         });
-        childImplementations.put(SYSTEM, new SysNodeExpression<Long>() {
+        childImplementations.put(SYSTEM, new ProcessCpuExpression() {
             @Override
             public Long value() {
+                ExtendedProcessCpuStats cpuStats = this.row.cpuStats;
                 if (cpuStats != null) {
                     return cpuStats.sys().millis();
                 } else {

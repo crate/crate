@@ -21,13 +21,10 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.monitor.ExtendedOsStats;
-import io.crate.operation.reference.sys.SysNodeObjectReference;
 
+public class NodeOsExpression extends NestedDiscoveryNodeExpression {
 
-public class NodeOsExpression extends SysNodeObjectReference {
-
-    abstract class OsExpression extends SysNodeExpression<Object> {
+    private abstract class OsExpression extends SimpleDiscoveryNodeExpression<Long> {
     }
 
     private static final String UPTIME = "uptime";
@@ -35,16 +32,12 @@ public class NodeOsExpression extends SysNodeObjectReference {
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
     private static final String CPU = "cpu";
 
-    public NodeOsExpression(ExtendedOsStats extendedOsStats) {
-        addChildImplementations(extendedOsStats);
-    }
-
-    private void addChildImplementations(final ExtendedOsStats extendedOsStats) {
+    public NodeOsExpression() {
         childImplementations.put(UPTIME, new OsExpression() {
             @Override
             public Long value() {
-                long uptime = extendedOsStats.uptime().millis();
-                return uptime == -1000 ? -1 : uptime;
+                long uptime = this.row.osStats.uptime().millis();
+                return uptime > 0 ? uptime : -1;
             }
         });
         childImplementations.put(TIMESTAMP, new OsExpression() {
@@ -57,10 +50,10 @@ public class NodeOsExpression extends SysNodeObjectReference {
         childImplementations.put(PROBE_TIMESTAMP, new OsExpression() {
             @Override
             public Long value() {
-                return extendedOsStats.timestamp();
+                return this.row.osStats.timestamp();
             }
         });
-        childImplementations.put(CPU, new NodeOsCpuExpression(extendedOsStats.cpu()));
+        childImplementations.put(CPU, new NodeOsCpuExpression());
     }
 
 }

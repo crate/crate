@@ -23,9 +23,6 @@ package io.crate.operation.reference.sys.node;
 
 import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.Constants;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 public class NodeOsJvmExpression extends SysNodeObjectReference {
 
@@ -34,41 +31,32 @@ public class NodeOsJvmExpression extends SysNodeObjectReference {
     private static final String VM_VENDOR = "vm_vendor";
     private static final String VM_VERSION = "vm_version";
 
-    private static final BytesRef JAVA_VERSION = BytesRefs.toBytesRef(Constants.JAVA_VERSION);
-    private static final BytesRef JVM_NAME = BytesRefs.toBytesRef(Constants.JVM_NAME);
-    private static final BytesRef JVM_VENDOR = BytesRefs.toBytesRef(Constants.JVM_VENDOR);
-    private static final BytesRef JVM_VERSION = BytesRefs.toBytesRef(Constants.JVM_VERSION);
-
-    abstract class JvmExpression extends SysNodeExpression<Object> {
+    private abstract class JvmExpression extends SimpleDiscoveryNodeExpression<BytesRef> {
     }
 
     public NodeOsJvmExpression() {
-        addChildImplementations();
-    }
-
-    private void addChildImplementations() {
         childImplementations.put(VERSION, new JvmExpression() {
             @Override
             public BytesRef value() {
-                return JAVA_VERSION;
+                return this.row.JAVA_VERSION;
             }
         });
         childImplementations.put(VM_NAME, new JvmExpression() {
             @Override
             public BytesRef value() {
-                return JVM_NAME;
+                return this.row.JVM_NAME;
             }
         });
         childImplementations.put(VM_VENDOR, new JvmExpression() {
             @Override
             public BytesRef value() {
-                return JVM_VENDOR;
+                return this.row.JVM_VENDOR;
             }
         });
         childImplementations.put(VM_VERSION, new JvmExpression() {
             @Override
             public BytesRef value() {
-                return JVM_VERSION;
+                return this.row.JVM_VERSION;
             }
         });
     }

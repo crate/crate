@@ -22,7 +22,6 @@
 
 package io.crate.operation.reference.sys.cluster;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.SimpleObjectExpression;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.SysObjectArrayReference;
