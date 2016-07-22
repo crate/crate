@@ -543,7 +543,7 @@ class ConnectionContext {
         @Override
         protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buffer) throws Exception {
             switch (state) {
-                /**
+                /*
                  * StartupMessage:
                  * | int32 length | int32 protocol | [ string paramKey | string paramValue , ... ]
                  */
@@ -551,6 +551,7 @@ class ConnectionContext {
                     if (buffer.readableBytes() < 8) {
                         return null;
                     }
+                    buffer.markReaderIndex();
                     msgLength = buffer.readInt() - 8; // exclude length itself and protocol
                     if (msgLength == 0) {
                         // SSL negotiation pkg
@@ -561,9 +562,8 @@ class ConnectionContext {
                     LOGGER.trace("Header pkgLength: {}", msgLength);
                     int protocol = buffer.readInt();
                     traceLogProtocol(protocol);
-                    state = State.STARTUP_BODY;
-                    return nullOrBuffer(buffer);
-                /**
+                    return nullOrBuffer(buffer, State.STARTUP_BODY);
+                /*
                  * Regular Data Packet:
                  * | char tag | int32 len | payload
                  */
@@ -571,13 +571,13 @@ class ConnectionContext {
                     if (buffer.readableBytes() < 5) {
                         return null;
                     }
+                    buffer.markReaderIndex();
                     msgType = buffer.readByte();
                     msgLength = buffer.readInt() - 4; // exclude length itself
-                    state = State.MSG_BODY;
-                    return nullOrBuffer(buffer);
+                    return nullOrBuffer(buffer, State.MSG_BODY);
                 case MSG_BODY:
                 case STARTUP_BODY:
-                    return nullOrBuffer(buffer);
+                    return nullOrBuffer(buffer, state);
             }
             throw new IllegalStateException("Invalid state " + state);
         }
@@ -587,10 +587,12 @@ class ConnectionContext {
          *
          * If null is returned the decoder will be called again, otherwise the MessageHandler will be called next.
          */
-        private ChannelBuffer nullOrBuffer(ChannelBuffer buffer) {
+        private ChannelBuffer nullOrBuffer(ChannelBuffer buffer, State nextState) {
             if (buffer.readableBytes() < msgLength) {
+                buffer.resetReaderIndex();
                 return null;
             }
+            state = nextState;
             return buffer;
         }
     }
