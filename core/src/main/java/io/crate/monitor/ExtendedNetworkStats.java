@@ -22,10 +22,24 @@
 
 package io.crate.monitor;
 
-public class ExtendedNetworkStats {
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 
-    private final Tcp tcp;
+import java.io.IOException;
+
+public class ExtendedNetworkStats implements Streamable {
+
+    private Tcp tcp;
     private long timestamp;
+
+    public static ExtendedNetworkStats readExtendedNetworkStats(StreamInput in) throws IOException {
+        ExtendedNetworkStats stat = new ExtendedNetworkStats();
+        stat.readFrom(in);
+        return stat;
+    }
+
+    public ExtendedNetworkStats() {}
 
     public ExtendedNetworkStats(Tcp tcp) {
         this.tcp = tcp;
@@ -43,8 +57,23 @@ public class ExtendedNetworkStats {
         return tcp;
     }
 
+    public void tcp(Tcp tcp) {
+        this.tcp = tcp;
+    }
 
-    public static class Tcp {
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        timestamp = in.readLong();
+        tcp = in.readOptionalStreamable(new Tcp());
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeLong(timestamp);
+        out.writeOptionalStreamable(tcp);
+    }
+
+    public static class Tcp implements Streamable {
 
         private long activeOpens;
         private long passiveOpens;
@@ -56,6 +85,12 @@ public class ExtendedNetworkStats {
         private long retransSegs;
         private long inErrs;
         private long outRsts;
+
+        public static Tcp readTcp(StreamInput in) throws IOException {
+            Tcp tcp = new Tcp();
+            tcp.readFrom(in);
+            return tcp;
+        }
 
         public Tcp() {
         }
@@ -120,6 +155,34 @@ public class ExtendedNetworkStats {
 
         public long outRsts() {
             return outRsts;
+        }
+
+        @Override
+        public void readFrom(StreamInput in) throws IOException {
+            activeOpens = in.readLong();
+            passiveOpens = in.readLong();
+            attemptFails = in.readLong();
+            estabResets = in.readLong();
+            currEstab = in.readLong();
+            inSegs = in.readLong();
+            outSegs = in.readLong();
+            retransSegs = in.readLong();
+            inErrs = in.readLong();
+            outRsts = in.readLong();
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeLong(activeOpens);
+            out.writeLong(passiveOpens);
+            out.writeLong(attemptFails);
+            out.writeLong(estabResets);
+            out.writeLong(currEstab);
+            out.writeLong(inSegs);
+            out.writeLong(outSegs);
+            out.writeLong(retransSegs);
+            out.writeLong(inErrs);
+            out.writeLong(outRsts);
         }
     }
 }

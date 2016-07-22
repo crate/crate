@@ -22,17 +22,30 @@
 
 package io.crate.monitor;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.unit.TimeValue;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-public class ExtendedOsStats {
+public class ExtendedOsStats implements Streamable {
 
-    private final Cpu cpu;
+    private Cpu cpu;
 
     private long timestamp;
     private long uptime = -1;
     private double[] loadAverage = new double[0];
+
+    public static ExtendedOsStats readExtendedOsStat(StreamInput in) throws IOException {
+        ExtendedOsStats stat = new ExtendedOsStats();
+        stat.readFrom(in);
+        return stat;
+    }
+
+    public ExtendedOsStats() {
+    }
 
     public ExtendedOsStats(Cpu cpu) {
         this.cpu = cpu;
@@ -66,12 +79,38 @@ public class ExtendedOsStats {
         return cpu;
     }
 
-    public static class Cpu {
+    public void cpu(Cpu cpu) {
+        this.cpu = cpu;
+    }
 
-        final short sys;
-        final short user;
-        final short idle;
-        final short stolen;
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        timestamp = in.readLong();
+        uptime = in.readLong();
+        loadAverage = in.readDoubleArray();
+        cpu = in.readOptionalStreamable(new Cpu());
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeLong(timestamp);
+        out.writeLong(uptime);
+        out.writeDoubleArray(loadAverage);
+        out.writeOptionalStreamable(cpu);
+    }
+
+    public static class Cpu implements Streamable {
+
+        private short sys;
+        private short user;
+        private short idle;
+        private short stolen;
+
+        public static Cpu readCpu(StreamInput in) throws IOException {
+            Cpu cpu = new Cpu();
+            cpu.readFrom(in);
+            return cpu;
+        }
 
         public Cpu() {
             this((short) -1, (short) -1, (short) -1, (short) -1);
@@ -100,5 +139,20 @@ public class ExtendedOsStats {
             return stolen;
         }
 
+        @Override
+        public void readFrom(StreamInput in) throws IOException {
+            sys = in.readShort();
+            user = in.readShort();
+            idle = in.readShort();
+            stolen = in.readShort();
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeShort(sys);
+            out.writeShort(user);
+            out.writeShort(idle);
+            out.writeShort(stolen);
+        }
     }
 }
