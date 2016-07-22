@@ -78,8 +78,7 @@ public class NodeMemoryExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(PROBE_TIMESTAMP, new SimpleDiscoveryNodeExpression<Long>() {
             @Override
             public Long value() {
-                OsStats stats = this.row.osStats;
-                return stats.getTimestamp();
+                return this.row.osStats.getTimestamp();
             }
         });
     }

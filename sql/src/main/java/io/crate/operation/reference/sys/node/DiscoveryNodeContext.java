@@ -36,6 +36,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.os.OsInfo;
+import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.monitor.process.ProcessStats;
 
 import java.io.IOException;
@@ -54,7 +55,8 @@ public class DiscoveryNodeContext {
     public JvmStats jvmStats;
     public OsInfo osInfo;
     public ProcessStats processStats;
-    public ExtendedOsStats osStats;
+    public OsStats osStats;
+    public ExtendedOsStats extendedOsStats;
     public ExtendedNetworkStats networkStats;
     public ExtendedProcessCpuStats cpuStats;
     public ExtendedFsStats fsStats;

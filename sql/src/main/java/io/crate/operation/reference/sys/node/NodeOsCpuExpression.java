@@ -38,7 +38,7 @@ public class NodeOsCpuExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(SYS, new CpuExpression() {
             @Override
             public Short value() {
-                ExtendedOsStats.Cpu cpu = this.row.osStats.cpu();
+                ExtendedOsStats.Cpu cpu = this.row.extendedOsStats.cpu();
                 if (cpu != null) {
                     return cpu.sys();
                 } else {
@@ -49,7 +49,7 @@ public class NodeOsCpuExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(USER, new CpuExpression() {
             @Override
             public Short value() {
-                ExtendedOsStats.Cpu cpu = this.row.osStats.cpu();
+                ExtendedOsStats.Cpu cpu = this.row.extendedOsStats.cpu();
                 if (cpu != null) {
                     return cpu.user();
                 } else {
@@ -60,7 +60,7 @@ public class NodeOsCpuExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(IDLE, new CpuExpression() {
             @Override
             public Short value() {
-                ExtendedOsStats.Cpu cpu = this.row.osStats.cpu();
+                ExtendedOsStats.Cpu cpu = this.row.extendedOsStats.cpu();
                 if (cpu != null) {
                     return cpu.idle();
                 } else {
@@ -71,7 +71,7 @@ public class NodeOsCpuExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(USAGE, new CpuExpression() {
             @Override
             public Short value() {
-                ExtendedOsStats.Cpu cpu = this.row.osStats.cpu();
+                ExtendedOsStats.Cpu cpu = this.row.extendedOsStats.cpu();
                 if (cpu != null && cpu.sys() != -1) {
                     return (short) (cpu.sys() + cpu.user());
                 } else {
@@ -82,7 +82,7 @@ public class NodeOsCpuExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(STOLEN, new CpuExpression() {
             @Override
             public Short value() {
-                ExtendedOsStats.Cpu cpu = this.row.osStats.cpu();
+                ExtendedOsStats.Cpu cpu = this.row.extendedOsStats.cpu();
                 if (cpu != null) {
                     return cpu.stolen();
                 } else {
