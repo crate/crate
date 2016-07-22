@@ -28,40 +28,49 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class NodeStatsRequest extends TransportRequest {
 
-    private String node;
-    private List<ReferenceIdent> toCollect;
+    private String nodeId;
+    private List<ReferenceIdent> referenceIdents = new ArrayList<>();
 
     public NodeStatsRequest() {
     }
 
-    public NodeStatsRequest(String node, List<ReferenceIdent> toCollect) {
-        this.node = node;
-        this.toCollect = toCollect;
+    public NodeStatsRequest(String nodeId, List<ReferenceIdent> referenceIdents) {
+        this.nodeId = nodeId;
+        this.referenceIdents = referenceIdents;
+    }
+
+    public String nodeId() {
+        return nodeId;
+    }
+
+    public List<ReferenceIdent> referenceIdents() {
+        return referenceIdents;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-//        toCollect = in.readStringArray();
-        node = in.readString();
+        nodeId = in.readString();
+        int refIndentsSize = in.readVInt();
+        for (int i = 0; i < refIndentsSize; i++) {
+            ReferenceIdent referenceIdent = new ReferenceIdent();
+            referenceIdent.readFrom(in);
+            referenceIdents.add(referenceIdent);
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-//        out.writeStringArray(toCollect);
-        out.writeString(node);
-    }
-
-    public List<ReferenceIdent> getToCollect() {
-        return toCollect;
-    }
-
-    public String getNode() {
-        return node;
+        out.writeString(nodeId);
+        out.writeVInt(referenceIdents.size());
+        for (ReferenceIdent referenceIdent : referenceIdents) {
+            referenceIdent.writeTo(out);
+        }
     }
 }

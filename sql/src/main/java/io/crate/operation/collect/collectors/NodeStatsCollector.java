@@ -22,9 +22,13 @@
 
 package io.crate.operation.collect.collectors;
 
+import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.analyze.symbol.Reference;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.executor.transport.NodeStatsRequest;
 import io.crate.executor.transport.NodeStatsResponse;
 import io.crate.executor.transport.TransportNodeStatsAction;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.collect.CrateCollector;
@@ -40,6 +44,7 @@ import org.elasticsearch.common.unit.TimeValue;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
@@ -51,6 +56,7 @@ public class NodeStatsCollector implements CrateCollector {
     private final DiscoveryNodes nodes;
     private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> inputSymbolVisitor;
     private IterableRowEmitter emitter;
+    private final ReferenceIdentVisitor referenceIdentVisitor = ReferenceIdentVisitor.INSTANCE;
 
     public NodeStatsCollector(TransportNodeStatsAction transportStatTablesAction,
                               RowReceiver rowReceiver,
@@ -74,8 +80,9 @@ public class NodeStatsCollector implements CrateCollector {
         final List<DiscoveryNodeContext> discoveryNodeContexts = new ArrayList<>(nodes.size());
         final CountDownLatch counter = new CountDownLatch(nodes.size());
         for (DiscoveryNode node : nodes) {
-            transportStatTablesAction.execute(node.id(),
-                    new NodeStatsRequest(node.id(), null),
+            NodeStatsRequest request =
+                    new NodeStatsRequest(node.id(), referenceIdentVisitor.process(collectPhase.toCollect()));
+            transportStatTablesAction.execute(node.id(), request,
                     new ActionListener<NodeStatsResponse>() {
                         @Override
                         public void onResponse(NodeStatsResponse response) {
@@ -106,4 +113,37 @@ public class NodeStatsCollector implements CrateCollector {
     public void kill(@Nullable Throwable throwable) {
         emitter.kill(throwable);
     }
+
+    private static class ReferenceIdentVisitor extends DefaultTraversalSymbolVisitor<ReferenceIdentVisitor.Context, Void> {
+
+        static final ReferenceIdentVisitor INSTANCE = new ReferenceIdentVisitor();
+
+        static class Context {
+
+            private final List<ReferenceIdent> referenceIdents = new ArrayList<>();
+
+            void add(ReferenceIdent referenceIdent) {
+                referenceIdents.add(referenceIdent);
+            }
+
+            List<ReferenceIdent> referenceIdents() {
+                return referenceIdents;
+            }
+        }
+
+        List<ReferenceIdent> process(Collection<? extends Symbol> symbols) {
+            Context context = new Context();
+            for (Symbol symbol : symbols) {
+                process(symbol, context);
+            }
+            return context.referenceIdents();
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, Context context) {
+            context.add(symbol.ident());
+            return null;
+        }
+    }
+
 }
