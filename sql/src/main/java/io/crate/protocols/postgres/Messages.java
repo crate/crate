@@ -194,10 +194,22 @@ class Messages {
         final String message = Exceptions.messageOf(throwable);
         byte[] msg = message.getBytes(StandardCharsets.UTF_8);
         byte[] severity = "ERROR".getBytes(StandardCharsets.UTF_8);
+
+        // See https://www.postgresql.org/docs/9.2/static/errcodes-appendix.html
+        // need to add a throwable -> error code mapping later on
+        byte[] errorCode;
+        if (throwable instanceof IllegalArgumentException || throwable instanceof UnsupportedOperationException) {
+             // feature_not_supported
+            errorCode = "0A000".getBytes(StandardCharsets.UTF_8);
+        } else {
+            // internal_error
+            errorCode = "XX000".getBytes(StandardCharsets.UTF_8);
+        }
         int length =
             4 +
             1 + (severity.length + 1) +
             1 + (msg.length + 1) +
+            1 + (errorCode.length + 1) +
             1;
         ChannelBuffer buffer = ChannelBuffers.buffer(length + 1);
         buffer.writeByte('E');
@@ -206,6 +218,8 @@ class Messages {
         writeCString(buffer, severity);
         buffer.writeByte('M');
         writeCString(buffer, msg);
+        buffer.writeByte(('C'));
+        writeCString(buffer, errorCode);
 
         buffer.writeByte(0);
         channel.write(buffer).addListener(new ChannelFutureListener() {
