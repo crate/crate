@@ -95,10 +95,6 @@ public class MultiSourceSelect implements QueriedRelation {
         return sources;
     }
 
-    public void normalize(EvaluatingNormalizer normalizer) {
-        querySpec.normalize(normalizer);
-    }
-
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitMultiSourceSelect(this, context);

@@ -23,13 +23,13 @@ package io.crate.analyze.where;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import org.apache.lucene.util.BytesRef;
-import com.google.common.base.Preconditions;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
@@ -127,13 +127,6 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
 
     public int size() {
         return docKeys.size();
-    }
-
-    public Optional<List<Integer>> partitionIdx() {
-        if (partitionIdx != null && !partitionIdx.isEmpty()) {
-            return Optional.of(partitionIdx);
-        }
-        return Optional.absent();
     }
 
     @Override

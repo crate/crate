@@ -28,8 +28,4 @@ public class BindPostgresException extends ElasticsearchException {
     public BindPostgresException(String msg, Throwable cause) {
         super(msg, cause);
     }
-
-    public BindPostgresException(String msg) {
-        super(msg);
-    }
 }

@@ -267,7 +267,6 @@ public class GroupingProjector extends AbstractProjector {
         private final List<Input<?>> keyInputs;
         private final CollectExpression[] collectExpressions;
         private final List<SizeEstimator<Object>> sizeEstimators;
-        private final Object killLock = new Object();
         private IterableRowEmitter rowEmitter = null;
 
         ManyKeyGrouper(List<Input<?>> keyInputs,

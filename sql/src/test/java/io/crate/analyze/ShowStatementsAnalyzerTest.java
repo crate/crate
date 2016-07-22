@@ -188,6 +188,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                                     "ORDER BY information_schema.schemata.schema_name"));
     }
 
+    @Test
     public void testShowColumnsLike() throws Exception {
         SelectAnalyzedStatement analyzedStatement = analyze("show columns from schemata in information_schema like '%'");
         QuerySpec querySpec = analyzedStatement.relation().querySpec();
@@ -199,6 +200,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                 " ORDER BY information_schema.columns.column_name"));
     }
 
+    @Test
     public void testShowColumnsWhere() throws Exception {
         SelectAnalyzedStatement analyzedStatement = analyze("show columns in schemata from information_schema"
                                                             + " where column_name = 'id'");
@@ -212,6 +214,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                 " ORDER BY information_schema.columns.column_name"));
     }
 
+    @Test
     public void testShowColumnsLikeWithoutSpecifiedSchema() throws Exception {
         SelectAnalyzedStatement analyzedStatement = analyze("show columns in schemata like '%'");
 
@@ -224,6 +227,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                 " ORDER BY information_schema.columns.column_name"));
     }
 
+    @Test
     public void testShowColumnsFromOneTable() throws Exception {
         SelectAnalyzedStatement analyzedStatement = analyze("show columns in schemata");
 

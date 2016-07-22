@@ -61,14 +61,4 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
                 "{\"error\":{\"message\":\"SQLActionException[request body contains args and bulk_args. It's forbidden to provide both]\",\"code\":4000},\"error_trace\":\"SQLActionException:"
         ));
     }
-
-    private String resolveEscapedNL(){
-        String LN = System.getProperty("line.separator");
-        // http://en.wikipedia.org/wiki/Newline#Representations
-        switch (LN){
-            case "\r": return "\\r";
-            case "\r\n": return "\\r\\n";
-            default: return "\\n";
-        }
-    }
 }

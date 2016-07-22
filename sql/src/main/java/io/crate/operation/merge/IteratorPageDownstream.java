@@ -38,8 +38,6 @@ import io.crate.operation.RejectionAwareExecutor;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.ResumeHandle;
 import io.crate.operation.projectors.RowReceiver;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -49,8 +47,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class IteratorPageDownstream implements PageDownstream, ResumeHandle, RepeatHandle {
-
-    private static final ESLogger LOGGER = Loggers.getLogger(IteratorPageDownstream.class);
 
     private final RowReceiver rowReceiver;
     private final Executor executor;

@@ -27,7 +27,6 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -169,11 +168,6 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     @SuppressWarnings("unchecked")
     protected <T extends FunctionImplementation> T getFunction(String functionName, List<DataType> argTypes) {
         return (T) functions.get(new FunctionIdent(functionName, argTypes));
-    }
-
-    @SuppressWarnings("unchecked")
-    protected <T extends FunctionImplementation> T getFunctionFromArgs(String functionName, List<Symbol> args) {
-        return (T) functions.get(new FunctionIdent(functionName, Symbols.extractTypes(args)));
     }
 
     protected Symbol normalize(String functionName, Object value, DataType type) {

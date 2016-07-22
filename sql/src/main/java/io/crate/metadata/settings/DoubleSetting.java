@@ -25,8 +25,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nonnull;
-
 public abstract class DoubleSetting extends Setting<Double, Double> {
 
     public Double maxValue() {
@@ -45,10 +43,5 @@ public abstract class DoubleSetting extends Setting<Double, Double> {
     @Override
     public Double extract(Settings settings) {
         return settings.getAsDouble(settingName(), defaultValue());
-    }
-
-    @Override
-    public Double extract(Settings settings, @Nonnull Double defaultValue) {
-        return settings.getAsDouble(settingName(), defaultValue);
     }
 }

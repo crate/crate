@@ -63,6 +63,7 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
         );
     }
 
+    @Test
     public void testEvaluateShapeIsNotWithinShape() {
         assertEvaluate("within(geoshape, geoshape)", false,
                 Literal.newLiteral(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("LINESTRING (8 15, 40 74)")),

@@ -47,14 +47,13 @@ public class RowCountResult implements TaskResult {
     public static RowCountResult error(Throwable throwable) {
         return new RowCountResult(-2L, throwable);
     }
-    
+
     @Override
     public Bucket rows() {
         return rows;
     }
 
     @Nullable
-    @Override
     public String errorMessage() {
         if (error == null) {
             return null;

@@ -84,7 +84,6 @@ public class IntSetting extends Setting<Integer, Integer> {
         return settings.getAsInt(settingName(), defaultValue());
     }
 
-    @Override
     public Integer extract(Settings settings, @Nonnull Integer defaultValue) {
         return settings.getAsInt(settingName(), defaultValue);
     }

@@ -23,8 +23,6 @@ package io.crate.executor;
 
 import io.crate.core.collections.Bucket;
 
-import javax.annotation.Nullable;
-
 public class QueryResult implements TaskResult {
 
     private final Bucket rows;
@@ -36,11 +34,5 @@ public class QueryResult implements TaskResult {
     @Override
     public Bucket rows() {
         return rows;
-    }
-
-    @Nullable
-    @Override
-    public String errorMessage() {
-        return null;
     }
 }

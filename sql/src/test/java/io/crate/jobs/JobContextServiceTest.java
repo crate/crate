@@ -22,15 +22,8 @@
 package io.crate.jobs;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
-import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.After;
@@ -50,11 +43,7 @@ import static org.mockito.Mockito.mock;
 
 public class JobContextServiceTest extends CrateUnitTest {
 
-    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
-
     private JobContextService jobContextService;
-
 
     @Before
     public void prepare() throws Exception {
@@ -236,14 +225,4 @@ public class JobContextServiceTest extends CrateUnitTest {
         jobContextService.createContext(builder);
         assertThat(jobContextService.killJobs(jobsToKill), is(1L));
     }
-
-    private JobExecutionContext getJobExecutionContextWithOneActiveSubContext(JobContextService jobContextService) throws Exception {
-        JobExecutionContext.Builder builder1 = jobContextService.newBuilder(UUID.randomUUID());
-        PageDownstreamContext pageDownstreamContext =
-                new PageDownstreamContext(Loggers.getLogger(PageDownstreamContext.class), "n1",
-                        1, "dummy", mock(PageDownstream.class), new Streamer[0], RAM_ACCOUNTING_CONTEXT, 1, mock(FlatProjectorChain.class));
-        builder1.addSubContext(pageDownstreamContext);
-        return jobContextService.createContext(builder1);
-    }
-
 }

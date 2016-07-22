@@ -33,7 +33,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.test.TestCluster;
 import org.hamcrest.Matchers;
 
 import java.util.concurrent.TimeUnit;
@@ -50,15 +49,6 @@ public class SQLTransportExecutor {
 
     private static final ESLogger LOGGER = Loggers.getLogger(SQLTransportExecutor.class);
     private final ClientProvider clientProvider;
-
-    public static SQLTransportExecutor create(final TestCluster testCluster) {
-        return new SQLTransportExecutor(new ClientProvider() {
-            @Override
-            public Client client() {
-                return testCluster.client();
-            }
-        });
-    }
 
     public SQLTransportExecutor(ClientProvider clientProvider) {
         this.clientProvider = clientProvider;

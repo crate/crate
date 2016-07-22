@@ -124,17 +124,7 @@ public abstract class QueryBuilderHelper {
         }
     }
 
-    static final class LongQueryBuilder extends QueryBuilderHelper {
-
-        static Long toLong(Object value) {
-            if (value == null) {
-                return null;
-            }
-            if (value instanceof Long) {
-                return (Long) value;
-            }
-            return ((Number) value).longValue();
-        }
+    private static final class LongQueryBuilder extends QueryBuilderHelper {
 
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
@@ -142,7 +132,7 @@ public abstract class QueryBuilderHelper {
         }
     }
 
-    static final class IntegerQueryBuilder extends QueryBuilderHelper {
+    private static final class IntegerQueryBuilder extends QueryBuilderHelper {
 
         static Integer toInt(Object value) {
             if (value == null) {
@@ -160,7 +150,7 @@ public abstract class QueryBuilderHelper {
         }
     }
 
-    static final class IpQueryBuilder extends QueryBuilderHelper {
+    private static final class IpQueryBuilder extends QueryBuilderHelper {
 
         private BytesRef valueForSearch(Object value) {
             if (value == null) return null;
@@ -197,7 +187,7 @@ public abstract class QueryBuilderHelper {
         }
     }
 
-    static final class StringQueryBuilder extends QueryBuilderHelper {
+    private static final class StringQueryBuilder extends QueryBuilderHelper {
 
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {

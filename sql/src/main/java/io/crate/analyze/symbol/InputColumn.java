@@ -49,15 +49,6 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
 
     private int index;
 
-    public static List<Symbol> fromIntArray(int[] indices) {
-        List<Symbol> inputColumns = new ArrayList<>(indices.length);
-        for (int i : indices) {
-            inputColumns.add(new InputColumn(i));
-        }
-        return inputColumns;
-    }
-
-
     public static List<Symbol> numInputs(int size) {
         List<Symbol> inputColumns = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {

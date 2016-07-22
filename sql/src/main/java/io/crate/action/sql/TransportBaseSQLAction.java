@@ -244,7 +244,7 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             if (e instanceof ValidationException) {
                 errorCode = 4000 + crateException.errorCode();
                 restStatus = RestStatus.BAD_REQUEST;
-            } else if (e instanceof ForbiddenException) {
+            } else if (e instanceof ReadOnlyException) {
                 errorCode = 4030 + crateException.errorCode();
                 restStatus = RestStatus.FORBIDDEN;
             } else if (e instanceof ResourceUnknownException) {

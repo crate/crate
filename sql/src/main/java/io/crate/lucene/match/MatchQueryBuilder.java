@@ -35,7 +35,6 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.MultiPhrasePrefixQuery;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.unit.Fuzziness;
-import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
@@ -50,7 +49,6 @@ import java.util.Map;
 
 public class MatchQueryBuilder {
 
-    protected final IndexCache indexCache;
     protected final MapperService mapperService;
     protected final ParsedOptions options;
 
@@ -66,11 +64,9 @@ public class MatchQueryBuilder {
             .build();
 
     public MatchQueryBuilder(MapperService mapperService,
-                             IndexCache indexCache,
                              @Nullable BytesRef matchType,
                              @Nullable Map options) throws IOException {
         this.mapperService = mapperService;
-        this.indexCache = indexCache;
         if (matchType == null) {
             this.matchType = MultiMatchQueryBuilder.Type.BEST_FIELDS;
         } else {
@@ -94,7 +90,7 @@ public class MatchQueryBuilder {
         return query;
     }
 
-    protected IllegalArgumentException illegalMatchType(String matchType) {
+    IllegalArgumentException illegalMatchType(String matchType) {
         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Unknown matchType \"%s\". Possible matchTypes are: %s", matchType,
                 Joiner.on(", ").join(Iterables.transform(SUPPORTED_TYPES.keySet(), new Function<BytesRef, String>() {
@@ -109,14 +105,14 @@ public class MatchQueryBuilder {
     }
 
     @Nullable
-    protected static Float floatOrNull(Object value) {
+    static Float floatOrNull(Object value) {
         if (value == null) {
             return null;
         }
         return ((Number) value).floatValue();
     }
 
-    protected Query singleQuery(MatchQuery.Type type, String fieldName, BytesRef queryString) {
+    private Query singleQuery(MatchQuery.Type type, String fieldName, BytesRef queryString) {
         String field;
         MappedFieldType fieldType = mapperService.smartNameFieldType(fieldName);
         if (fieldType == null) {
@@ -174,10 +170,10 @@ public class MatchQueryBuilder {
         }
     }
 
-    protected Query singleQueryAndApply(MatchQuery.Type type,
-                                        String fieldName,
-                                        BytesRef queryString,
-                                        Float boost) {
+    Query singleQueryAndApply(MatchQuery.Type type,
+                              String fieldName,
+                              BytesRef queryString,
+                              Float boost) {
         Query query = singleQuery(type, fieldName, queryString);
         if (query instanceof BooleanQuery) {
             Queries.applyMinimumShouldMatch((BooleanQuery) query, options.minimumShouldMatch());
@@ -194,7 +190,7 @@ public class MatchQueryBuilder {
                 Queries.newMatchAllQuery();
     }
 
-    protected Analyzer getAnalyzer(MappedFieldType fieldType) {
+    Analyzer getAnalyzer(MappedFieldType fieldType) {
         if (options.analyzer() == null) {
             if (fieldType != null) {
                 if (fieldType.searchAnalyzer() != null) {
@@ -219,7 +215,7 @@ public class MatchQueryBuilder {
         @Nullable
         private final MappedFieldType fieldType;
 
-        public InnerQueryBuilder(Analyzer analyzer, @Nullable MappedFieldType fieldType) {
+        InnerQueryBuilder(Analyzer analyzer, @Nullable MappedFieldType fieldType) {
             super(analyzer);
             this.fieldType = fieldType;
         }
@@ -229,12 +225,12 @@ public class MatchQueryBuilder {
             return blendTermQuery(term, fieldType);
         }
 
-        public Query createCommonTermsQuery(String field,
-                                            String queryText,
-                                            BooleanClause.Occur highFreqOccur,
-                                            BooleanClause.Occur lowFreqOccur,
-                                            Float maxTermFrequency,
-                                            MappedFieldType mapper) {
+        Query createCommonTermsQuery(String field,
+                                     String queryText,
+                                     BooleanClause.Occur highFreqOccur,
+                                     BooleanClause.Occur lowFreqOccur,
+                                     Float maxTermFrequency,
+                                     MappedFieldType mapper) {
             Query booleanQuery = createBooleanQuery(field, queryText, lowFreqOccur);
             if (booleanQuery != null && booleanQuery instanceof BooleanQuery) {
                 BooleanQuery bq = (BooleanQuery) booleanQuery;
@@ -252,7 +248,7 @@ public class MatchQueryBuilder {
             return booleanQuery;
         }
 
-        public Query createPhrasePrefixQuery(String field, String queryText, int phraseSlop, int maxExpansions) {
+        Query createPhrasePrefixQuery(String field, String queryText, int phraseSlop, int maxExpansions) {
             final Query query = createFieldQuery(getAnalyzer(), BooleanClause.Occur.MUST, field, queryText, true, phraseSlop);
             final MultiPhrasePrefixQuery prefixQuery = new MultiPhrasePrefixQuery();
             prefixQuery.setMaxExpansions(maxExpansions);

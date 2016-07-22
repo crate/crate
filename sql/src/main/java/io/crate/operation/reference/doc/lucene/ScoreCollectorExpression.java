@@ -43,10 +43,6 @@ public class ScoreCollectorExpression extends LuceneCollectorExpression<Float> {
         return score;
     }
 
-    public void score(float score) {
-        this.score = score;
-    }
-
     @Override
     public void setNextDocId(int doc) {
         if (scorer == null) {

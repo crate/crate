@@ -22,51 +22,22 @@
 
 package io.crate.analyze.symbol.format;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.IllegalFormatConversionException;
-import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
 public class SymbolFormatterTest extends CrateUnitTest {
-
-    SqlExpressions sqlExpressions;
-
-    public static final String TABLE_NAME = "formatter";
-
-    @Before
-    public void prepare() throws Exception {
-        DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, TABLE_NAME), null)
-                .add("foo", DataTypes.STRING)
-                .add("bar", DataTypes.LONG)
-                .add("CraZy", DataTypes.IP)
-                .add("select", DataTypes.BYTE)
-                .build();
-        Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>builder()
-                .put(QualifiedName.of(TABLE_NAME), new TableRelation(tableInfo))
-                .build();
-        sqlExpressions = new SqlExpressions(sources);
-    }
 
     @Test
     public void testFormat() throws Exception {

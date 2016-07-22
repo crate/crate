@@ -30,7 +30,6 @@ import org.apache.lucene.search.DisjunctionMaxQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 
@@ -46,10 +45,9 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
     private GroupQueryBuilder builder = null;
 
     public MultiMatchQueryBuilder(MapperService mapperService,
-                                  IndexCache indexCache,
                                   @Nullable BytesRef matchType,
                                   @Nullable Map options) throws IOException {
-        super(mapperService, indexCache, matchType, options);
+        super(mapperService, matchType, options);
     }
 
     @Override

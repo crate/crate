@@ -54,7 +54,6 @@ public class BoolSetting extends Setting<Boolean, Boolean> {
         return settings.getAsBoolean(settingName(), defaultValue());
     }
 
-    @Override
     public Boolean extract(Settings settings, @Nonnull Boolean defaultValue) {
         return settings.getAsBoolean(settingName(), defaultValue);
     }

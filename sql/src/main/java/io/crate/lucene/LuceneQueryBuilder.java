@@ -75,7 +75,6 @@ import org.apache.lucene.spatial.query.SpatialOperation;
 import org.apache.lucene.spatial.util.GeoDistanceUtils;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.SloppyMath;
 import org.apache.lucene.util.automaton.RegExp;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
@@ -716,9 +715,9 @@ public class LuceneQueryBuilder {
 
                 MatchQueryBuilder queryBuilder;
                 if (fields.size() == 1) {
-                    queryBuilder = new MatchQueryBuilder(context.mapperService, context.indexCache, matchType, options);
+                    queryBuilder = new MatchQueryBuilder(context.mapperService, matchType, options);
                 } else {
-                    queryBuilder = new MultiMatchQueryBuilder(context.mapperService, context.indexCache, matchType, options);
+                    queryBuilder = new MultiMatchQueryBuilder(context.mapperService, matchType, options);
                 }
                 return queryBuilder.query(fields, queryString);
             }

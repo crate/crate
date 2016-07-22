@@ -57,7 +57,6 @@ public class WriterProjection extends Projection {
     );
 
     private Symbol uri;
-    private boolean isDirectoryUri;
     private List<Symbol> inputs;
 
     @Nullable

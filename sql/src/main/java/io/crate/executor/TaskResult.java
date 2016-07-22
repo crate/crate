@@ -23,8 +23,6 @@ package io.crate.executor;
 
 import io.crate.core.collections.Bucket;
 
-import javax.annotation.Nullable;
-
 /**
  * The result of executing a {@linkplain io.crate.executor.Task}.
  */
@@ -40,10 +38,4 @@ public interface TaskResult {
     QueryResult EMPTY_RESULT = new QueryResult(Bucket.EMPTY);
 
     Bucket rows();
-
-    /**
-     * can be set in bulk operations to set the error for a single operation
-     */
-    @Nullable
-    String errorMessage();
 }

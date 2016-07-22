@@ -93,7 +93,6 @@ public class TestingTableInfo extends DocTableInfo {
         private final ImmutableList.Builder<ReferenceInfo> partitionedByColumns = ImmutableList.builder();
         private final ImmutableList.Builder<GeneratedReferenceInfo> generatedColumns = ImmutableList.builder();
         private final ImmutableList.Builder<ColumnIdent> primaryKey = ImmutableList.builder();
-        private final ImmutableList.Builder<ColumnIdent> notNullColumns = ImmutableList.builder();
         private final ImmutableList.Builder<ColumnIdent> partitionedBy = ImmutableList.builder();
         private final ImmutableList.Builder<PartitionName> partitions = ImmutableList.builder();
         private final ImmutableMap.Builder<ColumnIdent, IndexReferenceInfo> indexColumns = ImmutableMap.builder();
@@ -190,12 +189,6 @@ public class TestingTableInfo extends DocTableInfo {
                            boolean partitionBy) {
             return add(column, type, path, ColumnPolicy.DYNAMIC,
                     ReferenceInfo.IndexType.NOT_ANALYZED, partitionBy, true);
-        }
-
-        public Builder add(String column, DataType type, List<String> path,
-                           boolean partitionBy, boolean nullable) {
-            return add(column, type, path, ColumnPolicy.DYNAMIC,
-                ReferenceInfo.IndexType.NOT_ANALYZED, partitionBy, nullable);
         }
 
         public Builder add(String column, DataType type, List<String> path,
