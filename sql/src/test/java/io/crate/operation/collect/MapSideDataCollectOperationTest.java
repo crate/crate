@@ -83,7 +83,6 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
                 functions,
                 referenceResolver,
-                mock(NodeSysExpression.class),
                 collectSourceResolver,
                 threadPool
         );
