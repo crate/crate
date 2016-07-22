@@ -30,6 +30,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.Timeout;
 import org.postgresql.util.PSQLException;
 
 import java.sql.*;
@@ -44,6 +45,9 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     private static final String JDBC_POSTGRESQL_URL = "jdbc:postgresql://127.0.0.1:4242/";
     private static final String JDBC_POSTGRESQL_URL_READ_ONLY = "jdbc:postgresql://127.0.0.1:4243/";
+
+    @Rule
+    public Timeout globalTimeout = new Timeout(10000);
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
