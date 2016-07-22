@@ -47,7 +47,8 @@ import io.crate.operation.Paging;
 import io.crate.operation.QueryResultRowDownstream;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.plugin.CrateCorePlugin;
+import io.crate.plugin.BlobPlugin;
+import io.crate.plugin.SQLPlugin;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.GroovyTestSanitizer;
 import io.crate.testing.SQLTransportExecutor;
@@ -97,7 +98,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return pluginList(CrateCorePlugin.class);
+        return pluginList(BlobPlugin.class, SQLPlugin.class);
     }
 
     protected float responseDuration;

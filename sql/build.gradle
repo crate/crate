@@ -39,6 +39,7 @@ test {
 clean.dependsOn(cleanTest)
 
 sourceSets {
+    main.output.resourcesDir = null
     test {
         resources {
             srcDir 'src/test/java'

@@ -22,40 +22,16 @@
 
 package io.crate.plugin;
 
-import io.crate.module.CrateCoreModule;
-import io.crate.rest.CrateRestMainAction;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.rest.RestModule;
 
-import java.util.Collection;
-import java.util.Collections;
+import java.lang.reflect.Method;
 
-public class CrateCorePlugin extends Plugin {
+class OnModuleReference {
+    final Class<? extends Module> moduleClass;
+    final Method onModuleMethod;
 
-    private final Settings settings;
-
-    public CrateCorePlugin(Settings settings) {
-        this.settings = settings;
-    }
-
-    @Override
-    public String name() {
-        return "crate-core";
-    }
-
-    @Override
-    public String description() {
-        return "Crate Core";
-    }
-
-    @Override
-    public Collection<Module> nodeModules() {
-        return Collections.<Module>singletonList(new CrateCoreModule(settings));
-    }
-
-    public void onModule(RestModule restModule) {
-        restModule.addRestAction(CrateRestMainAction.class);
+    OnModuleReference(Class<? extends Module> moduleClass, Method onModuleMethod) {
+        this.moduleClass = moduleClass;
+        this.onModuleMethod = onModuleMethod;
     }
 }

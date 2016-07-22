@@ -1,22 +1,23 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
 package io.crate.plugin;
@@ -27,7 +28,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Plugin;
-import io.crate.core.CrateComponentLoader;
 import org.apache.xbean.finder.ResourceFinder;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.bootstrap.JarHell;
@@ -59,7 +59,7 @@ public class PluginLoader {
     private static final String RESOURCE_PATH = "META-INF/services/";
 
     private final Settings settings;
-    private final ImmutableMap<Plugin, List<CrateComponentLoader.OnModuleReference>> onModuleReferences;
+    private final ImmutableMap<Plugin, List<OnModuleReference>> onModuleReferences;
     private final ESLogger logger;
 
     @VisibleForTesting
@@ -80,7 +80,7 @@ public class PluginLoader {
 
         Collection<Class<? extends Plugin>> implementations = findImplementations();
 
-        MapBuilder<Plugin, List<CrateComponentLoader.OnModuleReference>> onModuleReferences = MapBuilder.newMapBuilder();
+        MapBuilder<Plugin, List<OnModuleReference>> onModuleReferences = MapBuilder.newMapBuilder();
         ImmutableList.Builder<Plugin> builder = ImmutableList.builder();
         for (Class<? extends Plugin> pluginClass : implementations) {
             Plugin plugin;
@@ -91,7 +91,7 @@ public class PluginLoader {
                 continue;
             }
             try {
-                List<CrateComponentLoader.OnModuleReference> onModuleReferenceList = loadModuleReferences(plugin);
+                List<OnModuleReference> onModuleReferenceList = loadModuleReferences(plugin);
                 if (!onModuleReferenceList.isEmpty()) {
                     onModuleReferences.put(plugin, onModuleReferenceList);
                 }
@@ -253,8 +253,8 @@ public class PluginLoader {
 
     }
 
-    private List<CrateComponentLoader.OnModuleReference> loadModuleReferences(Plugin plugin) {
-        List<CrateComponentLoader.OnModuleReference> list = Lists.newArrayList();
+    private List<OnModuleReference> loadModuleReferences(Plugin plugin) {
+        List<OnModuleReference> list = Lists.newArrayList();
         for (Method method : plugin.getClass().getDeclaredMethods()) {
             if (!method.getName().equals("onModule")) {
                 continue;
@@ -270,7 +270,7 @@ public class PluginLoader {
             }
             method.setAccessible(true);
             //noinspection unchecked
-            list.add(new CrateComponentLoader.OnModuleReference(moduleClass, method));
+            list.add(new OnModuleReference(moduleClass, method));
         }
 
         return list;
@@ -354,9 +354,9 @@ public class PluginLoader {
     public void processModule(Module module) {
         for (Plugin plugin : plugins) {
             // see if there are onModule references
-            List<CrateComponentLoader.OnModuleReference> references = onModuleReferences.get(plugin);
+            List<OnModuleReference> references = onModuleReferences.get(plugin);
             if (references != null) {
-                for (CrateComponentLoader.OnModuleReference reference : references) {
+                for (OnModuleReference reference : references) {
                     if (reference.moduleClass.isAssignableFrom(module.getClass())) {
                         try {
                             reference.onModuleMethod.invoke(plugin, module);

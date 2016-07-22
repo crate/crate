@@ -12,3 +12,5 @@ test {
     testLogging.exceptionFormat = 'full'
     jacoco.excludes = ["*Test*"]
 }
+
+sourceSets.main.output.resourcesDir = null

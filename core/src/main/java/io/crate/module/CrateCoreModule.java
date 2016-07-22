@@ -1,22 +1,23 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
 package io.crate.module;
@@ -24,12 +25,8 @@ package io.crate.module;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.ClusterIdService;
 import io.crate.Version;
-import io.crate.core.CrateComponentLoader;
-import io.crate.plugin.PluginLoader;
 import io.crate.rest.CrateRestMainAction;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.inject.PreProcessModule;
 import org.elasticsearch.common.inject.TypeLiteral;
 import org.elasticsearch.common.inject.matcher.AbstractMatcher;
 import org.elasticsearch.common.inject.spi.InjectionListener;
@@ -42,17 +39,12 @@ import org.elasticsearch.rest.action.main.RestMainAction;
 
 import java.util.concurrent.TimeUnit;
 
-public class CrateCoreModule extends AbstractModule implements PreProcessModule {
+public class CrateCoreModule extends AbstractModule {
 
     private final ESLogger logger;
-    private final CrateComponentLoader crateComponentLoader;
-    private final PluginLoader pluginLoader;
 
-
-    public CrateCoreModule(Settings settings, CrateComponentLoader crateComponentLoader, PluginLoader pluginLoader) {
+    public CrateCoreModule(Settings settings) {
         logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
-        this.crateComponentLoader = crateComponentLoader;
-        this.pluginLoader = pluginLoader;
     }
 
     @Override
@@ -60,9 +52,8 @@ public class CrateCoreModule extends AbstractModule implements PreProcessModule 
         Version version = Version.CURRENT;
         logger.info("configuring crate. version: {}", version);
 
-        bind(CrateComponentLoader.class).toInstance(crateComponentLoader);
 
-        /**
+        /*
          * This is a rather hacky method to overwrite the handler for "/"
          * The ES plugins are loaded before the core ES components. That means that the registration for
          * "/" in {@link CrateRestMainAction} is overwritten once {@link RestMainAction} is instantiated.
@@ -87,17 +78,11 @@ public class CrateCoreModule extends AbstractModule implements PreProcessModule 
         bind(ClusterIdService.class).asEagerSingleton();
     }
 
-    @Override
-    public void processModule(Module module) {
-        crateComponentLoader.processModule(module);
-        pluginLoader.processModule(module);
-    }
-
     private class RestMainActionListener implements TypeListener {
 
         private final SettableFuture<CrateRestMainAction> instanceFuture;
 
-        public RestMainActionListener(SettableFuture<CrateRestMainAction> instanceFuture) {
+        RestMainActionListener(SettableFuture<CrateRestMainAction> instanceFuture) {
             this.instanceFuture = instanceFuture;
         }
 
@@ -135,7 +120,7 @@ public class CrateCoreModule extends AbstractModule implements PreProcessModule 
 
         private final SettableFuture<CrateRestMainAction> instanceFuture;
 
-        public CrateRestMainActionListener() {
+        CrateRestMainActionListener() {
             this.instanceFuture = SettableFuture.create();
 
         }

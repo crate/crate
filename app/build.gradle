@@ -38,6 +38,9 @@ dependencies {
     compile project(':dns-discovery')
     compile project(':es-discovery-multicast')
     compile project(':es-cloud-aws')
+    compile ('org.apache.xbean:xbean-finder:4.2') {
+        exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
+    }
 
     testCompile project(':testing')
 

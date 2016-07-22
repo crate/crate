@@ -20,44 +20,36 @@
  * agreement.
  */
 
-package io.crate.plugin;
+package io.crate.module;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.CrateComponent;
+import io.crate.Version;
+import io.crate.plugin.PluginLoader;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.inject.PreProcessModule;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.Plugin;
 
-import java.util.Collection;
+public class PluginLoaderModule extends AbstractModule implements PreProcessModule {
 
-public class ExampleCrateComponent implements CrateComponent {
-    @Override
-    public Plugin createPlugin(Settings settings) {
-        return new Plugin() {
-            @Override
-            public String name() {
-                return "example";
-            }
+    private final ESLogger logger;
+    private final PluginLoader pluginLoader;
 
-            @Override
-            public String description() {
-                return "example plugin";
-            }
 
-            @Override
-            public Collection<Module> nodeModules() {
-                return ImmutableList.<Module>of(new AbstractModule() {
-                    @Override
-                    protected void configure() {
-                        bind(IBound.class).to(Bound.class).asEagerSingleton();
-                    }
-                });
-            }
-        };
+    public PluginLoaderModule(Settings settings, PluginLoader pluginLoader) {
+        logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
+        this.pluginLoader = pluginLoader;
     }
 
-    public interface IBound {}
+    @Override
+    protected void configure() {
+        Version version = Version.CURRENT;
+        logger.info("configuring crate. version: {}", version);
+    }
 
-    public static class Bound implements IBound {}
+    @Override
+    public void processModule(Module module) {
+        pluginLoader.processModule(module);
+    }
 }

@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.exceptions.Exceptions;
-import io.crate.plugin.CrateCorePlugin;
+import io.crate.plugin.SQLPlugin;
 import io.crate.testing.plugin.CrateTestingPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -52,7 +52,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return pluginList(
-                CrateCorePlugin.class,
+                SQLPlugin.class,
                 CrateTestingPlugin.class
         );
     }

@@ -22,7 +22,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.plugin.CrateCorePlugin;
+import io.crate.plugin.BlobPlugin;
 import io.crate.rest.CrateRestFilter;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
@@ -45,7 +45,7 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
     @SuppressWarnings("unchecked")
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return pluginList(CrateCorePlugin.class);
+        return pluginList(BlobPlugin.class);
     }
 
 }

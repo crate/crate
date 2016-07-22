@@ -23,8 +23,8 @@
 package io.crate.node;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.plugin.CrateCorePlugin;
-import io.crate.plugin.SrvPlugin;
+import io.crate.plugin.*;
+import io.crate.udc.plugin.UDCPlugin;
 import org.elasticsearch.Version;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
@@ -37,10 +37,14 @@ import java.util.Collection;
 public class CrateNode extends Node {
 
     private static final Collection<Class<? extends Plugin>> CLASSPATH_PLUGINS = ImmutableList.of(
-            CrateCorePlugin.class,
-            MulticastDiscoveryPlugin.class,
-            SrvPlugin.class,
-            CloudAwsPlugin.class);
+        PluginLoaderPlugin.class,
+        CrateCorePlugin.class,
+        BlobPlugin.class,
+        MulticastDiscoveryPlugin.class,
+        SrvPlugin.class,
+        UDCPlugin.class,
+        CloudAwsPlugin.class,
+        AdminUIPlugin.class);
 
     public CrateNode(Environment environment) {
         super(environment, Version.CURRENT, CLASSPATH_PLUGINS);
