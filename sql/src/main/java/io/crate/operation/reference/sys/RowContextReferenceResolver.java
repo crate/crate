@@ -28,6 +28,8 @@ import io.crate.metadata.*;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.expressions.WriteableRowContextExpression;
 import io.crate.metadata.information.*;
+import io.crate.metadata.pg_catalog.PgCatalogTables;
+import io.crate.metadata.pg_catalog.PgTypeTable;
 import io.crate.metadata.sys.*;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.information.InformationSchemaExpressionFactories;
@@ -76,6 +78,8 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
         tableFactories.put(InformationTablesTableInfo.IDENT, InformationSchemaExpressionFactories.tablesFactories());
 
         tableFactories.put(SysShardsTableInfo.IDENT, UnassignedShardsExpressionFactories.getSysShardsTableInfoFactories());
+
+        tableFactories.put(PgTypeTable.IDENT, PgCatalogTables.pgTypeExpressions());
     }
 
     private Map<ColumnIdent, RowCollectExpressionFactory> getSysOperationLogExpressions() {

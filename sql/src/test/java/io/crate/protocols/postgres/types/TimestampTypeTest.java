@@ -27,7 +27,7 @@ import org.junit.Test;
 public class TimestampTypeTest extends BasePGTypeTest<Long> {
 
     public TimestampTypeTest() {
-        super(new TimestampType());
+        super(TimestampType.INSTANCE);
     }
 
     @Test

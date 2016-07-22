@@ -27,7 +27,7 @@ import org.junit.Test;
 public class IntegerTypeTest extends BasePGTypeTest<Integer> {
 
     public IntegerTypeTest() {
-        super(new IntegerType());
+        super(IntegerType.INSTANCE);
     }
 
     @Test

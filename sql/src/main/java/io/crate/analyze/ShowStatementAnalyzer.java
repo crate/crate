@@ -37,7 +37,7 @@ public class ShowStatementAnalyzer {
 
     private Analyzer analyzer;
 
-    private String[] explicitSchemas = new String[]{"information_schema", "sys"};
+    private String[] explicitSchemas = new String[]{"information_schema", "sys", "pg_catalog"};
 
     public ShowStatementAnalyzer(Analyzer analyzer) {
         this.analyzer = analyzer;

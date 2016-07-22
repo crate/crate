@@ -268,11 +268,11 @@ public class SQLOperations {
         public void execute(String portalName, int maxRows, ResultReceiver resultReceiver) {
             LOGGER.debug("method=execute portalName={} maxRows={}", portalName, maxRows);
 
+            lastPortalName = portalName;
             checkError();
             try {
                 Portal portal = getSafePortal(portalName);
                 portal.execute(resultReceiver, maxRows);
-                lastPortalName = portalName;
             } catch (Throwable t) {
                 throwable = t;
                 throw t;

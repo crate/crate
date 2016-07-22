@@ -31,13 +31,14 @@ import java.util.Arrays;
 
 class VarCharType extends PGType {
 
+    public static final PGType INSTANCE = new VarCharType();
     static final int OID = 1043;
 
     private static final int TYPE_LEN = -1;
     private static final int TYPE_MOD = -1;
 
-    VarCharType() {
-        super(OID, TYPE_LEN, TYPE_MOD);
+    private VarCharType() {
+        super(OID, TYPE_LEN, TYPE_MOD, "varchar");
     }
 
     @Override

@@ -64,7 +64,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultTables() throws Exception {
         execute("select * from information_schema.tables order by schema_name, table_name");
-        assertEquals(17L, response.rowCount());
+        assertEquals(18L, response.rowCount());
 
         assertThat(TestingHelpers.printedTable(response.rows()), is(
                 "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| columns\n" +
@@ -73,6 +73,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| table_constraints\n" +
                 "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| table_partitions\n" +
                 "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| tables\n" +
+                "NULL| NULL| strict| 0| 1| NULL| pg_catalog| NULL| pg_type\n" +
                 "NULL| NULL| strict| 0| 1| NULL| sys| NULL| checks\n" +
                 "NULL| NULL| strict| 0| 1| NULL| sys| NULL| cluster\n" +
                 "NULL| NULL| strict| 0| 1| NULL| sys| NULL| jobs\n" +
@@ -119,14 +120,14 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         serviceSetup();
 
         execute("select * from information_schema.tables");
-        assertEquals(20L, response.rowCount());
+        assertEquals(21L, response.rowCount());
 
         client().execute(SQLAction.INSTANCE,
             new SQLRequest("create table t4 (col1 integer, col2 string) with (number_of_replicas=0)")).actionGet();
         ensureGreen("t4");
 
         execute("select * from information_schema.tables");
-        assertEquals(21L, response.rowCount());
+        assertEquals(22L, response.rowCount());
     }
 
     @Test
@@ -437,7 +438,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(338L, response.rowCount());
+        assertEquals(342L, response.rowCount());
     }
 
     @Test
@@ -630,7 +631,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("select count(*) from information_schema.tables");
         assertEquals(1, response.rowCount());
-        assertEquals(20L, response.rows()[0][0]);
+        assertEquals(21L, response.rows()[0][0]);
     }
 
     @Test
@@ -639,7 +640,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("select count(distinct schema_name) from information_schema.tables order by count(distinct schema_name)");
         assertEquals(1, response.rowCount());
-        assertEquals(3L, response.rows()[0][0]);
+        assertEquals(4L, response.rows()[0][0]);
     }
 
     @Test
@@ -1038,15 +1039,15 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectSchemata() throws Exception {
         execute("select * from information_schema.schemata order by schema_name asc");
-        assertThat(response.rowCount(), is(4L));
-        assertThat(TestingHelpers.getColumn(response.rows(), 0), is(Matchers.<Object>arrayContaining("blob", "doc", "information_schema", "sys")));
+        assertThat(response.rowCount(), is(5L));
+        assertThat(TestingHelpers.getColumn(response.rows(), 0), is(Matchers.<Object>arrayContaining("blob", "doc", "information_schema", "pg_catalog", "sys")));
 
         execute("create table t1 (col string) with (number_of_replicas=0)");
         ensureGreen();
 
         execute("select * from information_schema.schemata order by schema_name asc");
-        assertThat(response.rowCount(), is(4L));
-        assertThat(TestingHelpers.getColumn(response.rows(), 0), is(Matchers.<Object>arrayContaining("blob", "doc", "information_schema", "sys")));
+        assertThat(response.rowCount(), is(5L));
+        assertThat(TestingHelpers.getColumn(response.rows(), 0), is(Matchers.<Object>arrayContaining("blob", "doc", "information_schema", "pg_catalog", "sys")));
     }
 
     @Test
