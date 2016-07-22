@@ -17,20 +17,17 @@ requests but will make sure that any pending requests are finished.
 
 .. warning::
 
-    `feature` or `major` versions are often not compatible and upgrading requires
-    a full cluster restart.
+    Before upgrading a cluster it is strongly recommended to create a
+    `backup of your data`_.
+
+.. warning::
+
+    `feature` or `major` versions (e.g. 0.54 to 0.55) are not compatible and
+    upgrading requires a full cluster restart. If you are upgrading from 0.54
+    to 0.55 you can also `read about the upgrade here`_.
 
     The exception are `hotfix` updates which are always safe. For example
     updating from 0.48.1 to 0.48.2 or even directly to 0.48.3 is safe.
-
-    Most of the time incompatibility between `feature` or `major` versions is
-    caused by changes in the binary serialization format which is used for
-    communication between the nodes but might also be caused by other changes
-    like lucene index format changes.
-
-    Please check the changelog to see if a `feature` or `major` version upgrade
-    is safe. If there is no note indicating that the zero downtime upgrade is
-    safe it should be considered unsafe.
 
     See :ref:`versions <sys-versions>`.
 
@@ -272,4 +269,8 @@ Repeat step 2, 3 and 4 for all other nodes.
 .. warning::
 
   Even the safest upgrade process might go wrong at some point.
-  So make sure you have your data backed up!
+  So create a `backup of your data`_!
+
+
+.. _`backup of your data`: https://crate.io/a/backing-up-and-restoring-crate/
+.. _`read about the upgrade here`: https://crate.io/a/upgrade-your-cluster-to-0-55/
