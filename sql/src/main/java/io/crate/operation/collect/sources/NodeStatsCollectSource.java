@@ -22,35 +22,38 @@
 package io.crate.operation.collect.sources;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.RowCollectExpression;
+import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.collect.collectors.NodeStatsCollector;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 @Singleton
 public class NodeStatsCollectSource implements CollectSource {
 
     private final TransportActionProvider transportActionProvider;
     private final ClusterService clusterService;
+    private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> inputSymbolVisitor;
 
     @Inject
-    public NodeStatsCollectSource(TransportActionProvider transportActionProvider, ClusterService clusterService) {
+    public NodeStatsCollectSource(TransportActionProvider transportActionProvider,
+                                  ClusterService clusterService,
+                                  Functions functions) {
         this.transportActionProvider = transportActionProvider;
         this.clusterService = clusterService;
+        this.inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextReferenceResolver.INSTANCE);
     }
 
     @Override
@@ -59,13 +62,14 @@ public class NodeStatsCollectSource implements CollectSource {
         if (collectPhase.whereClause().noMatch()) {
             return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
         }
-        DiscoveryNodes nodes = clusterService.state().nodes();
-        return ImmutableList.<CrateCollector>of(new NodeStatsCollector(
+
+        NodeStatsCollector collector = new NodeStatsCollector(
                 transportActionProvider.transportStatTablesActionProvider(),
                 downstream,
                 collectPhase,
-                nodes)
-        );
+                clusterService.state().nodes(),
+                inputSymbolVisitor);
+        return ImmutableList.<CrateCollector>of(collector);
     }
 
 }

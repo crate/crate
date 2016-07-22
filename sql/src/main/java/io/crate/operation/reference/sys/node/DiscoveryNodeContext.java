@@ -20,39 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.sys.node.DiscoveryNodeContext;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
-
-import java.io.IOException;
-
-public class NodeStatsResponse extends TransportResponse {
-
-    private DiscoveryNodeContext discoveryNodeContext;
-
-    public NodeStatsResponse() {
-    }
-
-    public NodeStatsResponse(DiscoveryNodeContext discoveryNodeContext) {
-        this.discoveryNodeContext = discoveryNodeContext;
-    }
-
-    public DiscoveryNodeContext discoveryNodeContext() {
-        return discoveryNodeContext;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        // TODO:
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        // TODO:
-    }
+public class DiscoveryNodeContext {
 }

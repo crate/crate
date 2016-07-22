@@ -25,62 +25,85 @@ package io.crate.operation.collect.collectors;
 import io.crate.executor.transport.NodeStatsRequest;
 import io.crate.executor.transport.NodeStatsResponse;
 import io.crate.executor.transport.TransportNodeStatsAction;
-import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowCollectExpression;
+import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.RowsTransformer;
-import io.crate.operation.projectors.RepeatHandle;
+import io.crate.operation.projectors.IterableRowEmitter;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.operation.reference.sys.node.DiscoveryNodeContext;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.unit.TimeValue;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 public class NodeStatsCollector implements CrateCollector {
 
     private final TransportNodeStatsAction transportStatTablesAction;
     private final RowReceiver rowReceiver;
-    private final CollectPhase collectPhase;
+    private final RoutedCollectPhase collectPhase;
     private final DiscoveryNodes nodes;
+    private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> inputSymbolVisitor;
+    private IterableRowEmitter emitter;
 
     public NodeStatsCollector(TransportNodeStatsAction transportStatTablesAction,
                               RowReceiver rowReceiver,
-                              CollectPhase collectPhase,
-                              DiscoveryNodes nodes) {
+                              RoutedCollectPhase collectPhase,
+                              DiscoveryNodes nodes,
+                              CollectInputSymbolVisitor<RowCollectExpression<?, ?>> inputSymbolVisitor) {
         this.transportStatTablesAction = transportStatTablesAction;
         this.rowReceiver = rowReceiver;
         this.collectPhase = collectPhase;
         this.nodes = nodes;
+        this.inputSymbolVisitor = inputSymbolVisitor;
     }
 
     @Override
     public void doCollect() {
+        prepareCollect();
+        emitter.run();
+    }
+
+    private void prepareCollect() {
+        final List<DiscoveryNodeContext> discoveryNodeContexts = new ArrayList<>(nodes.size());
+        final CountDownLatch counter = new CountDownLatch(nodes.size());
         for (DiscoveryNode node : nodes) {
             transportStatTablesAction.execute(node.id(),
                     new NodeStatsRequest(node.id(), null),
                     new ActionListener<NodeStatsResponse>() {
                         @Override
                         public void onResponse(NodeStatsResponse response) {
-
+                            discoveryNodeContexts.add(response.discoveryNodeContext());
+                            counter.countDown();
                         }
 
                         @Override
                         public void onFailure(Throwable t) {
-                            rowReceiver.fail(t);
+                            discoveryNodeContexts.add(new DiscoveryNodeContext());
+                            counter.countDown();
                         }
-                    }, TimeValue.timeValueHours(1));
+                    }, TimeValue.timeValueSeconds(5));
         }
-//        Iterable SysInfo
+        try {
+            counter.await();
+        } catch (InterruptedException e) {
+            rowReceiver.fail(e);
+        }
 
-//        RowsTransformer.toRowsIterable()
-//        rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+        this.emitter = new IterableRowEmitter(
+                rowReceiver,
+                RowsTransformer.toRowsIterable(inputSymbolVisitor, collectPhase, discoveryNodeContexts)
+        );
     }
 
     @Override
     public void kill(@Nullable Throwable throwable) {
+        emitter.kill(throwable);
     }
-
 }

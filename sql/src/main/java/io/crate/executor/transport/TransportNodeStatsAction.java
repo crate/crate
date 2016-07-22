@@ -22,6 +22,8 @@
 
 package io.crate.executor.transport;
 
+import io.crate.monitor.ExtendedNodeInfo;
+import io.crate.operation.reference.sys.node.DiscoveryNodeContext;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -33,13 +35,14 @@ import org.elasticsearch.transport.TransportService;
 @Singleton
 public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, NodeStatsResponse> {
 
-    public static final String ACTION_NAME = "crate/sql/job";
+    public static final String ACTION_NAME = "crate/sql/sys/nodes";
     private static final String EXECUTOR = ThreadPool.Names.PERCOLATE;
 
     private final Transports transports;
 
     @Inject
     public TransportNodeStatsAction(TransportService transportService,
+                                    ExtendedNodeInfo nodeInfo,
                                     Transports transports) {
         this.transports = transports;
         transportService.registerRequestHandler(ACTION_NAME,
@@ -69,6 +72,7 @@ public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, No
 
     @Override
     public void nodeOperation(NodeStatsRequest request, ActionListener<NodeStatsResponse> listener) {
-
+        NodeStatsResponse response = new NodeStatsResponse(new DiscoveryNodeContext());
+        listener.onResponse(response);
     }
 }
