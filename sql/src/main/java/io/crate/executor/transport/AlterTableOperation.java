@@ -23,6 +23,8 @@
 package io.crate.executor.transport;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
@@ -30,6 +32,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.action.FutureActionListener;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.analyze.AddColumnAnalyzedStatement;
@@ -71,6 +74,7 @@ import java.util.*;
 @Singleton
 public class AlterTableOperation {
 
+    private static final Function<Object, Long> LONG_NULL_FUNCTION = Functions.constant(null);
     private final ClusterService clusterService;
     private final TransportActionProvider transportActionProvider;
 
@@ -182,11 +186,9 @@ public class AlterTableOperation {
             request.alias(alias);
         }
 
-        SettableFuture<Long> result = SettableFuture.create();
-        transportActionProvider.transportPutIndexTemplateAction().execute(request,
-                new SettableFutureToNullActionListener<PutIndexTemplateResponse>(result));
-
-        return result;
+        FutureActionListener<PutIndexTemplateResponse, Long> listener = new FutureActionListener<>(LONG_NULL_FUNCTION);
+        transportActionProvider.transportPutIndexTemplateAction().execute(request, listener);
+        return listener;
     }
 
     private ListenableFuture<Long> updateMapping(Map<String, Object> newMapping, String... indices) {
@@ -213,10 +215,9 @@ public class AlterTableOperation {
         request.type(Constants.DEFAULT_MAPPING_TYPE);
         request.source(mapping);
 
-        SettableFuture<Long> result = SettableFuture.create();
-        transportActionProvider.transportPutMappingAction().execute(request,
-                new SettableFutureToNullActionListener<PutMappingResponse>(result));
-        return result;
+        FutureActionListener<PutMappingResponse, Long> listener = new FutureActionListener<>(LONG_NULL_FUNCTION);
+        transportActionProvider.transportPutMappingAction().execute(request, listener);
+        return listener;
     }
 
     private Map<String, Object> parseMapping(String mappingSource) throws IOException {
@@ -252,10 +253,9 @@ public class AlterTableOperation {
         UpdateSettingsRequest request = new UpdateSettingsRequest(concreteTableParameter.settings(), indices);
         request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
-        SettableFuture<Long> result = SettableFuture.create();
-        transportActionProvider.transportUpdateSettingsAction().execute(request,
-                new SettableFutureToNullActionListener<UpdateSettingsResponse>(result));
-        return result;
+        FutureActionListener<UpdateSettingsResponse, Long> listener = new FutureActionListener<>(LONG_NULL_FUNCTION);
+        transportActionProvider.transportUpdateSettingsAction().execute(request, listener);
+        return listener;
     }
 
     private void addColumnToTable(AddColumnAnalyzedStatement analysis, final SettableFuture<Long> result) {
@@ -322,24 +322,5 @@ public class AlterTableOperation {
             }
         }
         return true;
-    }
-
-    private static class SettableFutureToNullActionListener<T> implements ActionListener<T> {
-
-        private final SettableFuture<?> future;
-
-        SettableFutureToNullActionListener(SettableFuture<?> future) {
-            this.future = future;
-        }
-
-        @Override
-        public void onResponse(T response) {
-            future.set(null);
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            future.setException(e);
-        }
     }
 }
