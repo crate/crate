@@ -21,10 +21,9 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.sys.SysNodeObjectReference;
 import org.apache.lucene.util.BytesRef;
 
-public class NodeOsJvmExpression extends SysNodeObjectReference {
+public class NodeOsJvmExpression extends NestedDiscoveryNodeExpression {
 
     private static final String VERSION = "version";
     private static final String VM_NAME = "vm_name";
