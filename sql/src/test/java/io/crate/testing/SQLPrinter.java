@@ -81,6 +81,14 @@ public class SQLPrinter {
             sb.append(" WHERE ");
             TESTING_SYMBOL_PRINTER.process(spec.where().query(), sb);
         }
+        if (spec.groupBy().isPresent()) {
+            sb.append(" GROUP BY ");
+            TESTING_SYMBOL_PRINTER.process(spec.groupBy().get(), sb);
+        }
+        if (spec.having().isPresent()) {
+            sb.append(" HAVING ");
+            TESTING_SYMBOL_PRINTER.process(spec.having().get().query(), sb);
+        }
         if (spec.orderBy().isPresent()) {
             sb.append(" ORDER BY ");
             TESTING_SYMBOL_PRINTER.process(spec.orderBy().get(), sb);
@@ -89,7 +97,6 @@ public class SQLPrinter {
             sb.append(" LIMIT ");
             sb.append(spec.limit().get());
         }
-
         if (spec.offset() > 0) {
             sb.append(" OFFSET ");
             sb.append(spec.offset());
