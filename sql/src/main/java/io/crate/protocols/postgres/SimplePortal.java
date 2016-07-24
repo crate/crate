@@ -42,6 +42,8 @@ import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.ResumeHandle;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.protocols.postgres.types.DummyPortal;
+import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
@@ -100,6 +102,12 @@ public class SimplePortal extends AbstractPortal {
     @Override
     public Portal bind(String statementName, String query, Statement statement,
                        List<Object> params, @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
+        if (statement == null) { // handle multiple executions of the same prepared Statement
+            if (params.isEmpty()) {
+                return new DummyPortal();
+            }
+            statement = SqlParser.createStatement(query);
+        }
 
         if (statement.equals(this.statement)) {
             if (sessionData.isReadOnly()) { // Cannot have a bulk operation in read only mode
@@ -121,7 +129,7 @@ public class SimplePortal extends AbstractPortal {
         this.statement = statement;
         this.params = params;
         this.resultFormatCodes = resultFormatCodes;
-        if (analysis == null) {
+        if (this.analysis == null) {
             analysis = sessionData.getAnalyzer().analyze(statement,
                 new ParameterContext(getArgs(),
                     EMPTY_BULK_ARGS,

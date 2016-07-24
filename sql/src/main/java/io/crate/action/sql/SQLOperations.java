@@ -40,6 +40,7 @@ import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.Portal;
 import io.crate.protocols.postgres.SimplePortal;
 import io.crate.protocols.postgres.StatsTablesUpdateListener;
+import io.crate.protocols.postgres.types.DummyPortal;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.Statement;
@@ -190,7 +191,7 @@ public class SQLOperations {
 
         private Portal getOrCreatePortal(String portalName) {
             Portal portal = portals.get(portalName);
-            if (portal == null) {
+            if (portal == null || portal instanceof DummyPortal) {
                 portal = new SimplePortal(portalName, jobId, defaultSchema, analyzer, executor,
                                           transportKillJobsNodeAction, isReadOnly);
                 portals.put(portalName, portal);

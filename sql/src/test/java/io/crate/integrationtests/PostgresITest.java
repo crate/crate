@@ -283,6 +283,39 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         }
     }
 
+    @Test
+    public void testPreparedStatementMultipleExecution() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+            conn.setAutoCommit(true);
+            conn.createStatement().executeUpdate("create table t (x int) with (number_of_replicas = 0)");
+            ensureGreen();
+
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x) values (?)");
+            for (int i = 0; i < 100; i++) {
+                for (int j = 0; j < 10; j++) {
+                    preparedStatement.setInt(1, (i + j));
+                    preparedStatement.addBatch();
+                }
+                int[] results = preparedStatement.executeBatch();
+                assertThat(results, is(new int[]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}));
+            }
+
+            Statement statement = conn.createStatement();
+            for (int i = 0; i < 100; i++) {
+                for (int j = 10; j < 20; j++) {
+                    statement.addBatch("insert into t(x) values(" + (i + j) + ")");
+                }
+                int[] results = statement.executeBatch();
+                assertThat(results, is(new int[] {1, 1, 1, 1, 1, 1, 1, 1, 1, 1}));
+            }
+
+            statement.executeUpdate("refresh table t");
+            ResultSet resultSet = statement.executeQuery("select count(*) from t");
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getLong(1), is(2000L));
+        }
+    }
+
     private void assertSelectNameFromSysClusterWorks(Connection conn) throws SQLException {
         PreparedStatement stmt;// verify that queries can be made after an error occurred
         stmt = conn.prepareStatement("select name from sys.cluster");
