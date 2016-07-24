@@ -110,6 +110,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
                 "SELECT information_schema.tables.table_name " +
                 "WHERE (information_schema.tables.schema_name = 'qname') " +
+                "GROUP BY information_schema.tables.table_name " +
                 "ORDER BY information_schema.tables.table_name"));
 
         analyzedStatement = analyze("show tables");
@@ -117,6 +118,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
                 "SELECT information_schema.tables.table_name " +
                 "WHERE (NOT (information_schema.tables.schema_name = ANY(['information_schema', 'pg_catalog', 'sys']))) " +
+                "GROUP BY information_schema.tables.table_name " +
                 "ORDER BY information_schema.tables.table_name"));
     }
 
@@ -128,6 +130,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                 "SELECT information_schema.tables.table_name " +
                 "WHERE ((information_schema.tables.schema_name = 'qname') " +
                 "AND (information_schema.tables.table_name LIKE 'likePattern')) " +
+                "GROUP BY information_schema.tables.table_name " +
                 "ORDER BY information_schema.tables.table_name"));
 
         analyzedStatement = analyze("show tables like '%'");
@@ -136,6 +139,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                 "SELECT information_schema.tables.table_name " +
                 "WHERE ((NOT (information_schema.tables.schema_name = ANY(['information_schema', 'pg_catalog', 'sys']))) " +
                 "AND (information_schema.tables.table_name LIKE '%')) " +
+                "GROUP BY information_schema.tables.table_name " +
                 "ORDER BY information_schema.tables.table_name"));
     }
 
@@ -148,6 +152,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                 "SELECT information_schema.tables.table_name " +
                 "WHERE ((information_schema.tables.schema_name = 'qname') " +
                 "AND ((information_schema.tables.table_name = 'foo') OR (information_schema.tables.table_name LIKE '%bar%'))) " +
+                "GROUP BY information_schema.tables.table_name " +
                 "ORDER BY information_schema.tables.table_name"));
 
         analyzedStatement = analyze("show tables where table_name like '%'");
@@ -156,6 +161,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
                 "SELECT information_schema.tables.table_name " +
                 "WHERE ((NOT (information_schema.tables.schema_name = ANY(['information_schema', 'pg_catalog', 'sys']))) " +
                 "AND (information_schema.tables.table_name LIKE '%')) " +
+                "GROUP BY information_schema.tables.table_name " +
                 "ORDER BY information_schema.tables.table_name"));
     }
 
