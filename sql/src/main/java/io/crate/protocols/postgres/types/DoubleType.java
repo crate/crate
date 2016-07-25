@@ -41,9 +41,9 @@ class DoubleType extends PGType {
 
     @Override
     public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
-        buffer.writeInt(8);
+        buffer.writeInt(TYPE_LEN);
         buffer.writeDouble(((double) value));
-        return 12;
+        return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
@@ -53,7 +53,8 @@ class DoubleType extends PGType {
 
     @Override
     public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
-        assert valueLength == 8 : "length should be 8 because double is int64. Actual length: " + valueLength;
+        assert valueLength == TYPE_LEN : "length should be " + TYPE_LEN + " because double is int64. Actual length: " +
+                                         valueLength;
         return buffer.readDouble();
     }
 

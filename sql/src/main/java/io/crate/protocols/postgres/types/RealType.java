@@ -41,9 +41,9 @@ class RealType extends PGType {
 
     @Override
     public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
-        buffer.writeInt(4);
+        buffer.writeInt(TYPE_LEN);
         buffer.writeFloat(((float) value));
-        return 8;
+        return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
@@ -53,7 +53,8 @@ class RealType extends PGType {
 
     @Override
     public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
-        assert valueLength == 4 : "length should be 4 because float is int32. Actual length: " + valueLength;
+        assert valueLength == TYPE_LEN : "length should be " + TYPE_LEN + " because float is int32. Actual length: " +
+                                         valueLength;
         return buffer.readFloat();
     }
 

@@ -41,7 +41,7 @@ class SmallIntType extends PGType {
 
     @Override
     public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
-        buffer.writeInt(2);
+        buffer.writeInt(TYPE_LEN);
         buffer.writeShort((short) value);
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
@@ -53,7 +53,7 @@ class SmallIntType extends PGType {
 
     @Override
     public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
-        assert valueLength == 2 : "length should be 8 because short is int16. Actual length: " + valueLength;
+        assert valueLength == TYPE_LEN : "length should be " + TYPE_LEN + " because short is int16. Actual length: " + valueLength;
         return buffer.readShort();
     }
 

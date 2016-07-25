@@ -70,7 +70,8 @@ class BooleanType extends PGType {
 
     @Override
     public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
-        assert valueLength == 1 : "length should be 1 because boolean is just a byte. Actual length: " + valueLength;
+        assert valueLength == TYPE_LEN : "length should be " + TYPE_LEN +
+                                         " because boolean is just a byte. Actual length: " + valueLength;
         byte value = buffer.readByte();
         switch (value) {
             case 0:

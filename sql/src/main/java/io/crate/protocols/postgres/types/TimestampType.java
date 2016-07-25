@@ -79,7 +79,8 @@ class TimestampType extends PGType {
 
     @Override
     public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
-        assert valueLength == TYPE_LEN : "valueLength must be 8 because timestamp is a 64 bit double. Got: " + valueLength;
+        assert valueLength == TYPE_LEN : "valueLength must be " + TYPE_LEN +
+                                         " because timestamp is a 64 bit double. Actual length: " + valueLength;
         return toCrateTimestamp(buffer.readDouble());
     }
 
