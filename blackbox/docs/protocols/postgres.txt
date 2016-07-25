@@ -3,7 +3,7 @@
 Postgres Wire Protocol
 ======================
 
-Crate contains experimental support for the `Postgresql wire protocol v3`_.
+Crate contains experimental support for the `PostgreSQL wire protocol v3`_.
 
 By default this protocol is **disabled**. To enable it set ``psql.enabled`` to
 true.
@@ -13,7 +13,7 @@ If a node is started with postgres support enabled it will by default bind to
 change that.
 
 The SQL dialect that Crate supports is different to the SQL dialect that
-Postgresql supports. So even though the wire protocol is supported it doesn't
+PostgreSQL supports. So even though the wire protocol is supported it doesn't
 imply that any postgres client can be used as those clients may use SQL
 statements which aren't supported.
 
@@ -26,7 +26,7 @@ Therefore clients should generally enable ``autocommit``.
     to false.
     The client will utilize the fetchSize on SELECT statements and only load up
     to fetchSize rows into memory.
-    See `Postgres JDBC Query docs
+    See `PostgreSQL JDBC Query docs
     <https://jdbc.postgresql.org/documentation/head/query.html>` for more
     information.
 
@@ -129,6 +129,19 @@ Crate::
     SELECT 18 rows in set (... sec)
 
 
-.. _Postgresql wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
+Connection failover and load balancing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Connection failover and load balancing is supported as described here:
+`PostgreSQL JDBC connection failover`_.
+
+.. note::
+
+    **targetServerType** parameter shouldn't be used as for Crate there is no distinction between
+    master and slave nodes.
+
+
+.. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
 .. _Simple Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#AEN108745
 .. _Extended Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
+.. _PostgreSQL JDBC connection failover: https://jdbc.postgresql.org/documentation/head/connect.html#connection-failover
