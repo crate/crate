@@ -21,6 +21,7 @@
 
 package io.crate.operation.reference.sys.node;
 
+import io.crate.monitor.ThreadPools;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
@@ -42,7 +43,7 @@ public class NodeThreadPoolExpression extends NestedDiscoveryNodeExpression {
     private static final String QUEUE = "queue";
 
     private final String name;
-    private DiscoveryNodeContext.ThreadPoolExecutorContext threadPoolExecutor;
+    private ThreadPools.ThreadPoolExecutorContext threadPoolExecutor;
 
     public NodeThreadPoolExpression(String name) {
         this.name = name;

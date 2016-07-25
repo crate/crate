@@ -38,8 +38,8 @@ public class NodeFsDisksExpression extends ObjectArrayRowContextCollectorExpress
 
     @Override
     protected List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> getChildImplementations() {
-        List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> diskRefs = new ArrayList<>(this.row.fsStats.size());
-        for (ExtendedFsStats.Info info : this.row.fsStats) {
+        List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> diskRefs = new ArrayList<>(this.row.extendedFsStats.size());
+        for (ExtendedFsStats.Info info : this.row.extendedFsStats) {
             NodeFsDiskChildExpression childExpression = new NodeFsDiskChildExpression(info);
             childExpression.setNextRow(this.row);
             diskRefs.add(childExpression);

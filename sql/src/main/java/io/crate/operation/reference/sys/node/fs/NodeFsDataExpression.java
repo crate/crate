@@ -37,8 +37,8 @@ public class NodeFsDataExpression extends ObjectArrayRowContextCollectorExpressi
 
     @Override
     protected List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> getChildImplementations() {
-        List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> children = new ArrayList<>(this.row.fsStats.size());
-        for (ExtendedFsStats.Info info : this.row.fsStats) {
+        List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> children = new ArrayList<>(this.row.extendedFsStats.size());
+        for (ExtendedFsStats.Info info : this.row.extendedFsStats) {
             children.add(new NodeFsDataChildExpression(info));
         }
         return children;

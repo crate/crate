@@ -22,17 +22,12 @@
 
 package io.crate.executor.transport;
 
-import io.crate.Build;
-import io.crate.Version;
 import io.crate.operation.reference.sys.node.DiscoveryNodeContext;
+import io.crate.operation.reference.sys.node.DiscoveryNodeContextFieldResolver;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.monitor.jvm.JvmService;
-import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportService;
@@ -43,17 +38,14 @@ public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, No
     public static final String ACTION_NAME = "crate/sql/sys/nodes";
     private static final String EXECUTOR = ThreadPool.Names.PERCOLATE;
 
-    private final ClusterService clusterService;
-    private final JvmService jvmService;
+    private DiscoveryNodeContextFieldResolver nodeContextFieldsResolver;
     private final Transports transports;
 
     @Inject
     public TransportNodeStatsAction(TransportService transportService,
-                                    ClusterService clusterService,
-                                    JvmService jvmService,
+                                    DiscoveryNodeContextFieldResolver nodeContextFieldsResolver,
                                     Transports transports) {
-        this.clusterService = clusterService;
-        this.jvmService = jvmService;
+        this.nodeContextFieldsResolver = nodeContextFieldsResolver;
         this.transports = transports;
         transportService.registerRequestHandler(ACTION_NAME,
                 NodeStatsRequest.class,
@@ -82,14 +74,7 @@ public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, No
 
     @Override
     public void nodeOperation(NodeStatsRequest request, ActionListener<NodeStatsResponse> listener) {
-        DiscoveryNodeContext context = new DiscoveryNodeContext();
-        ClusterState state = clusterService.state();
-        context.id = clusterService.localNode().id();
-        context.name = clusterService.localNode().name();
-        context.version = Version.CURRENT;
-        context.build = Build.CURRENT;
-        context.hostname = clusterService.localNode().getHostName();
-        context.jvmStats = jvmService.stats();
+        DiscoveryNodeContext context = nodeContextFieldsResolver.resolve(request.referenceIdents());
         NodeStatsResponse response = new NodeStatsResponse(context);
         listener.onResponse(response);
     }
