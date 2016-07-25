@@ -259,8 +259,7 @@ class ConnectionContext {
                     session = readStartupMessage(buffer);
                     Messages.sendAuthenticationOK(channel);
 
-                    // version between 7.3 and 8 to get simpler pg_type queries from jdbc client
-                    Messages.sendParameterStatus(channel, "server_version", "79000");
+                    Messages.sendParameterStatus(channel, "server_version", "95000");
                     Messages.sendParameterStatus(channel, "server_encoding", "UTF8");
                     Messages.sendParameterStatus(channel, "client_encoding", "UTF8");
                     Messages.sendParameterStatus(channel, "datestyle", "ISO");
