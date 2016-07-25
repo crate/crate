@@ -22,7 +22,6 @@
 package io.crate.plugin;
 
 
-import com.google.common.collect.Lists;
 import io.crate.blob.*;
 import io.crate.blob.v2.BlobIndexModule;
 import io.crate.blob.v2.BlobIndicesModule;
@@ -35,7 +34,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerModule;
 import org.elasticsearch.plugins.Plugin;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 
 public class BlobPlugin extends Plugin {
 
@@ -55,37 +56,32 @@ public class BlobPlugin extends Plugin {
 
     @Override
     public Collection<Module> nodeModules() {
-        Collection<Module> modules = Lists.newArrayList();
-        if (!settings.getAsBoolean("node.client", false)) {
-            modules.add(new BlobModule());
-            modules.add(new BlobIndicesModule());
+        if (settings.getAsBoolean("node.client", false)) {
+            return Collections.emptyList();
         }
+        Collection<Module> modules = new ArrayList<>(2);
+        modules.add(new BlobModule());
+        modules.add(new BlobIndicesModule());
         return modules;
     }
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> nodeServices() {
         // only start the service if we have a data node
-        if (!settings.getAsBoolean("node.client", false)) {
-            Collection<Class<? extends LifecycleComponent>> services = Lists.newArrayList();
-            services.add(BlobService.class);
-            return services;
+        if (settings.getAsBoolean("node.client", false)) {
+            return Collections.emptyList();
         }
-        return super.nodeServices();
+        return Collections.<Class<? extends LifecycleComponent>>singletonList(BlobService.class);
     }
 
     @Override
     public Collection<Module> indexModules(Settings indexSettings) {
-        Collection<Module> modules = Lists.newArrayList();
-        modules.add(new BlobIndexModule(indexSettings));
-        return modules;
+        return Collections.<Module>singletonList(new BlobIndexModule(indexSettings));
     }
 
     @Override
     public Collection<Module> shardModules(Settings indexSettings) {
-        Collection<Module> modules = Lists.newArrayList();
-        modules.add(new BlobShardModule(indexSettings));
-        return modules;
+        return Collections.<Module>singletonList(new BlobShardModule(indexSettings));
     }
 
     public void onModule(HttpServerModule module){
