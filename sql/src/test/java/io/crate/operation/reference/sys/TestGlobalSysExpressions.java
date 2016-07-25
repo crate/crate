@@ -125,7 +125,7 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
             NodeEnvironment nodeEnvironment = mock(NodeEnvironment.class);
             when(nodeEnvironment.hasNodeFile()).thenReturn(true);
             ExtendedNodeInfo extendedNodeInfo = new DummyExtendedNodeInfo(nodeEnvironment);
-            NodeLoadExpression loadExpr = new NodeLoadExpression(extendedNodeInfo.osStats());
+            NodeLoadExpression loadExpr = new NodeLoadExpression();
 
             MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);

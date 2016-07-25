@@ -24,7 +24,11 @@ package io.crate;
 
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.monitor.jvm.JvmInfo;
+
+import java.io.IOException;
 
 public class Version {
 
@@ -120,6 +124,18 @@ public class Version {
     @Override
     public int hashCode() {
         return id;
+    }
+
+    public static Version fromStream(StreamInput in) throws IOException {
+        return new Version(in.readVInt(),
+                           in.readBoolean(),
+                           org.elasticsearch.Version.readVersion(in));
+    }
+
+    public static void writeVersion(Version version, StreamOutput out) throws IOException {
+        out.writeVInt(version.id);
+        out.writeBoolean(version.snapshot);
+        org.elasticsearch.Version.writeVersion(version.esVersion, out);
     }
 
     public static class Module extends AbstractModule {

@@ -29,7 +29,6 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Map;
 
@@ -46,7 +45,7 @@ public class SysNodesExpressionFactories {
                     return new SimpleDiscoveryNodeExpression<BytesRef>() {
                         @Override
                         public BytesRef innerValue() {
-                            return BytesRefs.toBytesRef(row.id);
+                            return row.id;
                         }
                     };
                 }
@@ -57,7 +56,7 @@ public class SysNodesExpressionFactories {
                     return new SimpleDiscoveryNodeExpression<BytesRef>() {
                         @Override
                         public BytesRef innerValue() {
-                            return BytesRefs.toBytesRef(row.name);
+                            return row.name;
                         }
                     };
                 }
@@ -68,7 +67,7 @@ public class SysNodesExpressionFactories {
                     return new SimpleDiscoveryNodeExpression<BytesRef>() {
                         @Override
                         public BytesRef innerValue() {
-                            return BytesRefs.toBytesRef(row.hostname);
+                            return row.hostname;
                         }
                     };
                 }
@@ -79,7 +78,7 @@ public class SysNodesExpressionFactories {
                     return new SimpleDiscoveryNodeExpression<BytesRef>() {
                         @Override
                         public BytesRef innerValue() {
-                            return BytesRefs.toBytesRef(row.restUrl);
+                            return row.restUrl;
                         }
                     };
                 }

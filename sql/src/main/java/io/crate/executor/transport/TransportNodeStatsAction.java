@@ -80,6 +80,5 @@ public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, No
         } catch (Throwable t) {
             listener.onFailure(t);
         }
-
     }
 }

@@ -44,19 +44,19 @@ public class NodeOsInfoExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(OS, new OsInfoExpression() {
             @Override
             public BytesRef innerValue() {
-                return this.row.OS_NAME;
+                return this.row.osName;
             }
         });
         childImplementations.put(ARCH, new OsInfoExpression() {
             @Override
             public BytesRef innerValue() {
-                return this.row.OS_ARCH;
+                return this.row.osArch;
             }
         });
         childImplementations.put(VERSION, new OsInfoExpression() {
             @Override
             public BytesRef innerValue() {
-                return this.row.OS_VERSION;
+                return this.row.osVersion;
             }
         });
         childImplementations.put(JVM, new NodeOsJvmExpression());

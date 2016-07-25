@@ -30,6 +30,6 @@ public abstract class NestedDiscoveryNodeExpression extends RowCollectNestedObje
 
     @Override
     public Map<String, Object> value() {
-        return row.timedOut ? null : super.value();
+        return row.timedOut() ? null : super.value();
     }
 }

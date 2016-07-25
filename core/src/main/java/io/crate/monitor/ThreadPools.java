@@ -22,6 +22,8 @@
 
 package io.crate.monitor;
 
+import com.google.common.base.Objects;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -33,69 +35,145 @@ import java.util.Map;
 
 public class ThreadPools implements Streamable, Iterable<String> {
 
-    private Map<String, ThreadPoolExecutorContext> threadPoolExecutorContext = new HashMap<>();
+    private Map<String, ThreadPoolExecutorContext> contexts;
+
+    public ThreadPools() {
+        this.contexts = new HashMap<>();
+    }
+
+    public void add(String threadPool, ThreadPoolExecutorContext context) {
+        this.contexts.put(threadPool, context);
+    }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-
+        int size = in.readVInt();
+        contexts = new HashMap<>(size);
+        for (int i = 0; i < size; i++) {
+            String key = in.readString();
+            ThreadPoolExecutorContext value = new ThreadPoolExecutorContext();
+            value.readFrom(in);
+            contexts.put(key, value);
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-
+        out.writeVInt(size());
+        for (Map.Entry<String, ThreadPoolExecutorContext> entry : contexts.entrySet()) {
+            out.writeString(entry.getKey());
+            entry.getValue().writeTo(out);
+        }
     }
 
     public int size() {
-        return threadPoolExecutorContext.size();
+        return contexts.size();
     }
 
     @Override
     public Iterator<String> iterator() {
-        return threadPoolExecutorContext.keySet().iterator();
+        return contexts.keySet().iterator();
     }
 
     public ThreadPoolExecutorContext get(String name) {
-        return threadPoolExecutorContext.get(name);
+        return contexts.get(name);
     }
 
-    public void add(String name, ThreadPoolExecutorContext context) {
-        threadPoolExecutorContext.put(name, context);
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ThreadPools that = (ThreadPools) o;
+        return Objects.equal(contexts, that.contexts);
     }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(contexts);
+    }
+
 
     public static class ThreadPoolExecutorContext implements Streamable {
 
-        public int activeCount;
-        public int queueSize;
-        public int largestPoolSize;
-        public int poolSize;
-        public long completedTaskCount;
-        public long rejectedCount;
+        private Integer queueSize;
+        private Integer activeCount;
+        private Integer largestPoolSize;
+        private Integer poolSize;
+        private Long completedTaskCount;
+        private Long rejectedCount;
 
-        public ThreadPoolExecutorContext() {
-        }
+        public ThreadPoolExecutorContext() {}
 
-        public ThreadPoolExecutorContext(int activeCount,
-                                         int queueSize,
-                                         int largestPoolSize,
-                                         int poolSize,
-                                         long completedTaskCount,
-                                         long rejectedCount) {
-            this.activeCount = activeCount;
+        public ThreadPoolExecutorContext(Integer queueSize, Integer activeCount, Integer largestPoolSize, Integer poolSize,
+                                         Long completedTaskCount, Long rejectedCount) {
             this.queueSize = queueSize;
-            this.poolSize = poolSize;
+            this.activeCount = activeCount;
             this.largestPoolSize = largestPoolSize;
+            this.poolSize = poolSize;
             this.completedTaskCount = completedTaskCount;
             this.rejectedCount = rejectedCount;
         }
 
+        public Integer queueSize() {
+            return queueSize;
+        }
+
+        public Integer activeCount() {
+            return activeCount;
+        }
+
+        public Integer largestPoolSize() {
+            return largestPoolSize;
+        }
+
+        public Integer poolSize() {
+            return poolSize;
+        }
+
+        public Long completedTaskCount() {
+            return completedTaskCount;
+        }
+
+        public Long rejectedCount() {
+            return rejectedCount;
+        }
+
         @Override
         public void readFrom(StreamInput in) throws IOException {
-
+            queueSize = DataTypes.INTEGER.readValueFrom(in);
+            activeCount = DataTypes.INTEGER.readValueFrom(in);
+            largestPoolSize = DataTypes.INTEGER.readValueFrom(in);
+            poolSize = DataTypes.INTEGER.readValueFrom(in);
+            completedTaskCount = DataTypes.LONG.readValueFrom(in);
+            rejectedCount = DataTypes.LONG.readValueFrom(in);
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
+            DataTypes.INTEGER.writeValueTo(out, queueSize);
+            DataTypes.INTEGER.writeValueTo(out, activeCount);
+            DataTypes.INTEGER.writeValueTo(out, largestPoolSize);
+            DataTypes.INTEGER.writeValueTo(out, poolSize);
+            DataTypes.LONG.writeValueTo(out, completedTaskCount);
+            DataTypes.LONG.writeValueTo(out, rejectedCount);
+        }
 
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ThreadPoolExecutorContext that = (ThreadPoolExecutorContext) o;
+            return Objects.equal(queueSize, that.queueSize) &&
+                   Objects.equal(activeCount, that.activeCount) &&
+                   Objects.equal(largestPoolSize, that.largestPoolSize) &&
+                   Objects.equal(poolSize, that.poolSize) &&
+                   Objects.equal(completedTaskCount, that.completedTaskCount) &&
+                   Objects.equal(rejectedCount, that.rejectedCount);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(queueSize, activeCount, largestPoolSize, poolSize, completedTaskCount, rejectedCount);
         }
     }
 }

@@ -26,7 +26,7 @@ public abstract class DiscoveryNodeObjectArrayRowCtxExpression extends ObjectArr
 
     @Override
     public Object[] value() {
-        return row.timedOut ? null : super.value();
+        return row.timedOut() ? null : super.value();
     }
 }
 

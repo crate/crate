@@ -33,6 +33,7 @@ import io.crate.monitor.ThreadPools;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.Consumer;
@@ -99,28 +100,29 @@ public class DiscoveryNodeContextFieldResolver {
                     .put(SysNodesTableInfo.Columns.ID, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.id = clusterService.localNode().id();
+                            context.id = BytesRefs.toBytesRef(clusterService.localNode().id());
                         }
                     })
                     .put(SysNodesTableInfo.Columns.NAME, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.name = clusterService.localNode().name();
+                            context.name = BytesRefs.toBytesRef(clusterService.localNode().name());
                         }
                     })
                     .put(SysNodesTableInfo.Columns.HOSTNAME, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
                             try {
-                                context.hostname = InetAddress.getLocalHost().getHostName();
+                                context.hostname = BytesRefs.toBytesRef(InetAddress.getLocalHost().getHostName());
                             } catch (UnknownHostException e) {
+                                context.hostname = null;
                             }
                         }
                     })
                     .put(SysNodesTableInfo.Columns.REST_URL, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.restUrl = clusterService.localNode().attributes().get("http_address");
+                            context.restUrl = BytesRefs.toBytesRef(clusterService.localNode().attributes().get("http_address"));
                         }
                     })
                     .put(SysNodesTableInfo.Columns.PORT, new Consumer<DiscoveryNodeContext>() {

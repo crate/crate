@@ -37,25 +37,25 @@ public class NodeOsJvmExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(VERSION, new JvmExpression() {
             @Override
             public BytesRef innerValue() {
-                return this.row.JAVA_VERSION;
+                return this.row.javaVersion;
             }
         });
         childImplementations.put(VM_NAME, new JvmExpression() {
             @Override
             public BytesRef innerValue() {
-                return this.row.JVM_NAME;
+                return this.row.jvmName;
             }
         });
         childImplementations.put(VM_VENDOR, new JvmExpression() {
             @Override
             public BytesRef innerValue() {
-                return this.row.JVM_VENDOR;
+                return this.row.jvmVendor;
             }
         });
         childImplementations.put(VM_VERSION, new JvmExpression() {
             @Override
             public BytesRef innerValue() {
-                return this.row.JVM_VERSION;
+                return this.row.jvmVersion;
             }
         });
     }

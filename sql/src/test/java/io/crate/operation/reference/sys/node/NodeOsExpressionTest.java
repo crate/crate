@@ -34,7 +34,7 @@ public class NodeOsExpressionTest extends CrateUnitTest {
     @Test
     public void testOsTimestampNotEvaluatedTwice() throws Exception {
         ExtendedOsStats osStats = mock(ExtendedOsStats.class);
-        NodeOsExpression nodeOsExpression = new NodeOsExpression(osStats);
+        NodeOsExpression nodeOsExpression = new NodeOsExpression();
         ReferenceImplementation timestampExpr = nodeOsExpression.getChildImplementation("timestamp");
         Long ts1 = (Long) timestampExpr.value();
         Thread.sleep(10L);
