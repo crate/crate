@@ -582,6 +582,30 @@
 #
 #discovery.ec2.ping_timeout: 3s
 
+############################## Azure Discovery #################################
+
+# Azure discovery allows Crate to look up hosts for unicast discovery via the
+# Azure API.
+
+# To enable Azure discovery you need to set the discovery type to 'azure'.
+#
+#discovery.type: azure
+
+# You should provide resource group name of your instances 
+
+#cloud.azure.management.resourcegroup.name: myrg
+
+# The following configuration values must be provided for active directory authentication.
+
+#cloud.azure.management.subscription.id: xxxxx.xxxx.xxx.xxx
+#cloud.azure.management.tenant.id: xxxxxxxxxxx
+#cloud.azure.management.app.id: xxxxxxxxxx
+#cloud.azure.management.app.secret: my_password
+
+# There are two methods of discovery. Discovery method ``vnet`` will discover all VMs in the same virtual network.
+# The use of method ``subnet`` will add all virtual machines in the same subnet to the cluster.
+
+#discovery.azure.method: vnet
 
 ############################# Routing Allocation #############################
 
