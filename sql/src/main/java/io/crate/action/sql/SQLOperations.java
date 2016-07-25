@@ -257,8 +257,36 @@ public class SQLOperations {
             checkError();
 
             try {
-                Portal portal = getSafePortal(portalOrStatement);
-                return portal.describe();
+                switch (type) {
+                    case 'P':
+                        Portal portal = getSafePortal(portalOrStatement);
+                        return portal.describe();
+                    case 'S':
+                        /* TODO: need to return proper fields?
+                         *
+                         * describe might be called without prior bind call. E.g. in batch insert case the statement is prepared first:
+                         *
+                         *      parse stmtName=S_1 query=insert into t (x) values ($1) paramTypes=[integer]
+                         *      describe type=S portalOrStatement=S_1
+                         *      sync
+                         *
+                         * and then per batch:
+                         *
+                         *      bind portalName= statementName=S_1 params=[0]
+                         *      describe type=P portalOrStatement=
+                         *      execute
+                         *
+                         *      bind portalName= statementName=S_1 params=[1]
+                         *      describe type=P portalOrStatement=
+                         *      execute
+                         *
+                         * and finally:
+                         *
+                         *      sync
+                         */
+                        return null;
+                }
+                throw new AssertionError("Unsupported type: " + type);
             } catch (Throwable t) {
                 throwable = t;
                 throw t;
@@ -281,6 +309,10 @@ public class SQLOperations {
 
         public void sync(CompletionListener listener) {
             LOGGER.debug("method=sync");
+            if (lastPortalName == null) {
+                listener.onSuccess(null);
+                return;
+            }
 
             if (throwable == null) {
                 Portal portal = getSafePortal(lastPortalName);
@@ -308,6 +340,7 @@ public class SQLOperations {
             }
             throwable = null;
             statement = null;
+            lastPortalName = null;
         }
 
         @Nullable
