@@ -29,7 +29,6 @@ import java.util.Locale;
 public class AmbiguousOrderByException extends ValidationException {
 
     public AmbiguousOrderByException(Symbol orderBy) {
-        super(String.format(Locale.ENGLISH,
-            "Order by \"%s\" is ambiguous", orderBy));
+        super(String.format(Locale.ENGLISH, "Order by \"%s\" is ambiguous", orderBy));
     }
 }

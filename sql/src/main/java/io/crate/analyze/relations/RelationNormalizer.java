@@ -52,7 +52,7 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
 
     @Override
     public QueriedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, Context context) {
-        if (canMerge(relation)) {
+        if (hasNestedAggregations(relation)) {
             return relation;
         }
 
@@ -60,7 +60,7 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         return process(relation.relation(), context);
     }
 
-    private boolean canMerge(QueriedSelectRelation relation) {
+    private boolean hasNestedAggregations(QueriedSelectRelation relation) {
         QuerySpec querySpec1 = relation.querySpec();
         QuerySpec querySpec2 = relation.relation().querySpec();
 
@@ -100,7 +100,7 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         SymbolNormalizer.normalize(context.querySpec);
     }
 
-    private static QuerySpec mergeQuerySpec(QuerySpec querySpec1, QuerySpec querySpec2) {
+    private static QuerySpec mergeQuerySpec(@Nullable QuerySpec querySpec1, QuerySpec querySpec2) {
         if (querySpec1 == null) {
             return querySpec2;
         }
@@ -140,6 +140,7 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         } else if (!querySpec2.orderBy().isPresent()) {
             return querySpec1.orderBy().orNull();
         }
+
         OrderBy orderBy1 = querySpec1.orderBy().get();
         OrderBy orderBy2 = querySpec2.orderBy().get();
 
