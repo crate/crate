@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.greaterThan;
 
-public abstract class AbstractExecutionSubContextTest extends CrateUnitTest {
+public class AbstractExecutionSubContextTest extends CrateUnitTest {
 
     private TestingExecutionSubContext ctx;
 
@@ -152,17 +152,6 @@ public abstract class AbstractExecutionSubContextTest extends CrateUnitTest {
         ctx.close();
         assertThat(ctx.stats(), contains(1, 0, 1, 0));
     }
-
-    @Test
-    public void testCloseBeforePrepare() throws Exception {
-        TestingExecutionSubContext ctx = new TestingExecutionSubContext();
-        ctx.close();
-        ctx.prepare();
-        ctx.start();
-        ctx.close();
-        assertThat(ctx.stats(), contains(0, 0, 1, 0));
-    }
-
 
     @Test
     public void testParallelClose() throws Exception {
