@@ -70,7 +70,7 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         }
 
         if (querySpec1.where().hasQuery() && querySpec1.where() != WhereClause.MATCH_ALL) {
-            return AggregatedSymbolReference.hasAggregatedReference(querySpec1.where().query());
+            return AggregatedReferenceVisitor.hasAggregatedReference(querySpec1.where().query());
         }
 
         return false;
@@ -284,10 +284,14 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         }
     }
 
-    private static class AggregatedSymbolReference extends SymbolVisitor<SymbolReferenceContext, Symbol> {
+    private static class AggregatedReferenceVisitor extends SymbolVisitor<SymbolReferenceContext, Symbol> {
 
-        private static final AggregatedSymbolReference INSTANCE = new AggregatedSymbolReference();
+        private static final AggregatedReferenceVisitor INSTANCE = new AggregatedReferenceVisitor();
 
+        /**
+         * Visits every symbol that references another one in a nested query and checks if it points
+         * to an aggregation function.
+         */
         public static boolean hasAggregatedReference(Symbol symbol) {
             SymbolReferenceContext context = new SymbolReferenceContext();
             INSTANCE.process(symbol, context);

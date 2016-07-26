@@ -61,6 +61,17 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSubSelectWhereDocKey() throws Exception {
+        setup.setUpCharacters();
+
+        execute("select id, name " +
+                "from (select * from characters where female = true) as ch " +
+                "where id = 4");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("4| Arthur\n"));
+    }
+
+    @Test
     public void testSubSelectLimitOffset() throws Exception {
         setup.setUpLocations();
         execute("refresh table locations");
