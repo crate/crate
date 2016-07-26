@@ -80,7 +80,7 @@ public class NodeStatsCollector implements CrateCollector {
     private void prepareCollect() {
         final List<DiscoveryNodeContext> discoveryNodeContexts = new ArrayList<>(nodes.size());
         final CountDownLatch counter = new CountDownLatch(nodes.size());
-        for (DiscoveryNode node : nodes) {
+        for (final DiscoveryNode node : nodes) {
             NodeStatsRequest request = new NodeStatsRequest(node.id(), referenceIdentVisitor.process(collectPhase.toCollect()));
             transportStatTablesAction.execute(node.id(), request,
                     new ActionListener<NodeStatsResponse>() {
@@ -93,12 +93,11 @@ public class NodeStatsCollector implements CrateCollector {
                         @Override
                         public void onFailure(Throwable t) {
                             if (t instanceof ReceiveTimeoutTransportException) {
-                                // TODO: fallback for discovery node context
-                                discoveryNodeContexts.add(new DiscoveryNodeContext());
+                                discoveryNodeContexts.add(new DiscoveryNodeContext(node.id(), node.name()));
                             }
                             counter.countDown();
                         }
-                    }, TimeValue.timeValueMillis(5000));
+                    }, TimeValue.timeValueMillis(5000L));
         }
         try {
             counter.await();
