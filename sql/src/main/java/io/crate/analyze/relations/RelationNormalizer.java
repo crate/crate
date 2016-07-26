@@ -65,15 +65,13 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         QuerySpec querySpec2 = relation.relation().querySpec();
 
         if ((querySpec1.hasAggregates() || querySpec1.groupBy().isPresent()) &&
-            (querySpec2.hasAggregates() || querySpec2.groupBy().isPresent())) {
+            (querySpec2.hasAggregates() || querySpec2.groupBy().isPresent() || querySpec2.orderBy().isPresent())) {
             return true;
         }
 
-        if (querySpec1.where().hasQuery() && querySpec1.where() != WhereClause.MATCH_ALL) {
-            return AggregatedReferenceVisitor.hasAggregatedReference(querySpec1.where().query());
-        }
+        return querySpec1.where().hasQuery() && querySpec1.where() != WhereClause.MATCH_ALL &&
+               AggregatedReferenceVisitor.hasAggregatedReference(querySpec1.where().query());
 
-        return false;
     }
 
     @Override
@@ -145,8 +143,8 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         OrderBy orderBy2 = querySpec2.orderBy().get();
 
         List<Symbol> orderBySymbols = orderBy2.orderBySymbols();
-        List<Boolean> reverseFlags = Booleans.asList(orderBy2.reverseFlags());
-        List<Boolean> nullsFirst = Arrays.asList(orderBy2.nullsFirst());
+        List<Boolean> reverseFlags = new ArrayList<>(Booleans.asList(orderBy2.reverseFlags()));
+        List<Boolean> nullsFirst = new ArrayList<>(Arrays.asList(orderBy2.nullsFirst()));
 
         for (int i = 0; i < orderBy1.orderBySymbols().size(); i++) {
             Symbol orderBySymbol = orderBy1.orderBySymbols().get(i);

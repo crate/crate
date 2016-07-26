@@ -1728,7 +1728,7 @@ public class PlannerTest extends AbstractPlannerTest {
     @Test
     public void testNestedGroupByAggregation() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("sub selects with nested aggregations are not supported");
+        expectedException.expectMessage("complex sub selects are not supported");
         plan("select count(*) from (" +
              "  select max(load['1']) as maxLoad, hostname " +
              "  from sys.nodes " +
@@ -1739,7 +1739,7 @@ public class PlannerTest extends AbstractPlannerTest {
     @Test
     public void testReferenceToNestedAggregatedField() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("sub selects with nested aggregations are not supported");
+        expectedException.expectMessage("complex sub selects are not supported");
         plan("select ii, xx from ( " +
              "  select i + i as ii, xx from (" +
              "    select i, sum(x) as xx from t1 group by i) as t) as tt " +

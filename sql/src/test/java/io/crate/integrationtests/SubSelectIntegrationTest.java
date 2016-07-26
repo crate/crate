@@ -123,7 +123,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         setup.groupBySetup();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("sub selects with nested aggregations are not supported");
+        expectedException.expectMessage("complex sub selects are not supported");
         execute("select gender, minAge from ( " +
                 "  select gender, min(age) as minAge from characters group by gender" +
                 ") as ch " +
@@ -135,9 +135,20 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         setup.groupBySetup();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("sub selects with nested aggregations are not supported");
-        execute("select count(*) " +
-                "from (select min(age) as minAge from characters group by gender) as ch " +
+        expectedException.expectMessage("complex sub selects are not supported");
+        execute("select count(*) from (" +
+                "  select min(age) as minAge from characters group by gender) as ch " +
                 "group by minAge");
+    }
+
+    @Test
+    public void testOrderingOnNestedAggregation() throws Exception {
+        setup.groupBySetup();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("complex sub selects are not supported");
+        execute("select race, avg(age) as avgAge from ( " +
+                "  select * from characters where gender = 'male' order by age) as ch " +
+                "group by race");
     }
 }

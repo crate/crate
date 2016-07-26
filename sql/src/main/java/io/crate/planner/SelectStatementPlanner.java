@@ -227,7 +227,7 @@ public class SelectStatementPlanner {
 
         @Override
         public Plan visitQueriedSelectRelation(QueriedSelectRelation relation, Planner.Context context) {
-            throw new UnsupportedOperationException("sub selects with nested aggregations are not supported");
+            throw new UnsupportedOperationException("complex sub selects are not supported");
         }
     }
 

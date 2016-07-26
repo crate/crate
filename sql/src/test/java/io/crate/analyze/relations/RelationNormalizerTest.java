@@ -71,9 +71,9 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
     @Test
     public void testOrderByMerge() throws Exception {
         QueriedRelation relation = normalize(
-            "select * from (select * from (select concat(a, a) as aa, x from t1) as t order by aa) as tt order by x");
+            "select x from (select * from (select concat(a, a) as aa, x from t1) as t order by aa) as tt order by x");
         assertThat(relation, instanceOf(QueriedDocTable.class));
-        assertThat(relation.querySpec(), isSQL("SELECT concat(doc.t1.a, doc.t1.a), doc.t1.x ORDER BY concat(doc.t1.a, doc.t1.a), doc.t1.x"));
+        assertThat(relation.querySpec(), isSQL("SELECT doc.t1.x ORDER BY concat(doc.t1.a, doc.t1.a), doc.t1.x"));
     }
 
     @Test
@@ -172,5 +172,14 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
             "select * from (select sum(i) as ii from t1 group by x) as tt order by ii");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(), isSQL("SELECT sum(doc.t1.i) GROUP BY doc.t1.x ORDER BY sum(doc.t1.i)"));
+    }
+
+    @Test
+    public void testOrderByNonGroupedField() throws Exception {
+        QueriedRelation relation = normalize(
+            "select count(*), avg(x) as avgX from ( " +
+            "  select * from t1 order by i) as tt");
+
+        assertThat(relation, instanceOf(QueriedSelectRelation.class));
     }
 }
