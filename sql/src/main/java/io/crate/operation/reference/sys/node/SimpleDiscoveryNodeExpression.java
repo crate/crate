@@ -28,7 +28,7 @@ public abstract class SimpleDiscoveryNodeExpression<R> extends RowContextCollect
 
     @Override
     public R value() {
-        return row.timedOut() ? null : innerValue();
+        return row.isEmpty() ? null : innerValue();
     }
 
     public abstract R innerValue();

@@ -29,7 +29,7 @@ public class NodeThreadPoolsExpression extends DiscoveryNodeStaticObjectArrayRow
     }
 
     public void addChildImplementations() {
-        for (String name : this.row.threadPools) {
+        for (String name : this.row.threadPools()) {
             childImplementations.add(new NodeThreadPoolExpression(name));
         }
     }

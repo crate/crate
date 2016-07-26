@@ -53,7 +53,7 @@ public class NodeThreadPoolExpression extends NestedDiscoveryNodeExpression {
     @Override
     public void setNextRow(DiscoveryNodeContext row) {
         super.setNextRow(row);
-        threadPoolExecutor = this.row.threadPools.get(name);
+        threadPoolExecutor = this.row.threadPools().get(name);
     }
 
     private void addChildImplementations() {

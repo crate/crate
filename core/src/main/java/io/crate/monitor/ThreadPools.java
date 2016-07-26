@@ -92,6 +92,12 @@ public class ThreadPools implements Streamable, Iterable<String> {
         return Objects.hashCode(contexts);
     }
 
+    public static ThreadPools readThreadPools(StreamInput in) throws IOException {
+        ThreadPools threadPools = new ThreadPools();
+        threadPools.readFrom(in);
+        return threadPools;
+    }
+
 
     public static class ThreadPoolExecutorContext implements Streamable {
 

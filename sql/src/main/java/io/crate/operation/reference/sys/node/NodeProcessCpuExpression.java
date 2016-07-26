@@ -35,7 +35,7 @@ public class NodeProcessCpuExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(PERCENT, new ProcessCpuExpression() {
             @Override
             public Short innerValue() {
-                ExtendedProcessCpuStats cpuStats = this.row.extendedProcessCpuStats;
+                ExtendedProcessCpuStats cpuStats = this.row.extendedProcessCpuStats();
                 if (cpuStats != null) {
                     return cpuStats.percent();
                 } else {
@@ -46,7 +46,7 @@ public class NodeProcessCpuExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(USER, new ProcessCpuExpression() {
             @Override
             public Long innerValue() {
-                ExtendedProcessCpuStats cpuStats = this.row.extendedProcessCpuStats;
+                ExtendedProcessCpuStats cpuStats = this.row.extendedProcessCpuStats();
                 if (cpuStats != null) {
                     return cpuStats.user().millis();
                 } else {
@@ -57,7 +57,7 @@ public class NodeProcessCpuExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(SYSTEM, new ProcessCpuExpression() {
             @Override
             public Long innerValue() {
-                ExtendedProcessCpuStats cpuStats = this.row.extendedProcessCpuStats;
+                ExtendedProcessCpuStats cpuStats = this.row.extendedProcessCpuStats();
                 if (cpuStats != null) {
                     return cpuStats.sys().millis();
                 } else {

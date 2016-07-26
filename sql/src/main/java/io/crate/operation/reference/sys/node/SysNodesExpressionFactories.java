@@ -45,7 +45,7 @@ public class SysNodesExpressionFactories {
                     return new SimpleDiscoveryNodeExpression<BytesRef>() {
                         @Override
                         public BytesRef innerValue() {
-                            return row.id;
+                            return row.id();
                         }
                     };
                 }
@@ -56,7 +56,7 @@ public class SysNodesExpressionFactories {
                     return new SimpleDiscoveryNodeExpression<BytesRef>() {
                         @Override
                         public BytesRef innerValue() {
-                            return row.name;
+                            return row.name();
                         }
                     };
                 }
@@ -67,7 +67,7 @@ public class SysNodesExpressionFactories {
                     return new SimpleDiscoveryNodeExpression<BytesRef>() {
                         @Override
                         public BytesRef innerValue() {
-                            return row.hostname;
+                            return row.hostname();
                         }
                     };
                 }
@@ -78,7 +78,7 @@ public class SysNodesExpressionFactories {
                     return new SimpleDiscoveryNodeExpression<BytesRef>() {
                         @Override
                         public BytesRef innerValue() {
-                            return row.restUrl;
+                            return row.restUrl();
                         }
                     };
                 }

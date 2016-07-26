@@ -38,25 +38,25 @@ public class NodeOsInfoExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(AVAILABLE_PROCESSORS, new OsInfoExpression() {
             @Override
             public Integer innerValue() {
-                return this.row.osInfo.getAvailableProcessors();
+                return this.row.osInfo().getAvailableProcessors();
             }
         });
         childImplementations.put(OS, new OsInfoExpression() {
             @Override
             public BytesRef innerValue() {
-                return this.row.osName;
+                return this.row.osName();
             }
         });
         childImplementations.put(ARCH, new OsInfoExpression() {
             @Override
             public BytesRef innerValue() {
-                return this.row.osArch;
+                return this.row.osArch();
             }
         });
         childImplementations.put(VERSION, new OsInfoExpression() {
             @Override
             public BytesRef innerValue() {
-                return this.row.osVersion;
+                return this.row.osVersion();
             }
         });
         childImplementations.put(JVM, new NodeOsJvmExpression());

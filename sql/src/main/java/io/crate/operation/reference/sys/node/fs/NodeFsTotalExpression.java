@@ -53,7 +53,7 @@ public class NodeFsTotalExpression extends NestedDiscoveryNodeExpression {
 
     private Map<String, Long> getTotals() {
         Map<String, Long> totals = new HashMap<>();
-        ExtendedFsStats.Info totalInfo = this.row.extendedFsStats.total();
+        ExtendedFsStats.Info totalInfo = this.row.extendedFsStats().total();
         totals.put(SIZE, totalInfo.total() == -1 ? -1 : totalInfo.total() * 1024);
         totals.put(USED, totalInfo.used() == -1 ? - 1 : totalInfo.used() * 1024);
         totals.put(AVAILABLE, totalInfo.available() == -1 ? -1 : totalInfo.available() * 1024);

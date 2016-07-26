@@ -43,42 +43,44 @@ import java.util.Map;
 
 public class DiscoveryNodeContext implements Streamable {
 
-    private final boolean timedOut;
+    private final boolean empty;
 
-    public BytesRef id;
-    public BytesRef name;
-    public BytesRef hostname;
-    public Version version;
-    public Build build;
-    public BytesRef restUrl;
-    public Map<String, Integer> port;
-    public JvmStats jvmStats;
-    public OsInfo osInfo;
-    public ProcessStats processStats;
-    public OsStats osStats;
-    public ExtendedOsStats extendedOsStats;
-    public ExtendedNetworkStats networkStats;
-    public ExtendedProcessCpuStats extendedProcessCpuStats;
-    public ExtendedFsStats extendedFsStats;
-    public ThreadPools threadPools;
+    private BytesRef id;
+    private BytesRef name;
+    private BytesRef hostname;
+    private Version version;
+    private Build build;
+    private BytesRef restUrl;
+    private Map<String, Integer> port;
+    private JvmStats jvmStats;
+    private OsInfo osInfo;
+    private ProcessStats processStats;
+    private OsStats osStats;
+    private ExtendedOsStats extendedOsStats;
+    private ExtendedNetworkStats networkStats;
+    private ExtendedProcessCpuStats extendedProcessCpuStats;
+    private ExtendedFsStats extendedFsStats;
+    private ThreadPools threadPools;
 
-    public BytesRef osName;
-    public BytesRef osArch;
-    public BytesRef osVersion;
+    private BytesRef osName;
+    private BytesRef osArch;
+    private BytesRef osVersion;
 
-    public BytesRef javaVersion;
-    public BytesRef jvmName;
-    public BytesRef jvmVendor;
-    public BytesRef jvmVersion;
+    private BytesRef javaVersion;
+    private BytesRef jvmName;
+    private BytesRef jvmVendor;
+    private BytesRef jvmVersion;
 
+    public DiscoveryNodeContext(BytesRef id, BytesRef name, BytesRef hostname) {
+        this(true);
+        this.id = id;
+        this.name = name;
+        this.hostname = hostname;
+    }
 
-    /**
-     * For now this context only contains dummy values!
-     * TODO: Populate context with correct data
-     */
-    public DiscoveryNodeContext(boolean timedOut) {
-        this.timedOut = timedOut;
-        if (!timedOut) {
+    public DiscoveryNodeContext(boolean empty) {
+        this.empty = empty;
+        if (!empty) {
             osName = BytesRefs.toBytesRef(Constants.OS_NAME);
             osArch = BytesRefs.toBytesRef(Constants.OS_ARCH);
             osVersion = BytesRefs.toBytesRef(Constants.OS_VERSION);
@@ -90,11 +92,167 @@ public class DiscoveryNodeContext implements Streamable {
     }
 
     public DiscoveryNodeContext() {
-        this(true);
+        this(false);
     }
 
-    public boolean timedOut() {
-        return timedOut;
+    public boolean isEmpty() {
+        return empty;
+    }
+
+    public BytesRef id() {
+        return id;
+    }
+
+    public BytesRef name() {
+        return name;
+    }
+
+    public BytesRef hostname() {
+        return hostname;
+    }
+
+    public Version version() {
+        return version;
+    }
+
+    public Build build() {
+        return build;
+    }
+
+    public BytesRef restUrl() {
+        return restUrl;
+    }
+
+    public Map<String, Integer> port() {
+        return port;
+    }
+
+    public JvmStats jvmStats() {
+        return jvmStats;
+    }
+
+    public OsInfo osInfo() {
+        return osInfo;
+    }
+
+    public ProcessStats processStats() {
+        return processStats;
+    }
+
+    public OsStats osStats() {
+        return osStats;
+    }
+
+    public ExtendedOsStats extendedOsStats() {
+        return extendedOsStats;
+    }
+
+    public ExtendedNetworkStats networkStats() {
+        return networkStats;
+    }
+
+    public ExtendedProcessCpuStats extendedProcessCpuStats() {
+        return extendedProcessCpuStats;
+    }
+
+    public ExtendedFsStats extendedFsStats() {
+        return extendedFsStats;
+    }
+
+    public ThreadPools threadPools() {
+        return threadPools;
+    }
+
+    public BytesRef osName() {
+        return osName;
+    }
+
+    public BytesRef osArch() {
+        return osArch;
+    }
+
+    public BytesRef osVersion() {
+        return osVersion;
+    }
+
+    public BytesRef javaVersion() {
+        return javaVersion;
+    }
+
+    public BytesRef jvmName() {
+        return jvmName;
+    }
+
+    public BytesRef jvmVendor() {
+        return jvmVendor;
+    }
+
+    public BytesRef jvmVersion() {
+        return jvmVersion;
+    }
+
+    public void id(BytesRef id) {
+        this.id = id;
+    }
+
+    public void name(BytesRef name) {
+        this.name = name;
+    }
+
+    public void hostname(BytesRef hostname) {
+        this.hostname = hostname;
+    }
+
+    public void version(Version version) {
+        this.version = version;
+    }
+
+    public void build(Build build) {
+        this.build = build;
+    }
+
+    public void restUrl(BytesRef restUrl) {
+        this.restUrl = restUrl;
+    }
+
+    public void port(Map<String, Integer> port) {
+        this.port = port;
+    }
+
+    public void jvmStats(JvmStats jvmStats) {
+        this.jvmStats = jvmStats;
+    }
+
+    public void osInfo(OsInfo osInfo) {
+        this.osInfo = osInfo;
+    }
+
+    public void processStats(ProcessStats processStats) {
+        this.processStats = processStats;
+    }
+
+    public void osStats(OsStats osStats) {
+        this.osStats = osStats;
+    }
+
+    public void extendedOsStats(ExtendedOsStats extendedOsStats) {
+        this.extendedOsStats = extendedOsStats;
+    }
+
+    public void networkStats(ExtendedNetworkStats networkStats) {
+        this.networkStats = networkStats;
+    }
+
+    public void extendedProcessCpuStats(ExtendedProcessCpuStats extendedProcessCpuStats) {
+        this.extendedProcessCpuStats = extendedProcessCpuStats;
+    }
+
+    public void extendedFsStats(ExtendedFsStats extendedFsStats) {
+        this.extendedFsStats = extendedFsStats;
+    }
+
+    public void threadPools(ThreadPools threadPools) {
+        this.threadPools = threadPools;
     }
 
     @Override
@@ -102,27 +260,27 @@ public class DiscoveryNodeContext implements Streamable {
         id = DataTypes.STRING.readValueFrom(in);
         name = DataTypes.STRING.readValueFrom(in);
         hostname = DataTypes.STRING.readValueFrom(in);
-        version = in.readBoolean() ? null : Version.fromStream(in);
-        build = in.readBoolean() ? null : Build.fromStream(in);
+        version = in.readBoolean() ? Version.fromStream(in) : null;
+        build = in.readBoolean() ? Build.fromStream(in) : null;
         restUrl = DataTypes.STRING.readValueFrom(in);
         if (in.readBoolean()) {
-            port = null;
-        } else {
             int size = in.readVInt();
             port = new HashMap<>(size);
             for (int i = 0; i < size; i++) {
                 port.put(in.readString(), in.readVInt());
             }
+        } else {
+            port = null;
         }
-//        jvmStats = in.readOptionalStreamable(new JvmStats(0, 0));
-//        osInfo = in.readOptionalStreamable(new OsInfo());
-//        in.readOptionalStreamable(processStats);
-//        in.readOptionalStreamable(osStats);
-//        in.readOptionalStreamable(extendedOsStats);
-//        in.readOptionalStreamable(networkStats);
-//        in.readOptionalStreamable(cpuStats);
-//        in.readOptionalStreamable(fsStats);
-//        in.readOptionalStreamable(threadPools);
+        jvmStats = in.readBoolean() ? JvmStats.readJvmStats(in) : null;
+        osInfo = in.readBoolean() ? OsInfo.readOsInfo(in) : null;
+        processStats = in.readBoolean() ? ProcessStats.readProcessStats(in) : null;
+        osStats = in.readBoolean() ? OsStats.readOsStats(in) : null;
+        extendedOsStats = in.readBoolean() ? ExtendedOsStats.readExtendedOsStat(in) : null;
+        networkStats = in.readBoolean() ? ExtendedNetworkStats.readExtendedNetworkStats(in) : null;
+        extendedProcessCpuStats = in.readBoolean() ? ExtendedProcessCpuStats.readExtendedProcessCpuStats(in) : null;
+        extendedFsStats = in.readBoolean() ? ExtendedFsStats.readExtendedFsStats(in) : null;
+        threadPools = in.readBoolean() ? ThreadPools.readThreadPools(in) : null;
 
         osName = DataTypes.STRING.readValueFrom(in);
         osArch = DataTypes.STRING.readValueFrom(in);
@@ -138,33 +296,32 @@ public class DiscoveryNodeContext implements Streamable {
         DataTypes.STRING.writeValueTo(out, id);
         DataTypes.STRING.writeValueTo(out, name);
         DataTypes.STRING.writeValueTo(out, hostname);
-        out.writeBoolean(version == null);
+        out.writeBoolean(version != null);
         if (version != null) {
             Version.writeVersion(version, out);
         }
-        out.writeBoolean(build == null);
+        out.writeBoolean(build != null);
         if (build != null) {
             Build.writeBuild(build, out);
         }
         DataTypes.STRING.writeValueTo(out, restUrl);
-        out.writeBoolean(port == null);
+        out.writeBoolean(port != null);
         if (port != null) {
-            out.writeBoolean(true);
             out.writeVInt(port.size());
             for (Map.Entry<String, Integer> p : port.entrySet()) {
                 out.writeString(p.getKey());
                 out.writeVInt(p.getValue());
             }
         }
-//        out.writeOptionalStreamable(jvmStats);
-//        out.writeOptionalStreamable(osInfo);
-//        out.writeOptionalStreamable(processStats);
-//        out.writeOptionalStreamable(osStats);
-//        out.writeOptionalStreamable(extendedOsStats);
-//        out.writeOptionalStreamable(networkStats);
-//        out.writeOptionalStreamable(cpuStats);
-//        out.writeOptionalStreamable(fsStats);
-//        out.writeOptionalStreamable(threadPools);
+        out.writeOptionalStreamable(jvmStats);
+        out.writeOptionalStreamable(osInfo);
+        out.writeOptionalStreamable(processStats);
+        out.writeOptionalStreamable(osStats);
+        out.writeOptionalStreamable(extendedOsStats);
+        out.writeOptionalStreamable(networkStats);
+        out.writeOptionalStreamable(extendedProcessCpuStats);
+        out.writeOptionalStreamable(extendedFsStats);
+        out.writeOptionalStreamable(threadPools);
 
         DataTypes.STRING.writeValueTo(out, osName);
         DataTypes.STRING.writeValueTo(out, osArch);

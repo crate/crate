@@ -38,7 +38,7 @@ public class NodeProcessExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(OPEN_FILE_DESCRIPTORS, new ProcessExpression() {
             @Override
             public Long innerValue() {
-                ProcessStats processStats = this.row.processStats;
+                ProcessStats processStats = this.row.processStats();
                 if (processStats != null) {
                     return processStats.getOpenFileDescriptors();
                 } else {
@@ -49,7 +49,7 @@ public class NodeProcessExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, new ProcessExpression() {
             @Override
             public Long innerValue() {
-                ProcessStats processStats = this.row.processStats;
+                ProcessStats processStats = this.row.processStats();
                 if (processStats != null) {
                     return processStats.getMaxFileDescriptors();
                 } else {
@@ -60,7 +60,7 @@ public class NodeProcessExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(PROBE_TIMESTAMP, new ProcessExpression() {
             @Override
             public Long innerValue() {
-                ProcessStats processStats = this.row.processStats;
+                ProcessStats processStats = this.row.processStats();
                 if (processStats != null) {
                     return processStats.getTimestamp();
                 } else {

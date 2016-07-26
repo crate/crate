@@ -36,7 +36,7 @@ public class NodeOsExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(UPTIME, new OsExpression() {
             @Override
             public Long innerValue() {
-                long uptime = this.row.extendedOsStats.uptime().millis();
+                long uptime = this.row.extendedOsStats().uptime().millis();
                 return uptime > 0 ? uptime : -1;
             }
         });
@@ -50,7 +50,7 @@ public class NodeOsExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(PROBE_TIMESTAMP, new OsExpression() {
             @Override
             public Long innerValue() {
-                return this.row.extendedOsStats.timestamp();
+                return this.row.extendedOsStats().timestamp();
             }
         });
         childImplementations.put(CPU, new NodeOsCpuExpression());

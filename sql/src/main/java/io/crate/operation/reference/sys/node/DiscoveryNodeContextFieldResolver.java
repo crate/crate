@@ -100,29 +100,29 @@ public class DiscoveryNodeContextFieldResolver {
                     .put(SysNodesTableInfo.Columns.ID, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.id = BytesRefs.toBytesRef(clusterService.localNode().id());
+                            context.id(BytesRefs.toBytesRef(clusterService.localNode().id()));
                         }
                     })
                     .put(SysNodesTableInfo.Columns.NAME, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.name = BytesRefs.toBytesRef(clusterService.localNode().name());
+                            context.name(BytesRefs.toBytesRef(clusterService.localNode().name()));
                         }
                     })
                     .put(SysNodesTableInfo.Columns.HOSTNAME, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
                             try {
-                                context.hostname = BytesRefs.toBytesRef(InetAddress.getLocalHost().getHostName());
+                                context.hostname(BytesRefs.toBytesRef(InetAddress.getLocalHost().getHostName()));
                             } catch (UnknownHostException e) {
-                                context.hostname = null;
+                                // What should we do?
                             }
                         }
                     })
                     .put(SysNodesTableInfo.Columns.REST_URL, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.restUrl = BytesRefs.toBytesRef(clusterService.localNode().attributes().get("http_address"));
+                            context.restUrl(BytesRefs.toBytesRef(clusterService.localNode().attributes().get("http_address")));
                         }
                     })
                     .put(SysNodesTableInfo.Columns.PORT, new Consumer<DiscoveryNodeContext>() {
@@ -134,34 +134,35 @@ public class DiscoveryNodeContextFieldResolver {
                             } catch (IOException e) {
                                 // This is a bug in ES method signature, IOException is never thrown
                             }
-                            context.port = new HashMap<>();
-                            context.port.put("HTTP", portFromAddress(nodeService.info().getHttp().address().publishAddress()));
-                            context.port.put("TRANSPORT", transport);
+                            HashMap<String, Integer> port = new HashMap<>();
+                            port.put("http", portFromAddress(nodeService.info().getHttp().address().publishAddress()));
+                            port.put("transport", transport);
+                            context.port(port);
                         }
                     })
                     .put(SysNodesTableInfo.Columns.LOAD, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.extendedOsStats = extendedNodeInfo.osStats();
+                            context.extendedOsStats(extendedNodeInfo.osStats());
                         }
                     })
                     .put(SysNodesTableInfo.Columns.MEM, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.osStats = osService.stats();
+                            context.osStats(osService.stats());
                         }
                     })
                     .put(SysNodesTableInfo.Columns.HEAP, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.jvmStats = jvmService.stats();
+                            context.jvmStats(jvmService.stats());
                         }
                     })
                     .put(SysNodesTableInfo.Columns.VERSION, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.version = Version.CURRENT;
-                            context.build = Build.CURRENT;
+                            context.version(Version.CURRENT);
+                            context.build(Build.CURRENT);
                         }
                     })
                     .put(SysNodesTableInfo.Columns.THREAD_POOLS, new Consumer<DiscoveryNodeContext>() {
@@ -188,33 +189,33 @@ public class DiscoveryNodeContextFieldResolver {
                                                 rejectedCount);
                                 threadPools.add(name, executorContext);
                             }
-                            context.threadPools = threadPools;
+                            context.threadPools(threadPools);
                         }
                     })
                     .put(SysNodesTableInfo.Columns.NETWORK, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.networkStats = extendedNodeInfo.networkStats();
+                            context.networkStats(extendedNodeInfo.networkStats());
                         }
                     })
                     .put(SysNodesTableInfo.Columns.OS, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.extendedOsStats = extendedNodeInfo.osStats();
+                            context.extendedOsStats(extendedNodeInfo.osStats());
                         }
                     })
                     .put(SysNodesTableInfo.Columns.OS_INFO, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.osInfo = nodeService.info().getOs();
+                            context.osInfo(nodeService.info().getOs());
                         }
                     })
                     .put(SysNodesTableInfo.Columns.PROCESS, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.extendedProcessCpuStats = extendedNodeInfo.processCpuStats();
+                            context.extendedProcessCpuStats(extendedNodeInfo.processCpuStats());
                             try {
-                                context.processStats = nodeService.stats().getProcess();
+                                context.processStats(nodeService.stats().getProcess());
                             } catch (IOException e) {
                                 // This is a bug in ES method signature, IOException is never thrown
                             }
@@ -223,7 +224,7 @@ public class DiscoveryNodeContextFieldResolver {
                     .put(SysNodesTableInfo.Columns.FS, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.extendedFsStats = extendedNodeInfo.fsStats();
+                            context.extendedFsStats(extendedNodeInfo.fsStats());
                         }
                     }).build();
 

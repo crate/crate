@@ -37,13 +37,13 @@ public class NodePortExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(HTTP, new PortExpression() {
             @Override
             public Integer value() {
-                return this.row.port.get("http");
+                return this.row.port().get("http");
             }
         });
         childImplementations.put(TRANSPORT, new PortExpression() {
             @Override
             public Integer value() {
-                return this.row.port.get("transport");
+                return this.row.port().get("transport");
             }
         });
     }

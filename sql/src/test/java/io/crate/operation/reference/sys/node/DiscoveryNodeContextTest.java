@@ -99,27 +99,27 @@ public class DiscoveryNodeContextTest extends CrateUnitTest {
     @Test
     public void testStreamContext() throws Exception {
         DiscoveryNodeContext ctx1 = new DiscoveryNodeContext(false);
-        ctx1.id = BytesRefs.toBytesRef("93c7ff92-52fa-11e6-aad8-3c15c2d3ad18");
-        ctx1.name = BytesRefs.toBytesRef("crate1");
-        ctx1.hostname = BytesRefs.toBytesRef("crate1.example.com");
-        ctx1.version = Version.CURRENT;
-        ctx1.build = Build.CURRENT;
-        ctx1.restUrl = BytesRefs.toBytesRef("10.0.0.1:4200");
-        ctx1.port = new HashMap<String, Integer>(2) {{
+        ctx1.id(BytesRefs.toBytesRef("93c7ff92-52fa-11e6-aad8-3c15c2d3ad18"));
+        ctx1.name(BytesRefs.toBytesRef("crate1"));
+        ctx1.hostname(BytesRefs.toBytesRef("crate1.example.com"));
+        ctx1.version(Version.CURRENT);
+        ctx1.build(Build.CURRENT);
+        ctx1.restUrl(BytesRefs.toBytesRef("10.0.0.1:4200"));
+        ctx1.port(new HashMap<String, Integer>(2) {{
             put("http", 4200);
             put("transport", 4300);
-        }};
-        ctx1.jvmStats = JvmStats.jvmStats();
-        ctx1.osInfo = DummyOsInfo.INSTANCE;
+        }});
+        ctx1.jvmStats(JvmStats.jvmStats());
+        ctx1.osInfo(DummyOsInfo.INSTANCE);
         ProcessProbe processProbe = ProcessProbe.getInstance();
-        ctx1.processStats = processProbe.processStats();
+        ctx1.processStats(processProbe.processStats());
         OsProbe osProbe = OsProbe.getInstance();
-        ctx1.osStats = osProbe.osStats();
-        ctx1.extendedOsStats = extendedNodeInfo.osStats();
-        ctx1.networkStats = extendedNodeInfo.networkStats();
-        ctx1.extendedProcessCpuStats= extendedNodeInfo.processCpuStats();
-        ctx1.extendedFsStats= extendedNodeInfo.fsStats();
-        ctx1.threadPools = threadPoolInfo();
+        ctx1.osStats(osProbe.osStats());
+        ctx1.extendedOsStats(extendedNodeInfo.osStats());
+        ctx1.networkStats(extendedNodeInfo.networkStats());
+        ctx1.extendedProcessCpuStats(extendedNodeInfo.processCpuStats());
+        ctx1.extendedFsStats(extendedNodeInfo.fsStats());
+        ctx1.threadPools(threadPoolInfo());
 
         ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
         StreamOutput out = new OutputStreamStreamOutput(outBuffer);
@@ -130,7 +130,22 @@ public class DiscoveryNodeContextTest extends CrateUnitTest {
         DiscoveryNodeContext ctx2 = new DiscoveryNodeContext(false);
         ctx2.readFrom(in);
 
-        assertEquals(ctx1, ctx2);
+        assertEquals(ctx1.id(), ctx2.id());
+        assertEquals(ctx1.name(), ctx2.name());
+        assertEquals(ctx1.hostname(), ctx2.hostname());
+        assertEquals(ctx1.version(), ctx2.version());
+        assertEquals(ctx1.build().hash(), ctx2.build().hash());
+        assertEquals(ctx1.restUrl(), ctx2.restUrl());
+        assertEquals(ctx1.port(), ctx2.port());
+        assertEquals(ctx1.jvmStats().getTimestamp(), ctx2.jvmStats().getTimestamp());
+        assertEquals(ctx1.osInfo().getArch(), ctx2.osInfo().getArch());
+        assertEquals(ctx1.processStats().getTimestamp(), ctx2.processStats().getTimestamp());
+        assertEquals(ctx1.osStats().getTimestamp(), ctx2.osStats().getTimestamp());
+        assertEquals(ctx1.extendedOsStats().uptime(), ctx2.extendedOsStats().uptime());
+        assertEquals(ctx1.networkStats().timestamp(), ctx2.networkStats().timestamp());
+        assertEquals(ctx1.extendedProcessCpuStats().percent(), ctx2.extendedProcessCpuStats().percent());
+        assertEquals(ctx1.extendedFsStats().size(), ctx2.extendedFsStats().size());
+        assertEquals(ctx1.threadPools(), ctx2.threadPools());
     }
 
     private ThreadPools threadPoolInfo() {
@@ -167,20 +182,20 @@ public class DiscoveryNodeContextTest extends CrateUnitTest {
         DiscoveryNodeContext ctx2 = new DiscoveryNodeContext(true);
         ctx2.readFrom(in);
 
-        assertNull(ctx2.id);
-        assertNull(ctx2.name);
-        assertNull(ctx2.hostname);
-        assertNull(ctx2.restUrl);
-        assertNull(ctx2.port);
-        assertNull(ctx2.jvmStats);
-        assertNull(ctx2.osInfo);
-        assertNull(ctx2.processStats);
-        assertNull(ctx2.osStats);
-        assertNull(ctx2.extendedOsStats);
-        assertNull(ctx2.networkStats);
-        assertNull(ctx2.extendedProcessCpuStats);
-        assertNull(ctx2.extendedFsStats);
-        assertNull(ctx2.threadPools);
+        assertNull(ctx2.id());
+        assertNull(ctx2.name());
+        assertNull(ctx2.hostname());
+        assertNull(ctx2.restUrl());
+        assertNull(ctx2.port());
+        assertNull(ctx2.jvmStats());
+        assertNull(ctx2.osInfo());
+        assertNull(ctx2.processStats());
+        assertNull(ctx2.osStats());
+        assertNull(ctx2.extendedOsStats());
+        assertNull(ctx2.networkStats());
+        assertNull(ctx2.extendedProcessCpuStats());
+        assertNull(ctx2.extendedFsStats());
+        assertNull(ctx2.threadPools());
     }
 
     @Test

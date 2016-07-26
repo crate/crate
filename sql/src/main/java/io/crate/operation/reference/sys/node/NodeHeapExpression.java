@@ -37,28 +37,28 @@ public class NodeHeapExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(FREE, new HeapExpression() {
             @Override
             public Long innerValue() {
-                JvmStats stats = this.row.jvmStats;
+                JvmStats stats = this.row.jvmStats();
                 return stats.getMem().getHeapMax().bytes() - stats.getMem().getHeapUsed().bytes();
             }
         });
         childImplementations.put(USED, new HeapExpression() {
             @Override
             public Long innerValue() {
-                JvmStats stats = this.row.jvmStats;
+                JvmStats stats = this.row.jvmStats();
                 return stats.getMem().getHeapUsed().bytes();
             }
         });
         childImplementations.put(MAX, new HeapExpression() {
             @Override
             public Long innerValue() {
-                JvmStats stats = this.row.jvmStats;
+                JvmStats stats = this.row.jvmStats();
                 return stats.getMem().getHeapMax().bytes();
             }
         });
         childImplementations.put(PROBE_TIMESTAMP, new SimpleDiscoveryNodeExpression<Long>() {
             @Override
             public Long innerValue() {
-                JvmStats stats = this.row.jvmStats;
+                JvmStats stats = this.row.jvmStats();
                 return stats.getTimestamp();
             }
         });

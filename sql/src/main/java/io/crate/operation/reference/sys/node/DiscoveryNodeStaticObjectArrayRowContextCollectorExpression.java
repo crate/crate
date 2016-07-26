@@ -43,7 +43,7 @@ public abstract class DiscoveryNodeStaticObjectArrayRowContextCollectorExpressio
 
     @Override
     public Object[] value() {
-        return row.timedOut() ? null : super.value();
+        return row.isEmpty() ? null : super.value();
     }
 
     public abstract void addChildImplementations();

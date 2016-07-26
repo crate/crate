@@ -34,19 +34,19 @@ public class NodeVersionExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(NUMBER, new SimpleDiscoveryNodeExpression<BytesRef>() {
             @Override
             public BytesRef innerValue() {
-                return BytesRefs.toBytesRef(this.row.version.number());
+                return BytesRefs.toBytesRef(this.row.version().number());
             }
         });
         childImplementations.put(BUILD_HASH, new SimpleDiscoveryNodeExpression<BytesRef>() {
             @Override
             public BytesRef innerValue() {
-                return BytesRefs.toBytesRef(this.row.build.hash());
+                return BytesRefs.toBytesRef(this.row.build().hash());
             }
         });
         childImplementations.put(BUILD_SNAPSHOT, new SimpleDiscoveryNodeExpression<Boolean>() {
             @Override
             public Boolean innerValue() {
-                return this.row.version.snapshot();
+                return this.row.version().snapshot();
             }
         });
     }
