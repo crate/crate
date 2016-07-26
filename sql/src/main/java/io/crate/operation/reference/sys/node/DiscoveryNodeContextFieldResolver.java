@@ -77,7 +77,7 @@ public class DiscoveryNodeContextFieldResolver {
         this.extendedNodeInfo = extendedNodeInfo;
     }
 
-    public DiscoveryNodeContext resolve(List<ReferenceIdent> referenceIdents) {
+    public DiscoveryNodeContext resolveForColumnIdents(List<ReferenceIdent> referenceIdents) {
         List<ColumnIdent> processedColumnReferenceIdents = new ArrayList<>();
         DiscoveryNodeContext context = new DiscoveryNodeContext();
 

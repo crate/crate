@@ -74,8 +74,12 @@ public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, No
 
     @Override
     public void nodeOperation(NodeStatsRequest request, ActionListener<NodeStatsResponse> listener) {
-        DiscoveryNodeContext context = nodeContextFieldsResolver.resolve(request.referenceIdents());
-        NodeStatsResponse response = new NodeStatsResponse(context);
-        listener.onResponse(response);
+        try {
+            DiscoveryNodeContext context = nodeContextFieldsResolver.resolveForColumnIdents(request.referenceIdents());
+            listener.onResponse(new NodeStatsResponse(context));
+        } catch (Throwable t) {
+            listener.onFailure(t);
+        }
+
     }
 }

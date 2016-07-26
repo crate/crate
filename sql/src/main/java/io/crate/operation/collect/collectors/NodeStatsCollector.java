@@ -41,6 +41,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -80,8 +81,7 @@ public class NodeStatsCollector implements CrateCollector {
         final List<DiscoveryNodeContext> discoveryNodeContexts = new ArrayList<>(nodes.size());
         final CountDownLatch counter = new CountDownLatch(nodes.size());
         for (DiscoveryNode node : nodes) {
-            NodeStatsRequest request =
-                    new NodeStatsRequest(node.id(), referenceIdentVisitor.process(collectPhase.toCollect()));
+            NodeStatsRequest request = new NodeStatsRequest(node.id(), referenceIdentVisitor.process(collectPhase.toCollect()));
             transportStatTablesAction.execute(node.id(), request,
                     new ActionListener<NodeStatsResponse>() {
                         @Override
@@ -92,10 +92,13 @@ public class NodeStatsCollector implements CrateCollector {
 
                         @Override
                         public void onFailure(Throwable t) {
-                            discoveryNodeContexts.add(new DiscoveryNodeContext());
+                            if (t instanceof ReceiveTimeoutTransportException) {
+                                // TODO: fallback for discovery node context
+                                discoveryNodeContexts.add(new DiscoveryNodeContext());
+                            }
                             counter.countDown();
                         }
-                    }, TimeValue.timeValueSeconds(5));
+                    }, TimeValue.timeValueMillis(5000));
         }
         try {
             counter.await();
