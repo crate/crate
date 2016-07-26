@@ -168,8 +168,7 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         return new OrderBy(orderBySymbols, Booleans.toArray(reverseFlags), nullsFirst.toArray(new Boolean[0]));
     }
 
-    @Nullable
-    private static Integer mergeOffset(QuerySpec querySpec1, QuerySpec querySpec2) {
+    private static int mergeOffset(QuerySpec querySpec1, QuerySpec querySpec2) {
         return querySpec1.offset() + querySpec2.offset();
     }
 
