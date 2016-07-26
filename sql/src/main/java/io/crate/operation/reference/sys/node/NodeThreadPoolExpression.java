@@ -21,6 +21,7 @@
 
 package io.crate.operation.reference.sys.node;
 
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.monitor.ThreadPools;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -53,6 +54,10 @@ public class NodeThreadPoolExpression extends NestedDiscoveryNodeExpression {
     @Override
     public void setNextRow(DiscoveryNodeContext row) {
         super.setNextRow(row);
+        for (ReferenceImplementation child : childImplementations.values()) {
+            //noinspection unchecked
+            ((ThreadPoolExpression) child).setNextRow(row);
+        }
         threadPoolExecutor = this.row.threadPools().get(name);
     }
 

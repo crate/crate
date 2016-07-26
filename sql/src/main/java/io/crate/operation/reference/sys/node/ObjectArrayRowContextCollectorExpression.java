@@ -25,6 +25,7 @@ package io.crate.operation.reference.sys.node;
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.operation.reference.RowCollectNestedObjectExpression;
 import org.apache.lucene.util.BytesRef;
@@ -45,6 +46,10 @@ public abstract class ObjectArrayRowContextCollectorExpression<T> extends RowCon
         int i = 0;
         for (RowCollectNestedObjectExpression<T> childImplementation : childImplementations) {
             ReferenceImplementation<?> child = childImplementation.getChildImplementation(name);
+            if (child instanceof RowCollectExpression) {
+                //noinspection unchecked
+                ((RowCollectExpression) child).setNextRow(this.row);
+            }
             if (child != null) {
                 Object value = child.value();
                 values[i++] = value;
@@ -59,7 +64,6 @@ public abstract class ObjectArrayRowContextCollectorExpression<T> extends RowCon
             }
 
         };
-
     }
 
     @Override
@@ -67,7 +71,8 @@ public abstract class ObjectArrayRowContextCollectorExpression<T> extends RowCon
         List<RowCollectNestedObjectExpression<T>> childImplementations = getChildImplementations();
         Object[] values = new Object[childImplementations.size()];
         int i = 0;
-        for (RowCollectNestedObjectExpression<T> childImplementation : childImplementations) {
+        for (final RowCollectNestedObjectExpression<T> childImplementation : childImplementations) {
+            childImplementation.setNextRow(this.row);
             Map<String, Object> map = Maps.transformValues(childImplementation.getChildImplementations(),
                 new Function<ReferenceImplementation, Object>() {
                     @Nullable
