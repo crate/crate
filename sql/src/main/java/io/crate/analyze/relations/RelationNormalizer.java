@@ -24,6 +24,7 @@ package io.crate.analyze.relations;
 
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.Booleans;
 import io.crate.analyze.*;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
@@ -34,7 +35,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.operation.operator.AndOperator;
-import org.apache.commons.lang3.ArrayUtils;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -145,7 +145,7 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         OrderBy orderBy2 = querySpec2.orderBy().get();
 
         List<Symbol> orderBySymbols = orderBy2.orderBySymbols();
-        List<Boolean> reverseFlags = new ArrayList<>(Arrays.asList(ArrayUtils.toObject(orderBy2.reverseFlags())));
+        List<Boolean> reverseFlags = new ArrayList<>(Booleans.asList(orderBy2.reverseFlags()));
         List<Boolean> nullsFirst = new ArrayList<>(Arrays.asList(orderBy2.nullsFirst()));
 
         for (int i = 0; i < orderBy1.orderBySymbols().size(); i++) {
@@ -165,7 +165,7 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
             }
         }
 
-        return new OrderBy(orderBySymbols, ArrayUtils.toPrimitive(reverseFlags.toArray(new Boolean[0])), nullsFirst.toArray(new Boolean[0]));
+        return new OrderBy(orderBySymbols, Booleans.toArray(reverseFlags), nullsFirst.toArray(new Boolean[0]));
     }
 
     @Nullable
