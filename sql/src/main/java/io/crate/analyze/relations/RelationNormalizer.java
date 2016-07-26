@@ -145,8 +145,8 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         OrderBy orderBy2 = querySpec2.orderBy().get();
 
         List<Symbol> orderBySymbols = orderBy2.orderBySymbols();
-        List<Boolean> reverseFlags = new ArrayList<>(Booleans.asList(orderBy2.reverseFlags()));
-        List<Boolean> nullsFirst = new ArrayList<>(Arrays.asList(orderBy2.nullsFirst()));
+        List<Boolean> reverseFlags = Booleans.asList(orderBy2.reverseFlags());
+        List<Boolean> nullsFirst = Arrays.asList(orderBy2.nullsFirst());
 
         for (int i = 0; i < orderBy1.orderBySymbols().size(); i++) {
             Symbol orderBySymbol = orderBy1.orderBySymbols().get(i);
