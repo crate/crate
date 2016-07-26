@@ -73,7 +73,7 @@ public class NodeFsTotalExpression extends NestedDiscoveryNodeExpression {
         }
 
         @Override
-        public Long value() {
+        public Long innerValue() {
             return totals.get(name);
         }
     }

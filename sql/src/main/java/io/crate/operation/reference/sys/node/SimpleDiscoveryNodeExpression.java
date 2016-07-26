@@ -26,4 +26,10 @@ import io.crate.metadata.RowContextCollectorExpression;
 
 public abstract class SimpleDiscoveryNodeExpression<R> extends RowContextCollectorExpression<DiscoveryNodeContext, R> {
 
+    @Override
+    public R value() {
+        return row.timedOut ? null : innerValue();
+    }
+
+    public abstract R innerValue();
 }

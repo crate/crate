@@ -28,18 +28,24 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class StaticObjectArrayRowContextCollectorExpression<T> extends ObjectArrayRowContextCollectorExpression<T> {
+public abstract class DiscoveryNodeStaticObjectArrayRowContextCollectorExpression extends ObjectArrayRowContextCollectorExpression<DiscoveryNodeContext> {
 
     private final AtomicBoolean initialized = new AtomicBoolean(false);
-    protected final List<RowCollectNestedObjectExpression<T>> childImplementations = new ArrayList<>();
+    protected final List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> childImplementations = new ArrayList<>();
 
     @Override
-    protected List<RowCollectNestedObjectExpression<T>> getChildImplementations() {
+    protected List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> getChildImplementations() {
         if (!initialized.getAndSet(true)) {
             addChildImplementations();
         }
         return childImplementations;
     }
 
+    @Override
+    public Object[] value() {
+        return row.timedOut ? null : super.value();
+    }
+
     public abstract void addChildImplementations();
+
 }

@@ -59,43 +59,43 @@ public class NodeThreadPoolExpression extends NestedDiscoveryNodeExpression {
     private void addChildImplementations() {
         childImplementations.put(POOL_NAME, new ThreadPoolExpression<BytesRef>() {
             @Override
-            public BytesRef value() {
+            public BytesRef innerValue() {
                 return BytesRefs.toBytesRef(name);
             }
         });
         childImplementations.put(ACTIVE, new ThreadPoolExpression<Integer>() {
             @Override
-            public Integer value() {
+            public Integer innerValue() {
                 return threadPoolExecutor.activeCount;
             }
         });
         childImplementations.put(REJECTED, new ThreadPoolExpression<Long>() {
             @Override
-            public Long value() {
+            public Long innerValue() {
                 return threadPoolExecutor.rejectedCount;
             }
         });
         childImplementations.put(LARGEST, new ThreadPoolExpression<Integer>() {
             @Override
-            public Integer value() {
+            public Integer innerValue() {
                 return threadPoolExecutor.largestPoolSize;
             }
         });
         childImplementations.put(COMPLETED, new ThreadPoolExpression<Long>() {
             @Override
-            public Long value() {
+            public Long innerValue() {
                 return threadPoolExecutor.completedTaskCount;
             }
         });
         childImplementations.put(THREADS, new ThreadPoolExpression<Integer>() {
             @Override
-            public Integer value() {
+            public Integer innerValue() {
                 return threadPoolExecutor.poolSize;
             }
         });
         childImplementations.put(QUEUE, new ThreadPoolExpression<Integer>() {
             @Override
-            public Integer value() {
+            public Integer innerValue() {
                 return threadPoolExecutor.queueSize;
             }
         });

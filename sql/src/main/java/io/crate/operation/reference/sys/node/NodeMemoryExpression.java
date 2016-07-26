@@ -37,7 +37,7 @@ public class NodeMemoryExpression extends NestedDiscoveryNodeExpression {
     public NodeMemoryExpression() {
         childImplementations.put(FREE, new MemoryExpression() {
             @Override
-            public Long value() {
+            public Long innerValue() {
                 OsStats.Mem mem = this.row.osStats.getMem();
                 if (mem != null) {
                     return mem.getFree().bytes();
@@ -47,7 +47,7 @@ public class NodeMemoryExpression extends NestedDiscoveryNodeExpression {
         });
         childImplementations.put(USED, new MemoryExpression() {
             @Override
-            public Long value() {
+            public Long innerValue() {
                 OsStats.Mem mem = this.row.osStats.getMem();
                 if (mem != null) {
                     return mem.getUsed().bytes();
@@ -57,7 +57,7 @@ public class NodeMemoryExpression extends NestedDiscoveryNodeExpression {
         });
         childImplementations.put(FREE_PERCENT, new MemoryExpression() {
             @Override
-            public Short value() {
+            public Short innerValue() {
                 OsStats.Mem mem = this.row.osStats.getMem();
                 if (mem != null) {
                     return mem.getFreePercent();
@@ -67,7 +67,7 @@ public class NodeMemoryExpression extends NestedDiscoveryNodeExpression {
         });
         childImplementations.put(USED_PERCENT, new MemoryExpression() {
             @Override
-            public Short value() {
+            public Short innerValue() {
                 OsStats.Mem mem = this.row.osStats.getMem();
                 if (mem != null) {
                     return mem.getUsedPercent();
@@ -77,7 +77,7 @@ public class NodeMemoryExpression extends NestedDiscoveryNodeExpression {
         });
         childImplementations.put(PROBE_TIMESTAMP, new SimpleDiscoveryNodeExpression<Long>() {
             @Override
-            public Long value() {
+            public Long innerValue() {
                 return this.row.osStats.getTimestamp();
             }
         });

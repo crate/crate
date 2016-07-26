@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class NodeFsDataExpression extends ObjectArrayRowContextCollectorExpression<DiscoveryNodeContext> {
+public class NodeFsDataExpression extends DiscoveryNodeObjectArrayRowCtxExpression {
 
     public NodeFsDataExpression() {
     }
@@ -52,13 +52,13 @@ public class NodeFsDataExpression extends ObjectArrayRowContextCollectorExpressi
         protected NodeFsDataChildExpression(final ExtendedFsStats.Info info) {
             childImplementations.put(DEV, new SimpleDiscoveryNodeExpression<BytesRef>() {
                 @Override
-                public BytesRef value() {
+                public BytesRef innerValue() {
                     return info.dev();
                 }
             });
             childImplementations.put(PATH, new SimpleDiscoveryNodeExpression<BytesRef>() {
                 @Override
-                public BytesRef value() {
+                public BytesRef innerValue() {
                     return info.path();
                 }
             });

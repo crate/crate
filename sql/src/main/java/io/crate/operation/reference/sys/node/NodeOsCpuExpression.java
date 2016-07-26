@@ -37,7 +37,7 @@ public class NodeOsCpuExpression extends NestedDiscoveryNodeExpression {
     public NodeOsCpuExpression() {
         childImplementations.put(SYS, new CpuExpression() {
             @Override
-            public Short value() {
+            public Short innerValue() {
                 ExtendedOsStats.Cpu cpu = this.row.extendedOsStats.cpu();
                 if (cpu != null) {
                     return cpu.sys();
@@ -48,7 +48,7 @@ public class NodeOsCpuExpression extends NestedDiscoveryNodeExpression {
         });
         childImplementations.put(USER, new CpuExpression() {
             @Override
-            public Short value() {
+            public Short innerValue() {
                 ExtendedOsStats.Cpu cpu = this.row.extendedOsStats.cpu();
                 if (cpu != null) {
                     return cpu.user();
@@ -59,7 +59,7 @@ public class NodeOsCpuExpression extends NestedDiscoveryNodeExpression {
         });
         childImplementations.put(IDLE, new CpuExpression() {
             @Override
-            public Short value() {
+            public Short innerValue() {
                 ExtendedOsStats.Cpu cpu = this.row.extendedOsStats.cpu();
                 if (cpu != null) {
                     return cpu.idle();
@@ -70,7 +70,7 @@ public class NodeOsCpuExpression extends NestedDiscoveryNodeExpression {
         });
         childImplementations.put(USAGE, new CpuExpression() {
             @Override
-            public Short value() {
+            public Short innerValue() {
                 ExtendedOsStats.Cpu cpu = this.row.extendedOsStats.cpu();
                 if (cpu != null && cpu.sys() != -1) {
                     return (short) (cpu.sys() + cpu.user());
@@ -81,7 +81,7 @@ public class NodeOsCpuExpression extends NestedDiscoveryNodeExpression {
         });
         childImplementations.put(STOLEN, new CpuExpression() {
             @Override
-            public Short value() {
+            public Short innerValue() {
                 ExtendedOsStats.Cpu cpu = this.row.extendedOsStats.cpu();
                 if (cpu != null) {
                     return cpu.stolen();

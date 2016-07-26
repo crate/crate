@@ -46,7 +46,7 @@ class NodeNetworkTCPExpression extends NestedDiscoveryNodeExpression {
         TCPConnectionsExpression() {
             childImplementations.put(INITIATED, new TCPConnectionsChildExpression() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.activeOpens();
@@ -56,7 +56,7 @@ class NodeNetworkTCPExpression extends NestedDiscoveryNodeExpression {
             });
             childImplementations.put(ACCEPTED, new TCPConnectionsChildExpression() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.passiveOpens();
@@ -66,7 +66,7 @@ class NodeNetworkTCPExpression extends NestedDiscoveryNodeExpression {
             });
             childImplementations.put(CURR_ESTABLISHED, new TCPConnectionsChildExpression() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.currEstab();
@@ -76,7 +76,7 @@ class NodeNetworkTCPExpression extends NestedDiscoveryNodeExpression {
             });
             childImplementations.put(DROPPED, new TCPConnectionsChildExpression() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.estabResets();
@@ -86,7 +86,7 @@ class NodeNetworkTCPExpression extends NestedDiscoveryNodeExpression {
             });
             childImplementations.put(EMBRYONIC_DROPPED, new TCPConnectionsChildExpression() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.attemptFails();
@@ -111,7 +111,7 @@ class NodeNetworkTCPExpression extends NestedDiscoveryNodeExpression {
         TCPPacketsExpression() {
             childImplementations.put(SENT, new TCPPacketsChildExpression() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.outSegs();
@@ -121,7 +121,7 @@ class NodeNetworkTCPExpression extends NestedDiscoveryNodeExpression {
             });
             childImplementations.put(RECEIVED, new TCPPacketsChildExpression() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.inSegs();
@@ -131,7 +131,7 @@ class NodeNetworkTCPExpression extends NestedDiscoveryNodeExpression {
             });
             childImplementations.put(RETRANSMITTED, new TCPPacketsChildExpression() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.retransSegs();
@@ -141,7 +141,7 @@ class NodeNetworkTCPExpression extends NestedDiscoveryNodeExpression {
             });
             childImplementations.put(ERRORS_RECEIVED, new TCPPacketsChildExpression() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.inErrs();
@@ -151,7 +151,7 @@ class NodeNetworkTCPExpression extends NestedDiscoveryNodeExpression {
             });
             childImplementations.put(RST_SENT, new TCPPacketsChildExpression() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     ExtendedNetworkStats.Tcp tcp = this.row.networkStats.tcp();
                     if (tcp != null) {
                         return tcp.outRsts();

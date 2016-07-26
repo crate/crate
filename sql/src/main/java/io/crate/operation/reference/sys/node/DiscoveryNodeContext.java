@@ -63,4 +63,5 @@ public class DiscoveryNodeContext {
     public final BytesRef JVM_VENDOR = BytesRefs.toBytesRef(Constants.JVM_VENDOR);
     public final BytesRef JVM_VERSION = BytesRefs.toBytesRef(Constants.JVM_VERSION);
 
+    public boolean timedOut = false;
 }

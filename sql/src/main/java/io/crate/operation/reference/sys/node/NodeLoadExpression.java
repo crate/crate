@@ -35,7 +35,7 @@ public class NodeLoadExpression extends NestedDiscoveryNodeExpression {
         childImplementations.put(FIFTEEN, new LoadExpression(2));
         childImplementations.put(PROBE_TIMESTAMP, new SimpleDiscoveryNodeExpression<Long>() {
             @Override
-            public Long value() {
+            public Long innerValue() {
                 return this.row.extendedOsStats.timestamp();
             }
         });
@@ -50,7 +50,7 @@ public class NodeLoadExpression extends NestedDiscoveryNodeExpression {
         }
 
         @Override
-        public Double value() {
+        public Double innerValue() {
             try {
                 return this.row.extendedOsStats.loadAverage()[idx];
             } catch (IndexOutOfBoundsException e) {

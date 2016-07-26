@@ -31,7 +31,7 @@ public class NodeNetworkExpression extends NestedDiscoveryNodeExpression {
     public NodeNetworkExpression() {
         childImplementations.put(PROBE_TIMESTAMP, new SimpleDiscoveryNodeExpression<Long>() {
             @Override
-            public Long value() {
+            public Long innerValue() {
                 ExtendedNetworkStats stats = this.row.networkStats;
                 return stats.timestamp();
             }

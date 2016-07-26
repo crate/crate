@@ -31,10 +31,11 @@ import java.util.List;
 
 import static io.crate.operation.reference.sys.node.fs.NodeFsExpression.*;
 
-public class NodeFsDisksExpression extends ObjectArrayRowContextCollectorExpression<DiscoveryNodeContext> {
+public class NodeFsDisksExpression extends DiscoveryNodeObjectArrayRowCtxExpression {
 
     NodeFsDisksExpression() {
     }
+
 
     @Override
     protected List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> getChildImplementations() {
@@ -54,49 +55,49 @@ public class NodeFsDisksExpression extends ObjectArrayRowContextCollectorExpress
         protected NodeFsDiskChildExpression(final ExtendedFsStats.Info fsInfo) {
             childImplementations.put(DEV, new SimpleDiscoveryNodeExpression<BytesRef>() {
                 @Override
-                public BytesRef value() {
+                public BytesRef innerValue() {
                     return fsInfo.dev();
                 }
             });
             childImplementations.put(SIZE, new SimpleDiscoveryNodeExpression<Long>() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     return fsInfo.total();
                 }
             });
             childImplementations.put(USED, new SimpleDiscoveryNodeExpression<Long>() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     return fsInfo.used();
                 }
             });
             childImplementations.put(AVAILABLE, new SimpleDiscoveryNodeExpression<Long>() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     return fsInfo.available();
                 }
             });
             childImplementations.put(READS, new SimpleDiscoveryNodeExpression<Long>() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     return fsInfo.diskReads();
                 }
             });
             childImplementations.put(BYTES_READ, new SimpleDiscoveryNodeExpression<Long>() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     return fsInfo.diskReadSizeInBytes();
                 }
             });
             childImplementations.put(WRITES, new SimpleDiscoveryNodeExpression<Long>() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     return fsInfo.diskWrites();
                 }
             });
             childImplementations.put(BYTES_WRITTEN, new SimpleDiscoveryNodeExpression<Long>() {
                 @Override
-                public Long value() {
+                public Long innerValue() {
                     return fsInfo.diskWriteSizeInBytes();
                 }
             });

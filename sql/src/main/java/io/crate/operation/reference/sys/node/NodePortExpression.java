@@ -25,7 +25,7 @@ import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.operation.reference.RowCollectNestedObjectExpression;
 
 
-public class NodePortExpression extends RowCollectNestedObjectExpression<DiscoveryNodeContext> {
+public class NodePortExpression extends NestedDiscoveryNodeExpression {
 
     private abstract class PortExpression extends RowContextCollectorExpression<DiscoveryNodeContext, Integer> {
     }

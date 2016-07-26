@@ -22,14 +22,11 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.RowCollectNestedObjectExpression;
-
-import java.util.Map;
-
-public abstract class NestedDiscoveryNodeExpression extends RowCollectNestedObjectExpression<DiscoveryNodeContext> {
+public abstract class DiscoveryNodeObjectArrayRowCtxExpression extends ObjectArrayRowContextCollectorExpression<DiscoveryNodeContext> {
 
     @Override
-    public Map<String, Object> value() {
+    public Object[] value() {
         return row.timedOut ? null : super.value();
     }
 }
+

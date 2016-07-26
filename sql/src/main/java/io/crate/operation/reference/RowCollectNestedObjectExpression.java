@@ -37,7 +37,7 @@ public abstract class RowCollectNestedObjectExpression<R> extends NestedObjectEx
     }
 
     @Override
-    public Map<String,Object> value() {
+    public Map<String, Object> value() {
         Map<String, Object> map = new HashMap<>(childImplementations.size());
         for (Map.Entry<String, ReferenceImplementation> e : childImplementations.entrySet()) {
             ReferenceImplementation referenceImplementation = e.getValue();
