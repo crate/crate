@@ -22,12 +22,14 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Booleans;
 import io.crate.analyze.*;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.exceptions.AmbiguousOrderByException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Path;
@@ -43,14 +45,6 @@ import java.util.List;
 class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Context, QueriedRelation> {
 
     private static final RelationNormalizer INSTANCE = new RelationNormalizer();
-
-    private static final Predicate<Symbol> IS_AGGREGATE_FUNCTION = new Predicate<Symbol>() {
-        @Override
-        public boolean apply(@Nullable Symbol input) {
-            return (input instanceof Function) &&
-                   FunctionInfo.Type.AGGREGATE.equals(((Function) input).info().type());
-        }
-    };
 
     public static QueriedRelation normalize(AnalyzedRelation relation, AnalysisMetaData analysisMetaData) {
         return INSTANCE.process(relation, new Context(analysisMetaData, relation.fields()));
