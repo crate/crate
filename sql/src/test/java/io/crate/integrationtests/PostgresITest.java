@@ -30,6 +30,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.Timeout;
+import org.postgresql.geometric.PGpoint;
 import org.postgresql.util.PSQLException;
 
 import java.sql.*;
@@ -316,12 +317,13 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     public void testErrorRecoveryFromErrorsOutsideSqlOperations() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(true);
-            PreparedStatement stmt = conn.prepareStatement("select cast([10.3, 20.2] as geo_point) from information_schema.tables");
+            PreparedStatement stmt = conn.prepareStatement("select cast([10.3, 20.2] as integer) " +
+                                                           "from information_schema.tables");
             try {
                 stmt.executeQuery();
-                assertFalse(true); // should've raised PSQLException
+                fail("Should've raised PSQLException");
             } catch (PSQLException e) {
-                assertThat(e.getMessage(), Matchers.containsString("No type mapping from 'geo_point' to"));
+                assertThat(e.getMessage(), Matchers.containsString("cannot cast [10.3, 20.2] to type integer"));
             }
 
             assertSelectNameFromSysClusterWorks(conn);

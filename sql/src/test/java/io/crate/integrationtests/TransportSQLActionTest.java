@@ -57,7 +57,7 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
-@UseJdbc()
+@UseJdbc
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -1440,7 +1440,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // geo_point support is missing
     public void testInsertAndSelectGeoType() throws Exception {
         execute("create table geo_point_table (id int primary key, p geo_point) with (number_of_replicas=0)");
         ensureYellow();
@@ -1456,7 +1455,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // geo type support missing
     public void testGeoTypeQueries() throws Exception {
         // setup
         execute("create table t (id int primary key, i int, p geo_point) " +
@@ -1521,7 +1519,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // geo_point/shape support is missing
+    @UseJdbc(false) // shape support is missing
     public void testWithinQuery() throws Exception {
         execute("create table t (id int primary key, p geo_point) " +
                 "clustered into 1 shards " +
