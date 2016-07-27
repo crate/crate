@@ -20,6 +20,7 @@
 # software solely pursuant to the terms of the relevant commercial agreement.
 
 import unittest
+import time
 from crate.client import connect
 from crate.testing.layer import CrateLayer
 
@@ -39,6 +40,21 @@ class SigarIntegrationTest(unittest.TestCase):
         res = cur.fetchall()
         for row in res:
             self.assertEqual(row[0], row[2])
+
+    def test_sigar_gets_loaded(self):
+        conn = connect('localhost:{}'.format(CRATE_HTTP_PORT))
+        cur = conn.cursor()
+        to_sleep = 0.2
+        while True:
+            cur.execute("select process['cpu']['percent'] from sys.nodes")
+            percent = int(cur.fetchone()[0])
+            if percent > -1:
+                break
+            if to_sleep > 30:
+                raise AssertionError(
+                    'cpu percent was -1 for too long. Sigar probably missing')
+            time.sleep(to_sleep)
+            to_sleep *= 2
 
 
 def test_suite():
