@@ -1,4 +1,5 @@
 .. highlight:: psql
+.. _sql_reference_select:
 
 ======
 SELECT
@@ -21,7 +22,7 @@ Synopsis
 
 where ``relation`` is::
 
-    table_reference | joined_relation | table_function
+    table_reference | joined_relation | table_function | sub_select
 
 Description
 ===========
@@ -107,6 +108,8 @@ A ``table_reference`` is a table ident with an optional table alias::
 
 :table_ident: The name (optionally schema-qualified) of an existing table.
 
+.. _sql_reference_table_alias:
+
 :table_alias: A substitute name for the FROM item containing the alias.
  An alias is used for brevity. When an alias is provided, it completely hides
  the actual name of the table. For example given ``FROM foo AS f``, the
@@ -142,13 +145,35 @@ Table Function
 
 :function_call: The call declaration of the function. Usually in the form of
                 `` function_name ( [ args ] )``.
-                
+
                 Depending on the function the parenthesis and arguments are
                 either optional or required.
 
 
 Available functions are documented in the :doc:`table functions
 </sql/table_functions>` section.
+
+
+Sub Select
+..........
+
+A ``sub_select`` can appear in the FROM clause. This acts like a temporary table for the
+outer select that wraps it. The ``sub_select`` must be surrounded by parentheses  and
+an alias must be provided for it. Multiple levels of nested sub selects is also supported.
+
+::
+
+    ( select_stmt ) [ AS ] alias
+
+
+:select_stmt: A :ref:`SELECT <sql_reference_select>` statement.
+:alias: An :ref:`alias <sql_reference_table_alias>` for the sub select.
+
+.. note::
+
+  Only simple select queries with nested sub selects are supported.
+  If the query cannot be rewritten to a simple select by collapsing all
+  nested sub selects then an error is thrown.
 
 
 WHERE Clause
