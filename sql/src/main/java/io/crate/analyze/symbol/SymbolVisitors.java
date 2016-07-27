@@ -24,7 +24,6 @@ package io.crate.analyze.symbol;
 
 import com.google.common.base.Predicate;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.metadata.table.Operation;
 
 public class SymbolVisitors {
 
@@ -85,11 +84,8 @@ public class SymbolVisitors {
             }
             if (field.relation() instanceof QueriedRelation) {
                 QueriedRelation relation = (QueriedRelation) field.relation();
-                Field relationField = relation.getField(field.path(), Operation.READ);
-                if (relationField != null) {
-                    Symbol output = relation.querySpec().outputs().get(relationField.index());
-                    return process(output, symbolPredicate);
-                }
+                Symbol output = relation.querySpec().outputs().get(field.index());
+                return process(output, symbolPredicate);
             }
             return false;
         }

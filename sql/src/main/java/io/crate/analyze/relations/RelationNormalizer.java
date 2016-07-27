@@ -279,11 +279,8 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         public Symbol visitField(Field field, Void context) {
             if (field.relation() instanceof QueriedRelation) {
                 QueriedRelation relation = (QueriedRelation) field.relation();
-                Field relationField = relation.getField(field.path(), Operation.READ);
-                if (relationField != null) {
-                    Symbol output = relation.querySpec().outputs().get(relationField.index());
-                    return process(output, context);
-                }
+                Symbol output = relation.querySpec().outputs().get(field.index());
+                return process(output, context);
             }
             return field;
         }
