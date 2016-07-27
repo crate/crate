@@ -23,6 +23,8 @@
 package io.crate.analyze.symbol;
 
 import com.google.common.base.Predicate;
+import io.crate.analyze.relations.QueriedRelation;
+import io.crate.metadata.table.Operation;
 
 public class SymbolVisitors {
 
@@ -49,7 +51,7 @@ public class SymbolVisitors {
                 return true;
             }
             for (Symbol arg : symbol.arguments()) {
-                if (arg.accept(this, symbolPredicate)) {
+                if (process(arg, symbolPredicate)) {
                     return true;
                 }
             }
@@ -69,8 +71,24 @@ public class SymbolVisitors {
                 return true;
             }
             for (Field field : matchPredicate.identBoostMap().keySet()) {
-                if (field.accept(this, symbolPredicate)) {
+                if (process(field, symbolPredicate)) {
                     return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public Boolean visitField(Field field, Predicate<Symbol> symbolPredicate) {
+            if (symbolPredicate.apply(field)) {
+                return true;
+            }
+            if (field.relation() instanceof QueriedRelation) {
+                QueriedRelation relation = (QueriedRelation) field.relation();
+                Field relationField = relation.getField(field.path(), Operation.READ);
+                if (relationField != null) {
+                    Symbol output = relation.querySpec().outputs().get(relationField.index());
+                    return process(output, symbolPredicate);
                 }
             }
             return false;

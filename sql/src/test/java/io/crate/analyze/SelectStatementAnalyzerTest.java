@@ -1370,9 +1370,9 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testGroupByHavingNormalize() throws Exception {
-        HavingClause having = analyze(
-                "select sum(floats) from users group by name having 1 > 4")
-                .relation().querySpec().having().get();
+        QuerySpec querySpec = analyze("select sum(floats) from users group by name having 1 > 4")
+            .relation().querySpec();
+        HavingClause having = querySpec.having().get();
         assertTrue(having.noMatch());
         assertNull(having.query());
     }

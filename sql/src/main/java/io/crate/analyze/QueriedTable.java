@@ -25,11 +25,11 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.Path;
 
-import java.util.List;
+import java.util.Collection;
 
 public class QueriedTable extends QueriedTableRelation<TableRelation> {
 
-    public QueriedTable(TableRelation tableRelation, List<? extends Path> paths, QuerySpec querySpec) {
+    public QueriedTable(TableRelation tableRelation, Collection<? extends Path> paths, QuerySpec querySpec) {
         super(tableRelation, paths, querySpec);
     }
 
