@@ -63,12 +63,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private int originalPageSize;
-
-
     @Before
     public void prepare() throws Exception{
-        originalPageSize = Paging.PAGE_SIZE;
         Paging.PAGE_SIZE = NODE_PAGE_SIZE_HINT;
         execute("create table \"" + INDEX_NAME + "\" (" +
                 " continent string, " +
@@ -82,7 +78,6 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @After
     public void closeContext() throws Exception {
-        Paging.PAGE_SIZE = originalPageSize;
         collectorProvider.close();
     }
 

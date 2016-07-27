@@ -25,7 +25,6 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.operation.Paging;
 import io.crate.testing.TestingHelpers;
 import org.hamcrest.core.Is;
-import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -35,15 +34,8 @@ import static org.hamcrest.Matchers.is;
 
 public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
 
-    private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;
-
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
-    @After
-    public void cleanUp() throws Exception {
-        Paging.PAGE_SIZE = ORIGINAL_PAGE_SIZE;
-    }
 
     @Test
     public void testCrateSearchServiceSupportsOrderByOnFunctionWithBooleanReturnType() throws Exception {
@@ -54,10 +46,10 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select * from t order by substr(name, 1, 1) = 'M', b");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "1| Trillian\n" +
-                        "2| Arthur\n" +
-                        "0| Marvin\n" +
-                        "3| Max\n"));
+            "1| Trillian\n" +
+            "2| Arthur\n" +
+            "0| Marvin\n" +
+            "3| Max\n"));
     }
 
     @Test
@@ -127,7 +119,7 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
         // test with sorting
         execute("select * from t order by x limit ?", new Object[]{limit});
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n"));
+            is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n"));
         assertThat(response.rowCount(), is((long) docCount));
     }
 
@@ -147,25 +139,25 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
                 ")");
         ensureYellow();
         execute("insert into xxx (b, s, i, l, f, d, st, boo, t, ipp) values (?, ?, ?, ?, ?, ?, ? ,?, ?, ?)", new Object[][]{
-                {1, 2, 3, 4L, 1.5f, -0.5d, "hallo", true, "1970-01-01", "127.0.0.1"},
-                {null, null, null, null, null, null, null, null, null, null},
-                {2, 4, 6, 8L, 3.1f, -4.5d, "goodbye", false, "2088-01-01", "10.0.0.1"},
+            {1, 2, 3, 4L, 1.5f, -0.5d, "hallo", true, "1970-01-01", "127.0.0.1"},
+            {null, null, null, null, null, null, null, null, null, null},
+            {2, 4, 6, 8L, 3.1f, -4.5d, "goodbye", false, "2088-01-01", "10.0.0.1"},
         });
         execute("refresh table xxx");
         execute("select b, s, i, l, f, d, st, boo, t, ipp " +
                 "from xxx " +
                 "order by b, s, i, l, f, d, st, boo, t, ipp");
         assertThat(TestingHelpers.printedTable(response.rows()), Is.is(
-                "1| 2| 3| 4| 1.5| -0.5| hallo| true| 0| 127.0.0.1\n" +
-                        "2| 4| 6| 8| 3.1| -4.5| goodbye| false| 3723753600000| 10.0.0.1\n" +
-                        "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL\n"));
+            "1| 2| 3| 4| 1.5| -0.5| hallo| true| 0| 127.0.0.1\n" +
+            "2| 4| 6| 8| 3.1| -4.5| goodbye| false| 3723753600000| 10.0.0.1\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL\n"));
 
         execute("select b, s, i, l, f, d, st, boo, t, ipp " +
                 "from xxx " +
                 "order by b desc nulls first, s, i, l, f, d, st, boo, t, ipp");
         assertThat(TestingHelpers.printedTable(response.rows()), Is.is(
-                "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL\n" +
-                        "2| 4| 6| 8| 3.1| -4.5| goodbye| false| 3723753600000| 10.0.0.1\n" +
-                        "1| 2| 3| 4| 1.5| -0.5| hallo| true| 0| 127.0.0.1\n"));
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL\n" +
+            "2| 4| 6| 8| 3.1| -4.5| goodbye| false| 3723753600000| 10.0.0.1\n" +
+            "1| 2| 3| 4| 1.5| -0.5| hallo| true| 0| 127.0.0.1\n"));
     }
 }

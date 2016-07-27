@@ -43,6 +43,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.Paging;
 import io.crate.operation.QueryResultRowDownstream;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -86,6 +87,8 @@ import static org.hamcrest.Matchers.is;
 
 public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
+    private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;
+
     static {
         GroovyTestSanitizer.isGroovySanitized();
     }
@@ -109,6 +112,11 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                     }
                 }
         ));
+    }
+
+    @After
+    public void resetPageSize() throws Exception {
+        Paging.PAGE_SIZE = ORIGINAL_PAGE_SIZE;
     }
 
     @Override

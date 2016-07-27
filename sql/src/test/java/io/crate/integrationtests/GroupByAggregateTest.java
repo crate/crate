@@ -70,18 +70,12 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectDistinctWithPaging() throws Exception {
-        int pageSize = Paging.PAGE_SIZE;
         Paging.PAGE_SIZE = 2;
-        try {
-            execute("create table t (name string) with (number_of_replicas = 0)");
-            ensureYellow();
-            execute("insert into t (name) values ('Marvin'), ('Trillian'), ('Ford'), ('Arthur')");
-            execute("refresh table t");
-
-            execute("select distinct name from t");
-        } finally {
-            Paging.PAGE_SIZE = pageSize;
-        }
+        execute("create table t (name string) with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into t (name) values ('Marvin'), ('Trillian'), ('Ford'), ('Arthur')");
+        execute("refresh table t");
+        execute("select distinct name from t");
     }
 
     @Test
