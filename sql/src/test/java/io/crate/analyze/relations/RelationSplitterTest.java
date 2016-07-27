@@ -56,7 +56,9 @@ public class RelationSplitterTest extends CrateUnitTest {
     private static final SqlExpressions expressions = new SqlExpressions(sources);
 
     private RelationSplitter split(QuerySpec querySpec) {
-        return RelationSplitter.process(querySpec, T3.RELATIONS);
+        RelationSplitter splitter = new RelationSplitter(querySpec, T3.RELATIONS);
+        splitter.process();
+        return splitter;
     }
 
     private Symbol asSymbol(String expression) {

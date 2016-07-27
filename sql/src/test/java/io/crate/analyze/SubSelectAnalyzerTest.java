@@ -104,17 +104,14 @@ public class SubSelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    @Ignore(value = "need to implement MultiSourceSelect merge")
     public void testSubSelectWithJoins() throws Exception {
         SelectAnalyzedStatement statement = analyze(
             "select aliased_sub.a, aliased_sub.b from (select t1.a, t2.b from t1, t2) as aliased_sub");
-        QueriedSelectRelation relation = (QueriedSelectRelation) statement.relation();
+        MultiSourceSelect relation = (MultiSourceSelect) statement.relation();
+        assertThat(relation.sources().size(), is(2));
         assertThat(relation.fields().size(), is(2));
         assertThat(relation.fields().get(0), isField("a"));
         assertThat(relation.fields().get(1), isField("b"));
-
-        MultiSourceSelect multiSourceSelect = (MultiSourceSelect) relation.relation();
-        assertThat(multiSourceSelect.sources().size(), is(2));
     }
 
     @Test

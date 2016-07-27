@@ -171,9 +171,9 @@ an alias must be provided for it. Multiple levels of nested sub selects is also 
 
 .. note::
 
-  Only simple select queries with nested sub selects are supported.
-  If the query cannot be rewritten to a simple select by collapsing all
-  nested sub selects then an error is thrown.
+  Only sub selects that can be rewritten to a single select are supported.
+  If the query cannot be rewritten by collapsing all nested sub selects then
+  an error is thrown.
 
 
 WHERE Clause

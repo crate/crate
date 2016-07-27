@@ -55,13 +55,7 @@ public class RelationSplitter {
     private Optional<OrderBy> remainingOrderBy = Optional.absent();
     private final Map<AnalyzedRelation, QuerySpec> specs;
 
-    public static RelationSplitter process(QuerySpec querySpec, Collection<? extends AnalyzedRelation> relations) {
-        RelationSplitter splitter = new RelationSplitter(querySpec, relations);
-        splitter.process();
-        return splitter;
-    }
-
-    private RelationSplitter(QuerySpec querySpec, Collection<? extends AnalyzedRelation> relations) {
+    public RelationSplitter(QuerySpec querySpec, Collection<? extends AnalyzedRelation> relations) {
         this.querySpec = querySpec;
         specs = new IdentityHashMap<>(relations.size());
         for (AnalyzedRelation relation : relations) {
@@ -85,7 +79,7 @@ public class RelationSplitter {
         return specs.get(relation);
     }
 
-    private void process() {
+    public void process() {
         processOrderBy();
         processWhere();
         processOutputs();
@@ -94,7 +88,7 @@ public class RelationSplitter {
     private void processOutputs() {
         FieldCollectingVisitor.Context context = new FieldCollectingVisitor.Context(specs.size());
 
-        // declare all symbols from the remainging order by as required for query
+        // declare all symbols from the remaining order by as required for query
         if (remainingOrderBy.isPresent()) {
             requiredForQuery.addAll(remainingOrderBy.get().orderBySymbols());
             // we need to add also the used symbols for query phase
@@ -184,7 +178,7 @@ public class RelationSplitter {
         }
     }
 
-    public static class RelationCounter extends DefaultTraversalSymbolVisitor<Set<AnalyzedRelation>, Void> {
+    static class RelationCounter extends DefaultTraversalSymbolVisitor<Set<AnalyzedRelation>, Void> {
 
         public static final RelationCounter INSTANCE = new RelationCounter();
 

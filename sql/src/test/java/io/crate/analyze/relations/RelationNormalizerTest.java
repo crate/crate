@@ -23,11 +23,13 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.BaseAnalyzerTest;
+import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
@@ -179,7 +181,49 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
         QueriedRelation relation = normalize(
             "select count(*), avg(x) as avgX from ( " +
             "  select * from t1 order by i) as tt");
-
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
+    }
+
+    @Test
+    public void testSubSelectOnJoins() throws Exception {
+        QueriedRelation relation = normalize(
+            "select ab " +
+            "from (select (ii + y) as iiy, concat(a, b) as ab " +
+            "  from (select t1.a, t2.b, t2.y, (t1.i + t2.i) as ii " +
+            "    from t1, t2 where t1.a='a' or t2.b='aa') as t) as tt " +
+            "order by iiy");
+        assertThat(relation, instanceOf(MultiSourceSelect.class));
+        assertThat(relation.querySpec(), isSQL(
+            "SELECT concat(doc.t1.a, doc.t2.b) WHERE ((doc.t1.a = 'a') OR (doc.t2.b = 'aa')) ORDER BY add(add(doc.t1.i, doc.t2.i), doc.t2.y)"));
+    }
+
+    @Test
+    public void testSubSelectOnJoinsWithFilter() throws Exception {
+        QueriedRelation relation = normalize(
+            "select col1, col2 from ( " +
+            "  select t1.a as col1, t2.i as col2, t2.y as col3 " +
+            "  from t1, t2 where t2.y > 60) as t " +
+            "where col1 = 'a' order by col3");
+        assertThat(relation, instanceOf(MultiSourceSelect.class));
+        assertThat(relation.querySpec(), isSQL(
+            "SELECT doc.t1.a, doc.t2.i ORDER BY doc.t2.y"));
+
+        // make sure that where clause was pushed down and didn't disappear somehow
+        MultiSourceSelect.Source t1 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "t1"));
+        assertThat(t1.querySpec().where().query(), isSQL("(true AND (doc.t1.a = 'a'))"));
+        MultiSourceSelect.Source t2 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "t2"));
+        assertThat(t2.querySpec().where().query(), isSQL("(doc.t2.y > 60)"));
+    }
+
+    @Test
+    public void testSubSelectOnJoinsWithLimitAndOffset() throws Exception {
+        QueriedRelation relation = normalize(
+            "select col1, col2 from ( " +
+            "  select t1.a as col1, t2.i as col2, t2.y as col3 " +
+            "  from t1, t2 limit 5 offset 5) as t " +
+            "order by col3 limit 10 offset 2");
+        assertThat(relation, instanceOf(MultiSourceSelect.class));
+        assertThat(relation.querySpec(), isSQL(
+            "SELECT doc.t1.a, doc.t2.i ORDER BY doc.t2.y LIMIT 5 OFFSET 7"));
     }
 }

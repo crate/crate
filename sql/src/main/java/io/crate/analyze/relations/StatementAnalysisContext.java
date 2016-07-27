@@ -84,8 +84,4 @@ public class StatementAnalysisContext {
         assert currentRelationContext != null : "relation context must be created using startRelation() first";
         return currentRelationContext;
     }
-
-    public int queueSize() {
-        return lastRelationContextQueue.size();
-    }
 }

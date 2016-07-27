@@ -28,7 +28,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
 
 public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -150,5 +150,51 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("select race, avg(age) as avgAge from ( " +
                 "  select * from characters where gender = 'male' order by age) as ch " +
                 "group by race");
+    }
+
+    @Test
+    public void testFilterOnSubSelectWithJoins() throws Exception {
+        execute("create table t1 (a string, i integer, x integer)");
+        execute("create table t2 (a string, i integer, y integer)");
+        ensureYellow();
+
+        execute("insert into t1 (a, i, x) values ('a', 2, 3),('b', 3, 5),('c', 5, 7),('d', 7, 11)");
+        execute("insert into t2 (a, i, y) values ('aa', 22, 33),('bb', 33, 55),('cc', 55, 77),('dd', 77, 111)");
+        refresh();
+
+        execute("select col1, col2 from ( " +
+                "  select t1.a as col1, t2.i as col2, t2.y as col3 " +
+                "  from t1, t2 where t2.y > 60) as t " +
+                "where col1 = 'a' order by col3");
+
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("a| 55\n" +
+               "a| 77\n"));
+    }
+
+    @Test
+    public void testNestedSubSelectWithJoins() throws Exception {
+        execute("create table t1 (a string, i integer, x integer)");
+        execute("create table t2 (a string, i integer, y integer)");
+        ensureYellow();
+
+        execute("insert into t1 (a, i, x) values ('a', 2, 3),('b', 3, 5),('c', 5, 7),('d', 7, 11)");
+        execute("insert into t2 (a, i, y) values ('aa', 22, 33),('bb', 33, 55),('cc', 55, 77),('dd', 77, 111)");
+        refresh();
+
+        execute("select aa, xyi from (" +
+                "  select (xy + i) as xyi, aa from (" +
+                "    select concat(t1.a, t2.a) as aa, t2.i, (t1.x + t2.y) as xy " +
+                "    from t1, t2 where t1.a='a' or t2.a='aa') as t) as tt " +
+                "order by aa, xyi");
+
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("aaa| 58\n" +
+               "abb| 91\n" +
+               "acc| 135\n" +
+               "add| 191\n" +
+               "baa| 60\n" +
+               "caa| 62\n" +
+               "daa| 66\n"));
     }
 }

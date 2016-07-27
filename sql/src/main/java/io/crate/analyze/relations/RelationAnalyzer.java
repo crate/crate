@@ -69,7 +69,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     public AnalyzedRelation analyze(Node node, StatementAnalysisContext relationAnalysisContext) {
-        return process(node, relationAnalysisContext);
+        AnalyzedRelation relation = process(node, relationAnalysisContext);
+        return RelationNormalizer.normalize(relation, analysisMetaData);
     }
 
     public AnalyzedRelation analyze(Node node, Analysis analysis) {
@@ -164,9 +165,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             if (tableRelation != null) {
                 tableRelation.normalize(analysisMetaData);
                 relation = tableRelation;
-            }
-            if (statementContext.queueSize() == 0) {
-                relation = RelationNormalizer.normalize(relation, analysisMetaData);
             }
         } else {
             // TODO: implement multi table selects
