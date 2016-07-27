@@ -735,6 +735,14 @@ public class TestStatementBuilder {
         printStatement("alter table t add col2 AS col1['name'] + 1");
     }
 
+    @Test
+    public void testSubSelects() throws Exception {
+        printStatement("select * from (select * from foo) as f");
+        printStatement("select * from (select * from (select * from foo) as f1) as f2");
+        printStatement("select * from (select * from foo) f");
+        printStatement("select * from (select * from (select * from foo) f1) f2");
+    }
+
     private static void printStatement(String sql)
     {
         println(sql.trim());
