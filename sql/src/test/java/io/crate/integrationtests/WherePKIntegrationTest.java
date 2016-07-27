@@ -158,7 +158,6 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // geo_point missing
     public void testEmptyClusteredByUnderId() throws Exception {
         // regression test that empty routing executes correctly
         execute("create table auto_id (" +
@@ -177,7 +176,6 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // geo_point missing
     public void testEmptyClusteredByExplicit() throws Exception {
         // regression test that empty routing executes correctly
         execute("create table explicit_routing (" +
@@ -232,7 +230,6 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // geo_point missing
     public void testDeleteByQueryCommaRouting() throws Exception {
         execute("create table explicit_routing (" +
                 "  name string," +
