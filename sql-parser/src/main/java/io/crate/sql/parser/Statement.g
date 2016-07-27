@@ -321,7 +321,7 @@ withList
     ;
 
 withQuery
-    : ident aliasedColumns? AS subquery -> ^(WITH_QUERY ident subquery aliasedColumns?)
+    : ident aliasedColumns? AS? subquery -> ^(WITH_QUERY ident subquery aliasedColumns?)
     ;
 
 selectExpr
