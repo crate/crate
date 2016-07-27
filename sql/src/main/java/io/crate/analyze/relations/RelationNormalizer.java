@@ -22,14 +22,12 @@
 
 package io.crate.analyze.relations;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Booleans;
 import io.crate.analyze.*;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.*;
 import io.crate.exceptions.AmbiguousOrderByException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Path;
@@ -45,6 +43,14 @@ import java.util.List;
 class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Context, QueriedRelation> {
 
     private static final RelationNormalizer INSTANCE = new RelationNormalizer();
+
+    private static final Predicate<Symbol> IS_AGGREGATE_FUNCTION = new Predicate<Symbol>() {
+        @Override
+        public boolean apply(@Nullable Symbol input) {
+            return (input instanceof Function) &&
+                   FunctionInfo.Type.AGGREGATE.equals(((Function) input).info().type());
+        }
+    };
 
     public static QueriedRelation normalize(AnalyzedRelation relation, AnalysisMetaData analysisMetaData) {
         return INSTANCE.process(relation, new Context(analysisMetaData, relation.fields()));
@@ -70,8 +76,7 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         }
 
         return querySpec1.where().hasQuery() && querySpec1.where() != WhereClause.MATCH_ALL &&
-               AggregatedReferenceVisitor.hasAggregatedReference(querySpec1.where().query());
-
+               SymbolVisitors.any(IS_AGGREGATE_FUNCTION, querySpec1.where().query());
     }
 
     @Override
@@ -272,66 +277,15 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
 
         @Override
         public Symbol visitField(Field field, Void context) {
-            Field relationField = field.relation().getField(field.path(), Operation.READ);
-            if (relationField == null) {
-                return field;
-            }
-
-            Symbol output = ((QueriedRelation) field.relation()).querySpec().outputs().get(relationField.index());
-            return process(output, context);
-        }
-    }
-
-    private static class AggregatedReferenceVisitor extends SymbolVisitor<SymbolReferenceContext, Symbol> {
-
-        private static final AggregatedReferenceVisitor INSTANCE = new AggregatedReferenceVisitor();
-
-        /**
-         * Visits every symbol that references another one in a nested query and checks if it points
-         * to an aggregation function.
-         */
-        public static boolean hasAggregatedReference(Symbol symbol) {
-            SymbolReferenceContext context = new SymbolReferenceContext();
-            INSTANCE.process(symbol, context);
-            return context.referencesAggregation;
-        }
-
-        @Override
-        protected Symbol visitSymbol(Symbol symbol, SymbolReferenceContext context) {
-            return symbol;
-        }
-
-        @Override
-        public Symbol visitFunction(Function function, SymbolReferenceContext context) {
-            if (FunctionInfo.Type.AGGREGATE.equals(function.info().type())) {
-                context.referencesAggregation = true;
-            }
-
-            if (!context.referencesAggregation) {
-                for (int i = 0; i < function.arguments().size(); i++) {
-                    Symbol symbol = function.arguments().get(i);
-                    function.setArgument(i, process(symbol, context));
-                }
-            }
-
-            return function;
-        }
-
-        @Override
-        public Symbol visitField(Field field, SymbolReferenceContext context) {
-            if (!context.referencesAggregation) {
-                Field relationField = field.relation().getField(field.path(), Operation.READ);
+            if (field.relation() instanceof QueriedRelation) {
+                QueriedRelation relation = (QueriedRelation) field.relation();
+                Field relationField = relation.getField(field.path(), Operation.READ);
                 if (relationField != null) {
-                    Symbol output = ((QueriedRelation) field.relation()).querySpec().outputs().get(relationField.index());
+                    Symbol output = relation.querySpec().outputs().get(relationField.index());
                     return process(output, context);
                 }
             }
-
             return field;
         }
-    }
-
-    private static class SymbolReferenceContext {
-        boolean referencesAggregation = false;
     }
 }
