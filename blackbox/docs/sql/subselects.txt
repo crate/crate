@@ -1,17 +1,8 @@
 .. highlight:: psql
 .. _sql_subselects:
 
-Sub Selects
-===========
-
-Limitations
-...........
-
- - Only simple sub select cases are supported.
-
- - Queries with sub selects that cannot be rewritten to a simple select where
-   all the nested sub selects are merged are not supported and an error will be
-   returned.
+Rewritable Sub Selects
+======================
 
 A sub select can be used in the ``FROM`` clause of a query which will act a
 virtual relation on which the outer select can operate::
@@ -44,3 +35,13 @@ Multiple levels of sub selects are supported::
     |         4004 |           2 |
     +--------------+-------------+
     SELECT 5 rows in set (... sec)
+
+
+Limitations
+...........
+
+ - Only simple sub select cases are supported.
+
+ - Queries with sub selects that cannot be rewritten to a simple select where
+   all the nested sub selects are merged are not supported and an error will be
+   returned.
