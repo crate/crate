@@ -34,13 +34,13 @@ Multiple levels of sub selects are supported::
     ...     select * from employees where sex='M') as empl
     ...   group by dept_id) as t
     ... order by "NoEmployees" desc
-     +--------------+-------------+
-     | DepartmentId | NoEmployees |
-     +--------------+-------------+
-     |         4003 |           5 |
-     |         4001 |           3 |
-     |         4002 |           3 |
-     |         4006 |           2 |
-     |         4004 |           2 |
-     +--------------+-------------+
-     SELECT 5 rows in set (... sec)
+    +--------------+-------------+
+    | DepartmentId | NoEmployees |
+    +--------------+-------------+
+    |         4003 |           5 |
+    |         4001 |           3 |
+    |         4002 |           3 |
+    |         4006 |           2 |
+    |         4004 |           2 |
+    +--------------+-------------+
+    SELECT 5 rows in set (... sec)

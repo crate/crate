@@ -248,7 +248,8 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
 
         @Override
         public Symbol visitField(Field field, Void context) {
-            return FIELD_RELATION_VISITOR.process(field.relation(), field, field);
+            Symbol output = FIELD_RELATION_VISITOR.process(field.relation(), field);
+            return output != null ? output : field;
         }
     }
 
@@ -281,14 +282,15 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
 
         @Override
         public Boolean visitField(Field field, Void context) {
-            return FIELD_RELATION_VISITOR.process(field.relation(), field, false);
+            Boolean result = FIELD_RELATION_VISITOR.process(field.relation(), field);
+            return (result != null) && result;
         }
     }
 
     /**
      * Visits an output symbol in a queried relation using the provided field index.
      */
-    private static class FieldRelationVisitor<R> extends AnalyzedRelationVisitor<FieldRelationVisitorContext<R>, R> {
+    private static class FieldRelationVisitor<R> extends AnalyzedRelationVisitor<Field, R> {
 
         private final SymbolVisitor<Void, R> symbolVisitor;
 
@@ -296,48 +298,34 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
             this.symbolVisitor = symbolVisitor;
         }
 
-        public R process(AnalyzedRelation relation, Field field, R defaultReturnValue) {
-            return process(relation, new FieldRelationVisitorContext<>(field.index(), defaultReturnValue));
+        @Override
+        protected R visitAnalyzedRelation(AnalyzedRelation relation, Field context) {
+            return null;
         }
 
         @Override
-        protected R visitAnalyzedRelation(AnalyzedRelation relation, FieldRelationVisitorContext<R> context) {
-            return context.defaultReturnValue;
+        public R visitQueriedTable(QueriedTable relation, Field field) {
+            return visitQueriedRelation(relation, field);
         }
 
         @Override
-        public R visitQueriedTable(QueriedTable relation, FieldRelationVisitorContext<R> context) {
-            return visitQueriedRelation(relation, context);
+        public R visitQueriedDocTable(QueriedDocTable relation, Field field) {
+            return visitQueriedRelation(relation, field);
         }
 
         @Override
-        public R visitQueriedDocTable(QueriedDocTable relation, FieldRelationVisitorContext<R> context) {
-            return visitQueriedRelation(relation, context);
+        public R visitMultiSourceSelect(MultiSourceSelect relation, Field field) {
+            return visitQueriedRelation(relation, field);
         }
 
         @Override
-        public R visitMultiSourceSelect(MultiSourceSelect relation, FieldRelationVisitorContext<R> context) {
-            return visitQueriedRelation(relation, context);
+        public R visitQueriedSelectRelation(QueriedSelectRelation relation, Field field) {
+            return visitQueriedRelation(relation, field);
         }
 
-        @Override
-        public R visitQueriedSelectRelation(QueriedSelectRelation relation, FieldRelationVisitorContext<R> context) {
-            return visitQueriedRelation(relation, context);
-        }
-
-        private R visitQueriedRelation(QueriedRelation relation, FieldRelationVisitorContext<R> context) {
-            Symbol output = relation.querySpec().outputs().get(context.fieldIndex);
+        private R visitQueriedRelation(QueriedRelation relation, Field field) {
+            Symbol output = relation.querySpec().outputs().get(field.index());
             return symbolVisitor.process(output, null);
-        }
-    }
-
-    private static class FieldRelationVisitorContext<R> {
-        private final int fieldIndex;
-        private final R defaultReturnValue;
-
-        FieldRelationVisitorContext(int fieldIndex, R defaultReturnValue) {
-            this.fieldIndex = fieldIndex;
-            this.defaultReturnValue = defaultReturnValue;
         }
     }
 }
