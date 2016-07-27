@@ -27,8 +27,11 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
+import io.crate.monitor.ExtendedFsStats;
+import io.crate.monitor.ThreadPools;
+import io.crate.operation.reference.sys.node.fs.*;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Map;
 
@@ -119,6 +122,28 @@ public class SysNodesExpressionFactories {
                     return new NodeThreadPoolsExpression();
                 }
             })
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS_NAME, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeThreadPoolExpression<BytesRef>() {
+                        @Override
+                        protected BytesRef valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                            return BytesRefs.toBytesRef(input.getKey());
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS_ACTIVE, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeThreadPoolExpression<Integer>() {
+                        @Override
+                        protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                            return input.getValue().activeCount();
+                        }
+                    };
+                }
+            })
             .put(SysNodesTableInfo.Columns.NETWORK, new RowCollectExpressionFactory() {
                 @Override
                 public RowCollectExpression create() {
@@ -147,6 +172,211 @@ public class SysNodesExpressionFactories {
                 @Override
                 public RowCollectExpression create() {
                     return new NodeFsExpression();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_TOTAL, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsTotalExpression();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_TOTAL_SIZE, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsTotalExpression.Item() {
+                        @Override
+                        public Long innerValue() {
+                            return this.row.extendedFsStats().total().total();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_TOTAL_USED, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsTotalExpression.Item() {
+                        @Override
+                        public Long innerValue() {
+                            return this.row.extendedFsStats().total().used();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_TOTAL_AVAILABLE, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsTotalExpression.Item() {
+                        @Override
+                        public Long innerValue() {
+                            return this.row.extendedFsStats().total().available();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_TOTAL_READS, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsTotalExpression.Item() {
+                        @Override
+                        public Long innerValue() {
+                            return this.row.extendedFsStats().total().diskReads();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_TOTAL_BYTES_READ, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsTotalExpression.Item() {
+                        @Override
+                        public Long innerValue() {
+                            return this.row.extendedFsStats().total().diskReadSizeInBytes();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_TOTAL_WRITES, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsTotalExpression.Item() {
+                        @Override
+                        public Long innerValue() {
+                            return this.row.extendedFsStats().total().diskWrites();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_TOTAL_BYTES_WRITTEN, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsTotalExpression.Item() {
+                        @Override
+                        public Long innerValue() {
+                            return this.row.extendedFsStats().total().diskWriteSizeInBytes();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsDisksExpression();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS_DEV, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsDisksExpression.Item<BytesRef>() {
+                        @Override
+                        protected BytesRef valueForItem(ExtendedFsStats.Info input) {
+                            return input.dev();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS_SIZE, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsDisksExpression.Item<Long>() {
+                        @Override
+                        protected Long valueForItem(ExtendedFsStats.Info input) {
+                            return input.total();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS_USED, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsDisksExpression.Item<Long>() {
+                        @Override
+                        protected Long valueForItem(ExtendedFsStats.Info input) {
+                            return input.used();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS_AVAILABLE, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsDisksExpression.Item<Long>() {
+                        @Override
+                        protected Long valueForItem(ExtendedFsStats.Info input) {
+                            return input.available();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS_READS, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsDisksExpression.Item<Long>() {
+                        @Override
+                        protected Long valueForItem(ExtendedFsStats.Info input) {
+                            return input.diskReads();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS_BYTES_READ, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsDisksExpression.Item<Long>() {
+                        @Override
+                        protected Long valueForItem(ExtendedFsStats.Info input) {
+                            return input.diskReadSizeInBytes();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS_WRITES, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsDisksExpression.Item<Long>() {
+                        @Override
+                        protected Long valueForItem(ExtendedFsStats.Info input) {
+                            return input.diskWrites();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS_BYTES_WRITTEN, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsDisksExpression.Item<Long>() {
+                        @Override
+                        protected Long valueForItem(ExtendedFsStats.Info input) {
+                            return input.diskWriteSizeInBytes();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DATA, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsDataExpression();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DATA_DEV, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsDataExpression.Item<BytesRef>() {
+                        @Override
+                        protected BytesRef valueForItem(ExtendedFsStats.Info input) {
+                            return input.dev();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DATA_PATH, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeFsDataExpression.Item<BytesRef>() {
+                        @Override
+                        protected BytesRef valueForItem(ExtendedFsStats.Info input) {
+                            return input.path();
+                        }
+                    };
                 }
             })
             .build();

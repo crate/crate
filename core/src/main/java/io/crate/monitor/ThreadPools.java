@@ -33,7 +33,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-public class ThreadPools implements Streamable, Iterable<String> {
+public class ThreadPools implements Streamable, Iterable<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>> {
 
     private Map<String, ThreadPoolExecutorContext> contexts;
 
@@ -71,8 +71,8 @@ public class ThreadPools implements Streamable, Iterable<String> {
     }
 
     @Override
-    public Iterator<String> iterator() {
-        return contexts.keySet().iterator();
+    public Iterator<Map.Entry<String, ThreadPoolExecutorContext>> iterator() {
+        return contexts.entrySet().iterator();
     }
 
     public ThreadPoolExecutorContext get(String name) {

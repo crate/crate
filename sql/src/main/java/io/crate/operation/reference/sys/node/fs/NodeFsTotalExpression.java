@@ -22,8 +22,6 @@
 package io.crate.operation.reference.sys.node.fs;
 
 import io.crate.monitor.ExtendedFsStats;
-import io.crate.operation.reference.sys.node.DiscoveryNodeContext;
-import io.crate.operation.reference.sys.node.NestedDiscoveryNodeExpression;
 import io.crate.operation.reference.sys.node.SimpleDiscoveryNodeExpression;
 
 import java.util.HashMap;
@@ -31,24 +29,9 @@ import java.util.Map;
 
 import static io.crate.operation.reference.sys.node.fs.NodeFsExpression.*;
 
-public class NodeFsTotalExpression extends NestedDiscoveryNodeExpression {
+public class NodeFsTotalExpression extends SimpleDiscoveryNodeExpression<Map<String, Long>> {
 
-    private Map<String, Long> totals;
-
-    protected NodeFsTotalExpression() {
-        childImplementations.put(SIZE, new NodeFSTotalChildExpression(SIZE));
-        childImplementations.put(USED, new NodeFSTotalChildExpression(USED));
-        childImplementations.put(AVAILABLE, new NodeFSTotalChildExpression(AVAILABLE));
-        childImplementations.put(READS, new NodeFSTotalChildExpression(READS));
-        childImplementations.put(BYTES_READ, new NodeFSTotalChildExpression(BYTES_READ));
-        childImplementations.put(WRITES, new NodeFSTotalChildExpression(WRITES));
-        childImplementations.put(BYTES_WRITTEN, new NodeFSTotalChildExpression(BYTES_WRITTEN));
-    }
-
-    @Override
-    public void setNextRow(DiscoveryNodeContext row) {
-        super.setNextRow(row);
-        totals = getTotals();
+    public NodeFsTotalExpression() {
     }
 
     private Map<String, Long> getTotals() {
@@ -64,17 +47,12 @@ public class NodeFsTotalExpression extends NestedDiscoveryNodeExpression {
         return totals;
     }
 
-    protected class NodeFSTotalChildExpression extends SimpleDiscoveryNodeExpression<Long> {
+    @Override
+    public Map<String, Long> innerValue() {
+        return getTotals();
+    }
 
-        private final String name;
+    public static abstract class Item extends SimpleDiscoveryNodeExpression<Long> {
 
-        protected NodeFSTotalChildExpression(String name) {
-            this.name = name;
-        }
-
-        @Override
-        public Long innerValue() {
-            return totals.get(name);
-        }
     }
 }

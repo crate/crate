@@ -59,6 +59,9 @@ public class SysNodesTableInfo extends StaticTableInfo {
     public static final String SYS_COL_FS = "fs";
 
     private static final DataType OBJECT_ARRAY_TYPE = new ArrayType(DataTypes.OBJECT);
+    private static final DataType STRING_ARRAY_TYPE = new ArrayType(DataTypes.STRING);
+    private static final DataType INTEGER_ARRAY_TYPE = new ArrayType(DataTypes.INTEGER);
+    private static final DataType LONG_ARRAY_TYPE = new ArrayType(DataTypes.LONG);
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent(SYS_COL_ID);
@@ -212,13 +215,13 @@ public class SysNodesTableInfo extends StaticTableInfo {
                         .register(Columns.VERSION_BUILD_SNAPSHOT, DataTypes.BOOLEAN)
 
                         .register(Columns.THREAD_POOLS, OBJECT_ARRAY_TYPE)
-                        .register(Columns.THREAD_POOLS_NAME, StringType.INSTANCE)
-                        .register(Columns.THREAD_POOLS_ACTIVE, IntegerType.INSTANCE)
-                        .register(Columns.THREAD_POOLS_REJECTED, LongType.INSTANCE)
-                        .register(Columns.THREAD_POOLS_LARGEST, IntegerType.INSTANCE)
-                        .register(Columns.THREAD_POOLS_COMPLETED, LongType.INSTANCE)
-                        .register(Columns.THREAD_POOLS_THREADS, IntegerType.INSTANCE)
-                        .register(Columns.THREAD_POOLS_QUEUE, IntegerType.INSTANCE)
+                        .register(Columns.THREAD_POOLS_NAME, STRING_ARRAY_TYPE)
+                        .register(Columns.THREAD_POOLS_ACTIVE, INTEGER_ARRAY_TYPE)
+                        .register(Columns.THREAD_POOLS_REJECTED, LONG_ARRAY_TYPE)
+                        .register(Columns.THREAD_POOLS_LARGEST, INTEGER_ARRAY_TYPE)
+                        .register(Columns.THREAD_POOLS_COMPLETED, LONG_ARRAY_TYPE)
+                        .register(Columns.THREAD_POOLS_THREADS, INTEGER_ARRAY_TYPE)
+                        .register(Columns.THREAD_POOLS_QUEUE, INTEGER_ARRAY_TYPE)
 
                         .register(Columns.NETWORK, DataTypes.OBJECT)
                         .register(Columns.NETWORK_PROBE_TS, DataTypes.TIMESTAMP)
@@ -277,17 +280,17 @@ public class SysNodesTableInfo extends StaticTableInfo {
                         .register(Columns.FS_TOTAL_WRITES, DataTypes.LONG)
                         .register(Columns.FS_TOTAL_BYTES_WRITTEN, DataTypes.LONG)
                         .register(Columns.FS_DISKS, OBJECT_ARRAY_TYPE)
-                        .register(Columns.FS_DISKS_DEV, DataTypes.STRING)
-                        .register(Columns.FS_DISKS_SIZE, DataTypes.LONG)
-                        .register(Columns.FS_DISKS_USED, DataTypes.LONG)
-                        .register(Columns.FS_DISKS_AVAILABLE, DataTypes.LONG)
-                        .register(Columns.FS_DISKS_READS, DataTypes.LONG)
-                        .register(Columns.FS_DISKS_BYTES_READ, DataTypes.LONG)
-                        .register(Columns.FS_DISKS_WRITES, DataTypes.LONG)
-                        .register(Columns.FS_DISKS_BYTES_WRITTEN, DataTypes.LONG)
+                        .register(Columns.FS_DISKS_DEV, STRING_ARRAY_TYPE)
+                        .register(Columns.FS_DISKS_SIZE, LONG_ARRAY_TYPE)
+                        .register(Columns.FS_DISKS_USED, LONG_ARRAY_TYPE)
+                        .register(Columns.FS_DISKS_AVAILABLE, LONG_ARRAY_TYPE)
+                        .register(Columns.FS_DISKS_READS, LONG_ARRAY_TYPE)
+                        .register(Columns.FS_DISKS_BYTES_READ, LONG_ARRAY_TYPE)
+                        .register(Columns.FS_DISKS_WRITES, LONG_ARRAY_TYPE)
+                        .register(Columns.FS_DISKS_BYTES_WRITTEN, LONG_ARRAY_TYPE)
                         .register(Columns.FS_DATA, OBJECT_ARRAY_TYPE)
-                        .register(Columns.FS_DATA_DEV, DataTypes.STRING)
-                        .register(Columns.FS_DATA_PATH, DataTypes.STRING),
+                        .register(Columns.FS_DATA_DEV, STRING_ARRAY_TYPE)
+                        .register(Columns.FS_DATA_PATH, STRING_ARRAY_TYPE),
             PRIMARY_KEY);
         this.clusterService = clusterService;
         this.tableColumn = new TableColumn(SYS_COL_IDENT, columnMap);

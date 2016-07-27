@@ -21,17 +21,20 @@
 
 package io.crate.operation.reference.sys.node.fs;
 
-import io.crate.operation.reference.sys.node.NestedDiscoveryNodeExpression;
+import io.crate.operation.reference.sys.node.SimpleDiscoveryNodeExpression;
 
-public class NodeFsExpression extends NestedDiscoveryNodeExpression {
+import java.util.HashMap;
+import java.util.Map;
+
+public class NodeFsExpression extends SimpleDiscoveryNodeExpression<Map<String, Object>> {
 
     private static final String TOTAL = "total";
     private static final String DISKS = "disks";
     private static final String DATA = "data";
 
-    /**
-     * Names of subcolumns that are common across NodeFSTotalExpression and NodeFsDiskExpression.
-     */
+    static final String DEV = "dev";
+    static final String PATH = "path";
+
     static final String SIZE = "size";
     static final String USED = "used";
     static final String AVAILABLE = "available";
@@ -40,10 +43,26 @@ public class NodeFsExpression extends NestedDiscoveryNodeExpression {
     static final String WRITES = "writes";
     static final String BYTES_WRITTEN = "bytes_written";
 
+    private final NodeFsTotalExpression total;
+    private final NodeFsDisksExpression disks;
+    private final NodeFsDataExpression data;
+
     public NodeFsExpression() {
-        childImplementations.put(TOTAL, new NodeFsTotalExpression());
-        childImplementations.put(DISKS, new NodeFsDisksExpression());
-        childImplementations.put(DATA, new NodeFsDataExpression());
+        total = new NodeFsTotalExpression();
+        disks = new NodeFsDisksExpression();
+        data = new NodeFsDataExpression();
     }
 
+    @Override
+    public Map<String, Object> innerValue() {
+        total.setNextRow(this.row);
+        disks.setNextRow(this.row);
+        data.setNextRow(this.row);
+        HashMap<String, Object> map = new HashMap<String, Object>() {{
+            put(TOTAL, total.value());
+            put(DISKS, disks.value());
+            put(DATA, data.value());
+        }};
+        return map;
+    }
 }

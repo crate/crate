@@ -21,47 +21,40 @@
 
 package io.crate.operation.reference.sys.node.fs;
 
+import com.google.common.collect.Lists;
 import io.crate.monitor.ExtendedFsStats;
-import io.crate.operation.reference.RowCollectNestedObjectExpression;
 import io.crate.operation.reference.sys.node.*;
-import org.apache.lucene.util.BytesRef;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
-public class NodeFsDataExpression extends DiscoveryNodeObjectArrayRowCtxExpression {
+public class NodeFsDataExpression extends DiscoveryNodeArrayTypeExpression<ExtendedFsStats.Info, Map<String, Object>> {
 
     public NodeFsDataExpression() {
     }
 
     @Override
-    protected List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> getChildImplementations() {
-        List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> children = new ArrayList<>(this.row.extendedFsStats().size());
-        for (ExtendedFsStats.Info info : this.row.extendedFsStats()) {
-            children.add(new NodeFsDataChildExpression(info));
-        }
-        return children;
+    protected List<ExtendedFsStats.Info> items() {
+        return Lists.newArrayList(this.row.extendedFsStats());
     }
 
-    private class NodeFsDataChildExpression extends NestedDiscoveryNodeExpression {
+    @Override
+    protected Map<String, Object> valueForItem(final ExtendedFsStats.Info input) {
+        return new HashMap<String, Object>() {{
+            put(NodeFsExpression.DEV, input.dev());
+            put(NodeFsExpression.PATH, input.path());
+        }};
+    }
 
-        public static final String DEV = "dev";
-        public static final String PATH = "path";
+    public abstract static class Item<R> extends DiscoveryNodeArrayTypeExpression<ExtendedFsStats.Info, R> {
 
-        protected NodeFsDataChildExpression(final ExtendedFsStats.Info info) {
-            childImplementations.put(DEV, new SimpleDiscoveryNodeExpression<BytesRef>() {
-                @Override
-                public BytesRef innerValue() {
-                    return info.dev();
-                }
-            });
-            childImplementations.put(PATH, new SimpleDiscoveryNodeExpression<BytesRef>() {
-                @Override
-                public BytesRef innerValue() {
-                    return info.path();
-                }
-            });
+        @Override
+        protected List<ExtendedFsStats.Info> items() {
+            return Lists.newArrayList(this.row.extendedFsStats());
         }
+
     }
 }
+

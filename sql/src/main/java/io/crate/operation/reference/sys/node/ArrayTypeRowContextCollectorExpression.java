@@ -22,30 +22,32 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.operation.reference.RowCollectNestedObjectExpression;
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import io.crate.metadata.RowContextCollectorExpression;
 
-import java.util.ArrayList;
+import javax.annotation.Nullable;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class DiscoveryNodeStaticObjectArrayRowContextCollectorExpression extends ObjectArrayRowContextCollectorExpression<DiscoveryNodeContext> {
 
-    private final AtomicBoolean initialized = new AtomicBoolean(false);
-    protected final List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> childImplementations = new ArrayList<>();
+public abstract class ArrayTypeRowContextCollectorExpression<RowType, IterType, ReturnType>
+    extends RowContextCollectorExpression<RowType, ReturnType[]> {
 
-    @Override
-    protected List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> getChildImplementations() {
-        if (!initialized.getAndSet(true)) {
-            addChildImplementations();
-        }
-        return childImplementations;
-    }
+    protected abstract List<IterType> items();
+    protected abstract ReturnType valueForItem(IterType input);
 
     @Override
-    public Object[] value() {
-        return row.isEmpty() ? null : super.value();
+    public ReturnType[] value() {
+        List<IterType> items = items();
+        List<ReturnType> values = Lists.transform(items, new Function<IterType, ReturnType>() {
+            @Nullable
+            @Override
+            public ReturnType apply(@Nullable IterType input) {
+                return valueForItem(input);
+            }
+        });
+        return (ReturnType[]) values.toArray();
     }
-
-    public abstract void addChildImplementations();
-
 }
+

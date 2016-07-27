@@ -22,10 +22,11 @@
 
 package io.crate.operation.reference.sys.node;
 
-public abstract class DiscoveryNodeObjectArrayRowCtxExpression extends ObjectArrayRowContextCollectorExpression<DiscoveryNodeContext> {
+public abstract class DiscoveryNodeArrayTypeExpression<I, R>
+    extends ArrayTypeRowContextCollectorExpression<DiscoveryNodeContext, I, R> {
 
     @Override
-    public Object[] value() {
+    public R[] value() {
         return row.isEmpty() ? null : super.value();
     }
 }

@@ -21,88 +21,46 @@
 
 package io.crate.operation.reference.sys.node.fs;
 
+import com.google.common.collect.Lists;
 import io.crate.monitor.ExtendedFsStats;
-import io.crate.operation.reference.RowCollectNestedObjectExpression;
 import io.crate.operation.reference.sys.node.*;
-import org.apache.lucene.util.BytesRef;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import static io.crate.operation.reference.sys.node.fs.NodeFsExpression.*;
 
-public class NodeFsDisksExpression extends DiscoveryNodeObjectArrayRowCtxExpression {
+public class NodeFsDisksExpression extends DiscoveryNodeArrayTypeExpression<ExtendedFsStats.Info, Map<String, Object>> {
 
-    NodeFsDisksExpression() {
+    public NodeFsDisksExpression() {
     }
-
 
     @Override
-    protected List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> getChildImplementations() {
-        List<RowCollectNestedObjectExpression<DiscoveryNodeContext>> diskRefs = new ArrayList<>(this.row.extendedFsStats().size());
-        for (ExtendedFsStats.Info info : this.row.extendedFsStats()) {
-            NodeFsDiskChildExpression childExpression = new NodeFsDiskChildExpression(info);
-            childExpression.setNextRow(this.row);
-            diskRefs.add(childExpression);
-        }
-        return diskRefs;
+    protected List<ExtendedFsStats.Info> items() {
+        return Lists.newArrayList(this.row.extendedFsStats());
     }
 
-    private static class NodeFsDiskChildExpression extends NestedDiscoveryNodeExpression {
+    @Override
+    protected Map<String, Object> valueForItem(final ExtendedFsStats.Info input) {
+        return new HashMap<String, Object>() {{
+            put(NodeFsExpression.DEV, input.dev());
+            put(NodeFsExpression.SIZE, input.total());
+            put(NodeFsExpression.USED, input.used());
+            put(NodeFsExpression.AVAILABLE, input.available());
+            put(NodeFsExpression.READS, input.diskReads());
+            put(NodeFsExpression.BYTES_READ, input.diskReadSizeInBytes());
+            put(NodeFsExpression.WRITES, input.diskWrites());
+            put(NodeFsExpression.BYTES_WRITTEN, input.diskWriteSizeInBytes());
+        }};
+    }
 
-        private static final String DEV = "dev";
+    public abstract static class Item<R> extends DiscoveryNodeArrayTypeExpression<ExtendedFsStats.Info, R> {
 
-        protected NodeFsDiskChildExpression(final ExtendedFsStats.Info fsInfo) {
-            childImplementations.put(DEV, new SimpleDiscoveryNodeExpression<BytesRef>() {
-                @Override
-                public BytesRef innerValue() {
-                    return fsInfo.dev();
-                }
-            });
-            childImplementations.put(SIZE, new SimpleDiscoveryNodeExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    return fsInfo.total();
-                }
-            });
-            childImplementations.put(USED, new SimpleDiscoveryNodeExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    return fsInfo.used();
-                }
-            });
-            childImplementations.put(AVAILABLE, new SimpleDiscoveryNodeExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    return fsInfo.available();
-                }
-            });
-            childImplementations.put(READS, new SimpleDiscoveryNodeExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    return fsInfo.diskReads();
-                }
-            });
-            childImplementations.put(BYTES_READ, new SimpleDiscoveryNodeExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    return fsInfo.diskReadSizeInBytes();
-                }
-            });
-            childImplementations.put(WRITES, new SimpleDiscoveryNodeExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    return fsInfo.diskWrites();
-                }
-            });
-            childImplementations.put(BYTES_WRITTEN, new SimpleDiscoveryNodeExpression<Long>() {
-                @Override
-                public Long innerValue() {
-                    return fsInfo.diskWriteSizeInBytes();
-                }
-            });
-
+        @Override
+        protected List<ExtendedFsStats.Info> items() {
+            return Lists.newArrayList(this.row.extendedFsStats());
         }
 
     }
 }
+

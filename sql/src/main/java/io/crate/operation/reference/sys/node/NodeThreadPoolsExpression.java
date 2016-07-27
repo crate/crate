@@ -23,15 +23,32 @@
 package io.crate.operation.reference.sys.node;
 
 
-public class NodeThreadPoolsExpression extends DiscoveryNodeStaticObjectArrayRowContextCollectorExpression {
+import com.google.common.collect.Lists;
+import io.crate.monitor.ThreadPools;
+
+import java.util.List;
+import java.util.Map;
+
+
+public class NodeThreadPoolsExpression
+    extends ArrayTypeRowContextCollectorExpression<DiscoveryNodeContext, Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>, Object> {
 
     NodeThreadPoolsExpression() {
     }
 
-    public void addChildImplementations() {
-        for (String name : this.row.threadPools()) {
-            childImplementations.add(new NodeThreadPoolExpression(name));
-        }
+    @Override
+    protected List<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>> items() {
+        return Lists.newArrayList(this.row.threadPools());
+    }
+
+    @Override
+    protected Object valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+        return null;
+    }
+
+    @Override
+    public Object[] value() {
+        return row.isEmpty() ? null : super.value();
     }
 
 }

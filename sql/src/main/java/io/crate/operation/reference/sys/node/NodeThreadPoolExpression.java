@@ -21,89 +21,77 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.metadata.ReferenceImplementation;
+import com.google.common.collect.Lists;
 import io.crate.monitor.ThreadPools;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
+
+import java.util.List;
+import java.util.Map;
 
 
-public class NodeThreadPoolExpression extends NestedDiscoveryNodeExpression {
+public abstract class NodeThreadPoolExpression<R>
+    extends DiscoveryNodeArrayTypeExpression<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>, R> {
 
-    /**
-     * Marker class for child implementations
-     */
-    private abstract class ThreadPoolExpression<T> extends SimpleDiscoveryNodeExpression<T> {
-    }
+    public static final String POOL_NAME = "name";
+    public static final String ACTIVE = "active";
+    public static final String REJECTED = "rejected";
+    public static final String LARGEST = "largest";
+    public static final String COMPLETED = "completed";
+    public static final String THREADS = "threads";
+    public static final String QUEUE = "queue";
 
-    private static final String POOL_NAME = "name";
-    private static final String ACTIVE = "active";
-    private static final String REJECTED = "rejected";
-    private static final String LARGEST = "largest";
-    private static final String COMPLETED = "completed";
-    private static final String THREADS = "threads";
-    private static final String QUEUE = "queue";
 
-    private final String name;
-    private ThreadPools.ThreadPoolExecutorContext threadPoolExecutor;
-
-    public NodeThreadPoolExpression(String name) {
-        this.name = name;
-        addChildImplementations();
+    public NodeThreadPoolExpression() {
     }
 
     @Override
-    public void setNextRow(DiscoveryNodeContext row) {
-        super.setNextRow(row);
-        for (ReferenceImplementation child : childImplementations.values()) {
-            //noinspection unchecked
-            ((ThreadPoolExpression) child).setNextRow(row);
-        }
-        threadPoolExecutor = this.row.threadPools().get(name);
+    protected List<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>> items() {
+        return Lists.newArrayList(this.row.threadPools());
     }
 
-    private void addChildImplementations() {
-        childImplementations.put(POOL_NAME, new ThreadPoolExpression<BytesRef>() {
-            @Override
-            public BytesRef innerValue() {
-                return BytesRefs.toBytesRef(name);
-            }
-        });
-        childImplementations.put(ACTIVE, new ThreadPoolExpression<Integer>() {
-            @Override
-            public Integer innerValue() {
-                return threadPoolExecutor.activeCount();
-            }
-        });
-        childImplementations.put(REJECTED, new ThreadPoolExpression<Long>() {
-            @Override
-            public Long innerValue() {
-                return threadPoolExecutor.rejectedCount();
-            }
-        });
-        childImplementations.put(LARGEST, new ThreadPoolExpression<Integer>() {
-            @Override
-            public Integer innerValue() {
-                return threadPoolExecutor.largestPoolSize();
-            }
-        });
-        childImplementations.put(COMPLETED, new ThreadPoolExpression<Long>() {
-            @Override
-            public Long innerValue() {
-                return threadPoolExecutor.completedTaskCount();
-            }
-        });
-        childImplementations.put(THREADS, new ThreadPoolExpression<Integer>() {
-            @Override
-            public Integer innerValue() {
-                return threadPoolExecutor.poolSize();
-            }
-        });
-        childImplementations.put(QUEUE, new ThreadPoolExpression<Integer>() {
-            @Override
-            public Integer innerValue() {
-                return threadPoolExecutor.queueSize();
-            }
-        });
-    }
+
+//    private void addChildImplementations() {
+//        childImplementations.put(POOL_NAME, new ThreadPoolExpression<BytesRef>() {
+//            @Override
+//            public BytesRef innerValue() {
+//                return BytesRefs.toBytesRef(name);
+//            }
+//        });
+//        childImplementations.put(ACTIVE, new ThreadPoolExpression<Integer>() {
+//            @Override
+//            public Integer innerValue() {
+//                return threadPoolExecutor.activeCount();
+//            }
+//        });
+//        childImplementations.put(REJECTED, new ThreadPoolExpression<Long>() {
+//            @Override
+//            public Long innerValue() {
+//                return threadPoolExecutor.rejectedCount();
+//            }
+//        });
+//        childImplementations.put(LARGEST, new ThreadPoolExpression<Integer>() {
+//            @Override
+//            public Integer innerValue() {
+//                return threadPoolExecutor.largestPoolSize();
+//            }
+//        });
+//        childImplementations.put(COMPLETED, new ThreadPoolExpression<Long>() {
+//            @Override
+//            public Long innerValue() {
+//                return threadPoolExecutor.completedTaskCount();
+//            }
+//        });
+//        childImplementations.put(THREADS, new ThreadPoolExpression<Integer>() {
+//            @Override
+//            public Integer innerValue() {
+//                return threadPoolExecutor.poolSize();
+//            }
+//        });
+//        childImplementations.put(QUEUE, new ThreadPoolExpression<Integer>() {
+//            @Override
+//            public Integer innerValue() {
+//                return threadPoolExecutor.queueSize();
+//            }
+//        });
+//    }
 
 }
