@@ -20,7 +20,7 @@ dependencies {
     testCompile project(':testing')
     testCompile 'org.skyscreamer:jsonassert:1.2.0'
     testCompile 'org.hamcrest:hamcrest-all:1.3'
-    testCompile ('com.github.pgjdbc:pgjdbc:01b65c3642') {
+    testCompile ('com.github.pgjdbc:pgjdbc:ba14509182') {
         exclude group: 'org.openjdk.jmh', module: 'jmh-core'
     }
     benchmarksCompile 'com.carrotsearch:junit-benchmarks:0.7.2'
