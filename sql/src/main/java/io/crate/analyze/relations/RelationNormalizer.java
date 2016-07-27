@@ -31,7 +31,7 @@ import io.crate.analyze.symbol.*;
 import io.crate.exceptions.AmbiguousOrderByException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Path;
-import io.crate.metadata.table.Operation;
+import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
 
 import javax.annotation.Nullable;
@@ -66,19 +66,6 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         return process(relation.relation(), context);
     }
 
-    private boolean hasNestedAggregations(QueriedSelectRelation relation) {
-        QuerySpec querySpec1 = relation.querySpec();
-        QuerySpec querySpec2 = relation.relation().querySpec();
-
-        if ((querySpec1.hasAggregates() || querySpec1.groupBy().isPresent()) &&
-            (querySpec2.hasAggregates() || querySpec2.groupBy().isPresent() || querySpec2.orderBy().isPresent())) {
-            return true;
-        }
-
-        return querySpec1.where().hasQuery() && querySpec1.where() != WhereClause.MATCH_ALL &&
-               SymbolVisitors.any(IS_AGGREGATE_FUNCTION, querySpec1.where().query());
-    }
-
     @Override
     public QueriedRelation visitQueriedTable(QueriedTable table, Context context) {
         mergeTableRelation(table, context);
@@ -100,7 +87,7 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
 
     private void mergeTableRelation(QueriedTableRelation table, Context context) {
         context.querySpec = mergeQuerySpec(context.querySpec, table.querySpec());
-        SymbolNormalizer.normalize(context.querySpec);
+        replaceFieldReferences(context.querySpec);
     }
 
     private static QuerySpec mergeQuerySpec(@Nullable QuerySpec querySpec1, QuerySpec querySpec2) {
@@ -117,8 +104,6 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
             .groupBy(pushGroupBy(querySpec1, querySpec2))
             .having(pushHaving(querySpec1, querySpec2))
             .hasAggregates(querySpec1.hasAggregates() || querySpec2.hasAggregates());
-
-        SymbolNormalizer.normalize(querySpec);
 
         return querySpec;
     }
@@ -199,6 +184,44 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         return querySpec1.having().or(querySpec2.having()).orNull();
     }
 
+    private static void replaceFieldReferences(QuerySpec querySpec) {
+        querySpec.outputs(FieldReplacingVisitor.INSTANCE.process(querySpec.outputs(), null));
+
+        if (querySpec.where().hasQuery() && !querySpec.where().noMatch()) {
+            Symbol query = FieldReplacingVisitor.INSTANCE.process(querySpec.where().query(), null);
+            querySpec.where(new WhereClause(query));
+        }
+
+        if (querySpec.orderBy().isPresent()) {
+            OrderBy orderBy = querySpec.orderBy().get();
+            List<Symbol> orderBySymbols = FieldReplacingVisitor.INSTANCE.process(orderBy.orderBySymbols(), null);
+            querySpec.orderBy(new OrderBy(orderBySymbols, orderBy.reverseFlags(), orderBy.nullsFirst()));
+        }
+
+        if (querySpec.groupBy().isPresent()) {
+            List<Symbol> groupBy = FieldReplacingVisitor.INSTANCE.process(querySpec.groupBy().get(), null);
+            querySpec.groupBy(groupBy);
+        }
+
+        if (querySpec.having().isPresent() && !querySpec.having().get().noMatch()) {
+            Symbol query = FieldReplacingVisitor.INSTANCE.process(querySpec.having().get().query(), null);
+            querySpec.having(new HavingClause(query));
+        }
+    }
+
+    private boolean hasNestedAggregations(QueriedSelectRelation relation) {
+        QuerySpec querySpec1 = relation.querySpec();
+        QuerySpec querySpec2 = relation.relation().querySpec();
+
+        if ((querySpec1.hasAggregates() || querySpec1.groupBy().isPresent()) &&
+            (querySpec2.hasAggregates() || querySpec2.groupBy().isPresent() || querySpec2.orderBy().isPresent())) {
+            return true;
+        }
+
+        return querySpec1.where().hasQuery() && querySpec1.where() != WhereClause.MATCH_ALL &&
+               AggregateFunctionReferenceVisitor.any(querySpec1.where().query());
+    }
+
     static class Context {
         private final AnalysisMetaData analysisMetaData;
         private final List<Field> fields;
@@ -220,69 +243,107 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         }
     }
 
-    private static class SymbolNormalizer extends SymbolVisitor<Void, Symbol> {
+    private static class FieldReplacingVisitor extends ReplacingSymbolVisitor<Void> {
 
-        private static final SymbolNormalizer INSTANCE = new SymbolNormalizer();
+        public static final FieldReplacingVisitor INSTANCE = new FieldReplacingVisitor(true);
+        public static final FieldRelationVisitor<Symbol> FIELD_RELATION_VISITOR = new FieldRelationVisitor(INSTANCE);
 
-        public static void normalize(QuerySpec querySpec) {
-            querySpec.outputs(normalize(querySpec.outputs()));
-
-            if (querySpec.where().hasQuery() && !querySpec.where().noMatch()) {
-                Symbol query = normalize(querySpec.where().query());
-                querySpec.where(new WhereClause(query));
-            }
-
-            if (querySpec.orderBy().isPresent()) {
-                OrderBy orderBy = querySpec.orderBy().get();
-                List<Symbol> orderBySymbols = normalize(orderBy.orderBySymbols());
-                querySpec.orderBy(new OrderBy(orderBySymbols, orderBy.reverseFlags(), orderBy.nullsFirst()));
-            }
-
-            if (querySpec.groupBy().isPresent()) {
-                List<Symbol> groupBy = normalize(querySpec.groupBy().get());
-                querySpec.groupBy(groupBy);
-            }
-
-            if (querySpec.having().isPresent() && !querySpec.having().get().noMatch()) {
-                Symbol query = normalize(querySpec.having().get().query());
-                querySpec.having(new HavingClause(query));
-            }
-        }
-
-        private static Symbol normalize(Symbol symbol) {
-            return INSTANCE.process(symbol, null);
-        }
-
-        private static List<Symbol> normalize(Iterable<? extends Symbol> symbols) {
-            List<Symbol> outputs = new ArrayList<>();
-            for (Symbol symbol : symbols) {
-                outputs.add(normalize(symbol));
-            }
-            return outputs;
-        }
-
-        @Override
-        protected Symbol visitSymbol(Symbol symbol, Void context) {
-            return symbol;
-        }
-
-        @Override
-        public Symbol visitFunction(Function function, Void context) {
-            for (int i = 0; i < function.arguments().size(); i++) {
-                Symbol symbol = function.arguments().get(i);
-                function.setArgument(i, process(symbol, context));
-            }
-            return function;
+        private FieldReplacingVisitor(boolean inPlace) {
+            super(inPlace);
         }
 
         @Override
         public Symbol visitField(Field field, Void context) {
-            if (field.relation() instanceof QueriedRelation) {
-                QueriedRelation relation = (QueriedRelation) field.relation();
-                Symbol output = relation.querySpec().outputs().get(field.index());
-                return process(output, context);
+            return FIELD_RELATION_VISITOR.process(field.relation(), field, field);
+        }
+    }
+
+    private static class AggregateFunctionReferenceVisitor extends SymbolVisitor<Void, Boolean> {
+
+        public static final AggregateFunctionReferenceVisitor INSTANCE = new AggregateFunctionReferenceVisitor();
+        public static final FieldRelationVisitor<Boolean> FIELD_RELATION_VISITOR = new FieldRelationVisitor(INSTANCE);
+
+        public static Boolean any(Symbol symbol) {
+            return INSTANCE.process(symbol, null);
+        }
+
+        @Override
+        protected Boolean visitSymbol(Symbol symbol, Void context) {
+            return false;
+        }
+
+        @Override
+        public Boolean visitFunction(Function symbol, Void context) {
+            if (FunctionInfo.Type.AGGREGATE.equals(symbol.info().type())) {
+                return true;
             }
-            return field;
+            for (Symbol arg : symbol.arguments()) {
+                if (process(arg, context)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public Boolean visitField(Field field, Void context) {
+            return FIELD_RELATION_VISITOR.process(field.relation(), field, false);
+        }
+    }
+
+    /**
+     * Visits an output symbol in a queried relation using the provided field index.
+     */
+    private static class FieldRelationVisitor<R> extends AnalyzedRelationVisitor<FieldRelationVisitorContext<R>, R> {
+
+        private final SymbolVisitor<Void, R> symbolVisitor;
+
+        public FieldRelationVisitor(SymbolVisitor<Void, R> symbolVisitor) {
+            this.symbolVisitor = symbolVisitor;
+        }
+
+        public R process(AnalyzedRelation relation, Field field, R defaultReturnValue) {
+            return process(relation, new FieldRelationVisitorContext<>(field.index(), defaultReturnValue));
+        }
+
+        @Override
+        protected R visitAnalyzedRelation(AnalyzedRelation relation, FieldRelationVisitorContext<R> context) {
+            return context.defaultReturnValue;
+        }
+
+        @Override
+        public R visitQueriedTable(QueriedTable relation, FieldRelationVisitorContext<R> context) {
+            return visitQueriedRelation(relation, context);
+        }
+
+        @Override
+        public R visitQueriedDocTable(QueriedDocTable relation, FieldRelationVisitorContext<R> context) {
+            return visitQueriedRelation(relation, context);
+        }
+
+        @Override
+        public R visitMultiSourceSelect(MultiSourceSelect relation, FieldRelationVisitorContext<R> context) {
+            return visitQueriedRelation(relation, context);
+        }
+
+        @Override
+        public R visitQueriedSelectRelation(QueriedSelectRelation relation, FieldRelationVisitorContext<R> context) {
+            return visitQueriedRelation(relation, context);
+        }
+
+        private R visitQueriedRelation(QueriedRelation relation, FieldRelationVisitorContext<R> context) {
+            Symbol output = relation.querySpec().outputs().get(context.fieldIndex);
+            return symbolVisitor.process(output, null);
+        }
+    }
+
+    private static class FieldRelationVisitorContext<R> {
+        private final int fieldIndex;
+        private final R defaultReturnValue;
+
+        public FieldRelationVisitorContext(int fieldIndex, R defaultReturnValue) {
+            this.fieldIndex = fieldIndex;
+            this.defaultReturnValue = defaultReturnValue;
         }
     }
 }
