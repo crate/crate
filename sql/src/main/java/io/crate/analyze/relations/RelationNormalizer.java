@@ -240,7 +240,7 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
     private static class FieldReplacingVisitor extends ReplacingSymbolVisitor<Void> {
 
         public static final FieldReplacingVisitor INSTANCE = new FieldReplacingVisitor(true);
-        public static final FieldRelationVisitor<Symbol> FIELD_RELATION_VISITOR = new FieldRelationVisitor(INSTANCE);
+        private static final FieldRelationVisitor<Symbol> FIELD_RELATION_VISITOR = new FieldRelationVisitor<>(INSTANCE);
 
         private FieldReplacingVisitor(boolean inPlace) {
             super(inPlace);
@@ -255,7 +255,7 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
     private static class AggregateFunctionReferenceVisitor extends SymbolVisitor<Void, Boolean> {
 
         public static final AggregateFunctionReferenceVisitor INSTANCE = new AggregateFunctionReferenceVisitor();
-        public static final FieldRelationVisitor<Boolean> FIELD_RELATION_VISITOR = new FieldRelationVisitor(INSTANCE);
+        private static final FieldRelationVisitor<Boolean> FIELD_RELATION_VISITOR = new FieldRelationVisitor<>(INSTANCE);
 
         public static Boolean any(Symbol symbol) {
             return INSTANCE.process(symbol, null);
@@ -292,7 +292,7 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
 
         private final SymbolVisitor<Void, R> symbolVisitor;
 
-        public FieldRelationVisitor(SymbolVisitor<Void, R> symbolVisitor) {
+        FieldRelationVisitor(SymbolVisitor<Void, R> symbolVisitor) {
             this.symbolVisitor = symbolVisitor;
         }
 
@@ -335,7 +335,7 @@ class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Cont
         private final int fieldIndex;
         private final R defaultReturnValue;
 
-        public FieldRelationVisitorContext(int fieldIndex, R defaultReturnValue) {
+        FieldRelationVisitorContext(int fieldIndex, R defaultReturnValue) {
             this.fieldIndex = fieldIndex;
             this.defaultReturnValue = defaultReturnValue;
         }
