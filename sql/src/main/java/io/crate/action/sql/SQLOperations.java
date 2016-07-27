@@ -22,24 +22,18 @@
 
 package io.crate.action.sql;
 
-import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
-import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.concurrent.CompletionListener;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.executor.Executor;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.operation.collect.StatsTables;
-import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.planner.statement.SetSessionPlan;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.Portal;
 import io.crate.protocols.postgres.SimplePortal;
-import io.crate.protocols.postgres.StatsTablesUpdateListener;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.Statement;
@@ -57,8 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static io.crate.action.sql.SQLBulkRequest.EMPTY_BULK_ARGS;
-import static io.crate.action.sql.SQLRequest.EMPTY_ARGS;
 import static io.crate.action.sql.TransportBaseSQLAction.NODE_READ_ONLY_SETTING;
 
 
@@ -143,9 +135,6 @@ public class SQLOperations {
         private Statement statement;
         private String query;
 
-        private Throwable throwable = null;
-        private Map<String, String> settings = new HashMap<>();
-
         private Map<String, Portal> portals = new HashMap<>();
         private String lastPortalName;
 
@@ -153,39 +142,6 @@ public class SQLOperations {
             this.executor = executor;
             this.transportKillJobsNodeAction = transportKillJobsNodeAction;
             this.defaultSchema = defaultSchema;
-        }
-
-        public void simpleQuery(String query,
-                                Function<List<Field>, ResultReceiver> resultReceiverFactory,
-                                CompletionListener doneListener) {
-            // TODO: support multiple statements
-            if (query.endsWith(";")) {
-                query = query.substring(0, query.length() - 1);
-            }
-
-            Statement statement = SqlParser.createStatement(query);
-            statsTables.jobStarted(jobId, query);
-            Analysis analysis = analyzer.analyze(statement, new ParameterContext(EMPTY_ARGS, EMPTY_BULK_ARGS, defaultSchema));
-            validateReadOnly(analysis);
-            Plan plan = planner.plan(analysis, UUID.randomUUID(), 0, 0);
-
-            ResultReceiver resultReceiver;
-            if (analysis.rootRelation() == null) {
-                resultReceiver = resultReceiverFactory.apply(null);
-            } else {
-                resultReceiver = resultReceiverFactory.apply(analysis.rootRelation().fields());
-            }
-            assert resultReceiver != null : "resultReceiver must not be null";
-            resultReceiver.addListener(doneListener);
-            resultReceiver.addListener(new StatsTablesUpdateListener(jobId, statsTables));
-            applySessionSettings(plan);
-            executor.execute(plan, new RowReceiverToResultReceiver(resultReceiver, 0));
-        }
-
-        private void checkError() {
-            if (throwable != null) {
-                throw Throwables.propagate(throwable);
-            }
         }
 
         private Portal getOrCreatePortal(String portalName) {
@@ -214,25 +170,19 @@ public class SQLOperations {
 
         public void parse(String statementName, String query, List<DataType> paramTypes) {
             LOGGER.debug("method=parse stmtName={} query={} paramTypes={}", statementName, query, paramTypes);
-            checkError();
 
-            try {
-                Statement statement = SqlParser.createStatement(query);
-                if (this.statement == null) {
-                    this.jobId = UUID.randomUUID();
-                    statsTables.jobStarted(jobId, query);
-                } else if (!statement.equals(this.statement)) {
-                    if (this.statement instanceof BeginStatement) {
-                        sync(CompletionListener.NO_OP);
-                    }
+            Statement statement = SqlParser.createStatement(query);
+            if (this.statement == null) {
+                this.jobId = UUID.randomUUID();
+                statsTables.jobStarted(jobId, query);
+            } else if (!statement.equals(this.statement)) {
+                if (this.statement instanceof BeginStatement) {
+                    sync(CompletionListener.NO_OP);
                 }
-                this.statement = statement;
-                this.query = query;
-                this.paramTypes = paramTypes;
-            } catch (Throwable t) {
-                throwable = t;
-                throw t;
             }
+            this.statement = statement;
+            this.query = query;
+            this.paramTypes = paramTypes;
         }
 
         public void bind(String portalName,
@@ -240,71 +190,52 @@ public class SQLOperations {
                          List<Object> params,
                          @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
             LOGGER.debug("method=bind portalName={} statementName={} params={}", portalName, statementName, params);
-            checkError();
 
-            try {
-                Portal portal = getOrCreatePortal(portalName);
-                portal = portal.bind(statementName, query, statement, params, resultFormatCodes);
-                portals.put(portalName, portal);
-            } catch (Throwable t) {
-                this.throwable = t;
-                throw t;
-            }
+            Portal portal = getOrCreatePortal(portalName);
+            portal = portal.bind(statementName, query, statement, params, resultFormatCodes);
+            portals.put(portalName, portal);
         }
 
         public List<Field> describe(char type, String portalOrStatement) {
             LOGGER.debug("method=describe type={} portalOrStatement={}", type, portalOrStatement);
-            checkError();
-
-            try {
-                switch (type) {
-                    case 'P':
-                        Portal portal = getSafePortal(portalOrStatement);
-                        return portal.describe();
-                    case 'S':
-                        /* TODO: need to return proper fields?
-                         *
-                         * describe might be called without prior bind call. E.g. in batch insert case the statement is prepared first:
-                         *
-                         *      parse stmtName=S_1 query=insert into t (x) values ($1) paramTypes=[integer]
-                         *      describe type=S portalOrStatement=S_1
-                         *      sync
-                         *
-                         * and then per batch:
-                         *
-                         *      bind portalName= statementName=S_1 params=[0]
-                         *      describe type=P portalOrStatement=
-                         *      execute
-                         *
-                         *      bind portalName= statementName=S_1 params=[1]
-                         *      describe type=P portalOrStatement=
-                         *      execute
-                         *
-                         * and finally:
-                         *
-                         *      sync
-                         */
-                        return null;
-                }
-                throw new AssertionError("Unsupported type: " + type);
-            } catch (Throwable t) {
-                throwable = t;
-                throw t;
+            switch (type) {
+                case 'P':
+                    Portal portal = getSafePortal(portalOrStatement);
+                    return portal.describe();
+                case 'S':
+                    /* TODO: need to return proper fields?
+                     *
+                     * describe might be called without prior bind call. E.g. in batch insert case the statement is prepared first:
+                     *
+                     *      parse stmtName=S_1 query=insert into t (x) values ($1) paramTypes=[integer]
+                     *      describe type=S portalOrStatement=S_1
+                     *      sync
+                     *
+                     * and then per batch:
+                     *
+                     *      bind portalName= statementName=S_1 params=[0]
+                     *      describe type=P portalOrStatement=
+                     *      execute
+                     *
+                     *      bind portalName= statementName=S_1 params=[1]
+                     *      describe type=P portalOrStatement=
+                     *      execute
+                     *
+                     * and finally:
+                     *
+                     *      sync
+                     */
+                    return null;
             }
+            throw new AssertionError("Unsupported type: " + type);
         }
 
         public void execute(String portalName, int maxRows, ResultReceiver resultReceiver) {
             LOGGER.debug("method=execute portalName={} maxRows={}", portalName, maxRows);
 
             lastPortalName = portalName;
-            checkError();
-            try {
-                Portal portal = getSafePortal(portalName);
-                portal.execute(resultReceiver, maxRows);
-            } catch (Throwable t) {
-                throwable = t;
-                throw t;
-            }
+            Portal portal = getSafePortal(portalName);
+            portal.execute(resultReceiver, maxRows);
         }
 
         public void sync(CompletionListener listener) {
@@ -314,31 +245,16 @@ public class SQLOperations {
                 return;
             }
 
-            if (throwable == null) {
-                Portal portal = getSafePortal(lastPortalName);
-                portal.sync(planner, statsTables, listener);
-                cleanup(lastPortalName);
-            } else {
-                Throwable t = this.throwable;
-                cleanup(lastPortalName);
-                throw Throwables.propagate(t);
-            }
+            Portal portal = getSafePortal(lastPortalName);
+            portal.sync(planner, statsTables, listener);
+            clearState();
         }
 
-        private void applySessionSettings(Plan plan) {
-            if (plan instanceof SetSessionPlan) {
-                settings.putAll(((SetSessionPlan) plan).settings().getAsMap());
+        public void clearState() {
+            Portal portal = portals.remove("");
+            if (portal != null) {
+                portal.close();
             }
-        }
-
-        private void cleanup(String portalName) {
-            if ("".equals(portalName)) { // only close unnamed portal - others require close calls
-                Portal portal = portals.remove("");
-                if (portal != null) {
-                    portal.close();
-                }
-            }
-            throwable = null;
             statement = null;
             lastPortalName = null;
         }
@@ -382,14 +298,6 @@ public class SQLOperations {
             for (Portal portal : portals.values()) {
                 portal.close();
             }
-        }
-
-        /**
-         * Register an error to make all methods up to sync no-ops.
-         * Sync will raise the error and clear the state so that further method calls work again.
-         */
-        public void setThrowable(Throwable t) {
-            this.throwable = t;
         }
     }
 }

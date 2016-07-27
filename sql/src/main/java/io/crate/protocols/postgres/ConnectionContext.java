@@ -23,7 +23,6 @@
 package io.crate.protocols.postgres;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.symbol.Field;
@@ -155,6 +154,7 @@ class ConnectionContext {
     private int msgLength;
     private byte msgType;
     private SQLOperations.Session session;
+    private boolean ignoreTillSync = false;
 
     enum State {
         SSL_NEG,
@@ -268,6 +268,11 @@ class ConnectionContext {
                 case MSG_BODY:
                     state = State.MSG_HEADER;
                     LOGGER.trace("msg={} msgLength={} readableBytes={}", ((char) msgType), msgLength, buffer.readableBytes());
+
+                    if (ignoreTillSync && msgType != 'S') {
+                        buffer.readBytes(msgLength);
+                        return;
+                    }
                     switch (msgType) {
                         case 'Q': // Query (simple)
                             handleSimpleQuery(buffer, channel);
@@ -310,7 +315,12 @@ class ConnectionContext {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
-            LOGGER.error(e.toString(), e.getCause());
+            ignoreTillSync = true;
+            try {
+                Messages.sendErrorResponse(ctx.getChannel(), e.getCause());
+            } catch (Throwable t) {
+                LOGGER.error("Error trying to send error to client", t);
+            }
         }
 
         @Override
@@ -345,13 +355,8 @@ class ConnectionContext {
             }
             paramTypes.add(dataType);
         }
-        try {
-            session.parse(statementName, query, paramTypes);
-            Messages.sendParseComplete(channel);
-        } catch (Throwable t) {
-            session.setThrowable(t);
-            Messages.sendErrorResponse(channel, t);
-        }
+        session.parse(statementName, query, paramTypes);
+        Messages.sendParseComplete(channel);
     }
 
     /**
@@ -407,13 +412,8 @@ class ConnectionContext {
         }
 
         FormatCodes.FormatCode[] resultFormatCodes = FormatCodes.fromBuffer(buffer);
-        try {
-            session.bind(portalName, statementName, params, resultFormatCodes);
-            Messages.sendBindComplete(channel);
-        } catch (Throwable t) {
-            session.setThrowable(t);
-            Messages.sendErrorResponse(channel, t);
-        }
+        session.bind(portalName, statementName, params, resultFormatCodes);
+        Messages.sendBindComplete(channel);
     }
 
     private <T> List<T> createList(short size) {
@@ -433,16 +433,11 @@ class ConnectionContext {
     private void handleDescribeMessage(ChannelBuffer buffer, Channel channel) {
         byte type = buffer.readByte();
         String portalOrStatement = readCString(buffer);
-        try {
-            Collection<Field> fields = session.describe((char) type, portalOrStatement);
-            if (fields == null) {
-                Messages.sendNoData(channel);
-            } else {
-                Messages.sendRowDescription(channel, fields, session.getResultFormatCodes(portalOrStatement));
-            }
-        } catch (Throwable t) {
-            session.setThrowable(t);
-            Messages.sendErrorResponse(channel, t);
+        Collection<Field> fields = session.describe((char) type, portalOrStatement);
+        if (fields == null) {
+            Messages.sendNoData(channel);
+        } else {
+            Messages.sendRowDescription(channel, fields, session.getResultFormatCodes(portalOrStatement));
         }
     }
 
@@ -458,15 +453,10 @@ class ConnectionContext {
     private void handleExecute(ChannelBuffer buffer, Channel channel) {
         String portalName = readCString(buffer);
         int maxRows = buffer.readInt();
-        try {
-            ResultReceiver resultReceiver = createResultReceiver(channel, session.getQuery(portalName),
-                session.getOutputTypes(portalName),
-                session.getResultFormatCodes(portalName));
-            session.execute(portalName, maxRows, resultReceiver);
-        } catch (Throwable t) {
-            session.setThrowable(t);
-            Messages.sendErrorResponse(channel, t);
-        }
+        ResultReceiver resultReceiver = createResultReceiver(channel, session.getQuery(portalName),
+            session.getOutputTypes(portalName),
+            session.getResultFormatCodes(portalName));
+        session.execute(portalName, maxRows, resultReceiver);
     }
 
     private static ResultReceiver createResultReceiver(Channel channel,
@@ -483,6 +473,12 @@ class ConnectionContext {
     }
 
     private void handleSync(final Channel channel) {
+        if (ignoreTillSync) {
+            ignoreTillSync = false;
+            session.clearState();
+            Messages.sendReadyForQuery(channel);
+            return;
+        }
         try {
             session.sync(new ReadyForQueryListener(channel));
         } catch (Throwable t) {
@@ -503,7 +499,7 @@ class ConnectionContext {
 
     @VisibleForTesting
     void handleSimpleQuery(ChannelBuffer buffer, final Channel channel) {
-        final String query = readCString(buffer);
+        String query = readCString(buffer);
         assert query != null : "query must not be nulL";
 
         if (query.isEmpty() || ";".equals(query)) {
@@ -511,23 +507,25 @@ class ConnectionContext {
             Messages.sendReadyForQuery(channel);
             return;
         }
-
+        // TODO: support multiple statements
+        if (query.endsWith(";")) {
+            query = query.substring(0, query.length() - 1);
+        }
         try {
-            session.simpleQuery(
-                query,
-                new Function<List<Field>, ResultReceiver>() {
-                    @Nullable
-                    @Override
-                    public ResultReceiver apply(@Nullable List<Field> columns) {
-                        if (columns == null) {
-                            return createResultReceiver(channel, query, null, null);
-                        }
-                        Messages.sendRowDescription(channel, columns, null);
-                        return createResultReceiver(channel, query, Symbols.extractTypes(columns), null);
-                    }
-                },
-                new ReadyForQueryListener(channel));
+            session.parse("", query, Collections.<DataType>emptyList());
+            session.bind("", "", Collections.emptyList(), null);
+            List<Field> fields = session.describe('P', "");
+            if (fields == null) {
+                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel);
+                session.execute("", 1, rowCountReceiver);
+            } else {
+                Messages.sendRowDescription(channel, fields, null);
+                ResultSetReceiver resultSetReceiver = new ResultSetReceiver(query, channel, Symbols.extractTypes(fields), null);
+                session.execute("", 0, resultSetReceiver);
+            }
+            session.sync(new ReadyForQueryListener(channel));
         } catch (Throwable t) {
+            session.clearState();
             Messages.sendErrorResponse(channel, t);
             Messages.sendReadyForQuery(channel);
         }
