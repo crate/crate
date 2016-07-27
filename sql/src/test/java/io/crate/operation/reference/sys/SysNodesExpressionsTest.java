@@ -33,6 +33,7 @@ import io.crate.monitor.MonitorModule;
 import io.crate.operation.Input;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.*;
+import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;

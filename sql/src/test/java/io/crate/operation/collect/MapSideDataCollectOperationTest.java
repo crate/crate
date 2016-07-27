@@ -27,7 +27,7 @@ import io.crate.metadata.*;
 import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.sources.CollectSourceResolver;
 import io.crate.operation.collect.sources.FileCollectSource;
-import io.crate.operation.reference.sys.node.NodeSysExpression;
+import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;

@@ -40,7 +40,7 @@ public class SysNodesTableInfo extends StaticTableInfo {
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "nodes");
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("id"));
 
-    private static final RowGranularity GRANULARITY = RowGranularity.DOC;
+    private static final RowGranularity GRANULARITY = RowGranularity.NODE;
 
     public static final String SYS_COL_ID = "id";
     public static final String SYS_COL_NODE_NAME = "name";

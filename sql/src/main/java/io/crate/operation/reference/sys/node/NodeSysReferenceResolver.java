@@ -26,6 +26,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 
 import java.util.HashMap;
 import java.util.Map;

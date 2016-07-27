@@ -19,15 +19,27 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.sys.node;
+package io.crate.operation.reference.sys.node.local;
 
-import io.crate.operation.reference.NestedObjectExpression;
-import org.elasticsearch.common.inject.Inject;
+import io.crate.operation.reference.sys.node.SysNodeExpression;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.ClusterService;
 
-public class NodeSysExpression extends NestedObjectExpression {
+class NodeRestUrlExpression extends SysNodeExpression<BytesRef> {
 
-    @Inject
-    public NodeSysExpression() {
+    private final ClusterService clusterService;
+
+    NodeRestUrlExpression(ClusterService clusterService) {
+        this.clusterService = clusterService;
+    }
+
+    @Override
+    public BytesRef value() {
+        String val = clusterService.localNode() != null ? clusterService.localNode().attributes().get("http_address") : null;
+        if (val != null) {
+            return new BytesRef(val);
+        }
+        return new BytesRef();
     }
 
 }

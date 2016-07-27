@@ -23,6 +23,7 @@ package io.crate.operation.reference.sys.node;
 
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
+import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 

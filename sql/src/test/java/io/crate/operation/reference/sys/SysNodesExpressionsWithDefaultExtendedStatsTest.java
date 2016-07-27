@@ -26,7 +26,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.monitor.MonitorModule;
 import io.crate.operation.reference.NestedObjectExpression;
-import io.crate.operation.reference.sys.node.NodeSysExpression;
+import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.operation.reference.sys.node.NodeSysReferenceResolver;
 import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.test.integration.CrateUnitTest;
@@ -100,7 +100,7 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTe
         NestedObjectExpression os = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map<String, Object> v = os.value();
-        
+
         Map<String, Short> cpuObj = new HashMap<>(5);
         cpuObj.put("system", (short) -1);
         cpuObj.put("user", (short) -1);
