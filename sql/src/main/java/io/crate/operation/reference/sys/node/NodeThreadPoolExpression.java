@@ -29,15 +29,15 @@ import java.util.Map;
 
 
 public abstract class NodeThreadPoolExpression<R>
-    extends DiscoveryNodeArrayTypeExpression<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>, R> {
+        extends DiscoveryNodeArrayTypeExpression<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>, R> {
 
-    public static final String POOL_NAME = "name";
-    public static final String ACTIVE = "active";
-    public static final String REJECTED = "rejected";
-    public static final String LARGEST = "largest";
-    public static final String COMPLETED = "completed";
-    public static final String THREADS = "threads";
-    public static final String QUEUE = "queue";
+    static final String POOL_NAME = "name";
+    static final String ACTIVE = "active";
+    static final String REJECTED = "rejected";
+    static final String LARGEST = "largest";
+    static final String COMPLETED = "completed";
+    static final String THREADS = "threads";
+    static final String QUEUE = "queue";
 
 
     public NodeThreadPoolExpression() {
@@ -47,51 +47,5 @@ public abstract class NodeThreadPoolExpression<R>
     protected List<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>> items() {
         return Lists.newArrayList(this.row.threadPools());
     }
-
-
-//    private void addChildImplementations() {
-//        childImplementations.put(POOL_NAME, new ThreadPoolExpression<BytesRef>() {
-//            @Override
-//            public BytesRef innerValue() {
-//                return BytesRefs.toBytesRef(name);
-//            }
-//        });
-//        childImplementations.put(ACTIVE, new ThreadPoolExpression<Integer>() {
-//            @Override
-//            public Integer innerValue() {
-//                return threadPoolExecutor.activeCount();
-//            }
-//        });
-//        childImplementations.put(REJECTED, new ThreadPoolExpression<Long>() {
-//            @Override
-//            public Long innerValue() {
-//                return threadPoolExecutor.rejectedCount();
-//            }
-//        });
-//        childImplementations.put(LARGEST, new ThreadPoolExpression<Integer>() {
-//            @Override
-//            public Integer innerValue() {
-//                return threadPoolExecutor.largestPoolSize();
-//            }
-//        });
-//        childImplementations.put(COMPLETED, new ThreadPoolExpression<Long>() {
-//            @Override
-//            public Long innerValue() {
-//                return threadPoolExecutor.completedTaskCount();
-//            }
-//        });
-//        childImplementations.put(THREADS, new ThreadPoolExpression<Integer>() {
-//            @Override
-//            public Integer innerValue() {
-//                return threadPoolExecutor.poolSize();
-//            }
-//        });
-//        childImplementations.put(QUEUE, new ThreadPoolExpression<Integer>() {
-//            @Override
-//            public Integer innerValue() {
-//                return threadPoolExecutor.queueSize();
-//            }
-//        });
-//    }
 
 }

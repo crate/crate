@@ -26,12 +26,13 @@ package io.crate.operation.reference.sys.node;
 import com.google.common.collect.Lists;
 import io.crate.monitor.ThreadPools;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 
 public class NodeThreadPoolsExpression
-    extends ArrayTypeRowContextCollectorExpression<DiscoveryNodeContext, Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>, Object> {
+        extends ArrayTypeRowContextCollectorExpression<DiscoveryNodeContext, Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>, Object> {
 
     NodeThreadPoolsExpression() {
     }
@@ -42,8 +43,16 @@ public class NodeThreadPoolsExpression
     }
 
     @Override
-    protected Object valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
-        return null;
+    protected Object valueForItem(final Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+        return new HashMap<String, Object>() {{
+            put(NodeThreadPoolExpression.POOL_NAME, input.getKey());
+            put(NodeThreadPoolExpression.ACTIVE, input.getValue().activeCount());
+            put(NodeThreadPoolExpression.COMPLETED, input.getValue().completedTaskCount());
+            put(NodeThreadPoolExpression.REJECTED, input.getValue().rejectedCount());
+            put(NodeThreadPoolExpression.LARGEST, input.getValue().largestPoolSize());
+            put(NodeThreadPoolExpression.QUEUE, input.getValue().queueSize());
+            put(NodeThreadPoolExpression.THREADS, input.getValue().poolSize());
+        }};
     }
 
     @Override

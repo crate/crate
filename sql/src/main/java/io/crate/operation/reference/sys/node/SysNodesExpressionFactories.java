@@ -144,6 +144,61 @@ public class SysNodesExpressionFactories {
                     };
                 }
             })
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS_REJECTED, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeThreadPoolExpression<Long>() {
+                        @Override
+                        protected Long valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                            return input.getValue().rejectedCount();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS_LARGEST, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeThreadPoolExpression<Integer>() {
+                        @Override
+                        protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                            return input.getValue().largestPoolSize();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS_COMPLETED, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeThreadPoolExpression<Long>() {
+                        @Override
+                        protected Long valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                            return input.getValue().completedTaskCount();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS_THREADS, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeThreadPoolExpression<Integer>() {
+                        @Override
+                        protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                            return input.getValue().poolSize();
+                        }
+                    };
+                }
+            })
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS_QUEUE, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new NodeThreadPoolExpression<Integer>() {
+                        @Override
+                        protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                            return input.getValue().queueSize();
+                        }
+                    };
+                }
+            })
             .put(SysNodesTableInfo.Columns.NETWORK, new RowCollectExpressionFactory() {
                 @Override
                 public RowCollectExpression create() {
