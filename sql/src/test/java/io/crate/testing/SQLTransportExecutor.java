@@ -22,7 +22,12 @@
 package io.crate.testing;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Throwables;
 import io.crate.action.sql.*;
+import io.crate.protocols.postgres.types.PGType;
+import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -33,8 +38,19 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.rest.RestStatus;
 import org.hamcrest.Matchers;
+import org.postgresql.util.PGobject;
 
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.sql.*;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -49,9 +65,11 @@ public class SQLTransportExecutor {
 
     private static final ESLogger LOGGER = Loggers.getLogger(SQLTransportExecutor.class);
     private final ClientProvider clientProvider;
+    private final Random random;
 
-    public SQLTransportExecutor(ClientProvider clientProvider) {
+    public SQLTransportExecutor(ClientProvider clientProvider, Random random) {
         this.clientProvider = clientProvider;
+        this.random = random;
     }
 
     public SQLResponse exec(String statement) {
@@ -79,12 +97,219 @@ public class SQLTransportExecutor {
     }
 
     public SQLResponse exec(SQLRequest request, TimeValue timeout) {
+        String pgUrl = clientProvider.pgUrl();
+        if (pgUrl != null && random.nextBoolean() && isJdbcCompatible()) {
+            return executeWithPg(request, pgUrl);
+        }
         try {
             return execute(request).actionGet(timeout);
         } catch (ElasticsearchTimeoutException e) {
             LOGGER.error("Timeout on SQL statement: {}", e, request.stmt());
             throw e;
         }
+    }
+
+    private boolean isJdbcCompatible() {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (StackTraceElement element : stackTrace) {
+            try {
+                Class<?> ar = Class.forName(element.getClassName());
+                Method method = ar.getMethod(element.getMethodName());
+                UseJdbc annotation = method.getAnnotation(UseJdbc.class);
+                if (annotation == null) {
+                    annotation = ar.getAnnotation(UseJdbc.class);
+                    if (annotation == null) {
+                        continue;
+                    }
+                }
+                return annotation.value();
+            } catch (NoSuchMethodException | ClassNotFoundException ignored) {
+            }
+        }
+        return false;
+    }
+
+    private SQLResponse executeWithPg(SQLRequest request, String pgUrl) {
+        try {
+            try (Connection conn = DriverManager.getConnection(pgUrl)) {
+                conn.setAutoCommit(true);
+                PreparedStatement preparedStatement = conn.prepareStatement(request.stmt());
+                Object[] args = request.args();
+                for (int i = 0; i < args.length; i++) {
+                    preparedStatement.setObject(i + 1, toJdbcCompatObject(conn, args[i]));
+                }
+                return toSqlResponse(preparedStatement);
+            }
+        } catch (SQLException e) {
+            throw new SQLActionException(e.getMessage(), 0, RestStatus.BAD_REQUEST);
+        }
+    }
+
+    private static Object toJdbcCompatObject(Connection connection, Object arg) {
+        if (arg == null) {
+            return null;
+        }
+        if (arg instanceof Map) {
+            // setObject with a Map would use hstore. But that only supports text values
+            try {
+                XContentBuilder builder = JsonXContent.contentBuilder();
+                builder.map((Map) arg);
+                builder.close();
+                String json = builder.bytes().toUtf8();
+
+                PGobject pGobject = new PGobject();
+                pGobject.setType("json");
+                pGobject.setValue(json);
+                return pGobject;
+            } catch (SQLException | IOException e) {
+                throw Throwables.propagate(e);
+            }
+        }
+        if (arg.getClass().isArray()) {
+            arg = Arrays.asList((Object[]) arg);
+        }
+        if (arg instanceof Collection) {
+            Collection values = (Collection) arg;
+            if (values.isEmpty()) {
+                return null; // TODO: can't insert empty list without knowing the type
+            }
+            Object firstValue = values.iterator().next();
+
+            if (firstValue instanceof Map) {
+                XContentBuilder builder = null;
+                try {
+                    builder = JsonXContent.contentBuilder();
+                    builder.startArray();
+                    for (Object value : values) {
+                        builder.value(value);
+                    }
+                    builder.close();
+                    String json =  builder.bytes().toUtf8();
+                    PGobject pGobject = new PGobject();
+                    pGobject.setType("json");
+                    pGobject.setValue(json);
+                    return pGobject;
+                } catch (SQLException | IOException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+            List<Object> convertedValues = new ArrayList<>(values.size());
+            DataType<?> dataType = DataTypes.guessType(firstValue);
+            PGType pgType = PGTypes.get(dataType);
+            for (Object value : values) {
+                convertedValues.add(toJdbcCompatObject(connection, value));
+            }
+            try {
+                return connection.createArrayOf(pgType.typName(), convertedValues.toArray(new Object[0]));
+            } catch (SQLException e) {
+                throw Throwables.propagate(e);
+            }
+        }
+        return arg;
+    }
+
+    private SQLResponse toSqlResponse(PreparedStatement preparedStatement) throws SQLException {
+        if (preparedStatement.execute()) {
+            ResultSetMetaData metaData = preparedStatement.getMetaData();
+            ResultSet resultSet = preparedStatement.getResultSet();
+            List<Object[]> rows = new ArrayList<>();
+            List<String> columnNames = new ArrayList<>(metaData.getColumnCount());
+            DataType[] dataTypes = new DataType[metaData.getColumnCount()];
+            for (int i = 0; i < metaData.getColumnCount(); i++) {
+                columnNames.add(metaData.getColumnName(i + 1));
+
+            }
+            while (resultSet.next()) {
+                Object[] row = new Object[metaData.getColumnCount()];
+                for (int i = 0; i < row.length; i++) {
+                    Object value;
+                    String typeName = metaData.getColumnTypeName(i + 1);
+                    value = getObject(resultSet, i, typeName);
+                    row[i] = value;
+                }
+                rows.add(row);
+            }
+            return new SQLResponse(
+                columnNames.toArray(new String[0]),
+                rows.toArray(new Object[0][]),
+                dataTypes,
+                rows.size(),
+                1,
+                true
+            );
+        } else {
+            int updateCount = preparedStatement.getUpdateCount();
+            return new SQLResponse(
+                new String[0],
+                new Object[0][],
+                new DataType[0],
+                updateCount,
+                1,
+                true
+            );
+        }
+    }
+
+    private Object getObject(ResultSet resultSet, int i, String typeName) throws SQLException {
+        Object value;
+        switch (typeName) {
+            case "int2":
+                value = resultSet.getShort(i + 1);
+                break;
+            case "_char":
+                value = getCharArray(resultSet, i);
+                break;
+            case "char":
+                value = resultSet.getByte(i + 1);
+                break;
+            case "_json":
+                value = resultSet.getArray(i + 1);
+                break;
+            case "json":
+                String json = resultSet.getString(i + 1);
+                try {
+                    if (json == null) {
+                        value = null;
+                    } else {
+                        byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+                        XContentParser parser = JsonXContent.jsonXContent.createParser(bytes);
+                        if (bytes.length >= 1 && bytes[0] == '[') {
+                            parser.nextToken();
+                            value = parser.list().toArray(new Object[0]);
+                        } else {
+                            value = parser.map();
+                        }
+                    }
+                } catch (IOException e) {
+                    throw Throwables.propagate(e);
+                }
+                break;
+            default:
+                value = resultSet.getObject(i + 1);
+                break;
+        }
+        if (value instanceof Timestamp) {
+            value = ((Timestamp) value).getTime();
+        } else if (value instanceof Array) {
+            value = ((Array) value).getArray();
+        }
+        return value;
+    }
+
+    private static Object getCharArray(ResultSet resultSet, int i) throws SQLException {
+        Object value;
+        Array array = resultSet.getArray(i + 1);
+        if (array == null) {
+            value = null;
+        } else {
+            ResultSet arrRS = array.getResultSet();
+            List<Object> values = new ArrayList<>();
+            while (arrRS.next()) {
+                values.add(arrRS.getByte(2));
+            }
+            value = values.toArray(new Object[0]);
+        }
+        return value;
     }
 
     public SQLBulkResponse exec(SQLBulkRequest request) {
@@ -141,5 +366,8 @@ public class SQLTransportExecutor {
 
     public interface ClientProvider {
         Client client();
+
+        @Nullable
+        String pgUrl();
     }
 }

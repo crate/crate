@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -42,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.*;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2)
+@UseJdbc
 public class SysShardsTest extends SQLTransportIntegrationTest {
 
 

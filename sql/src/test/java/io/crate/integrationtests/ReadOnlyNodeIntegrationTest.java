@@ -38,7 +38,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-import java.nio.file.Paths;
+import javax.annotation.Nullable;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
@@ -62,7 +62,13 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
                         // make sure we use the read-only client
                         return internalCluster().client(internalCluster().getNodeNames()[1]);
                     }
-                }
+
+                    @Override
+                    public String pgUrl() {
+                        return null;
+                    }
+                },
+            random()
         ));
     }
 
@@ -94,7 +100,14 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
                             // make sure we use NOT the read-only client
                             return internalCluster().client(internalCluster().getNodeNames()[0]);
                         }
-                    }
+
+                        @Nullable
+                        @Override
+                        public String pgUrl() {
+                            return null;
+                        }
+                    },
+                random()
             );
         }
         response = readOnlyExecutor.exec(stmt, args);

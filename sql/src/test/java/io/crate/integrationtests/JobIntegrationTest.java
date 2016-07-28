@@ -25,6 +25,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.testing.SQLTransportExecutor;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -32,7 +33,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import javax.annotation.Nullable;
+
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1, randomDynamicTemplates = false)
+@UseJdbc
 public class JobIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
@@ -54,7 +58,13 @@ public class JobIntegrationTest extends SQLTransportIntegrationTest {
                     public Client client() {
                         return internalCluster().clientNodeClient();
                     }
-                }
+
+                    @Nullable
+                    @Override
+                    public String pgUrl() {
+                        return null;
+                    }
+                }, random()
         ));
     }
 

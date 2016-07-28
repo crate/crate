@@ -25,6 +25,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.exceptions.Exceptions;
 import io.crate.plugin.CrateCorePlugin;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.plugin.CrateTestingPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -45,6 +46,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.*;
 
+@UseJdbc
 public class KillIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -161,11 +163,13 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(false)
     public void testKillSelectSysTableJobById() throws Exception {
         assertGotCancelled("SELECT sleep(500) FROM sys.nodes", null, false);
     }
 
     @Test
+    @UseJdbc(false) // FIXME: UUID type mapping is missing
     public void testKillNonExisitingJob() throws Exception {
         UUID jobId = UUID.randomUUID();
         SQLResponse killResponse = execute("KILL ?", new Object[]{jobId});

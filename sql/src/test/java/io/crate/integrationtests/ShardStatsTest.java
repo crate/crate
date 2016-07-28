@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.blob.v2.BlobIndices;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -32,6 +33,7 @@ import static org.hamcrest.Matchers.is;
 
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
+@UseJdbc
 public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test

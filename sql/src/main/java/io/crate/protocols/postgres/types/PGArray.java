@@ -26,6 +26,7 @@ import com.google.common.primitives.Bytes;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import javax.annotation.Nonnull;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -34,6 +35,7 @@ class PGArray extends PGType {
 
     private final PGType innerType;
 
+    static final PGArray CHAR_ARRAY = new PGArray(1002, CharType.INSTANCE);
     static final PGArray INT2_ARRAY = new PGArray(1005, SmallIntType.INSTANCE);
     static final PGArray INT4_ARRAY = new PGArray(1007, IntegerType.INSTANCE);
     static final PGArray INT8_ARRAY = new PGArray(1016, BigIntType.INSTANCE);
@@ -42,6 +44,7 @@ class PGArray extends PGType {
     static final PGArray BOOL_ARRAY = new PGArray(1000, BooleanType.INSTANCE);
     static final PGArray TIMESTAMPZ_ARRAY = new PGArray(1185, TimestampType.INSTANCE);
     static final PGArray VARCHAR_ARRAY = new PGArray(1015, VarCharType.INSTANCE);
+    static final PGArray JSON_ARRAY = new PGArray(199, JsonType.INSTANCE);
 
     private static final byte[] NULL_BYTES = new byte[] { 'N', 'U', 'L', 'L' };
 
@@ -68,49 +71,106 @@ class PGArray extends PGType {
     @Override
     byte[] encodeAsUTF8Text(@Nonnull Object array) {
         Object[] values = (Object[]) array;
-        List<Byte> encodesValues = new ArrayList<>();
-        encodesValues.add((byte)'{');
+        List<Byte> encodedValues = new ArrayList<>();
+        encodedValues.add((byte)'{');
         for (int i = 0; i < values.length; i++) {
             Object o = values[i];
             if (i > 0) {
-                encodesValues.add((byte) ',');
+                encodedValues.add((byte) ',');
             }
             byte[] bytes;
             if (o == null) {
                 bytes = NULL_BYTES;
                 for (byte aByte : bytes) {
-                    encodesValues.add(aByte);
+                    encodedValues.add(aByte);
                 }
             } else {
-                encodesValues.add((byte) '\"');
                 bytes = innerType.encodeAsUTF8Text(o);
+                encodedValues.add((byte) '\"');
                 for (byte aByte : bytes) {
-                    encodesValues.add(aByte);
+                    if (aByte == '"' || aByte == '\\') {
+                        encodedValues.add((byte) '\\');
+                    }
+                    encodedValues.add(aByte);
                 }
-                encodesValues.add((byte) '\"');
+                encodedValues.add((byte) '\"');
             }
         }
-        encodesValues.add((byte) '}');
-        return Bytes.toArray(encodesValues);
+        encodedValues.add((byte) '}');
+        return Bytes.toArray(encodedValues);
     }
 
     @Override
     Object decodeUTF8Text(byte[] bytes) {
+        /*
+         * text representation:
+         *
+         * integer array:
+         *      {"10",NULL,NULL,"20","30"}
+         *
+         *
+         * json array:
+         *      {"{"x": 10}","{"y": 20}"}
+         */
+
+        int level = 0;
+        int valIdx = 0;
         List<Object> values = new ArrayList<>();
-        int valueStartIdx = 0;
         for (int i = 0; i < bytes.length; i++) {
             byte aByte = bytes[i];
-            if (aByte == '{') {
-                valueStartIdx = i;
-            } else if (aByte == ',' || aByte == '}') {
-                if (bytes[valueStartIdx + 1] == '"') {
-                    values.add(innerType.decodeUTF8Text(Arrays.copyOfRange(bytes, valueStartIdx + 2, i - 1)));
-                } else {
-                    values.add(null);
-                }
-                valueStartIdx = i;
+            switch (aByte) {
+                case '{':
+                    level++;
+                    if (level == 1) {
+                        /* {"10",NULL,"20"}
+                         * ^
+                         */
+                        valIdx = i;
+                    }
+                    break;
+                case '}':
+                    level--;
+                    if (level == 0) {
+                        /* {"10",NULL,"20"}
+                         *           |    |
+                         *           |    i
+                         *           valIdx
+                         */
+                        byte firstValueByte = bytes[valIdx + 1];
+                        if (firstValueByte == '"') {
+                            byte[] innerBytes = Arrays.copyOfRange(bytes, valIdx + 2 , i - 1);
+                            String s = new String(innerBytes, StandardCharsets.UTF_8);
+                            s = s.replace("\\\"", "\"");
+                            s = s.replace("\\\\", "\\");
+                            values.add(innerType.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8)));
+                        } else if (firstValueByte == 'N') {
+                            values.add(null);
+                        }
+                    }
+                    break;
+                case ',':
+                    if (level == 1) {
+                        /* {"10",NULL,"20"}
+                         * ||   |
+                         * ||   i
+                         * |firstValueByte
+                         * valIdx
+                         */
+                        byte firstValueByte = bytes[valIdx + 1];
+                        if (firstValueByte == '"') {
+                            byte[] innerBytes = Arrays.copyOfRange(bytes, valIdx + 2 , i - 1);
+                            String s = new String(innerBytes, StandardCharsets.UTF_8);
+                            s = s.replace("\\\"", "\"");
+                            s = s.replace("\\\\", "\\");
+                            values.add(innerType.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8)));
+                        } else if (firstValueByte == 'N') {
+                            values.add(null);
+                        }
+                        valIdx = i;
+                    }
+                    break;
             }
         }
-        return values.toArray(new Object[0]);
+        return values.toArray();
     }
 }

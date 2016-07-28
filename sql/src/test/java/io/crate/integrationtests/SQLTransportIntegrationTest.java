@@ -48,6 +48,7 @@ import io.crate.operation.QueryResultRowDownstream;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.plugin.CrateCorePlugin;
+import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.GroovyTestSanitizer;
 import io.crate.testing.SQLTransportExecutor;
@@ -61,6 +62,7 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -74,10 +76,12 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.After;
+import org.junit.Before;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -96,6 +100,19 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     protected final SQLTransportExecutor sqlExecutor;
 
     @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        return Settings.builder()
+            .put(super.nodeSettings(nodeOrdinal))
+            .put("psql.enabled", true)
+            .build();
+    }
+
+    @Before
+    public void initDriver() throws Exception {
+        Class.forName("org.postgresql.Driver");
+    }
+
+    @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return pluginList(CrateCorePlugin.class);
     }
@@ -110,7 +127,21 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                     public Client client() {
                         return ESIntegTestCase.client();
                     }
-                }
+
+                    @Override
+                    public String pgUrl() {
+                        PostgresNetty postgresNetty = internalCluster().getInstance(PostgresNetty.class);
+                        for (InetSocketTransportAddress address : postgresNetty.boundAddresses()) {
+                            if (address.getAddress().startsWith("::")) {
+                                continue;
+                            }
+                            return String.format(Locale.ENGLISH, "jdbc:postgresql://%s:%d/",
+                                address.getHost(), address.getPort());
+                        }
+                        return null;
+                    }
+                },
+            random()
         ));
     }
 

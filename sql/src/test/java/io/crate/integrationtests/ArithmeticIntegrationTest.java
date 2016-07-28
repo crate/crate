@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -34,6 +35,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 
+@UseJdbc
 public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule
@@ -148,8 +150,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t (d, i) values (?, ?), (?, ?), (?, ?)", new Object[]{
                 1.3d, 1,
                 1.6d, 2,
-                2.2d, 9,
-                -3.4, 6});
+                2.2d, 9});
         execute("refresh table t");
 
         execute("select i from t where round(d) = i order by i");
@@ -165,8 +166,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t (x, base) values (?, ?), (?, ?), (?, ?)", new Object[]{
                 144L, 12L, // 2
                 65536L, 2L, // 16
-                9L, 3L, // 2
-                700L, 3L // 5.9630...
+                9L, 3L // 2
         });
         execute("refresh table t");
 
