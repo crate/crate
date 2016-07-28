@@ -30,7 +30,8 @@ import org.elasticsearch.common.inject.Singleton;
 @Singleton
 class NodeNetworkExpression extends SysNodeObjectReference {
 
-    public static final String PROBE_TIMESTAMP = "probe_timestamp";
+    private static final String PROBE_TIMESTAMP = "probe_timestamp";
+    private static final String NETWORK_TCP = "tcp";
 
     @Inject
     NodeNetworkExpression(final ExtendedNetworkStats stats) {
@@ -40,8 +41,7 @@ class NodeNetworkExpression extends SysNodeObjectReference {
                 return stats.timestamp();
             }
         });
-        childImplementations.put(SysNodesTableInfo.Columns.NETWORK_TCP.name(),
-                new NodeNetworkTCPExpression(stats));
+        childImplementations.put(NETWORK_TCP, new NodeNetworkTCPExpression(stats));
     }
 
 }

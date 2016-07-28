@@ -31,7 +31,6 @@ import io.crate.monitor.ExtendedFsStats;
 import io.crate.monitor.ThreadPools;
 import io.crate.operation.reference.sys.node.fs.*;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Map;
 
@@ -125,10 +124,10 @@ public class SysNodesExpressionFactories {
             .put(SysNodesTableInfo.Columns.THREAD_POOLS_NAME, new RowCollectExpressionFactory() {
                 @Override
                 public RowCollectExpression create() {
-                    return new NodeThreadPoolExpression<BytesRef>() {
+                    return new NodeThreadPoolExpression<String>() {
                         @Override
-                        protected BytesRef valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
-                            return BytesRefs.toBytesRef(input.getKey());
+                        protected String valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                            return input.getKey();
                         }
                     };
                 }

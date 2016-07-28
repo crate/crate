@@ -22,16 +22,19 @@
 
 package io.crate.operation.reference.sys.node.local.fs;
 
-import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedFsStats;
 import io.crate.operation.reference.sys.node.local.SysNodeObjectReference;
 
 public class NodeFsExpression extends SysNodeObjectReference {
 
+    private static final String FS_TOTAL = "total";
+    private static final String FS_DISKS = "disks";
+    private static final String FS_DATA = "data";
+
     public NodeFsExpression(ExtendedFsStats fsStats) {
-        childImplementations.put(SysNodesTableInfo.Columns.FS_TOTAL.name(), new NodeFsTotalExpression(fsStats));
-        childImplementations.put(SysNodesTableInfo.Columns.FS_DISKS.name(), new NodeFsDisksExpression(fsStats));
-        childImplementations.put(SysNodesTableInfo.Columns.FS_DATA.name(), new NodeFsDataExpression(fsStats));
+        childImplementations.put(FS_TOTAL, new NodeFsTotalExpression(fsStats));
+        childImplementations.put(FS_DISKS, new NodeFsDisksExpression(fsStats));
+        childImplementations.put(FS_DATA, new NodeFsDataExpression(fsStats));
     }
 
 }

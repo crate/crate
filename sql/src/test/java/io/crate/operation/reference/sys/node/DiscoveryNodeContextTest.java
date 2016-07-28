@@ -27,6 +27,7 @@ import io.crate.Version;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.MonitorModule;
 import io.crate.monitor.ThreadPools;
+import io.crate.operation.reference.sys.node.DiscoveryNodeContext;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;

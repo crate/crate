@@ -22,7 +22,6 @@
 
 package io.crate.operation.reference.sys.node.local;
 
-import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedOsStats;
 import io.crate.operation.reference.sys.node.SysNodeExpression;
 
@@ -32,6 +31,7 @@ class NodeOsExpression extends SysNodeObjectReference {
     abstract class OsExpression extends SysNodeExpression<Object> {
     }
 
+    private static final String CPU = "cpu";
     private static final String UPTIME = "uptime";
     private static final String TIMESTAMP = "timestamp";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
@@ -62,7 +62,6 @@ class NodeOsExpression extends SysNodeObjectReference {
                 return extendedOsStats.timestamp();
             }
         });
-        childImplementations.put(SysNodesTableInfo.Columns.OS_CPU.name(),
-                new NodeOsCpuExpression(extendedOsStats.cpu()));
+        childImplementations.put(CPU, new NodeOsCpuExpression(extendedOsStats.cpu()));
     }
 }

@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.node;
+package io.crate.operation.reference.sys.node.local;
 
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.monitor.ExtendedOsStats;
@@ -34,7 +34,7 @@ public class NodeOsExpressionTest extends CrateUnitTest {
     @Test
     public void testOsTimestampNotEvaluatedTwice() throws Exception {
         ExtendedOsStats osStats = mock(ExtendedOsStats.class);
-        NodeOsExpression nodeOsExpression = new NodeOsExpression();
+        NodeOsExpression nodeOsExpression = new NodeOsExpression(osStats);
         ReferenceImplementation timestampExpr = nodeOsExpression.getChildImplementation("timestamp");
         Long ts1 = (Long) timestampExpr.value();
         Thread.sleep(10L);

@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.reference.sys.node;
+package io.crate.operation.reference.sys.node.local;
 
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
@@ -39,8 +39,7 @@ public class NodePortExpressionTest extends CrateUnitTest {
         when(nodeService.info()).thenReturn(nodeInfo);
         when(nodeInfo.getHttp()).thenReturn(null);
 
-
-        NodePortExpression nodePortExpression = new NodePortExpression();
+        NodePortExpression nodePortExpression = new NodePortExpression(nodeService);
         Object value = nodePortExpression.getChildImplementation("http").value();
         assertThat(value, Matchers.nullValue());
     }
