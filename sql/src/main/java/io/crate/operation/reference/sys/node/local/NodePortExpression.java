@@ -69,7 +69,7 @@ class NodePortExpression extends SysNodeObjectReference {
     }
 
     private Integer portFromAddress(TransportAddress address) {
-        Integer port = 0;
+        Integer port = null;
         if (address instanceof InetSocketTransportAddress) {
             port = ((InetSocketTransportAddress) address).address().getPort();
         }

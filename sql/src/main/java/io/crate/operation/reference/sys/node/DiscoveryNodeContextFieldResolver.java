@@ -30,6 +30,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.ThreadPools;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -122,20 +123,28 @@ public class DiscoveryNodeContextFieldResolver {
                     .put(SysNodesTableInfo.Columns.REST_URL, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            context.restUrl(BytesRefs.toBytesRef(clusterService.localNode().attributes().get("http_address")));
+                            if (clusterService.localNode() != null) {
+                                String url = clusterService.localNode().attributes().get("http_address");
+                                context.restUrl(BytesRefs.toBytesRef(url));
+                            }
                         }
                     })
                     .put(SysNodesTableInfo.Columns.PORT, new Consumer<DiscoveryNodeContext>() {
                         @Override
                         public void accept(DiscoveryNodeContext context) {
-                            int transport = 0;
+                            Integer http = null;
+                            Integer transport;
+
+                            if (nodeService.info().getHttp() != null) {
+                                http = portFromAddress(nodeService.info().getHttp().address().publishAddress());
+                            }
                             try {
                                 transport = portFromAddress(nodeService.stats().getNode().address());
                             } catch (IOException e) {
-                                // This is a bug in ES method signature, IOException is never thrown
+                                throw new ElasticsearchException("unable to get node transport statistics", e);
                             }
                             HashMap<String, Integer> port = new HashMap<>();
-                            port.put("http", portFromAddress(nodeService.info().getHttp().address().publishAddress()));
+                            port.put("http", http);
                             port.put("transport", transport);
                             context.port(port);
                         }
@@ -217,7 +226,7 @@ public class DiscoveryNodeContextFieldResolver {
                             try {
                                 context.processStats(nodeService.stats().getProcess());
                             } catch (IOException e) {
-                                // This is a bug in ES method signature, IOException is never thrown
+                                throw new ElasticsearchException("unable to get node statistics");
                             }
                         }
                     })
@@ -230,7 +239,7 @@ public class DiscoveryNodeContextFieldResolver {
 
 
     private static Integer portFromAddress(TransportAddress address) {
-        Integer port = 0;
+        Integer port = null;
         if (address instanceof InetSocketTransportAddress) {
             port = ((InetSocketTransportAddress) address).address().getPort();
         }

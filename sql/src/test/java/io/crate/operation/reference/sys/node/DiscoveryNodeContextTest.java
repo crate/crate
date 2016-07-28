@@ -46,6 +46,7 @@ import org.elasticsearch.monitor.os.OsProbe;
 import org.elasticsearch.monitor.process.ProcessProbe;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolModule;
+import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,6 +59,9 @@ import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -242,6 +246,25 @@ public class DiscoveryNodeContextTest extends CrateUnitTest {
         assertEquals(ctx1, ctx2);
         assertNull(ctx2.activeCount());
         assertNull(ctx2.rejectedCount());
+    }
 
+    @Test
+    public void testStreamContextWithNullPorts() throws Exception {
+        DiscoveryNodeContext ctx1 = new DiscoveryNodeContext(true);
+        ctx1.port(new HashMap<String, Integer>() {{
+            put("http", null);
+            put("transport", 4300);
+        }});
+        ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
+        StreamOutput out = new OutputStreamStreamOutput(outBuffer);
+        ctx1.writeTo(out);
+
+        ByteArrayInputStream inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
+        InputStreamStreamInput in = new InputStreamStreamInput(inBuffer);
+        DiscoveryNodeContext ctx2 = new DiscoveryNodeContext(true);
+        ctx2.readFrom(in);
+
+        assertThat(ctx2.port().get("http"), nullValue());
+        assertThat(ctx2.port().get("transport"), is(4300));
     }
 }

@@ -266,7 +266,7 @@ public class DiscoveryNodeContext implements Streamable {
             int size = in.readVInt();
             port = new HashMap<>(size);
             for (int i = 0; i < size; i++) {
-                port.put(in.readString(), in.readVInt());
+                port.put(in.readString(), in.readOptionalVInt());
             }
         } else {
             port = null;
@@ -309,7 +309,7 @@ public class DiscoveryNodeContext implements Streamable {
             out.writeVInt(port.size());
             for (Map.Entry<String, Integer> p : port.entrySet()) {
                 out.writeString(p.getKey());
-                out.writeVInt(p.getValue());
+                out.writeOptionalVInt(p.getValue());
             }
         }
         out.writeOptionalStreamable(jvmStats);

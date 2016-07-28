@@ -47,12 +47,12 @@ public class NodeStatsResponse extends TransportResponse {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        // TODO:
+        discoveryNodeContext = in.readOptionalStreamable(new DiscoveryNodeContext());
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        // TODO:
+        out.writeOptionalStreamable(discoveryNodeContext);
     }
 }

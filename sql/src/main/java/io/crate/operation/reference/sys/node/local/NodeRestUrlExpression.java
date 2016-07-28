@@ -35,11 +35,12 @@ class NodeRestUrlExpression extends SysNodeExpression<BytesRef> {
 
     @Override
     public BytesRef value() {
-        String val = clusterService.localNode() != null ? clusterService.localNode().attributes().get("http_address") : null;
-        if (val != null) {
+        if (clusterService.localNode() != null) {
+            String val = clusterService.localNode().attributes().get("http_address");
             return new BytesRef(val);
+        } else {
+            return null;
         }
-        return new BytesRef();
     }
 
 }
