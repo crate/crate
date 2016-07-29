@@ -21,26 +21,19 @@
 
 package io.crate.action.sql;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.ActionListeners;
-import io.crate.analyze.Analysis;
-import io.crate.analyze.Analyzer;
-import io.crate.analyze.ParameterContext;
-import io.crate.executor.Executor;
-import io.crate.executor.RowCountResult;
-import io.crate.executor.TaskResult;
-import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
-import io.crate.operation.collect.StatsTables;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.analyze.symbol.Field;
+import io.crate.concurrent.CompletionListener;
+import io.crate.concurrent.CompletionMultiListener;
+import io.crate.concurrent.CompletionState;
+import io.crate.core.collections.Row;
+import io.crate.exceptions.Exceptions;
+import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
@@ -49,71 +42,122 @@ import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkRequest, SQLBulkResponse> {
+import static io.crate.action.sql.TransportSQLAction.DEFAULT_SOFT_LIMIT;
+import static io.crate.action.sql.TransportSQLAction.toOptions;
+
+public class TransportSQLBulkAction extends TransportAction<SQLBulkRequest, SQLBulkResponse> {
+
+    private final SQLOperations sqlOperations;
+    private final static String UNNAMED = "";
 
     @Inject
-    public TransportSQLBulkAction(ClusterService clusterService,
+    public TransportSQLBulkAction(SQLOperations sqlOperations,
                                   Settings settings,
                                   ThreadPool threadPool,
-                                  Analyzer analyzer,
-                                  Planner planner,
-                                  Provider<Executor> executor,
                                   TransportService transportService,
-                                  StatsTables statsTables,
                                   ActionFilters actionFilters,
-                                  IndexNameExpressionResolver indexNameExpressionResolver,
-                                  TransportKillJobsNodeAction transportKillJobsNodeAction) {
-        super(clusterService, settings, SQLBulkAction.NAME, threadPool, analyzer,
-            planner, executor, statsTables, actionFilters, indexNameExpressionResolver, transportKillJobsNodeAction,
-            transportService.getTaskManager());
-
+                                  IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, SQLBulkAction.NAME, threadPool, actionFilters, indexNameExpressionResolver, transportService.getTaskManager());
+        this.sqlOperations = sqlOperations;
         transportService.registerRequestHandler(SQLBulkAction.NAME, SQLBulkRequest.class, ThreadPool.Names.SAME, new TransportHandler());
     }
 
     @Override
-    public ParameterContext getParamContext(SQLBulkRequest request) {
-        return new ParameterContext(
-                SQLRequest.EMPTY_ARGS, request.bulkArgs(), request.getDefaultSchema(), request.getRequestFlags());
+    protected void doExecute(SQLBulkRequest request, final ActionListener<SQLBulkResponse> listener) {
+        SQLOperations.Session session = sqlOperations.createSession(
+            request.getDefaultSchema(),
+            toOptions(request.getRequestFlags()),
+            DEFAULT_SOFT_LIMIT
+        );
+        try {
+            final long startTime = System.nanoTime();
+            session.parse(UNNAMED, request.stmt(), Collections.<DataType>emptyList());
+
+            Object[][] bulkArgs = request.bulkArgs();
+            final SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[bulkArgs.length];
+            if (results.length == 0) {
+                session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
+                session.execute(UNNAMED, 1, ResultReceiver.NO_OP);
+            } else {
+                for (int i = 0; i < bulkArgs.length; i++) {
+                    session.bind(UNNAMED, UNNAMED, Arrays.asList(bulkArgs[i]), null);
+                    ResultReceiver resultReceiver = new RowCountReceiver(results, i);
+                    session.execute(UNNAMED, 1, resultReceiver);
+                }
+            }
+            List<Field> outputColumns = session.describe('P', UNNAMED);
+            if (outputColumns != null) {
+                throw new UnsupportedOperationException(
+                    "Bulk operations for statements that return result sets is not supported");
+            }
+            session.sync(new CompletionListener() {
+                @Override
+                public void onSuccess(@Nullable CompletionState result) {
+                    float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
+                    listener.onResponse(new SQLBulkResponse(results, duration));
+                }
+
+                @Override
+                public void onFailure(@Nonnull Throwable t) {
+                    listener.onFailure(Exceptions.createSQLActionException(t));
+                }
+            });
+        } catch (Throwable t) {
+            listener.onFailure(Exceptions.createSQLActionException(t));
+        }
     }
 
-    @Override
-    void executePlan(Executor executor,
-                     Analysis analysis,
-                     Plan plan,
-                     final ActionListener<SQLBulkResponse> listener,
-                     final SQLBulkRequest request,
-                     final long startTime) {
-        if (analysis.rootRelation() != null && analysis.rootRelation().fields() != null) {
-            listener.onFailure(new UnsupportedOperationException(
-                "Bulk operations for statements that return result sets is not supported"));
-            return;
-        }
 
-        ListenableFuture<List<TaskResult>> future = Futures.allAsList(executor.executeBulk(plan));
-        Futures.addCallback(future, new FutureCallback<List<TaskResult>>() {
-            @Override
-            public void onSuccess(@Nullable List<TaskResult> result) {
-                listener.onResponse(createResponse(result, startTime));
-            }
+    /**
+     * @deprecated should become part of {@link SQLOperations} and
+     * {@link io.crate.cluster.gracefulstop.DecommissioningService} also needs to enable it again if decommissioning is aborted
+     */
+    @Deprecated
+    public void disable() {
 
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                listener.onFailure(t);
-            }
-        });
     }
 
-    private SQLBulkResponse createResponse(List<TaskResult> result, long startTime) {
-        SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[result.size()];
-        for (int i = 0, resultSize = result.size(); i < resultSize; i++) {
-            assert result.get(i) instanceof RowCountResult : "Query operation not supported with bulk requests";
-            RowCountResult taskResult = (RowCountResult) result.get(i);
-            results[i] = new SQLBulkResponse.Result(taskResult.errorMessage(), taskResult.rowCount());
+    private static class RowCountReceiver implements ResultReceiver {
+
+        private final SQLBulkResponse.Result[] results;
+        private final int resultIdx;
+        private CompletionListener completionListener = CompletionListener.NO_OP;
+        private long rowCount;
+
+        RowCountReceiver(SQLBulkResponse.Result[] results, int resultIdx) {
+            this.results = results;
+            this.resultIdx = resultIdx;
         }
-        float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
-        return new SQLBulkResponse(results, duration);
+
+        @Override
+        public void addListener(CompletionListener listener) {
+            this.completionListener = CompletionMultiListener.merge(this.completionListener, listener);
+        }
+
+        @Override
+        public void setNextRow(Row row) {
+            rowCount = ((long) row.get(0));
+        }
+
+        @Override
+        public void batchFinished() {
+        }
+
+        @Override
+        public void allFinished() {
+            results[resultIdx] = new SQLBulkResponse.Result(null, rowCount);
+            completionListener.onSuccess(null);
+        }
+
+        @Override
+        public void fail(@Nonnull Throwable t) {
+            results[resultIdx] = new SQLBulkResponse.Result(Exceptions.messageOf(t), rowCount);
+            completionListener.onFailure(t);
+        }
     }
 
     private class TransportHandler extends TransportRequestHandler<SQLBulkRequest> {

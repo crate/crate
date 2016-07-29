@@ -23,13 +23,27 @@ package io.crate.exceptions;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import io.crate.action.sql.SQLActionException;
+import io.crate.metadata.PartitionName;
+import io.crate.sql.parser.ParsingException;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
+import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.elasticsearch.indices.IndexAlreadyExistsException;
+import org.elasticsearch.indices.InvalidIndexNameException;
+import org.elasticsearch.indices.InvalidIndexTemplateException;
+import org.elasticsearch.repositories.RepositoryMissingException;
+import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.snapshots.InvalidSnapshotNameException;
+import org.elasticsearch.snapshots.SnapshotMissingException;
 import org.elasticsearch.transport.RemoteTransportException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
 public class Exceptions {
@@ -69,5 +83,104 @@ public class Exceptions {
     public static boolean isShardFailure(Throwable e) {
         e = Exceptions.unwrap(e);
         return e instanceof ShardNotFoundException || e instanceof IllegalIndexShardStateException;
+    }
+
+
+    /**
+     * Create a {@link io.crate.action.sql.SQLActionException} out of a {@link java.lang.Throwable}.
+     * If concrete {@link org.elasticsearch.ElasticsearchException} is found, first transform it
+     * to a {@link io.crate.exceptions.CrateException}
+     */
+    public static SQLActionException createSQLActionException(Throwable e) {
+        // ideally this method would be a static factory method in SQLActionException,
+        // but that would pull too many dependencies for the client
+
+        if (e instanceof SQLActionException) {
+            return (SQLActionException) e;
+        }
+        e = esToCrateException(e);
+
+        int errorCode = 5000;
+        RestStatus restStatus = RestStatus.INTERNAL_SERVER_ERROR;
+        if (e instanceof CrateException) {
+            CrateException crateException = (CrateException) e;
+            if (e instanceof ValidationException) {
+                errorCode = 4000 + crateException.errorCode();
+                restStatus = RestStatus.BAD_REQUEST;
+            } else if (e instanceof ReadOnlyException) {
+                errorCode = 4030 + crateException.errorCode();
+                restStatus = RestStatus.FORBIDDEN;
+            } else if (e instanceof ResourceUnknownException) {
+                errorCode = 4040 + crateException.errorCode();
+                restStatus = RestStatus.NOT_FOUND;
+            } else if (e instanceof ConflictException) {
+                errorCode = 4090 + crateException.errorCode();
+                restStatus = RestStatus.CONFLICT;
+            } else if (e instanceof UnhandledServerException) {
+                errorCode = 5000 + crateException.errorCode();
+            }
+        } else if (e instanceof ParsingException) {
+            errorCode = 4000;
+            restStatus = RestStatus.BAD_REQUEST;
+        } else if (e instanceof MapperParsingException) {
+            errorCode = 4000;
+            restStatus = RestStatus.BAD_REQUEST;
+        }
+
+        String message = e.getMessage();
+        if (message == null) {
+            if (e instanceof CrateException && e.getCause() != null) {
+                e = e.getCause();   // use cause because it contains a more meaningful error in most cases
+            }
+            StackTraceElement[] stackTraceElements = e.getStackTrace();
+            if (stackTraceElements.length > 0) {
+                message = String.format(Locale.ENGLISH, "%s in %s", e.getClass().getSimpleName(), stackTraceElements[0]);
+            } else {
+                message = "Error in " + e.getClass().getSimpleName();
+            }
+        } else {
+            message = e.getClass().getSimpleName() + ": " + message;
+        }
+        return new SQLActionException(message, errorCode, restStatus, e.getStackTrace());
+    }
+
+    private static Throwable esToCrateException(Throwable e) {
+        e = Exceptions.unwrap(e);
+
+        if (e instanceof IllegalArgumentException || e instanceof ParsingException) {
+            return new SQLParseException(e.getMessage(), (Exception) e);
+        } else if (e instanceof UnsupportedOperationException) {
+            return new UnsupportedFeatureException(e.getMessage(), (Exception) e);
+        } else if (e instanceof DocumentAlreadyExistsException) {
+            return new DuplicateKeyException(
+                "A document with the same primary key exists already", e);
+        } else if (e instanceof IndexAlreadyExistsException) {
+            return new TableAlreadyExistsException(((IndexAlreadyExistsException) e).getIndex(), e);
+        } else if ((e instanceof InvalidIndexNameException)) {
+            if (e.getMessage().contains("already exists as alias")) {
+                // treat an alias like a table as aliases are not officially supported
+                return new TableAlreadyExistsException(((InvalidIndexNameException) e).getIndex(),
+                    e);
+            }
+            return new InvalidTableNameException(((InvalidIndexNameException) e).getIndex(), e);
+        } else if (e instanceof InvalidIndexTemplateException) {
+            PartitionName partitionName = PartitionName.fromIndexOrTemplate(((InvalidIndexTemplateException) e).name());
+            return new InvalidTableNameException(partitionName.tableIdent().fqn(), e);
+        } else if (e instanceof IndexNotFoundException) {
+            return new TableUnknownException(((IndexNotFoundException) e).getIndex(), e);
+        } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
+            return new CircuitBreakingException(e.getMessage());
+        } else if (e instanceof InterruptedException) {
+            return new JobKilledException();
+        } else if (e instanceof RepositoryMissingException) {
+            return new RepositoryUnknownException(((RepositoryMissingException) e).repository());
+        } else if (e instanceof SnapshotMissingException) {
+            return new SnapshotUnknownException(((SnapshotMissingException) e).snapshot(), e);
+        } else if (e instanceof InvalidSnapshotNameException) {
+            if (((InvalidSnapshotNameException) e).getDetailedMessage().contains("snapshot with such name already exists")) {
+                return new SnapShotAlreadyExistsExeption(((InvalidSnapshotNameException) e).snapshot());
+            }
+        }
+        return e;
     }
 }

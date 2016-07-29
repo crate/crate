@@ -102,7 +102,8 @@ class BatchPortal extends AbstractPortal {
         analysis.add(sessionData.getAnalyzer().analyze(statement,
             new ParameterContext(getArgs(),
                 EMPTY_BULK_ARGS,
-                sessionData.getDefaultSchema())));
+                sessionData.getDefaultSchema(),
+                sessionData.options())));
         return this;
     }
 

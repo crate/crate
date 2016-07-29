@@ -23,13 +23,11 @@
 package io.crate.planner;
 
 import com.google.common.collect.ImmutableSet;
+import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.action.sql.TransportSQLAction;
-import io.crate.analyze.Analyzer;
-import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.metadata.TableIdent;
-import io.crate.operation.collect.StatsTables;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -74,17 +72,12 @@ public class TableStatsServiceTest extends CrateUnitTest  {
 
     private TransportSQLAction getTransportSQLAction(final AtomicInteger numRequests) {
         return new TransportSQLAction(
-            mock(ClusterService.class),
+            mock(SQLOperations.class),
             Settings.EMPTY,
             threadPool,
-            mock(Analyzer.class),
-            mock(Planner.class),
-            mock(Provider.class),
             mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
-            mock(StatsTables.class),
             new ActionFilters(ImmutableSet.<ActionFilter>of()),
-            mock(IndexNameExpressionResolver.class),
-            mock(TransportKillJobsNodeAction.class)
+            mock(IndexNameExpressionResolver.class)
         ) {
             @Override
             protected void doExecute(SQLRequest request, ActionListener<SQLResponse> listener) {

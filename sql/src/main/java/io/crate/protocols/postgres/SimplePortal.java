@@ -25,6 +25,7 @@ package io.crate.protocols.postgres;
 import io.crate.Constants;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.RowReceiverToResultReceiver;
+import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
@@ -52,6 +53,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static io.crate.action.sql.SQLBulkRequest.EMPTY_BULK_ARGS;
@@ -70,14 +72,18 @@ public class SimplePortal extends AbstractPortal {
     private ResultReceiver resultReceiver;
     private RowReceiverToResultReceiver rowReceiver = null;
     private int maxRows = 0;
+    private int defaultLimit;
 
     public SimplePortal(String name,
                         String defaultSchema,
+                        Set<SQLOperations.Option> options,
                         Analyzer analyzer,
                         Executor executor,
                         TransportKillJobsNodeAction transportKillJobsNodeAction,
-                        boolean isReadOnly) {
-        super(name, defaultSchema, analyzer, executor, transportKillJobsNodeAction, isReadOnly);
+                        boolean isReadOnly,
+                        int defaultLimit) {
+        super(name, defaultSchema, options, analyzer, executor, transportKillJobsNodeAction, isReadOnly);
+        this.defaultLimit = defaultLimit;
     }
 
     @Override
@@ -124,7 +130,8 @@ public class SimplePortal extends AbstractPortal {
             analysis = sessionData.getAnalyzer().analyze(statement,
                 new ParameterContext(getArgs(),
                     EMPTY_BULK_ARGS,
-                    sessionData.getDefaultSchema()));
+                    sessionData.getDefaultSchema(),
+                    sessionData.options()));
         }
         return this;
     }
@@ -151,7 +158,7 @@ public class SimplePortal extends AbstractPortal {
         UUID jobId = UUID.randomUUID();
         Plan plan;
         try {
-            plan = planner.plan(analysis, jobId, 0, maxRows);
+            plan = planner.plan(analysis, jobId, defaultLimit, maxRows);
         } catch (Throwable t) {
             statsTables.logPreExecutionFailure(jobId, query, Exceptions.messageOf(t));
             throw t;
@@ -169,7 +176,8 @@ public class SimplePortal extends AbstractPortal {
                 sessionData.getExecutor(),
                 sessionData.getTransportKillJobsNodeAction(),
                 jobId,
-                sessionData.getDefaultSchema());
+                sessionData.getDefaultSchema(),
+                sessionData.options());
         }
 
         if (resumeIfSuspended()) return;
@@ -223,6 +231,7 @@ public class SimplePortal extends AbstractPortal {
         private final TransportKillJobsNodeAction transportKillJobsNodeAction;
         private final UUID jobId;
         private final String defaultSchema;
+        private Set<SQLOperations.Option> options;
         int attempt = 1;
 
         ResultReceiverRetryWrapper(ResultReceiver delegate,
@@ -232,7 +241,8 @@ public class SimplePortal extends AbstractPortal {
                                    Executor executor,
                                    TransportKillJobsNodeAction transportKillJobsNodeAction,
                                    UUID jobId,
-                                   String defaultSchema) {
+                                   String defaultSchema,
+                                   Set<SQLOperations.Option> options) {
             this.delegate = delegate;
             this.portal = portal;
             this.analyzer = analyzer;
@@ -241,6 +251,7 @@ public class SimplePortal extends AbstractPortal {
             this.transportKillJobsNodeAction = transportKillJobsNodeAction;
             this.jobId = jobId;
             this.defaultSchema = defaultSchema;
+            this.options = options;
         }
 
         @Override
@@ -276,7 +287,7 @@ public class SimplePortal extends AbstractPortal {
                         LOGGER.debug("Killed {} jobs before Retry", killResponse.numKilled());
 
                         Analysis analysis = analyzer.analyze(portal.statement,
-                            new ParameterContext(portal.getArgs(), EMPTY_BULK_ARGS, defaultSchema));
+                            new ParameterContext(portal.getArgs(), EMPTY_BULK_ARGS, defaultSchema, options));
                         Plan plan = planner.plan(analysis, jobId, 0, portal.maxRows);
                         executor.execute(plan, portal.rowReceiver);
                     }

@@ -22,7 +22,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.TransportBaseSQLAction;
+import io.crate.action.sql.SQLOperations;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -62,7 +62,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         if ((nodeOrdinal + 1) % 2 == 0) {
             builder.put("psql.port", "4242");
         } else {
-            builder.put(TransportBaseSQLAction.NODE_READ_ONLY_SETTING, true);
+            builder.put(SQLOperations.NODE_READ_ONLY_SETTING, true);
             builder.put("psql.port", "4243");
         }
         return builder.build();

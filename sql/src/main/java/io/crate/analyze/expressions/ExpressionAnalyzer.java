@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import io.crate.action.sql.SQLBaseRequest;
+import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.FieldResolver;
@@ -586,7 +586,7 @@ public class ExpressionAnalyzer {
             try {
                 return fieldProvider.resolveField(node.getName(), null, operation);
             } catch (ColumnUnknownException exception) {
-                if ((parameterContext.headerFlags() & SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT) == SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT) {
+                if (parameterContext.options().contains(SQLOperations.Option.ALLOW_QUOTED_SUBSCRIPT)) {
                     String quotedSubscriptLiteral = getQuotedSubscriptLiteral(node.getName().toString());
                     if (quotedSubscriptLiteral != null) {
                         return process(SqlParser.createExpression(quotedSubscriptLiteral), context);

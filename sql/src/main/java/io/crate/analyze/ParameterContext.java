@@ -21,12 +21,13 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.SQLBaseRequest;
+import io.crate.action.sql.SQLOperations;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
+import java.util.Set;
 
 import static io.crate.analyze.symbol.Literal.newLiteral;
 
@@ -34,7 +35,7 @@ import static io.crate.analyze.symbol.Literal.newLiteral;
 public class ParameterContext {
 
     public static final ParameterContext EMPTY = new ParameterContext(
-            new Object[0], new Object[0][], null, SQLBaseRequest.HEADER_FLAG_OFF);
+            new Object[0], new Object[0][], null, SQLOperations.Option.NONE);
 
     final Object[] parameters;
 
@@ -43,27 +44,28 @@ public class ParameterContext {
     @Nullable
     private final String defaultSchema;
 
+    private final Set<SQLOperations.Option> options;
+
     private int currentIdx = 0;
 
-    private final int headerFlags;
 
     public ParameterContext(Object[] parameters, Object[][] bulkParameters,
-                            @Nullable String defaultSchema, int headerFlags) {
+                            @Nullable String defaultSchema, Set<SQLOperations.Option> options) {
         this.parameters = parameters;
         this.defaultSchema = defaultSchema;
+        this.options = options;
         if (bulkParameters.length > 0) {
             validateBulkParams(bulkParameters);
         }
         this.bulkParameters = bulkParameters;
-        this.headerFlags = headerFlags;
     }
 
     public ParameterContext(Object[] parameters, Object[][] bulkParameters, @Nullable String defaultSchema) {
-        this(parameters, bulkParameters, defaultSchema, SQLBaseRequest.HEADER_FLAG_OFF);
+        this(parameters, bulkParameters, defaultSchema, SQLOperations.Option.NONE);
     }
 
-    public int headerFlags() {
-        return headerFlags;
+    public Set<SQLOperations.Option> options() {
+        return options;
     }
 
     @Nullable

@@ -23,7 +23,7 @@ package io.crate.analyze.expressions;
 
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.action.sql.SQLBaseRequest;
+import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -111,7 +111,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     public void testQuotedSubscriptExpression() throws Exception {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 mockedAnalysisMetaData,
-                new ParameterContext(new Object[0], new Object[0][], null, SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT),
+                new ParameterContext(new Object[0], new Object[0][], null, EnumSet.of(SQLOperations.Option.ALLOW_QUOTED_SUBSCRIPT)),
                 new FullQualifedNameFieldProvider(dummySources),
                 null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();

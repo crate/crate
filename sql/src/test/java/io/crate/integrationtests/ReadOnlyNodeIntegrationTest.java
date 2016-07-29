@@ -25,9 +25,9 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
+import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
-import io.crate.action.sql.TransportBaseSQLAction;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
@@ -37,8 +37,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
-
-import java.nio.file.Paths;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
@@ -71,7 +69,7 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
         Settings.Builder builder = Settings.builder();
         builder.put(super.nodeSettings(nodeOrdinal));
         if ((nodeOrdinal + 1) % 2 == 0) {
-            builder.put(TransportBaseSQLAction.NODE_READ_ONLY_SETTING, true);
+            builder.put(SQLOperations.NODE_READ_ONLY_SETTING, true);
         }
         return builder.build();
     }

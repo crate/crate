@@ -117,7 +117,8 @@ class BulkPortal extends AbstractPortal {
         Analysis analysis = sessionData.getAnalyzer().analyze(statement,
             new ParameterContext(new Object[0],
                 bulkArgs,
-                sessionData.getDefaultSchema()));
+                sessionData.getDefaultSchema(),
+                sessionData.options()));
         UUID jobId = UUID.randomUUID();
         Plan plan;
         try {

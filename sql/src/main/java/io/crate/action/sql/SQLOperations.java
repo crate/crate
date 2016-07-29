@@ -45,17 +45,13 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static io.crate.action.sql.TransportBaseSQLAction.NODE_READ_ONLY_SETTING;
+import java.util.*;
 
 
 @Singleton
 public class SQLOperations {
 
+    public final static String NODE_READ_ONLY_SETTING = "node.sql.read_only";
     private final static ESLogger LOGGER = Loggers.getLogger(SQLOperations.class);
 
     private final Analyzer analyzer;
@@ -64,6 +60,12 @@ public class SQLOperations {
     private final Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider;
     private final StatsTables statsTables;
     private final boolean isReadOnly;
+
+    public enum Option {
+        ALLOW_QUOTED_SUBSCRIPT;
+
+        public static final EnumSet<Option> NONE = EnumSet.noneOf(Option.class);
+    }
 
     @Inject
     public SQLOperations(Analyzer analyzer,
@@ -80,8 +82,14 @@ public class SQLOperations {
         this.isReadOnly = settings.getAsBoolean(NODE_READ_ONLY_SETTING, false);
     }
 
-    public Session createSession(@Nullable String defaultSchema) {
-        return new Session(executorProvider.get(), transportKillJobsNodeActionProvider.get(), defaultSchema);
+    public Session createSession(@Nullable String defaultSchema, Set<Option> options, int defaultLimit) {
+        return new Session(
+            executorProvider.get(),
+            transportKillJobsNodeActionProvider.get(),
+            defaultSchema,
+            defaultLimit,
+            options
+        );
     }
 
     /**
@@ -128,6 +136,8 @@ public class SQLOperations {
         private final Executor executor;
         private final TransportKillJobsNodeAction transportKillJobsNodeAction;
         private final String defaultSchema;
+        private final int defaultLimit;
+        private final Set<Option> options;
 
         private List<DataType> paramTypes;
         private Statement statement;
@@ -136,17 +146,23 @@ public class SQLOperations {
         private Map<String, Portal> portals = new HashMap<>();
         private String lastPortalName;
 
-        private Session(Executor executor, TransportKillJobsNodeAction transportKillJobsNodeAction, String defaultSchema) {
+        private Session(Executor executor,
+                        TransportKillJobsNodeAction transportKillJobsNodeAction,
+                        String defaultSchema,
+                        int defaultLimit,
+                        Set<Option> options) {
             this.executor = executor;
             this.transportKillJobsNodeAction = transportKillJobsNodeAction;
             this.defaultSchema = defaultSchema;
+            this.defaultLimit = defaultLimit;
+            this.options = options;
         }
 
         private Portal getOrCreatePortal(String portalName) {
             Portal portal = portals.get(portalName);
             if (portal == null) {
                 portal = new SimplePortal(
-                    portalName, defaultSchema, analyzer, executor, transportKillJobsNodeAction, isReadOnly);
+                    portalName, defaultSchema, options, analyzer, executor, transportKillJobsNodeAction, isReadOnly, defaultLimit);
                 portals.put(portalName, portal);
             }
             return portal;

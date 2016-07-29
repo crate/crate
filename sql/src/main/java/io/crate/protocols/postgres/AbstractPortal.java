@@ -22,9 +22,12 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.Analyzer;
 import io.crate.executor.Executor;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
+
+import java.util.Set;
 
 abstract class AbstractPortal implements Portal {
 
@@ -33,12 +36,13 @@ abstract class AbstractPortal implements Portal {
 
     AbstractPortal(String name,
                    String defaultSchema,
+                   Set<SQLOperations.Option> options,
                    Analyzer analyzer,
                    Executor executor,
                    TransportKillJobsNodeAction transportKillJobsNodeAction,
                    boolean isReadOnly) {
         this.name = name;
-        sessionData = new SessionData(defaultSchema, analyzer, executor,
+        sessionData = new SessionData(defaultSchema, options, analyzer, executor,
             transportKillJobsNodeAction, isReadOnly);
     }
 
@@ -57,6 +61,7 @@ abstract class AbstractPortal implements Portal {
 
     static class SessionData {
 
+        private Set<SQLOperations.Option> options;
         private final Analyzer analyzer;
         private final Executor executor;
         private final String defaultSchema;
@@ -64,11 +69,13 @@ abstract class AbstractPortal implements Portal {
         private final boolean isReadOnly;
 
         private SessionData(String defaultSchema,
+                            Set<SQLOperations.Option> options,
                             Analyzer analyzer,
                             Executor executor,
                             TransportKillJobsNodeAction transportKillJobsNodeAction,
                             boolean isReadOnly) {
             this.defaultSchema = defaultSchema;
+            this.options = options;
             this.analyzer = analyzer;
             this.executor = executor;
             this.transportKillJobsNodeAction = transportKillJobsNodeAction;
@@ -85,6 +92,10 @@ abstract class AbstractPortal implements Portal {
 
         String getDefaultSchema() {
             return defaultSchema;
+        }
+
+        Set<SQLOperations.Option> options() {
+            return options;
         }
 
         TransportKillJobsNodeAction getTransportKillJobsNodeAction() {

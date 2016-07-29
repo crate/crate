@@ -22,25 +22,18 @@
 package io.crate.action.sql;
 
 import io.crate.action.ActionListeners;
-import io.crate.analyze.Analysis;
-import io.crate.analyze.Analyzer;
-import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
+import io.crate.concurrent.CompletionListener;
+import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.collections.Row;
+import io.crate.exceptions.Exceptions;
 import io.crate.executor.BytesRefUtils;
-import io.crate.executor.Executor;
-import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
-import io.crate.operation.collect.StatsTables;
-import io.crate.operation.projectors.*;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
 import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -49,141 +42,193 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 
 @Singleton
-public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLResponse> {
+public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse> {
 
     private static final DataType[] EMPTY_TYPES = new DataType[0];
     private static final String[] EMPTY_NAMES = new String[0];
-    private static final Object[][] EMPTY_ROWS = new Object[0][0];
+    private static final Object[][] EMPTY_ROWS = new Object[0][];
+
+    private final static String UNNAMED = "";
+    final static int DEFAULT_SOFT_LIMIT = 10_000;
+
+    private final SQLOperations sqlOperations;
 
     @Inject
-    public TransportSQLAction(
-            ClusterService clusterService,
-            Settings settings,
-            ThreadPool threadPool,
-            Analyzer analyzer,
-            Planner planner,
-            Provider<Executor> executor,
-            TransportService transportService,
-            StatsTables statsTables,
-            ActionFilters actionFilters,
-            IndexNameExpressionResolver indexNameExpressionResolver,
-            TransportKillJobsNodeAction transportKillJobsNodeAction) {
-        super(clusterService, settings, SQLAction.NAME, threadPool,
-            analyzer, planner, executor, statsTables, actionFilters,
-            indexNameExpressionResolver, transportKillJobsNodeAction,
-            transportService.getTaskManager());
-
+    public TransportSQLAction(SQLOperations sqlOperations,
+                              Settings settings,
+                              ThreadPool threadPool,
+                              TransportService transportService,
+                              ActionFilters actionFilters,
+                              IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, SQLAction.NAME, threadPool, actionFilters, indexNameExpressionResolver, transportService.getTaskManager());
+        this.sqlOperations = sqlOperations;
         transportService.registerRequestHandler(SQLAction.NAME, SQLRequest.class, ThreadPool.Names.SAME, new TransportHandler());
     }
 
-    @Override
-    public ParameterContext getParamContext(SQLRequest request) {
-        return new ParameterContext(
-                request.args(), SQLBulkRequest.EMPTY_BULK_ARGS, request.getDefaultSchema(), request.getRequestFlags());
-    }
-
-    @Override
-    void executePlan(Executor executor,
-                     final Analysis analysis,
-                     Plan plan,
-                     final ActionListener<SQLResponse> listener,
-                     final SQLRequest request,
-                     final long startTime) {
-
-        executor.execute(plan, new RowReceiver() {
-
-            final List<Object[]> rows = new ArrayList<>();
-            RowReceiver.Result setNextRowResult = RowReceiver.Result.CONTINUE;
-
-            @Override
-            public RowReceiver.Result setNextRow(Row row) {
-                rows.add(row.materialize());
-                return setNextRowResult;
-            }
-
-            @Override
-            public void pauseProcessed(ResumeHandle resumeable) {
-
-            }
-
-            @Override
-            public void finish(RepeatHandle repeatable) {
-                setNextRowResult = RowReceiver.Result.STOP;
-                if (analysis.rootRelation() == null) {
-                    listener.onResponse(createRowCountResponse(request, rows, startTime));
-                } else {
-                    listener.onResponse(createResultResponse(analysis.rootRelation().fields(), request, rows, startTime));
-                }
-            }
-
-            @Override
-            public void fail(@Nonnull Throwable t) {
-                setNextRowResult = RowReceiver.Result.STOP;
-                listener.onFailure(t);
-            }
-
-            @Override
-            public void kill(Throwable throwable) {
-                fail(throwable);
-            }
-
-            @Override
-            public void prepare() {
-
-            }
-
-            @Override
-            public Set<Requirement> requirements() {
-                return Requirements.NO_REQUIREMENTS;
-            }
-        });
-    }
-
-    private static SQLResponse createResultResponse(List<Field> fields, SQLRequest request, List<Object[]> rows, long startTime) {
-        String[] outputNames = new String[fields.size()];
-        DataType[] outputTypes = new DataType[fields.size()];
-        for (int i = 0; i < fields.size(); i++) {
-            Field field = fields.get(i);
-            outputNames[i] = field.path().outputName();
-            outputTypes[i] = field.valueType();
+    static Set<SQLOperations.Option> toOptions(int requestFlags) {
+        switch (requestFlags) {
+            case SQLBaseRequest.HEADER_FLAG_OFF:
+                return SQLOperations.Option.NONE;
+            case SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT:
+                return EnumSet.of(SQLOperations.Option.ALLOW_QUOTED_SUBSCRIPT);
         }
-        Object[][] rowsArr = rows.toArray(new Object[0][]);
-        BytesRefUtils.ensureStringTypesAreStrings(outputTypes, rowsArr);
-        float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
-        return new SQLResponse(
-            outputNames,
-            rowsArr,
-            outputTypes,
-            rowsArr.length,
-            duration,
-            request.includeTypesOnResponse()
-        );
+        throw new IllegalArgumentException("Unrecognized requestFlags: " + requestFlags);
     }
 
-    private static SQLResponse createRowCountResponse(SQLRequest request, List<Object[]> rows, long startTime) {
-        long rowCount = 0L;
-        if (rows.size() >= 1) {
-            Object[] first = rows.iterator().next();
-            if (first.length >= 1) {
-                rowCount = ((Number) first[0]).longValue();
+    @Override
+    protected void doExecute(SQLRequest request, ActionListener<SQLResponse> listener) {
+        SQLOperations.Session session = sqlOperations.createSession(
+            request.getDefaultSchema(), toOptions(request.getRequestFlags()), DEFAULT_SOFT_LIMIT);
+        try {
+            long startTime = System.nanoTime();
+            session.parse(UNNAMED, request.stmt(), Collections.<DataType>emptyList());
+            List<Object> args = request.args() == null ? Collections.emptyList() : Arrays.asList(request.args());
+            session.bind(UNNAMED, UNNAMED, args, null);
+            List<Field> outputFields = session.describe('P', UNNAMED);
+            if (outputFields == null) {
+                ResultReceiver resultReceiver = new RowCountReceiver(listener, startTime, request.includeTypesOnResponse());
+                session.execute(UNNAMED, 1, resultReceiver);
+            } else {
+                ResultReceiver resultReceiver = new ResultSetReceiver(listener, outputFields, startTime, request.includeTypesOnResponse());
+                session.execute(UNNAMED, 0, resultReceiver);
             }
-            rows.clear();
+            session.sync(CompletionListener.NO_OP);
+        } catch (Throwable t) {
+            listener.onFailure(Exceptions.createSQLActionException(t));
         }
-        float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
-        return new SQLResponse(
-            EMPTY_NAMES,
-            EMPTY_ROWS,
-            EMPTY_TYPES,
-            rowCount,
-            duration,
-            request.includeTypesOnResponse()
-        );
+    }
+
+    /**
+     * @deprecated should become part of {@link SQLOperations} and
+     * {@link io.crate.cluster.gracefulstop.DecommissioningService} also needs to enable it again if decommissioning is aborted
+     */
+    @Deprecated
+    public void disable() {
+    }
+
+    private static class ResultSetReceiver implements ResultReceiver {
+
+        private final List<Object[]> rows = new ArrayList<>();
+        private final ActionListener<SQLResponse> listener;
+        private final List<Field> outputFields;
+        private final long startTime;
+        private final boolean includeTypesOnResponse;
+        private CompletionListener completionListener = CompletionListener.NO_OP;
+
+        ResultSetReceiver(ActionListener<SQLResponse> listener,
+                          List<Field> outputFields,
+                          long startTime,
+                          boolean includeTypesOnResponse) {
+            this.listener = listener;
+            this.outputFields = outputFields;
+            this.startTime = startTime;
+            this.includeTypesOnResponse = includeTypesOnResponse;
+        }
+
+        @Override
+        public void addListener(CompletionListener listener) {
+            this.completionListener = CompletionMultiListener.merge(this.completionListener, listener);
+        }
+
+        @Override
+        public void setNextRow(Row row) {
+            rows.add(row.materialize());
+        }
+
+        @Override
+        public void batchFinished() {
+        }
+
+        @Override
+        public void allFinished() {
+            listener.onResponse(createSqlResponse());
+            completionListener.onSuccess(null);
+        }
+
+        @Override
+        public void fail(@Nonnull Throwable t) {
+            listener.onFailure(Exceptions.createSQLActionException(t));
+            completionListener.onFailure(t);
+        }
+
+        private SQLResponse createSqlResponse() {
+            String[] outputNames = new String[outputFields.size()];
+            DataType[] outputTypes = new DataType[outputFields.size()];
+
+            for (int i = 0, outputFieldsSize = outputFields.size(); i < outputFieldsSize; i++) {
+                Field field = outputFields.get(i);
+                outputNames[i] = field.path().outputName();
+                outputTypes[i] = field.valueType();
+            }
+
+            Object[][] rowsArr = rows.toArray(new Object[0][]);
+            BytesRefUtils.ensureStringTypesAreStrings(outputTypes, rowsArr);
+            float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
+            return new SQLResponse(
+                outputNames,
+                rowsArr,
+                outputTypes,
+                rowsArr.length,
+                duration,
+                includeTypesOnResponse
+            );
+        }
+    }
+
+    private static class RowCountReceiver implements ResultReceiver {
+
+        private final ActionListener<SQLResponse> listener;
+        private final long startTime;
+        private final boolean includeTypes;
+
+        private long rowCount;
+        private CompletionListener completionListener = CompletionListener.NO_OP;
+
+        RowCountReceiver(ActionListener<SQLResponse> listener, long startTime, boolean includeTypes) {
+            this.listener = listener;
+            this.startTime = startTime;
+            this.includeTypes = includeTypes;
+        }
+
+        @Override
+        public void addListener(CompletionListener listener) {
+            this.completionListener = CompletionMultiListener.merge(this.completionListener, listener);
+        }
+
+        @Override
+        public void setNextRow(Row row) {
+            rowCount = (long) row.get(0);
+        }
+
+        @Override
+        public void batchFinished() {
+        }
+
+        @Override
+        public void allFinished() {
+            float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
+            SQLResponse sqlResponse = new SQLResponse(
+                EMPTY_NAMES,
+                EMPTY_ROWS,
+                EMPTY_TYPES,
+                rowCount,
+                duration,
+                includeTypes
+            );
+            listener.onResponse(sqlResponse);
+            completionListener.onSuccess(null);
+
+        }
+
+        @Override
+        public void fail(@Nonnull Throwable t) {
+            listener.onFailure(Exceptions.createSQLActionException(t));
+            completionListener.onFailure(t);
+        }
     }
 
     private class TransportHandler extends TransportRequestHandler<SQLRequest> {

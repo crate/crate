@@ -203,7 +203,7 @@ class ConnectionContext {
                 defaultSchema = value;
             }
         }
-        return sqlOperations.createSession(defaultSchema);
+        return sqlOperations.createSession(defaultSchema, SQLOperations.Option.NONE, 0);
     }
 
     private static class ReadyForQueryListener implements CompletionListener {
