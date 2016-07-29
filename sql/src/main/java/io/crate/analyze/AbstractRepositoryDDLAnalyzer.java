@@ -28,7 +28,6 @@ import io.crate.sql.tree.Node;
 public class AbstractRepositoryDDLAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Analysis> {
 
     public AnalyzedStatement analyze(Node node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
         return process(node, analysis);
     }
 }

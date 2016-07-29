@@ -85,7 +85,7 @@ public class TransportSQLBulkAction extends TransportBaseSQLAction<SQLBulkReques
                      final ActionListener<SQLBulkResponse> listener,
                      final SQLBulkRequest request,
                      final long startTime) {
-        if (!analysis.expectsAffectedRows()) {
+        if (analysis.rootRelation() != null && analysis.rootRelation().fields() != null) {
             listener.onFailure(new UnsupportedOperationException(
                 "Bulk operations for statements that return result sets is not supported"));
             return;

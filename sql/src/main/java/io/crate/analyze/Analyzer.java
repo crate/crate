@@ -226,19 +226,16 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitSetStatement(SetStatement node, Analysis context) {
-            context.expectsAffectedRows(true);
             return SetStatementAnalyzer.analyze(node, context.parameterContext());
         }
 
         @Override
         public AnalyzedStatement visitResetStatement(ResetStatement node, Analysis context) {
-            context.expectsAffectedRows(true);
             return SetStatementAnalyzer.analyze(node, context.parameterContext());
         }
 
         @Override
         public AnalyzedStatement visitKillStatement(KillStatement node, Analysis context) {
-            context.expectsAffectedRows(true);
             return KillAnalyzer.analyze(node, context.parameterContext());
         }
 

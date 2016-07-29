@@ -27,7 +27,6 @@ public class Analysis {
 
     private final ParameterContext parameterContext;
     private AnalyzedStatement analyzedStatement;
-    private boolean expectsAffectedRows = false;
     private AnalyzedRelation rootRelation;
 
     public Analysis(ParameterContext parameterContext) {
@@ -44,14 +43,6 @@ public class Analysis {
 
     public ParameterContext parameterContext() {
         return parameterContext;
-    }
-
-    public void expectsAffectedRows(boolean expectsAffectedRows) {
-        this.expectsAffectedRows = expectsAffectedRows;
-    }
-
-    public boolean expectsAffectedRows() {
-        return expectsAffectedRows;
     }
 
     public void rootRelation(AnalyzedRelation rootRelation) {

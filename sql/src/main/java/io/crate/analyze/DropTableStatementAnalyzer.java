@@ -52,7 +52,6 @@ public class DropTableStatementAnalyzer extends DefaultTraversalVisitor<DropTabl
     }
 
     public AnalyzedStatement analyze(Node node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
         return process(node, analysis);
     }
 }

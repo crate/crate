@@ -53,7 +53,6 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
     }
 
     public AddColumnAnalyzedStatement analyze(Node node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
         return super.process(node, analysis);
     }
 

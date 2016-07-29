@@ -83,8 +83,6 @@ public class CopyStatementAnalyzer {
     }
 
     public CopyFromAnalyzedStatement convertCopyFrom(CopyFrom node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
-
         DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
@@ -133,8 +131,6 @@ public class CopyStatementAnalyzer {
     }
 
     public CopyToAnalyzedStatement convertCopyTo(CopyTo node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
-
         if (!node.directoryUri()) {
             throw new UnsupportedOperationException("Using COPY TO without specifying a DIRECTORY is deprecated");
         }

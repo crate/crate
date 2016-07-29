@@ -41,7 +41,6 @@ public class RefreshTableAnalyzer extends DefaultTraversalVisitor<RefreshTableAn
     }
 
     public RefreshTableAnalyzedStatement analyze(Node node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
         return super.process(node, analysis);
     }
 

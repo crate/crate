@@ -50,7 +50,6 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
     }
 
     public CreateAnalyzerAnalyzedStatement analyze(Node node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
         return super.process(node, new Context(analysis));
     }
 

@@ -85,8 +85,6 @@ public class InsertFromSubQueryAnalyzer {
 
 
     public AnalyzedStatement analyze(InsertFromSubquery node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
-
         DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         Operation.blockedRaiseException(tableInfo, Operation.INSERT);

@@ -71,7 +71,6 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     }
 
     public AnalyzedStatement analyze(Node node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
         return process(node, analysis);
     }
 

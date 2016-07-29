@@ -100,7 +100,6 @@ public class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyz
     }
 
     public AnalyzedStatement analyze(Node node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
         return process(node, analysis);
     }
 }

@@ -89,8 +89,6 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
     }
 
     public AnalyzedStatement analyze(InsertFromValues node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
-
         DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
                 TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         Operation.blockedRaiseException(tableInfo, Operation.INSERT);

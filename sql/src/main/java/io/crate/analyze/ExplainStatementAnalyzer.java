@@ -40,7 +40,6 @@ public class ExplainStatementAnalyzer {
         String columnName = SqlFormatter.formatSql(node);
         ExplainAnalyzedStatement explainAnalyzedStatement = new ExplainAnalyzedStatement(columnName, subStatement);
         analysis.rootRelation(explainAnalyzedStatement);
-        analysis.expectsAffectedRows(false);
         return explainAnalyzedStatement;
     }
 

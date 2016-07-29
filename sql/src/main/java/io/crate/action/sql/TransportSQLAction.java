@@ -59,6 +59,7 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
 
     private static final DataType[] EMPTY_TYPES = new DataType[0];
     private static final String[] EMPTY_NAMES = new String[0];
+    private static final Object[][] EMPTY_ROWS = new Object[0][0];
 
     @Inject
     public TransportSQLAction(
@@ -114,7 +115,11 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
             @Override
             public void finish(RepeatHandle repeatable) {
                 setNextRowResult = RowReceiver.Result.STOP;
-                listener.onResponse(createResponse(analysis, request, rows, startTime));
+                if (analysis.rootRelation() == null) {
+                    listener.onResponse(createRowCountResponse(request, rows, startTime));
+                } else {
+                    listener.onResponse(createResultResponse(analysis.rootRelation().fields(), request, rows, startTime));
+                }
             }
 
             @Override
@@ -140,38 +145,41 @@ public class TransportSQLAction extends TransportBaseSQLAction<SQLRequest, SQLRe
         });
     }
 
-    private SQLResponse createResponse(Analysis analysis, SQLRequest request, List<Object[]> rows, long startTime) {
-        String[] outputNames = EMPTY_NAMES;
-        DataType[] outputTypes = EMPTY_TYPES;
-        long rowCount = 0L;
-
-        if (analysis.expectsAffectedRows()) {
-            if (rows.size() >= 1){
-                Object[] first = rows.iterator().next();
-                if (first.length >= 1){
-                    rowCount = ((Number) first[0]).longValue();
-                }
-                rows.clear();
-            }
-        } else {
-            assert analysis.rootRelation() != null;
-            outputNames = new String[analysis.rootRelation().fields().size()];
-            outputTypes = new DataType[analysis.rootRelation().fields().size()];
-            for (int i = 0; i < analysis.rootRelation().fields().size(); i++) {
-                Field field = analysis.rootRelation().fields().get(i);
-                outputNames[i] = field.path().outputName();
-                outputTypes[i] = field.valueType();
-            }
-
-            rowCount = rows.size();
+    private static SQLResponse createResultResponse(List<Field> fields, SQLRequest request, List<Object[]> rows, long startTime) {
+        String[] outputNames = new String[fields.size()];
+        DataType[] outputTypes = new DataType[fields.size()];
+        for (int i = 0; i < fields.size(); i++) {
+            Field field = fields.get(i);
+            outputNames[i] = field.path().outputName();
+            outputTypes[i] = field.valueType();
         }
         Object[][] rowsArr = rows.toArray(new Object[0][]);
         BytesRefUtils.ensureStringTypesAreStrings(outputTypes, rowsArr);
-        float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
+        float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
         return new SQLResponse(
             outputNames,
             rowsArr,
             outputTypes,
+            rowsArr.length,
+            duration,
+            request.includeTypesOnResponse()
+        );
+    }
+
+    private static SQLResponse createRowCountResponse(SQLRequest request, List<Object[]> rows, long startTime) {
+        long rowCount = 0L;
+        if (rows.size() >= 1) {
+            Object[] first = rows.iterator().next();
+            if (first.length >= 1) {
+                rowCount = ((Number) first[0]).longValue();
+            }
+            rows.clear();
+        }
+        float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
+        return new SQLResponse(
+            EMPTY_NAMES,
+            EMPTY_ROWS,
+            EMPTY_TYPES,
             rowCount,
             duration,
             request.includeTypesOnResponse()

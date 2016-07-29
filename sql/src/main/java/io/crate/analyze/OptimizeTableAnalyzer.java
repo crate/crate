@@ -54,7 +54,6 @@ public class OptimizeTableAnalyzer extends DefaultTraversalVisitor<OptimizeTable
     }
 
     public OptimizeTableAnalyzedStatement analyze(Node node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
         return super.process(node, analysis);
     }
 

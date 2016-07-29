@@ -34,7 +34,6 @@ public abstract class BlobTableAnalyzer<StatementType extends AnalyzedStatement>
         extends DefaultTraversalVisitor<StatementType, Analysis> {
 
     public StatementType analyze(Node node, Analysis analysis) {
-        analysis.expectsAffectedRows(true);
         return super.process(node, analysis);
     }
 
