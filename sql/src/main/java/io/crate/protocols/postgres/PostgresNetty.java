@@ -41,6 +41,7 @@ import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 
 import java.io.IOException;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -112,7 +113,9 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         try {
             InetAddress[] hostAddresses = networkService.resolveBindHostAddresses(null);
             for (InetAddress address : hostAddresses) {
-                boundAddresses.add(bindAddress(address));
+                if (address instanceof Inet4Address) {
+                    boundAddresses.add(bindAddress(address));
+                }
             }
         } catch (IOException e) {
             throw new BindPostgresException("Failed to resolve binding network host", e);
