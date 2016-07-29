@@ -56,13 +56,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class FetchProjector extends AbstractProjector {
 
-    //FIXME: Remove default fetchSize from here
-    private int fetchSize = 10000;
-    private int currentRowCount = 0;
+    private final int fetchSize;
     private final FetchProjectorContext context;
     private final FetchOperation fetchOperation;
     private final AtomicBoolean finishCalled = new AtomicBoolean(false);
     private final AtomicInteger resumeLatch = new AtomicInteger(2);
+    private int currentRowCount = 0;
     private ResumeHandle resumeHandle = ResumeHandle.INVALID;
 
     enum Stage {
