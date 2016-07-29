@@ -52,15 +52,7 @@ public class NodeSysReferenceResolver implements NestedReferenceResolver {
     @Override
     public ReferenceImplementation getImplementation(ReferenceInfo refInfo) {
         ReferenceIdent ident = refInfo.ident();
-        if (SysNodesTableInfo.IDENT.equals(ident.tableIdent())) {
-            ReferenceImplementation impl = getCachedImplementation(ident.columnReferenceIdent().columnIdent().name());
-            if (impl != null) {
-                for (String part : ident.columnIdent().path()) {
-                    impl = impl.getChildImplementation(part);
-                }
-            }
-            return impl;
-        } else if (SysNodesTableInfo.SYS_COL_NAME.equals(ident.columnIdent().name())) {
+        if (SysNodesTableInfo.SYS_COL_NAME.equals(ident.columnIdent().name())) {
             if (ident.columnIdent().isColumn()) {
                 return nodeSysExpression;
             }

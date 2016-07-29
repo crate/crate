@@ -101,7 +101,6 @@ public class MapSideDataCollectOperation {
             RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase) collectPhase;
             switch (routedCollectPhase.maxRowGranularity()) {
                 case NODE:
-                    break;
                 case DOC:
                     EvaluatingNormalizer normalizer =
                         new EvaluatingNormalizer(functions, RowGranularity.NODE, new NodeSysReferenceResolver(nodeSysExpression));
