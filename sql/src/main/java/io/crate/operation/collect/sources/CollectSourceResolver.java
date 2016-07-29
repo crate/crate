@@ -1,22 +1,23 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
 package io.crate.operation.collect.sources;
@@ -63,9 +64,8 @@ public class CollectSourceResolver {
     private final Map<String, CollectSource> nodeDocCollectSources = new HashMap<>();
     private final ShardCollectSource shardCollectSource;
     private final CollectSource fileCollectSource;
-    private final CollectSource singleRowSource;
-    private final CollectSource sysNodesCollectSource;
     private final ClusterService clusterService;
+    private final CollectSource sysNodesCollectSource;
     private final CollectPhaseVisitor visitor;
     private final ProjectorSetupCollectSource tableFunctionSource;
 
@@ -91,23 +91,23 @@ public class CollectSourceResolver {
         ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, clusterReferenceResolver);
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
-                clusterService,
-                functions,
-                indexNameExpressionResolver,
-                threadPool,
-                settings,
-                transportActionProvider,
-                bulkRetryCoordinatorPool,
-                nodeImplementationSymbolVisitor,
-                normalizer
+            clusterService,
+            functions,
+            indexNameExpressionResolver,
+            threadPool,
+            settings,
+            transportActionProvider,
+            bulkRetryCoordinatorPool,
+            nodeImplementationSymbolVisitor,
+            normalizer
         );
         this.shardCollectSource = shardCollectSource;
         this.fileCollectSource = new ProjectorSetupCollectSource(fileCollectSource, projectorFactory);
-        this.singleRowSource = new ProjectorSetupCollectSource(singleRowSource, projectorFactory);
         this.sysNodesCollectSource = new ProjectorSetupCollectSource(sysNodesCollectSource, projectorFactory);
         this.tableFunctionSource = new ProjectorSetupCollectSource(tableFunctionCollectSource, projectorFactory);
 
-        nodeDocCollectSources.put(SysClusterTableInfo.IDENT.fqn(), this.singleRowSource);
+        nodeDocCollectSources.put(SysClusterTableInfo.IDENT.fqn(), new ProjectorSetupCollectSource(singleRowSource, projectorFactory));
+        nodeDocCollectSources.put(SysNodesTableInfo.IDENT.fqn(), sysNodesCollectSource);
 
         ProjectorSetupCollectSource sysSource = new ProjectorSetupCollectSource(systemCollectSource, projectorFactory);
         for (TableInfo tableInfo : sysSchemaInfo) {
@@ -119,7 +119,6 @@ public class CollectSourceResolver {
             nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);
         }
 
-        nodeDocCollectSources.put(SysNodesTableInfo.IDENT.fqn(), this.sysNodesCollectSource);
         visitor = new CollectPhaseVisitor();
     }
 
@@ -152,6 +151,10 @@ public class CollectSourceResolver {
             if (indexShards == null) {
                 throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + phase);
             }
+            if (indexShards.size() == 0) {
+                // select * from sys.nodes
+                return sysNodesCollectSource;
+            }
 
             String indexName = Iterables.getFirst(indexShards.keySet(), null);
             if (indexName == null) {
@@ -174,7 +177,7 @@ public class CollectSourceResolver {
         return visitor.process(collectPhase, null);
     }
 
-    static class VoidCollectSource implements CollectSource {
+    private static class VoidCollectSource implements CollectSource {
 
         @Override
         public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {

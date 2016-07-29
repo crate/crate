@@ -23,14 +23,20 @@ package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
+import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.*;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 public class SysNodesTableInfo extends StaticTableInfo {
 
@@ -314,6 +320,12 @@ public class SysNodesTableInfo extends StaticTableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().id());
+        DiscoveryNodes nodes = clusterService.state().nodes();
+        TreeMapBuilder<String, Map<String, List<Integer>>> builder = TreeMapBuilder.newMapBuilder();
+        Map<String, List<Integer>> emptyTableMap = Collections.emptyMap();
+        for (DiscoveryNode node : nodes) {
+            builder.put(node.id(), emptyTableMap);
+        }
+        return new Routing(builder.map());
     }
 }
