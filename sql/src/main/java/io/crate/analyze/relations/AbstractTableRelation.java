@@ -83,10 +83,10 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         ReferenceInfo tmpRI = referenceInfo;
 
         while (!tmpCI.isColumn() && hasMatchingParent(tmpRI, IS_OBJECT_ARRAY)) {
-//            if (DataTypes.isCollectionType(referenceInfo.type())) {
-//                // TODO: remove this limitation with next type refactoring
-//                throw new UnsupportedOperationException("cannot query for arrays inside object arrays explicitly");
-//            }
+            if (DataTypes.isCollectionType(referenceInfo.type())) {
+//                 TODO: remove this limitation with next type refactoring
+                throw new UnsupportedOperationException("cannot query for arrays inside object arrays explicitly");
+            }
             // for child fields of object arrays
             // return references of primitive types as array
             if (dataType == null) {
