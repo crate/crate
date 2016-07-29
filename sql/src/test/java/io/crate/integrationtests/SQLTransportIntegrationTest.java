@@ -80,10 +80,7 @@ import org.junit.Before;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.Collection;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -131,10 +128,9 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                     @Override
                     public String pgUrl() {
                         PostgresNetty postgresNetty = internalCluster().getDataNodeInstance(PostgresNetty.class);
-                        for (InetSocketTransportAddress address : postgresNetty.boundAddresses()) {
-                            if (address.getAddress().startsWith("::")) {
-                                continue;
-                            }
+                        Iterator<InetSocketTransportAddress> addressIter = postgresNetty.boundAddresses().iterator();
+                        if (addressIter.hasNext()) {
+                            InetSocketTransportAddress address = addressIter.next();
                             return String.format(Locale.ENGLISH, "jdbc:postgresql://%s:%d/",
                                 address.getHost(), address.getPort());
                         }
