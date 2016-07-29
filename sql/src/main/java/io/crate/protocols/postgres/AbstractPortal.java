@@ -22,12 +22,9 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.RowReceiverToResultReceiver;
 import io.crate.analyze.Analyzer;
 import io.crate.executor.Executor;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
-
-import java.util.UUID;
 
 abstract class AbstractPortal implements Portal {
 
@@ -35,14 +32,13 @@ abstract class AbstractPortal implements Portal {
     protected final SessionData sessionData;
 
     AbstractPortal(String name,
-                   UUID jobId,
                    String defaultSchema,
                    Analyzer analyzer,
                    Executor executor,
                    TransportKillJobsNodeAction transportKillJobsNodeAction,
                    boolean isReadOnly) {
         this.name = name;
-        sessionData = new SessionData(jobId, defaultSchema, analyzer, executor,
+        sessionData = new SessionData(defaultSchema, analyzer, executor,
             transportKillJobsNodeAction, isReadOnly);
     }
 
@@ -60,29 +56,23 @@ abstract class AbstractPortal implements Portal {
     }
 
     static class SessionData {
-        private final UUID jobId;
+
         private final Analyzer analyzer;
         private final Executor executor;
         private final String defaultSchema;
         private final TransportKillJobsNodeAction transportKillJobsNodeAction;
         private final boolean isReadOnly;
 
-        private SessionData(UUID jobId,
-                            String defaultSchema,
+        private SessionData(String defaultSchema,
                             Analyzer analyzer,
                             Executor executor,
                             TransportKillJobsNodeAction transportKillJobsNodeAction,
                             boolean isReadOnly) {
-            this.jobId = jobId;
             this.defaultSchema = defaultSchema;
             this.analyzer = analyzer;
             this.executor = executor;
             this.transportKillJobsNodeAction = transportKillJobsNodeAction;
             this.isReadOnly = isReadOnly;
-        }
-
-        UUID getJobId() {
-            return jobId;
         }
 
         Analyzer getAnalyzer() {

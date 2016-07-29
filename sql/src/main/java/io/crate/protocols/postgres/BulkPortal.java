@@ -118,8 +118,16 @@ class BulkPortal extends AbstractPortal {
             new ParameterContext(new Object[0],
                 bulkArgs,
                 sessionData.getDefaultSchema()));
-        Plan plan = planner.plan(analysis, sessionData.getJobId(), 0, maxRows);
-        executeBulk(sessionData.getExecutor(), plan, sessionData.getJobId(), statsTables, listener);
+        UUID jobId = UUID.randomUUID();
+        Plan plan;
+        try {
+            plan = planner.plan(analysis, jobId, 0, maxRows);
+        } catch (Throwable t) {
+            statsTables.logPreExecutionFailure(jobId, query, Exceptions.messageOf(t));
+            throw t;
+        }
+        statsTables.logExecutionStart(jobId, query);
+        executeBulk(sessionData.getExecutor(), plan, jobId, statsTables, listener);
     }
 
     private void executeBulk(Executor executor, Plan plan, final UUID jobId,
@@ -137,7 +145,7 @@ class BulkPortal extends AbstractPortal {
                     resultReceiver.allFinished();
                 }
                 listener.onSuccess(null);
-                statsTables.jobFinished(jobId, null);
+                statsTables.logExecutionEnd(jobId, null);
             }
 
             @Override
@@ -146,7 +154,7 @@ class BulkPortal extends AbstractPortal {
                     resultReceiver.fail(t);
                 }
                 listener.onFailure(t);
-                statsTables.jobFinished(jobId, Exceptions.messageOf(t));
+                statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
             }
         });
     }

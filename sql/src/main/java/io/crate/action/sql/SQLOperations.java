@@ -22,11 +22,10 @@
 
 package io.crate.action.sql;
 
-import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.symbol.Field;
 import io.crate.concurrent.CompletionListener;
-import io.crate.exceptions.ReadOnlyException;
+import io.crate.exceptions.Exceptions;
 import io.crate.executor.Executor;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.operation.collect.StatsTables;
@@ -130,7 +129,6 @@ public class SQLOperations {
         private final TransportKillJobsNodeAction transportKillJobsNodeAction;
         private final String defaultSchema;
 
-        private UUID jobId;
         private List<DataType> paramTypes;
         private Statement statement;
         private String query;
@@ -147,8 +145,8 @@ public class SQLOperations {
         private Portal getOrCreatePortal(String portalName) {
             Portal portal = portals.get(portalName);
             if (portal == null) {
-                portal = new SimplePortal(portalName, jobId, defaultSchema, analyzer, executor,
-                                          transportKillJobsNodeAction, isReadOnly);
+                portal = new SimplePortal(
+                    portalName, defaultSchema, analyzer, executor, transportKillJobsNodeAction, isReadOnly);
                 portals.put(portalName, portal);
             }
             return portal;
@@ -162,23 +160,18 @@ public class SQLOperations {
             return portal;
         }
 
-        private void validateReadOnly(Analysis analysis) {
-            if (analysis != null && analysis.analyzedStatement().isWriteOperation() && isReadOnly) {
-                throw new ReadOnlyException();
-            }
-        }
-
         public void parse(String statementName, String query, List<DataType> paramTypes) {
             LOGGER.debug("method=parse stmtName={} query={} paramTypes={}", statementName, query, paramTypes);
 
-            Statement statement = SqlParser.createStatement(query);
-            if (this.statement == null) {
-                this.jobId = UUID.randomUUID();
-                statsTables.jobStarted(jobId, query);
-            } else if (!statement.equals(this.statement)) {
-                if (this.statement instanceof BeginStatement) {
-                    sync(CompletionListener.NO_OP);
-                }
+            Statement statement;
+            try {
+                statement = SqlParser.createStatement(query);
+            } catch (Throwable t) {
+                statsTables.logPreExecutionFailure(UUID.randomUUID(), query, Exceptions.messageOf(t));
+                throw t;
+            }
+            if (!statement.equals(this.statement) && this.statement instanceof BeginStatement) {
+                sync(CompletionListener.NO_OP);
             }
             this.statement = statement;
             this.query = query;
@@ -192,7 +185,12 @@ public class SQLOperations {
             LOGGER.debug("method=bind portalName={} statementName={} params={}", portalName, statementName, params);
 
             Portal portal = getOrCreatePortal(portalName);
-            portal = portal.bind(statementName, query, statement, params, resultFormatCodes);
+            try {
+                portal = portal.bind(statementName, query, statement, params, resultFormatCodes);
+            } catch (Throwable t) {
+                statsTables.logPreExecutionFailure(UUID.randomUUID(), portal.getLastQuery(), Exceptions.messageOf(t));
+                throw t;
+            }
             portals.put(portalName, portal);
         }
 

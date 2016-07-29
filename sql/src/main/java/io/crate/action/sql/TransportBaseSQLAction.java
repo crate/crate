@@ -134,9 +134,8 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         }
         final UUID jobId = UUID.randomUUID();
         long startTime = System.nanoTime();
-        statsTables.jobStarted(jobId, request.stmt());
 
-        doExecute(request, new StatsTableListenerWrapper<>(listener, statsTables, jobId), jobId, startTime);
+        doExecute(request, listener, jobId, startTime);
     }
 
     private void doExecute(TRequest request, ActionListener<TResponse> listener, UUID jobId, long startTime) {
@@ -144,10 +143,12 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
             listener.onFailure(new NodeDisconnectedException(clusterService.localNode(), actionName));
             return;
         }
+        Executor executor = executorProvider.get();
+        Analysis analysis;
+        Plan plan;
         try {
             Statement statement = statementCache.get(request.stmt());
-            Analysis analysis = analyzer.analyze(statement, getParamContext(request));
-            Executor executor = executorProvider.get();
+            analysis = analyzer.analyze(statement, getParamContext(request));
             if (analysis.analyzedStatement().isWriteOperation()) {
                 if (settings.getAsBoolean(NODE_READ_ONLY_SETTING, false)) {
                     throw new ReadOnlyException();
@@ -156,13 +157,22 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                 // full retry is only used for read-only operations
                 listener = new KillAndRetryListenerWrapper(listener, statement, jobId, executor, request, startTime);
             }
-            Plan plan = planner.plan(analysis, jobId, DEFAULT_SOFT_LIMIT, 0);
+            plan = planner.plan(analysis, jobId, DEFAULT_SOFT_LIMIT, 0);
             assert plan != null;
             tracePlan(plan);
+        } catch (Throwable e) {
+            listener.onFailure(buildSQLActionException(e));
+            statsTables.logPreExecutionFailure(jobId, request.stmt(), Exceptions.messageOf(e));
+            return;
+        }
+
+        try {
+            statsTables.logExecutionStart(jobId, request.stmt());
+            listener = new StatsTableListenerWrapper<>(listener, statsTables, jobId);
             executePlan(executor, analysis, plan, listener, request, startTime);
         } catch (Throwable e) {
             logger.debug("Error executing SQLRequest", e);
-            listener.onFailure(e);
+            listener.onFailure(buildSQLActionException(e));
         }
     }
 
@@ -304,14 +314,14 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
         @Override
         public void onResponse(TResponse tResponse) {
             delegate.onResponse(tResponse);
-            statsTables.jobFinished(jobId, null);
+            statsTables.logExecutionEnd(jobId, null);
         }
 
         @Override
         public void onFailure(Throwable t) {
             SQLActionException e = buildSQLActionException(t);
             delegate.onFailure(e);
-            statsTables.jobFinished(jobId, e.getMessage());
+            statsTables.logExecutionEnd(jobId, e.getMessage());
         }
     }
 

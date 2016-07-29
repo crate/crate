@@ -31,6 +31,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionState;
+import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.RowReceiver;
@@ -126,13 +127,17 @@ class BatchPortal extends AbstractPortal {
     public void sync(Planner planner, StatsTables statsTables, CompletionListener listener) {
         BatchCompletionListener batchCompletionListener = new BatchCompletionListener(analysis.size(), listener);
         for (int i = 0; i < analysis.size(); i++) {
-            UUID jobId = sessionData.getJobId();
-            if (i > 0) {
-                jobId = UUID.randomUUID();
-                statsTables.jobStarted(jobId, queries.get(i));
+            UUID jobId = UUID.randomUUID();
+            Plan plan;
+            String stmt = queries.get(i);
+            try {
+                plan = planner.plan(analysis.get(i), jobId, 0, 0);
+            } catch (Throwable t) {
+                statsTables.logPreExecutionFailure(jobId, stmt, Exceptions.messageOf(t));
+                throw t;
             }
-            Plan plan = planner.plan(analysis.get(i), jobId, 0, 0);
             ResultReceiver resultReceiver = resultReceivers.get(i);
+            statsTables.logExecutionStart(jobId, stmt);
             resultReceiver.addListener(new StatsTablesUpdateListener(jobId, statsTables));
             resultReceiver.addListener(batchCompletionListener);
             RowReceiver rowReceiver = new RowReceiverToResultReceiver(resultReceiver, 0);

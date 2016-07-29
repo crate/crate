@@ -41,11 +41,11 @@ public class StatsTablesUpdateListener implements CompletionListener {
     }
     @Override
     public void onSuccess(@Nullable CompletionState result) {
-        statsTables.jobFinished(jobId, null);
+        statsTables.logExecutionEnd(jobId, null);
     }
 
     @Override
     public void onFailure(Throwable t) {
-        statsTables.jobFinished(jobId, Exceptions.messageOf(t));
+        statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
     }
 }

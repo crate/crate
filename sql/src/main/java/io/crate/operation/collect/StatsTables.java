@@ -122,12 +122,12 @@ public class StatsTables {
     }
 
     /**
-     * Track a job. If the job has finished {@link #jobFinished(java.util.UUID, String)}
+     * Track a job. If the job has finished {@link #logExecutionEnd(java.util.UUID, String)}
      * must be called.
      *
      * If {@link #isEnabled()} is false this method won't do anything.
      */
-    public void jobStarted(UUID jobId, String statement) {
+    public void logExecutionStart(UUID jobId, String statement) {
         activeRequests.increment();
         if (!isEnabled()) {
             return;
@@ -140,7 +140,7 @@ public class StatsTables {
      *
      * If {@link #isEnabled()} is false this method won't do anything.
      */
-    public void jobFinished(UUID jobId, @Nullable String errorMessage) {
+    public void logExecutionEnd(UUID jobId, @Nullable String errorMessage) {
         activeRequests.decrement();
         if (!isEnabled()) {
             return;
@@ -151,6 +151,18 @@ public class StatsTables {
         }
         Queue<JobContextLog> jobContextLogs = jobsLog.get();
         jobContextLogs.offer(new JobContextLog(jobContext, errorMessage));
+    }
+
+    /**
+     * Create a entry into `sys.jobs_log`
+     * This method can be used instead of {@link #logExecutionEnd(UUID, String)} if there was no {@link #logExecutionStart(UUID, String)}
+     * Call because an error happened during parse, analysis or plan.
+     *
+     * {@link #logExecutionStart(UUID, String)} is only called after a Plan has been created and execution starts.
+     */
+    public void logPreExecutionFailure(UUID jobId, String stmt, String errorMessage) {
+        Queue<JobContextLog> jobContextLogs = jobsLog.get();
+        jobContextLogs.offer(new JobContextLog(new JobContext(jobId, stmt, System.currentTimeMillis()), errorMessage));
     }
 
     public void operationStarted(int operationId, UUID jobId, String name) {

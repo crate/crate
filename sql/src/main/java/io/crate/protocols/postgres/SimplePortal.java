@@ -72,13 +72,12 @@ public class SimplePortal extends AbstractPortal {
     private int maxRows = 0;
 
     public SimplePortal(String name,
-                        UUID jobId,
                         String defaultSchema,
                         Analyzer analyzer,
                         Executor executor,
                         TransportKillJobsNodeAction transportKillJobsNodeAction,
                         boolean isReadOnly) {
-        super(name, jobId, defaultSchema, analyzer, executor, transportKillJobsNodeAction, isReadOnly);
+        super(name, defaultSchema, analyzer, executor, transportKillJobsNodeAction, isReadOnly);
     }
 
     @Override
@@ -149,13 +148,27 @@ public class SimplePortal extends AbstractPortal {
 
     @Override
     public void sync(Planner planner, StatsTables statsTables, CompletionListener listener) {
-        Plan plan = planner.plan(analysis, sessionData.getJobId(), 0, maxRows);
+        UUID jobId = UUID.randomUUID();
+        Plan plan;
+        try {
+            plan = planner.plan(analysis, jobId, 0, maxRows);
+        } catch (Throwable t) {
+            statsTables.logPreExecutionFailure(jobId, query, Exceptions.messageOf(t));
+            throw t;
+        }
         resultReceiver.addListener(listener);
-        resultReceiver.addListener(new StatsTablesUpdateListener(sessionData.getJobId(), statsTables));
+        statsTables.logExecutionStart(jobId, query);
+        resultReceiver.addListener(new StatsTablesUpdateListener(jobId, statsTables));
 
         if (!analysis.analyzedStatement().isWriteOperation()) {
-            resultReceiver = new ResultReceiverRetryWrapper(resultReceiver, this, sessionData.getAnalyzer(), planner,
-                sessionData.getExecutor(), sessionData.getTransportKillJobsNodeAction(), sessionData.getJobId(),
+            resultReceiver = new ResultReceiverRetryWrapper(
+                resultReceiver,
+                this,
+                sessionData.getAnalyzer(),
+                planner,
+                sessionData.getExecutor(),
+                sessionData.getTransportKillJobsNodeAction(),
+                jobId,
                 sessionData.getDefaultSchema());
         }
 

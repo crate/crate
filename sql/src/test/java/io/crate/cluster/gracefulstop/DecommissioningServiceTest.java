@@ -76,7 +76,7 @@ public class DecommissioningServiceTest {
 
     @Test
     public void testNoExitIfRequestAreActive() throws Exception {
-        statsTables.jobFinished(UUID.randomUUID(), null);
+        statsTables.logExecutionEnd(UUID.randomUUID(), null);
         decommissioningService.exitIfNoActiveRequests(System.nanoTime());
         assertThat(decommissioningService.exited, is(false));
         assertThat(decommissioningService.forceStopOrAbortCalled, is(false));
@@ -85,7 +85,7 @@ public class DecommissioningServiceTest {
 
     @Test
     public void testAbortOrForceStopIsCalledOnTimeout() throws Exception {
-        statsTables.jobFinished(UUID.randomUUID(), null);
+        statsTables.logExecutionEnd(UUID.randomUUID(), null);
         decommissioningService.exitIfNoActiveRequests(System.nanoTime() - TimeValue.timeValueHours(3).nanos());
         assertThat(decommissioningService.forceStopOrAbortCalled, is(true));
     }
