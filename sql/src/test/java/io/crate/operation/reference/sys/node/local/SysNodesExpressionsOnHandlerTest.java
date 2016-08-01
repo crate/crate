@@ -66,7 +66,7 @@ import static org.mockito.Mockito.when;
 public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     private final RowContextReferenceResolver resolver = RowContextReferenceResolver.INSTANCE;
-    private static final DiscoveryNodeContext CONTEXT = new DiscoveryNodeContext();
+    private static final DiscoveryNodeContext CONTEXT = DiscoveryNodeContext.newInstance();
 
     private CollectExpression collectExpression;
 

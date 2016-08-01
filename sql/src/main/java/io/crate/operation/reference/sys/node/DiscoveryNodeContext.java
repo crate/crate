@@ -71,6 +71,10 @@ public class DiscoveryNodeContext implements Streamable {
     private BytesRef jvmVendor;
     private BytesRef jvmVersion;
 
+    public static DiscoveryNodeContext newInstance() {
+        return new DiscoveryNodeContext(false);
+    }
+
     public DiscoveryNodeContext(String id, String name) {
         this(true);
         this.id = BytesRefs.toBytesRef(id);

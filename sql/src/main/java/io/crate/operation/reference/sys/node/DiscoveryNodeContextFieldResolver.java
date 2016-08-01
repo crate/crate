@@ -47,10 +47,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -79,163 +76,171 @@ public class DiscoveryNodeContextFieldResolver {
         this.extendedNodeInfo = extendedNodeInfo;
     }
 
-    public DiscoveryNodeContext resolveForColumnIdents(List<ReferenceIdent> referenceIdents) {
-        List<ColumnIdent> processedColumnReferenceIdents = new ArrayList<>();
-        DiscoveryNodeContext context = new DiscoveryNodeContext();
+    public DiscoveryNodeContext resolveForColumnIdents(Collection<ReferenceIdent> referenceIdents) {
+        DiscoveryNodeContext context = DiscoveryNodeContext.newInstance();
+        if (referenceIdents == null || referenceIdents.isEmpty()) {
+            return context;
+        }
 
+        List<ColumnIdent> processedColIdents = new ArrayList<>();
         for (ReferenceIdent ident : referenceIdents) {
-            ColumnIdent columnReferenceIdent = ident.columnReferenceIdent().columnIdent();
+            ColumnIdent colIndent = ident.columnReferenceIdent().columnIdent();
 
-            if (SysNodesTableInfo.IDENT.equals(ident.tableIdent())
-                    && !processedColumnReferenceIdents.contains(columnReferenceIdent)) {
-                columnToInit.get(columnReferenceIdent).accept(context);
-                processedColumnReferenceIdents.add(columnReferenceIdent);
+            if (SysNodesTableInfo.IDENT.equals(ident.tableIdent()) && !processedColIdents.contains(colIndent)) {
+                Consumer<DiscoveryNodeContext> consumer = colIdentToContext.get(colIndent);
+                if (consumer == null) {
+                    throw new IllegalArgumentException(
+                        String.format("Cannot resolve DiscoveryNodeContext field for \"%s\" column ident.", colIndent)
+                    );
+                }
+                consumer.accept(context);
+                processedColIdents.add(colIndent);
             }
         }
         return context;
     }
 
 
-    private Map<ColumnIdent, Consumer<DiscoveryNodeContext>> columnToInit =
-            ImmutableMap.<ColumnIdent, Consumer<DiscoveryNodeContext>>builder()
-                    .put(SysNodesTableInfo.Columns.ID, new Consumer<DiscoveryNodeContext>() {
-                        @Override
-                        public void accept(DiscoveryNodeContext context) {
-                            context.id(BytesRefs.toBytesRef(clusterService.localNode().id()));
-                        }
-                    })
-                    .put(SysNodesTableInfo.Columns.NAME, new Consumer<DiscoveryNodeContext>() {
-                        @Override
-                        public void accept(DiscoveryNodeContext context) {
-                            context.name(BytesRefs.toBytesRef(clusterService.localNode().name()));
-                        }
-                    })
-                    .put(SysNodesTableInfo.Columns.HOSTNAME, new Consumer<DiscoveryNodeContext>() {
-                        @Override
-                        public void accept(DiscoveryNodeContext context) {
-                            try {
-                                context.hostname(BytesRefs.toBytesRef(InetAddress.getLocalHost().getHostName()));
-                            } catch (UnknownHostException e) {
-                                // What should we do?
-                            }
-                        }
-                    })
-                    .put(SysNodesTableInfo.Columns.REST_URL, new Consumer<DiscoveryNodeContext>() {
-                        @Override
-                        public void accept(DiscoveryNodeContext context) {
-                            if (clusterService.localNode() != null) {
-                                String url = clusterService.localNode().attributes().get("http_address");
-                                context.restUrl(BytesRefs.toBytesRef(url));
-                            }
-                        }
-                    })
-                    .put(SysNodesTableInfo.Columns.PORT, new Consumer<DiscoveryNodeContext>() {
-                        @Override
-                        public void accept(DiscoveryNodeContext context) {
-                            Integer http = null;
-                            Integer transport;
+    private Map<ColumnIdent, Consumer<DiscoveryNodeContext>> colIdentToContext =
+        ImmutableMap.<ColumnIdent, Consumer<DiscoveryNodeContext>>builder()
+            .put(SysNodesTableInfo.Columns.ID, new Consumer<DiscoveryNodeContext>() {
+                @Override
+                public void accept(DiscoveryNodeContext context) {
+                    context.id(BytesRefs.toBytesRef(clusterService.localNode().id()));
+                }
+            })
+            .put(SysNodesTableInfo.Columns.NAME, new Consumer<DiscoveryNodeContext>() {
+                @Override
+                public void accept(DiscoveryNodeContext context) {
+                    context.name(BytesRefs.toBytesRef(clusterService.localNode().name()));
+                }
+            })
+            .put(SysNodesTableInfo.Columns.HOSTNAME, new Consumer<DiscoveryNodeContext>() {
+                @Override
+                public void accept(DiscoveryNodeContext context) {
+                    try {
+                        context.hostname(BytesRefs.toBytesRef(InetAddress.getLocalHost().getHostName()));
+                    } catch (UnknownHostException e) {
+                        // What should we do?
+                    }
+                }
+            })
+            .put(SysNodesTableInfo.Columns.REST_URL, new Consumer<DiscoveryNodeContext>() {
+                @Override
+                public void accept(DiscoveryNodeContext context) {
+                    if (clusterService.localNode() != null) {
+                        String url = clusterService.localNode().attributes().get("http_address");
+                        context.restUrl(BytesRefs.toBytesRef(url));
+                    }
+                }
+            })
+            .put(SysNodesTableInfo.Columns.PORT, new Consumer<DiscoveryNodeContext>() {
+                @Override
+                public void accept(DiscoveryNodeContext context) {
+                    Integer http = null;
+                    Integer transport;
 
-                            if (nodeService.info().getHttp() != null) {
-                                http = portFromAddress(nodeService.info().getHttp().address().publishAddress());
-                            }
-                            try {
-                                transport = portFromAddress(nodeService.stats().getNode().address());
-                            } catch (IOException e) {
-                                throw new ElasticsearchException("unable to get node transport statistics", e);
-                            }
-                            HashMap<String, Integer> port = new HashMap<>();
-                            port.put("http", http);
-                            port.put("transport", transport);
-                            context.port(port);
-                        }
-                    })
-                    .put(SysNodesTableInfo.Columns.LOAD, new Consumer<DiscoveryNodeContext>() {
-                        @Override
-                        public void accept(DiscoveryNodeContext context) {
-                            context.extendedOsStats(extendedNodeInfo.osStats());
-                        }
-                    })
-                    .put(SysNodesTableInfo.Columns.MEM, new Consumer<DiscoveryNodeContext>() {
-                        @Override
-                        public void accept(DiscoveryNodeContext context) {
-                            context.osStats(osService.stats());
-                        }
-                    })
-                    .put(SysNodesTableInfo.Columns.HEAP, new Consumer<DiscoveryNodeContext>() {
-                        @Override
-                        public void accept(DiscoveryNodeContext context) {
-                            context.jvmStats(jvmService.stats());
-                        }
-                    })
-                    .put(SysNodesTableInfo.Columns.VERSION, new Consumer<DiscoveryNodeContext>() {
-                        @Override
-                        public void accept(DiscoveryNodeContext context) {
-                            context.version(Version.CURRENT);
-                            context.build(Build.CURRENT);
-                        }
-                    })
-                    .put(SysNodesTableInfo.Columns.THREAD_POOLS, new Consumer<DiscoveryNodeContext>() {
-                        @Override
-                        public void accept(DiscoveryNodeContext context) {
-                            ThreadPools threadPools = new ThreadPools();
-                            for (ThreadPool.Info info : threadPool.info()) {
-                                String name = info.getName();
+                    if (nodeService.info().getHttp() != null) {
+                        http = portFromAddress(nodeService.info().getHttp().address().publishAddress());
+                    }
+                    try {
+                        transport = portFromAddress(nodeService.stats().getNode().address());
+                    } catch (IOException e) {
+                        throw new ElasticsearchException("unable to get node transport statistics", e);
+                    }
+                    HashMap<String, Integer> port = new HashMap<>();
+                    port.put("http", http);
+                    port.put("transport", transport);
+                    context.port(port);
+                }
+            })
+            .put(SysNodesTableInfo.Columns.LOAD, new Consumer<DiscoveryNodeContext>() {
+                @Override
+                public void accept(DiscoveryNodeContext context) {
+                    context.extendedOsStats(extendedNodeInfo.osStats());
+                }
+            })
+            .put(SysNodesTableInfo.Columns.MEM, new Consumer<DiscoveryNodeContext>() {
+                @Override
+                public void accept(DiscoveryNodeContext context) {
+                    context.osStats(osService.stats());
+                }
+            })
+            .put(SysNodesTableInfo.Columns.HEAP, new Consumer<DiscoveryNodeContext>() {
+                @Override
+                public void accept(DiscoveryNodeContext context) {
+                    context.jvmStats(jvmService.stats());
+                }
+            })
+            .put(SysNodesTableInfo.Columns.VERSION, new Consumer<DiscoveryNodeContext>() {
+                @Override
+                public void accept(DiscoveryNodeContext context) {
+                    context.version(Version.CURRENT);
+                    context.build(Build.CURRENT);
+                }
+            })
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS, new Consumer<DiscoveryNodeContext>() {
+                @Override
+                public void accept(DiscoveryNodeContext context) {
+                    ThreadPools threadPools = new ThreadPools();
+                    for (ThreadPool.Info info : threadPool.info()) {
+                        String name = info.getName();
 
-                                ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(name);
-                                long rejectedCount = -1;
-                                RejectedExecutionHandler rejectedExecutionHandler = executor.getRejectedExecutionHandler();
-                                if (rejectedExecutionHandler instanceof XRejectedExecutionHandler) {
-                                    rejectedCount = ((XRejectedExecutionHandler) rejectedExecutionHandler).rejected();
-                                }
+                        ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(name);
+                        long rejectedCount = -1;
+                        RejectedExecutionHandler rejectedExecutionHandler = executor.getRejectedExecutionHandler();
+                        if (rejectedExecutionHandler instanceof XRejectedExecutionHandler) {
+                            rejectedCount = ((XRejectedExecutionHandler) rejectedExecutionHandler).rejected();
+                        }
 
-                                ThreadPools.ThreadPoolExecutorContext executorContext =
-                                        new ThreadPools.ThreadPoolExecutorContext(
-                                                executor.getActiveCount(),
-                                                executor.getQueue().size(),
-                                                executor.getLargestPoolSize(),
-                                                executor.getPoolSize(),
-                                                executor.getCompletedTaskCount(),
-                                                rejectedCount);
-                                threadPools.add(name, executorContext);
-                            }
-                            context.threadPools(threadPools);
-                        }
-                    })
-                    .put(SysNodesTableInfo.Columns.NETWORK, new Consumer<DiscoveryNodeContext>() {
-                        @Override
-                        public void accept(DiscoveryNodeContext context) {
-                            context.networkStats(extendedNodeInfo.networkStats());
-                        }
-                    })
-                    .put(SysNodesTableInfo.Columns.OS, new Consumer<DiscoveryNodeContext>() {
-                        @Override
-                        public void accept(DiscoveryNodeContext context) {
-                            context.extendedOsStats(extendedNodeInfo.osStats());
-                        }
-                    })
-                    .put(SysNodesTableInfo.Columns.OS_INFO, new Consumer<DiscoveryNodeContext>() {
-                        @Override
-                        public void accept(DiscoveryNodeContext context) {
-                            context.osInfo(nodeService.info().getOs());
-                        }
-                    })
-                    .put(SysNodesTableInfo.Columns.PROCESS, new Consumer<DiscoveryNodeContext>() {
-                        @Override
-                        public void accept(DiscoveryNodeContext context) {
-                            context.extendedProcessCpuStats(extendedNodeInfo.processCpuStats());
-                            try {
-                                context.processStats(nodeService.stats().getProcess());
-                            } catch (IOException e) {
-                                throw new ElasticsearchException("unable to get node statistics");
-                            }
-                        }
-                    })
-                    .put(SysNodesTableInfo.Columns.FS, new Consumer<DiscoveryNodeContext>() {
-                        @Override
-                        public void accept(DiscoveryNodeContext context) {
-                            context.extendedFsStats(extendedNodeInfo.fsStats());
-                        }
-                    }).build();
+                        ThreadPools.ThreadPoolExecutorContext executorContext =
+                            new ThreadPools.ThreadPoolExecutorContext(
+                                executor.getActiveCount(),
+                                executor.getQueue().size(),
+                                executor.getLargestPoolSize(),
+                                executor.getPoolSize(),
+                                executor.getCompletedTaskCount(),
+                                rejectedCount);
+                        threadPools.add(name, executorContext);
+                    }
+                    context.threadPools(threadPools);
+                }
+            })
+            .put(SysNodesTableInfo.Columns.NETWORK, new Consumer<DiscoveryNodeContext>() {
+                @Override
+                public void accept(DiscoveryNodeContext context) {
+                    context.networkStats(extendedNodeInfo.networkStats());
+                }
+            })
+            .put(SysNodesTableInfo.Columns.OS, new Consumer<DiscoveryNodeContext>() {
+                @Override
+                public void accept(DiscoveryNodeContext context) {
+                    context.extendedOsStats(extendedNodeInfo.osStats());
+                }
+            })
+            .put(SysNodesTableInfo.Columns.OS_INFO, new Consumer<DiscoveryNodeContext>() {
+                @Override
+                public void accept(DiscoveryNodeContext context) {
+                    context.osInfo(nodeService.info().getOs());
+                }
+            })
+            .put(SysNodesTableInfo.Columns.PROCESS, new Consumer<DiscoveryNodeContext>() {
+                @Override
+                public void accept(DiscoveryNodeContext context) {
+                    context.extendedProcessCpuStats(extendedNodeInfo.processCpuStats());
+                    try {
+                        context.processStats(nodeService.stats().getProcess());
+                    } catch (IOException e) {
+                        throw new ElasticsearchException("unable to get node statistics");
+                    }
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS, new Consumer<DiscoveryNodeContext>() {
+                @Override
+                public void accept(DiscoveryNodeContext context) {
+                    context.extendedFsStats(extendedNodeInfo.fsStats());
+                }
+            }).build();
 
 
     private static Integer portFromAddress(TransportAddress address) {
