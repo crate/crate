@@ -30,7 +30,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.Timeout;
-import org.postgresql.geometric.PGpoint;
 import org.postgresql.util.PSQLException;
 
 import java.sql.*;
