@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.ResultReceiver;
+import io.crate.action.sql.SessionCtx;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
@@ -54,6 +55,7 @@ class BulkPortal extends AbstractPortal {
     private Statement statement;
     private int maxRows = 0;
     private List<? extends DataType> outputTypes;
+    private SessionCtx sessionCtx;
 
     BulkPortal(String name,
                String query,
@@ -62,11 +64,13 @@ class BulkPortal extends AbstractPortal {
                ResultReceiver resultReceiver,
                int maxRows,
                List<Object> params,
+               SessionCtx sessionCtx,
                SessionData sessionData) {
-        super(name, sessionData);
+        super(name, sessionData, sessionCtx);
         this.query = query;
         this.statement = statement;
         this.outputTypes = outputTypes;
+        this.sessionCtx = sessionCtx;
         this.resultReceivers.add(resultReceiver);
         this.maxRows = maxRows;
         this.bulkParams.add(params);
@@ -114,11 +118,8 @@ class BulkPortal extends AbstractPortal {
     @Override
     public void sync(Planner planner, StatsTables statsTables, CompletionListener listener) {
         Object[][] bulkArgs = toBulkArgs(bulkParams);
-        Analysis analysis = sessionData.getAnalyzer().analyze(statement,
-            new ParameterContext(new Object[0],
-                bulkArgs,
-                sessionData.getDefaultSchema(),
-                sessionData.options()));
+        Analysis analysis = sessionData.getAnalyzer().analyze(
+            statement, new ParameterContext(new Object[0], bulkArgs), sessionCtx);
         UUID jobId = UUID.randomUUID();
         Plan plan;
         try {

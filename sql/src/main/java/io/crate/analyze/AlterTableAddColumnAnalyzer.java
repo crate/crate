@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.SessionCtx;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
@@ -65,7 +66,7 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
     @Override
     public AddColumnAnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, Analysis analysis) {
         AddColumnAnalyzedStatement statement = new AddColumnAnalyzedStatement(schemas);
-        setTableAndPartitionName(node.table(), statement, analysis.parameterContext());
+        setTableAndPartitionName(node.table(), statement, analysis.sessionCtx());
         Operation.blockedRaiseException(statement.table(), Operation.ALTER);
 
         statement.analyzedTableElements(TableElementsAnalyzer.analyze(
@@ -80,7 +81,11 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
         addExistingPrimaryKeys(statement);
         ensureNoIndexDefinitions(statement.analyzedTableElements().columns());
         statement.analyzedTableElements().finalizeAndValidate(
-                statement.table().ident(), statement.table(), analysisMetaData, analysis.parameterContext());
+            statement.table().ident(),
+            statement.table(),
+            analysisMetaData,
+            analysis.parameterContext(),
+            analysis.sessionCtx());
 
         int numCurrentPks = statement.table().primaryKey().size();
         if (statement.table().primaryKey().contains(DocSysColumns.ID)) {
@@ -136,11 +141,11 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
         }
     }
 
-    private void setTableAndPartitionName(Table node, AddColumnAnalyzedStatement context, ParameterContext parameterContext) {
+    private void setTableAndPartitionName(Table node, AddColumnAnalyzedStatement context, SessionCtx sessionCtx) {
         if (!node.partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
         }
-        context.table(TableIdent.of(node, parameterContext.defaultSchema()));
+        context.table(TableIdent.of(node, sessionCtx.defaultSchema()));
     }
 
 }

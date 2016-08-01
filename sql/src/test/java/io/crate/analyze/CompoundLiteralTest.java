@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -135,13 +136,14 @@ public class CompoundLiteralTest extends CrateUnitTest {
 
     private Symbol analyzeExpression(String expression, Object[] params) {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData,
-                new ParameterContext(params, new Object[0][], null),
-                new FullQualifedNameFieldProvider(
-                        ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-                            new QualifiedName("dummy"), new DummyRelation()
+            analysisMetaData,
+            new ParameterContext(params, new Object[0][]),
+            SQLOperations.Option.NONE,
+            new FullQualifedNameFieldProvider(
+                ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+                    new QualifiedName("dummy"), new DummyRelation()
                 )),
-                null
+            null
         );
         return expressionAnalyzer.convert(SqlParser.createExpression(expression), new ExpressionAnalysisContext());
     }

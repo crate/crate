@@ -86,9 +86,7 @@ public class SQLOperations {
         return new Session(
             executorProvider.get(),
             transportKillJobsNodeActionProvider.get(),
-            defaultSchema,
-            defaultLimit,
-            options
+            new SessionCtx(defaultSchema, defaultLimit, options)
         );
     }
 
@@ -135,9 +133,7 @@ public class SQLOperations {
 
         private final Executor executor;
         private final TransportKillJobsNodeAction transportKillJobsNodeAction;
-        private final String defaultSchema;
-        private final int defaultLimit;
-        private final Set<Option> options;
+        private SessionCtx sessionCtx;
 
         private List<DataType> paramTypes;
         private Statement statement;
@@ -148,21 +144,17 @@ public class SQLOperations {
 
         private Session(Executor executor,
                         TransportKillJobsNodeAction transportKillJobsNodeAction,
-                        String defaultSchema,
-                        int defaultLimit,
-                        Set<Option> options) {
+                        SessionCtx sessionCtx) {
             this.executor = executor;
             this.transportKillJobsNodeAction = transportKillJobsNodeAction;
-            this.defaultSchema = defaultSchema;
-            this.defaultLimit = defaultLimit;
-            this.options = options;
+            this.sessionCtx = sessionCtx;
         }
 
         private Portal getOrCreatePortal(String portalName) {
             Portal portal = portals.get(portalName);
             if (portal == null) {
                 portal = new SimplePortal(
-                    portalName, defaultSchema, options, analyzer, executor, transportKillJobsNodeAction, isReadOnly, defaultLimit);
+                    portalName, sessionCtx, analyzer, executor, transportKillJobsNodeAction, isReadOnly);
                 portals.put(portalName, portal);
             }
             return portal;

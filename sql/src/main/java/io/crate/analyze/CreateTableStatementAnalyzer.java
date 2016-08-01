@@ -92,7 +92,11 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
 
         // validate table elements
         context.statement.analyzedTableElements().finalizeAndValidate(
-                context.statement.tableIdent(), null, analysisMetaData, context.analysis.parameterContext());
+            context.statement.tableIdent(),
+            null,
+            analysisMetaData,
+            context.analysis.parameterContext(),
+            context.analysis.sessionCtx());
 
         // update table settings
         context.statement.tableParameter().settingsBuilder().put(context.statement.analyzedTableElements().settings());
@@ -109,7 +113,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     }
 
     private void setTableIdent(CreateTable node, Context context) {
-        TableIdent tableIdent = TableIdent.of(node.name(), context.analysis.parameterContext().defaultSchema());
+        TableIdent tableIdent = TableIdent.of(node.name(), context.analysis.sessionCtx().defaultSchema());
         context.statement.table(tableIdent, node.ifNotExists(), schemas);
     }
 

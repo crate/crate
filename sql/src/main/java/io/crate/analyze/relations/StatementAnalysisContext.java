@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.action.sql.SessionCtx;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.metadata.table.Operation;
@@ -32,23 +33,30 @@ public class StatementAnalysisContext {
 
     private final Operation currentOperation;
     private final ParameterContext parameterContext;
+    private final SessionCtx sessionCtx;
     private final AnalysisMetaData analysisMetaData;
     private final List<RelationAnalysisContext> lastRelationContextQueue = new ArrayList<>();
 
-    StatementAnalysisContext(ParameterContext parameterContext, AnalysisMetaData analysisMetaData) {
-        this(parameterContext, analysisMetaData, Operation.READ);
+    StatementAnalysisContext(ParameterContext parameterContext, SessionCtx sessionCtx, AnalysisMetaData analysisMetaData) {
+        this(parameterContext, sessionCtx, analysisMetaData, Operation.READ);
     }
 
     public StatementAnalysisContext(ParameterContext parameterContext,
+                                    SessionCtx sessionCtx,
                                     AnalysisMetaData analysisMetaData,
                                     Operation currentOperation) {
         this.parameterContext = parameterContext;
+        this.sessionCtx = sessionCtx;
         this.analysisMetaData = analysisMetaData;
         this.currentOperation = currentOperation;
     }
 
     public ParameterContext parameterContext() {
         return parameterContext;
+    }
+
+    public SessionCtx sessionCtx() {
+        return sessionCtx;
     }
 
     Operation currentOperation() {
@@ -60,7 +68,8 @@ public class StatementAnalysisContext {
     }
 
     RelationAnalysisContext startRelation(boolean aliasedRelation) {
-        RelationAnalysisContext currentRelationContext = new RelationAnalysisContext(parameterContext, analysisMetaData, aliasedRelation);
+        RelationAnalysisContext currentRelationContext = new RelationAnalysisContext(
+            parameterContext, sessionCtx.options(), analysisMetaData, aliasedRelation);
         lastRelationContextQueue.add(currentRelationContext);
         return currentRelationContext;
     }

@@ -23,6 +23,7 @@
 package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -37,6 +38,7 @@ public class RelationAnalysisContext {
 
     private final ExpressionAnalysisContext expressionAnalysisContext;
     private final ParameterContext parameterContext;
+    private final Set<SQLOperations.Option> options;
     private final AnalysisMetaData analysisMetaData;
     private final boolean aliasedRelation;
     // keep order of sources.
@@ -48,8 +50,12 @@ public class RelationAnalysisContext {
     @Nullable
     private List<Expression> joinExpressions;
 
-    RelationAnalysisContext(ParameterContext parameterContext, AnalysisMetaData analysisMetaData, boolean aliasedRelation) {
+    RelationAnalysisContext(ParameterContext parameterContext,
+                            Set<SQLOperations.Option> options,
+                            AnalysisMetaData analysisMetaData,
+                            boolean aliasedRelation) {
         this.parameterContext = parameterContext;
+        this.options = options;
         this.analysisMetaData = analysisMetaData;
         this.aliasedRelation = aliasedRelation;
         expressionAnalysisContext = new ExpressionAnalysisContext();
@@ -98,7 +104,7 @@ public class RelationAnalysisContext {
 
     public ExpressionAnalyzer expressionAnalyzer() {
         if (expressionAnalyzer == null){
-            expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, parameterContext, fieldProvider(), null);
+            expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, parameterContext, options, fieldProvider(), null);
         }
         return expressionAnalyzer;
     }

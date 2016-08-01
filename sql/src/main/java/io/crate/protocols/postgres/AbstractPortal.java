@@ -22,33 +22,37 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.SessionCtx;
 import io.crate.analyze.Analyzer;
 import io.crate.executor.Executor;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 
-import java.util.Set;
-
 abstract class AbstractPortal implements Portal {
 
     protected final String name;
-    protected final SessionData sessionData;
+    final SessionCtx sessionCtx;
+    final SessionData sessionData;
 
     AbstractPortal(String name,
-                   String defaultSchema,
-                   Set<SQLOperations.Option> options,
                    Analyzer analyzer,
                    Executor executor,
                    TransportKillJobsNodeAction transportKillJobsNodeAction,
-                   boolean isReadOnly) {
+                   boolean isReadOnly,
+                   SessionCtx sessionCtx) {
         this.name = name;
-        sessionData = new SessionData(defaultSchema, options, analyzer, executor,
-            transportKillJobsNodeAction, isReadOnly);
+        this.sessionCtx = sessionCtx;
+        sessionData = new SessionData(
+            analyzer,
+            executor,
+            transportKillJobsNodeAction,
+            isReadOnly
+        );
     }
 
-    AbstractPortal(String name, SessionData sessionData) {
+    AbstractPortal(String name, SessionData sessionData, SessionCtx sessionCtx) {
         this.name = name;
         this.sessionData = sessionData;
+        this.sessionCtx = sessionCtx;
     }
 
     @Override
@@ -61,21 +65,15 @@ abstract class AbstractPortal implements Portal {
 
     static class SessionData {
 
-        private Set<SQLOperations.Option> options;
         private final Analyzer analyzer;
         private final Executor executor;
-        private final String defaultSchema;
         private final TransportKillJobsNodeAction transportKillJobsNodeAction;
         private final boolean isReadOnly;
 
-        private SessionData(String defaultSchema,
-                            Set<SQLOperations.Option> options,
-                            Analyzer analyzer,
+        private SessionData(Analyzer analyzer,
                             Executor executor,
                             TransportKillJobsNodeAction transportKillJobsNodeAction,
                             boolean isReadOnly) {
-            this.defaultSchema = defaultSchema;
-            this.options = options;
             this.analyzer = analyzer;
             this.executor = executor;
             this.transportKillJobsNodeAction = transportKillJobsNodeAction;
@@ -88,14 +86,6 @@ abstract class AbstractPortal implements Portal {
 
         Executor getExecutor() {
             return executor;
-        }
-
-        String getDefaultSchema() {
-            return defaultSchema;
-        }
-
-        Set<SQLOperations.Option> options() {
-            return options;
         }
 
         TransportKillJobsNodeAction getTransportKillJobsNodeAction() {

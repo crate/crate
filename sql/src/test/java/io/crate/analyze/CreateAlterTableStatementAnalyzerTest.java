@@ -22,6 +22,8 @@
 package io.crate.analyze;
 
 import com.google.common.base.Joiner;
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.SessionCtx;
 import io.crate.exceptions.*;
 import io.crate.metadata.*;
 import io.crate.metadata.information.MetaDataInformationModule;
@@ -693,8 +695,9 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testExplicitSchemaHasPrecedenceOverDefaultSchema() throws Exception {
         CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) analyzer.analyze(
-                SqlParser.createStatement("create table foo.bar (x string)"),
-                new ParameterContext(new Object[0], new Object[0][], "hoschi")).analyzedStatement();
+            SqlParser.createStatement("create table foo.bar (x string)"),
+            new ParameterContext(new Object[0], new Object[0][]),
+            new SessionCtx("hoschi", 0, SQLOperations.Option.NONE)).analyzedStatement();
 
         // schema from statement must take precedence
         assertThat(statement.tableIdent().schema(), is("foo"));
@@ -703,8 +706,9 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testDefaultSchemaIsAddedToTableIdentIfNoEplicitSchemaExistsInTheStatement() throws Exception {
         CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) analyzer.analyze(
-                SqlParser.createStatement("create table bar (x string)"),
-                new ParameterContext(new Object[0], new Object[0][], "hoschi")).analyzedStatement();
+            SqlParser.createStatement("create table bar (x string)"),
+            new ParameterContext(new Object[0], new Object[0][]),
+            new SessionCtx("hoschi",0, SQLOperations.Option.NONE)).analyzedStatement();
 
         assertThat(statement.tableIdent().schema(), is("hoschi"));
     }

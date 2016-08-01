@@ -25,6 +25,7 @@ import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.*;
 import io.crate.Constants;
+import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.TableParameterInfo;
@@ -476,7 +477,7 @@ public class DocIndexMetaData {
         Collection<ReferenceInfo> referenceInfos = references.values();
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(referenceInfos);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                functions, null, ParameterContext.EMPTY, tableReferenceResolver, null);
+                functions, null, ParameterContext.EMPTY, SQLOperations.Option.NONE, tableReferenceResolver, null);
         ExpressionAnalysisContext context = new ExpressionAnalysisContext();
         for (ReferenceInfo referenceInfo : generatedColumnReferences) {
             GeneratedReferenceInfo generatedReferenceInfo = (GeneratedReferenceInfo) referenceInfo;

@@ -25,6 +25,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -273,7 +274,7 @@ public class TestingTableInfo extends DocTableInfo {
         private void initializeGeneratedExpressions(Functions functions, Collection<ReferenceInfo> columns) {
             TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(columns);
             ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                    functions, null, null, tableReferenceResolver, null);
+                    functions, null, null, SQLOperations.Option.NONE, tableReferenceResolver, null);
             for (GeneratedReferenceInfo generatedReferenceInfo : generatedColumns.build()) {
                 Expression expression = SqlParser.createExpression(generatedReferenceInfo.formattedGeneratedExpression());
                 ExpressionAnalysisContext context = new ExpressionAnalysisContext();
