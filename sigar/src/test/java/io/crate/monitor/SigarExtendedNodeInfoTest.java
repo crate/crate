@@ -38,6 +38,7 @@ import org.junit.Test;
 import java.nio.file.Path;
 
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -137,7 +138,8 @@ public class SigarExtendedNodeInfoTest extends CrateUnitTest {
     @Test
     public void testProcessCpuStats() throws Exception {
         ExtendedProcessCpuStats stats = extendedNodeInfo.processCpuStats();
-        assertThat(stats.percent(), greaterThan((short) -1));
-        assertThat(stats.sys().millis(), greaterThan(-1L));
+        // anything else than the default values
+        assertThat(stats.percent(), not((short) -1));
+        assertThat(stats.sys().millis(), not(-1L));
     }
 }
