@@ -87,7 +87,15 @@ public class PGTypes {
     }
 
     public static PGType get(DataType type) {
-        PGType pgType = CRATE_TO_PG_TYPES.get(type);
+        // Get the type of the parent of the innermost type
+        DataType parentType = type;
+        DataType targetType = type;
+        while (targetType instanceof ArrayType) {
+            parentType = targetType;
+            targetType = ((ArrayType) targetType).innerType();
+        }
+
+        PGType pgType = CRATE_TO_PG_TYPES.get(parentType);
         if (pgType == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "No type mapping from '%s' to pg_type", type.getName()));
