@@ -228,8 +228,7 @@ public class SQLOperations {
                     Portal portal = getSafePortal(portalOrStatement);
                     return portal.describe();
                 case 'S':
-                    /* TODO: need to return proper fields?
-                     *
+                    /*
                      * describe might be called without prior bind call. E.g. in batch insert case the statement is prepared first:
                      *
                      *      parse stmtName=S_1 query=insert into t (x) values ($1) paramTypes=[integer]
@@ -249,6 +248,10 @@ public class SQLOperations {
                      * and finally:
                      *
                      *      sync
+                     *
+                     * We can't analyze a statement without params which is why null is returned here.
+                     * This isn't the correct thing to do. It results in a "NoData" msg sent to the client.
+                     * But at least the JDBC client can handle that and just follows up with bind/describe again.
                      */
                     return null;
             }

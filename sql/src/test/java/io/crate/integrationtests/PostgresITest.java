@@ -96,6 +96,32 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testPreparedSelectStatementWithParametersCanBeDescribed() throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty("prepareThreshold", "-1");
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            PreparedStatement p1 = conn.prepareStatement("select ? from sys.cluster");
+            p1.setInt(1, 20);
+            ResultSet resultSet = p1.executeQuery();
+            /*
+             * This execute results in the following messages:
+             *
+             *      method=parse stmtName=S_1 query=select $1 from sys.cluster paramTypes=[integer]
+             *      method=describe type=S portalOrStatement=S_1
+             *      method=sync
+             *      method=bind portalName= statementName=S_1 params=[20]
+             *      method=describe type=P portalOrStatement=
+             *      method=execute portalName= maxRows=0
+             *      method=sync
+             *
+             * The tests makes sure that it works even though the describe can't analyze the statement (because of missing params)
+             */
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getInt(1), is(20));
+        }
+    }
+
+    @Test
     public void testWriteOperationsWithoutAutocommitAndCommitAndRollback() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.setAutoCommit(false);
