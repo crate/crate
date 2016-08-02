@@ -22,6 +22,7 @@
 
 package io.crate.cluster.gracefulstop;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import io.crate.action.sql.TransportSQLAction;
 import io.crate.action.sql.TransportSQLBulkAction;
@@ -199,6 +200,8 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         } else {
             logger.warn("Aborting graceful shutdown due to error", e);
             removeDecommissioningSetting();
+            sqlAction.enable();
+            sqlBulkAction.enable();
         }
     }
 
@@ -227,7 +230,8 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         System.exit(0);
     }
 
-    private void removeDecommissioningSetting() {
+    @VisibleForTesting
+    protected void removeDecommissioningSetting() {
         HashSet<String> settingsToRemove = Sets.newHashSet(DECOMMISSION_PREFIX + clusterService.localNode().id());
         updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettingsToRemove(settingsToRemove));
     }

@@ -49,19 +49,23 @@ public class DecommissioningServiceTest {
     private StatsTables statsTables;
     private TestableDecommissioningService decommissioningService;
     private ThreadPool threadPool;
+    private TransportSQLAction sqlAction;
+    private TransportSQLBulkAction sqlBulkAction;
 
     @Before
     public void setUp() throws Exception {
         statsTables = new StatsTables(Settings.EMPTY, mock(NodeSettingsService.class));
         threadPool = mock(ThreadPool.class, Answers.RETURNS_MOCKS.get());
+        sqlAction = mock(TransportSQLAction.class);
+        sqlBulkAction = mock(TransportSQLBulkAction.class);
         decommissioningService = new TestableDecommissioningService(
             Settings.EMPTY,
             new NoopClusterService(),
             statsTables,
             threadPool,
             mock(NodeSettingsService.class),
-            mock(TransportSQLAction.class),
-            mock(TransportSQLBulkAction.class),
+            sqlAction,
+            sqlBulkAction,
             mock(TransportClusterHealthAction.class),
             mock(TransportClusterUpdateSettingsAction.class)
         );
@@ -88,6 +92,8 @@ public class DecommissioningServiceTest {
         statsTables.jobFinished(UUID.randomUUID(), null);
         decommissioningService.exitIfNoActiveRequests(System.nanoTime() - TimeValue.timeValueHours(3).nanos());
         assertThat(decommissioningService.forceStopOrAbortCalled, is(true));
+        verify(sqlAction, times(1)).enable();
+        verify(sqlBulkAction, times(1)).enable();
     }
 
     private static class TestableDecommissioningService extends DecommissioningService {
@@ -95,15 +101,15 @@ public class DecommissioningServiceTest {
         private boolean exited = false;
         private boolean forceStopOrAbortCalled = false;
 
-        public TestableDecommissioningService(Settings settings,
-                                              ClusterService clusterService,
-                                              StatsTables statsTables,
-                                              ThreadPool threadPool,
-                                              NodeSettingsService nodeSettingsService,
-                                              TransportSQLAction sqlAction,
-                                              TransportSQLBulkAction sqlBulkAction,
-                                              TransportClusterHealthAction healthAction,
-                                              TransportClusterUpdateSettingsAction updateSettingsAction) {
+        TestableDecommissioningService(Settings settings,
+                                       ClusterService clusterService,
+                                       StatsTables statsTables,
+                                       ThreadPool threadPool,
+                                       NodeSettingsService nodeSettingsService,
+                                       TransportSQLAction sqlAction,
+                                       TransportSQLBulkAction sqlBulkAction,
+                                       TransportClusterHealthAction healthAction,
+                                       TransportClusterUpdateSettingsAction updateSettingsAction) {
             super(settings, clusterService, statsTables, threadPool, nodeSettingsService,
                 sqlAction, sqlBulkAction, healthAction, updateSettingsAction);
         }
@@ -116,6 +122,11 @@ public class DecommissioningServiceTest {
         @Override
         void forceStopOrAbort(@Nullable Throwable e) {
             forceStopOrAbortCalled = true;
+            super.forceStopOrAbort(e);
+        }
+
+        @Override
+        protected void removeDecommissioningSetting() {
         }
     }
 }

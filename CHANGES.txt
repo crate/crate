@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: If a graceful shutdown of a node was aborted, sql statement
+   processing on that node was still disabled.
+
  - Fixed a read isolation issue which could cause joins involving
    system and blob tables to return inconsistent results.
 
