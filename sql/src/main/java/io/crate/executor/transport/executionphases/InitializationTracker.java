@@ -30,7 +30,7 @@ class InitializationTracker {
 
     final SettableFuture<Void> future;
     private final AtomicInteger serverToInitialize;
-    private Throwable failure;
+    private volatile Throwable failure;
 
     InitializationTracker(int numServer) {
         future = SettableFuture.create();
