@@ -142,18 +142,6 @@ public class SQLOperations {
      * sync()
      * </pre>
      *
-     * If during one of the operation an error occurs the error will be raised and all subsequent methods will become
-     * no-op operations until sync() is called which will again raise an error and "clear" it. (to be able to process new statements)
-     *
-     * This is done for compatibility with the postgres extended spec:
-     *
-     * > The purpose of Sync is to provide a resynchronization point for error recovery.
-     * > When an error is detected while processing any extended-query message, the backend issues ErrorResponse,
-     * > then reads and discards messages until a Sync is reached,
-     * > then issues ReadyForQuery and returns to normal message processing.
-     * > (But note that no skipping occurs if an error is detected while processing Sync —
-     * > this ensures that there is one and only one ReadyForQuery sent for each Sync.)
-     *
      * (https://www.postgresql.org/docs/9.2/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY)
      */
     public class Session {
@@ -276,6 +264,7 @@ public class SQLOperations {
                 portal.sync(planner, statsTables, CompletionListener.NO_OP);
                 clearState();
             } else {
+                // delay execution to be able to bundle bulk operations
                 pendingExecutions.add(portal);
             }
         }
