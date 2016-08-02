@@ -196,11 +196,11 @@ fractions. Example::
 geo_point
 =========
 
-The ``geo_point`` type can be used to store latitude and longitude geo
+The ``geo_point`` type is used to store latitude and longitude geo
 coordinates.
 
-Columns with the ``geo_point`` are represented and inserted using a double
-array in the following format::
+Columns with the ``geo_point`` type are represented and inserted using an array
+of doubles in the following format::
 
     [<lon_value>, <lat_value>]
 
@@ -232,12 +232,12 @@ Create table example::
 geo_shape
 =========
 
-The ``geo_shape`` type is used to store geometric shapes as defined in
+The ``geo_shape`` type is used to store geometric shapes defined as
 `GeoJSON geometry objects`_.
 
 A geo_shape column can store different kinds of `GeoJSON geometry objects`_.
 Thus it is possible to store e.g. ``LineString`` and ``MultiPolygon`` shapes
-into the same column.
+in the same column.
 
 .. note::
 
@@ -246,19 +246,21 @@ into the same column.
 Definition
 ----------
 
-When defining a geo_shape column as is::
+To define a geo_shape column::
 
     <columnName> geo_shape
 
-a geographical index with default parameters is created implicitly in order to allow for
+A geographical index with default parameters is created implicitly to allow for
 geographical queries.
-The implicit default can be defined explicitly as::
+
+The default definition for the column type is::
 
     <columnName> geo_shape INDEX USING geohash WITH (precision='50m', distance_error_pct=0.025)
 
-There are two geographic index types: ``geohash`` (the default) and ``quadtree``.
+There are two geographic index types: ``geohash`` (the default) and
+``quadtree``.
 These indices are only allowed on geo_shape columns.
-For more information on them, see :ref:`geo_shape_data_type_index`.
+For more information, see :ref:`geo_shape_data_type_index`.
 
 Both of these index types accept the following parameters:
 
@@ -296,29 +298,33 @@ Both of these index types accept the following parameters:
 Geo Shape Index Structure
 -------------------------
 
-Computations on very complex polygons and geometry collections are exact but very expensive.
-In order to provide fast queries even on quite complex shapes, Crate uses a different approach
-to store, analyze and query geo shapes.
+Computations on very complex polygons and geometry collections are exact but
+very expensive. To provide fast queries even on complex shapes, Crate uses a
+different approach to store, analyze and query geo shapes.
 
-The surface of the earth is represented as a number of grid layers each with higher precision.
-While the upper layer has one grid cell, the layer below contains many cells for the equivalent space.
-Each grid cell on each layer is addressed in 2d space either by a `Geohash`_ for ``geohash`` trees
-or by tightly packed coordinates in a `Quadtree`_.
-Those addresses have the neat attribute that grid cells of lower layers inside a cell of an upper layer
-share the same address-prefix. So we are able to use a `Trie`_ to represent our grids.
-And `Tries`_ can be queried very efficiently.
-Their complexity is determined by the tree depth only.
+The surface of the earth is represented as a number of grid layers each with
+higher precision. While the upper layer has one grid cell, the layer below
+contains many cells for the equivalent space.
 
-A geo shape is transformed into these grid cells. Think of this transformation process
-as dissecting a vector image into its pixelled counterpart, more or less accurate.
-We end up with multiple images each with a better resolution up to the configured precision.
+Each grid cell on each layer is addressed in 2d space either by a `Geohash`_
+for ``geohash`` trees or by tightly packed coordinates in a `Quadtree`_.
+Those addresses conveniently share the same address-prefix between lower layers
+and upper layers. So we are able to use a `Trie`_ to represent the grids, and
+`Tries`_ can be queried efficiently as their complexity is determined by the
+tree depth only.
 
-Every grid cell that is touched up to the configured precision
-is stored in an inverted index, creating a mapping from grid cell to all shapes that do touch it.
-And this mapping actually is our geographic index.
+A geo shape is transformed into these grid cells. Think of this transformation
+process as dissecting a vector image into its pixelated counterpart, reasonably
+accurately. We end up with multiple images each with a better resolution, up to
+the configured precision.
 
-The main difference is that the ``geohash`` supports higher precision
-than the ``quadtree`` tree. Both tree implementations support precision in order of fractions of millimeters.
+Every grid cell that processed up to the configured precision is stored in an
+inverted index, creating a mapping from a grid cell to all shapes that touch
+it. This mapping is our geographic index.
+
+The main difference is that the ``geohash`` supports higher precision than the
+``quadtree`` tree. Both tree implementations support precision in order of
+fractions of millimeters.
 
 
 Representation
