@@ -22,6 +22,8 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.SessionCtx;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.repositories.RepositorySettingsModule;
@@ -143,8 +145,9 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
     public <T> T plan(String statement) {
         Analysis analysis = analyzer.analyze(
-                SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], new Object[0][], null));
+            SqlParser.createStatement(statement),
+            new ParameterContext(new Object[0], new Object[0][]),
+            new SessionCtx(null, 0, SQLOperations.Option.NONE));
         //noinspection unchecked
         return (T) planner.plan(analysis, UUID.randomUUID(), 0, 0);
     }

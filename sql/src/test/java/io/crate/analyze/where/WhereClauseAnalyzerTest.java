@@ -23,6 +23,8 @@ package io.crate.analyze.where;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.SessionCtx;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.repositories.RepositorySettingsModule;
@@ -224,8 +226,10 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     }
 
     private DeleteAnalyzedStatement analyzeDelete(String stmt, Object[][] bulkArgs) {
-        return (DeleteAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt),
-                new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+        return (DeleteAnalyzedStatement) analyzer.analyze(
+            SqlParser.createStatement(stmt),
+            new ParameterContext(new Object[0], bulkArgs),
+            new SessionCtx(Schemas.DEFAULT_SCHEMA_NAME, 0, SQLOperations.Option.NONE)).analyzedStatement();
     }
 
     private DeleteAnalyzedStatement analyzeDelete(String stmt) {
@@ -233,13 +237,17 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     }
 
     private UpdateAnalyzedStatement analyzeUpdate(String stmt) {
-        return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt),
-                new ParameterContext(new Object[0], new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+        return (UpdateAnalyzedStatement) analyzer.analyze(
+            SqlParser.createStatement(stmt),
+            new ParameterContext(new Object[0], new Object[0][]),
+            new SessionCtx(Schemas.DEFAULT_SCHEMA_NAME, 0, SQLOperations.Option.NONE)).analyzedStatement();
     }
 
     private WhereClause analyzeSelect(String stmt, Object... args) {
-        SelectAnalyzedStatement statement = (SelectAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt),
-                new ParameterContext(args, new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+        SelectAnalyzedStatement statement = (SelectAnalyzedStatement) analyzer.analyze(
+            SqlParser.createStatement(stmt),
+            new ParameterContext(args, new Object[0][]),
+            new SessionCtx(Schemas.DEFAULT_SCHEMA_NAME, 0, SQLOperations.Option.NONE)).analyzedStatement();
         return statement.relation().querySpec().where();
     }
 

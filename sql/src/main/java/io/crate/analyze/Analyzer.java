@@ -20,6 +20,7 @@
  */
 package io.crate.analyze;
 
+import io.crate.action.sql.SessionCtx;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 
@@ -103,8 +104,8 @@ public class Analyzer {
         this.restoreSnapshotStatementAnalyzer = restoreSnapshotStatementAnalyzer;
     }
 
-    public Analysis analyze(Statement statement, ParameterContext parameterContext) {
-        Analysis analysis = new Analysis(parameterContext);
+    public Analysis analyze(Statement statement, ParameterContext parameterContext, SessionCtx sessionCtx) {
+        Analysis analysis = new Analysis(parameterContext, sessionCtx);
         AnalyzedStatement analyzedStatement = analyzedStatement(statement, analysis);
         analysis.analyzedStatement(analyzedStatement);
         return analysis;
@@ -166,7 +167,7 @@ public class Analyzer {
 
         public AnalyzedStatement visitShowCreateTable(ShowCreateTable node, Analysis analysis) {
             ShowCreateTableAnalyzedStatement showCreateTableStatement =
-                    showCreateTableAnalyzer.analyze(node.table(), analysis.parameterContext().defaultSchema());
+                    showCreateTableAnalyzer.analyze(node.table(), analysis.sessionCtx().defaultSchema());
             analysis.rootRelation(showCreateTableStatement);
             return showCreateTableStatement;
         }

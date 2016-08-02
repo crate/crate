@@ -90,6 +90,7 @@ public class ExpressionAnalyzer {
     private final static NegativeLiteralVisitor NEGATIVE_LITERAL_VISITOR = new NegativeLiteralVisitor();
     private final static SubscriptVisitor SUBSCRIPT_VISITOR = new SubscriptVisitor();
     private final EvaluatingNormalizer normalizer;
+    private final Set<SQLOperations.Option> options;
     private final FieldProvider<?> fieldProvider;
     private final Functions functions;
     private final ParameterContext parameterContext;
@@ -101,10 +102,12 @@ public class ExpressionAnalyzer {
     public ExpressionAnalyzer(Functions functions,
                               ReferenceResolver<? extends io.crate.operation.Input<?>> referenceResolver,
                               ParameterContext parameterContext,
+                              Set<SQLOperations.Option> options,
                               FieldProvider<?> fieldProvider,
                               @Nullable FieldResolver fieldResolver) {
         this.functions = functions;
         this.parameterContext = parameterContext;
+        this.options = options;
         this.fieldProvider = fieldProvider;
         this.innerAnalyzer = new InnerExpressionAnalyzer();
         this.normalizer = new EvaluatingNormalizer(
@@ -113,10 +116,11 @@ public class ExpressionAnalyzer {
 
     public ExpressionAnalyzer(AnalysisMetaData analysisMetaData,
                               ParameterContext parameterContext,
+                              Set<SQLOperations.Option> options,
                               FieldProvider fieldProvider,
                               @Nullable FieldResolver fieldResolver) {
         this(analysisMetaData.functions(), analysisMetaData.referenceResolver(),
-                parameterContext, fieldProvider, fieldResolver);
+                parameterContext, options, fieldProvider, fieldResolver);
     }
 
     @Nullable
@@ -586,7 +590,7 @@ public class ExpressionAnalyzer {
             try {
                 return fieldProvider.resolveField(node.getName(), null, operation);
             } catch (ColumnUnknownException exception) {
-                if (parameterContext.options().contains(SQLOperations.Option.ALLOW_QUOTED_SUBSCRIPT)) {
+                if (options.contains(SQLOperations.Option.ALLOW_QUOTED_SUBSCRIPT)) {
                     String quotedSubscriptLiteral = getQuotedSubscriptLiteral(node.getName().toString());
                     if (quotedSubscriptLiteral != null) {
                         return process(SqlParser.createExpression(quotedSubscriptLiteral), context);

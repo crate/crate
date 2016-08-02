@@ -31,6 +31,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Table;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -38,11 +39,13 @@ import java.util.Set;
 
 public final class TableAnalyzer {
 
-    public static Set<String> getIndexNames(List<Table> tables, Schemas schemas, ParameterContext parameterContext) {
+    public static Set<String> getIndexNames(List<Table> tables,
+                                            Schemas schemas,
+                                            ParameterContext parameterContext,
+                                            @Nullable String defaultSchema) {
         Set<String> indexNames = new HashSet<>(tables.size());
         for (Table nodeTable : tables) {
-            TableInfo tableInfo = schemas.getTableInfo(
-                TableIdent.of(nodeTable, parameterContext.defaultSchema()));
+            TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(nodeTable, defaultSchema));
             Preconditions.checkArgument(tableInfo instanceof DocTableInfo,
                 "operation cannot be performed on system and blob tables: table '%s'",
                 tableInfo.ident().fqn());

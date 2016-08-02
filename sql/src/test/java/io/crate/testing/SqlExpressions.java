@@ -22,6 +22,7 @@
 
 package io.crate.testing;
 
+import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -84,10 +85,11 @@ public class SqlExpressions {
         Schemas schemas = mock(Schemas.class);
         analysisMetaData = new AnalysisMetaData(injector.getInstance(Functions.class), schemas, referenceResolver);
         expressionAnalyzer =  new ExpressionAnalyzer(
-                analysisMetaData,
-                new ParameterContext(parameters == null ? new Object[0] : parameters, new Object[0][], null),
-                new FullQualifedNameFieldProvider(sources),
-                fieldResolver);
+            analysisMetaData,
+            new ParameterContext(parameters == null ? new Object[0] : parameters, new Object[0][]),
+            SQLOperations.Option.NONE,
+            new FullQualifedNameFieldProvider(sources),
+            fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext();
     }
 

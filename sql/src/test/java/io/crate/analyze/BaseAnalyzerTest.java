@@ -23,6 +23,8 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.SessionCtx;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
@@ -227,13 +229,15 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
     }
 
     protected Analysis analysis(String statement, Object[][] bulkArgs) {
-        return analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME));
+        return analyzer.analyze(
+            SqlParser.createStatement(statement),
+            new ParameterContext(new Object[0], bulkArgs), new SessionCtx(null, 0, SQLOperations.Option.NONE));
     }
 
     protected Analysis analysis(String statement, Object [] params) {
-        return analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(params, new Object[0][], Schemas.DEFAULT_SCHEMA_NAME));
+        return analyzer.analyze(
+            SqlParser.createStatement(statement),
+            new ParameterContext(params, new Object[0][]), new SessionCtx(null, 0, SQLOperations.Option.NONE));
     }
 
     protected List<Module> getModules() {

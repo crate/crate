@@ -24,6 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.RowReceiverToResultReceiver;
+import io.crate.action.sql.SessionCtx;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParameterContext;
@@ -64,8 +65,9 @@ class BatchPortal extends AbstractPortal {
                 List<? extends DataType> outputTypes,
                 ResultReceiver resultReceiver,
                 List<Object> params,
-                SessionData sessionData) {
-        super(name, sessionData);
+                SessionData sessionData,
+                SessionCtx sessionCtx) {
+        super(name, sessionData, sessionCtx);
         queries.add(query);
         this.analysis.add(analysis);
         this.outputTypes.add(outputTypes);
@@ -99,11 +101,8 @@ class BatchPortal extends AbstractPortal {
         queries.add(query);
         batchParams.add(params);
         this.resultFormatCodes.add(resultFormatCodes);
-        analysis.add(sessionData.getAnalyzer().analyze(statement,
-            new ParameterContext(getArgs(),
-                EMPTY_BULK_ARGS,
-                sessionData.getDefaultSchema(),
-                sessionData.options())));
+        analysis.add(sessionData.getAnalyzer().analyze(
+            statement, new ParameterContext(getArgs(), EMPTY_BULK_ARGS), sessionCtx));
         return this;
     }
 

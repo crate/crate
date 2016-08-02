@@ -86,7 +86,7 @@ public class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyz
     }
 
     private void setTableAndPartitionName(Table node, AlterTableAnalyzedStatement context, Analysis analysis) {
-        context.table(TableIdent.of(node, analysis.parameterContext().defaultSchema()));
+        context.table(TableIdent.of(node, analysis.sessionCtx().defaultSchema()));
         if (!node.partitionProperties().isEmpty()) {
             PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
                     context.table(),

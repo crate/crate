@@ -94,20 +94,19 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     @Override
     public AnalyzedStatement visitUpdate(Update node, Analysis analysis) {
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
-                analysis.parameterContext(), analysisMetaData, Operation.UPDATE);
+                analysis.parameterContext(), analysis.sessionCtx(), analysisMetaData, Operation.UPDATE);
         RelationAnalysisContext currentRelationContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), statementAnalysisContext);
 
         FieldResolver fieldResolver = (FieldResolver) analyzedRelation;
         FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);
-        ExpressionAnalyzer columnExpressionAnalyzer =
-                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), columnFieldProvider, fieldResolver);
+        ExpressionAnalyzer columnExpressionAnalyzer = new ExpressionAnalyzer(
+            analysisMetaData, analysis.parameterContext(), analysis.sessionCtx().options(), columnFieldProvider, fieldResolver);
         columnExpressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
 
         assert Iterables.getOnlyElement(currentRelationContext.sources().values()) == analyzedRelation;
-        ExpressionAnalyzer expressionAnalyzer =
-                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(),
-                    currentRelationContext.fieldProvider(), fieldResolver);
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            analysisMetaData, analysis.parameterContext(), analysis.sessionCtx().options(), currentRelationContext.fieldProvider(), fieldResolver);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         int numNested = 1;

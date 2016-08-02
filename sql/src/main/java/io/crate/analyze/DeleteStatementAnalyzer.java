@@ -97,7 +97,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         int numNested = 1;
 
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
-                context.parameterContext(), analysisMetaData, Operation.DELETE);
+                context.parameterContext(), context.sessionCtx(), analysisMetaData, Operation.DELETE);
         RelationAnalysisContext relationAnalysisContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.getRelation(), statementAnalysisContext);
 
@@ -105,7 +105,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);
         InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
-                new ExpressionAnalyzer(analysisMetaData, context.parameterContext(),
+                new ExpressionAnalyzer(analysisMetaData, context.parameterContext(), context.sessionCtx().options(),
                     relationAnalysisContext.fieldProvider(),
                     docTableRelation),
                 new ExpressionAnalysisContext(),

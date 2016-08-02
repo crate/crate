@@ -22,6 +22,8 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.SessionCtx;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ColumnValidationException;
@@ -144,12 +146,14 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[] params) {
         return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(params, new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+            new ParameterContext(params, new Object[0][]),
+            new SessionCtx(Schemas.DEFAULT_SCHEMA_NAME, 0, SQLOperations.Option.NONE)).analyzedStatement();
     }
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
         return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+            new ParameterContext(new Object[0], bulkArgs),
+            new SessionCtx(Schemas.DEFAULT_SCHEMA_NAME, 0, SQLOperations.Option.NONE)).analyzedStatement();
     }
 
     @Test

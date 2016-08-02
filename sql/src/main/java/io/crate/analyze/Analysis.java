@@ -21,16 +21,23 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.SessionCtx;
 import io.crate.analyze.relations.AnalyzedRelation;
 
 public class Analysis {
 
     private final ParameterContext parameterContext;
+    private final SessionCtx sessionCtx;
     private AnalyzedStatement analyzedStatement;
     private AnalyzedRelation rootRelation;
 
-    public Analysis(ParameterContext parameterContext) {
+    public Analysis(ParameterContext parameterContext, SessionCtx sessionCtx) {
         this.parameterContext = parameterContext;
+        this.sessionCtx = sessionCtx;
+    }
+
+    public SessionCtx sessionCtx() {
+        return sessionCtx;
     }
 
     public void analyzedStatement(AnalyzedStatement analyzedStatement) {

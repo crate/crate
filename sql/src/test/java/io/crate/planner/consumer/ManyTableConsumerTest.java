@@ -25,6 +25,8 @@ package io.crate.planner.consumer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.SessionCtx;
 import io.crate.analyze.*;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -76,7 +78,10 @@ public class ManyTableConsumerTest {
     }
 
     private MultiSourceSelect analyze(String statement) {
-        Analysis analysis = analyzer.analyze(SqlParser.createStatement(statement), ParameterContext.EMPTY);
+        Analysis analysis = analyzer.analyze(
+            SqlParser.createStatement(statement),
+            ParameterContext.EMPTY,
+            new SessionCtx(null, 0, SQLOperations.Option.NONE));
         MultiSourceSelect mss = (MultiSourceSelect) ((SelectAnalyzedStatement) analysis.analyzedStatement()).relation();
         ManyTableConsumer.replaceFieldsWithRelationColumns(mss);
         return mss;

@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
@@ -32,6 +33,7 @@ import io.crate.sql.tree.FunctionCall;
 import io.crate.types.DataTypes;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * ExpressionAnalyzer that supports the VALUES ( columnRef ) expression
@@ -70,9 +72,10 @@ public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
 
     public ValuesAwareExpressionAnalyzer(AnalysisMetaData analysisMetaData,
                                          ParameterContext parameterContext,
+                                         Set<SQLOperations.Option> options,
                                          FieldProvider fieldProvider,
                                          ValuesResolver valuesResolver) {
-        super(analysisMetaData, parameterContext, fieldProvider, null);
+        super(analysisMetaData, parameterContext, options, fieldProvider, null);
         this.valuesResolver = valuesResolver;
     }
 

@@ -21,6 +21,8 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.SessionCtx;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
@@ -81,8 +83,9 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     private Analysis analyze(String stmt) {
         Analyzer analyzer = internalCluster().getInstance(Analyzer.class);
         return analyzer.analyze(
-                SqlParser.createStatement(stmt),
-                new ParameterContext(new Object[0], new Object[0][], null)
+            SqlParser.createStatement(stmt),
+            new ParameterContext(new Object[0], new Object[0][]),
+            new SessionCtx(null, 0, SQLOperations.Option.NONE)
         );
     }
 

@@ -25,6 +25,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import io.crate.action.sql.SessionCtx;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
@@ -207,9 +208,10 @@ public class AnalyzedTableElements {
     public void finalizeAndValidate(TableIdent tableIdent,
                                     @Nullable TableInfo tableInfo,
                                     AnalysisMetaData analysisMetaData,
-                                    ParameterContext parameterContext) {
+                                    ParameterContext parameterContext,
+                                    SessionCtx sessionCtx) {
         expandColumnIdents();
-        validateGeneratedColumns(tableIdent, tableInfo, analysisMetaData, parameterContext);
+        validateGeneratedColumns(tableIdent, tableInfo, analysisMetaData, parameterContext, sessionCtx);
         for (AnalyzedColumnDefinition column : columns) {
             column.validate();
             addCopyToInfo(column);
@@ -221,7 +223,8 @@ public class AnalyzedTableElements {
     private void validateGeneratedColumns(TableIdent tableIdent,
                                           @Nullable TableInfo tableInfo,
                                           AnalysisMetaData analysisMetaData,
-                                          ParameterContext parameterContext) {
+                                          ParameterContext parameterContext,
+                                          SessionCtx sessionCtx) {
         List<ReferenceInfo> tableReferenceInfos = new ArrayList<>();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             buildReferenceInfo(tableIdent, columnDefinition, tableReferenceInfos);
@@ -233,7 +236,7 @@ public class AnalyzedTableElements {
 
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferenceInfos);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData, parameterContext, tableReferenceResolver, null);
+                analysisMetaData, parameterContext, sessionCtx.options(), tableReferenceResolver, null);
         SymbolPrinter printer = new SymbolPrinter(analysisMetaData.functions());
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
