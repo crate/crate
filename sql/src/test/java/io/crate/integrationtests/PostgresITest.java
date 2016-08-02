@@ -172,23 +172,32 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             conn.createStatement().executeUpdate(
                 "create table t (" +
                 "   ints array(int)," +
-                "   strings array(string)) with (number_of_replicas = 0)");
+                "   strings array(string)," +
+                "   points array(geo_point) ) with (number_of_replicas = 0)");
 
-            PreparedStatement preparedStatement = conn.prepareStatement("insert into t (ints, strings) values (?, ?)");
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into t (ints, strings, points) " +
+                                                                        "values (?, ?, ?)");
             preparedStatement.setArray(1, conn.createArrayOf("int4", new Integer[] { 10, 20 }));
             preparedStatement.setArray(2, conn.createArrayOf("varchar", new String[] { "foo", "bar" }));
+            preparedStatement.setArray(3, conn.createArrayOf("float8", new Double[][] {new Double[]{1.1, 2.2},
+                                                                                       new Double[] {3.3, 4.4}}));
             preparedStatement.executeUpdate();
 
             conn.createStatement().executeUpdate("refresh table t");
 
-            ResultSet resultSet = conn.createStatement().executeQuery("select ints, strings from t");
+            ResultSet resultSet = conn.createStatement().executeQuery("select ints, strings, points from t");
             assertThat(resultSet.next(), is(true));
 
-            Object object = ((Array) resultSet.getObject(1)).getArray();
-            assertThat((Object[]) object, is(new Object[] { 10, 20 }));
+            Object[] object = (Object[]) resultSet.getArray(1).getArray();
+            assertThat(object, is(new Object[] { 10, 20 }));
 
-            object = ((Array) resultSet.getObject(2)).getArray();
-            assertThat((Object[]) object, is(new Object[] { "foo", "bar" }));
+            object = (Object[]) resultSet.getArray(2).getArray();
+            assertThat(object, is(new Object[] { "foo", "bar" }));
+
+            object = (Object[]) resultSet.getArray(3).getArray();
+            assertThat((Double[][]) object, is(new Double[][] {new Double[] { 1.1, 2.2 }, new Double[] { 3.3, 4.4 }}));
+        } catch (BatchUpdateException e) {
+            throw e.getNextException();
         }
     }
 
