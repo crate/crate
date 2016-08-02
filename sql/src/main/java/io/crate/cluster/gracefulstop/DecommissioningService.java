@@ -22,9 +22,9 @@
 
 package io.crate.cluster.gracefulstop;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
-import io.crate.action.sql.TransportSQLAction;
-import io.crate.action.sql.TransportSQLBulkAction;
+import io.crate.action.sql.SQLOperations;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.action.ActionListener;
@@ -65,8 +65,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     private final ClusterService clusterService;
     private final StatsTables statsTables;
     private final ThreadPool threadPool;
-    private final TransportSQLAction sqlAction;
-    private final TransportSQLBulkAction sqlBulkAction;
+    private final SQLOperations sqlOperations;
     private final TransportClusterHealthAction healthAction;
     private final TransportClusterUpdateSettingsAction updateSettingsAction;
 
@@ -81,16 +80,14 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
                                   StatsTables statsTables,
                                   ThreadPool threadPool,
                                   NodeSettingsService nodeSettingsService,
-                                  TransportSQLAction sqlAction,
-                                  TransportSQLBulkAction sqlBulkAction,
+                                  SQLOperations sqlOperations,
                                   final TransportClusterHealthAction healthAction,
                                   final TransportClusterUpdateSettingsAction updateSettingsAction) {
         super(settings);
         this.clusterService = clusterService;
         this.statsTables = statsTables;
         this.threadPool = threadPool;
-        this.sqlAction = sqlAction;
-        this.sqlBulkAction = sqlBulkAction;
+        this.sqlOperations = sqlOperations;
         this.healthAction = healthAction;
         this.updateSettingsAction = updateSettingsAction;
 
@@ -144,8 +141,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
     private void decommission() {
         // fail on new requests so that clients don't use this node anymore
-        sqlAction.disable();
-        sqlBulkAction.disable();
+        sqlOperations.disable();
 
         /**
          * setting this setting will cause the {@link DecommissionAllocationDecider} to prevent allocations onto this node
@@ -199,6 +195,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         } else {
             logger.warn("Aborting graceful shutdown due to error", e);
             removeDecommissioningSetting();
+            sqlOperations.enable();
         }
     }
 
@@ -227,7 +224,8 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         System.exit(0);
     }
 
-    private void removeDecommissioningSetting() {
+    @VisibleForTesting
+    protected void removeDecommissioningSetting() {
         HashSet<String> settingsToRemove = Sets.newHashSet(DECOMMISSION_PREFIX + clusterService.localNode().id());
         updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettingsToRemove(settingsToRemove));
     }

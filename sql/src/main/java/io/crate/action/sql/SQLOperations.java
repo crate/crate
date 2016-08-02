@@ -37,12 +37,14 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.transport.NodeDisconnectedException;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -59,7 +61,9 @@ public class SQLOperations {
     private final Provider<Executor> executorProvider;
     private final Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider;
     private final StatsTables statsTables;
+    private final ClusterService clusterService;
     private final boolean isReadOnly;
+    private volatile boolean disabled;
 
     public enum Option {
         ALLOW_QUOTED_SUBSCRIPT;
@@ -73,16 +77,22 @@ public class SQLOperations {
                          Provider<Executor> executorProvider,
                          Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider,
                          StatsTables statsTables,
-                         Settings settings) {
+                         Settings settings,
+                         ClusterService clusterService) {
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
         this.transportKillJobsNodeActionProvider = transportKillJobsNodeActionProvider;
         this.statsTables = statsTables;
+        this.clusterService = clusterService;
         this.isReadOnly = settings.getAsBoolean(NODE_READ_ONLY_SETTING, false);
     }
 
     public Session createSession(@Nullable String defaultSchema, Set<Option> options, int defaultLimit) {
+        if (disabled) {
+          throw new NodeDisconnectedException(clusterService.localNode(), "sql");
+        }
+
         return new Session(
             executorProvider.get(),
             transportKillJobsNodeActionProvider.get(),
@@ -90,6 +100,22 @@ public class SQLOperations {
             defaultLimit,
             options
         );
+    }
+
+    /**
+     * Disable processing of new sql statements.
+     * {@link io.crate.cluster.gracefulstop.DecommissioningService} must call this while before starting to decommission.
+     */
+    public void disable() {
+        disabled = true;
+    }
+
+    /**
+     * (Re-)Enable processing of new sql statements
+     * {@link io.crate.cluster.gracefulstop.DecommissioningService} must call this when decommissioning is aborted.
+     */
+    public void enable() {
+        disabled = false;
     }
 
     /**

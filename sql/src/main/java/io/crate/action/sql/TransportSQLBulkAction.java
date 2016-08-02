@@ -112,15 +112,6 @@ public class TransportSQLBulkAction extends TransportAction<SQLBulkRequest, SQLB
     }
 
 
-    /**
-     * @deprecated should become part of {@link SQLOperations} and
-     * {@link io.crate.cluster.gracefulstop.DecommissioningService} also needs to enable it again if decommissioning is aborted
-     */
-    @Deprecated
-    public void disable() {
-
-    }
-
     private static class RowCountReceiver implements ResultReceiver {
 
         private final SQLBulkResponse.Result[] results;

@@ -22,8 +22,7 @@
 
 package io.crate.cluster.gracefulstop;
 
-import io.crate.action.sql.TransportSQLAction;
-import io.crate.action.sql.TransportSQLBulkAction;
+import io.crate.action.sql.SQLOperations;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
@@ -49,19 +48,20 @@ public class DecommissioningServiceTest {
     private StatsTables statsTables;
     private TestableDecommissioningService decommissioningService;
     private ThreadPool threadPool;
+    private SQLOperations sqlOperations;
 
     @Before
     public void setUp() throws Exception {
         statsTables = new StatsTables(Settings.EMPTY, mock(NodeSettingsService.class));
         threadPool = mock(ThreadPool.class, Answers.RETURNS_MOCKS.get());
+        sqlOperations = mock(SQLOperations.class, Answers.RETURNS_MOCKS.get());
         decommissioningService = new TestableDecommissioningService(
             Settings.EMPTY,
             new NoopClusterService(),
             statsTables,
             threadPool,
             mock(NodeSettingsService.class),
-            mock(TransportSQLAction.class),
-            mock(TransportSQLBulkAction.class),
+            sqlOperations,
             mock(TransportClusterHealthAction.class),
             mock(TransportClusterUpdateSettingsAction.class)
         );
@@ -88,6 +88,7 @@ public class DecommissioningServiceTest {
         statsTables.logExecutionEnd(UUID.randomUUID(), null);
         decommissioningService.exitIfNoActiveRequests(System.nanoTime() - TimeValue.timeValueHours(3).nanos());
         assertThat(decommissioningService.forceStopOrAbortCalled, is(true));
+        verify(sqlOperations, times(1)).enable();
     }
 
     private static class TestableDecommissioningService extends DecommissioningService {
@@ -95,17 +96,17 @@ public class DecommissioningServiceTest {
         private boolean exited = false;
         private boolean forceStopOrAbortCalled = false;
 
-        public TestableDecommissioningService(Settings settings,
-                                              ClusterService clusterService,
-                                              StatsTables statsTables,
-                                              ThreadPool threadPool,
-                                              NodeSettingsService nodeSettingsService,
-                                              TransportSQLAction sqlAction,
-                                              TransportSQLBulkAction sqlBulkAction,
-                                              TransportClusterHealthAction healthAction,
-                                              TransportClusterUpdateSettingsAction updateSettingsAction) {
+        TestableDecommissioningService(Settings settings,
+                                       ClusterService clusterService,
+                                       StatsTables statsTables,
+                                       ThreadPool threadPool,
+                                       NodeSettingsService nodeSettingsService,
+                                       SQLOperations sqlOperations,
+                                       TransportClusterHealthAction healthAction,
+                                       TransportClusterUpdateSettingsAction updateSettingsAction) {
             super(settings, clusterService, statsTables, threadPool, nodeSettingsService,
-                sqlAction, sqlBulkAction, healthAction, updateSettingsAction);
+                sqlOperations, healthAction, updateSettingsAction);
+
         }
 
         @Override
@@ -116,6 +117,11 @@ public class DecommissioningServiceTest {
         @Override
         void forceStopOrAbort(@Nullable Throwable e) {
             forceStopOrAbortCalled = true;
+            super.forceStopOrAbort(e);
+        }
+
+        @Override
+        protected void removeDecommissioningSetting() {
         }
     }
 }
