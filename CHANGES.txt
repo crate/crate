@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue when ordering by a function on a joined query.
+
  - Fix: Arrays of geo_point can be used in insert/update
    statements as literals as well as bind arguments.
 
