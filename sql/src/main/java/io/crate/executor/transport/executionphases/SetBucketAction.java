@@ -47,7 +47,7 @@ class SetBucketAction implements FutureCallback<List<Bucket>>, ActionListener<Jo
 
     @Override
     public void onSuccess(@Nullable List<Bucket> result) {
-        initializationTracker.jobInitialized(null);
+        initializationTracker.jobInitialized();
         if (result == null) {
             onFailure(new NullPointerException("result is null"));
             return;
@@ -61,7 +61,7 @@ class SetBucketAction implements FutureCallback<List<Bucket>>, ActionListener<Jo
 
     @Override
     public void onResponse(JobResponse jobResponse) {
-        initializationTracker.jobInitialized(null);
+        initializationTracker.jobInitialized();
         for (int i = 0; i < pageBucketReceivers.size(); i++) {
             PageBucketReceiver pageBucketReceiver = pageBucketReceivers.get(i);
             jobResponse.streamers(pageBucketReceiver.streamer());
@@ -71,7 +71,7 @@ class SetBucketAction implements FutureCallback<List<Bucket>>, ActionListener<Jo
 
     @Override
     public void onFailure(@Nonnull Throwable t) {
-        initializationTracker.jobInitialized(t);
+        initializationTracker.jobInitializationFailed(t);
         for (PageBucketReceiver pageBucketReceiver : pageBucketReceivers) {
             pageBucketReceiver.failure(bucketIdx, t);
         }

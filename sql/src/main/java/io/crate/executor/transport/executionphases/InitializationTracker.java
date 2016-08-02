@@ -24,7 +24,6 @@ package io.crate.executor.transport.executionphases;
 
 import com.google.common.util.concurrent.SettableFuture;
 
-import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class InitializationTracker {
@@ -41,11 +40,9 @@ class InitializationTracker {
         serverToInitialize = new AtomicInteger(numServer);
     }
 
-    void jobInitialized(@Nullable Throwable t) {
-        if (failure == null || failure instanceof InterruptedException) {
-            failure = t;
-        }
+    void jobInitialized() {
         if (serverToInitialize.decrementAndGet() <= 0) {
+            // no need to synchronize here, since there cannot be a failure after all servers have finished
             if (failure == null) {
                 future.set(null);
             } else {
@@ -53,4 +50,14 @@ class InitializationTracker {
             }
         }
     }
+
+    void jobInitializationFailed(Throwable t) {
+        synchronized (this) {
+            if (failure == null || failure instanceof InterruptedException) {
+                failure = t;
+            }
+        }
+        jobInitialized();
+    }
+
 }
