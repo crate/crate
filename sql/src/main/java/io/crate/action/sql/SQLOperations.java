@@ -169,8 +169,8 @@ public class SQLOperations {
         private Statement statement;
         private String query;
 
-        private Map<String, Portal> portals = new HashMap<>();
-        private String lastPortalName;
+        private final Map<String, Portal> portals = new HashMap<>();
+        private final Set<Portal> pendingExecutions = Collections.newSetFromMap(new IdentityHashMap<Portal, Boolean>());
 
         private Session(Executor executor,
                         TransportKillJobsNodeAction transportKillJobsNodeAction,
@@ -228,12 +228,15 @@ public class SQLOperations {
 
             Portal portal = getOrCreatePortal(portalName);
             try {
-                portal = portal.bind(statementName, query, statement, params, resultFormatCodes);
+                Portal newPortal = portal.bind(statementName, query, statement, params, resultFormatCodes);
+                if (portal != newPortal) {
+                    portals.put(portalName, newPortal);
+                    pendingExecutions.remove(portal);
+                }
             } catch (Throwable t) {
                 statsTables.logPreExecutionFailure(UUID.randomUUID(), portal.getLastQuery(), Exceptions.messageOf(t));
                 throw t;
             }
-            portals.put(portalName, portal);
         }
 
         public List<Field> describe(char type, String portalOrStatement) {
@@ -273,21 +276,28 @@ public class SQLOperations {
         public void execute(String portalName, int maxRows, ResultReceiver resultReceiver) {
             LOGGER.debug("method=execute portalName={} maxRows={}", portalName, maxRows);
 
-            lastPortalName = portalName;
             Portal portal = getSafePortal(portalName);
             portal.execute(resultReceiver, maxRows);
+            pendingExecutions.add(portal);
         }
 
         public void sync(CompletionListener listener) {
             LOGGER.debug("method=sync");
-            if (lastPortalName == null) {
-                listener.onSuccess(null);
-                return;
+
+            switch (pendingExecutions.size()) {
+                case 0:
+                    listener.onSuccess(null);
+                    return;
+
+                case 1:
+                    Portal portal = pendingExecutions.iterator().next();
+                    pendingExecutions.clear();
+                    portal.sync(planner, statsTables, listener);
+                    clearState();
+                    return;
             }
 
-            Portal portal = getSafePortal(lastPortalName);
-            portal.sync(planner, statsTables, listener);
-            clearState();
+            throw new IllegalStateException("Shouldn't have more than 1 pending execution. Got: " + pendingExecutions);
         }
 
         public void clearState() {
@@ -296,7 +306,6 @@ public class SQLOperations {
                 portal.close();
             }
             statement = null;
-            lastPortalName = null;
         }
 
         @Nullable
