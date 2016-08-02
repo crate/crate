@@ -34,7 +34,6 @@ import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.Portal;
 import io.crate.protocols.postgres.SimplePortal;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.elasticsearch.cluster.ClusterService;
@@ -159,16 +158,14 @@ public class SQLOperations {
      */
     public class Session {
 
+        private static final String UNNAMED = "";
         private final Executor executor;
         private final TransportKillJobsNodeAction transportKillJobsNodeAction;
         private final String defaultSchema;
         private final int defaultLimit;
         private final Set<Option> options;
 
-        private List<DataType> paramTypes;
-        private Statement statement;
-        private String query;
-
+        private final Map<String, PreparedStmt> preparedStatements = new HashMap<>();
         private final Map<String, Portal> portals = new HashMap<>();
         private final Set<Portal> pendingExecutions = Collections.newSetFromMap(new IdentityHashMap<Portal, Boolean>());
 
@@ -212,12 +209,7 @@ public class SQLOperations {
                 statsTables.logPreExecutionFailure(UUID.randomUUID(), query, Exceptions.messageOf(t));
                 throw t;
             }
-            if (!statement.equals(this.statement) && this.statement instanceof BeginStatement) {
-                sync(CompletionListener.NO_OP);
-            }
-            this.statement = statement;
-            this.query = query;
-            this.paramTypes = paramTypes;
+            preparedStatements.put(statementName, new PreparedStmt(statement, query, paramTypes));
         }
 
         public void bind(String portalName,
@@ -228,7 +220,9 @@ public class SQLOperations {
 
             Portal portal = getOrCreatePortal(portalName);
             try {
-                Portal newPortal = portal.bind(statementName, query, statement, params, resultFormatCodes);
+                PreparedStmt preparedStmt = getSafeStmt(statementName);
+                Portal newPortal = portal.bind(
+                    statementName, preparedStmt.query(), preparedStmt.statement(), params, resultFormatCodes);
                 if (portal != newPortal) {
                     portals.put(portalName, newPortal);
                     pendingExecutions.remove(portal);
@@ -278,7 +272,12 @@ public class SQLOperations {
 
             Portal portal = getSafePortal(portalName);
             portal.execute(resultReceiver, maxRows);
-            pendingExecutions.add(portal);
+            if (portal.getLastQuery().equalsIgnoreCase("BEGIN")) {
+                portal.sync(planner, statsTables, CompletionListener.NO_OP);
+                clearState();
+            } else {
+                pendingExecutions.add(portal);
+            }
         }
 
         public void sync(CompletionListener listener) {
@@ -301,11 +300,11 @@ public class SQLOperations {
         }
 
         public void clearState() {
-            Portal portal = portals.remove("");
+            Portal portal = portals.remove(UNNAMED);
             if (portal != null) {
                 portal.close();
             }
-            statement = null;
+            preparedStatements.remove(UNNAMED);
         }
 
         @Nullable
@@ -321,8 +320,17 @@ public class SQLOperations {
             return getSafePortal(portalName).getLastQuery();
         }
 
-        public DataType getParamType(int idx) {
-            return paramTypes.get(idx);
+        public DataType getParamType(String statementName, int idx) {
+            PreparedStmt stmt = getSafeStmt(statementName);
+            return stmt.paramTypes().get(idx);
+        }
+
+        private PreparedStmt getSafeStmt(String statementName) {
+            PreparedStmt preparedStmt = preparedStatements.get(statementName);
+            if (preparedStmt == null) {
+                throw new IllegalArgumentException("No statement found with name: " + statementName);
+            }
+            return preparedStmt;
         }
 
         @Nullable
@@ -334,13 +342,24 @@ public class SQLOperations {
             return portal.getLastResultFormatCodes();
         }
 
-        public void closePortal(byte portalOrStatement, String portalOrStatementName) {
-            if (portalOrStatement == 'P') {
-                Portal portal = portals.remove(portalOrStatementName);
-                if (portal != null) {
-                    portal.close();
-                }
+        /**
+         * Close a portal or prepared statement
+         * @param type <b>S</b> for prepared statement, <b>P</b> for portal.
+         * @param name name of the prepared statement or the portal (depending on type)
+         */
+        public void close(byte type, String name) {
+            switch (type) {
+                case 'P':
+                    Portal portal = portals.remove(name);
+                    if (portal != null) {
+                        portal.close();
+                    }
+                    return;
+                case 'S':
+                    preparedStatements.remove(name);
+                    return;
             }
+            throw new IllegalArgumentException("Invalid type: " + type);
         }
 
         public void close() {

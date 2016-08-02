@@ -29,6 +29,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.concurrent.CompletionListener;
@@ -132,6 +133,10 @@ public class SimplePortal extends AbstractPortal {
                     EMPTY_BULK_ARGS,
                     sessionData.getDefaultSchema(),
                     sessionData.options()));
+            AnalyzedRelation rootRelation = analysis.rootRelation();
+            if (rootRelation != null) {
+                this.outputTypes = Symbols.extractTypes(rootRelation.fields());
+            }
         }
         return this;
     }
@@ -141,9 +146,7 @@ public class SimplePortal extends AbstractPortal {
         if (analysis.rootRelation() == null) {
             return null;
         }
-        List<Field> fields = analysis.rootRelation().fields();
-        this.outputTypes = Symbols.extractTypes(fields);
-        return fields;
+        return analysis.rootRelation().fields();
     }
 
     @Override

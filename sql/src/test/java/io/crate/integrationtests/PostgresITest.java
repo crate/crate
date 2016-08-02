@@ -37,6 +37,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 import static org.hamcrest.core.Is.is;
 
@@ -71,6 +72,27 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     @Before
     public void initDriver() throws Exception {
         Class.forName("org.postgresql.Driver");
+    }
+
+    @Test
+    public void testPreparedStatementHandling() throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty("prepareThreshold", "-1");
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            PreparedStatement p1 = conn.prepareStatement("select 1 from sys.cluster");
+            ResultSet resultSet = p1.executeQuery();
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getInt(1), is(1));
+
+            PreparedStatement p2 = conn.prepareStatement("select 2 from sys.cluster");
+            resultSet = p2.executeQuery();
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getInt(1), is(2));
+
+            resultSet = p1.executeQuery();
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getInt(1), is(1));
+        }
     }
 
     @Test

@@ -390,7 +390,7 @@ class ConnectionContext {
             if (valueLength == -1) {
                 params.add(null);
             } else {
-                DataType paramType = session.getParamType(i);
+                DataType paramType = session.getParamType(statementName, i);
                 PGType pgType = PGTypes.get(paramType);
                 FormatCodes.FormatCode formatCode = getFormatCode(formatCodes, i);
                 switch (formatCode) {
@@ -493,7 +493,7 @@ class ConnectionContext {
     private void handleClose(ChannelBuffer buffer, Channel channel) {
         byte b = buffer.readByte();
         String portalOrStatementName = readCString(buffer);
-        session.closePortal(b, portalOrStatementName);
+        session.close(b, portalOrStatementName);
         Messages.sendCloseComplete(channel);
     }
 
