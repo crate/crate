@@ -53,6 +53,8 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    private Properties properties = new Properties();
+
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         Settings.Builder builder = Settings.builder();
@@ -72,6 +74,13 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     @Before
     public void initDriver() throws Exception {
         Class.forName("org.postgresql.Driver");
+    }
+
+    @Before
+    public void initProperties() throws Exception {
+        if (randomBoolean()) {
+            properties.setProperty("prepareThreshold", "-1"); // force binary transfer
+        }
     }
 
     @Test
@@ -123,7 +132,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testWriteOperationsWithoutAutocommitAndCommitAndRollback() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             conn.setAutoCommit(false);
             try (Statement statement = conn.createStatement()) {
                 statement.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
@@ -150,7 +159,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testNoAutoCommit() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             conn.setAutoCommit(false);
             ResultSet resultSet = conn.prepareStatement("select name from sys.cluster").executeQuery();
             assertThat(resultSet.next(), is(true));
@@ -160,7 +169,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testArrayTypeSupport() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             conn.createStatement().executeUpdate(
                 "create table t (" +
                 "   ints array(int)," +
@@ -186,7 +195,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testFetchSize() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             conn.createStatement().executeUpdate("create table t (x int) with (number_of_replicas = 0)");
             ensureGreen();
 
@@ -215,7 +224,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectPreparedStatement() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             conn.setAutoCommit(true);
             PreparedStatement preparedStatement = conn.prepareStatement("select name from sys.cluster");
             ResultSet resultSet = preparedStatement.executeQuery();
@@ -226,7 +235,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testExecuteBatch() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             conn.setAutoCommit(true);
 
             Statement stmt = conn.createStatement();
@@ -249,7 +258,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testExecuteBatchWithDifferentStatements() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             conn.setAutoCommit(true);
             Statement stmt = conn.createStatement();
             stmt.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
@@ -274,7 +283,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateInsertSelectStringAndTimestamp() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             conn.setAutoCommit(true);
             Statement statement = conn.createStatement();
             assertThat(statement.executeUpdate("create table t (x string, ts timestamp) with (number_of_replicas = 0)"), is(0));
@@ -297,7 +306,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectWithParameters() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             conn.setAutoCommit(true);
             PreparedStatement preparedStatement = conn.prepareStatement("select name from sys.cluster where name like ?");
             preparedStatement.setString(1, "SUITE%");
@@ -309,7 +318,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testStatementThatResultsInParseError() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             conn.setAutoCommit(true);
             PreparedStatement stmt = conn.prepareStatement("select name fro sys.cluster");
             expectedException.expect(PSQLException.class);
@@ -320,7 +329,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCustomSchemaAndAnalyzerFailure() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL + "foo")) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL + "foo", properties)) {
             conn.setAutoCommit(true);
             PreparedStatement stmt = conn.prepareStatement("select x from t");
             try {
@@ -335,7 +344,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testStatementReadOnlyFailure() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL_READ_ONLY)) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL_READ_ONLY, properties)) {
             conn.setAutoCommit(true);
             PreparedStatement stmt = conn.prepareStatement("create table test(a integer)");
             expectedException.expect(PSQLException.class);
@@ -346,7 +355,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testErrorRecoveryFromErrorsOutsideSqlOperations() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             conn.setAutoCommit(true);
             PreparedStatement stmt = conn.prepareStatement("select cast([10.3, 20.2] as geo_point) from information_schema.tables");
             try {
