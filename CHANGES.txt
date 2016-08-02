@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue when ordering by a function on a joined query.
+
  - Fixed an issue wich could lead to wrong Error messages due to a
    race condition.
 

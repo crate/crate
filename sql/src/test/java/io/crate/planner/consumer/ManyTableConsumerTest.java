@@ -126,6 +126,16 @@ public class ManyTableConsumerTest {
     }
 
     @Test
+    public void testQuerySplittingReplacesCopiedSymbols() throws Exception {
+        MultiSourceSelect mss = analyze("select * from t1, t2 " +
+                                        "where t1.x = 1 or t2.y = 1 " +
+                                        "order by t1.x + t1.x");
+        TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
+        assertThat(root.querySpec().orderBy().get().orderBySymbols(), isSQL("add(RELCOL(doc.t1, 0), RELCOL(doc.t1, 0))"));
+        assertThat(root.left().querySpec().orderBy().get().orderBySymbols(), isSQL("add(doc.t1.x, doc.t1.x)"));
+    }
+
+    @Test
     public void testOptimizeJoin() throws Exception {
         Set<QualifiedName> pair1 = Sets.newHashSet(T3.T1, T3.T3);
         Set<QualifiedName> pair2 = Sets.newHashSet(T3.T3, T3.T2);
