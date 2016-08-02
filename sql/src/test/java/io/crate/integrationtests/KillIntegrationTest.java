@@ -168,7 +168,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testKillNonExisitingJob() throws Exception {
         UUID jobId = UUID.randomUUID();
-        SQLResponse killResponse = execute("KILL ?", new Object[]{jobId});
+        SQLResponse killResponse = execute("KILL ?", new Object[]{jobId.toString()});
         assertThat(killResponse.rowCount(), is(0L));
         SQLResponse logResponse = execute("select * from sys.jobs_log where error = ?", new Object[]{"KILLED"});
         assertThat(logResponse.rowCount(), is(0L));
