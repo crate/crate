@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Arrays of geo_point can be used in insert/update
+   statements as literals as well as bind arguments.
+
  - Fix: If a graceful shutdown of a node was aborted, sql statement
    processing on that node was still disabled.
 

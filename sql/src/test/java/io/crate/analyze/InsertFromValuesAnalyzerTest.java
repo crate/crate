@@ -758,18 +758,20 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testRejectNestedArrayLiteral() throws Exception {
+    public void testInvalidTypeParamLiteral() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for tags: Invalid datatype 'string_array_array'");
+        expectedException.expectMessage("Validation failed for tags: [['the', 'answer'], ['what''s', 'the', " +
+                                        "'question', '?']] cannot be cast to type string_array");
 
         analyze("insert into users (id, name, tags) values (42, 'Deep Thought', [['the', 'answer'], ['what''s', 'the', 'question', '?']])");
 
     }
 
     @Test
-    public void testRejectNestedArrayParam() throws Exception {
+    public void testInvalidTypeParam() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for tags: Invalid datatype 'string_array_array'");
+        expectedException.expectMessage("Validation failed for tags: [['the', 'answer'], ['what''s', 'the', " +
+                                        "'question', '?']] cannot be cast to type string_array");
 
         analyze("insert into users (id, name, tags) values (42, 'Deep Thought', ?)", new Object[]{
                 new String[][]{
@@ -781,9 +783,10 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testRejectNestedArrayBulkParam() throws Exception {
+    public void testInvalidTypeBulkParam() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for tags: Invalid datatype 'string_array_array'");
+        expectedException.expectMessage("Validation failed for tags: [['the', 'answer'], ['what''s', 'the', " +
+                                        "'question', '?']] cannot be cast to type string_array");
 
         analyze("insert into users (id, name, tags) values (42, 'Deep Thought', ?)", new Object[][]{
                 new Object[]{
@@ -796,41 +799,50 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testRejectDynamicNestedArrayLiteral() throws Exception {
-        expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for theses: Invalid datatype 'string_array_array'");
-
-        analyze("insert into users (id, name, theses) values (1, 'Marx', [[" +
-                "'Feuerbach, mit dem abstrakten Denken nicht zufrieden, appellirt an die sinnliche Anschauung', " +
-                "'aber er fasst die Sinnlichkeit nicht als praktische, menschlich-sinnliche Thätigkeit']])");
+    public void testDynamicNestedArrayParamLiteral() throws Exception {
+        InsertFromValuesAnalyzedStatement analysis = analyze("insert into users (id, name, theses) " +
+                                                             "values (1, 'Marx', [['string1', 'string2']])");
+        assertThat(analysis.sourceMaps().size(), is(1));
+        assertThat((Long)analysis.sourceMaps().get(0)[0], is(1L));
+        assertThat((BytesRef)analysis.sourceMaps().get(0)[1], is(new BytesRef("Marx")));
+        assertThat((Object[])((Object[])analysis.sourceMaps().get(0)[2])[0],
+            arrayContaining(new Object[]{new BytesRef("string1"), new BytesRef("string2")}));
     }
 
     @Test
-    public void testRejectDynamicNestedArrayParam() throws Exception {
-        expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for theses: Invalid datatype 'string_array_array'");
-
+    public void testDynamicNestedArrayParam() throws Exception {
         analyze("insert into users (id, name, theses) values (1, 'Marx', ?)", new Object[]{
                 new String[][]{
-                        new String[]{"Feuerbach, mit dem abstrakten Denken nicht zufrieden, appellirt an die sinnliche Anschauung"},
-                        new String[]{"aber er fasst die Sinnlichkeit nicht als praktische, menschlich-sinnliche Thätigkeit"}
+                        new String[]{"string1"},
+                        new String[]{"string2"}
                 }
         });
+        InsertFromValuesAnalyzedStatement analysis = analyze("insert into users (id, name, theses) " +
+                                                             "values (1, 'Marx', [['string1', 'string2']])");
+        assertThat(analysis.sourceMaps().size(), is(1));
+        assertThat((Long)analysis.sourceMaps().get(0)[0], is(1L));
+        assertThat((BytesRef)analysis.sourceMaps().get(0)[1], is(new BytesRef("Marx")));
+        assertThat((Object[])((Object[])analysis.sourceMaps().get(0)[2])[0],
+            arrayContaining(new Object[]{new BytesRef("string1"), new BytesRef("string2")}));
     }
 
     @Test
-    public void testRejectDynamicNestedArrayBulkParam() throws Exception {
-        expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for theses: Invalid datatype 'string_array_array'");
-
+    public void testDynamicNestedArrayBulkParam() throws Exception {
         analyze("insert into users (id, name, theses) values (1, 'Marx', ?)", new Object[][]{
                 new Object[]{
                         new String[][]{
-                                new String[]{"Feuerbach, mit dem abstrakten Denken nicht zufrieden, appellirt an die sinnliche Anschauung"},
-                                new String[]{"aber er fasst die Sinnlichkeit nicht als praktische, menschlich-sinnliche Thätigkeit"}
+                                new String[]{"string1"},
+                                new String[]{"string2"}
                         }
                 }
         });
+        InsertFromValuesAnalyzedStatement analysis = analyze("insert into users (id, name, theses) " +
+                                                             "values (1, 'Marx', [['string1', 'string2']])");
+        assertThat(analysis.sourceMaps().size(), is(1));
+        assertThat((Long)analysis.sourceMaps().get(0)[0], is(1L));
+        assertThat((BytesRef)analysis.sourceMaps().get(0)[1], is(new BytesRef("Marx")));
+        assertThat((Object[])((Object[])analysis.sourceMaps().get(0)[2])[0],
+            arrayContaining(new Object[]{new BytesRef("string1"), new BytesRef("string2")}));
     }
 
     @Test

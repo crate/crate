@@ -72,7 +72,6 @@ public class ValueNormalizer {
             return ExpressionAnalyzer.castIfNeededOrFail(valueSymbol, targetType);
         }
         Literal literal = (Literal) valueSymbol;
-        raiseIfNestedArray(literal.valueType(), reference.info().ident().columnIdent());
         try {
             literal = Literal.convert(literal, reference.valueType());
         } catch (ConversionException e) {
@@ -109,25 +108,10 @@ public class ValueNormalizer {
         if (reference instanceof DynamicReference) {
             targetType = valueSymbol.valueType();
             ((DynamicReference) reference).valueType(targetType);
-            if (reference.info().columnPolicy() != ColumnPolicy.IGNORED) {
-                raiseIfNestedArray(targetType, reference.info().ident().columnIdent());
-            }
         } else {
             targetType = reference.valueType();
         }
         return targetType;
-    }
-
-    /**
-     * validate input types to not be nested arrays/collection types
-     *
-     * @throws ColumnValidationException if input type is a nested array type
-     */
-    private static void raiseIfNestedArray(DataType dataType, ColumnIdent columnIdent) throws ColumnValidationException {
-        if (DataTypes.isCollectionType(dataType) && DataTypes.isCollectionType(((CollectionType) dataType).innerType())) {
-            throw new ColumnValidationException(columnIdent.sqlFqn(),
-                    String.format(Locale.ENGLISH, "Invalid datatype '%s'", dataType));
-        }
     }
 
     @SuppressWarnings("unchecked")

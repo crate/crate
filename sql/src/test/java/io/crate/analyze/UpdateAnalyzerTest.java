@@ -38,7 +38,9 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.sql.parser.SqlParser;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Assert;
 import org.junit.Before;
@@ -430,17 +432,15 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testUpdateDynamicInvalidTypeLiteral() throws Exception {
-        expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for new: Invalid datatype 'double_array_array'");
-        analyze("update users set new=[[1.9, 4.8], [9.7, 12.7]]");
+    public void testUpdateDynamicNestedArrayParamLiteral() throws Exception {
+        UpdateAnalyzedStatement statement = analyze("update users set new=[[1.9, 4.8], [9.7, 12.7]]");
+        DataType dataType = statement.nestedStatements().get(0).assignments().values().iterator().next().valueType();
+        assertThat(dataType, is((DataType)new ArrayType(new ArrayType(DoubleType.INSTANCE))));
     }
 
     @Test
-    public void testUpdateDynamicInvalidType() throws Exception {
-        expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for new: Invalid datatype 'double_array_array'");
-        analyze("update users set new=? where id=1", new Object[]{
+    public void testUpdateDynamicNestedArrayParam() throws Exception {
+        UpdateAnalyzedStatement statement = analyze("update users set new=? where id=1", new Object[]{
                 new Object[] {
                         new Object[] {
                                 1.9, 4.8
@@ -450,12 +450,14 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                         }
                 }
         });
+        DataType dataType = statement.nestedStatements().get(0).assignments().values().iterator().next().valueType();
+        assertThat(dataType, is((DataType)new ArrayType(new ArrayType(DoubleType.INSTANCE))));
     }
 
     @Test
     public void testUpdateInvalidType() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for tags: Invalid datatype 'string_array_array'");
+        expectedException.expectMessage("Validation failed for tags: [['a', 'b']] cannot be cast to type string_array");
         analyze("update users set tags=? where id=1", new Object[]{
                 new Object[] {
                         new Object[]{ "a", "b" }
