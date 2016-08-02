@@ -137,9 +137,14 @@ public class SigarExtendedNodeInfoTest extends CrateUnitTest {
 
     @Test
     public void testProcessCpuStats() throws Exception {
-        ExtendedProcessCpuStats stats = extendedNodeInfo.processCpuStats();
-        // anything else than the default values
-        assertThat(stats.percent(), not((short) -1));
-        assertThat(stats.sys().millis(), not(-1L));
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                ExtendedProcessCpuStats stats = extendedNodeInfo.processCpuStats();
+                // anything else than the default values
+                assertThat(stats.percent(), not((short) -1));
+                assertThat(stats.sys().millis(), not(-1L));
+            }
+        });
     }
 }
