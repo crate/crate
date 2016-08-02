@@ -59,6 +59,7 @@ public class PGTypes {
         .put(new ArrayType(DataTypes.BOOLEAN), PGArray.BOOL_ARRAY)
         .put(new ArrayType(DataTypes.TIMESTAMP), PGArray.TIMESTAMPZ_ARRAY)
         .put(new ArrayType(DataTypes.STRING), PGArray.VARCHAR_ARRAY)
+        .put(new ArrayType(DataTypes.GEO_POINT), PGArray.FLOAT8_ARRAY)
         .put(new ArrayType(DataTypes.OBJECT), JsonType.INSTANCE)
         .build();
 

@@ -23,15 +23,11 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
-import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import io.crate.types.ArrayType;
-import io.crate.types.GeoPointType;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
 import org.hamcrest.core.IsNull;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,9 +38,7 @@ import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, randomDynamicTemplates = false)

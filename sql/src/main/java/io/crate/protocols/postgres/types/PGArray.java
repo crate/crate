@@ -23,12 +23,9 @@
 package io.crate.protocols.postgres.types;
 
 import com.google.common.primitives.Bytes;
-import org.elasticsearch.common.collect.HppcMaps;
-import org.elasticsearch.common.collect.Tuple;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
