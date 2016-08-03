@@ -1940,6 +1940,20 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testGroupByCastedArray() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot GROUP BY 'to_double_array(loc)': invalid data type 'double_array'");
+        analyze("select count(*) from locations group by cast(loc as array(double))");
+    }
+
+    @Test
+    public void testGroupByCastedArrayByIndex() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot GROUP BY 'to_double_array(loc)': invalid data type 'double_array'");
+        analyze("select cast(loc as array(double)) from locations group by 1");
+    }
+
+    @Test
     public void testSelectStarFromUnnest() throws Exception {
         SelectAnalyzedStatement stmt = analyze("select * from unnest([1, 2], ['Marvin', 'Trillian'])");
         assertThat(stmt.relation().querySpec().outputs(), contains(isReference("col1"), isReference("col2")));
