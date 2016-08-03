@@ -24,6 +24,7 @@ package io.crate.planner.node.dql;
 import com.google.common.base.MoreObjects;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhaseVisitor;
@@ -103,9 +104,9 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         return Type.FILE_URI_COLLECT;
     }
 
-    public FileUriCollectPhase normalize(EvaluatingNormalizer normalizer) {
-        List<Symbol> normalizedToCollect = normalizer.normalize(toCollect());
-        Symbol normalizedTargetUri = normalizer.normalize(targetUri);
+    public FileUriCollectPhase normalize(EvaluatingNormalizer normalizer, StmtCtx stmtCtx) {
+        List<Symbol> normalizedToCollect = normalizer.normalize(toCollect(), stmtCtx);
+        Symbol normalizedTargetUri = normalizer.normalize(targetUri, stmtCtx);
         boolean changed = normalizedToCollect != toCollect() || (normalizedTargetUri != targetUri);
         if (!changed) {
             return this;

@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ConversionException;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
@@ -53,7 +54,7 @@ public class ToLongFunctionTest extends AbstractScalarFunctionsTest {
     private Symbol normalize(Object value, DataType type) {
         ToPrimitiveFunction function = getFunction(functionName, type);
         return function.normalizeSymbol(new Function(function.info(),
-                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))));
+                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))), new StmtCtx());
     }
 
     @Test

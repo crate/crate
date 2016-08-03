@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ConversionException;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
@@ -56,7 +57,7 @@ public class ToGeoPointFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeCastFromString() throws Exception {
         ToGeoFunction fn = getFunction(DataTypes.STRING);
         Symbol normalized = fn.normalizeSymbol(new Function(fn.info(),
-                Collections.<Symbol>singletonList(Literal.newLiteral(DataTypes.STRING, "POINT (0 0)"))));
+                Collections.<Symbol>singletonList(Literal.newLiteral(DataTypes.STRING, "POINT (0 0)"))), new StmtCtx());
         assertThat(normalized, TestingHelpers.isLiteral(new Double[]{0.0, 0.0}));
     }
 

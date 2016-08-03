@@ -149,7 +149,7 @@ public class CompoundLiteralTest extends CrateUnitTest {
                 )),
                 null
         );
-        return expressionAnalyzer.convert(SqlParser.createExpression(expression), new ExpressionAnalysisContext());
+        return expressionAnalyzer.convert(SqlParser.createExpression(expression), new ExpressionAnalysisContext(new StmtCtx()));
     }
 
     @SuppressWarnings("ConstantConditions")

@@ -50,7 +50,8 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             @Override
             public Void visitDelete(Delete node, InnerAnalysisContext context) {
                 WhereClause whereClause = context.whereClauseAnalyzer.analyze(
-                        context.expressionAnalyzer.generateWhereClause(node.getWhere(), context.expressionAnalysisContext));
+                    context.expressionAnalyzer.generateWhereClause(node.getWhere(), context.expressionAnalysisContext),
+                    context.expressionAnalysisContext.statementContext());
                 if ( !whereClause.docKeys().isPresent() &&
                      Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION)) {
                     throw VERSION_SEARCH_EX;
@@ -98,7 +99,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         int numNested = 1;
 
         RelationAnalysisContext relationAnalysisContext = new RelationAnalysisContext(
-                context.parameterContext(), analysisMetaData, Operation.DELETE);
+                context.parameterContext(), context.statementContext(), analysisMetaData, Operation.DELETE);
 
         AnalyzedRelation analyzedRelation = relationAnalyzer.process(node.getRelation(), relationAnalysisContext);
         assert analyzedRelation instanceof DocTableRelation;
@@ -107,7 +108,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
                 new ExpressionAnalyzer(analysisMetaData, context.parameterContext(),
                         new FullQualifedNameFieldProvider(relationAnalysisContext.sources()), docTableRelation),
-                new ExpressionAnalysisContext(),
+                new ExpressionAnalysisContext(context.statementContext()),
                 deleteAnalyzedStatement,
                 new WhereClauseAnalyzer(analysisMetaData, deleteAnalyzedStatement.analyzedRelation())
         );

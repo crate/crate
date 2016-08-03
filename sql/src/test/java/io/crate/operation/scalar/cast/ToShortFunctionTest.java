@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ConversionException;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
@@ -43,6 +44,8 @@ public class ToShortFunctionTest extends AbstractScalarFunctionsTest {
 
     private final String functionName = CastFunctionResolver.FunctionNames.TO_SHORT;
 
+    private final StmtCtx stmtCtx = new StmtCtx();
+
     private Short evaluate(Object value, DataType type) {
         Input[] input = {(Input)Literal.newLiteral(type, value)};
         ToPrimitiveFunction fn = getFunction(functionName, type);
@@ -52,7 +55,7 @@ public class ToShortFunctionTest extends AbstractScalarFunctionsTest {
     private Symbol normalize(Object value, DataType type) {
         ToPrimitiveFunction function = getFunction(functionName, type);
         return function.normalizeSymbol(new Function(function.info(),
-                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))));
+                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))), stmtCtx);
     }
 
     @Test

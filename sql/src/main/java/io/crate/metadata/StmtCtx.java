@@ -20,22 +20,26 @@
  * agreement.
  */
 
-package io.crate.planner.node.dql;
+package io.crate.metadata;
 
-import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.StmtCtx;
-import io.crate.planner.distribution.UpstreamPhase;
-import io.crate.planner.projection.Projection;
+import org.joda.time.DateTimeUtils;
 
-import java.util.List;
-import java.util.UUID;
+/**
+ * StatementContext that can be used to keep state which is valid on the handler during a "statement lifecycle".
+ *
+ */
+public class StmtCtx {
 
-public interface CollectPhase extends UpstreamPhase {
-    UUID jobId();
-    List<? extends Symbol> toCollect();
-    List<Projection> projections();
-    void addProjection(Projection projection);
+    private Long currentTimeMillis = null;
 
-    CollectPhase normalize(EvaluatingNormalizer phase, StmtCtx stmtCtx);
+    /**
+     * @return current timestamp in ms. Subsequent calls will always return the same value. (Not thread-safe)
+     */
+    public long currentTimeMillis() {
+        if (currentTimeMillis == null) {
+            // no synchronization because StmtCtx is mostly used during single-threaded analysis phase
+            currentTimeMillis = DateTimeUtils.currentTimeMillis();
+        }
+        return currentTimeMillis;
+    }
 }

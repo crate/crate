@@ -35,6 +35,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
+import io.crate.metadata.StmtCtx;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -80,15 +81,24 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private final ClusterService clusterService;
         private final UUID jobId;
         private final ConsumingPlanner consumingPlanner;
+        private final StmtCtx stmtCtx;
         private int executionPhaseId = 0;
         private final Multimap<TableIdent, TableRouting> tableRoutings = HashMultimap.create();
         private ReaderAllocations readerAllocations;
         private HashMultimap<TableIdent, String> tableIndices;
 
-        public Context(ClusterService clusterService, UUID jobId, ConsumingPlanner consumingPlanner) {
+        public Context(ClusterService clusterService,
+                       UUID jobId,
+                       ConsumingPlanner consumingPlanner,
+                       StmtCtx stmtCtx) {
             this.clusterService = clusterService;
             this.jobId = jobId;
             this.consumingPlanner = consumingPlanner;
+            this.stmtCtx = stmtCtx;
+        }
+
+        public StmtCtx statementContext() {
+            return stmtCtx;
         }
 
         public static class ReaderAllocations {
@@ -304,7 +314,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      */
     public Plan plan(Analysis analysis, UUID jobId) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        return process(analyzedStatement, new Context(clusterService, jobId, consumingPlanner));
+        return process(analyzedStatement, new Context(clusterService, jobId, consumingPlanner, analysis.statementContext()));
     }
 
     @Override

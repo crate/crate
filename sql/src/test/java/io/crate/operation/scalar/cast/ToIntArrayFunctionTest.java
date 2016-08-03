@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ConversionException;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
@@ -94,7 +95,7 @@ public class ToIntArrayFunctionTest extends AbstractScalarFunctionsTest {
                         ImmutableList.of(arrayType)));
 
         Reference foo = TestingHelpers.createReference("foo", arrayType);
-        Symbol symbol = impl.normalizeSymbol(new Function(impl.info(), Collections.<Symbol>singletonList(foo)));
+        Symbol symbol = impl.normalizeSymbol(new Function(impl.info(), Collections.<Symbol>singletonList(foo)), new StmtCtx());
         assertThat(symbol, instanceOf(Function.class));
     }
 

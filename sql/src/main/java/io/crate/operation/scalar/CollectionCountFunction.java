@@ -65,7 +65,7 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
     }
 
     @Override
-    public Symbol normalizeSymbol(Function function) {
+    public Symbol normalizeSymbol(Function function, StmtCtx stmtCtx) {
         return function;
     }
 

@@ -33,6 +33,7 @@ import io.crate.executor.transport.task.KillTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.StmtCtx;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.IterablePlan;
 import io.crate.planner.Plan;
@@ -116,6 +117,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     protected Planner.Context newPlannerContext() {
-        return new Planner.Context(clusterService(), UUID.randomUUID(), null);
+        return new Planner.Context(clusterService(), UUID.randomUUID(), null, new StmtCtx());
     }
 }

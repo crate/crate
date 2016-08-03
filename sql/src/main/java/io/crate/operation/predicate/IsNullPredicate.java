@@ -58,7 +58,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFo
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol) {
+    public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
         assert (symbol != null);
         assert (symbol.arguments().size() == 1);
 

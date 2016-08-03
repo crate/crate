@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue which caused `current_timestamp` as part of a generated
+   expression to not work correctly.
+   This fix will only affect new tables. Tables which already contain a
+   generated column which uses `current_timestamp` will need to be recreated.
+
  - Improved error handling when grouping by invalid data types.
 
  - Fixed an issue when ordering by a function on a joined query.

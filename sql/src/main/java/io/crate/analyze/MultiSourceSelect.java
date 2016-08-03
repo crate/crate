@@ -29,6 +29,7 @@ import io.crate.analyze.relations.RelationSplitter;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Path;
+import io.crate.metadata.StmtCtx;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.*;
@@ -94,8 +95,8 @@ public class MultiSourceSelect implements QueriedRelation {
         return sources;
     }
 
-    public void normalize(EvaluatingNormalizer normalizer) {
-        querySpec.normalize(normalizer);
+    public void normalize(EvaluatingNormalizer normalizer, StmtCtx stmtCtx) {
+        querySpec.normalize(normalizer, stmtCtx);
     }
 
     @Override

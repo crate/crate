@@ -26,6 +26,7 @@ import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.metadata.StmtCtx;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
@@ -48,17 +49,18 @@ public class RelationAnalysisContext {
     @Nullable
     private List<Expression> joinExpressions;
 
-    RelationAnalysisContext(ParameterContext parameterContext, AnalysisMetaData analysisMetaData) {
-        this(parameterContext, analysisMetaData, Operation.READ);
+    RelationAnalysisContext(ParameterContext parameterContext, StmtCtx stmtCtx, AnalysisMetaData analysisMetaData) {
+        this(parameterContext, stmtCtx, analysisMetaData, Operation.READ);
     }
 
     public RelationAnalysisContext(ParameterContext parameterContext,
+                                   StmtCtx stmtCtx,
                                    AnalysisMetaData analysisMetaData,
                                    Operation currentOperation) {
         this.parameterContext = parameterContext;
         this.analysisMetaData = analysisMetaData;
         this.currentOperation = currentOperation;
-        this.expressionAnalysisContext = new ExpressionAnalysisContext();
+        this.expressionAnalysisContext = new ExpressionAnalysisContext(stmtCtx);
     }
 
     public ParameterContext parameterContext() {

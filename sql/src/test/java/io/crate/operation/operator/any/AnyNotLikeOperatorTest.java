@@ -25,6 +25,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.test.integration.CrateUnitTest;
@@ -54,7 +55,7 @@ public class AnyNotLikeOperatorTest extends CrateUnitTest {
                 impl.info(),
                 Arrays.<Symbol>asList(patternLiteral, valuesLiteral)
         );
-        return impl.normalizeSymbol(function);
+        return impl.normalizeSymbol(function, new StmtCtx());
     }
 
     private Boolean anyNotLikeNormalize(String pattern, String ... expressions) {
@@ -158,7 +159,7 @@ public class AnyNotLikeOperatorTest extends CrateUnitTest {
                 Arrays.asList(DataTypes.STRING, valuesLiteral.valueType())
         );
         Function anyNotLikeFunction = new Function(impl.info(), Arrays.<Symbol>asList(patternLiteral, valuesLiteral));
-        Input<Boolean> normalized = (Input<Boolean>) impl.normalizeSymbol(anyNotLikeFunction);
+        Input<Boolean> normalized = (Input<Boolean>) impl.normalizeSymbol(anyNotLikeFunction, new StmtCtx());
         assertThat(normalized.value(), is(true));
         assertThat(new NotPredicate().evaluate(normalized), is(false));
     }

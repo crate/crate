@@ -22,10 +22,7 @@ package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.*;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.Scalar;
+import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -69,14 +66,16 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
         }
     }
 
+    private final StmtCtx stmtCtx = new StmtCtx();
+
     public Symbol normalize(Symbol interval, Symbol timestamp) {
         Function function = new Function(func.info(), Arrays.asList(interval, timestamp));
-        return func.normalizeSymbol(function);
+        return func.normalizeSymbol(function, stmtCtx);
     }
 
     public Symbol normalize(Symbol interval, Symbol tz, Symbol timestamp) {
         Function function = new Function(funcTZ.info(), Arrays.asList(interval, tz, timestamp));
-        return funcTZ.normalizeSymbol(function);
+        return funcTZ.normalizeSymbol(function, stmtCtx);
     }
 
     private void assertTruncated(String interval, Long timestamp, Long expected) throws Exception {
@@ -128,7 +127,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
                 Literal.newLiteral("day"),
                 Literal.newLiteral(1401777485000L)
         ));
-        Literal day = (Literal)implementation.normalizeSymbol(function);
+        Literal day = (Literal)implementation.normalizeSymbol(function, stmtCtx);
         assertThat((Long) day.value(), is(1401753600000L));
     }
 
@@ -143,7 +142,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
                 Literal.newLiteral("day"),
                 Literal.newLiteral("2014-06-03")
         ));
-        Literal day = (Literal)implementation.normalizeSymbol(function);
+        Literal day = (Literal)implementation.normalizeSymbol(function, stmtCtx);
         assertThat((Long) day.value(), is(1401753600000L));
     }
 
@@ -151,7 +150,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeSymbolReferenceTimestamp() throws Exception {
         Function function = new Function(func.info(),
                 Arrays.<Symbol>asList(new Reference(new ReferenceInfo(null,null, DataTypes.STRING)), new Reference(new ReferenceInfo(null,null, DataTypes.TIMESTAMP))));
-        Symbol result = func.normalizeSymbol(function);
+        Symbol result = func.normalizeSymbol(function, stmtCtx);
         assertSame(function, result);
     }
 
@@ -241,7 +240,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
                 Literal.newLiteral("Europe/Vienna"),
                 Literal.newLiteral("2014-06-03")
         ));
-        Literal day = (Literal)implementation.normalizeSymbol(function);
+        Literal day = (Literal)implementation.normalizeSymbol(function, stmtCtx);
         assertThat((Long) day.value(), is(1401746400000L));
     }
 
@@ -250,7 +249,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
         Function function = new Function(funcTZ.info(),
                 Arrays.<Symbol>asList(Literal.newLiteral("day"), Literal.newLiteral("+01:00"),
                         new Reference(new ReferenceInfo(null,null,DataTypes.TIMESTAMP))));
-        Symbol result = funcTZ.normalizeSymbol(function);
+        Symbol result = funcTZ.normalizeSymbol(function, stmtCtx);
         assertSame(function, result);
     }
 

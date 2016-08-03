@@ -268,7 +268,7 @@ public class TestingTableInfo extends DocTableInfo {
                     functions, null, null, tableReferenceResolver, null);
             for (GeneratedReferenceInfo generatedReferenceInfo : generatedColumns.build()) {
                 Expression expression = SqlParser.createExpression(generatedReferenceInfo.formattedGeneratedExpression());
-                ExpressionAnalysisContext context = new ExpressionAnalysisContext();
+                ExpressionAnalysisContext context = new ExpressionAnalysisContext(new StmtCtx());
                 generatedReferenceInfo.generatedExpression(expressionAnalyzer.convert(expression, context));
                 generatedReferenceInfo.referencedReferenceInfos(ImmutableList.copyOf(Lists.transform(tableReferenceResolver.references(), new Function<Reference, ReferenceInfo>() {
                     @Nullable

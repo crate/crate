@@ -106,7 +106,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol) {
+    public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
         Symbol arg1 = symbol.arguments().get(0);
         Symbol arg2 = symbol.arguments().get(1);
         DataType arg1Type = arg1.valueType();

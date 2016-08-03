@@ -29,6 +29,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -46,7 +47,7 @@ public class ArrayCastTest {
         Scalar impl = (Scalar) functions.get(new FunctionIdent(functionName, ImmutableList.of(arrayType)));
 
         Literal input = Literal.newLiteral(arrayType, objects);
-        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Arrays.<Symbol>asList(input)));
+        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Arrays.<Symbol>asList(input)), new StmtCtx());
         Object[] integers = (Object[]) impl.evaluate(input);
 
         assertThat(integers, is(((Input) normalized).value()));

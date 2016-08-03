@@ -36,10 +36,14 @@ import io.crate.exceptions.ConversionException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.StmtCtx;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
-import io.crate.types.*;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 import java.util.Locale;
 import java.util.Map;
@@ -62,9 +66,8 @@ public class ValueNormalizer {
      * @return the normalized Symbol, should be a literal
      * @throws io.crate.exceptions.ColumnValidationException
      */
-    public Symbol normalizeInputForReference(Symbol valueSymbol, Reference reference) {
-
-        valueSymbol = normalizer.normalize(valueSymbol);
+    public Symbol normalizeInputForReference(Symbol valueSymbol, Reference reference, StmtCtx stmtCtx) {
+        valueSymbol = normalizer.normalize(valueSymbol, stmtCtx);
         assert valueSymbol != null : "valueSymbol must not be null";
 
         DataType<?> targetType = getTargetType(valueSymbol, reference);

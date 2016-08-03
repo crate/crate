@@ -29,10 +29,7 @@ import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ValidationException;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.Routing;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.table.SchemaInfo;
@@ -91,7 +88,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
     private final ClusterService clusterService = mock(ClusterService.class);
     private NestedLoopConsumer consumer;
-    private final Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
+    private final Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, new StmtCtx());
     private TableStatsService statsService;
 
     @Before

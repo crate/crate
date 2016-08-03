@@ -31,6 +31,7 @@ import io.crate.core.collections.Row1;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.FunctionExpression;
 import io.crate.operation.collect.CollectExpression;
@@ -48,7 +49,6 @@ import java.util.List;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class SimpleTopNProjectorTest extends CrateUnitTest {
 
@@ -82,7 +82,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
         }
 
         @Override
-        public Symbol normalizeSymbol(Function symbol) {
+        public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
             return symbol;
         }
     }

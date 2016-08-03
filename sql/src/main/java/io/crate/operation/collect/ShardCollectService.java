@@ -150,7 +150,7 @@ public class ShardCollectService {
                 RowGranularity.SHARD,
                 new RecoveryShardReferenceResolver(shardResolver, indexShard)
         );
-        collectPhase =  collectPhase.normalize(shardNormalizer);
+        collectPhase =  collectPhase.normalize(shardNormalizer, null);
         if (collectPhase.whereClause().noMatch()) {
             return null;
         }
@@ -177,7 +177,7 @@ public class ShardCollectService {
                                           ShardProjectorChain projectorChain,
                                           JobCollectContext jobCollectContext) throws Exception {
         assert collectPhase.orderBy() == null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
-        RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer);
+        RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, null);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
             RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
@@ -246,7 +246,7 @@ public class ShardCollectService {
                                                    SharedShardContext sharedShardContext,
                                                    JobCollectContext jobCollectContext,
                                                    boolean requiresRepeat) {
-        RoutedCollectPhase normalizedCollectPhase = collectPhase.normalize(shardNormalizer);
+        RoutedCollectPhase normalizedCollectPhase = collectPhase.normalize(shardNormalizer, null);
 
         if (isBlobShard) {
             return getBlobOrderedDocCollector(normalizedCollectPhase, requiresRepeat);

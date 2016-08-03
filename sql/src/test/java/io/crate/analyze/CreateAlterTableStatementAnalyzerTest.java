@@ -856,6 +856,18 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testCreateTableWithCurrentTimestampAsGeneratedColumnIsntNormalized() throws Exception {
+        CreateTableAnalyzedStatement analysis = analyze(
+            "create table foo (ts timestamp GENERATED ALWAYS as current_timestamp)");
+
+        Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
+        Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
+        assertThat(generatedColumnsMapping.size(), is(1));
+        // current_timestamp used to get evaluated and then this contained the actual timestamp instead of the function name
+        assertThat(generatedColumnsMapping.get("ts"), is("current_timestamp(3)")); // 3 is the default precision
+    }
+
+    @Test
     public void testCreateTableGeneratedColumnWithSubscript() throws Exception {
         CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (user object as (name string), name as concat(user['name'], 'foo'))");

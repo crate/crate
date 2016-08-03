@@ -25,6 +25,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.types.DataTypes;
 
@@ -46,7 +47,7 @@ public class AndOperator extends Operator<Boolean> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function function) {
+    public Symbol normalizeSymbol(Function function, StmtCtx stmtCtx) {
         assert (function != null);
         assert function.arguments().size() == 2;
 

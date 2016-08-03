@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
@@ -64,7 +65,7 @@ public class RoundFunctionTest extends AbstractScalarFunctionsTest {
     private Symbol normalize(Number number, DataType type) {
         RoundFunction function = getFunction(Arrays.asList(type));
         return function.normalizeSymbol(new Function(function.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(type, number))));
+                Arrays.<Symbol>asList(Literal.newLiteral(type, number))), new StmtCtx());
     }
 
     @Test
@@ -99,7 +100,7 @@ public class RoundFunctionTest extends AbstractScalarFunctionsTest {
         Reference height = createReference("height", DataTypes.DOUBLE);
         RoundFunction round = getFunction(Arrays.<DataType>asList(DataTypes.DOUBLE));
         Function function = new Function(round.info(), Arrays.<Symbol>asList(height));
-        Function normalized = (Function) round.normalizeSymbol(function);
+        Function normalized = (Function) round.normalizeSymbol(function, new StmtCtx());
         assertThat(normalized, Matchers.sameInstance(function));
     }
 }

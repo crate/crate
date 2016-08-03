@@ -55,7 +55,7 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function function) {
+    public Symbol normalizeSymbol(Function function, StmtCtx stmtCtx) {
         if (anyNonLiterals(function.arguments())) {
             return function;
         }

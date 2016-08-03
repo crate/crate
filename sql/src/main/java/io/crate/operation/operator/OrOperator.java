@@ -4,6 +4,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.types.DataTypes;
 
@@ -22,7 +23,7 @@ public class OrOperator extends Operator<Boolean> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function function) {
+    public Symbol normalizeSymbol(Function function, StmtCtx stmtCtx) {
         assert (function != null);
         assert function.arguments().size() == 2;
 
@@ -33,7 +34,7 @@ public class OrOperator extends Operator<Boolean> {
             return Literal.newLiteral(evaluate((Input) left, (Input) right));
         }
 
-        /***
+        /*
          * true  or x    -> true
          * false or x    -> x
          * null  or x    -> null or true -> return function as is

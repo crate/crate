@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.*;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.types.CollectionType;
@@ -54,14 +55,17 @@ public class EqualityExtractor {
         this.normalizer = normalizer;
     }
 
-    public List<List<Symbol>> extractParentMatches(List<ColumnIdent> columns, Symbol symbol){
-        return extractMatches(columns, symbol, false);
+    public List<List<Symbol>> extractParentMatches(List<ColumnIdent> columns, Symbol symbol, StmtCtx stmtCtx){
+        return extractMatches(columns, symbol, false, stmtCtx);
     }
-    public List<List<Symbol>> extractExactMatches(List<ColumnIdent> columns, Symbol symbol) {
-        return extractMatches(columns, symbol, true);
+    public List<List<Symbol>> extractExactMatches(List<ColumnIdent> columns, Symbol symbol, StmtCtx stmtCtx) {
+        return extractMatches(columns, symbol, true, stmtCtx);
     }
 
-    private List<List<Symbol>> extractMatches(Collection<ColumnIdent> columns, Symbol symbol, boolean exact){
+    private List<List<Symbol>> extractMatches(Collection<ColumnIdent> columns,
+                                              Symbol symbol,
+                                              boolean exact,
+                                              StmtCtx stmtCtx) {
         EqualityExtractor.ProxyInjectingVisitor.Context context =
                 new EqualityExtractor.ProxyInjectingVisitor.Context(columns, exact);
         Symbol proxiedTree = ProxyInjectingVisitor.INSTANCE.process(symbol, context);
@@ -84,7 +88,7 @@ public class EqualityExtractor {
                     anyNull = true;
                 }
             }
-            Symbol normalized = normalizer.normalize(proxiedTree);
+            Symbol normalized = normalizer.normalize(proxiedTree, stmtCtx);
             if (normalized == Literal.BOOLEAN_TRUE){
                 if (anyNull){
                     return null;

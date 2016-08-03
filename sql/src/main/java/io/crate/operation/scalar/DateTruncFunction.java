@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -114,7 +115,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol) {
+    public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
         assert symbol.arguments().size() > 1 && symbol.arguments().size() < 4 : "Invalid number of arguments";
 
         if (containsNullLiteral(symbol.arguments())) {

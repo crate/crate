@@ -33,10 +33,7 @@ import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
@@ -109,11 +106,12 @@ public class InsertFromSubQueryAnalyzer {
         Map<Reference, Symbol> onDuplicateKeyAssignments = null;
         if (!node.onDuplicateKeyAssignments().isEmpty()) {
             onDuplicateKeyAssignments = processUpdateAssignments(
-                    tableRelation,
-                    targetColumns,
-                    analysis.parameterContext(),
-                    fieldProvider,
-                    node.onDuplicateKeyAssignments());
+                tableRelation,
+                targetColumns,
+                analysis.parameterContext(),
+                analysis.statementContext(),
+                fieldProvider,
+                node.onDuplicateKeyAssignments());
         }
 
         return new InsertFromSubQueryAnalyzedStatement(
@@ -194,14 +192,20 @@ public class InsertFromSubQueryAnalyzer {
     private Map<Reference, Symbol> processUpdateAssignments(DocTableRelation tableRelation,
                                                             List<Reference> targetColumns,
                                                             ParameterContext parameterContext,
+                                                            StmtCtx stmtCtx,
                                                             FieldProvider fieldProvider,
                                                             List<Assignment> assignments) {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData, parameterContext, fieldProvider, tableRelation);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(stmtCtx);
 
-        ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas(), new EvaluatingNormalizer(
-                analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver(), tableRelation, false));
+        ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas(),
+            new EvaluatingNormalizer(
+                analysisMetaData.functions(),
+                RowGranularity.CLUSTER,
+                analysisMetaData.referenceResolver(),
+                tableRelation,
+                false));
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation, targetColumns);
         ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
@@ -214,8 +218,9 @@ public class InsertFromSubQueryAnalyzer {
             assert columnName != null;
 
             Symbol assignmentExpression = valuesNormalizer.normalizeInputForReference(
-                    valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
-                    columnName);
+                valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
+                columnName,
+                stmtCtx);
 
             UpdateStatementAnalyzer.ensureUpdateIsAllowed(
                     tableRelation.tableInfo(), columnName.ident().columnIdent());

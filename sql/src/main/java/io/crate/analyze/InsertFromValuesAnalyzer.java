@@ -99,7 +99,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
         ExpressionAnalyzer expressionAnalyzer =
                 new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), fieldProvider, tableRelation);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.statementContext());
         expressionAnalyzer.resolveWritableFields(true);
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation);
@@ -117,8 +117,13 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         ReferenceToLiteralConverter.Context referenceToLiteralContext = new ReferenceToLiteralConverter.Context(
                 statement.columns(), allReferencedReferences);
 
-        ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas(), new EvaluatingNormalizer(
-                analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver(), tableRelation, false));
+        ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas(),
+            new EvaluatingNormalizer(
+                analysisMetaData.functions(),
+                RowGranularity.CLUSTER,
+                analysisMetaData.referenceResolver(),
+                tableRelation,
+                false));
         for (ValuesList valuesList : node.valuesLists()) {
             analyzeValues(
                     tableRelation,
@@ -249,7 +254,8 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             final ColumnIdent columnIdent = column.info().ident().columnIdent();
             Object value;
             try {
-                valuesSymbol = valueNormalizer.normalizeInputForReference(valuesSymbol, column);
+                valuesSymbol = valueNormalizer.normalizeInputForReference(
+                    valuesSymbol, column, expressionAnalysisContext.statementContext());
                 value = ((Input) valuesSymbol).value();
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
                 throw new ColumnValidationException(columnIdent.sqlFqn(), e);
@@ -304,9 +310,12 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 assert columnName != null;
 
                 Symbol assignmentExpression = valueNormalizer.normalizeInputForReference(
-                        valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
-                        columnName);
-                assignmentExpression = valuesAwareExpressionAnalyzer.normalize(assignmentExpression);
+                    valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
+                    columnName,
+                    expressionAnalysisContext.statementContext()
+                );
+                assignmentExpression = valuesAwareExpressionAnalyzer.normalize(
+                    assignmentExpression, expressionAnalysisContext.statementContext());
                 onDupKeyAssignments[i] = assignmentExpression;
 
                 UpdateStatementAnalyzer.ensureUpdateIsAllowed(
@@ -321,8 +330,15 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         }
 
         // process generated column expressions and add columns + values
-        GeneratedExpressionContext ctx = new GeneratedExpressionContext(tableRelation, context, expressionAnalyzer,
-                referenceToLiteralContext, primaryKeyValues, insertValues, routingValue);
+        GeneratedExpressionContext ctx = new GeneratedExpressionContext(
+            tableRelation,
+            context,
+            expressionAnalyzer,
+            expressionAnalysisContext.statementContext(),
+            referenceToLiteralContext,
+            primaryKeyValues,
+            insertValues,
+            routingValue);
         processGeneratedExpressions(ctx);
         insertValues = ctx.insertValues;
         routingValue = ctx.routingValue;
@@ -397,6 +413,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         private final InsertFromValuesAnalyzedStatement analyzedStatement;
         private final ExpressionAnalyzer expressionAnalyzer;
         private final ReferenceToLiteralConverter.Context referenceToLiteralContext;
+        private final StmtCtx stmtCtx;
         private final List<BytesRef> primaryKeyValues;
 
         private Object[] insertValues;
@@ -405,6 +422,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         private GeneratedExpressionContext(DocTableRelation tableRelation,
                                            InsertFromValuesAnalyzedStatement analyzedStatement,
                                            ExpressionAnalyzer expressionAnalyzer,
+                                           StmtCtx stmtCtx,
                                            ReferenceToLiteralConverter.Context referenceToLiteralContext,
                                            List<BytesRef> primaryKeyValues,
                                            Object[] insertValues,
@@ -412,6 +430,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             this.tableRelation = tableRelation;
             this.analyzedStatement = analyzedStatement;
             this.expressionAnalyzer = expressionAnalyzer;
+            this.stmtCtx = stmtCtx;
             this.primaryKeyValues = primaryKeyValues;
             this.insertValues = insertValues;
             this.routingValue = routingValue;
@@ -425,7 +444,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         for (GeneratedReferenceInfo referenceInfo : context.tableRelation.tableInfo().generatedColumns()) {
             Reference reference = new Reference(referenceInfo);
             Symbol valueSymbol = TO_LITERAL_CONVERTER.process(referenceInfo.generatedExpression(), context.referenceToLiteralContext);
-            valueSymbol = context.expressionAnalyzer.normalize(valueSymbol);
+            valueSymbol = context.expressionAnalyzer.normalize(valueSymbol, context.stmtCtx);
             if (valueSymbol.symbolType() == SymbolType.LITERAL) {
                 Object value = ((Input) valueSymbol).value();
                 if (primaryKey.contains(referenceInfo.ident().columnIdent()) && context.analyzedStatement.columns().indexOf(reference) == -1) {

@@ -55,7 +55,7 @@ public class WhereClauseAnalyzer {
         this.eqExtractor = new EqualityExtractor(normalizer);
     }
 
-    public WhereClause analyze(WhereClause whereClause) {
+    public WhereClause analyze(WhereClause whereClause, StmtCtx stmtCtx) {
         if (!whereClause.hasQuery()) {
             return whereClause;
         }
@@ -64,7 +64,7 @@ public class WhereClauseAnalyzer {
             WhereClauseValidator.validate(whereClause);
             Symbol query = GENERATED_COLUMN_COMPARISON_REPLACER.replaceIfPossible(whereClause.query(), tableInfo);
             if (!whereClause.query().equals(query)) {
-                whereClause = new WhereClause(normalizer.normalize(query));
+                whereClause = new WhereClause(normalizer.normalize(query, stmtCtx));
             }
         }
 
@@ -77,7 +77,7 @@ public class WhereClauseAnalyzer {
         } else {
             pkCols = tableInfo.primaryKey();
         }
-        List<List<Symbol>> pkValues = eqExtractor.extractExactMatches(pkCols, whereClause.query());
+        List<List<Symbol>> pkValues = eqExtractor.extractExactMatches(pkCols, whereClause.query(), stmtCtx);
 
         if (!pkCols.isEmpty() && pkValues != null) {
             int clusterdIdx = -1;
@@ -103,23 +103,23 @@ public class WhereClauseAnalyzer {
                 whereClause.clusteredBy(clusteredBy);
             }
         } else {
-            clusteredBy = getClusteredByLiterals(whereClause, eqExtractor);
+            clusteredBy = getClusteredByLiterals(whereClause, eqExtractor, stmtCtx);
         }
         if (clusteredBy != null) {
             whereClause.clusteredBy(clusteredBy);
         }
         if (tableInfo.isPartitioned() && !whereClause.docKeys().isPresent()) {
-            whereClause = resolvePartitions(whereClause, tableInfo, analysisMetaData);
+            whereClause = resolvePartitions(whereClause, tableInfo, analysisMetaData, stmtCtx);
         }
         return whereClause;
     }
 
     @Nullable
-    private Set<Symbol> getClusteredByLiterals(WhereClause whereClause, EqualityExtractor ee) {
+    private Set<Symbol> getClusteredByLiterals(WhereClause whereClause, EqualityExtractor ee, StmtCtx stmtCtx) {
         if (tableInfo.clusteredBy() != null) {
             List<List<Symbol>> clusteredValues = ee.extractParentMatches(
-                    ImmutableList.of(tableInfo.clusteredBy()),
-                    whereClause.query());
+                ImmutableList.of(tableInfo.clusteredBy()),
+                whereClause.query(), stmtCtx);
             if (clusteredValues != null) {
                 Set<Symbol> clusteredBy = new HashSet<>(clusteredValues.size());
                 for (List<Symbol> row : clusteredValues) {
@@ -144,7 +144,10 @@ public class WhereClauseAnalyzer {
         return new PartitionReferenceResolver(referenceResolver, partitionExpressions);
     }
 
-    public static WhereClause resolvePartitions(WhereClause whereClause, DocTableInfo tableInfo, AnalysisMetaData analysisMetaData) {
+    public static WhereClause resolvePartitions(WhereClause whereClause,
+                                                DocTableInfo tableInfo,
+                                                AnalysisMetaData analysisMetaData,
+                                                StmtCtx stmtCtx) {
         assert tableInfo.isPartitioned() : "table must be partitioned in order to resolve partitions";
         assert whereClause.partitions().isEmpty(): "partitions must not be analyzed twice";
         if (tableInfo.partitions().isEmpty()) {
@@ -164,7 +167,7 @@ public class WhereClauseAnalyzer {
             for (PartitionExpression partitionExpression : partitionReferenceResolver.expressions()) {
                 partitionExpression.setNextRow(partitionName);
             }
-            normalized = normalizer.normalize(whereClause.query());
+            normalized = normalizer.normalize(whereClause.query(), stmtCtx);
             assert normalized != null : "normalizing a query must not return null";
 
             if (normalized.equals(whereClause.query())) {
@@ -191,7 +194,7 @@ public class WhereClauseAnalyzer {
             whereClause.partitions(entry.getValue());
             return whereClause;
         } else if (queryPartitionMap.size() > 0) {
-            return tieBreakPartitionQueries(normalizer, queryPartitionMap, whereClause);
+            return tieBreakPartitionQueries(normalizer, queryPartitionMap, whereClause, stmtCtx);
         } else {
             return WhereClause.NO_MATCH;
         }
@@ -199,8 +202,9 @@ public class WhereClauseAnalyzer {
 
     private static WhereClause tieBreakPartitionQueries(EvaluatingNormalizer normalizer,
                                                         Map<Symbol, List<Literal>> queryPartitionMap,
-                                                        WhereClause whereClause) throws UnsupportedOperationException{
-        /**
+                                                        WhereClause whereClause,
+                                                        StmtCtx stmtCtx) throws UnsupportedOperationException{
+        /*
          * Got multiple normalized queries which all could match.
          * This might be the case if one partition resolved to null
          *
@@ -229,7 +233,7 @@ public class WhereClauseAnalyzer {
             List<Literal> partitions = entry.getValue();
 
             Symbol symbol = referenceToTrueVisitor.process(query, null);
-            Symbol normalized = normalizer.normalize(symbol);
+            Symbol normalized = normalizer.normalize(symbol, stmtCtx);
 
             assert normalized instanceof Literal && normalized.valueType().equals(DataTypes.BOOLEAN) :
                     "after normalization and replacing all reference occurrences with true there must only be a boolean left";

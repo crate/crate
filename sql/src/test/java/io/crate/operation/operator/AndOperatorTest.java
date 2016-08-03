@@ -4,6 +4,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.StmtCtx;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
@@ -14,12 +15,14 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class AndOperatorTest extends CrateUnitTest {
 
+    private final StmtCtx stmtCtx = new StmtCtx();
+
     @Test
     public void testNormalizeBooleanTrueAndNonLiteral() throws Exception {
         AndOperator operator = new AndOperator();
         Function function = new Function(
                 operator.info(), Arrays.<Symbol>asList(Literal.newLiteral(true), new Reference()));
-        Symbol symbol = operator.normalizeSymbol(function);
+        Symbol symbol = operator.normalizeSymbol(function, stmtCtx);
         assertThat(symbol, instanceOf(Reference.class));
     }
 
@@ -28,7 +31,7 @@ public class AndOperatorTest extends CrateUnitTest {
         AndOperator operator = new AndOperator();
         Function function = new Function(
                 operator.info(), Arrays.<Symbol>asList(Literal.newLiteral(false), new Reference()));
-        Symbol symbol = operator.normalizeSymbol(function);
+        Symbol symbol = operator.normalizeSymbol(function, stmtCtx);
 
         assertThat(symbol, isLiteral(false));
     }
@@ -38,7 +41,7 @@ public class AndOperatorTest extends CrateUnitTest {
         AndOperator operator = new AndOperator();
         Function function = new Function(
                 operator.info(), Arrays.<Symbol>asList(Literal.newLiteral(true), Literal.newLiteral(true)));
-        Symbol symbol = operator.normalizeSymbol(function);
+        Symbol symbol = operator.normalizeSymbol(function, stmtCtx);
         assertThat(symbol, isLiteral(true));
     }
 
@@ -47,7 +50,7 @@ public class AndOperatorTest extends CrateUnitTest {
         AndOperator operator = new AndOperator();
         Function function = new Function(
                 operator.info(), Arrays.<Symbol>asList(Literal.newLiteral(true), Literal.newLiteral(false)));
-        Symbol symbol = operator.normalizeSymbol(function);
+        Symbol symbol = operator.normalizeSymbol(function, stmtCtx);
         assertThat(symbol, isLiteral(false));
     }
 

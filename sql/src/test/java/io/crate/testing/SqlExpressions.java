@@ -88,7 +88,7 @@ public class SqlExpressions {
                 new ParameterContext(parameters == null ? new Object[0] : parameters, new Object[0][], null),
                 new FullQualifedNameFieldProvider(sources),
                 fieldResolver);
-        expressionAnalysisCtx = new ExpressionAnalysisContext();
+        expressionAnalysisCtx = new ExpressionAnalysisContext(new StmtCtx());
     }
 
     public Symbol asSymbol(String expression) {
@@ -96,7 +96,7 @@ public class SqlExpressions {
     }
 
     public Symbol normalize(Symbol symbol) {
-        return expressionAnalyzer.normalize(symbol);
+        return expressionAnalyzer.normalize(symbol, expressionAnalysisCtx.statementContext());
     }
 
     public <T> T getInstance(Class<T> clazz) {

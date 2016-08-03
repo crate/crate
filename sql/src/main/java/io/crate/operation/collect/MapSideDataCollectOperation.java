@@ -96,7 +96,7 @@ public class MapSideDataCollectOperation {
     }
 
     private CollectPhase normalize(CollectPhase collectPhase) {
-        collectPhase = collectPhase.normalize(clusterNormalizer);
+        collectPhase = collectPhase.normalize(clusterNormalizer, null);
         if (collectPhase instanceof RoutedCollectPhase) {
             RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase) collectPhase;
             switch (routedCollectPhase.maxRowGranularity()) {
@@ -104,7 +104,7 @@ public class MapSideDataCollectOperation {
                 case DOC:
                     EvaluatingNormalizer normalizer =
                             new EvaluatingNormalizer(functions, RowGranularity.NODE, new NodeSysReferenceResolver(nodeSysExpression));
-                    return collectPhase.normalize(normalizer);
+                    return collectPhase.normalize(normalizer, null);
             }
         }
         return collectPhase;

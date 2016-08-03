@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
@@ -50,7 +51,7 @@ public class RandomFunction extends Scalar<Double, Void> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol) {
+    public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
         /* There is no evaluation here, so the function is executed
            per row. Else every row would contain the same random value*/
         assert symbol.arguments().size() == 0;

@@ -25,6 +25,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataTypes;
@@ -40,6 +41,8 @@ public class ToStringFunctionTest extends AbstractScalarFunctionsTest {
 
     private final String functionName = CastFunctionResolver.FunctionNames.TO_STRING;
 
+    private final StmtCtx stmtCtx = new StmtCtx();
+
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
@@ -47,17 +50,17 @@ public class ToStringFunctionTest extends AbstractScalarFunctionsTest {
         FunctionImplementation castIntegerToString = getFunction(functionName, DataTypes.INTEGER);
 
         Function function = new Function(castIntegerToString.info(), Collections.<Symbol>singletonList(Literal.newLiteral(123)));
-        Symbol result = castIntegerToString.normalizeSymbol(function);
+        Symbol result = castIntegerToString.normalizeSymbol(function, stmtCtx);
         assertThat(result, isLiteral("123"));
 
         FunctionImplementation castFloatToString = getFunction(functionName, DataTypes.FLOAT);
         function = new Function(castFloatToString.info(), Collections.<Symbol>singletonList(Literal.newLiteral(0.5f)));
-        result = castFloatToString.normalizeSymbol(function);
+        result = castFloatToString.normalizeSymbol(function, stmtCtx);
         assertThat(result, isLiteral("0.5"));
 
         FunctionImplementation castStringToString = getFunction(functionName, DataTypes.STRING);
         function = new Function(castStringToString.info(), Collections.<Symbol>singletonList(Literal.newLiteral("hello")));
-        result = castStringToString.normalizeSymbol(function);
+        result = castStringToString.normalizeSymbol(function, stmtCtx);
         assertThat(result, isLiteral("hello"));
     }
 

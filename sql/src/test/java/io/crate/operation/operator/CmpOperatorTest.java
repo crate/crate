@@ -4,6 +4,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Value;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
@@ -23,6 +24,8 @@ public class CmpOperatorTest extends CrateUnitTest {
     private LteOperator op_lte_long;
     private LtOperator op_lt_string;
 
+    private final StmtCtx stmtCtx = new StmtCtx();
+
     @Before
     public void prepare() {
         op_gt_string = new GtOperator(Operator.generateInfo(GtOperator.NAME, DataTypes.STRING));
@@ -37,7 +40,7 @@ public class CmpOperatorTest extends CrateUnitTest {
     }
 
     private Symbol normalize(Operator operator, Symbol... symbols) {
-        return operator.normalizeSymbol(getFunction(operator, symbols));
+        return operator.normalizeSymbol(getFunction(operator, symbols), stmtCtx);
     }
 
     @Test

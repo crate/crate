@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.ArrayType;
@@ -57,7 +58,7 @@ public class ToIpArrayFunctionTest extends AbstractScalarFunctionsTest {
                 new FunctionIdent(CastFunctionResolver.FunctionNames.TO_IP_ARRAY, ImmutableList.of(arrayType)));
 
         Literal input = Literal.newLiteral(objects, arrayType);
-        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Collections.<Symbol>singletonList(input)));
+        Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Collections.<Symbol>singletonList(input)), new StmtCtx());
         Object[] integers = impl.evaluate(input);
 
         assertThat(integers, is(((Input) normalized).value()));

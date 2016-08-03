@@ -1661,7 +1661,7 @@ public class PlannerTest extends AbstractPlannerTest {
     public void testBuildReaderAllocations() throws Exception {
         TableIdent custom = new TableIdent("custom", "t1");
         TableInfo tableInfo = TestingTableInfo.builder(custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
-        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, new StmtCtx());
         plannerContext.allocateRouting(tableInfo, WhereClause.MATCH_ALL, null);
 
         Planner.Context.ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
@@ -1691,7 +1691,7 @@ public class PlannerTest extends AbstractPlannerTest {
     public void testAllocateRouting() throws Exception {
         TableIdent custom = new TableIdent("custom", "t1");
         TableInfo tableInfo = TestingTableInfo.builder(custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
-        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, new StmtCtx());
 
         WhereClause whereClause = new WhereClause(
                 new Function(new FunctionInfo(
@@ -1713,7 +1713,7 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testExecutionPhaseIdSequence() throws Exception {
-        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null);
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, new StmtCtx());
 
         assertThat(plannerContext.nextExecutionPhaseId(), is(0));
         assertThat(plannerContext.nextExecutionPhaseId(), is(1));

@@ -62,7 +62,7 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Dynamic
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol) {
+    public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
         final int size = symbol.arguments().size();
         assert (size >= 3 && size <= 4);
 

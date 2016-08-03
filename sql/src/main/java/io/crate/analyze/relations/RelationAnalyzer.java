@@ -74,7 +74,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     public AnalyzedRelation analyze(Node node, Analysis analysis) {
-        return analyze(node, new RelationAnalysisContext(analysis.parameterContext(), analysisMetaData));
+        return analyze(node, new RelationAnalysisContext(
+            analysis.parameterContext(), analysis.statementContext(), analysisMetaData));
     }
 
     @Override
@@ -157,7 +158,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             } else {
                 throw new UnsupportedOperationException("Only tables are allowed in the FROM clause, got: " + source);
             }
-            relation.normalize(analysisMetaData);
+            relation.normalize(analysisMetaData, expressionAnalysisContext.statementContext());
             return relation;
         }
         // TODO: implement multi table selects
@@ -283,7 +284,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             }
             Symbol symbol = context.expressionAnalyzer().convert(having.get(), context.expressionAnalysisContext());
             HavingSymbolValidator.validate(symbol, groupBy);
-            return new HavingClause(context.expressionAnalyzer().normalize(symbol));
+            return new HavingClause(context.expressionAnalyzer().normalize(
+                symbol, context.expressionAnalysisContext().statementContext()));
         }
         return null;
     }
@@ -305,7 +307,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 query = new Function(AndOperator.INFO, Arrays.asList(query, joinCondition));
             }
         }
-        query = context.expressionAnalyzer().normalize(query);
+        query = context.expressionAnalyzer().normalize(query, context.expressionAnalysisContext().statementContext());
         return new WhereClause(query);
     }
 
@@ -383,7 +385,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     @Override
     protected AnalyzedRelation visitAliasedRelation(AliasedRelation node, RelationAnalysisContext context) {
         AnalyzedRelation childRelation = process(node.getRelation(),
-                new RelationAnalysisContext(context.parameterContext(), analysisMetaData));
+                new RelationAnalysisContext(
+                    context.parameterContext(),
+                    context.expressionAnalysisContext().statementContext(),
+                    analysisMetaData));
         context.addSourceRelation(node.getAlias(), childRelation);
         return childRelation;
     }

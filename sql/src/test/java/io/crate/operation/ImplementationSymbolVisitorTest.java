@@ -77,7 +77,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
         }
 
         @Override
-        public Symbol normalizeSymbol(Function symbol) {
+        public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
             throw new UnsupportedOperationException();
         }
 
