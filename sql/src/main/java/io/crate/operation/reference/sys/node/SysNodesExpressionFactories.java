@@ -25,11 +25,15 @@ package io.crate.operation.reference.sys.node;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedFsStats;
 import io.crate.monitor.ThreadPools;
-import io.crate.operation.reference.sys.node.fs.*;
+import io.crate.operation.reference.sys.node.fs.NodeFsDataExpression;
+import io.crate.operation.reference.sys.node.fs.NodeFsDisksExpression;
+import io.crate.operation.reference.sys.node.fs.NodeFsExpression;
+import io.crate.operation.reference.sys.node.fs.NodeFsTotalExpression;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Map;
@@ -44,16 +48,10 @@ public class SysNodesExpressionFactories {
             .put(SysNodesTableInfo.Columns.ID, new RowCollectExpressionFactory() {
                 @Override
                 public RowCollectExpression create() {
-                    return new SimpleDiscoveryNodeExpression<BytesRef>() {
-
+                    return new RowContextCollectorExpression<DiscoveryNodeContext, BytesRef>() {
                         @Override
                         public BytesRef value() {
-                            return row == null ? null : innerValue() ;
-                        }
-
-                        @Override
-                        public BytesRef innerValue() {
-                            return row.id();
+                            return row == null ? null : row.id();
                         }
                     };
                 }
@@ -61,16 +59,10 @@ public class SysNodesExpressionFactories {
             .put(SysNodesTableInfo.Columns.NAME, new RowCollectExpressionFactory() {
                 @Override
                 public RowCollectExpression create() {
-                    return new SimpleDiscoveryNodeExpression<BytesRef>() {
-
+                    return new RowContextCollectorExpression<DiscoveryNodeContext, BytesRef>() {
                         @Override
                         public BytesRef value() {
-                            return row == null ? null : innerValue() ;
-                        }
-
-                        @Override
-                        public BytesRef innerValue() {
-                            return row.name();
+                            return row == null ? null : row.name();
                         }
                     };
                 }
