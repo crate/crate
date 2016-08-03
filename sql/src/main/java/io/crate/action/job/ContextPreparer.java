@@ -23,23 +23,20 @@ package io.crate.action.job;
 
 import com.carrotsearch.hppc.*;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import com.google.common.base.Function;
-import com.google.common.base.MoreObjects;
+import com.google.common.base.*;
 import com.google.common.base.Optional;
-import com.google.common.base.Predicates;
 import com.google.common.collect.*;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.*;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
-import io.crate.operation.NodeOperation;
-import io.crate.operation.PageDownstream;
-import io.crate.operation.PageDownstreamFactory;
-import io.crate.operation.Paging;
+import io.crate.operation.*;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
@@ -90,6 +87,8 @@ public class ContextPreparer extends AbstractComponent {
     private final PageDownstreamFactory pageDownstreamFactory;
     private final RowDownstreamFactory rowDownstreamFactory;
     private final InnerPreparer innerPreparer;
+    private final ImplementationSymbolVisitor symbolVisitor;
+
 
     @Inject
     public ContextPreparer(Settings settings,
@@ -99,7 +98,8 @@ public class ContextPreparer extends AbstractComponent {
                            CountOperation countOperation,
                            ThreadPool threadPool,
                            PageDownstreamFactory pageDownstreamFactory,
-                           RowDownstreamFactory rowDownstreamFactory) {
+                           RowDownstreamFactory rowDownstreamFactory,
+                           Functions functions) {
         super(settings);
         nlContextLogger = Loggers.getLogger(NestedLoopContext.class, settings);
         pageDownstreamContextLogger = Loggers.getLogger(PageDownstreamContext.class, settings);
@@ -111,6 +111,7 @@ public class ContextPreparer extends AbstractComponent {
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.rowDownstreamFactory = rowDownstreamFactory;
         innerPreparer = new InnerPreparer();
+        symbolVisitor = new ImplementationSymbolVisitor(functions);
     }
 
     public List<ListenableFuture<Bucket>> prepareOnRemote(Iterable<? extends NodeOperation> nodeOperations,
@@ -565,7 +566,12 @@ public class ContextPreparer extends AbstractComponent {
                 flatProjectorChain = FlatProjectorChain.withReceivers(Collections.singletonList(downstreamRowReceiver));
             }
 
-            NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(phase.executionPhaseId(), flatProjectorChain.firstProjector());
+            Predicate<Row> rowFilter = RowFilter.create(symbolVisitor, phase.filterSymbol());
+
+            NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(
+                phase.executionPhaseId(),
+                flatProjectorChain.firstProjector(),
+                rowFilter);
             PageDownstreamContext left = pageDownstreamContextForNestedLoop(
                 phase.executionPhaseId(),
                 context,

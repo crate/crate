@@ -39,9 +39,9 @@ import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
-import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.builder.InputCreatingVisitor;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.cluster.ClusterService;
@@ -216,9 +216,11 @@ public class NestedLoopConsumer implements Consumer {
             }
             List<Projection> projections = new ArrayList<>();
 
+            Symbol filterSymbol = null;
             if (filterNeeded) {
-                FilterProjection filterProjection = ProjectionBuilder.filterProjection(nlOutputs, where.query());
-                projections.add(filterProjection);
+                InputCreatingVisitor.Context inputVisitorContext = new InputCreatingVisitor.Context(nlOutputs);
+                filterSymbol = InputCreatingVisitor.INSTANCE.process(where.query(), inputVisitorContext);
+                assert filterSymbol instanceof Function : "Only function symbols are allowed for filtering";
             }
             List<Symbol> postNLOutputs = Lists.newArrayList(querySpec.outputs());
             if (orderByBeforeSplit != null && isDistributed) {
@@ -240,13 +242,14 @@ public class NestedLoopConsumer implements Consumer {
             projections.add(topN);
 
             NestedLoopPhase nl = new NestedLoopPhase(
-                    context.plannerContext().jobId(),
-                    context.plannerContext().nextExecutionPhaseId(),
-                    isDistributed ? "distributed-nested-loop" : "nested-loop",
-                    projections,
-                    leftMerge,
-                    rightMerge,
-                    nlExecutionNodes
+                context.plannerContext().jobId(),
+                context.plannerContext().nextExecutionPhaseId(),
+                isDistributed ? "distributed-nested-loop" : "nested-loop",
+                projections,
+                leftMerge,
+                rightMerge,
+                nlExecutionNodes,
+                filterSymbol
             );
             MergePhase localMergePhase = null;
             // TODO: build local merge phases somewhere else for any subplan

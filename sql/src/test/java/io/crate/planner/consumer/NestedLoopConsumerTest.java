@@ -48,7 +48,6 @@ import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.FetchProjection;
-import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
@@ -192,13 +191,12 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
         NestedLoop nestedLoop = (NestedLoop) plan.subPlan();
         assertThat(nestedLoop.nestedLoopPhase().projections(),
-                Matchers.contains(instanceOf(FilterProjection.class), instanceOf(TopNProjection.class)));
-        FilterProjection fp = ((FilterProjection) nestedLoop.nestedLoopPhase().projections().get(0));
+                Matchers.contains(instanceOf(TopNProjection.class)));
+        Symbol filterSymbol = nestedLoop.nestedLoopPhase().filterSymbol();
 
-        assertThat(((Function)fp.query()).arguments().size(), is(2));
-        assertThat(fp.outputs().size(), is(3));
+        assertThat(((Function)filterSymbol).arguments().size(), is(2));
 
-        TopNProjection topN = ((TopNProjection) nestedLoop.nestedLoopPhase().projections().get(1));
+        TopNProjection topN = ((TopNProjection) nestedLoop.nestedLoopPhase().projections().get(0));
         assertThat(topN.limit(), is(TopN.NO_LIMIT));
         assertThat(topN.offset(), is(0));
         assertThat(topN.outputs().size(), is(3));
@@ -263,14 +261,6 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         assertThat(((RoutedCollectPhase) ((CollectAndMerge) plan.right()).collectPhase()).nodePageSizeHint(), nullValue());
     }
 
-    @Test
-    public void testNLPhaseHasFilterProjection() throws Exception {
-        NestedLoop plan = plan("select * from information_schema.tables, information_schema .columns " +
-                               "where tables.schema_name = columns.schema_name " +
-                               "and tables.table_name = columns.table_name limit 10");
-        assertThat(plan.nestedLoopPhase().projections().get(0), instanceOf(FilterProjection.class));
-    }
-
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testOrderByPushDown() throws Exception {
@@ -321,7 +311,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testLimitIncludesOffsetOnNestedLoopTopNProjection() throws Exception {
         NestedLoop nl = plan("select u1.name, u2.name from users u1, users u2 where u1.id = u2.id order by u1.name, u2.name limit 15 offset 10");
-        TopNProjection distTopN = (TopNProjection) nl.nestedLoopPhase().projections().get(1);
+        TopNProjection distTopN = (TopNProjection) nl.nestedLoopPhase().projections().get(0);
 
         assertThat(distTopN.limit(), is(25));
         assertThat(distTopN.offset(), is(0));

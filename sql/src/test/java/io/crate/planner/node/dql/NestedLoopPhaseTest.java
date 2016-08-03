@@ -23,15 +23,18 @@ package io.crate.planner.node.dql;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.SqlExpressions;
+import io.crate.testing.T3;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
@@ -53,10 +56,18 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
                 ImmutableList.<DataType>of(DataTypes.STRING),
                 ImmutableList.<Projection>of(),
                 DistributionInfo.DEFAULT_BROADCAST);
-        NestedLoopPhase node = new NestedLoopPhase(jobId, 1, "nestedLoop", ImmutableList.<Projection>of(topNProjection),
-                mp1,
-                mp2,
-                Sets.newHashSet("node1", "node2"));
+        SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES, T3.TR_1);
+        Symbol filterCondition = sqlExpressions.normalize(sqlExpressions.asSymbol("a = 'foo'"));
+        NestedLoopPhase node = new NestedLoopPhase(
+            jobId,
+            1,
+            "nestedLoop",
+            ImmutableList.<Projection>of(topNProjection),
+            mp1,
+            mp2,
+            Sets.newHashSet("node1", "node2"),
+            filterCondition
+            );
 
         BytesStreamOutput output = new BytesStreamOutput();
         node.writeTo(output);
@@ -69,5 +80,6 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
         assertThat(node.jobId(), Is.is(node2.jobId()));
         assertThat(node.name(), is(node2.name()));
         assertThat(node.outputTypes(), is(node2.outputTypes()));
+        assertThat(node.filterSymbol(), is(node2.filterSymbol()));
     }
 }

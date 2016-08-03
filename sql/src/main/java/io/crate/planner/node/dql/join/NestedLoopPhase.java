@@ -24,6 +24,7 @@ package io.crate.planner.node.dql.join;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -54,6 +55,8 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
     private MergePhase leftMergePhase;
     private MergePhase rightMergePhase;
     private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
+    @Nullable
+    private Symbol filterSymbol;
 
     public NestedLoopPhase() {}
 
@@ -63,7 +66,8 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
                            List<Projection> projections,
                            @Nullable MergePhase leftMergePhase,
                            @Nullable MergePhase rightMergePhase,
-                           Collection<String> executionNodes) {
+                           Collection<String> executionNodes,
+                           @Nullable Symbol filterSymbol) {
         super(jobId, executionNodeId, name, projections);
         Projection lastProjection = Iterables.getLast(projections, null);
         assert lastProjection != null;
@@ -71,6 +75,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
         this.leftMergePhase = leftMergePhase;
         this.rightMergePhase = rightMergePhase;
         this.executionNodes = executionNodes;
+        this.filterSymbol = filterSymbol;
     }
 
     @Override
@@ -95,6 +100,11 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
     @Nullable
     public MergePhase rightMergePhase() {
         return rightMergePhase;
+    }
+
+    @Nullable
+    public Symbol filterSymbol() {
+        return filterSymbol;
     }
 
     @Override
@@ -123,6 +133,9 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
         if (in.readBoolean()) {
             rightMergePhase = MergePhase.FACTORY.create();
             rightMergePhase.readFrom(in);
+        }
+        if (in.readBoolean()) {
+            filterSymbol = Symbol.fromStream(in);
         }
     }
 
@@ -153,6 +166,13 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
             out.writeBoolean(true);
             rightMergePhase.writeTo(out);
         }
+
+        if (filterSymbol == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            Symbol.toStream(filterSymbol, out);
+        }
     }
 
     @Override
@@ -162,7 +182,8 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
                 .add("name", name())
                 .add("outputTypes", outputTypes)
                 .add("jobId", jobId())
-                .add("executionNodes", executionNodes);
+                .add("executionNodes", executionNodes)
+                .add("filterSymbol", filterSymbol);
         return helper.toString();
     }
 

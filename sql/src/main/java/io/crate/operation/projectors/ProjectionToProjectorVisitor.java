@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.*;
@@ -34,6 +35,7 @@ import io.crate.metadata.StmtCtx;
 import io.crate.metadata.expressions.WritableExpression;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
+import io.crate.operation.RowFilter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.projectors.fetch.FetchProjector;
@@ -321,16 +323,8 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitFilterProjection(FilterProjection projection, Context context) {
-        ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor.Context();
-
-        Input<Boolean> condition;
-        if (projection.query() != null) {
-            condition = (Input) symbolVisitor.process(projection.query(), ctx);
-        } else {
-            condition = Literal.newLiteral(true);
-        }
-
-        return new FilterProjector(ctx.collectExpressions(), condition);
+        Predicate<Row> rowFilter = RowFilter.create(symbolVisitor, projection.query());
+        return new FilterProjector(rowFilter);
     }
 
     @Override

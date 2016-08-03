@@ -21,6 +21,9 @@
 
 package io.crate.operation.join;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -102,6 +105,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
     private final int phaseId;
     private final RowReceiver downstream;
+    private final Predicate<Row> rowFilterPredicate;
 
     private volatile Throwable upstreamFailure;
     private volatile boolean stop = false;
@@ -113,11 +117,17 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
     private final AtomicBoolean leadAcquired = new AtomicBoolean(false);
 
-    public NestedLoopOperation(int phaseId, RowReceiver rowReceiver) {
+    public NestedLoopOperation(int phaseId, RowReceiver rowReceiver, Predicate<Row> rowFilterPredicate) {
         this.phaseId = phaseId;
         this.downstream = rowReceiver;
+        this.rowFilterPredicate = rowFilterPredicate;
         left = new LeftRowReceiver();
         right = new RightRowReceiver();
+    }
+
+    @VisibleForTesting
+    NestedLoopOperation(int phaseId, RowReceiver rowReceiver) {
+        this(phaseId, rowReceiver, Predicates.<Row>alwaysTrue());
     }
 
     public ListenableRowReceiver leftRowReceiver() {
@@ -367,6 +377,12 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         private Result emitRow(Row row) {
             combinedRow.outerRow = left.lastRow;
             combinedRow.innerRow = row;
+
+            // filter logic
+            if (!rowFilterPredicate.apply(combinedRow)) {
+                return Result.CONTINUE;
+            }
+
             Result result = downstream.setNextRow(combinedRow);
             if (LOGGER.isTraceEnabled() && result != Result.CONTINUE) {
                 LOGGER.trace("phase={} side=right method=emitRow result={}", phaseId, result);
