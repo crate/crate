@@ -43,7 +43,7 @@ import java.util.Map;
 
 public class DiscoveryNodeContext implements Streamable {
 
-    private final boolean empty;
+    private final boolean complete;
 
     private BytesRef id;
     private BytesRef name;
@@ -72,18 +72,18 @@ public class DiscoveryNodeContext implements Streamable {
     private BytesRef jvmVersion;
 
     public static DiscoveryNodeContext newInstance() {
-        return new DiscoveryNodeContext(false);
+        return new DiscoveryNodeContext(true);
     }
 
     public DiscoveryNodeContext(String id, String name) {
-        this(true);
+        this(false);
         this.id = BytesRefs.toBytesRef(id);
         this.name = BytesRefs.toBytesRef(name);
     }
 
-    public DiscoveryNodeContext(boolean empty) {
-        this.empty = empty;
-        if (!empty) {
+    public DiscoveryNodeContext(boolean complete) {
+        this.complete = complete;
+        if (complete) {
             osName = BytesRefs.toBytesRef(Constants.OS_NAME);
             osArch = BytesRefs.toBytesRef(Constants.OS_ARCH);
             osVersion = BytesRefs.toBytesRef(Constants.OS_VERSION);
@@ -95,11 +95,11 @@ public class DiscoveryNodeContext implements Streamable {
     }
 
     public DiscoveryNodeContext() {
-        this(false);
+        this(true);
     }
 
-    public boolean isEmpty() {
-        return empty;
+    public boolean isComplete() {
+        return complete;
     }
 
     public BytesRef id() {

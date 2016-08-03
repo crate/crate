@@ -45,6 +45,12 @@ public class SysNodesExpressionFactories {
                 @Override
                 public RowCollectExpression create() {
                     return new SimpleDiscoveryNodeExpression<BytesRef>() {
+
+                        @Override
+                        public BytesRef value() {
+                            return row == null ? null : innerValue() ;
+                        }
+
                         @Override
                         public BytesRef innerValue() {
                             return row.id();
@@ -56,6 +62,12 @@ public class SysNodesExpressionFactories {
                 @Override
                 public RowCollectExpression create() {
                     return new SimpleDiscoveryNodeExpression<BytesRef>() {
+
+                        @Override
+                        public BytesRef value() {
+                            return row == null ? null : innerValue() ;
+                        }
+
                         @Override
                         public BytesRef innerValue() {
                             return row.name();

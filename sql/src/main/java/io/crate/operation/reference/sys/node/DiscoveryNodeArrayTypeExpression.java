@@ -27,7 +27,7 @@ public abstract class DiscoveryNodeArrayTypeExpression<I, R>
 
     @Override
     public R[] value() {
-        return row.isEmpty() ? null : super.value();
+        return row.isComplete() ? super.value() : null;
     }
 }
 

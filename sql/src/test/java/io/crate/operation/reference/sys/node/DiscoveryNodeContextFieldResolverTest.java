@@ -91,7 +91,7 @@ public class DiscoveryNodeContextFieldResolverTest {
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.ID),
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.NAME)
         ));
-        assertThat(context.isEmpty(), is(false));
+        assertThat(context.isComplete(), is(true));
         assertThat(context.id(), is(notNullValue()));
         assertThat(context.name(), is(notNullValue()));
         assertThat(context.hostname(), is(nullValue()));
@@ -109,7 +109,7 @@ public class DiscoveryNodeContextFieldResolverTest {
     }
 
     private void assertDefaultDiscoveryContext(DiscoveryNodeContext context) {
-        assertThat(context.isEmpty(), is(false));
+        assertThat(context.isComplete(), is(true));
         assertThat(context.id(), is(nullValue()));
         assertThat(context.name(), is(nullValue()));
         assertThat(context.hostname(), is(nullValue()));

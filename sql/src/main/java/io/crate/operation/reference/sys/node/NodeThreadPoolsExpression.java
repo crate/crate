@@ -57,7 +57,7 @@ public class NodeThreadPoolsExpression
 
     @Override
     public Object[] value() {
-        return row.isEmpty() ? null : super.value();
+        return row.isComplete() ? super.value() : null;
     }
 
 }

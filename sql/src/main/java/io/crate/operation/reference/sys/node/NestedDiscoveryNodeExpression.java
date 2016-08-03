@@ -30,6 +30,6 @@ public abstract class NestedDiscoveryNodeExpression extends RowCollectNestedObje
 
     @Override
     public Map<String, Object> value() {
-        return row.isEmpty() ? null : super.value();
+        return row.isComplete() ? super.value() : null;
     }
 }

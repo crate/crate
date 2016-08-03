@@ -103,7 +103,7 @@ public class DiscoveryNodeContextTest extends CrateUnitTest {
 
     @Test
     public void testStreamContext() throws Exception {
-        DiscoveryNodeContext ctx1 = new DiscoveryNodeContext(false);
+        DiscoveryNodeContext ctx1 = new DiscoveryNodeContext(true);
         ctx1.id(BytesRefs.toBytesRef("93c7ff92-52fa-11e6-aad8-3c15c2d3ad18"));
         ctx1.name(BytesRefs.toBytesRef("crate1"));
         ctx1.hostname(BytesRefs.toBytesRef("crate1.example.com"));
@@ -132,7 +132,7 @@ public class DiscoveryNodeContextTest extends CrateUnitTest {
 
         ByteArrayInputStream inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
         InputStreamStreamInput in = new InputStreamStreamInput(inBuffer);
-        DiscoveryNodeContext ctx2 = new DiscoveryNodeContext(false);
+        DiscoveryNodeContext ctx2 = new DiscoveryNodeContext(true);
         ctx2.readFrom(in);
 
         assertEquals(ctx1.id(), ctx2.id());
@@ -177,14 +177,14 @@ public class DiscoveryNodeContextTest extends CrateUnitTest {
 
     @Test
     public void testStreamEmptyContext() throws Exception {
-        DiscoveryNodeContext ctx1 = new DiscoveryNodeContext(true);
+        DiscoveryNodeContext ctx1 = new DiscoveryNodeContext(false);
         ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
         StreamOutput out = new OutputStreamStreamOutput(outBuffer);
         ctx1.writeTo(out);
 
         ByteArrayInputStream inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
         InputStreamStreamInput in = new InputStreamStreamInput(inBuffer);
-        DiscoveryNodeContext ctx2 = new DiscoveryNodeContext(true);
+        DiscoveryNodeContext ctx2 = new DiscoveryNodeContext(false);
         ctx2.readFrom(in);
 
         assertNull(ctx2.id());
@@ -251,7 +251,7 @@ public class DiscoveryNodeContextTest extends CrateUnitTest {
 
     @Test
     public void testStreamContextWithNullPorts() throws Exception {
-        DiscoveryNodeContext ctx1 = new DiscoveryNodeContext(true);
+        DiscoveryNodeContext ctx1 = new DiscoveryNodeContext(false);
         ctx1.port(new HashMap<String, Integer>() {{
             put("http", null);
             put("transport", 4300);
@@ -262,7 +262,7 @@ public class DiscoveryNodeContextTest extends CrateUnitTest {
 
         ByteArrayInputStream inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
         InputStreamStreamInput in = new InputStreamStreamInput(inBuffer);
-        DiscoveryNodeContext ctx2 = new DiscoveryNodeContext(true);
+        DiscoveryNodeContext ctx2 = new DiscoveryNodeContext(false);
         ctx2.readFrom(in);
 
         assertThat(ctx2.port().get("http"), nullValue());

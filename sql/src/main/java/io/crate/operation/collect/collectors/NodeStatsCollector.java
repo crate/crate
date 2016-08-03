@@ -97,7 +97,7 @@ public class NodeStatsCollector implements CrateCollector {
                             }
                             counter.countDown();
                         }
-                    }, TimeValue.timeValueMillis(5000L));
+                    }, TimeValue.timeValueMillis(3000L));
         }
         try {
             counter.await();
