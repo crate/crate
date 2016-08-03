@@ -31,9 +31,7 @@ import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.core.Is;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.HashMap;
 
@@ -45,9 +43,6 @@ import static org.hamcrest.Matchers.isIn;
 public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void initTestData() {

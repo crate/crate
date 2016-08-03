@@ -30,9 +30,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -43,10 +41,6 @@ import static org.hamcrest.Matchers.*;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2)
 public class SysShardsTest extends SQLTransportIntegrationTest {
-
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void initTestData() throws Exception {

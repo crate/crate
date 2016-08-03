@@ -42,9 +42,7 @@ import org.elasticsearch.index.mapper.core.StringFieldMapper;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 
@@ -55,9 +53,6 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
     public static final String INDEX = "my_index";
     public static final String TYPE = "type";
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     /**
      * create index with type and mapping and validate DocumentMapper serialization

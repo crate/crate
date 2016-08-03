@@ -25,9 +25,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
@@ -36,9 +34,6 @@ import java.util.HashMap;
 import static org.hamcrest.Matchers.is;
 
 public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @ClassRule
     public static TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();

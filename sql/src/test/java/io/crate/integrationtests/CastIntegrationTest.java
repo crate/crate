@@ -23,9 +23,7 @@
 package io.crate.integrationtests;
 
 import org.hamcrest.Matcher;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -33,9 +31,6 @@ import static org.hamcrest.collection.IsArrayContainingInOrder.arrayContaining;
 
 
 public class CastIntegrationTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testTryCastValidLiteralCasting() {

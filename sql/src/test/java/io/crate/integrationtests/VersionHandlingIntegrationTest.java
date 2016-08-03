@@ -23,9 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.analyze.UpdateStatementAnalyzer;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 
@@ -36,10 +34,6 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
 
     private Setup setup = new Setup(sqlExecutor);
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-
     @Test
     public void selectMultiGetRequestWithColumnAlias() throws IOException {
         this.setup.createTestTableWithPrimaryKey();
@@ -47,7 +41,7 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
         execute("insert into test (pk_col, message) values ('2', 'bar')");
         execute("insert into test (pk_col, message) values ('3', 'baz')");
         refresh();
-        execute("SELECT pk_col as id, message from test where pk_col IN (?,?)", new Object[]{'1', '2'});
+        execute("SELECT pk_col as id, message from test where pk_col IN (?,?)", new Object[]{"1", "2"});
         assertThat(response.rowCount(), is(2L));
         assertThat(response.cols(), arrayContainingInAnyOrder("id", "message"));
         assertThat(new String[]{(String) response.rows()[0][0], (String) response.rows()[1][0]}, arrayContainingInAnyOrder("1", "2"));

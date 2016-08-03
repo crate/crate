@@ -32,7 +32,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import javax.annotation.Nullable;
@@ -56,9 +55,6 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 CrateTestingPlugin.class
         );
     }
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();

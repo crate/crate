@@ -28,9 +28,12 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.settings.Settings;
-import org.junit.*;
-import org.junit.rules.ExpectedException;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -43,9 +46,6 @@ import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
 
 public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private static FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
@@ -409,8 +409,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void reuseExistingTokenizer() throws Exception {
-
+    public void reuseExistingTokenizer() {
         execute("CREATE ANALYZER a9 (" +
                 "  TOKENIZER a9tok WITH (" +
                 "    type='nGram'," +

@@ -35,19 +35,15 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1, transportClientRatio = 0)
 public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
 
     private SQLTransportExecutor readOnlyExecutor;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();

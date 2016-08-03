@@ -26,16 +26,9 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
-
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

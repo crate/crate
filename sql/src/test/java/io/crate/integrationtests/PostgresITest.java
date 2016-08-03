@@ -29,7 +29,6 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.Timeout;
 import org.postgresql.util.PSQLException;
 
@@ -49,9 +48,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Rule
     public Timeout globalTimeout = new Timeout(120000); // 2 minutes timeout
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private Properties properties = new Properties();
 

@@ -27,6 +27,7 @@ import io.crate.types.StringType;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryResponse;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryResponse;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -42,6 +43,7 @@ import java.util.Map;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
+@ESIntegTestCase.ClusterScope(transportClientRatio = 0)
 public class SysRepositoriesTest extends SQLTransportIntegrationTest {
 
     @ClassRule

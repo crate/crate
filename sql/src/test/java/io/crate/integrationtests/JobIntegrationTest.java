@@ -28,15 +28,10 @@ import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1, randomDynamicTemplates = false)
 public class JobIntegrationTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

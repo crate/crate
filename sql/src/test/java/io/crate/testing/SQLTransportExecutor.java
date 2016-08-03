@@ -24,12 +24,15 @@ package io.crate.testing;
 import com.google.common.base.MoreObjects;
 import io.crate.action.sql.*;
 import org.elasticsearch.ElasticsearchTimeoutException;
+import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.support.AdapterActionFuture;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
@@ -101,11 +104,15 @@ public class SQLTransportExecutor {
     }
 
     private ActionFuture<SQLResponse> execute(SQLRequest request) {
-        return clientProvider.client().execute(SQLAction.INSTANCE, request);
+        AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new TestTransportActionFuture<>();
+        clientProvider.client().execute(SQLAction.INSTANCE, request, actionFuture);
+        return actionFuture;
     }
 
     private ActionFuture<SQLBulkResponse> execute(SQLBulkRequest request) {
-        return clientProvider.client().execute(SQLBulkAction.INSTANCE, request);
+        AdapterActionFuture<SQLBulkResponse, SQLBulkResponse> actionFuture = new TestTransportActionFuture<>();
+        clientProvider.client().execute(SQLBulkAction.INSTANCE, request, actionFuture);
+        return actionFuture;
     }
 
     public ClusterHealthStatus ensureGreen() {
@@ -141,5 +148,26 @@ public class SQLTransportExecutor {
 
     public interface ClientProvider {
         Client client();
+    }
+
+    private class TestTransportActionFuture<Response extends SQLBaseResponse> extends AdapterActionFuture<Response, Response> {
+
+        @Override
+        protected Response convert(Response response) {
+            return response;
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            Throwable cause = ExceptionsHelper.unwrapCause(e);
+            if (cause instanceof NotSerializableExceptionWrapper) {
+                NotSerializableExceptionWrapper wrapper = ((NotSerializableExceptionWrapper) cause);
+                SQLActionException sae = SQLActionException.fromSerializationWrapper(wrapper);
+                if (sae != null) {
+                    e = sae;
+                }
+            }
+            super.onFailure(e);
+        }
     }
 }

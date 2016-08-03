@@ -31,9 +31,7 @@ import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -45,9 +43,6 @@ import static org.hamcrest.Matchers.is;
 public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegrationTest {
 
     TransportBulkCreateIndicesAction action;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Mock
     public ActionListener<BulkCreateIndicesResponse> responseActionListener;

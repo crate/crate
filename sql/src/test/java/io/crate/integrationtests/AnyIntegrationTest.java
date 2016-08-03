@@ -24,16 +24,11 @@ package io.crate.integrationtests;
 import io.crate.testing.TestingHelpers;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.is;
 
 public class AnyIntegrationTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testAnyOnArrayLiteralDeleteUpdateSelect() throws Exception {

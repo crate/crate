@@ -22,16 +22,11 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.core.Is.is;
 
 public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testCountWithPartitionFilter() throws Exception {

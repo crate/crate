@@ -48,7 +48,6 @@ import org.hamcrest.core.Is;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.BufferedWriter;
@@ -69,9 +68,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @After
     public void resetSettings() throws Exception {

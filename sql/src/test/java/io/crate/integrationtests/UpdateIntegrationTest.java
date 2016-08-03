@@ -26,9 +26,7 @@ import io.crate.action.sql.SQLBulkResponse;
 import io.crate.analyze.UpdateStatementAnalyzer;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,9 +41,6 @@ import static org.hamcrest.core.Is.is;
 public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testUpdate() throws Exception {

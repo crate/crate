@@ -27,16 +27,11 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.core.Is;
 import org.junit.After;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
 public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @ClassRule
     public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();

@@ -28,9 +28,7 @@ import io.crate.action.sql.*;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -41,9 +39,6 @@ import static org.hamcrest.Matchers.notNullValue;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
 public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testUnassignedShards() throws Exception {

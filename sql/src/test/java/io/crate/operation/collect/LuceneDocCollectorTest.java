@@ -36,7 +36,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.util.ArrayList;
@@ -56,9 +55,6 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     private CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
 
     private LuceneDocCollectorProvider collectorProvider;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();

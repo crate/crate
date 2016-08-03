@@ -25,15 +25,12 @@ import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLBaseRequest;
 import io.crate.action.sql.SQLRequestBuilder;
 import io.crate.action.sql.SQLResponse;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
+@ESIntegTestCase.ClusterScope(transportClientRatio = 0)
 public class OdbcIntegrationTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private Setup setup = new Setup(sqlExecutor);
 

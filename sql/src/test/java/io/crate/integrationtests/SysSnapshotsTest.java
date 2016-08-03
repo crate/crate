@@ -32,7 +32,11 @@ import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRes
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotState;
-import org.junit.*;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
@@ -43,6 +47,7 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.*;
 
+@ESIntegTestCase.ClusterScope(transportClientRatio = 0)
 public class SysSnapshotsTest extends SQLTransportIntegrationTest {
 
     @ClassRule

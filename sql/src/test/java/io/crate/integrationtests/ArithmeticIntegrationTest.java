@@ -23,21 +23,17 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Locale;
 
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 
 public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testMathFunctionNullArguments() throws Exception {
@@ -215,7 +211,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select regexp_matches(s, '^(bar).*') from regex_noindex order by i");
         assertThat(response.rows()[0][0], nullValue());
-        assertThat(((String[]) response.rows()[1][0])[0], is("bar"));
+        assertThat((Object[]) response.rows()[1][0], arrayContaining(new Object[] {"bar"}));
         assertThat(response.rows()[2][0], nullValue());
     }
 
@@ -224,10 +220,10 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table regex_fulltext (i integer, s string INDEX USING FULLTEXT) clustered into 3 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into regex_fulltext (i, s) values (?, ?)", new Object[][]{
-                new Object[]{1, "foo is first"},
-                new Object[]{2, "bar is second"},
-                new Object[]{3, "foobar is great"},
-                new Object[]{4, "crate is greater"}
+            new Object[]{1, "foo is first"},
+            new Object[]{2, "bar is second"},
+            new Object[]{3, "foobar is great"},
+            new Object[]{4, "crate is greater"}
         });
         refresh();
 
@@ -239,21 +235,17 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((String) response.rows()[3][0], is("crate was greater"));
 
         execute("select regexp_matches(s, '(\\w+) is (\\w+)') from regex_fulltext order by i");
-        String[] match1 = (String[]) response.rows()[0][0];
-        assertThat(match1[0], is("foo"));
-        assertThat(match1[1], is("first"));
+        Object[] match1 = (Object[]) response.rows()[0][0];
+        assertThat(match1, arrayContaining(new Object[]{"foo", "first"}));
 
-        String[] match2 = (String[]) response.rows()[1][0];
-        assertThat(match2[0], is("bar"));
-        assertThat(match2[1], is("second"));
+        Object[] match2 = (Object[]) response.rows()[1][0];
+        assertThat(match2, arrayContaining(new Object[]{"bar", "second"}));
 
-        String[] match3 = (String[]) response.rows()[2][0];
-        assertThat(match3[0], is("foobar"));
-        assertThat(match3[1], is("great"));
+        Object[] match3 = (Object[]) response.rows()[2][0];
+        assertThat(match3, arrayContaining(new Object[]{"foobar", "great"}));
 
-        String[] match4 = (String[]) response.rows()[3][0];
-        assertThat(match4[0], is("crate"));
-        assertThat(match4[1], is("greater"));
+        Object[] match4 = (Object[]) response.rows()[3][0];
+        assertThat(match4, arrayContaining(new Object[]{"crate", "greater"}));
     }
 
     @Test

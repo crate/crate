@@ -23,8 +23,8 @@
 package io.crate.planner;
 
 
-import com.carrotsearch.hppc.ObjectLongMap;
 import com.carrotsearch.hppc.ObjectLongHashMap;
+import com.carrotsearch.hppc.ObjectLongMap;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.action.sql.TransportSQLAction;
@@ -44,7 +44,6 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.util.concurrent.TimeUnit;
 
 @Singleton
 public class TableStatsService extends AbstractComponent implements Runnable {
@@ -120,10 +119,6 @@ public class TableStatsService extends AbstractComponent implements Runnable {
      */
     public long numDocs(TableIdent tableIdent) {
         ObjectLongMap<TableIdent> stats = tableStats;
-        if (stats == null && clusterService.localNode() != null) {
-            stats = statsFromResponse(transportSQLAction.get().execute(REQUEST).actionGet(30, TimeUnit.SECONDS));
-            tableStats = stats;
-        }
         if (stats != null && stats.containsKey(tableIdent)) {
             return stats.get(tableIdent);
         }

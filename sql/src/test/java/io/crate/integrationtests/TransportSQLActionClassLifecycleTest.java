@@ -29,13 +29,13 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.Constants;
+import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.nio.charset.StandardCharsets;
@@ -58,9 +58,6 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void initTestData() throws Exception {
@@ -218,8 +215,10 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         assertEquals(55.25d, response.rows()[0][3]);
     }
 
-    @Test(expected = SQLActionException.class)
+    @Test
     public void selectMultiGetRequestFromNonExistentTable() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("TableUnknownException: Table 'doc.non_existent' unknown");
         execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"});
     }
 

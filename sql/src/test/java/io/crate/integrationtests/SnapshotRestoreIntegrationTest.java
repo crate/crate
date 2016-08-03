@@ -31,8 +31,10 @@ import org.elasticsearch.cluster.metadata.SnapshotId;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.snapshots.SnapshotInfo;
-import org.junit.*;
-import org.junit.rules.ExpectedException;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.util.List;
@@ -45,9 +47,6 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
     private static final String REPOSITORY_NAME = "my_repo";
     private static final String SNAPSHOT_NAME = "my_snapshot";
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @ClassRule
     public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();

@@ -35,15 +35,14 @@ import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsReques
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import javax.annotation.Nullable;
@@ -59,9 +58,6 @@ import static org.hamcrest.core.Is.is;
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -1447,8 +1443,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select p from geo_point_table order by id desc");
 
         assertThat(response.rowCount(), is(2L));
-        assertThat(((Double[]) response.rows()[0][0]), Matchers.arrayContaining(57.22, 7.12));
-        assertThat(((Double[]) response.rows()[1][0]), Matchers.arrayContaining(47.22, 12.09));
+        assertThat(((Object[]) response.rows()[0][0]), arrayContaining(new Object[] {57.22, 7.12}));
+        assertThat(((Object[]) response.rows()[1][0]), arrayContaining(new Object[] {47.22, 12.09}));
     }
 
     @Test

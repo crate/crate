@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLResponse;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.nio.file.Paths;
@@ -39,9 +38,6 @@ import static org.hamcrest.core.Is.is;
  * different and is asserted via tests in this class.
  */
 public class EmptyStringRoutingIntegrationTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();

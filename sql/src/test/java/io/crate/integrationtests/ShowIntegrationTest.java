@@ -22,11 +22,8 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.analyze.NumberOfShards;
 import io.crate.testing.TestingHelpers;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Locale;
 
@@ -34,9 +31,6 @@ import static org.hamcrest.core.Is.is;
 
 
 public class ShowIntegrationTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testShowCrateSystemTable() throws Exception {

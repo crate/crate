@@ -38,9 +38,7 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -54,9 +52,6 @@ import static org.hamcrest.Matchers.*;
 public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
     private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     public MappingMetaData getMappingMetadata(String index){
         return clusterService().state().metaData().indices()

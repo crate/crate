@@ -23,16 +23,11 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Map;
 
 public class TableSettingsTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void prepare() throws Exception {

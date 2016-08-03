@@ -32,9 +32,7 @@ import io.crate.types.DataType;
 import io.crate.types.IntegerType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.*;
@@ -42,11 +40,8 @@ import java.util.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
-@ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
+@ESIntegTestCase.ClusterScope(minNumDataNodes = 2, transportClientRatio = 0)
 public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private void setUpSimple() throws IOException {
         setUpSimple(2);

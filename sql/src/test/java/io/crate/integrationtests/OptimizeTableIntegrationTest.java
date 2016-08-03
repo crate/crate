@@ -27,7 +27,6 @@ import io.crate.executor.TaskResult;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
@@ -35,9 +34,6 @@ import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();

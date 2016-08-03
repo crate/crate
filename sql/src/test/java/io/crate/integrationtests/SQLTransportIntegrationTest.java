@@ -52,6 +52,7 @@ import io.crate.plugin.SQLPlugin;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.GroovyTestSanitizer;
 import io.crate.testing.SQLTransportExecutor;
+import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.Client;
@@ -75,6 +76,8 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.After;
+import org.junit.Rule;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -90,6 +93,9 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     static {
         GroovyTestSanitizer.isGroovySanitized();
     }
@@ -99,6 +105,11 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return pluginList(BlobPlugin.class, SQLPlugin.class);
+    }
+
+    @Override
+    protected Collection<Class<? extends Plugin>> transportClientPlugins() {
+        return pluginList(TestSQLPlugin.class);
     }
 
     protected float responseDuration;
@@ -118,11 +129,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     @After
     public void resetPageSize() throws Exception {
         Paging.PAGE_SIZE = ORIGINAL_PAGE_SIZE;
-    }
-
-    @Override
-    protected double getPerTestTransportClientRatio() {
-        return 0.0d;
     }
 
     public SQLTransportIntegrationTest(SQLTransportExecutor sqlExecutor) {
@@ -460,5 +466,22 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     protected String restSQLExecute(String source) throws IOException {
         return restSQLExecute(source, false);
+    }
+
+    public static class TestSQLPlugin extends Plugin {
+        @Override
+        public String name() {
+            return "test-sql-plugin";
+        }
+
+        @Override
+        public String description() {
+            return "test-sql-plugin";
+        }
+
+        public void onModule(ActionModule actionModule) {
+            actionModule.registerAction(SQLAction.INSTANCE, TransportSQLAction.class);
+            actionModule.registerAction(SQLBulkAction.INSTANCE, TransportSQLBulkAction.class);
+        }
     }
 }

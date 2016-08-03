@@ -29,7 +29,6 @@ import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.BufferedWriter;
@@ -59,10 +58,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
 
     @Test
     public void testCopyFromFile() throws Exception {

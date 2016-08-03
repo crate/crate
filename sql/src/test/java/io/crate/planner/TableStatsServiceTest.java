@@ -105,10 +105,10 @@ public class TableStatsServiceTest extends CrateUnitTest  {
         final AtomicInteger numRequests = new AtomicInteger(0);
         final TransportSQLAction transportSQLAction = getTransportSQLAction(numRequests);
 
-        ClusterService clusterService = mock(ClusterService.class);
+        final ClusterService clusterService = mock(ClusterService.class);
         when(clusterService.localNode()).thenReturn(mock(DiscoveryNode.class));
 
-        TableStatsService statsService = new TableStatsService(Settings.EMPTY,
+        final TableStatsService statsService = new TableStatsService(Settings.EMPTY,
                                                                threadPool,
                                                                clusterService,
                                                                TimeValue.timeValueMillis(100),
@@ -119,8 +119,16 @@ public class TableStatsServiceTest extends CrateUnitTest  {
             }
         });
 
-        assertThat(statsService.numDocs(new TableIdent("foo", "bar")), is(2L)); // first call triggers request
-        assertThat(statsService.numDocs(new TableIdent("foo", "bar")), is(2L)); // second call hits cache
+        assertBusy(new Runnable() {
+                       @Override
+                       public void run() {
+                           // first call triggers request
+                           assertThat(statsService.numDocs(new TableIdent("foo", "bar")), is(2L));
+                           // second call hits cache
+                           assertThat(statsService.numDocs(new TableIdent("foo", "bar")), is(2L));
+                       }
+                   });
+
         int slept = 0;
         while (numRequests.get() < 2 && slept < 1000) {
             Thread.sleep(50);

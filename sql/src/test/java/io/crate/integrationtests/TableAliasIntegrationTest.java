@@ -26,9 +26,7 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResp
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Locale;
 
@@ -36,9 +34,6 @@ import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
 public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private String tableAliasSetup() throws Exception {
         String tableName = "mytable";
@@ -241,7 +236,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(t.alias(), is("t"));
 
         execute("select partitioned_by from information_schema.tables where table_name = 't'");
-        assertThat(((String[]) response.rows()[0][0])[0], is("p"));
+        assertThat((String) ((Object[]) response.rows()[0][0])[0], is("p"));
     }
 
 }

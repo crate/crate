@@ -25,17 +25,12 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.operation.Paging;
 import io.crate.testing.TestingHelpers;
 import org.hamcrest.core.Is;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testCrateSearchServiceSupportsOrderByOnFunctionWithBooleanReturnType() throws Exception {

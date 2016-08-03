@@ -30,12 +30,11 @@ import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsReques
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 
@@ -43,15 +42,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(randomDynamicTemplates = false)
 public class DDLIntegrationTest extends SQLTransportIntegrationTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
 
     @Test
     public void testCreateTable() throws Exception {
@@ -405,7 +401,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "where table_name = 't' and schema_name = 'doc' and constraint_type = 'PRIMARY_KEY'");
 
         assertThat(response.rowCount(), is(1L));
-        assertThat((String[]) response.rows()[0][0], equalTo(new String[]{"name", "id"}));
+        assertThat((Object[]) response.rows()[0][0], arrayContaining(new Object[]{"name", "id"}));
     }
 
     @Test
@@ -451,7 +447,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testAlterTableAddObjectColumnToExistingObject() throws Exception {
+    public void testAlterTableAddObjectColumnToExistingObject() {
         execute("create table t (o object as (x string)) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
@@ -459,7 +455,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("alter table t add o['y'] int");
         try {
             execute("alter table t add o object as (z string)");
-            assertTrue("did not fail for existing column o", false);
+            fail("did not fail for existing column o");
         } catch (SQLActionException e) {
             // column o exists already
             assertThat(e.getMessage(), containsString("The table doc.t already has a column named o"));

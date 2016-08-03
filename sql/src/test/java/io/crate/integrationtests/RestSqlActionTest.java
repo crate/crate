@@ -26,10 +26,12 @@ import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 
+@ESIntegTestCase.ClusterScope(transportClientRatio = 0)
 public class RestSqlActionTest extends SQLTransportIntegrationTest {
 
     @Before
@@ -220,8 +222,10 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
                 "}", json, true);
     }
 
-    @Test(expected = SQLActionException.class)
+    @Test
     public void testSqlRequestWithWrongSchema() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("TableUnknownException: Table 'doc.foo2' unknown");
         restSQLExecute("{\"stmt\": \"create table foo2 (id string)\"}", false, "bar2");
         ensureYellow();
 
