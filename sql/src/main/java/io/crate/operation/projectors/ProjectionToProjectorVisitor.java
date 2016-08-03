@@ -30,6 +30,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.StmtCtx;
 import io.crate.metadata.expressions.WritableExpression;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
@@ -204,14 +205,14 @@ public class ProjectionToProjectorVisitor
                 inputs.add(symbolVisitor.process(symbol, symbolContext));
             }
         }
-        Map<ColumnIdent, Object> overwrites = symbolMapToObject(projection.overwrites(), symbolContext);
+        Map<ColumnIdent, Object> overwrites = symbolMapToObject(projection.overwrites(), symbolContext, context.stmtCtx);
 
-        projection = projection.normalize(normalizer);
+        projection = projection.normalize(normalizer, context.stmtCtx);
         String uri = ValueSymbolVisitor.STRING.process(projection.uri());
         assert uri != null : "URI must not be null";
 
         StringBuilder sb = new StringBuilder(uri);
-        Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME);
+        Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME, context.stmtCtx);
         assert resolvedFileName instanceof Literal;
         assert resolvedFileName.valueType() == StringType.INSTANCE;
         String fileName = ValueSymbolVisitor.STRING.process(resolvedFileName);
@@ -236,15 +237,16 @@ public class ProjectionToProjectorVisitor
         );
     }
 
-    protected Map<ColumnIdent, Object> symbolMapToObject(Map<ColumnIdent, Symbol> symbolMap,
-                                                         ImplementationSymbolVisitor.Context symbolContext) {
+    private Map<ColumnIdent, Object> symbolMapToObject(Map<ColumnIdent, Symbol> symbolMap,
+                                                       ImplementationSymbolVisitor.Context symbolContext,
+                                                       StmtCtx stmtCtx) {
         Map<ColumnIdent, Object> objectMap = new HashMap<>(symbolMap.size());
         for (Map.Entry<ColumnIdent, Symbol> entry : symbolMap.entrySet()) {
             Symbol symbol = entry.getValue();
             assert symbol != null;
             objectMap.put(
-                    entry.getKey(),
-                    symbolVisitor.process(normalizer.normalize(symbol), symbolContext).value()
+                entry.getKey(),
+                symbolVisitor.process(normalizer.normalize(symbol, stmtCtx), symbolContext).value()
             );
         }
         return objectMap;
@@ -441,6 +443,7 @@ public class ProjectionToProjectorVisitor
 
         private final RamAccountingContext ramAccountingContext;
         private final UUID jobId;
+        private final StmtCtx stmtCtx = new StmtCtx();
 
         public Context(RamAccountingContext ramAccountingContext, UUID jobId) {
             this.ramAccountingContext = ramAccountingContext;

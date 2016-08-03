@@ -52,6 +52,8 @@ import static org.hamcrest.core.Is.is;
 @SuppressWarnings("unchecked")
 public class EqualityExtractorTest extends BaseAnalyzerTest {
 
+    StmtCtx stmtCtx = new StmtCtx();
+
     @Override
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
@@ -63,8 +65,9 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
         return modules;
     }
 
+
     private List<List<Symbol>> analyzeParentX(Symbol query) {
-        return getExtractor().extractParentMatches(ImmutableList.of(Ref("x").ident().columnIdent()), query);
+        return getExtractor().extractParentMatches(ImmutableList.of(Ref("x").ident().columnIdent()), query, stmtCtx);
 
     }
 
@@ -79,7 +82,7 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
 
     private List<List<Symbol>> analyzeExact(Symbol query, List<ColumnIdent> cols) {
         EqualityExtractor ee = getExtractor();
-        return ee.extractExactMatches(cols, query);
+        return ee.extractExactMatches(cols, query, stmtCtx);
     }
 
     private EqualityExtractor getExtractor() {

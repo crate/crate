@@ -95,7 +95,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
 
         assertThat(impl, Matchers.notNullValue());
 
-        Symbol normalized = impl.normalizeSymbol(function);
+        Symbol normalized = impl.normalizeSymbol(function, new StmtCtx());
         assertThat(normalized, expectedSymbol);
 
         if (normalized instanceof Input && allArgsAreInputs(function.arguments())) {
@@ -181,6 +181,6 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         }
         FunctionImplementation<Function> function = getFunction(functionName, argTypes);
         return function.normalizeSymbol(new Function(function.info(),
-                Arrays.asList(args)));
+                Arrays.asList(args)), new StmtCtx());
     }
 }

@@ -22,14 +22,17 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.metadata.StmtCtx;
 
 public class Analysis {
 
     private final ParameterContext parameterContext;
+    private final StmtCtx stmtCtx;
     private AnalyzedStatement analyzedStatement;
     private AnalyzedRelation rootRelation;
 
     public Analysis(ParameterContext parameterContext) {
+        this.stmtCtx = new StmtCtx();
         this.parameterContext = parameterContext;
     }
 
@@ -51,5 +54,9 @@ public class Analysis {
 
     public AnalyzedRelation rootRelation(){
         return rootRelation;
+    }
+
+    public StmtCtx statementContext() {
+        return stmtCtx;
     }
 }

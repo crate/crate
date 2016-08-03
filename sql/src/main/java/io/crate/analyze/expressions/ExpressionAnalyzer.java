@@ -38,10 +38,7 @@ import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
-import io.crate.metadata.RowGranularity;
+import io.crate.metadata.*;
 import io.crate.metadata.table.Operation;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.*;
@@ -131,8 +128,8 @@ public class ExpressionAnalyzer {
     /**
      * Use to normalize a symbol. (For example to normalize a function that contains only literals to a literal)
      */
-    public Symbol normalize(Symbol symbol) {
-        return normalizer.normalize(symbol);
+    public Symbol normalize(Symbol symbol, StmtCtx context) {
+        return normalizer.normalize(symbol, context);
     }
 
     /**
@@ -153,7 +150,7 @@ public class ExpressionAnalyzer {
 
     public WhereClause generateWhereClause(Optional<Expression> whereExpression, ExpressionAnalysisContext context) {
         if (whereExpression.isPresent()) {
-            return new WhereClause(normalize(convert(whereExpression.get(), context)), null, null);
+            return new WhereClause(normalize(convert(whereExpression.get(), context), context.statementContext()), null, null);
         } else {
             return WhereClause.MATCH_ALL;
         }
@@ -280,7 +277,7 @@ public class ExpressionAnalyzer {
             List<Symbol> args = Lists.<Symbol>newArrayList(
                     Literal.newLiteral(node.getPrecision().or(CurrentTimestampFunction.DEFAULT_PRECISION))
             );
-            return context.allocateCurrentTime(node, args, normalizer);
+            return context.allocateFunction(CurrentTimestampFunction.INFO, args);
         }
 
         @Override
@@ -349,7 +346,7 @@ public class ExpressionAnalyzer {
 
             boolean allLiterals = true;
             for (Expression expression : expressions) {
-                Symbol symbol = normalize(process(expression, context));
+                Symbol symbol = normalize(process(expression, context), context.statementContext());
                 allLiterals = allLiterals & symbol.symbolType().isValueSymbol();
                 symbols.add(symbol);
             }
@@ -478,8 +475,8 @@ public class ExpressionAnalyzer {
                 throw new UnsupportedFeatureException("ALL is not supported");
             }
 
-            Symbol arraySymbol = normalize(process(node.getRight(), context));
-            Symbol leftSymbol = normalize(process(node.getLeft(), context));
+            Symbol arraySymbol = normalize(process(node.getRight(), context), context.statementContext());
+            Symbol leftSymbol = normalize(process(node.getLeft(), context), context.statementContext());
             DataType rightType = arraySymbol.valueType();
 
             if (!DataTypes.isCollectionType(rightType)) {
@@ -510,8 +507,8 @@ public class ExpressionAnalyzer {
             if (node.getEscape() != null) {
                 throw new UnsupportedOperationException("ESCAPE is not supported.");
             }
-            Symbol rightSymbol = normalize(process(node.getValue(), context));
-            Symbol leftSymbol = normalize(process(node.getPattern(), context));
+            Symbol rightSymbol = normalize(process(node.getValue(), context), context.statementContext());
+            Symbol leftSymbol = normalize(process(node.getPattern(), context), context.statementContext());
             DataType rightType = rightSymbol.valueType();
 
             if (!DataTypes.isCollectionType(rightType)) {
@@ -537,7 +534,9 @@ public class ExpressionAnalyzer {
                 return Literal.NULL;
             }
             expression = castIfNeededOrFail(expression, DataTypes.STRING);
-            Symbol pattern = normalize(castIfNeededOrFail(process(node.getPattern(), context), DataTypes.STRING));
+            Symbol pattern = normalize(
+                castIfNeededOrFail(process(node.getPattern(), context), DataTypes.STRING),
+                context.statementContext());
             assert pattern != null : "pattern must not be null";
             if (!pattern.symbolType().isValueSymbol()) {
                 throw new UnsupportedOperationException("<expression> LIKE <pattern>: pattern must not be a reference.");

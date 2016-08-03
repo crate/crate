@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
@@ -80,7 +81,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
         Symbol symbol = function.normalizeSymbol(new Function(function.info(), Arrays.<Symbol>asList(
                 Literal.newLiteral(new Integer[]{10, 20}, arrayOfIntegerType),
                 Literal.newLiteral(new Integer[]{10, 30}, arrayOfIntegerType)
-        )));
+        )), new StmtCtx());
 
         assertThat(symbol, isLiteral(new Integer[]{10, 20, 30}, arrayOfIntegerType));
     }
@@ -93,7 +94,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
                 TestingHelpers.createReference("foo", arrayOfIntegerType),
                 Literal.newLiteral(new Integer[]{10, 30}, arrayOfIntegerType)
         ));
-        Function symbol = (Function) function.normalizeSymbol(functionSymbol);
+        Function symbol = (Function) function.normalizeSymbol(functionSymbol, new StmtCtx());
         assertThat(symbol, Matchers.sameInstance(functionSymbol));
     }
 

@@ -97,6 +97,6 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
     }
 
     protected Planner.Context newPlannerContext() {
-        return new Planner.Context(clusterService(), UUID.randomUUID(), null, 0, 0);
+        return new Planner.Context(clusterService(), UUID.randomUUID(), null, new StmtCtx(), 0, 0);
     }
 }

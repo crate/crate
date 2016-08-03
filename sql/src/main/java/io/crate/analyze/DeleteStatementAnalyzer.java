@@ -50,7 +50,8 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             @Override
             public Void visitDelete(Delete node, InnerAnalysisContext context) {
                 WhereClause whereClause = context.whereClauseAnalyzer.analyze(
-                        context.expressionAnalyzer.generateWhereClause(node.getWhere(), context.expressionAnalysisContext));
+                    context.expressionAnalyzer.generateWhereClause(node.getWhere(), context.expressionAnalysisContext),
+                    context.expressionAnalysisContext.statementContext());
                 if ( !whereClause.docKeys().isPresent() &&
                      Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION)) {
                     throw VERSION_SEARCH_EX;
@@ -93,11 +94,11 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     }
 
     @Override
-    public AnalyzedStatement visitDelete(Delete node, Analysis context) {
+    public AnalyzedStatement visitDelete(Delete node, Analysis analysis) {
         int numNested = 1;
 
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
-                context.parameterContext(), analysisMetaData, Operation.DELETE);
+                analysis.parameterContext(), analysis.statementContext(), analysisMetaData, Operation.DELETE);
         RelationAnalysisContext relationAnalysisContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.getRelation(), statementAnalysisContext);
 
@@ -105,19 +106,19 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);
         InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
-                new ExpressionAnalyzer(analysisMetaData, context.parameterContext(),
+                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(),
                     relationAnalysisContext.fieldProvider(),
                     docTableRelation),
-                new ExpressionAnalysisContext(),
+                new ExpressionAnalysisContext(analysis.statementContext()),
                 deleteAnalyzedStatement,
                 new WhereClauseAnalyzer(analysisMetaData, deleteAnalyzedStatement.analyzedRelation())
         );
 
-        if (context.parameterContext().hasBulkParams()) {
-            numNested = context.parameterContext().bulkParameters.length;
+        if (analysis.parameterContext().hasBulkParams()) {
+            numNested = analysis.parameterContext().bulkParameters.length;
         }
         for (int i = 0; i < numNested; i++) {
-            context.parameterContext().setBulkIdx(i);
+            analysis.parameterContext().setBulkIdx(i);
             INNER_ANALYZER.process(node, innerAnalysisContext);
         }
 

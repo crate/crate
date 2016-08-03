@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.executor.TaskResult;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.StmtCtx;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.QueryResultRowDownstream;
 import io.crate.planner.Plan;
@@ -93,6 +94,6 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
     }
 
     protected Planner.Context newPlannerContext() {
-        return new Planner.Context(clusterService(), UUID.randomUUID(), null, 0, 0);
+        return new Planner.Context(clusterService(), UUID.randomUUID(), null, new StmtCtx(), 0, 0);
     }
 }

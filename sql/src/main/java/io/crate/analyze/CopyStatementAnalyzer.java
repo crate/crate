@@ -96,7 +96,8 @@ public class CopyStatementAnalyzer {
                     analysis.parameterContext().parameters());
         }
 
-        Context context = new Context(analysisMetaData, analysis.parameterContext(), tableRelation, Operation.INSERT);
+        Context context = new Context(
+            analysisMetaData, analysis.parameterContext(), analysis.statementContext(), tableRelation, Operation.INSERT);
         Predicate<DiscoveryNode> nodeFilters = Predicates.alwaysTrue();
         Settings settings = Settings.EMPTY;
         if (node.genericProperties().isPresent()) {
@@ -144,7 +145,8 @@ public class CopyStatementAnalyzer {
         Operation.blockedRaiseException(tableInfo, Operation.READ);
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 
-        Context context = new Context(analysisMetaData, analysis.parameterContext(), tableRelation, Operation.READ);
+        Context context = new Context(
+            analysisMetaData, analysis.parameterContext(), analysis.statementContext(), tableRelation, Operation.READ);
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
                 node.genericProperties(), analysis.parameterContext(), SETTINGS_APPLIERS).build();
 
@@ -157,7 +159,7 @@ public class CopyStatementAnalyzer {
         List<Symbol> outputs = new ArrayList<>();
         QuerySpec querySpec = new QuerySpec();
 
-        WhereClause whereClause = createWhereClause(node, tableRelation, context, partitions);
+        WhereClause whereClause = createWhereClause(node, tableRelation, context, partitions, analysis.statementContext());
         querySpec.where(whereClause);
 
         Map<ColumnIdent, Symbol> overwrites = null;
@@ -225,12 +227,17 @@ public class CopyStatementAnalyzer {
         return partitions;
     }
 
-    private WhereClause createWhereClause(CopyTo node, DocTableRelation tableRelation, Context context, List<String> partitions) {
+    private WhereClause createWhereClause(CopyTo node,
+                                          DocTableRelation tableRelation,
+                                          Context context,
+                                          List<String> partitions,
+                                          StmtCtx stmtCtx) {
         WhereClause whereClause = null;
         if (node.whereClause().isPresent()) {
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
             whereClause = whereClauseAnalyzer.analyze(
-                    context.expressionAnalyzer.generateWhereClause(node.whereClause(), context.expressionAnalysisContext));
+                context.expressionAnalyzer.generateWhereClause(node.whereClause(), context.expressionAnalysisContext),
+                stmtCtx);
         }
 
         if (whereClause == null) {
@@ -291,12 +298,15 @@ public class CopyStatementAnalyzer {
 
         private final ExpressionAnalyzer expressionAnalyzer;
         private final ExpressionAnalysisContext expressionAnalysisContext;
+        private final StmtCtx stmtCtx;
 
         public Context(AnalysisMetaData analysisMetaData,
                        ParameterContext parameterContext,
+                       StmtCtx stmtCtx,
                        DocTableRelation tableRelation,
                        Operation operation) {
-            expressionAnalysisContext = new ExpressionAnalysisContext();
+            expressionAnalysisContext = new ExpressionAnalysisContext(stmtCtx);
+            this.stmtCtx = stmtCtx;
             expressionAnalyzer = new ExpressionAnalyzer(
                     analysisMetaData,
                     parameterContext,
@@ -306,7 +316,8 @@ public class CopyStatementAnalyzer {
         }
 
         public Symbol processExpression(Expression expression) {
-            return expressionAnalyzer.normalize(expressionAnalyzer.convert(expression, expressionAnalysisContext));
+            return expressionAnalyzer.normalize(
+                expressionAnalyzer.convert(expression, expressionAnalysisContext), stmtCtx);
         }
     }
 }

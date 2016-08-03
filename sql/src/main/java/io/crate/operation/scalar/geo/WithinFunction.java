@@ -33,6 +33,7 @@ import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
@@ -134,7 +135,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol) {
+    public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
         Symbol left = symbol.arguments().get(0);
         Symbol right = symbol.arguments().get(1);
 

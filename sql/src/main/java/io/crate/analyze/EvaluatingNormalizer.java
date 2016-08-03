@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.operation.reference.ReferenceResolver;
 import org.elasticsearch.common.logging.ESLogger;
@@ -71,9 +72,11 @@ public class EvaluatingNormalizer {
      * @param fieldResolver optional field resolver to resolve fields
      * @param inPlace defines if symbols like functions can be changed inplace instead of being copied when changed
      */
-    public EvaluatingNormalizer(
-            Functions functions, RowGranularity granularity, ReferenceResolver<? extends Input<?>> referenceResolver,
-            @Nullable FieldResolver fieldResolver, boolean inPlace) {
+    public EvaluatingNormalizer(Functions functions,
+                                RowGranularity granularity,
+                                ReferenceResolver<? extends Input<?>> referenceResolver,
+                                @Nullable FieldResolver fieldResolver,
+                                boolean inPlace) {
         this.functions = functions;
         this.granularity = granularity;
         this.referenceResolver = referenceResolver;
@@ -85,19 +88,22 @@ public class EvaluatingNormalizer {
         }
     }
 
-    public EvaluatingNormalizer(
-            Functions functions, RowGranularity granularity, ReferenceResolver<? extends Input<?>> referenceResolver) {
+    public EvaluatingNormalizer(Functions functions,
+                                RowGranularity granularity,
+                                ReferenceResolver<? extends Input<?>> referenceResolver) {
         this(functions, granularity, referenceResolver, null, false);
     }
 
-    public EvaluatingNormalizer(AnalysisMetaData analysisMetaData, FieldResolver fieldResolver, boolean inPlace) {
+    public EvaluatingNormalizer(AnalysisMetaData analysisMetaData,
+                                FieldResolver fieldResolver,
+                                boolean inPlace) {
         this(analysisMetaData.functions(), RowGranularity.CLUSTER,
                 analysisMetaData.referenceResolver(), fieldResolver, inPlace);
     }
 
-    private abstract class BaseVisitor extends SymbolVisitor<Void, Symbol> {
+    private abstract class BaseVisitor extends SymbolVisitor<StmtCtx, Symbol> {
         @Override
-        public Symbol visitField(Field field, Void context) {
+        public Symbol visitField(Field field, StmtCtx context) {
             if (fieldResolver != null) {
                 Symbol resolved = fieldResolver.resolveField(field);
                 if (resolved != null) {
@@ -108,7 +114,7 @@ public class EvaluatingNormalizer {
         }
 
         @Override
-        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Void Context) {
+        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, StmtCtx context) {
             if (fieldResolver != null) {
                 // Once the fields can be resolved, rewrite matchPredicate to function
                 Map<Field, Double> fieldBoostMap = matchPredicate.identBoostMap();
@@ -136,10 +142,10 @@ public class EvaluatingNormalizer {
 
 
         @SuppressWarnings("unchecked")
-        protected Symbol normalizeFunctionSymbol(Function function) {
+        protected Symbol normalizeFunctionSymbol(Function function, StmtCtx context) {
             FunctionImplementation impl = functions.get(function.info().ident());
             if (impl != null) {
-                return impl.normalizeSymbol(function);
+                return impl.normalizeSymbol(function, context);
             }
             if (logger.isTraceEnabled()) {
                 logger.trace(SymbolFormatter.format("No implementation found for function %s", function));
@@ -148,7 +154,7 @@ public class EvaluatingNormalizer {
         }
 
         @Override
-        public Symbol visitReference(Reference symbol, Void context) {
+        public Symbol visitReference(Reference symbol, StmtCtx context) {
             if (symbol.info().granularity().ordinal() > granularity.ordinal()) {
                 return symbol;
             }
@@ -165,27 +171,27 @@ public class EvaluatingNormalizer {
         }
 
         @Override
-        protected Symbol visitSymbol(Symbol symbol, Void context) {
+        protected Symbol visitSymbol(Symbol symbol, StmtCtx context) {
             return symbol;
         }
     }
 
     private class CopyingVisitor extends BaseVisitor {
         @Override
-        public Symbol visitFunction(Function function, Void context) {
-            List<Symbol> newArgs = normalize(function.arguments());
+        public Symbol visitFunction(Function function, StmtCtx context) {
+            List<Symbol> newArgs = normalize(function.arguments(), context);
             if (newArgs != function.arguments()) {
                 function = new Function(function.info(), newArgs);
             }
-            return normalizeFunctionSymbol(function);
+            return normalizeFunctionSymbol(function, context);
         }
     }
 
     private class InPlaceVisitor extends BaseVisitor {
         @Override
-        public Symbol visitFunction(Function function, Void context) {
-            normalizeInplace(function.arguments());
-            return normalizeFunctionSymbol(function);
+        public Symbol visitFunction(Function function, StmtCtx context) {
+            normalizeInplace(function.arguments(), context);
+            return normalizeFunctionSymbol(function, context);
         }
     }
 
@@ -195,13 +201,13 @@ public class EvaluatingNormalizer {
      * @param symbols the list to be normalized
      * @return a list with normalized symbols
      */
-    public List<Symbol> normalize(List<Symbol> symbols) {
+    public List<Symbol> normalize(List<Symbol> symbols, StmtCtx context) {
         if (symbols.size() > 0) {
             boolean changed = false;
             Symbol[] newArgs = new Symbol[symbols.size()];
             int i = 0;
             for (Symbol symbol : symbols) {
-                Symbol newArg = normalize(symbol);
+                Symbol newArg = normalize(symbol, context);
                 changed = changed || newArg != symbol;
                 newArgs[i++] = newArg;
             }
@@ -217,19 +223,19 @@ public class EvaluatingNormalizer {
      *
      * @param symbols the list to be normalized
      */
-    public void normalizeInplace(@Nullable List<Symbol> symbols) {
+    public void normalizeInplace(@Nullable List<Symbol> symbols, StmtCtx context) {
         if (symbols != null) {
             for (int i = 0; i < symbols.size(); i++) {
-                symbols.set(i, normalize(symbols.get(i)));
+                symbols.set(i, normalize(symbols.get(i), context));
             }
         }
     }
 
-    public Symbol normalize(@Nullable Symbol symbol) {
+    public Symbol normalize(@Nullable Symbol symbol, StmtCtx context) {
         if (symbol == null) {
             return null;
         }
-        return visitor.process(symbol, null);
+        return visitor.process(symbol, context);
     }
 
 }

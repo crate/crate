@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
@@ -53,7 +54,7 @@ public class AbsFunctionTest extends AbstractScalarFunctionsTest {
     private Symbol normalize(Number number, DataType type) {
         AbsFunction function = getFunction(type);
         return function.normalizeSymbol(new Function(function.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(type, number))));
+                Arrays.<Symbol>asList(Literal.newLiteral(type, number))), new StmtCtx());
     }
 
     @Test
@@ -114,7 +115,7 @@ public class AbsFunctionTest extends AbstractScalarFunctionsTest {
         Reference height = createReference("height", DataTypes.DOUBLE);
         AbsFunction abs = getFunction(DataTypes.DOUBLE);
         Function function = new Function(abs.info(), Arrays.<Symbol>asList(height));
-        Function normalized = (Function) abs.normalizeSymbol(function);
+        Function normalized = (Function) abs.normalizeSymbol(function, new StmtCtx());
         assertThat(normalized, Matchers.sameInstance(function));
     }
 }

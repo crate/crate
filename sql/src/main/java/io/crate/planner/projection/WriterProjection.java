@@ -226,8 +226,8 @@ public class WriterProjection extends Projection {
                 '}';
     }
 
-    public WriterProjection normalize(EvaluatingNormalizer normalizer) {
-        Symbol nUri = normalizer.normalize(uri);
+    public WriterProjection normalize(EvaluatingNormalizer normalizer, StmtCtx stmtCtx) {
+        Symbol nUri = normalizer.normalize(uri, stmtCtx);
         if (uri != nUri){
             WriterProjection p = new WriterProjection();
             p.uri = nUri;

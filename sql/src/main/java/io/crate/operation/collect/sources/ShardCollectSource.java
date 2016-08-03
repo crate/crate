@@ -118,7 +118,7 @@ public class ShardCollectSource implements CollectSource {
         EvaluatingNormalizer nodeNormalizer = new EvaluatingNormalizer(functions,
                 RowGranularity.NODE,
                 referenceResolver);
-        RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer);
+        RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer, null);
 
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
                 clusterService,

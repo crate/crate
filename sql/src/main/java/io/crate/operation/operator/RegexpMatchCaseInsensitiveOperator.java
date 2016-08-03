@@ -25,6 +25,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -64,7 +65,7 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<BytesRef> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol) {
+    public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
         assert (symbol != null);
         assert symbol.arguments().size() == 2;
 

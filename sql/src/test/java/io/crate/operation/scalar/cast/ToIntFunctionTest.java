@@ -27,12 +27,11 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ConversionException;
 import io.crate.metadata.FunctionIdent;
-import io.crate.operation.Input;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.codehaus.groovy.ast.expr.CastExpression;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -44,6 +43,8 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
 
     private final String functionName = CastFunctionResolver.FunctionNames.TO_INTEGER;
 
+    private final StmtCtx stmtCtx = new StmtCtx();
+
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
@@ -51,13 +52,13 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
         ToPrimitiveFunction castStringToInteger = getFunction(functionName, DataTypes.STRING);
 
         Function function = new Function(castStringToInteger.info(), Collections.<Symbol>singletonList(Literal.newLiteral("123")));
-        Symbol result = castStringToInteger.normalizeSymbol(function);
+        Symbol result = castStringToInteger.normalizeSymbol(function, stmtCtx);
         assertThat(result, isLiteral(123));
 
         ToPrimitiveFunction castFloatToInteger = getFunction(functionName, DataTypes.FLOAT);
 
         function = new Function(castFloatToInteger.info(), Collections.<Symbol>singletonList(Literal.newLiteral(12.5f)));
-        result = castStringToInteger.normalizeSymbol(function);
+        result = castStringToInteger.normalizeSymbol(function, stmtCtx);
         assertThat(result, isLiteral(12));
     }
 
@@ -74,7 +75,7 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expectMessage("cannot cast 'hello' to type integer");
         ToPrimitiveFunction castStringToInteger = getFunction(functionName, DataTypes.STRING);
         Function function = new Function(castStringToInteger.info(), Collections.<Symbol>singletonList(Literal.newLiteral("hello")));
-        castStringToInteger.normalizeSymbol(function);
+        castStringToInteger.normalizeSymbol(function, stmtCtx);
     }
 
     @Test

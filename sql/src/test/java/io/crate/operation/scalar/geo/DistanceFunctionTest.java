@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.ArrayType;
@@ -62,7 +63,7 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @SuppressWarnings("unchecked")
     private Symbol normalize(List<? extends Symbol> args) {
         DistanceFunction distanceFunction = functionFromArgs(args);
-        return distanceFunction.normalizeSymbol(new Function(distanceFunction.info(), (List<Symbol>)args));
+        return distanceFunction.normalizeSymbol(new Function(distanceFunction.info(), (List<Symbol>)args), new StmtCtx());
     }
 
     @Test
@@ -180,7 +181,7 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
                 createReference("foo2", DataTypes.GEO_POINT));
         DistanceFunction distanceFunction = functionFromArgs(args);
         Function functionSymbol = new Function(distanceFunction.info(), args);
-        Function normalizedFunction = (Function)distanceFunction.normalizeSymbol(functionSymbol);
+        Function normalizedFunction = (Function)distanceFunction.normalizeSymbol(functionSymbol, new StmtCtx());
         assertThat(functionSymbol, Matchers.sameInstance(normalizedFunction));
     }
 

@@ -36,6 +36,7 @@ import io.crate.exceptions.AmbiguousOrderByException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Path;
 import io.crate.metadata.ReplacingSymbolVisitor;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.operator.AndOperator;
 import io.crate.sql.tree.QualifiedName;
 
@@ -54,8 +55,10 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
     private RelationNormalizer() {
     }
 
-    public static AnalyzedRelation normalize(AnalyzedRelation relation, AnalysisMetaData analysisMetaData) {
-        return INSTANCE.process(relation, new Context(analysisMetaData, relation.fields()));
+    public static AnalyzedRelation normalize(AnalyzedRelation relation,
+                                             AnalysisMetaData analysisMetaData,
+                                             StmtCtx stmtCtx) {
+        return INSTANCE.process(relation, new Context(analysisMetaData, relation.fields(), stmtCtx));
     }
 
     @Override
@@ -81,7 +84,7 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
 
         QuerySpec querySpec = mergeAndReplaceFields(table, context.querySpec);
         QueriedTable relation = new QueriedTable(table.tableRelation(), context.paths(), querySpec);
-        relation.normalize(context.analysisMetaData);
+        relation.normalize(context.analysisMetaData, context.stmtCtx);
         return relation;
     }
 
@@ -91,9 +94,9 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         if (context.querySpec != null) {
             QuerySpec querySpec = mergeAndReplaceFields(table, context.querySpec);
             relation = new QueriedDocTable(table.tableRelation(), context.paths(), querySpec);
-            relation.normalize(context.analysisMetaData);
+            relation.normalize(context.analysisMetaData, context.stmtCtx);
         }
-        relation.analyzeWhereClause(context.analysisMetaData);
+        relation.analyzeWhereClause(context.analysisMetaData, context.stmtCtx);
         return relation;
     }
 
@@ -245,12 +248,14 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
     static class Context {
         private final AnalysisMetaData analysisMetaData;
         private final List<Field> fields;
+        private final StmtCtx stmtCtx;
 
         private QuerySpec querySpec;
 
-        public Context(AnalysisMetaData analysisMetaData, List<Field> fields) {
+        public Context(AnalysisMetaData analysisMetaData, List<Field> fields, StmtCtx stmtCtx) {
             this.analysisMetaData = analysisMetaData;
             this.fields = fields;
+            this.stmtCtx = stmtCtx;
         }
 
         public Collection<? extends Path> paths() {

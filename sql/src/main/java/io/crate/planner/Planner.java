@@ -35,6 +35,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
+import io.crate.metadata.StmtCtx;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -82,6 +83,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private final ClusterService clusterService;
         private final UUID jobId;
         private final ConsumingPlanner consumingPlanner;
+        private final StmtCtx stmtCtx;
         private final int softLimit;
         private final int fetchSize;
         private int executionPhaseId = 0;
@@ -92,11 +94,13 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         public Context(ClusterService clusterService,
                        UUID jobId,
                        ConsumingPlanner consumingPlanner,
+                       StmtCtx stmtCtx,
                        int softLimit,
                        int fetchSize) {
             this.clusterService = clusterService;
             this.jobId = jobId;
             this.consumingPlanner = consumingPlanner;
+            this.stmtCtx = stmtCtx;
             this.softLimit = softLimit;
             this.fetchSize = fetchSize;
         }
@@ -127,6 +131,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         public int fetchSize() {
             return fetchSize;
+        }
+
+        public StmtCtx statementContext() {
+            return stmtCtx;
         }
 
         public static class Limits {
@@ -374,7 +382,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      */
     public Plan plan(Analysis analysis, UUID jobId, int softLimit, int fetchSize) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        return process(analyzedStatement, new Context(clusterService, jobId, consumingPlanner, softLimit, fetchSize));
+        return process(analyzedStatement, new Context(
+            clusterService, jobId, consumingPlanner, analysis.statementContext(), softLimit, fetchSize));
     }
 
     @Override

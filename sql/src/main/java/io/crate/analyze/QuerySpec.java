@@ -29,6 +29,7 @@ import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.RelationColumn;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -132,21 +133,21 @@ public class QuerySpec {
         return limit.isPresent() || offset > 0;
     }
 
-    public void normalize(EvaluatingNormalizer normalizer) {
+    public void normalize(EvaluatingNormalizer normalizer, StmtCtx context) {
         if (groupBy.isPresent()) {
-            normalizer.normalizeInplace(groupBy.get());
+            normalizer.normalizeInplace(groupBy.get(), context);
         }
         if (orderBy.isPresent()) {
-            orderBy.get().normalize(normalizer);
+            orderBy.get().normalize(normalizer, context);
         }
         if (outputs != null) {
-            normalizer.normalizeInplace(outputs);
+            normalizer.normalizeInplace(outputs, context);
         }
         if (where != null && where != WhereClause.MATCH_ALL) {
-            this.where(where.normalize(normalizer));
+            this.where(where.normalize(normalizer, context));
         }
         if (having.isPresent()) {
-            Optional.of(having.get().normalize(normalizer));
+            Optional.of(having.get().normalize(normalizer, context));
         }
     }
 

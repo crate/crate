@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
+import io.crate.metadata.StmtCtx;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -69,11 +70,11 @@ public class WhereClause extends QueryClause implements Streamable {
         super(query);
     }
 
-    public WhereClause normalize(EvaluatingNormalizer normalizer) {
+    public WhereClause normalize(EvaluatingNormalizer normalizer, StmtCtx stmtCtx) {
         if (noMatch || query == null) {
             return this;
         }
-        Symbol normalizedQuery = normalizer.normalize(query);
+        Symbol normalizedQuery = normalizer.normalize(query, stmtCtx);
         if (normalizedQuery == query) {
             return this;
         }

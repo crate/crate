@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
@@ -41,6 +42,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNull.nullValue;
 
 public class LogFunctionTest extends AbstractScalarFunctionsTest {
+
+    private StmtCtx stmtCtx = new StmtCtx();
 
     private LogFunction getFunction(String name, DataType value) {
         return (LogFunction) functions.get(new FunctionIdent(name, Arrays.asList(value)));
@@ -62,14 +65,13 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
 
     private Symbol normalize(Number value, DataType valueType, LogFunction function) {
         return function.normalizeSymbol(new Function(function.info(),
-                        Arrays.<Symbol>asList(Literal.newLiteral(valueType, value)))
-        );
+                        Arrays.<Symbol>asList(Literal.newLiteral(valueType, value))), stmtCtx);
     }
 
     private Symbol normalizeLog(Number value, DataType valueType, Number base, DataType baseType) {
         LogFunction function = getFunction(LogFunction.NAME, valueType, baseType);
         return function.normalizeSymbol(new Function(function.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(valueType, value), Literal.newLiteral(baseType, base))));
+                Arrays.<Symbol>asList(Literal.newLiteral(valueType, value), Literal.newLiteral(baseType, base))), stmtCtx);
     }
 
     private Number evaluateLog(Number value, DataType valueType) {
@@ -166,22 +168,22 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
 
         LogFunction log10 = getFunction(LogFunction.NAME, DataTypes.DOUBLE);
         Function function = new Function(log10.info(), Arrays.<Symbol>asList(dB));
-        Function normalized = (Function) log10.normalizeSymbol(function);
+        Function normalized = (Function) log10.normalizeSymbol(function, stmtCtx);
         assertThat(normalized, Matchers.sameInstance(function));
 
         LogFunction ln = getFunction(LogFunction.LnFunction.NAME, DataTypes.DOUBLE);
         function = new Function(ln.info(), Arrays.<Symbol>asList(dB));
-        normalized = (Function) ln.normalizeSymbol(function);
+        normalized = (Function) ln.normalizeSymbol(function, stmtCtx);
         assertThat(normalized, Matchers.sameInstance(function));
 
         LogFunction logBase = getFunction(LogFunction.NAME, DataTypes.DOUBLE, DataTypes.LONG);
         function = new Function(logBase.info(), Arrays.<Symbol>asList(dB, Literal.newLiteral(10L)));
-        normalized = (Function) logBase.normalizeSymbol(function);
+        normalized = (Function) logBase.normalizeSymbol(function, stmtCtx);
         assertThat(normalized, Matchers.sameInstance(function));
 
         Reference base = createReference("base", DataTypes.INTEGER);
         function = new Function(logBase.info(), Arrays.<Symbol>asList(dB, base));
-        normalized = (Function) logBase.normalizeSymbol(function);
+        normalized = (Function) logBase.normalizeSymbol(function, stmtCtx);
         assertThat(normalized, Matchers.sameInstance(function));
     }
 

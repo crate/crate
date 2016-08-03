@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
@@ -51,6 +52,8 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
     private static final ArrayType arrayOfBooleanType    = new ArrayType(DataTypes.BOOLEAN);
     private static final ArrayType arrayOfIpType         = new ArrayType(DataTypes.IP);
     private static final ArrayType arrayOfUndefinedType  = new ArrayType(DataTypes.UNDEFINED);
+
+    private final StmtCtx stmtCtx = new StmtCtx();
 
     private ArrayCatFunction getFunction(ArrayType... args) {
         List<DataType> argumentTypes = new ArrayList<>(args.length);
@@ -80,7 +83,7 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
         Symbol symbol = function.normalizeSymbol(new Function(function.info(), Arrays.<Symbol>asList(
                 Literal.newLiteral(new Integer[]{10, 20}, arrayOfIntegerType),
                 Literal.newLiteral(new Integer[]{10, 30}, arrayOfIntegerType)
-        )));
+        )), stmtCtx);
 
         assertThat(symbol, isLiteral(new Integer[]{10, 20, 10, 30}, arrayOfIntegerType));
     }
@@ -93,7 +96,7 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
                 TestingHelpers.createReference("foo", arrayOfIntegerType),
                 Literal.newLiteral(new Integer[]{10, 30}, arrayOfIntegerType)
         ));
-        Function symbol = (Function) function.normalizeSymbol(functionSymbol);
+        Function symbol = (Function) function.normalizeSymbol(functionSymbol, stmtCtx);
         assertThat(symbol, Matchers.sameInstance(functionSymbol));
     }
 

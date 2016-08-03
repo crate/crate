@@ -25,6 +25,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.operator.input.ObjectInput;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
@@ -44,6 +45,8 @@ import static org.hamcrest.Matchers.is;
 
 public class InOperatorTest extends CrateUnitTest{
 
+    private final StmtCtx stmtCtx = new StmtCtx();
+
     private static final DataType INTEGER_SET_TYPE = new SetType(DataTypes.INTEGER);
     private static final DataType STRING_SET_TYPE = new SetType(DataTypes.STRING);
 
@@ -58,7 +61,7 @@ public class InOperatorTest extends CrateUnitTest{
 
         InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
         Function function = new Function(op.info(), arguments);
-        Symbol result = op.normalizeSymbol(function);
+        Symbol result = op.normalizeSymbol(function, stmtCtx);
 
         assertThat(result, isLiteral(true));
     }
@@ -75,7 +78,7 @@ public class InOperatorTest extends CrateUnitTest{
 
         InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
         Function function = new Function(op.info(), arguments);
-        Symbol result = op.normalizeSymbol(function);
+        Symbol result = op.normalizeSymbol(function, stmtCtx);
 
         assertThat(result, isLiteral(false));
     }
@@ -91,7 +94,7 @@ public class InOperatorTest extends CrateUnitTest{
 
         InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
         Function function = new Function(op.info(), arguments);
-        Symbol result = op.normalizeSymbol(function);
+        Symbol result = op.normalizeSymbol(function, stmtCtx);
 
         assertThat(result, isLiteral(false));
     }
@@ -107,7 +110,7 @@ public class InOperatorTest extends CrateUnitTest{
 
         InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
         Function function = new Function(op.info(), arguments);
-        Symbol result = op.normalizeSymbol(function);
+        Symbol result = op.normalizeSymbol(function, stmtCtx);
 
         assertThat(result, instanceOf(Function.class));
         assertThat(((Function) result).info().ident().name(), is(InOperator.NAME));
@@ -132,7 +135,7 @@ public class InOperatorTest extends CrateUnitTest{
 
         InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
         Function function = new Function(op.info(), arguments);
-        Symbol result = op.normalizeSymbol(function);
+        Symbol result = op.normalizeSymbol(function, stmtCtx);
 
         assertThat(result, isLiteral(true));
     }
@@ -156,7 +159,7 @@ public class InOperatorTest extends CrateUnitTest{
 
         InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
         Function function = new Function(op.info(), arguments);
-        Symbol result = op.normalizeSymbol(function);
+        Symbol result = op.normalizeSymbol(function, stmtCtx);
 
         assertThat(result, isLiteral(false));
     }

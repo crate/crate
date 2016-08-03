@@ -27,10 +27,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.metadata.DynamicFunctionResolver;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
@@ -99,7 +96,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     }
 
     @Override
-    public Symbol normalizeSymbol(Function function) {
+    public Symbol normalizeSymbol(Function function, StmtCtx stmtCtx) {
         assert (function.arguments().size() <= 1);
 
         if (function.arguments().size() == 1) {

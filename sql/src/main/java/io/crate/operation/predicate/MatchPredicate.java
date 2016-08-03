@@ -29,6 +29,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.StmtCtx;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.ElasticsearchParseException;
@@ -120,7 +121,7 @@ public class MatchPredicate implements FunctionImplementation<Function> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function function) {
+    public Symbol normalizeSymbol(Function function, StmtCtx stmtCtx) {
         return function;
     }
 }

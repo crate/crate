@@ -23,6 +23,7 @@ package io.crate.operation.operator;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.StmtCtx;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -39,10 +40,10 @@ public class LikeOperatorTest extends CrateUnitTest {
                 LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
         );
         Function function = new Function(
-                op.info(), 
+                op.info(),
                 Arrays.<Symbol>asList(Literal.newLiteral(expression), Literal.newLiteral(pattern))
         );
-        return op.normalizeSymbol(function);
+        return op.normalizeSymbol(function, new StmtCtx());
     }
 
     private Boolean likeNormalize(String expression, String pattern) {

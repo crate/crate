@@ -42,17 +42,19 @@ public class IsNullPredicateTest extends CrateUnitTest {
             DataTypes.BOOLEAN
     ));
 
+    private final StmtCtx stmtCtx = new StmtCtx();
+
     @Test
     public void testNormalizeSymbolFalse() throws Exception {
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.newLiteral("a")));
-        Symbol symbol = predicate.normalizeSymbol(isNull);
+        Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
         assertThat(symbol, isLiteral(false));
     }
 
     @Test
     public void testNormalizeSymbolTrue() throws Exception {
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.NULL));
-        Symbol symbol = predicate.normalizeSymbol(isNull);
+        Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
         assertThat(symbol, isLiteral(true));
     }
 
@@ -63,7 +65,7 @@ public class IsNullPredicateTest extends CrateUnitTest {
                 RowGranularity.DOC,
                 DataTypes.STRING));
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(name_ref));
-        Symbol symbol = predicate.normalizeSymbol(isNull);
+        Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
         assertThat(symbol, instanceOf(Function.class));
     }
 
@@ -74,7 +76,7 @@ public class IsNullPredicateTest extends CrateUnitTest {
                 RowGranularity.DOC,
                 DataTypes.UNDEFINED));
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(name_ref));
-        Symbol symbol = predicate.normalizeSymbol(isNull);
+        Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
         assertThat(symbol, isLiteral(true));
     }
 
@@ -82,7 +84,7 @@ public class IsNullPredicateTest extends CrateUnitTest {
     public void testNormalizeSymbolWithStringLiteralThatIsNull() throws Exception {
         Function isNull = new Function(predicate.info(),
                 Arrays.<Symbol>asList(Literal.newLiteral(DataTypes.STRING, null)));
-        Symbol symbol = predicate.normalizeSymbol(isNull);
+        Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
         assertThat((Boolean) ((Input) symbol).value(), is(true));
     }
 

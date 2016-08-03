@@ -28,13 +28,9 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.FunctionFormatSpec;
 import io.crate.exceptions.ConversionException;
-import io.crate.metadata.DynamicFunctionResolver;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
+import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
-import io.crate.types.IpType;
 
 import java.util.List;
 
@@ -71,7 +67,7 @@ public abstract class AbstractCastFunction<From, To> extends Scalar<To,From> imp
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol) {
+    public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
         assert symbol.arguments().size() == 1 : "Number of arguments must be 1";
         Symbol argument = symbol.arguments().get(0);
         if (argument.symbolType().isValueSymbol()) {

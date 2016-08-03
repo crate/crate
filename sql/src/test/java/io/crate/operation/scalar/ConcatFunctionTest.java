@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
@@ -48,6 +49,8 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+
+    private final StmtCtx stmtCtx = new StmtCtx();
 
     private static class ObjectInput implements Input<Object> {
 
@@ -109,11 +112,11 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
         Scalar scalar = ((Scalar) functions.get(new FunctionIdent(ConcatFunction.NAME, argumentTypes)));
 
         Symbol symbol = scalar.normalizeSymbol(new Function(scalar.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral("foo"), Literal.newLiteral("bar"))));
+                Arrays.<Symbol>asList(Literal.newLiteral("foo"), Literal.newLiteral("bar"))), stmtCtx);
         assertThat(symbol, isLiteral("foobar"));
 
         symbol = scalar.normalizeSymbol(new Function(scalar.info(),
-                Arrays.<Symbol>asList(createReference("col1", DataTypes.STRING), Literal.newLiteral("bar"))));
+                Arrays.<Symbol>asList(createReference("col1", DataTypes.STRING), Literal.newLiteral("bar"))), stmtCtx);
         assertThat(symbol, isFunction(ConcatFunction.NAME));
     }
 

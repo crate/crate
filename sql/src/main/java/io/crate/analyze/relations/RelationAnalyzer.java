@@ -70,11 +70,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     public AnalyzedRelation analyze(Node node, StatementAnalysisContext relationAnalysisContext) {
         AnalyzedRelation relation = process(node, relationAnalysisContext);
-        return RelationNormalizer.normalize(relation, analysisMetaData);
+        return RelationNormalizer.normalize(relation, analysisMetaData,
+            relationAnalysisContext.stmtCtx());
     }
 
     public AnalyzedRelation analyze(Node node, Analysis analysis) {
-        return analyze(node, new StatementAnalysisContext(analysis.parameterContext(), analysisMetaData));
+        return analyze(node, new StatementAnalysisContext(
+            analysis.parameterContext(), analysis.statementContext(), analysisMetaData));
     }
 
     @Override
@@ -163,7 +165,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 relation = new QueriedSelectRelation((QueriedRelation) source, selectAnalysis.outputNames(), querySpec);
             }
             if (tableRelation != null) {
-                tableRelation.normalize(analysisMetaData);
+                tableRelation.normalize(analysisMetaData, context.expressionAnalysisContext().statementContext());
                 relation = tableRelation;
             }
         } else {
@@ -294,7 +296,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             }
             Symbol symbol = context.expressionAnalyzer().convert(having.get(), context.expressionAnalysisContext());
             HavingSymbolValidator.validate(symbol, groupBy);
-            return new HavingClause(context.expressionAnalyzer().normalize(symbol));
+            return new HavingClause(context.expressionAnalyzer().normalize(
+                symbol, context.expressionAnalysisContext().statementContext()));
         }
         return null;
     }
@@ -316,7 +319,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 query = new Function(AndOperator.INFO, Arrays.asList(query, joinCondition));
             }
         }
-        query = context.expressionAnalyzer().normalize(query);
+        query = context.expressionAnalyzer().normalize(query, context.expressionAnalysisContext().statementContext());
         return new WhereClause(query);
     }
 

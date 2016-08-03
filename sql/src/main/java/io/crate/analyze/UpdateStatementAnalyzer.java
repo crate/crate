@@ -94,7 +94,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     @Override
     public AnalyzedStatement visitUpdate(Update node, Analysis analysis) {
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
-                analysis.parameterContext(), analysisMetaData, Operation.UPDATE);
+                analysis.parameterContext(), analysis.statementContext(), analysisMetaData, Operation.UPDATE);
         RelationAnalysisContext currentRelationContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), statementAnalysisContext);
 
@@ -108,7 +108,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         ExpressionAnalyzer expressionAnalyzer =
                 new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(),
                     currentRelationContext.fieldProvider(), fieldResolver);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.statementContext());
 
         int numNested = 1;
         if (analysis.parameterContext().bulkParameters.length > 0) {
@@ -127,7 +127,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
 
             WhereClause whereClause = expressionAnalyzer.generateWhereClause(node.whereClause(), expressionAnalysisContext);
             if (whereClauseAnalyzer != null) {
-                whereClause = whereClauseAnalyzer.analyze(whereClause);
+                whereClause = whereClauseAnalyzer.analyze(whereClause, analysis.statementContext());
             }
 
             if (!whereClause.docKeys().isPresent() && Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION)) {
@@ -162,7 +162,8 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                                    ExpressionAnalysisContext expressionAnalysisContext) {
         // unknown columns in strict objects handled in here
         Reference reference = (Reference) columnExpressionAnalyzer.normalize(
-                columnExpressionAnalyzer.convert(node.columnName(), expressionAnalysisContext));
+            columnExpressionAnalyzer.convert(node.columnName(), expressionAnalysisContext),
+            expressionAnalysisContext.statementContext());
 
         final ColumnIdent ident = reference.info().ident().columnIdent();
         if (hasMatchingParent(tableInfo, reference.info(), IS_OBJECT_ARRAY)) {
@@ -170,9 +171,10 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             throw new IllegalArgumentException("Updating fields of object arrays is not supported");
         }
         Symbol value = expressionAnalyzer.normalize(
-                expressionAnalyzer.convert(node.expression(), expressionAnalysisContext));
+            expressionAnalyzer.convert(node.expression(), expressionAnalysisContext),
+            expressionAnalysisContext.statementContext());
         try {
-            value = valueNormalizer.normalizeInputForReference(value, reference);
+            value = valueNormalizer.normalizeInputForReference(value, reference, expressionAnalysisContext.statementContext());
         } catch (IllegalArgumentException | UnsupportedOperationException e) {
             throw new ColumnValidationException(ident.sqlFqn(), e);
         }

@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
@@ -69,10 +70,12 @@ public class SquareRootFunctionTest extends AbstractScalarFunctionsTest {
         return (SquareRootFunction)functions.get(new FunctionIdent(SquareRootFunction.NAME, dataTypes));
     }
 
+    private final StmtCtx stmtCtx = new StmtCtx();
+
     private Symbol normalize(Number number, DataType type) {
         SquareRootFunction function = getFunction(Arrays.asList(type));
         return function.normalizeSymbol(new Function(function.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(type, number))));
+                Arrays.<Symbol>asList(Literal.newLiteral(type, number))), stmtCtx);
     }
 
     @Test
@@ -123,7 +126,7 @@ public class SquareRootFunctionTest extends AbstractScalarFunctionsTest {
         Reference height = createReference("height", DataTypes.DOUBLE);
         SquareRootFunction sqrt = getFunction(Arrays.<DataType>asList(DataTypes.DOUBLE));
         Function function = new Function(sqrt.info(), Arrays.<Symbol>asList(height));
-        Function normalized = (Function) sqrt.normalizeSymbol(function);
+        Function normalized = (Function) sqrt.normalizeSymbol(function, stmtCtx);
         assertThat(normalized, Matchers.sameInstance(function));
     }
 }

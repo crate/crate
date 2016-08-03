@@ -25,6 +25,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.StmtCtx;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -66,8 +67,8 @@ public class OrderBy implements Streamable {
         return nullsFirst;
     }
 
-    public void normalize(EvaluatingNormalizer normalizer) {
-        normalizer.normalizeInplace(orderBySymbols);
+    public void normalize(EvaluatingNormalizer normalizer, StmtCtx stmtCtx) {
+        normalizer.normalizeInplace(orderBySymbols, stmtCtx);
     }
 
 

@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
+import io.crate.metadata.StmtCtx;
 import io.crate.metadata.table.Operation;
 
 import javax.annotation.Nullable;
@@ -68,9 +69,9 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
         return tableRelation;
     }
 
-    public void normalize(AnalysisMetaData analysisMetaData){
+    public void normalize(AnalysisMetaData analysisMetaData, StmtCtx stmtCtx){
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData, tableRelation, true);
-        querySpec().normalize(normalizer);
+        querySpec().normalize(normalizer, stmtCtx);
     }
 
     @Nullable

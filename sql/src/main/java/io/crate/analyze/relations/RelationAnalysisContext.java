@@ -27,6 +27,7 @@ import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.metadata.StmtCtx;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 
@@ -48,11 +49,14 @@ public class RelationAnalysisContext {
     @Nullable
     private List<Expression> joinExpressions;
 
-    RelationAnalysisContext(ParameterContext parameterContext, AnalysisMetaData analysisMetaData, boolean aliasedRelation) {
+    RelationAnalysisContext(ParameterContext parameterContext,
+                            StmtCtx stmtCtx,
+                            AnalysisMetaData analysisMetaData,
+                            boolean aliasedRelation) {
         this.parameterContext = parameterContext;
         this.analysisMetaData = analysisMetaData;
         this.aliasedRelation = aliasedRelation;
-        expressionAnalysisContext = new ExpressionAnalysisContext();
+        expressionAnalysisContext = new ExpressionAnalysisContext(stmtCtx);
     }
 
     public boolean isAliasedRelation() {
