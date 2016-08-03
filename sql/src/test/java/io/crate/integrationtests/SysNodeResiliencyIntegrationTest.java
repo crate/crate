@@ -22,12 +22,22 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLAction;
+import io.crate.action.sql.SQLRequest;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.disruption.NetworkPartition;
+import org.elasticsearch.test.disruption.NetworkUnresponsivePartition;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.is;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import static org.hamcrest.Matchers.*;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 2)
 public class SysNodeResiliencyIntegrationTest extends SQLTransportIntegrationTest {
@@ -45,13 +55,27 @@ public class SysNodeResiliencyIntegrationTest extends SQLTransportIntegrationTes
     }
 
     /**
-     * Test that requests to all nodes (e.g. sys.nodes) will work if run on a client node
-     *  (Without a patch, ES will prevent client-to-client connections)
-     *  related patch: https://github.com/crate/elasticsearch/commit/f0c180e9ea5f84a4540e982c9e5c6af0be2c8143
+     * Test that basic information from cluster state is used if a sys node
+     * request is timing out
      */
     @Test
-    public void testNodesSQLRequestOnClientNode() throws Exception {
-        execute("select * from sys.nodes");
-        assertThat(response.rowCount(), is(3L));
+    public void testOutTimingNode() throws Exception {
+        List<String> nodes = Arrays.asList(internalCluster().getNodeNames());
+        final String unluckyNode = randomFrom(nodes);
+        Set<String> luckyNodes = new HashSet<>(nodes);
+        luckyNodes.remove(unluckyNode);
+
+        NetworkPartition partition = new NetworkUnresponsivePartition(luckyNodes, new HashSet<>(Arrays.asList(unluckyNode)), getRandom());
+        setDisruptionScheme(partition);
+        partition.startDisrupting();
+
+        SQLRequest request = new SQLRequest("select version, hostname, id, name from sys.nodes where name = ?", new Object[]{unluckyNode});
+        response = internalCluster().client(randomFrom(luckyNodes.toArray(Strings.EMPTY_ARRAY))).execute(SQLAction.INSTANCE, request)
+                .actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], is(nullValue()));
+        assertThat(response.rows()[0][1], is(nullValue()));
+        assertThat(response.rows()[0][2], is(notNullValue()));
+        assertThat((String)response.rows()[0][3], is(unluckyNode));
     }
 }
