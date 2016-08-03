@@ -23,6 +23,7 @@ package io.crate.analyze.validator;
 
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.Locale;
@@ -32,19 +33,25 @@ public class GroupBySymbolValidator {
     private final static InnerValidator INNER_VALIDATOR = new InnerValidator();
 
     public static void validate(Symbol symbol) throws IllegalArgumentException, UnsupportedOperationException {
-        INNER_VALIDATOR.process(symbol, new Context());
+        INNER_VALIDATOR.process(symbol, null);
     }
 
-    private static class Context {
-        private boolean insideFunction = false;
+    private static void validateDataType(Symbol symbol) {
+        if (!DataTypes.PRIMITIVE_TYPES.contains(symbol.valueType())) {
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "Cannot GROUP BY '%s': invalid data type '%s'",
+                    SymbolPrinter.INSTANCE.printSimple(symbol),
+                    symbol.valueType()));
+        }
     }
 
-    private static class InnerValidator extends SymbolVisitor<Context, Void> {
+    private static class InnerValidator extends SymbolVisitor<Void, Void> {
 
         @Override
-        public Void visitFunction(Function symbol, Context context) {
+        public Void visitFunction(Function symbol, Void context) {
             switch (symbol.info().type()) {
                 case SCALAR:
+                    visitSymbol(symbol, context);
                     break;
                 case AGGREGATE:
                     throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
@@ -55,34 +62,18 @@ public class GroupBySymbolValidator {
                     throw new UnsupportedOperationException(
                             String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", symbol.info().type()));
             }
-            context.insideFunction = true;
-            for (Symbol argument : symbol.arguments()) {
-                process(argument, context);
-            }
-            context.insideFunction = false;
             return null;
         }
 
         @Override
-        public Void visitField(Field field, Context context) {
-            // if insideFunction the type here doesn't matter, only the returnType of the function itself will matter.
-            if (!context.insideFunction && !DataTypes.PRIMITIVE_TYPES.contains(field.valueType())) {
-                throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Cannot GROUP BY '%s': invalid data type '%s'",
-                                SymbolPrinter.INSTANCE.printSimple(field),
-                                field.valueType()));
-            }
-            return null;
-        }
-
-        @Override
-        public Void visitMatchPredicate(MatchPredicate matchPredicate, Context context) {
+        public Void visitMatchPredicate(MatchPredicate matchPredicate, Void context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "%s predicate cannot be used in a GROUP BY clause", io.crate.operation.predicate.MatchPredicate.NAME));
         }
 
         @Override
-        protected Void visitSymbol(Symbol symbol, Context context) {
+        protected Void visitSymbol(Symbol symbol, Void context) {
+            validateDataType(symbol);
             return null;
         }
     }
