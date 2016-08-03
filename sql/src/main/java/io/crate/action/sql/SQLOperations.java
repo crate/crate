@@ -34,7 +34,6 @@ import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.Portal;
 import io.crate.protocols.postgres.SimplePortal;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.elasticsearch.cluster.ClusterService;
@@ -143,32 +142,18 @@ public class SQLOperations {
      * sync()
      * </pre>
      *
-     * If during one of the operation an error occurs the error will be raised and all subsequent methods will become
-     * no-op operations until sync() is called which will again raise an error and "clear" it. (to be able to process new statements)
-     *
-     * This is done for compatibility with the postgres extended spec:
-     *
-     * > The purpose of Sync is to provide a resynchronization point for error recovery.
-     * > When an error is detected while processing any extended-query message, the backend issues ErrorResponse,
-     * > then reads and discards messages until a Sync is reached,
-     * > then issues ReadyForQuery and returns to normal message processing.
-     * > (But note that no skipping occurs if an error is detected while processing Sync —
-     * > this ensures that there is one and only one ReadyForQuery sent for each Sync.)
-     *
      * (https://www.postgresql.org/docs/9.2/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY)
      */
     public class Session {
 
+        private static final String UNNAMED = "";
         private final Executor executor;
         private final TransportKillJobsNodeAction transportKillJobsNodeAction;
         private final String defaultSchema;
         private final int defaultLimit;
         private final Set<Option> options;
 
-        private List<DataType> paramTypes;
-        private Statement statement;
-        private String query;
-
+        private final Map<String, PreparedStmt> preparedStatements = new HashMap<>();
         private final Map<String, Portal> portals = new HashMap<>();
         private final Set<Portal> pendingExecutions = Collections.newSetFromMap(new IdentityHashMap<Portal, Boolean>());
 
@@ -212,12 +197,7 @@ public class SQLOperations {
                 statsTables.logPreExecutionFailure(UUID.randomUUID(), query, Exceptions.messageOf(t));
                 throw t;
             }
-            if (!statement.equals(this.statement) && this.statement instanceof BeginStatement) {
-                sync(CompletionListener.NO_OP);
-            }
-            this.statement = statement;
-            this.query = query;
-            this.paramTypes = paramTypes;
+            preparedStatements.put(statementName, new PreparedStmt(statement, query, paramTypes));
         }
 
         public void bind(String portalName,
@@ -228,7 +208,9 @@ public class SQLOperations {
 
             Portal portal = getOrCreatePortal(portalName);
             try {
-                Portal newPortal = portal.bind(statementName, query, statement, params, resultFormatCodes);
+                PreparedStmt preparedStmt = getSafeStmt(statementName);
+                Portal newPortal = portal.bind(
+                    statementName, preparedStmt.query(), preparedStmt.statement(), params, resultFormatCodes);
                 if (portal != newPortal) {
                     portals.put(portalName, newPortal);
                     pendingExecutions.remove(portal);
@@ -246,8 +228,7 @@ public class SQLOperations {
                     Portal portal = getSafePortal(portalOrStatement);
                     return portal.describe();
                 case 'S':
-                    /* TODO: need to return proper fields?
-                     *
+                    /*
                      * describe might be called without prior bind call. E.g. in batch insert case the statement is prepared first:
                      *
                      *      parse stmtName=S_1 query=insert into t (x) values ($1) paramTypes=[integer]
@@ -267,6 +248,10 @@ public class SQLOperations {
                      * and finally:
                      *
                      *      sync
+                     *
+                     * We can't analyze a statement without params which is why null is returned here.
+                     * This isn't the correct thing to do. It results in a "NoData" msg sent to the client.
+                     * But at least the JDBC client can handle that and just follows up with bind/describe again.
                      */
                     return null;
             }
@@ -278,7 +263,13 @@ public class SQLOperations {
 
             Portal portal = getSafePortal(portalName);
             portal.execute(resultReceiver, maxRows);
-            pendingExecutions.add(portal);
+            if (portal.getLastQuery().equalsIgnoreCase("BEGIN")) {
+                portal.sync(planner, statsTables, CompletionListener.NO_OP);
+                clearState();
+            } else {
+                // delay execution to be able to bundle bulk operations
+                pendingExecutions.add(portal);
+            }
         }
 
         public void sync(CompletionListener listener) {
@@ -301,11 +292,11 @@ public class SQLOperations {
         }
 
         public void clearState() {
-            Portal portal = portals.remove("");
+            Portal portal = portals.remove(UNNAMED);
             if (portal != null) {
                 portal.close();
             }
-            statement = null;
+            preparedStatements.remove(UNNAMED);
         }
 
         @Nullable
@@ -321,8 +312,17 @@ public class SQLOperations {
             return getSafePortal(portalName).getLastQuery();
         }
 
-        public DataType getParamType(int idx) {
-            return paramTypes.get(idx);
+        public DataType getParamType(String statementName, int idx) {
+            PreparedStmt stmt = getSafeStmt(statementName);
+            return stmt.paramTypes().get(idx);
+        }
+
+        private PreparedStmt getSafeStmt(String statementName) {
+            PreparedStmt preparedStmt = preparedStatements.get(statementName);
+            if (preparedStmt == null) {
+                throw new IllegalArgumentException("No statement found with name: " + statementName);
+            }
+            return preparedStmt;
         }
 
         @Nullable
@@ -334,13 +334,24 @@ public class SQLOperations {
             return portal.getLastResultFormatCodes();
         }
 
-        public void closePortal(byte portalOrStatement, String portalOrStatementName) {
-            if (portalOrStatement == 'P') {
-                Portal portal = portals.remove(portalOrStatementName);
-                if (portal != null) {
-                    portal.close();
-                }
+        /**
+         * Close a portal or prepared statement
+         * @param type <b>S</b> for prepared statement, <b>P</b> for portal.
+         * @param name name of the prepared statement or the portal (depending on type)
+         */
+        public void close(byte type, String name) {
+            switch (type) {
+                case 'P':
+                    Portal portal = portals.remove(name);
+                    if (portal != null) {
+                        portal.close();
+                    }
+                    return;
+                case 'S':
+                    preparedStatements.remove(name);
+                    return;
             }
+            throw new IllegalArgumentException("Invalid type: " + type);
         }
 
         public void close() {

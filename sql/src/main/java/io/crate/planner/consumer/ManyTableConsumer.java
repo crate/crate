@@ -414,7 +414,7 @@ public class ManyTableConsumer implements Consumer {
 
     private static class FieldToRelationColumnVisitor extends ReplacingSymbolVisitor<FieldToRelationColumnCtx> {
 
-        private static final FieldToRelationColumnVisitor INSTANCE = new FieldToRelationColumnVisitor(true);
+        private static final FieldToRelationColumnVisitor INSTANCE = new FieldToRelationColumnVisitor(false);
 
         public FieldToRelationColumnVisitor(boolean inPlace) {
             super(inPlace);

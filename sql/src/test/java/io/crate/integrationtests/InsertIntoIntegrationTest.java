@@ -23,11 +23,15 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
+import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.ArrayType;
+import io.crate.types.GeoPointType;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.IsNull;
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,6 +42,7 @@ import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -578,6 +583,25 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into t2 (p) (select p from t)");
         assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testInsertIntoGeoPointArray() throws Exception {
+        execute("create table t (id int, points array(geo_point)) clustered into 1 shards with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into t (id, points) values (1, [[1.1, 2.2],[3.3, 4.4]])");
+        execute("insert into t (id, points) values (2, ['POINT(5.5 6.6)','POINT(7.7 8.8)'])");
+        execute("insert into t (id, points) values (?, ?)",
+            new Object[] {3, new Double[][] {new Double[]{9.9, 10.10}, new Double[]{11.11, 12.12}}});
+        execute("refresh table t");
+        execute("select points from t order by id");
+        assertThat(response.rowCount(), is(3L));
+        assertThat((Object[]) response.rows()[0][0],
+            arrayContaining(new Object[]{new Double[]{1.1, 2.2}, new Double[]{3.3, 4.4}}));
+        assertThat((Object[]) response.rows()[1][0],
+            arrayContaining(new Object[]{new Double[]{5.5, 6.6}, new Double[]{7.7, 8.8}}));
+        assertThat((Object[]) response.rows()[2][0],
+            arrayContaining(new Object[]{new Double[]{9.9, 10.10}, new Double[]{11.11, 12.12}}));
     }
 
     @Test

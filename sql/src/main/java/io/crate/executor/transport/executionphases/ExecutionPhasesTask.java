@@ -170,7 +170,7 @@ public class ExecutionPhasesTask extends JobTask {
 
         if (!localNodeOperations.isEmpty()) {
             if (directResponseFutures.isEmpty()) {
-                initializationTracker.jobInitialized(null);
+                initializationTracker.jobInitialized();
             } else {
                 Futures.addCallback(Futures.allAsList(directResponseFutures),
                     new SetBucketAction(pageBucketReceivers, bucketIdx, initializationTracker));
