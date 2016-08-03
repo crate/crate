@@ -48,28 +48,28 @@ public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, No
         this.nodeContextFieldsResolver = nodeContextFieldsResolver;
         this.transports = transports;
         transportService.registerRequestHandler(ACTION_NAME,
-                NodeStatsRequest.class,
-                EXECUTOR,
-                new NodeActionRequestHandler<NodeStatsRequest, NodeStatsResponse>(this) {
-                }
+            NodeStatsRequest.class,
+            EXECUTOR,
+            new NodeActionRequestHandler<NodeStatsRequest, NodeStatsResponse>(this) {
+            }
         );
     }
 
-    public void execute(final String nodeId,
+    public void execute(final String nodeName,
                         final NodeStatsRequest request,
                         final ActionListener<NodeStatsResponse> listener,
                         final TimeValue timeout) {
         TransportRequestOptions options = TransportRequestOptions.builder()
-                .withTimeout(timeout)
-                .build();
+            .withTimeout(timeout)
+            .build();
 
-        transports.sendRequest(ACTION_NAME, nodeId, request, listener,
-                new DefaultTransportResponseHandler<NodeStatsResponse>(listener) {
-                    @Override
-                    public NodeStatsResponse newInstance() {
-                        return new NodeStatsResponse();
-                    }
-                }, options);
+        transports.sendRequest(ACTION_NAME, nodeName, request, listener,
+            new DefaultTransportResponseHandler<NodeStatsResponse>(listener) {
+                @Override
+                public NodeStatsResponse newInstance() {
+                    return new NodeStatsResponse();
+                }
+            }, options);
     }
 
     @Override

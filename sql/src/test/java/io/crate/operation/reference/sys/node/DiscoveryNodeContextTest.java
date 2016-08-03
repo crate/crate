@@ -27,7 +27,6 @@ import io.crate.Version;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.MonitorModule;
 import io.crate.monitor.ThreadPools;
-import io.crate.operation.reference.sys.node.DiscoveryNodeContext;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -47,7 +46,6 @@ import org.elasticsearch.monitor.os.OsProbe;
 import org.elasticsearch.monitor.process.ProcessProbe;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolModule;
-import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,7 +60,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -233,7 +230,7 @@ public class DiscoveryNodeContextTest extends CrateUnitTest {
     @Test
     public void testStreamThreadPoolsContext() throws Exception {
         ThreadPools.ThreadPoolExecutorContext ctx1 = new ThreadPools.ThreadPoolExecutorContext(
-            10, null, 20, 50, 1_000_000_000_000_000L, null);
+            10, 15, 20, 50, 1_000_000_000_000_000L, 1L);
 
         ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
         StreamOutput out = new OutputStreamStreamOutput(outBuffer);
@@ -245,8 +242,6 @@ public class DiscoveryNodeContextTest extends CrateUnitTest {
         ctx2.readFrom(in);
 
         assertEquals(ctx1, ctx2);
-        assertNull(ctx2.activeCount());
-        assertNull(ctx2.rejectedCount());
     }
 
     @Test

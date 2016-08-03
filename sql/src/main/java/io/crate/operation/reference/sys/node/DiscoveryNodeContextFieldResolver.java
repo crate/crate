@@ -84,24 +84,23 @@ public class DiscoveryNodeContextFieldResolver {
 
         List<ColumnIdent> processedColIdents = new ArrayList<>();
         for (ReferenceIdent ident : referenceIdents) {
-            ColumnIdent colIndent = ident.columnReferenceIdent().columnIdent();
-
-            if (SysNodesTableInfo.IDENT.equals(ident.tableIdent()) && !processedColIdents.contains(colIndent)) {
-                Consumer<DiscoveryNodeContext> consumer = colIdentToContext.get(colIndent);
+            ColumnIdent columnIdent = ident.columnReferenceIdent().columnIdent();
+            if (SysNodesTableInfo.IDENT.equals(ident.tableIdent()) && !processedColIdents.contains(columnIdent)) {
+                Consumer<DiscoveryNodeContext> consumer = columnIdentToContext.get(columnIdent);
                 if (consumer == null) {
                     throw new IllegalArgumentException(
-                        String.format("Cannot resolve DiscoveryNodeContext field for \"%s\" column ident.", colIndent)
+                        String.format("Cannot resolve DiscoveryNodeContext field for \"%s\" column ident.", columnIdent)
                     );
                 }
                 consumer.accept(context);
-                processedColIdents.add(colIndent);
+                processedColIdents.add(columnIdent);
             }
         }
         return context;
     }
 
 
-    private Map<ColumnIdent, Consumer<DiscoveryNodeContext>> colIdentToContext =
+    private Map<ColumnIdent, Consumer<DiscoveryNodeContext>> columnIdentToContext =
         ImmutableMap.<ColumnIdent, Consumer<DiscoveryNodeContext>>builder()
             .put(SysNodesTableInfo.Columns.ID, new Consumer<DiscoveryNodeContext>() {
                 @Override

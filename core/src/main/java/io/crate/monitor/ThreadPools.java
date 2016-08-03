@@ -101,17 +101,21 @@ public class ThreadPools implements Streamable, Iterable<Map.Entry<String, Threa
 
     public static class ThreadPoolExecutorContext implements Streamable {
 
-        private Integer queueSize;
-        private Integer activeCount;
-        private Integer largestPoolSize;
-        private Integer poolSize;
-        private Long completedTaskCount;
-        private Long rejectedCount;
+        private int queueSize;
+        private int activeCount;
+        private int largestPoolSize;
+        private int poolSize;
+        private long completedTaskCount;
+        private long rejectedCount;
 
         public ThreadPoolExecutorContext() {}
 
-        public ThreadPoolExecutorContext(Integer queueSize, Integer activeCount, Integer largestPoolSize, Integer poolSize,
-                                         Long completedTaskCount, Long rejectedCount) {
+        public ThreadPoolExecutorContext(int queueSize,
+                                         int activeCount,
+                                         int largestPoolSize,
+                                         int poolSize,
+                                         long completedTaskCount,
+                                         long rejectedCount) {
             this.queueSize = queueSize;
             this.activeCount = activeCount;
             this.largestPoolSize = largestPoolSize;
@@ -120,48 +124,48 @@ public class ThreadPools implements Streamable, Iterable<Map.Entry<String, Threa
             this.rejectedCount = rejectedCount;
         }
 
-        public Integer queueSize() {
+        public int queueSize() {
             return queueSize;
         }
 
-        public Integer activeCount() {
+        public int activeCount() {
             return activeCount;
         }
 
-        public Integer largestPoolSize() {
+        public int largestPoolSize() {
             return largestPoolSize;
         }
 
-        public Integer poolSize() {
+        public int poolSize() {
             return poolSize;
         }
 
-        public Long completedTaskCount() {
+        public long completedTaskCount() {
             return completedTaskCount;
         }
 
-        public Long rejectedCount() {
+        public long rejectedCount() {
             return rejectedCount;
         }
 
         @Override
         public void readFrom(StreamInput in) throws IOException {
-            queueSize = DataTypes.INTEGER.readValueFrom(in);
-            activeCount = DataTypes.INTEGER.readValueFrom(in);
-            largestPoolSize = DataTypes.INTEGER.readValueFrom(in);
-            poolSize = DataTypes.INTEGER.readValueFrom(in);
-            completedTaskCount = DataTypes.LONG.readValueFrom(in);
-            rejectedCount = DataTypes.LONG.readValueFrom(in);
+            queueSize = in.readInt();
+            activeCount = in.readInt();
+            largestPoolSize = in.readInt();
+            poolSize = in.readInt();
+            completedTaskCount = in.readLong();
+            rejectedCount = in.readLong();
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            DataTypes.INTEGER.writeValueTo(out, queueSize);
-            DataTypes.INTEGER.writeValueTo(out, activeCount);
-            DataTypes.INTEGER.writeValueTo(out, largestPoolSize);
-            DataTypes.INTEGER.writeValueTo(out, poolSize);
-            DataTypes.LONG.writeValueTo(out, completedTaskCount);
-            DataTypes.LONG.writeValueTo(out, rejectedCount);
+            out.writeInt(queueSize);
+            out.writeInt(activeCount);
+            out.writeInt(largestPoolSize);
+            out.writeInt(poolSize);
+            out.writeLong(completedTaskCount);
+            out.writeLong(rejectedCount);
         }
 
         @Override

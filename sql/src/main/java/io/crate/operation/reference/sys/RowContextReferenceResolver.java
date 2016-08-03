@@ -293,7 +293,6 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
                 .build();
     }
 
-
     private ImmutableMap<ColumnIdent, RowCollectExpressionFactory> getSysJobsExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
                 .put(SysJobsTableInfo.Columns.ID, new RowCollectExpressionFactory() {

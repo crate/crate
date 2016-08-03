@@ -81,23 +81,23 @@ public class NodeStatsCollector implements CrateCollector {
         final List<DiscoveryNodeContext> discoveryNodeContexts = new ArrayList<>(nodes.size());
         final CountDownLatch counter = new CountDownLatch(nodes.size());
         for (final DiscoveryNode node : nodes) {
-            NodeStatsRequest request = new NodeStatsRequest(node.id(), referenceIdentVisitor.process(collectPhase.toCollect()));
-            transportStatTablesAction.execute(node.id(), request,
-                    new ActionListener<NodeStatsResponse>() {
-                        @Override
-                        public void onResponse(NodeStatsResponse response) {
-                            discoveryNodeContexts.add(response.discoveryNodeContext());
-                            counter.countDown();
-                        }
+            List<ReferenceIdent> referenceIdents = referenceIdentVisitor.process(collectPhase.toCollect());
+            NodeStatsRequest request = new NodeStatsRequest(node.id(), referenceIdents);
+            transportStatTablesAction.execute(node.id(), request, new ActionListener<NodeStatsResponse>() {
+                @Override
+                public void onResponse(NodeStatsResponse response) {
+                    discoveryNodeContexts.add(response.discoveryNodeContext());
+                    counter.countDown();
+                }
 
-                        @Override
-                        public void onFailure(Throwable t) {
-                            if (t instanceof ReceiveTimeoutTransportException) {
-                                discoveryNodeContexts.add(new DiscoveryNodeContext(node.id(), node.name()));
-                            }
-                            counter.countDown();
-                        }
-                    }, TimeValue.timeValueMillis(3000L));
+                @Override
+                public void onFailure(Throwable t) {
+                    if (t instanceof ReceiveTimeoutTransportException) {
+                        discoveryNodeContexts.add(new DiscoveryNodeContext(node.id(), node.name()));
+                    }
+                    counter.countDown();
+                }
+            }, TimeValue.timeValueMillis(3000L));
         }
         try {
             counter.await();
@@ -106,8 +106,8 @@ public class NodeStatsCollector implements CrateCollector {
         }
 
         this.emitter = new IterableRowEmitter(
-                rowReceiver,
-                RowsTransformer.toRowsIterable(inputSymbolVisitor, collectPhase, discoveryNodeContexts)
+            rowReceiver,
+            RowsTransformer.toRowsIterable(inputSymbolVisitor, collectPhase, discoveryNodeContexts)
         );
     }
 

@@ -90,15 +90,15 @@ public class CollectSourceResolver {
         ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, clusterReferenceResolver);
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
-            clusterService,
-            functions,
-            indexNameExpressionResolver,
-            threadPool,
-            settings,
-            transportActionProvider,
-            bulkRetryCoordinatorPool,
-            nodeImplementationSymbolVisitor,
-            normalizer
+                clusterService,
+                functions,
+                indexNameExpressionResolver,
+                threadPool,
+                settings,
+                transportActionProvider,
+                bulkRetryCoordinatorPool,
+                nodeImplementationSymbolVisitor,
+                normalizer
         );
         this.shardCollectSource = shardCollectSource;
         this.fileCollectSource = new ProjectorSetupCollectSource(fileCollectSource, projectorFactory);

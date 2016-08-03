@@ -21,8 +21,6 @@
 
 package io.crate;
 
-import org.elasticsearch.common.io.FastStringReader;
-import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.joda.time.DateTimeZone;
