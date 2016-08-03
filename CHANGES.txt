@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue wich could lead to wrong Error messages due to a
+   race condition.
+
  - Fix: Arrays of geo_point can be used in insert/update
    statements as literals as well as bind arguments.
 

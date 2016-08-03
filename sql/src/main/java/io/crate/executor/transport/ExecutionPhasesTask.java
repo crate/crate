@@ -137,9 +137,9 @@ class ExecutionPhasesTask extends JobTask {
 
     private static class InitializationTracker {
 
-        private final SettableFuture<Void> future;
+        final SettableFuture<Void> future;
         private final AtomicInteger serverToInitialize;
-        private Throwable failure;
+        private volatile Throwable failure;
 
         InitializationTracker(int numServer) {
             future = SettableFuture.create();
@@ -149,17 +149,24 @@ class ExecutionPhasesTask extends JobTask {
             serverToInitialize = new AtomicInteger(numServer);
         }
 
-        void jobInitialized(@Nullable Throwable t) {
-            if (failure == null || failure instanceof InterruptedException) {
-                failure = t;
-            }
+        void jobInitialized() {
             if (serverToInitialize.decrementAndGet() <= 0) {
+                // no need to synchronize here, since there cannot be a failure after all servers have finished
                 if (failure == null) {
                     future.set(null);
                 } else {
                     future.setException(failure);
                 }
             }
+        }
+
+        void jobInitializationFailed(Throwable t) {
+            synchronized (this) {
+                if (failure == null || failure instanceof InterruptedException) {
+                    failure = t;
+                }
+            }
+            jobInitialized();
         }
     }
 
@@ -282,7 +289,7 @@ class ExecutionPhasesTask extends JobTask {
 
         if (!localNodeOperations.isEmpty()) {
             if (directResponseFutures.isEmpty()) {
-                initializationTracker.jobInitialized(null);
+                initializationTracker.jobInitialized();
             } else {
                 Futures.addCallback(Futures.allAsList(directResponseFutures),
                     new SetBucketAction(pageDownstreamContexts, bucketIdx, initializationTracker));
@@ -345,7 +352,7 @@ class ExecutionPhasesTask extends JobTask {
 
         @Override
         public void onResponse(JobResponse jobResponse) {
-            initializationTracker.jobInitialized(null);
+            initializationTracker.jobInitialized();
             if (jobResponse.directResponse().size() > 0) {
                 for (Tuple<ExecutionPhase, RowReceiver> rowReceiver : rowReceivers) {
                     rowReceiver.v2().fail(new IllegalStateException("Got a directResponse but didn't expect one"));
@@ -355,7 +362,7 @@ class ExecutionPhasesTask extends JobTask {
 
         @Override
         public void onFailure(Throwable e) {
-            initializationTracker.jobInitialized(null);
+            initializationTracker.jobInitialized();
             // could be a preparation failure - in that case the regular error propagation doesn't work as it hasn't been set up yet
             // so fail rowReceivers directly
             for (Tuple<ExecutionPhase, RowReceiver> rowReceiver : rowReceivers) {
@@ -379,7 +386,7 @@ class ExecutionPhasesTask extends JobTask {
 
         @Override
         public void onSuccess(@Nullable List<Bucket> result) {
-            initializationTracker.jobInitialized(null);
+            initializationTracker.jobInitialized();
             if (result == null) {
                 onFailure(new NullPointerException("result is null"));
                 return;
@@ -393,7 +400,7 @@ class ExecutionPhasesTask extends JobTask {
 
         @Override
         public void onResponse(JobResponse jobResponse) {
-            initializationTracker.jobInitialized(null);
+            initializationTracker.jobInitialized();
             for (int i = 0; i < pageDownstreamContexts.size(); i++) {
                 PageDownstreamContext pageDownstreamContext = pageDownstreamContexts.get(i);
                 jobResponse.streamers(pageDownstreamContext.streamer());
@@ -403,7 +410,7 @@ class ExecutionPhasesTask extends JobTask {
 
         @Override
         public void onFailure(@Nonnull Throwable t) {
-            initializationTracker.jobInitialized(t);
+            initializationTracker.jobInitializationFailed(t);
             for (PageDownstreamContext pageDownstreamContext : pageDownstreamContexts) {
                 pageDownstreamContext.failure(bucketIdx, t);
             }
