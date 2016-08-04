@@ -40,6 +40,9 @@ import io.crate.planner.projection.ProjectionVisitor;
 import io.crate.planner.projection.TopNProjection;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 public class PlanPrinter {
@@ -51,14 +54,12 @@ public class PlanPrinter {
         return Plan2MapVisitor.toMap(plan);
     }
 
-    private static Iterable<Object> refs(Iterable<? extends Symbol> symbols) {
-        return FluentIterable.from(symbols).transform(new Function<Symbol, Object>() {
-            @Nullable
-            @Override
-            public Object apply(@Nullable Symbol input) {
-                return SymbolPrinter.INSTANCE.print(input, SymbolPrinter.Style.FULL_QUALIFIED);
-            }
-        });
+    private static List<Object> refs(Collection<? extends Symbol> symbols) {
+        List<Object> refs = new ArrayList<>(symbols.size());
+        for (Symbol s : symbols) {
+            refs.add(SymbolPrinter.INSTANCE.print(s, SymbolPrinter.Style.FULL_QUALIFIED));
+        }
+        return refs;
     }
 
     static class ExecutionPhase2MapVisitor extends ExecutionPhaseVisitor<Void, ImmutableMap.Builder<String, Object>> {
@@ -91,16 +92,17 @@ public class PlanPrinter {
         @Override
         protected ImmutableMap.Builder<String, Object> visitExecutionPhase(ExecutionPhase phase, Void context) {
             return newBuilder()
-                    .put("phaseType", phase.type())
+                    .put("phaseType", phase.type().toString())
                     .put("id", phase.executionPhaseId())
-                    .put("executionNodes", phase.executionNodes()
+                    // Converting TreeMap.keySet() to be able to stream
+                    .put("executionNodes", new ArrayList<>(phase.executionNodes())
                     );
         }
 
         private ImmutableMap.Builder<String, Object> process(DistributionInfo info) {
             return newBuilder()
                     .put("distributedByColumn", info.distributeByColumn())
-                    .put("type", info.distributionType());
+                    .put("type", info.distributionType().toString());
         }
 
         private ImmutableMap.Builder<String, Object> upstreamPhase(UpstreamPhase phase, ImmutableMap.Builder<String, Object> b) {
@@ -169,7 +171,7 @@ public class PlanPrinter {
 
         @Override
         protected ImmutableMap.Builder<String, Object> visitProjection(Projection projection, Void context) {
-            return newBuilder().put("type", projection.projectionType());
+            return newBuilder().put("type", projection.projectionType().toString());
         }
 
         @Override
