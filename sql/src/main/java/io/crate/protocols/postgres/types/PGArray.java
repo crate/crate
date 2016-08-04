@@ -26,9 +26,7 @@ import com.google.common.primitives.Bytes;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import javax.annotation.Nonnull;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 class PGArray extends PGType {
@@ -70,6 +68,7 @@ class PGArray extends PGType {
 
     @Override
     byte[] encodeAsUTF8Text(@Nonnull Object array) {
+        boolean isJson = JsonType.OID == innerType.oid();
         Object[] values = (Object[]) array;
         List<Byte> encodedValues = new ArrayList<>();
         encodedValues.add((byte)'{');
@@ -95,11 +94,22 @@ class PGArray extends PGType {
                     }
                 } else {
                     bytes = innerType.encodeAsUTF8Text(o);
-                    encodedValues.add((byte) '\"');
-                    for (byte aByte : bytes) {
-                        encodedValues.add(aByte);
+
+                    encodedValues.add((byte) '"');
+                    if (isJson) {
+                        for (byte aByte : bytes) {
+                            // Escape double quotes with backslash for json
+                            if ((char) aByte == '"') {
+                                encodedValues.add((byte) '\\');
+                            }
+                            encodedValues.add(aByte);
+                        }
+                    } else {
+                        for (byte aByte : bytes) {
+                            encodedValues.add(aByte);
+                        }
                     }
-                    encodedValues.add((byte) '\"');
+                    encodedValues.add((byte) '"');
                 }
             }
         }
@@ -182,11 +192,15 @@ class PGArray extends PGType {
         if (endIdx > startIdx) {
             byte firstValueByte = bytes[startIdx];
             if (firstValueByte == '"') {
-                byte[] innerBytes = Arrays.copyOfRange(bytes, startIdx + 1, endIdx);
-                String s = new String(innerBytes, StandardCharsets.UTF_8);
-                s = s.replace("\\\"", "\"");
-                s = s.replace("\\\\", "\\");
-                objects.add(innerType.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8)));
+                List<Byte> innerBytes = new ArrayList<>(endIdx - (startIdx + 1));
+                for (int i = startIdx + 1; i < endIdx; i++) {
+                    if (i <= endIdx + 1 && (char)bytes[i] == '\\' &&
+                        ((char)bytes[i + 1] == '\\' || (char)bytes[i + 1] == '\"')) {
+                        i++;
+                    }
+                    innerBytes.add(bytes[i]);
+                }
+                objects.add(innerType.decodeUTF8Text(Bytes.toArray(innerBytes)));
             } else if (firstValueByte == 'N') {
                 objects.add(null);
             }

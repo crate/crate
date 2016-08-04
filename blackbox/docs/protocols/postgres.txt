@@ -112,6 +112,7 @@ Crate::
     |   21 | ,        |       0 | int2        |
     |   23 | ,        |       0 | int4        |
     |  114 | ,        |       0 | json        |
+    |  199 | ,        |     114 | _json       |
     |  700 | ,        |       0 | float4      |
     |  701 | ,        |       0 | float8      |
     | 1000 | ,        |      16 | _bool       |
@@ -126,7 +127,7 @@ Crate::
     | 1184 | ,        |       0 | timestampz  |
     | 1185 | ,        |    1184 | _timestampz |
     +------+----------+---------+-------------+
-    SELECT 19 rows in set (... sec)
+    SELECT 20 rows in set (... sec)
 
 
 Connection failover and load balancing

@@ -129,7 +129,8 @@ public class PGArrayTest {
         // Encode
         byte[] bytes = PGArray.JSON_ARRAY.encodeAsUTF8Text(values);
         s = new String(bytes, StandardCharsets.UTF_8);
-        assertThat(s, is("{\"{\"names\":[\"Arthur\",\"Trillian\"]}\",\"{\"names\":[\"Ford\",\"Slarti\"]}\"}"));
+        assertThat(s, is("{\"{\\\"names\\\":[\\\"Arthur\\\",\\\"Trillian\\\"]}\"," +
+                         "\"{\\\"names\\\":[\\\"Ford\\\",\\\"Slarti\\\"]}\"}"));
     }
 
     @Test
