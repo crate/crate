@@ -172,10 +172,13 @@ public class FetchProjector extends AbstractProjector {
     }
 
     private void sendRequests() {
+        if (nodeReaders.isEmpty()) {
+            fetchFinished();
+            return;
+        }
         synchronized (failureLock) {
             remainingRequests.set(nodeReaders.size());
         }
-        boolean anyRequestSent = false;
         for (Map.Entry<String, IntSet> entry : nodeReaders.entrySet()) {
             IntObjectHashMap<IntContainer> toFetch = new IntObjectHashMap<>(entry.getValue().size());
             IntObjectHashMap<Streamer[]> streamers = new IntObjectHashMap<>(entry.getValue().size());
@@ -195,12 +198,14 @@ public class FetchProjector extends AbstractProjector {
                 requestRequired = requestRequired || (indexInfo != null && indexInfo.fetchRequired());
             }
             if (!requestRequired) {
-                remainingRequests.decrementAndGet();
-                continue;
+                if (remainingRequests.decrementAndGet() == 0) {
+                    fetchFinished();
+                } else {
+                    continue;
+                }
             }
             NodeFetchRequest request = new NodeFetchRequest(jobId, collectPhaseId, toFetch);
             final String nodeId = entry.getKey();
-            anyRequestSent = true;
             transportFetchNodeAction.execute(nodeId, streamers, request, new ActionListener<NodeFetchResponse>() {
                 @Override
                 public void onResponse(NodeFetchResponse nodeFetchResponse) {
@@ -234,9 +239,6 @@ public class FetchProjector extends AbstractProjector {
                     fail(e);
                 }
             });
-        }
-        if (!anyRequestSent) {
-            fetchFinished();
         }
     }
 
