@@ -108,7 +108,6 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc
     public void testParseInsertObject() throws Exception {
         setUpObjectTable();
 
@@ -164,10 +163,8 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false)
     @SuppressWarnings("unchecked")
     public void testInsertObjectField() throws Exception {
-
         expectedException.expect(SQLActionException.class);
 
         setUpObjectTable();
@@ -215,7 +212,6 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false)
     public void testSetUpdate() throws Exception {
         setUpSimple();
 
@@ -235,7 +231,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 "string_field=?," +
                 "timestamp_field=?," +
                 "object_field=?," +
-                "ip_field=?" +
+                "ip_field=? " +
                 "where id=0", new Object[]{
                     Byte.MAX_VALUE, Short.MIN_VALUE, Integer.MAX_VALUE, Long.MIN_VALUE,
                     1.0f, Math.PI, true, "a string", "2013-11-20",
@@ -440,7 +436,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false)
+    @UseJdbc(false) // no entry for json array oid in pg_types
     public void testDynamicNullArrayAndDouble() throws Exception {
         execute("create table arr (id short primary key, tags array(string)) with (number_of_replicas=0)");
         ensureYellow();
@@ -462,7 +458,6 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc
     public void testTwoLevelNestedArrayColumn() throws Exception {
         execute("create table assets (categories array(object as (items array(object as (id int)))))");
         execute("insert into assets (categories) values ([{items=[{id=10}, {id=20}]}])");
@@ -480,7 +475,6 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc
     public void testThreeLevelNestedArrayColumn() throws Exception {
         execute("create table assets (categories array(object as (subcategories array(object as (" +
                 "items array(object as (id int)))))))");
