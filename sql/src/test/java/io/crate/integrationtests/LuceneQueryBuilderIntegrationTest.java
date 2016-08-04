@@ -29,7 +29,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope (randomDynamicTemplates = false, transportClientRatio = 0)
+@ESIntegTestCase.ClusterScope (randomDynamicTemplates = false)
 @UseJdbc
 public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTest {
 

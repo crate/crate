@@ -38,7 +38,7 @@ import java.util.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
-@ESIntegTestCase.ClusterScope(minNumDataNodes = 2, transportClientRatio = 0)
+@ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 @UseJdbc
 public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
