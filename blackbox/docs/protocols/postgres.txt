@@ -37,8 +37,7 @@ Therefore clients should generally enable ``autocommit``.
 Compatibility & Implementation Status
 -------------------------------------
 
-Crate emulates server version ``7.9``. This is done to force the JDBC client to
-use simpler queries for type lookups.
+Crate emulates server version ``9.5``
 
 Start-up
 ~~~~~~~~
@@ -68,8 +67,8 @@ Extended Query
 
 The `Extended Query`_ protocol is implemented with the following limitations:
 
-- Named statements are not fully supported. Clients mostly use them with
-  transactions which aren't supported by Crate.
+- ``describe`` messages for an unbound prepared statement always result in a
+  ``NoData`` message instead of a ``ParameterDescription``.
 
 - In order to optimize the execution of bulk operations the execution of
   statements is delayed until the ``Sync`` message is received
