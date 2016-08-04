@@ -50,6 +50,7 @@ public class PGTypes {
         .put(DataTypes.IP, VarCharType.INSTANCE) // postgres has no IP type, so map it to varchar - it matches the client representation
         .put(DataTypes.UNDEFINED, JsonType.INSTANCE)
         .put(DataTypes.GEO_POINT, PGArray.FLOAT8_ARRAY)
+        .put(DataTypes.GEO_SHAPE, JsonType.INSTANCE)
         .put(new ArrayType(DataTypes.BYTE), PGArray.CHAR_ARRAY)
         .put(new ArrayType(DataTypes.SHORT), PGArray.INT2_ARRAY)
         .put(new ArrayType(DataTypes.INTEGER), PGArray.INT4_ARRAY)
