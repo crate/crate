@@ -609,7 +609,6 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     }
 
     @Test
-    @UseJdbc(false) // wrong timestamp returned
     public void selectCurrentTimestamp() throws Exception {
         long before = System.currentTimeMillis();
         SQLResponse response = execute("select current_timestamp from sys.cluster");
