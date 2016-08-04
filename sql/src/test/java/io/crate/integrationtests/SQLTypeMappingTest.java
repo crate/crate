@@ -108,7 +108,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false)
+    @UseJdbc
     public void testParseInsertObject() throws Exception {
         setUpObjectTable();
 
