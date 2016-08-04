@@ -195,7 +195,7 @@ public class SQLOperations {
                 statement = SqlParser.createStatement(query);
             } catch (Throwable t) {
                 statsTables.logPreExecutionFailure(UUID.randomUUID(), query, Exceptions.messageOf(t));
-                throw t;
+                throw Exceptions.createSQLActionException(t);
             }
             preparedStatements.put(statementName, new PreparedStmt(statement, query, paramTypes));
         }
@@ -217,7 +217,7 @@ public class SQLOperations {
                 }
             } catch (Throwable t) {
                 statsTables.logPreExecutionFailure(UUID.randomUUID(), portal.getLastQuery(), Exceptions.messageOf(t));
-                throw t;
+                throw Exceptions.createSQLActionException(t);
             }
         }
 
