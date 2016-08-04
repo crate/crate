@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -30,8 +29,6 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
-// FIXME: remove once explain statements are streamed correctly
-@ESIntegTestCase.ClusterScope(transportClientRatio = 0)
 public class SysClusterTest extends SQLTransportIntegrationTest {
 
     @Test

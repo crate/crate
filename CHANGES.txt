@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue which prevents java client from running explain
+   statements.
+
  - Improved error handling when grouping by invalid data types.
 
  - Fixed an issue which caused `current_timestamp` as part of a generated
