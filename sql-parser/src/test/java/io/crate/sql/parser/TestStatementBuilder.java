@@ -743,6 +743,15 @@ public class TestStatementBuilder {
         printStatement("select * from (select * from (select * from foo) f1) f2");
     }
 
+    @Test
+    public void testJoins() throws Exception {
+        printStatement("select * from foo inner join bar on foo.id = bar.id");
+
+        printStatement("select * from foo left outer join bar on foo.id = bar.id");
+        printStatement("select * from foo right outer join bar on foo.id = bar.id");
+        printStatement("select * from foo full outer join bar on foo.id = bar.id");
+    }
+
     private static void printStatement(String sql)
     {
         println(sql.trim());
