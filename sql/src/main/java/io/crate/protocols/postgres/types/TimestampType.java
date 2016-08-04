@@ -48,7 +48,7 @@ class TimestampType extends PGType {
 
 
     // ISO is the default - postgres allows changing the format but that's currently not supported
-    private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss +00").withZoneUTC();
+    private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS +00").withZoneUTC();
 
 
     private TimestampType() {
