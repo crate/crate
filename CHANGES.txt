@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition which could cause select statements to get stuck
+
  - Fixed an issue which prevents java client from running explain
    statements.
 

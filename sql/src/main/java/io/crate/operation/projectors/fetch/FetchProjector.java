@@ -172,20 +172,22 @@ public class FetchProjector extends AbstractProjector {
         if (nextStage(Stage.COLLECT, Stage.FETCH)) {
             return;
         }
+        if (context.nodeToReaderIds.isEmpty()) {
+            sendToDownstream(true, 0);
+            return;
+        }
         synchronized (failureLock) {
             remainingRequests.set(context.nodeToReaderIds.size());
         }
-        boolean anyRequestSent = false;
         for (Map.Entry<String, IntSet> entry : context.nodeToReaderIds.entrySet()) {
-
             IntObjectHashMap<IntContainer> toFetch = generateToFetch(entry);
-
             if (toFetch.isEmpty() && !isLast) {
-                remainingRequests.decrementAndGet();
+                if (remainingRequests.decrementAndGet() == 0) {
+                    sendToDownstream(false, 0);
+                }
             } else {
                 final String nodeId = entry.getKey();
                 ListenableFuture<IntObjectMap<? extends Bucket>> future = fetchOperation.fetch(nodeId, toFetch, isLast);
-                anyRequestSent = true;
 
                 Futures.addCallback(future, new FutureCallback<IntObjectMap<? extends Bucket>>() {
                     @Override
@@ -197,17 +199,7 @@ public class FetchProjector extends AbstractProjector {
                             }
                         }
                         if (remainingRequests.decrementAndGet() == 0) {
-                            resultExecutor.execute(new AbstractRunnable() {
-                                @Override
-                                public void onFailure(Throwable t) {
-                                    fail(t);
-                                }
-
-                                @Override
-                                protected void doRun() throws Exception {
-                                    sendToDownstream(isLast, 0);
-                                }
-                            });
+                            resultExecutor.execute(new SendToDownstreamRunnable(isLast));
                         }
                     }
 
@@ -219,9 +211,6 @@ public class FetchProjector extends AbstractProjector {
                     }
                 });
             }
-        }
-        if (!anyRequestSent) {
-            sendToDownstream(isLast, 0);
         }
     }
 
@@ -376,5 +365,23 @@ public class FetchProjector extends AbstractProjector {
     @Override
     public Set<Requirement> requirements() {
         return downstream.requirements();
+    }
+
+    private class SendToDownstreamRunnable extends AbstractRunnable {
+        private final boolean isLast;
+
+        SendToDownstreamRunnable(boolean isLast) {
+            this.isLast = isLast;
+        }
+
+        @Override
+        public void onFailure(Throwable t) {
+            fail(t);
+        }
+
+        @Override
+        protected void doRun() throws Exception {
+            sendToDownstream(isLast, 0);
+        }
     }
 }
