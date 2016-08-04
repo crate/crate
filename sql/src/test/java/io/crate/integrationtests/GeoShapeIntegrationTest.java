@@ -25,7 +25,6 @@ package io.crate.integrationtests;
 import com.google.common.collect.ImmutableMap;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
-import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,35 +40,52 @@ import static org.hamcrest.core.Is.is;
 @UseJdbc
 public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
 
+    private static final Map GEO_SHAPE1 = ImmutableMap.of(
+        "coordinates", new double[][]{
+            {0, 0},
+            {1, 1}
+        },
+        "type", "LineString"
+    );
+    private static final Map GEO_SHAPE2 = ImmutableMap.of(
+        "coordinates", new double[][] {
+            {2, 2},
+            {3, 3}
+        },
+        "type", "LineString"
+    );
+
     @Before
     public void prepare() throws Exception {
         execute("CREATE TABLE shaped (" +
                 "  id long primary key," +
-                "  shape geo_shape" +
+                "  shape geo_shape," +
+                "  shapes array(geo_shape)" +
                 ") with (number_of_replicas=0)");
         ensureGreen();
-        execute("INSERT INTO shaped (id, shape) VALUES (?, ?)", $$(
-                $(1L, "POINT (13.0 52.4)"),
-                $(42L, ImmutableMap.of(
-                        "type", "LineString",
-                        "coordinates", new double[][] {
-                                {0, 0},
-                                {1, 1}
-                        }
-                ))
-        ));
+        execute("INSERT INTO shaped (id, shape) VALUES (?, ?)", $$($(1L, "POINT (13.0 52.4)"), $(2L, GEO_SHAPE1)));
+        execute("INSERT INTO shaped (id, shapes) VALUES (?, ?)", $(3, new Object[] { GEO_SHAPE1, GEO_SHAPE2 }));
         execute("REFRESH TABLE shaped");
     }
 
     @Test
     public void testSelectGeoShapeFromSource() throws Exception {
-        execute("select shape from shaped order by id");
+        execute("select shape from shaped where id in (1, 2) order by id");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
                 "{coordinates=[13.0, 52.4], type=Point}\n" +
                 "{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}\n"));
 //TODO: Re-enable once SQLResponse also includes the data types for the columns
 //        assertThat(response.columnTypes()[0], is((DataType) DataTypes.GEO_SHAPE));
         assertThat(response.rows()[0][0], instanceOf(Map.class));
+        assertThat(response.rows()[1][0], instanceOf(Map.class));
+
+        execute("select shapes from shaped where id = 3");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "[{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}, " +
+            "{coordinates=[[2.0, 2.0], [3.0, 3.0]], type=LineString}]\n"));
+//TODO: Re-enable once SQLResponse also includes the data types for the columns
+//        assertThat(response.columnTypes()[0], is((DataType) new ArrayType(DataTypes.GEO_SHAPE)));
+        assertThat(response.rows()[0][0], instanceOf(Object[].class));
     }
 
     @Test
@@ -164,7 +180,7 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table shaped");
 
         execute("select count(*) from shaped");
-        assertThat(((long) response.rows()[0][0]), is(1L));
+        assertThat(((long) response.rows()[0][0]), is(2L));
     }
 
     @Test

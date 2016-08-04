@@ -91,41 +91,53 @@ public class TestingHelpers {
         for (Object[] row : rows) {
             boolean first = true;
             for (Object o : row) {
-                if (!first) {
-                    out.print("| ");
-                } else {
-                    first = false;
-                }
-                if (o == null) {
-                    out.print("NULL");
-                } else if (o instanceof BytesRef) {
-                    out.print(((BytesRef) o).utf8ToString());
-                } else if (o instanceof Object[]) {
-                    out.print(Arrays.deepToString((Object[]) o));
-                } else if (o.getClass().isArray()) {
-                    out.print("[");
-                    boolean arrayFirst = true;
-                    for (int i = 0, length = Array.getLength(o); i < length; i++) {
-                        if (!arrayFirst) {
-                            out.print(",v");
-                        } else {
-                            arrayFirst = false;
-                        }
-                        out.print(Array.get(o, i));
-
-                    }
-                    out.print("]");
-                } else if (o instanceof Map) {
-                    out.print("{");
-                    out.print(MAP_JOINER.join(Sorted.sortRecursive((Map<String, Object>)o, true)));
-                    out.print("}");
-                } else {
-                    out.print(o.toString());
-                }
+                first = printObject(out, first, o);
             }
             out.print("\n");
         }
         return os.toString();
+    }
+
+    private static boolean printObject(PrintStream out, boolean first, Object o) {
+        if (!first) {
+            out.print("| ");
+        } else {
+            first = false;
+        }
+        if (o == null) {
+            out.print("NULL");
+        } else if (o instanceof BytesRef) {
+            out.print(((BytesRef) o).utf8ToString());
+        } else if (o instanceof Object[]) {
+            out.print("[");
+            Object[] oArray = (Object[]) o;
+            for (int i = 0; i < oArray.length; i++) {
+                printObject(out, true, oArray[i]);
+                if (i < oArray.length - 1) {
+                    out.print(", ");
+                }
+            }
+            out.print("]");
+        } else if (o.getClass().isArray()) {
+            out.print("[");
+            boolean arrayFirst = true;
+            for (int i = 0, length = Array.getLength(o); i < length; i++) {
+                if (!arrayFirst) {
+                    out.print(",v");
+                } else {
+                    arrayFirst = false;
+                }
+                printObject(out, first, Array.get(o, i));
+            }
+            out.print("]");
+        } else if (o instanceof Map) {
+            out.print("{");
+            out.print(MAP_JOINER.join(Sorted.sortRecursive((Map<String, Object>)o, true)));
+            out.print("}");
+        } else {
+            out.print(o.toString());
+        }
+        return first;
     }
 
     private final static Joiner.MapJoiner MAP_JOINER = Joiner.on(", ").useForNull("null").withKeyValueSeparator("=");

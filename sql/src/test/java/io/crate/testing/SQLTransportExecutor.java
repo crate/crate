@@ -287,26 +287,15 @@ public class SQLTransportExecutor {
                 value = resultSet.getByte(i + 1);
                 break;
             case "_json":
-                value = resultSet.getArray(i + 1);
+                List<Object> jsonObjects = new ArrayList<>();
+                for (String json : (String[]) resultSet.getArray(i + 1).getArray()) {
+                    jsonObjects.add(jsonToObject(json));
+                }
+                value = jsonObjects.toArray();
                 break;
             case "json":
                 String json = resultSet.getString(i + 1);
-                try {
-                    if (json == null) {
-                        value = null;
-                    } else {
-                        byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
-                        XContentParser parser = JsonXContent.jsonXContent.createParser(bytes);
-                        if (bytes.length >= 1 && bytes[0] == '[') {
-                            parser.nextToken();
-                            value = parser.list().toArray(new Object[0]);
-                        } else {
-                            value = parser.map();
-                        }
-                    }
-                } catch (IOException e) {
-                    throw Throwables.propagate(e);
-                }
+                value = jsonToObject(json);
                 break;
             default:
                 value = resultSet.getObject(i + 1);
@@ -318,6 +307,25 @@ public class SQLTransportExecutor {
             value = ((Array) value).getArray();
         }
         return value;
+    }
+
+    private Object jsonToObject(String json) {
+        try {
+            if (json != null) {
+                byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+                XContentParser parser = JsonXContent.jsonXContent.createParser(bytes);
+                if (bytes.length >= 1 && bytes[0] == '[') {
+                    parser.nextToken();
+                    return parser.list().toArray(new Object[0]);
+                } else {
+                    return parser.mapOrdered();
+                }
+            } else {
+                return null;
+            }
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     private static Object getCharArray(ResultSet resultSet, int i) throws SQLException {
