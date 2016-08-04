@@ -24,20 +24,30 @@ package io.crate.operation.projectors.fetch;
 
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectMap;
+import com.google.common.base.Function;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
+import io.crate.action.FutureActionListener;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.transport.NodeFetchRequest;
 import io.crate.executor.transport.NodeFetchResponse;
 import io.crate.executor.transport.TransportFetchNodeAction;
-import org.elasticsearch.action.ActionListener;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.UUID;
 
 public class TransportFetchOperation implements FetchOperation {
 
+    private static final Function<NodeFetchResponse, IntObjectMap<? extends Bucket>> GET_FETCHED =
+        new Function<NodeFetchResponse, IntObjectMap<? extends Bucket>>() {
+
+        @Nullable
+        @Override
+        public IntObjectMap<? extends Bucket> apply(@Nullable NodeFetchResponse input) {
+            return input == null ? null : input.fetched();
+        }
+    };
     private final TransportFetchNodeAction transportFetchNodeAction;
     private final Map<String, ? extends IntObjectMap<Streamer[]>> nodeIdToReaderIdToStreamers;
     private final UUID jobId;
@@ -57,22 +67,12 @@ public class TransportFetchOperation implements FetchOperation {
     public ListenableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId,
                                                                   IntObjectMap<? extends IntContainer> toFetch,
                                                                   boolean closeContext) {
-        final SettableFuture<IntObjectMap<? extends Bucket>> future = SettableFuture.create();
+        FutureActionListener<NodeFetchResponse, IntObjectMap<? extends Bucket>> listener = new FutureActionListener<>(GET_FETCHED);
         transportFetchNodeAction.execute(
             nodeId,
             nodeIdToReaderIdToStreamers.get(nodeId),
             new NodeFetchRequest(jobId, executionPhaseId, closeContext, toFetch),
-            new ActionListener<NodeFetchResponse>() {
-                @Override
-                public void onResponse(NodeFetchResponse nodeFetchResponse) {
-                    future.set(nodeFetchResponse.fetched());
-                }
-
-                @Override
-                public void onFailure(Throwable e) {
-                    future.setException(e);
-                }
-            });
-        return future;
+            listener);
+        return listener;
     }
 }
