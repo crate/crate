@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
@@ -61,7 +62,7 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
-@UseJdbc(false) // lots of stuff failing
+@UseJdbc
 public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -77,6 +78,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    @UseJdbc(false) // no copy row count
     public void testCopyFromIntoPartitionedTableWithPARTITIONKeyword() throws Exception {
         execute("create table quotes (" +
                 "id integer primary key," +
@@ -115,6 +117,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
      * Otherwise the rowCount returned from the copy from statement is ambiguous.
      */
     @Test
+    @UseJdbc(false) // no copy rowcount
     public void testCopyFromIntoPartitionedTable() throws Exception {
         execute("create table quotes (" +
                 "  id integer primary key, " +
@@ -142,6 +145,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    @UseJdbc(false) // no copy rowcount
     public void testCopyFromPartitionedTableCustomSchema() throws Exception {
         execute("create table my_schema.parted (" +
                 "  id long, " +
@@ -367,6 +371,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    @UseJdbc(false) // different error message
     public void testInsertPartitionedTablePrimaryKeysDuplicate() throws Exception {
         execute("create table parted (" +
                 "  id int, " +
@@ -971,6 +976,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    @UseJdbc(false) // no drop table rowcount
     public void testDropPartitionedTable() throws Exception {
         execute("create table quotes (" +
                 "  id integer, " +
@@ -1059,6 +1065,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    @UseJdbc(false) // no drop table rowcount
     public void testPartitionedTableAllConstraintsRoundTrip() throws Exception {
         execute("create table quotes (id integer primary key, quote string, " +
                 "date timestamp primary key, user_id string primary key) " +
@@ -1096,6 +1103,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    @UseJdbc(false) // no drop table rowcount
     public void testPartitionedTableSchemaAllConstraintsRoundTrip() throws Exception {
         execute("create table my_schema.quotes (id integer primary key, quote string, " +
                 "date timestamp primary key, user_id string primary key) " +
@@ -1159,6 +1167,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    @UseJdbc(false) // drop table has no row count
     public void testPartitionedTableNestedAllConstraintsRoundTrip() throws Exception {
         execute("create table quotes (" +
                 "id integer, " +
@@ -1167,7 +1176,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "  date timestamp, " +
                 "  user_id string)" +
                 ") partitioned by(created['date']) clustered by (id) with (number_of_replicas=0)");
-        assertThat(response.rowCount(), is(1L));
         ensureYellow();
         execute("insert into quotes (id, quote, created) values(?, ?, ?)",
                 new Object[]{1, "Don't panic", new MapBuilder<String, Object>().put("date", 1395874800000L).put("user_id", "Arthur").map()});
@@ -1207,7 +1215,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("create table quotes (id integer, quote string, date timestamp) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
         ensureYellow();
-        assertThat(response.rowCount(), is(1L));
 
         String templateName = PartitionName.templateName(null, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
@@ -1278,7 +1285,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("create table quotes (id integer, quote string, date timestamp) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='1-all')");
         ensureYellow();
-        assertThat(response.rowCount(), is(1L));
 
         String templateName = PartitionName.templateName(null, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
@@ -1303,7 +1309,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("create table quotes (id integer, quote string, date timestamp) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='1-all')");
         ensureYellow();
-        assertThat(response.rowCount(), is(1L));
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L,
@@ -1344,7 +1349,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("create table quotes (id integer, quote string, date timestamp) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas=0)");
         ensureYellow();
-        assertThat(response.rowCount(), is(1L));
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
                 new Object[]{1, "Don't panic", 1395874800000L,
@@ -1431,6 +1435,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    @UseJdbc(false) // no refresh row count
     public void testRefreshPartitionedTableAllPartitions() throws Exception {
         execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=0)");
         ensureYellow();
@@ -1469,6 +1474,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    @UseJdbc(false) // refresh has no row count
     public void testRefreshPartitionedTableSinglePartitions() throws Exception {
         execute("create table parted (id integer, name string, date timestamp) partitioned by (date) " +
                 "with (number_of_replicas=0, refresh_interval=-1)");
@@ -1512,6 +1518,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    @UseJdbc(false) // no refresh row count
     public void testRefreshMultipleTablesWithPartition() throws Exception {
         execute("create table t1 (" +
                 "  id integer, " +
@@ -1683,6 +1690,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    @UseJdbc(false) // error message is different
     public void testCreateTableWithIllegalCustomSchemaCheckedByES() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("table name \"AAA.t\" is invalid.");
@@ -1697,7 +1705,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "  date timestamp) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
         ensureYellow();
-        assertThat(response.rowCount(), is(1L));
 
         String templateName = PartitionName.templateName(null, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()

@@ -23,6 +23,7 @@ package io.crate.analyze.expressions;
 
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.*;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
@@ -73,7 +74,7 @@ public class ExpressionToStringVisitor extends AstVisitor<String, Object[]> {
 
     @Override
     public String visitParameterExpression(ParameterExpression node, Object[] parameters) {
-        return parameters[node.index()].toString();
+        return BytesRefs.toString(parameters[node.index()]);
     }
 
     @Override

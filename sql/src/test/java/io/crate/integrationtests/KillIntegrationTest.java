@@ -159,13 +159,11 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false)
     public void testKillSelectSysTableJobById() throws Exception {
         assertGotCancelled("SELECT sleep(500) FROM sys.nodes", null, false);
     }
 
     @Test
-    @UseJdbc(false) // UUID type mapping is missing
     public void testKillNonExisitingJob() throws Exception {
         UUID jobId = UUID.randomUUID();
         SQLResponse killResponse = execute("KILL ?", new Object[]{jobId.toString()});
