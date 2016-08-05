@@ -7,67 +7,19 @@ Unreleased
 
  - Fixed a race condition which could cause select statements to get stuck
 
- - Fixed an issue which prevents java client from running explain
-   statements.
-
- - Improved error handling when grouping by invalid data types.
-
- - Fixed an issue which caused `current_timestamp` as part of a generated
-   expression to not work correctly.
-   This fix will only affect new tables. Tables which already contain a
-   generated column which uses `current_timestamp` will need to be recreated.
-
- - Fixed an issue when ordering by a function on a joined query.
-
- - Fix: Arrays of geo_point can be used in insert/update
-   statements as literals as well as bind arguments.
-
- - Fixed an issue which could lead to wrong Error messages due to a
-   race condition.
-
  - Added support for subselect statements that can be rewritten as a single query.
 
  - BREAKING: Column names returned on queries does not include the table and schema
    names anymore, i.e., ``select doc.t1.a from t1`` will return column name ``a`` instead of
    ``doc.t1.a``.
 
- - Fixed a read isolation issue which could cause joins involving
-   system and blob tables to return inconsistent results.
-
- - Fix: Do not fetch table stats when node is not fully available yet.
-   This could have led to NullPointerExceptions during long recovery
-   process on node start.
-
  - Fetch operations are now threaded per shard instead of per node.
-
- - BREAKING: On Hunspell dictionary configuration, the parameter
-   indices.analysis.hunspell.dictionary.location has been removed and <path.conf>/hunspell
-   is always used.
-
- - Adapted behaviour of stats.enabled, stats.jobs_log_size and stats.operations_log_size settings
-   to match behaviour of other cluster wide settings like for example minimum_master_nodes.
-
- - Fixed an issue which prevented running join queries on empty partitioned
-   tables.
-
- - Fixed a bug that prevented join and sort on blob tables.
-
- - Fix: the ``hostname`` column of the ``sys.nodes`` table returns a hostname
-   instead of an IP address.
 
  - Added initial experimental support for the postgres wire protocol. This is
    disabled by default.
 
- - Fixed an issue that caused select statements to get stuck if used as part of
-   a bulk request. Now a proper error is raised.
-
- - Updated Elasticsearch to 2.3.4
-
  - Improved the error message of `COPY FROM` statements which fail due to
    invalid entries in the files being imported.
-
- - Fix: the ``within`` scalar function now allows querying geo_shapes within
-   geo_shapes.
 
  - Implemented basic conditional functions
    (``coalesce()``, ``greatest()``, ``least()``, ``nullif()``).
@@ -119,6 +71,58 @@ Unreleased
    that conflicts with multiple shards.
 
  - Optimize count aggregations by using custom data type to avoid boxing of primitives into Objects.
+
+2016/08/05 0.55.3
+=================
+
+ - Fixed an issue which prevents java client from running explain
+   statements.
+
+ - Fixed an issue which caused `current_timestamp` as part of a generated
+   expression to not work correctly.
+   This fix will only affect new tables. Tables which already contain a
+   generated column which uses `current_timestamp` will need to be recreated.
+
+ - Improved error handling when grouping by invalid data types.
+
+ - Fixed an issue when ordering by a function on a joined query.
+
+ - Fixed an issue which could lead to wrong Error messages due to a
+   race condition.
+
+ - Fix: Arrays of geo_point can be used in insert/update
+   statements as literals as well as bind arguments.
+
+ - Fixed a read isolation issue which could cause joins involving
+   system and blob tables to return inconsistent results.
+
+ - On Hunspell dictionary configuration, the parameter
+   indices.analysis.hunspell.dictionary.location has been removed and <path.conf>/hunspell
+   is always used.
+
+ - Fixed a bug that prevented join and sort on blob tables.
+
+ - Adapted behaviour of stats.enabled, stats.jobs_log_size and stats.operations_log_size settings
+   to match behaviour of other cluster wide settings like for example minimum_master_nodes.
+
+ - Fix: Do not fetch table stats when node is not fully available yet.
+   This could have led to NullPointerExceptions during long recovery
+   process on node start.
+
+ - Fixed an issue which prevented running join queries on empty partitioned
+   tables.
+
+ - Fix: the ``hostname`` column of the ``sys.nodes`` table returns a hostname
+   instead of an IP address.
+
+ - Fixed an issue that caused select statements to get stuck if used as part of
+   a bulk request. Now a proper error is raised.
+
+ - Updated Elasticsearch to 2.3.4
+
+ - Fix: the ``within`` scalar function now allows querying geo_shapes within
+   geo_shapes.
+
 
 2016/07/07 0.55.2
 =================
