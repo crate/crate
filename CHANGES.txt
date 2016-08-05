@@ -32,7 +32,7 @@ Unreleased
  - Fixed a read isolation issue which could cause joins involving
    system and blob tables to return inconsistent results.
 
- - BREAKING: On Hunspell dictionary configuration, the parameter
+ - On Hunspell dictionary configuration, the parameter
    indices.analysis.hunspell.dictionary.location has been removed and <path.conf>/hunspell
    is always used.
 
