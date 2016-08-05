@@ -86,7 +86,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
         IndicesAliasesRequest request = new IndicesAliasesRequest();
         request.addAlias("entsafter", "terminator");
         client().admin().indices().aliases(request).actionGet();
-        ensureGreen();
+        ensureYellow();
 
         DocTableInfo terminatorTable = (DocTableInfo) schemas.getTableInfo(new TableIdent(null, "terminator"));
         DocTableInfo entsafterTable = (DocTableInfo) schemas.getTableInfo(new TableIdent(null, "entsafter"));
