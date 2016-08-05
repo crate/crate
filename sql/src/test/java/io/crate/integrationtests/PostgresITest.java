@@ -33,10 +33,7 @@ import org.junit.rules.Timeout;
 import org.postgresql.util.PSQLException;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 import static org.hamcrest.core.Is.is;
 
@@ -76,6 +73,17 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     public void initProperties() throws Exception {
         if (randomBoolean()) {
             properties.setProperty("prepareThreshold", "-1"); // force binary transfer
+        }
+    }
+
+    @Test
+    public void testUseOfUnsupportedType() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            PreparedStatement stmt = conn.prepareStatement("select ? from sys.cluster");
+            stmt.setObject(1, UUID.randomUUID());
+
+            expectedException.expectMessage("Can't map PGType with oid=2950 to Crate type");
+            stmt.executeQuery();
         }
     }
 

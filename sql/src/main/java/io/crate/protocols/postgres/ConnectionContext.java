@@ -32,7 +32,6 @@ import io.crate.concurrent.CompletionState;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -350,8 +349,8 @@ class ConnectionContext {
             int oid = buffer.readInt();
             DataType dataType = PGTypes.fromOID(oid);
             if (dataType == null) {
-                LOGGER.warn("Can't map PGType with oid={} to Crate type", oid);
-                dataType = DataTypes.UNDEFINED;
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "Can't map PGType with oid=%d to Crate type", oid));
             }
             paramTypes.add(dataType);
         }
