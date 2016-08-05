@@ -35,7 +35,6 @@ import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsReques
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -1545,15 +1544,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testTwoSubStrOnSameColumn() throws Exception {
-        this.setup.groupBySetup();
-        execute("select name, substr(name, 4, 4), substr(name, 3, 5) from sys.nodes order by name");
-        assertThat((String) response.rows()[0][0], is("node_s0"));
-        assertThat((String) response.rows()[0][1], is("e_s0"));
-        assertThat((String) response.rows()[0][2], is("de_s0"));
-        assertThat((String) response.rows()[1][0], is("node_s1"));
-        assertThat((String) response.rows()[1][1], is("e_s1"));
-        assertThat((String) response.rows()[1][2], is("de_s1"));
-
+        execute("select substr(name, 0, 4), substr(name, 4, 8) from sys.cluster");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("SUIT| TE-CHILD\n"));
     }
 
 
