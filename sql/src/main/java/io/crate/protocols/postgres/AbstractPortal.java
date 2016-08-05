@@ -52,6 +52,11 @@ abstract class AbstractPortal implements Portal {
     }
 
     @Override
+    public String name() {
+        return name;
+    }
+
+    @Override
     public void close() {}
 
     @Override

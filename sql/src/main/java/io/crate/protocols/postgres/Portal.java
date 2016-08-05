@@ -35,6 +35,8 @@ import java.util.List;
 
 public interface Portal {
 
+    String name();
+
     FormatCodes.FormatCode[] getLastResultFormatCodes();
 
     List<? extends DataType> getLastOutputTypes();

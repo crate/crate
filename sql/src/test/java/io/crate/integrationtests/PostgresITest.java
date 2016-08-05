@@ -261,6 +261,75 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testExecuteBatchWithOneFailingAndNothingExecuted() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            Statement stmt = conn.createStatement();
+            stmt.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
+            ensureYellow();
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x) values (cast(? as integer))");
+            preparedStatement.setString(1, Integer.toString(1));
+            preparedStatement.addBatch();
+
+            preparedStatement.setString(1, "foobar");
+            preparedStatement.addBatch();
+
+            preparedStatement.setString(1, Integer.toString(3));
+            preparedStatement.addBatch();
+
+            try {
+                preparedStatement.executeBatch();
+                fail("executeBatch must throw an exception");
+            } catch (BatchUpdateException e) {
+                assertThat(e.getUpdateCounts(), is(new int[] { -3, -3, -3 }));
+                SQLException nextException = e.getNextException();
+                assertThat(nextException.getMessage(), Matchers.containsString("cannot cast 'foobar' to type integer"));
+            }
+
+            conn.createStatement().executeUpdate("refresh table t");
+            ResultSet rs = conn.createStatement().executeQuery("select count(*) from t");
+            assertThat(rs.next(), is(true));
+            // all failed because the error happened during analysis and so nothing is executed
+            assertThat(rs.getInt(1), is(0));
+        }
+    }
+
+    @Test
+    public void testExecuteBatchWithOneRuntimeFailure() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            Statement stmt = conn.createStatement();
+            stmt.executeUpdate("create table t (id int primary key, x int) with (number_of_replicas = 0)");
+            ensureYellow();
+            PreparedStatement preparedStatement = conn.prepareStatement("insert into t (id, x) values (?, ?)");
+            preparedStatement.setInt(1, 1);
+            preparedStatement.setInt(2, 0);
+            preparedStatement.addBatch();
+
+            preparedStatement.setInt(1, 2);
+            preparedStatement.setInt(2, 10);
+            preparedStatement.addBatch();
+
+            assertThat(preparedStatement.executeBatch(), is(new int[] { 1, 1}));
+            conn.createStatement().executeUpdate("refresh table t");
+
+            preparedStatement = conn.prepareStatement("update t set x = log(x) where id = ?");
+            preparedStatement.setInt(1, 1);
+            preparedStatement.addBatch();
+
+            preparedStatement.setInt(1, 2);
+            preparedStatement.addBatch();
+            assertThat(preparedStatement.executeBatch(), is(new int[] {-3, 1}));
+            conn.createStatement().executeUpdate("refresh table t");
+
+            ResultSet rs = conn.createStatement().executeQuery("select x from t order by id");
+            assertThat(rs.next(), is(true));
+            assertThat(rs.getInt(1), is(0)); // log(0) is an error - the update failed and the value remains unchanged
+
+            assertThat(rs.next(), is(true));
+            assertThat(rs.getInt(1), is(1)); // log(10) -> 1
+        }
+    }
+
+    @Test
     public void testExecuteBatchWithDifferentStatements() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             conn.setAutoCommit(true);

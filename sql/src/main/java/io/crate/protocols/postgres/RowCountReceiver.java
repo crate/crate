@@ -45,6 +45,13 @@ class RowCountReceiver implements ResultReceiver {
     @Override
     public void setNextRow(Row row) {
         rowCount = (long) row.get(0);
+        /*
+         * In Crate -1 means row-count unknown, and -2 means error. In JDBC -2 means row-count unknown and -3 means error.
+         * See {@link java.sql.Statement#EXECUTE_FAILED}
+         */
+        if (rowCount < 0) {
+            rowCount--;
+        }
     }
 
     @Override

@@ -283,8 +283,11 @@ public class SQLOperations {
                 case 1:
                     Portal portal = pendingExecutions.iterator().next();
                     pendingExecutions.clear();
-                    portal.sync(planner, statsTables, listener);
                     clearState();
+                    portal.sync(planner, statsTables, listener);
+                    if (UNNAMED.equals(portal.name())) {
+                        portal.close();
+                    }
                     return;
             }
 
@@ -292,10 +295,7 @@ public class SQLOperations {
         }
 
         public void clearState() {
-            Portal portal = portals.remove(UNNAMED);
-            if (portal != null) {
-                portal.close();
-            }
+            portals.remove(UNNAMED);
             preparedStatements.remove(UNNAMED);
         }
 
