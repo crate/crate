@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/08/05 0.55.3
+=================
+
  - Fixed an issue which prevents java client from running explain
    statements.
 
