@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
@@ -371,7 +370,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(false) // different error message
     public void testInsertPartitionedTablePrimaryKeysDuplicate() throws Exception {
         execute("create table parted (" +
                 "  id int, " +
@@ -1690,7 +1688,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(false) // error message is different
     public void testCreateTableWithIllegalCustomSchemaCheckedByES() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("table name \"AAA.t\" is invalid.");

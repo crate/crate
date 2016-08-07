@@ -126,7 +126,6 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
     }
 
     @Test
-    @UseJdbc(false) // geo_shape missing
     public void testWithinGenericFunction() throws Exception {
         execute("create table shaped (id int, point geo_point, shape geo_shape) with (number_of_replicas=0)");
         ensureYellow();

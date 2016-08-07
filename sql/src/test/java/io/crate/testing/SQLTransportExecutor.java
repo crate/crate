@@ -177,9 +177,8 @@ public class SQLTransportExecutor {
             if (values.isEmpty()) {
                 return null; // TODO: can't insert empty list without knowing the type
             }
-            Object firstValue = values.iterator().next();
 
-            if (firstValue instanceof Map) {
+            if (values.iterator().next() instanceof Map) {
                 try {
                     return toPGObjectJson(toJsonString(values));
                 } catch (SQLException | IOException e) {
@@ -187,10 +186,12 @@ public class SQLTransportExecutor {
                 }
             }
             List<Object> convertedValues = new ArrayList<>(values.size());
-            DataType<?> dataType = DataTypes.guessType(firstValue);
-            PGType pgType = PGTypes.get(dataType);
+            PGType pgType = null;
             for (Object value : values) {
                 convertedValues.add(toJdbcCompatObject(connection, value));
+                if (pgType == null && value != null) {
+                    pgType = PGTypes.get(DataTypes.guessType(value));
+                }
             }
             try {
                 return connection.createArrayOf(pgType.typName(), convertedValues.toArray(new Object[0]));

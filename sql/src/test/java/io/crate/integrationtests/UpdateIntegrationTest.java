@@ -39,7 +39,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.core.Is.is;
 
-@UseJdbc(false) // exception rewrite missing
+@UseJdbc
 public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -720,7 +720,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
                 " name as concat(user['name'], 'bar')" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
-        execute("insert into generated_column (id, ts) values (?, ?)", new Object[]{
+        execute("insert into generated_column (id, ts, user) values (?, ?, ?)", new Object[]{
                 1, "2015-11-18T11:11:00", MapBuilder.newMapBuilder().put("name", "foo").map()});
         refresh();
         execute("update generated_column set ts = ?, user = ? where id = ?", new Object[]{

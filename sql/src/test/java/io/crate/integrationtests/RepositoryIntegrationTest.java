@@ -64,7 +64,6 @@ public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // result contains bytesref instead of string
     public void testCreateRepository() throws Throwable {
         String repoLocation = TEMPORARY_FOLDER.newFolder().getAbsolutePath();
         execute("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location=?, compress=True)",
