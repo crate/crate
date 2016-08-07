@@ -436,7 +436,6 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // no entry for json array oid in pg_types
     public void testDynamicNullArrayAndDouble() throws Exception {
         execute("create table arr (id short primary key, tags array(string)) with (number_of_replicas=0)");
         ensureYellow();

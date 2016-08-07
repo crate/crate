@@ -49,13 +49,13 @@ public class SysNodeCheckerIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // column index is out of range
     public void testUpdateAcknowledge() throws Exception {
-        // gateway.expected_nodes is -1 in the test setup so this test always fails
-        SQLResponse resp = execute("select id, passed from sys.node_checks where passed = false");
-        execute("update sys.node_checks set acknowledged = true where id = ?", resp.rows()[0]);
+        // gateway.expected_nodes is -1 in the test setup so this check always fails
+        execute("select id, passed from sys.node_checks where passed = false");
+        Object id = response.rows()[0][0];
+        execute("update sys.node_checks set acknowledged = true where id = ?", new Object[] {id});
 
-        execute("select id, passed, acknowledged from sys.node_checks where id = ?", resp.rows()[0]);
+        execute("select id, passed, acknowledged from sys.node_checks where id = ?", new Object[] {id});
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("1| false| true\n" +
                "1| false| true\n"));

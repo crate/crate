@@ -1514,7 +1514,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // shape support is missing
     public void testWithinQuery() throws Exception {
         execute("create table t (id int primary key, p geo_point) " +
                 "clustered into 1 shards " +
@@ -1857,16 +1856,17 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // TODO: probably fails because of additional statements being executed with jdbc and appearing in sys.jobs
     public void testUnknownTableJobGetsRemoved() throws Exception {
         execute("set global stats.enabled=true");
+        String uniqueId = UUID.randomUUID().toString();
+        String stmtStr = "select '" + uniqueId + "' from foobar";
+        String stmtStrWhere = "select ''" + uniqueId + "'' from foobar";
         try {
-            execute("select * from foobar");
+            execute(stmtStr);
         } catch (SQLActionException e) {
             assertThat(e.getMessage(), containsString("Table 'doc.foobar' unknown"));
-            execute("select stmt from sys.jobs");
-            assertEquals(response.rowCount(), 1L);
-            assertEquals(response.rows()[0][0], "select stmt from sys.jobs");
+            execute("select stmt from sys.jobs where stmt='" + stmtStrWhere + "'");
+            assertEquals(response.rowCount(), 0L);
         } finally {
             execute("reset global stats.enabled");
         }
