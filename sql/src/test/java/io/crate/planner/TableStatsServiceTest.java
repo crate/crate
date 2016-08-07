@@ -42,7 +42,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,6 +50,7 @@ import org.mockito.Answers;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -101,6 +101,34 @@ public class TableStatsServiceTest extends CrateUnitTest  {
     }
 
     @Test
+    public void testPeriodicUpdate() throws Exception {
+        final AtomicInteger numRequests = new AtomicInteger(0);
+        final TransportSQLAction transportSQLAction = getTransportSQLAction(numRequests);
+
+        final ClusterService clusterService = mock(ClusterService.class);
+        when(clusterService.localNode()).thenReturn(mock(DiscoveryNode.class));
+
+        new TableStatsService(Settings.EMPTY,
+            threadPool,
+            clusterService,
+            TimeValue.timeValueMillis(100),
+            new Provider<TransportSQLAction>() {
+                @Override
+                public TransportSQLAction get() {
+                    return transportSQLAction;
+                }
+            });
+
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                // periodic update happened
+                assertThat(numRequests.get(), greaterThan(1));
+            }
+        });
+    }
+
+    @Test
     public void testNumDocs() throws Exception {
         final AtomicInteger numRequests = new AtomicInteger(0);
         final TransportSQLAction transportSQLAction = getTransportSQLAction(numRequests);
@@ -111,31 +139,31 @@ public class TableStatsServiceTest extends CrateUnitTest  {
         final TableStatsService statsService = new TableStatsService(Settings.EMPTY,
                                                                threadPool,
                                                                clusterService,
-                                                               TimeValue.timeValueMillis(100),
+                                                               TimeValue.timeValueHours(1),
                                                                new Provider<TransportSQLAction>() {
             @Override
             public TransportSQLAction get() {
                 return transportSQLAction;
             }
         });
-
+        // 1st Periodic Update
+        statsService.run();
         assertBusy(new Runnable() {
-                       @Override
-                       public void run() {
-                           // first call triggers request
-                           assertThat(statsService.numDocs(new TableIdent("foo", "bar")), is(2L));
-                           // second call hits cache
-                           assertThat(statsService.numDocs(new TableIdent("foo", "bar")), is(2L));
-                       }
-                   });
+            @Override
+            public void run() {
+                assertThat(numRequests.get(), is(1));
+            }
+        });
+        assertThat(statsService.numDocs(new TableIdent("foo", "bar")), is(2L));
 
-        int slept = 0;
-        while (numRequests.get() < 2 && slept < 1000) {
-            Thread.sleep(50);
-            slept += 50;
-        }
-        // periodic update happened
-        assertThat(numRequests.get(), Matchers.greaterThanOrEqualTo(2));
+        // 2nd Periodic Update
+        statsService.run();
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                assertThat(numRequests.get(), is(2));
+            }
+        });
         assertThat(statsService.numDocs(new TableIdent("foo", "bar")), is(4L));
 
         assertThat(statsService.numDocs(new TableIdent("unknown", "table")), is(-1L));
@@ -152,7 +180,7 @@ public class TableStatsServiceTest extends CrateUnitTest  {
         TableStatsService statsService = new TableStatsService(Settings.EMPTY,
             threadPool,
             clusterService,
-            TimeValue.timeValueSeconds(60L),
+            TimeValue.timeValueHours(1),
             new Provider<TransportSQLAction>() {
                 @Override
                 public TransportSQLAction get() {
@@ -162,6 +190,6 @@ public class TableStatsServiceTest extends CrateUnitTest  {
 
         statsService.run();
         assertThat(statsService.numDocs(new TableIdent("foo", "bar")), is(-1L));
-        assertThat(numRequests.get(), Matchers.greaterThanOrEqualTo(0));
+        assertThat(numRequests.get(), is(0));
     }
 }
