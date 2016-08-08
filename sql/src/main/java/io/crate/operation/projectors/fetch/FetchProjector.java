@@ -154,7 +154,10 @@ public class FetchProjector extends AbstractProjector {
         Object[] cells = row.materialize();
         collectRowContext.inputRow().cells = cells;
         for (int i : collectRowContext.docIdPositions()) {
-            context.require((long) cells[i]);
+            Object docId = cells[i];
+            if (docId != null) {
+                context.require((long) docId);
+            }
         }
         inputValues.add(cells);
 
@@ -233,13 +236,20 @@ public class FetchProjector extends AbstractProjector {
         final ArrayBackedRow[] fetchRows = collectRowContext.fetchRows();
         final ArrayBackedRow[] partitionRows = collectRowContext.partitionRows();
         final int[] docIdPositions = collectRowContext.docIdPositions();
+        final Object[][] nullCells = collectRowContext.nullCells();
 
         loop:
         for (int i = rowStartIdx; i < inputValues.size(); i++) {
             Object[] cells = inputValues.get(i);
             inputRow.cells = cells;
             for (int j = 0; j < docIdPositions.length; j++) {
-                long doc = (long) cells[docIdPositions[j]];
+                Object docObject = cells[docIdPositions[j]];
+                if (docObject == null) {
+                    // can be null on outer joins
+                    fetchRows[j].cells = nullCells[j];
+                    continue ;
+                }
+                long doc = (long) docObject;
                 int readerId = (int) (doc >> 32);
                 int docId = (int) (long) doc;
                 ReaderBucket readerBucket = context.getReaderBucket(readerId);
