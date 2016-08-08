@@ -223,7 +223,7 @@ public class EvaluatingNormalizer {
      *
      * @param symbols the list to be normalized
      */
-    public void normalizeInplace(@Nullable List<Symbol> symbols, StmtCtx context) {
+    public void normalizeInplace(@Nullable List<Symbol> symbols, @Nullable StmtCtx context) {
         if (symbols != null) {
             for (int i = 0; i < symbols.size(); i++) {
                 symbols.set(i, normalize(symbols.get(i), context));
@@ -231,7 +231,7 @@ public class EvaluatingNormalizer {
         }
     }
 
-    public Symbol normalize(@Nullable Symbol symbol, StmtCtx context) {
+    public Symbol normalize(@Nullable Symbol symbol, @Nullable StmtCtx context) {
         if (symbol == null) {
             return null;
         }

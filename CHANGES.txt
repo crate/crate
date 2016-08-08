@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Avoid requesting unnecessary nodes when a sys.nodes query is performed
+
  - Queries on the `sys.nodes` table will now short circuit in case some nodes
    in the cluster are unresponsive. All columns of the unresponsive nodes will
    contain null values except `id` and `name`.
