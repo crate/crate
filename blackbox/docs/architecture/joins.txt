@@ -70,8 +70,9 @@ An outer join has following types:
 Joins in Crate
 ==============
 
-Crate supports (a) CROSS JOIN, (b) INNER JOIN, and (c) EQUI JOIN. To implement
-these, the nested loop join algorithm is implemented with a few optimizations.
+Crate supports (a) CROSS JOIN, (b) INNER JOIN, (c) EQUI JOIN, (d) LEFT JOIN,
+(e) RIGHT JOIN and (f) FULL JOIN. To implement these, the nested loop join
+algorithm is implemented with a few optimizations.
 
 Nested Loop Join
 ----------------
