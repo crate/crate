@@ -28,17 +28,27 @@ import io.crate.action.sql.SQLRequest;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.disruption.NetworkPartition;
 import org.elasticsearch.test.disruption.NetworkUnresponsivePartition;
+import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 
 import java.util.*;
 
 import static org.hamcrest.Matchers.*;
 
-@ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
+@ESIntegTestCase.ClusterScope(minNumDataNodes = 2, transportClientRatio = 0)
 public class SysNodeResiliencyIntegrationTest extends SQLTransportIntegrationTest {
+
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        ArrayList<Class<? extends Plugin>> nodePlugins = new ArrayList<>(super.nodePlugins());
+        nodePlugins.add(MockTransportService.TestPlugin.class);
+        return nodePlugins;
+    }
+
 
     /**
      * Test that basic information from cluster state is used if a sys node
