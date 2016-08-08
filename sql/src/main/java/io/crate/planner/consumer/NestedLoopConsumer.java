@@ -251,7 +251,8 @@ public class NestedLoopConsumer implements Consumer {
                 rightMerge,
                 nlExecutionNodes,
                 JoinType.INNER,
-                filterSymbol
+                filterSymbol,
+                right.querySpec().outputs().size()
             );
             MergePhase localMergePhase = null;
             // TODO: build local merge phases somewhere else for any subplan

@@ -28,9 +28,11 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
+import com.google.common.base.Predicates;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.operation.projectors.ListenableRowReceiver;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.testing.RowCountRowReceiver;
 import io.crate.testing.RowSender;
 import org.elasticsearch.common.unit.TimeValue;
@@ -122,7 +124,7 @@ public class NestedLoopOperationBenchmark {
         Iterable<Row> right = RowSender.rowRange(0, rightSize);
 
         RowCountRowReceiver receiver = new RowCountRowReceiver();
-        NestedLoopOperation operation = new NestedLoopOperation(0, receiver);
+        NestedLoopOperation operation = new NestedLoopOperation(0, receiver, Predicates.<Row>alwaysTrue(), JoinType.CROSS, 0);
         ListenableRowReceiver leftSide = operation.leftRowReceiver();
         ListenableRowReceiver rightSide = operation.rightRowReceiver();
 
