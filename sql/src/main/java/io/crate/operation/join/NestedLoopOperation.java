@@ -21,9 +21,7 @@
 
 package io.crate.operation.join;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -33,7 +31,9 @@ import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionState;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNull;
 import io.crate.operation.projectors.*;
+import io.crate.planner.node.dql.join.JoinType;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -43,13 +43,14 @@ import java.util.concurrent.atomic.AtomicReference;
 
 
 /**
- * Push based Nested Loop implementation:
- * <p>
- * Basically it is:
+ * Push based nested-loop-like implementation:
+ *
+ * <h2>cross join or inner join</h2>
  * <pre>
  *     for (leftRow in left) {
  *         for (rightRow in right) {
- *             emit(left + right)
+ *             if matched
+ *                  emit(left + right)
  *         }
  *     }
  * </pre>
@@ -68,8 +69,53 @@ import java.util.concurrent.atomic.AtomicReference;
  *             RowReceiver
  * </pre>
  * <p>
- * Implementation details:
+ *
+ * <h2>left join</h2>:
+ * <pre>
+ *     for (leftRow in left) {
+ *         for (rightRow in right) {
+ *             matched?
+ *                  emit
+ *         }
+ *         if (noRightRowMatched) {
+ *             emitWithRightAsNull
+ *         }
+ *     }
+ *
+ * </pre>
+ *
+ *
+ * <h2>right join</h2>
+ *
+ * Adds an additional loop over rightRows after the nested-loop to emit any rows that didn't have any matches:
+ * <pre>
+ *      for (leftRow in left) {
+ *          for (rightRow in right) {
+ *              if matched {
+ *                  markMatched(position)
+ *                  emitIfMatch
+ *              }
+ *          }
+ *      }
+ *
+ *      for (rightRow in right) {
+ *          if notMatched(position) {
+ *              emitWithLeftAsNull
+ *          }
+ *      }
+ *</pre>
+ * As a consequence of this algorithm the ordering of the emitted rows
+ * doesn't match the order of the rows as received from the upstreams.
+ *
  * <p>
+ *
+ * <h2>Full join</h2>
+ *
+ * is a combination of left-join and right-join.
+ *
+ *
+ * <h2>Implementation details:</h2>
+ *
  * Both upstreams start concurrently. {@link #leadAcquired} is used to pause the first upstream and at then point
  * it is single threaded.
  * <p>
@@ -105,10 +151,12 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
     private final int phaseId;
     private final RowReceiver downstream;
-    private final Predicate<Row> rowFilterPredicate;
+    private final Predicate<Row> joinPredicate;
+    private final JoinType joinType;
 
     private volatile Throwable upstreamFailure;
     private volatile boolean stop = false;
+    private volatile boolean emitRightJoin = false;
 
     @Override
     public void addListener(CompletionListener listener) {
@@ -117,17 +165,22 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
     private final AtomicBoolean leadAcquired = new AtomicBoolean(false);
 
-    public NestedLoopOperation(int phaseId, RowReceiver rowReceiver, Predicate<Row> rowFilterPredicate) {
+    public NestedLoopOperation(int phaseId,
+                               RowReceiver rowReceiver,
+                               Predicate<Row> joinPredicate,
+                               JoinType joinType,
+                               int leftNumOutputs,
+                               int rightNumOutputs) {
         this.phaseId = phaseId;
         this.downstream = rowReceiver;
-        this.rowFilterPredicate = rowFilterPredicate;
+        this.joinPredicate = joinPredicate;
+        this.joinType = joinType;
         left = new LeftRowReceiver();
-        right = new RightRowReceiver();
-    }
-
-    @VisibleForTesting
-    NestedLoopOperation(int phaseId, RowReceiver rowReceiver) {
-        this(phaseId, rowReceiver, Predicates.<Row>alwaysTrue());
+        if (JoinType.RIGHT == joinType || JoinType.FULL == joinType) {
+            right = new RightJoinRightRowReceiver(leftNumOutputs, rightNumOutputs);
+        } else {
+            right = new RightRowReceiver(leftNumOutputs, rightNumOutputs);
+        }
     }
 
     public ListenableRowReceiver leftRowReceiver() {
@@ -149,6 +202,13 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         volatile Row outerRow;
         volatile Row innerRow;
+        final Row outerNullRow;
+        final Row innerNullRow;
+
+        CombinedRow(int outerOutputSize, int innerOutputSize) {
+            outerNullRow = new RowNull(outerOutputSize);
+            innerNullRow = new RowNull(innerOutputSize);
+        }
 
         @Override
         public int size() {
@@ -196,6 +256,10 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                     phaseId, getClass().getSimpleName(), left.upstreamFinished, right.upstreamFinished);
             }
             if (!left.upstreamFinished || !right.upstreamFinished) {
+                return false;
+            }
+            if ((JoinType.RIGHT == joinType || JoinType.FULL == joinType) && !emitRightJoin) {
+                emitRightJoin = true;
                 return false;
             }
             if (upstreamFailure == null) {
@@ -263,7 +327,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         private volatile Row lastRow = null; // TODO: volatile is only required for first access
         private RepeatHandle repeatHandle;
-        private boolean wakeupRequired = true;
+        private boolean isPaused = true;
 
         @Override
         public Result setNextRow(Row row) {
@@ -282,18 +346,17 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                 }
             }
             LOGGER.trace("phase={} side=left method=setNextRow switchOnPause=true", phaseId);
-            wakeupRequired = false;
+            isPaused = false;
             switchTo(right.resumeable);
             if (right.upstreamFinished) {
                 return Result.CONTINUE;
             }
-
-            wakeupRequired = true;
             return Result.PAUSE;
         }
 
         @Override
         public void pauseProcessed(ResumeHandle resumeable) {
+            isPaused = true;
             if (!this.resumeable.compareAndSet(ResumeHandle.INVALID, resumeable)) {
                 throw new AssertionError("resumeable was already set");
             }
@@ -327,9 +390,15 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
     }
 
     private void switchTo(AtomicReference<ResumeHandle> atomicResumeable) {
+        ResumeHandle resumeHandle = busyGet(atomicResumeable);
+        LOGGER.trace("phase={} method=switchTo resumeable={}", phaseId, resumeHandle);
+        resumeHandle.resume(false);
+    }
+
+    private ResumeHandle busyGet(AtomicReference<ResumeHandle> atomicResumeable) {
         ResumeHandle resumeHandle;
         int sleep = 10;
-        /**
+        /*
          * Usually this loop exits immediately.
          * There is only a race condition during the "start/lead-acquisition" where that's not the case:
          * E.g.
@@ -354,28 +423,29 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             }
         }
         atomicResumeable.set(ResumeHandle.INVALID);
-        LOGGER.trace("phase={} method=switchTo resumeable={}", phaseId, resumeHandle);
-        resumeHandle.resume(false);
+        return resumeHandle;
     }
 
     private class RightRowReceiver extends AbstractRowReceiver {
 
-        private final CombinedRow combinedRow = new CombinedRow();
+        final CombinedRow combinedRow;
         private final Set<Requirement> requirements;
 
         Row lastRow = null;
         private boolean suspendThread = false;
+        boolean matchedJoinPredicate = false;
 
-
-        RightRowReceiver() {
+        RightRowReceiver(int leftNumOutputs, int rightNumOutputs) {
             requirements = Requirements.add(downstream.requirements(), Requirement.REPEAT);
+            combinedRow = new CombinedRow(leftNumOutputs, rightNumOutputs);
         }
 
         @Override
         public void pauseProcessed(final ResumeHandle resumeHandle) {
-            LOGGER.trace("phase={} side=right method=pauseProcessed", phaseId);
+            LOGGER.trace("phase={} side=right method=pauseProcessed suspendThread={}", phaseId, suspendThread);
 
             if (suspendThread) {
+                suspendThread = false;
                 // right side started before left side did and so the thread is suspended.
                 if (!this.resumeable.compareAndSet(ResumeHandle.INVALID, new RightResumeHandle(resumeHandle))) {
                     throw new IllegalStateException("Right resumable wasn't null. It should be set to null after use");
@@ -406,16 +476,20 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             return emitRow(rightRow);
         }
 
-        private Result emitRow(Row row) {
+        protected Result emitRow(Row row) {
             combinedRow.outerRow = left.lastRow;
             combinedRow.innerRow = row;
 
-            // filter logic
-            if (!rowFilterPredicate.apply(combinedRow)) {
+            // Check join condition
+            if (!joinPredicate.apply(combinedRow)) {
                 return Result.CONTINUE;
             }
+            matchedJoinPredicate = true;
+            return emitRowAndTrace(combinedRow);
+        }
 
-            Result result = downstream.setNextRow(combinedRow);
+        RowReceiver.Result emitRowAndTrace(Row row) {
+            RowReceiver.Result result = downstream.setNextRow(row);
             if (LOGGER.isTraceEnabled() && result != Result.CONTINUE) {
                 LOGGER.trace("phase={} side=right method=emitRow result={}", phaseId, result);
             }
@@ -429,20 +503,51 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         public void finish(final RepeatHandle repeatHandle) {
             LOGGER.trace("phase={} side=right method=finish firstCall={}", phaseId, firstCall);
 
-            if (tryFinish()) {
-                return;
-            }
             this.resumeable.set(new ResumeHandle() {
                 @Override
                 public void resume(boolean async) {
+                    RightRowReceiver.this.matchedJoinPredicate = false;
                     RightRowReceiver.this.upstreamFinished = false;
                     repeatHandle.repeat();
                 }
             });
-            if (left.wakeupRequired) {
-                left.wakeupRequired = false;
+
+            if ((JoinType.LEFT == joinType || JoinType.FULL == joinType) &&
+                !matchedJoinPredicate && left.lastRow != null && !emitRightJoin) {
+                // emit row with right one nulled
+                combinedRow.outerRow = left.lastRow;
+                combinedRow.innerRow = combinedRow.innerNullRow;
+                Result result = emitRowAndTrace(combinedRow);
+                LOGGER.trace("phase={} side=right method=finish firstCall={} emitNullRow result={}", phaseId, firstCall, result);
+                switch (result) {
+                    case CONTINUE:
+                        break;
+                    case PAUSE:
+                        downstream.pauseProcessed(new ResumeHandle() {
+                            @Override
+                            public void resume(boolean async) {
+                                if (tryFinish()) {
+                                    return;
+                                }
+                                switchTo(left.resumeable);
+                            }
+                        });
+                        // return without setting upstreamFinished=true to ensure left-side get's paused (if it isn't already)
+                        // this way the resumeHandle call can un-pause it
+                        return;
+                    case STOP:
+                        stop = true;
+                        break;
+                }
+            }
+            if (tryFinish()) {
+                return;
+            }
+            if (left.isPaused) {
                 switchTo(left.resumeable);
             }
+            // else: right-side iteration is within the left#setNextRow stack, returning here will
+            // continue on the left side
         }
 
         @Override
@@ -452,8 +557,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             if (tryFinish()) {
                 return;
             }
-            if (left.wakeupRequired) {
-                left.wakeupRequired = false;
+            if (left.isPaused) {
                 switchTo(left.resumeable);
             }
         }
@@ -498,6 +602,52 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                 }
                 delegate.resume(async);
             }
+        }
+    }
+
+    private class RightJoinRightRowReceiver extends RightRowReceiver {
+
+        private final LuceneLongBitSetWrapper matchedJoinRows = new LuceneLongBitSetWrapper();
+        private long rowPosition = -1;
+
+        RightJoinRightRowReceiver(int leftNumOutputs, int rightNumOutputs) {
+            super(leftNumOutputs, rightNumOutputs);
+        }
+
+        @Override
+        public Result setNextRow(final Row rightRow) {
+            if (!stop) {
+                rowPosition++;
+            }
+            return super.setNextRow(rightRow);
+        }
+
+        protected Result emitRow(Row row) {
+            if (emitRightJoin) {
+                if (!matchedJoinRows.get(rowPosition)) {
+                    combinedRow.outerRow = combinedRow.outerNullRow;
+                    combinedRow.innerRow = row;
+                    return emitRowAndTrace(combinedRow);
+                }
+                return Result.CONTINUE;
+            } else {
+                combinedRow.outerRow = left.lastRow;
+                combinedRow.innerRow = row;
+
+                // Check join condition
+                if (!joinPredicate.apply(combinedRow)) {
+                    return Result.CONTINUE;
+                }
+                matchedJoinPredicate = true;
+                matchedJoinRows.set(rowPosition);
+                return emitRowAndTrace(combinedRow);
+            }
+        }
+
+        @Override
+        public void finish(final RepeatHandle repeatHandle) {
+            rowPosition = -1;
+            super.finish(repeatHandle);
         }
     }
 }

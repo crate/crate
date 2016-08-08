@@ -37,16 +37,18 @@ public class MultiSourceSelect implements QueriedRelation {
     private final HashMap<QualifiedName, Source> sources;
     private final QuerySpec querySpec;
     private final Fields fields;
+    private final List<JoinPair> joinPairs;
     private QualifiedName qualifiedName;
 
-    public MultiSourceSelect(
-            Map<QualifiedName, AnalyzedRelation> sources,
-            Collection<? extends Path> outputNames,
-            QuerySpec querySpec) {
+    public MultiSourceSelect(Map<QualifiedName, AnalyzedRelation> sources,
+                             Collection<? extends Path> outputNames,
+                             QuerySpec querySpec,
+                             List<JoinPair> joinPairs) {
         assert sources.size() > 1 : "MultiSourceSelect requires at least 2 relations";
-        this.splitter = new RelationSplitter(querySpec, sources.values());
+        this.splitter = new RelationSplitter(querySpec, sources.values(), joinPairs);
         this.sources = initializeSources(sources);
         this.querySpec = querySpec;
+        this.joinPairs = joinPairs;
         assert outputNames.size() == querySpec.outputs().size() : "size of outputNames and outputSymbols must match";
         fields = new Fields(outputNames.size());
         Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
@@ -65,6 +67,10 @@ public class MultiSourceSelect implements QueriedRelation {
 
     public Map<QualifiedName, Source> sources() {
         return sources;
+    }
+
+    public List<JoinPair> joinPairs() {
+        return joinPairs;
     }
 
     @Override

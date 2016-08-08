@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for outer joins: LEFT, RIGHT and FULL.
+
  - Added `percentile` aggregate function.
 
  - Fixed an issue that could cause joins on 3+ tables to produce the wrong

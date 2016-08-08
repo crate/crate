@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -57,7 +58,7 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
                 ImmutableList.<Projection>of(),
                 DistributionInfo.DEFAULT_BROADCAST);
         SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES, T3.TR_1);
-        Symbol filterCondition = sqlExpressions.normalize(sqlExpressions.asSymbol("a = 'foo'"));
+        Symbol joinCondition = sqlExpressions.normalize(sqlExpressions.asSymbol("t1.x = t1.i"));
         NestedLoopPhase node = new NestedLoopPhase(
             jobId,
             1,
@@ -66,7 +67,10 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
             mp1,
             mp2,
             Sets.newHashSet("node1", "node2"),
-            filterCondition
+            JoinType.INNER,
+            joinCondition,
+            1,
+            1
             );
 
         BytesStreamOutput output = new BytesStreamOutput();
@@ -80,6 +84,8 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
         assertThat(node.jobId(), Is.is(node2.jobId()));
         assertThat(node.name(), is(node2.name()));
         assertThat(node.outputTypes(), is(node2.outputTypes()));
-        assertThat(node.filterSymbol(), is(node2.filterSymbol()));
+        assertThat(node.joinType(), is(node2.joinType()));
+        assertThat(node.numLeftOutputs(), is(node2.numLeftOutputs()));
+        assertThat(node.numRightOutputs(), is(node2.numRightOutputs()));
     }
 }

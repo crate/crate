@@ -33,9 +33,10 @@ import io.crate.operation.operator.AndOperator;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Set;
 
-public class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor.Context> {
+class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor.Context> {
 
     public static final QuerySplittingVisitor INSTANCE = new QuerySplittingVisitor();
 
@@ -47,8 +48,13 @@ public class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplitting
         private AnalyzedRelation seenRelation;
         private final Set<AnalyzedRelation> seenRelations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
         private final Multimap<AnalyzedRelation, Symbol> queries = HashMultimap.create();
+        private final List<JoinPair> joinPairs;
         private boolean multiRelation = false;
         private Symbol query;
+
+        public Context(List<JoinPair> joinPairs) {
+            this.joinPairs = joinPairs;
+        }
 
         public Symbol query() {
             return query;
@@ -59,8 +65,8 @@ public class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplitting
         }
     }
 
-    public Context process(Symbol query) {
-        Context context = new Context();
+    public Context process(Symbol query, List<JoinPair> joinPairs) {
+        Context context = new Context(joinPairs);
         context.query = process(query, context);
         if (!context.multiRelation) {
             assert context.seenRelation != null;
@@ -148,6 +154,10 @@ public class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplitting
             context.multiRelation = context.seenRelations.size() > 1;
             if (context.seenRelations.size() == 1) {
                 context.seenRelation = Iterables.getOnlyElement(context.seenRelations);
+                if (JoinPairs.isOuterRelation(context.seenRelation.getQualifiedName(), context.joinPairs)) {
+                    // don't split by marking as multi relation
+                    context.multiRelation = true;
+                }
             } else if (context.seenRelations.isEmpty()) {
                 context.seenRelation = null;
             } else {

@@ -37,8 +37,10 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
+import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.InputCreatingVisitor;
@@ -103,7 +105,7 @@ public class NestedLoopConsumer implements Consumer {
             }
 
             List<RelationColumn> nlOutputs = new ArrayList<>();
-            Map<Symbol, Symbol> symbolMap = new HashMap<>();
+            final Map<Symbol, Symbol> symbolMap = new HashMap<>();
             QueriedRelation left;
             QueriedRelation right;
             try {
@@ -126,19 +128,27 @@ public class NestedLoopConsumer implements Consumer {
                 MappingSymbolVisitor.inPlace().processInplace(statement.remainingOrderBy().get().orderBySymbols(), symbolMap);
             }
 
+            JoinPair joinPair = statement.joinPair();
+            JoinType joinType = joinPair.joinType();
+            Symbol joinCondition = joinPair.condition();
+            if (joinCondition != null) {
+                // replace all fields of the join condition
+                MappingSymbolVisitor.inPlace().process(joinCondition, symbolMap);
+            }
+
             WhereClause where = querySpec.where();
             boolean filterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
             boolean hasDocTables = left instanceof QueriedDocTable || right instanceof QueriedDocTable;
-            boolean isDistributed = hasDocTables && filterNeeded;
+            boolean isDistributed = hasDocTables && filterNeeded && !joinType.isOuter();
 
-            if (filterNeeded || statement.remainingOrderBy().isPresent()) {
+            if (filterNeeded || joinCondition != null || statement.remainingOrderBy().isPresent()) {
                 left.querySpec().limit(null);
                 right.querySpec().limit(null);
                 left.querySpec().offset(TopN.NO_OFFSET);
                 right.querySpec().offset(TopN.NO_OFFSET);
             }
 
-            if (!filterNeeded && querySpec.limit().isPresent()) {
+            if (!filterNeeded && joinCondition == null && querySpec.limit().isPresent()) {
                 context.requiredPageSize(querySpec.limit().get() + querySpec.offset());
             }
 
@@ -170,6 +180,7 @@ public class NestedLoopConsumer implements Consumer {
                     QueriedRelation tmpRelation = left;
                     left = right;
                     right = tmpRelation;
+                    joinType = joinType.invert();
                 }
             }
             Set<String> handlerNodes = ImmutableSet.of(clusterService.localNode().id());
@@ -216,12 +227,18 @@ public class NestedLoopConsumer implements Consumer {
             }
             List<Projection> projections = new ArrayList<>();
 
-            Symbol filterSymbol = null;
             if (filterNeeded) {
                 InputCreatingVisitor.Context inputVisitorContext = new InputCreatingVisitor.Context(nlOutputs);
-                filterSymbol = InputCreatingVisitor.INSTANCE.process(where.query(), inputVisitorContext);
+                Symbol filterSymbol = InputCreatingVisitor.INSTANCE.process(where.query(), inputVisitorContext);
                 assert filterSymbol instanceof Function : "Only function symbols are allowed for filtering";
+                projections.add(new FilterProjection(filterSymbol));
             }
+            if (joinCondition != null) {
+                InputCreatingVisitor.Context inputVisitorContext = new InputCreatingVisitor.Context(nlOutputs);
+                joinCondition = InputCreatingVisitor.INSTANCE.process(joinCondition, inputVisitorContext);
+                assert joinCondition instanceof Function : "Only function symbols are valid join conditions";
+            }
+
             List<Symbol> postNLOutputs = Lists.newArrayList(querySpec.outputs());
             if (orderByBeforeSplit != null && isDistributed) {
                 for (Symbol symbol : orderByBeforeSplit.orderBySymbols()) {
@@ -232,12 +249,16 @@ public class NestedLoopConsumer implements Consumer {
             }
 
             Planner.Context.Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
+            OrderBy orderBy = statement.remainingOrderBy().orNull();
+            if (orderBy == null && joinType.isOuter()) {
+                orderBy = orderByBeforeSplit;
+            }
             TopNProjection topN = ProjectionBuilder.topNProjection(
-                    nlOutputs,
-                    statement.remainingOrderBy().orNull(),
-                    isDistributed ? 0 : querySpec.offset(),
-                    isDistributed ? limits.limitAndOffset() : limits.finalLimit(),
-                    postNLOutputs
+                nlOutputs,
+                orderBy,
+                isDistributed ? 0 : querySpec.offset(),
+                isDistributed ? limits.limitAndOffset() : limits.finalLimit(),
+                postNLOutputs
             );
             projections.add(topN);
 
@@ -249,7 +270,10 @@ public class NestedLoopConsumer implements Consumer {
                 leftMerge,
                 rightMerge,
                 nlExecutionNodes,
-                filterSymbol
+                joinType,
+                joinCondition,
+                left.querySpec().outputs().size(),
+                right.querySpec().outputs().size()
             );
             MergePhase localMergePhase = null;
             // TODO: build local merge phases somewhere else for any subplan

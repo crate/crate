@@ -27,10 +27,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.*;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.QuerySplitter;
-import io.crate.analyze.relations.RemainingOrderBy;
+import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.RelationColumn;
@@ -39,16 +36,21 @@ import io.crate.exceptions.ValidationException;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
 import java.util.*;
 
 public class ManyTableConsumer implements Consumer {
 
+    private static final ESLogger LOGGER = Loggers.getLogger(ManyTableConsumer.class);
+
     private final Visitor visitor;
 
-    public ManyTableConsumer(ConsumingPlanner consumingPlanner) {
+    ManyTableConsumer(ConsumingPlanner consumingPlanner) {
         this.visitor = new Visitor(consumingPlanner);
     }
 
@@ -63,17 +65,22 @@ public class ManyTableConsumer implements Consumer {
      *
      *
      * @param relations all relations, e.g. [t1, t2, t3, t3]
-     * @param joinedRelations contains all relations that have a join condition e.g. {{t1, t2}, {t2, t3}}
+     * @param implicitJoinedRelations contains all relations that have a join condition e.g. {{t1, t2}, {t2, t3}}
+     * @param joinPairs contains a list of {@link JoinPair}.
      * @param preSorted a ordered subset of the relations. The result will start with those relations.
      *                  E.g. [t3] - This would cause the result to start with [t3]
      */
     static Collection<QualifiedName> orderByJoinConditions(Collection<QualifiedName> relations,
-                                                           Set<? extends Set<QualifiedName>> joinedRelations,
+                                                           Set<? extends Set<QualifiedName>> implicitJoinedRelations,
+                                                           List<JoinPair> joinPairs,
                                                            Collection<QualifiedName> preSorted) {
+        if (preSorted.isEmpty()) {
+            return relations;
+        }
         if (relations.size() == preSorted.size()) {
             return preSorted;
         }
-        if (relations.size() == 2 || joinedRelations.isEmpty()) {
+        if (relations.size() == 2 || (joinPairs.isEmpty() && implicitJoinedRelations.isEmpty())) {
             LinkedHashSet<QualifiedName> qualifiedNames = new LinkedHashSet<>(preSorted);
             qualifiedNames.addAll(relations);
             return qualifiedNames;
@@ -82,8 +89,10 @@ public class ManyTableConsumer implements Consumer {
         // Create a Copy to ensure equals works correctly for the subList check below.
         preSorted = ImmutableList.copyOf(preSorted);
         Set<QualifiedName> pair = new HashSet<>(2);
+        Set<QualifiedName> outerJoinRelations = JoinPairs.outerJoinRelations(joinPairs);
         Collection<QualifiedName> bestOrder = null;
         int best = -1;
+        outerloop:
         for (List<QualifiedName> permutation : Collections2.permutations(relations)) {
             if (!preSorted.equals(permutation.subList(0, preSorted.size()))) {
                 continue;
@@ -93,10 +102,22 @@ public class ManyTableConsumer implements Consumer {
                 QualifiedName a = permutation.get(i);
                 QualifiedName b = permutation.get(i + 1);
 
-                pair.clear();
-                pair.add(a);
-                pair.add(b);
-                joinPushDowns += joinedRelations.contains(pair) ? 1 : 0;
+                JoinPair joinPair = JoinPairs.ofRelations(a, b, joinPairs, false);
+                if (joinPair == null) {
+                    // relations are not directly joined, lets check if they are part of an outer join
+                    if (outerJoinRelations.contains(a) || outerJoinRelations.contains(b)) {
+                        // part of an outer join, don't change pairs, permutation not possible
+                        continue outerloop;
+                    } else {
+                        pair.clear();
+                        pair.add(a);
+                        pair.add(b);
+                        joinPushDowns += implicitJoinedRelations.contains(pair) ? 1 : 0;
+                    }
+                } else {
+                    // relations are directly joined
+                    joinPushDowns += 1;
+                }
             }
             if (joinPushDowns == relations.size() - 1) {
                 return permutation;
@@ -105,6 +126,9 @@ public class ManyTableConsumer implements Consumer {
                 best = joinPushDowns;
                 bestOrder = permutation;
             }
+        }
+        if (bestOrder == null) {
+            bestOrder = relations;
         }
         return bestOrder;
     }
@@ -123,10 +147,11 @@ public class ManyTableConsumer implements Consumer {
     private static Collection<QualifiedName> getOrderedRelationNames(MultiSourceSelect statement,
                                                                      Set<? extends Set<QualifiedName>> relationPairs) {
         Collection<QualifiedName> orderedRelations = ImmutableList.of();
-        if (statement.querySpec().orderBy().isPresent()) {
-            orderedRelations = getNamesFromOrderBy(statement.querySpec().orderBy().get());
+        Optional<OrderBy> orderBy = statement.querySpec().orderBy();
+        if (orderBy.isPresent()) {
+            orderedRelations = getNamesFromOrderBy(orderBy.get());
         }
-        return orderByJoinConditions(statement.sources().keySet(), relationPairs, orderedRelations);
+        return orderByJoinConditions(statement.sources().keySet(), relationPairs, statement.joinPairs(), orderedRelations);
     }
 
     /**
@@ -170,8 +195,12 @@ public class ManyTableConsumer implements Consumer {
             splitQuery = QuerySplitter.split(mss.querySpec().where().query());
             mss.querySpec().where(WhereClause.MATCH_ALL);
         }
+
         Collection<QualifiedName> orderedRelationNames = getOrderedRelationNames(mss, splitQuery.keySet());
         Iterator<QualifiedName> it = orderedRelationNames.iterator();
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("relations={} orderedRelations={}", mss.sources().keySet(), orderedRelationNames);
+        }
 
         QualifiedName leftName = it.next();
         QuerySpec rootQuerySpec = mss.querySpec();
@@ -179,6 +208,7 @@ public class ManyTableConsumer implements Consumer {
         AnalyzedRelation leftRelation = leftSource.relation();
         QuerySpec leftQuerySpec = leftSource.querySpec();
         Optional<RemainingOrderBy> remainingOrderBy = mss.remainingOrderBy();
+        List<JoinPair> joinPairs = mss.joinPairs();
 
         QualifiedName rightName;
         MultiSourceSelect.Source rightSource;
@@ -186,9 +216,9 @@ public class ManyTableConsumer implements Consumer {
             rightName = it.next();
             rightSource = mss.sources().get(rightName);
 
+            // process where clause
             Set<QualifiedName> names = Sets.newHashSet(leftName, rightName);
             Predicate<Symbol> predicate = new SubSetOfQualifiedNamesPredicate(names);
-
             QuerySpec newQuerySpec = rootQuerySpec.subset(predicate, it.hasNext());
             if (splitQuery.containsKey(names)) {
                 Symbol symbol = splitQuery.remove(names);
@@ -200,13 +230,19 @@ public class ManyTableConsumer implements Consumer {
                 remainingOrderByToApply = Optional.of(remainingOrderBy.get().orderBy());
                 remainingOrderBy = Optional.absent();
             }
+
+            // get explicit join definition
+            JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(leftName, rightName, joinPairs);
+
+            JoinPairs.removeOrderByOnOuterRelation(leftName, rightName, leftQuerySpec, rightSource.querySpec(), joinPair);
+
+            // NestedLoop will add NULL rows - so order by needs to be applied after the NestedLoop
             TwoTableJoin join = new TwoTableJoin(
-                    newQuerySpec,
-                    leftName,
-                    new MultiSourceSelect.Source(leftRelation, leftQuerySpec),
-                    rightName,
-                    rightSource,
-                    remainingOrderByToApply
+                newQuerySpec,
+                new MultiSourceSelect.Source(leftRelation, leftQuerySpec),
+                rightSource,
+                remainingOrderByToApply,
+                joinPair
             );
 
             assert leftQuerySpec != null;
@@ -215,16 +251,20 @@ public class ManyTableConsumer implements Consumer {
                 @Nullable
                 @Override
                 public Symbol apply(@Nullable Symbol input) {
+                    if (input == null) {
+                        return null;
+                    }
                     return RelationColumnReWriter.INSTANCE.process(input, reWriteCtx);
                 }
             };
 
             /**
-             * Rewrite where and order by clauses and create a new query spec, where all RelationColumn symbols
+             * Rewrite where, join and order by clauses and create a new query spec, where all RelationColumn symbols
              * with a QualifiedName of {@link RelationColumnReWriteCtx#left} or {@link RelationColumnReWriteCtx#right}
              * are replaced with a RelationColumn with QualifiedName of {@link RelationColumnReWriteCtx#newName}
              */
             splitQuery = rewriteSplitQueryNames(splitQuery, leftName, rightName, join.name(), replaceFunction);
+            JoinPairs.rewriteNames(leftName, rightName, join.name(), replaceFunction, joinPairs);
             rewriteOrderByNames(remainingOrderBy, leftName, rightName, join.name(), replaceFunction);
             rootQuerySpec = rootQuerySpec.copyAndReplace(replaceFunction);
             leftQuerySpec = newQuerySpec.copyAndReplace(replaceFunction);
@@ -277,12 +317,16 @@ public class ManyTableConsumer implements Consumer {
         }
     }
 
-
-    private static TwoTableJoin twoTableJoin(MultiSourceSelect mss) {
+    static TwoTableJoin twoTableJoin(MultiSourceSelect mss) {
         assert mss.sources().size() == 2;
         Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
         QualifiedName left = it.next();
         QualifiedName right = it.next();
+        JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(left, right, mss.joinPairs());
+        MultiSourceSelect.Source leftSource = mss.sources().get(left);
+        MultiSourceSelect.Source rightSource = mss.sources().get(right);
+
+        JoinPairs.removeOrderByOnOuterRelation(left, right, leftSource.querySpec(), rightSource.querySpec(), joinPair);
 
         Optional<OrderBy> remainingOrderByToApply = Optional.absent();
         if (mss.remainingOrderBy().isPresent() && mss.remainingOrderBy().get().validForRelations(Sets.newHashSet(left, right))) {
@@ -290,12 +334,11 @@ public class ManyTableConsumer implements Consumer {
         }
 
         return new TwoTableJoin(
-                mss.querySpec(),
-                left,
-                mss.sources().get(left),
-                right,
-                mss.sources().get(right),
-                remainingOrderByToApply
+            mss.querySpec(),
+            leftSource,
+            rightSource,
+            remainingOrderByToApply,
+            joinPair
         );
     }
 
@@ -346,12 +389,18 @@ public class ManyTableConsumer implements Consumer {
             @Nullable
             @Override
             public Symbol apply(@Nullable Symbol input) {
+                if (input == null) {
+                    return null;
+                }
                 return FieldToRelationColumnVisitor.INSTANCE.process(input, ctx);
             }
         };
 
         if (mss.remainingOrderBy().isPresent()) {
             mss.remainingOrderBy().get().orderBy().replace(replaceFunction);
+        }
+        for (JoinPair joinPair : mss.joinPairs()) {
+            joinPair.replaceCondition(replaceFunction);
         }
         mss.querySpec().replace(replaceFunction);
     }
