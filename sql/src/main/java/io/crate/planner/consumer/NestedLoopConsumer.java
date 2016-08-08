@@ -160,6 +160,7 @@ public class NestedLoopConsumer implements Consumer {
                 return new NoopPlannedAnalyzedRelation(statement, context.plannerContext().jobId());
             }
 
+            JoinType joinType = statement.joinType();
             boolean broadcastLeftTable = false;
             if (isDistributed) {
                 broadcastLeftTable = isLeftSmallerThanRight(left, right);
@@ -171,6 +172,7 @@ public class NestedLoopConsumer implements Consumer {
                     QueriedRelation tmpRelation = left;
                     left = right;
                     right = tmpRelation;
+                    joinType = joinType.invert();
                 }
             }
             Set<String> handlerNodes = ImmutableSet.of(clusterService.localNode().id());
@@ -250,7 +252,7 @@ public class NestedLoopConsumer implements Consumer {
                 leftMerge,
                 rightMerge,
                 nlExecutionNodes,
-                JoinType.INNER,
+                joinType,
                 filterSymbol,
                 right.querySpec().outputs().size()
             );

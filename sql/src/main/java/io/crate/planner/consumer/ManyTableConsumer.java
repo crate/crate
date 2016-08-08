@@ -39,6 +39,7 @@ import io.crate.exceptions.ValidationException;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
@@ -48,7 +49,7 @@ public class ManyTableConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    public ManyTableConsumer(ConsumingPlanner consumingPlanner) {
+    ManyTableConsumer(ConsumingPlanner consumingPlanner) {
         this.visitor = new Visitor(consumingPlanner);
     }
 
@@ -123,8 +124,9 @@ public class ManyTableConsumer implements Consumer {
     private static Collection<QualifiedName> getOrderedRelationNames(MultiSourceSelect statement,
                                                                      Set<? extends Set<QualifiedName>> relationPairs) {
         Collection<QualifiedName> orderedRelations = ImmutableList.of();
-        if (statement.querySpec().orderBy().isPresent()) {
-            orderedRelations = getNamesFromOrderBy(statement.querySpec().orderBy().get());
+        Optional<OrderBy> orderBy = statement.querySpec().orderBy();
+        if (orderBy.isPresent()) {
+            orderedRelations = getNamesFromOrderBy(orderBy.get());
         }
         return orderByJoinConditions(statement.sources().keySet(), relationPairs, orderedRelations);
     }
@@ -201,12 +203,13 @@ public class ManyTableConsumer implements Consumer {
                 remainingOrderBy = Optional.absent();
             }
             TwoTableJoin join = new TwoTableJoin(
-                    newQuerySpec,
-                    leftName,
-                    new MultiSourceSelect.Source(leftRelation, leftQuerySpec),
-                    rightName,
-                    rightSource,
-                    remainingOrderByToApply
+                newQuerySpec,
+                leftName,
+                new MultiSourceSelect.Source(leftRelation, leftQuerySpec),
+                rightName,
+                rightSource,
+                remainingOrderByToApply,
+                mss.joinTypeForRelations(leftName, rightName)
             );
 
             assert leftQuerySpec != null;
@@ -225,6 +228,7 @@ public class ManyTableConsumer implements Consumer {
              * are replaced with a RelationColumn with QualifiedName of {@link RelationColumnReWriteCtx#newName}
              */
             splitQuery = rewriteSplitQueryNames(splitQuery, leftName, rightName, join.name(), replaceFunction);
+            mss.rewriteNamesOfJoinPairs(leftName, rightName, join.name());
             rewriteOrderByNames(remainingOrderBy, leftName, rightName, join.name(), replaceFunction);
             rootQuerySpec = rootQuerySpec.copyAndReplace(replaceFunction);
             leftQuerySpec = newQuerySpec.copyAndReplace(replaceFunction);
@@ -280,9 +284,17 @@ public class ManyTableConsumer implements Consumer {
 
     private static TwoTableJoin twoTableJoin(MultiSourceSelect mss) {
         assert mss.sources().size() == 2;
-        Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
+        Iterator<QualifiedName> it = mss.sources().keySet().iterator();
         QualifiedName left = it.next();
         QualifiedName right = it.next();
+        JoinType joinType = mss.joinTypeForRelations(left, right);
+
+        // TODO: enable optimization for all join types after RIGHT OUTER JOIN is implemented
+        if (joinType.ordinal() < JoinType.INNER.ordinal()) {
+            it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
+            left = it.next();
+            right = it.next();
+        }
 
         Optional<OrderBy> remainingOrderByToApply = Optional.absent();
         if (mss.remainingOrderBy().isPresent() && mss.remainingOrderBy().get().validForRelations(Sets.newHashSet(left, right))) {
@@ -290,12 +302,13 @@ public class ManyTableConsumer implements Consumer {
         }
 
         return new TwoTableJoin(
-                mss.querySpec(),
-                left,
-                mss.sources().get(left),
-                right,
-                mss.sources().get(right),
-                remainingOrderByToApply
+            mss.querySpec(),
+            left,
+            mss.sources().get(left),
+            right,
+            mss.sources().get(right),
+            remainingOrderByToApply,
+            joinType
         );
     }
 

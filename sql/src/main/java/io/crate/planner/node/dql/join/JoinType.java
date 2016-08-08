@@ -25,7 +25,21 @@ package io.crate.planner.node.dql.join;
 public enum JoinType {
     CROSS,
     INNER,
-    LEFT,
-    RIGHT,
-    FULL
+    LEFT {
+        @Override
+        public JoinType invert() {
+            return RIGHT;
+        }
+    },
+    RIGHT {
+        @Override
+        public JoinType invert() {
+            return LEFT;
+        }
+    },
+    FULL;
+
+    public JoinType invert() {
+        return this;
+    }
 }
