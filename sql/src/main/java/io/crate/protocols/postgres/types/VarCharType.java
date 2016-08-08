@@ -65,7 +65,7 @@ class VarCharType extends PGType {
         if (bytesRef.offset == 0 && bytesRef.length == bytesRef.bytes.length) {
             return bytesRef.bytes;
         }
-        return Arrays.copyOfRange(bytesRef.bytes, bytesRef.offset, bytesRef.length);
+        return Arrays.copyOfRange(bytesRef.bytes, bytesRef.offset, bytesRef.length + bytesRef.offset);
     }
 
     @Override

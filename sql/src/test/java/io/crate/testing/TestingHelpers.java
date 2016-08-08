@@ -55,6 +55,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Array;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -657,10 +658,22 @@ public class TestingHelpers {
         }
     }
 
-    public static BytesRef addOffset(BytesRef bytesRef) {
-        byte[] result = new byte[bytesRef.length + 2];
-        System.arraycopy(new byte[]{0, 1}, 0, result, 0, 2); // OFFSET
-        System.arraycopy(bytesRef.bytes, 0, result, 2, bytesRef.length);
-        return new BytesRef(result, 2, bytesRef.length);
+    /**
+     * Convert {@param s} into UTF8 encoded BytesRef with random offset and extra length
+     *
+     * This should be preferred over `new BytesRef` in tests to make sure that implementations using BytesRef
+     * handle offset and length correctly (use {@link BytesRef#length} instead of {@link BytesRef#bytes#length}
+     */
+    public static BytesRef bytesRef(String s, Random random) {
+        byte[] strBytes = s.getBytes(StandardCharsets.UTF_8);
+        int extraLength = random.nextInt(100);
+        int offset = 0;
+        if (extraLength > 0) {
+            offset = random.nextInt(extraLength);
+        }
+        byte[] buffer = new byte[strBytes.length + extraLength];
+        random.nextBytes(buffer);
+        System.arraycopy(strBytes, 0, buffer, offset, strBytes.length);
+        return new BytesRef(buffer, offset, strBytes.length);
     }
 }

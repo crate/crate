@@ -130,8 +130,8 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testTwoStrings() throws Exception {
         assertEval("foobar", "foo", "bar");
-        assertEval("foobar", TestingHelpers.addOffset(new BytesRef("foo")),
-                             TestingHelpers.addOffset(new BytesRef("bar")));
+        assertEval("foobar", TestingHelpers.bytesRef("foo", random()),
+                             TestingHelpers.bytesRef("bar", random()));
     }
 
     @Test
@@ -154,7 +154,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     public void testStringAndNumber() throws Exception {
         assertEval("foo3", new BytesRef("foo"), 3);
         assertEval("foo3", new BytesRef("foo"), 3L);
-        assertEval("foo3", TestingHelpers.addOffset(new BytesRef("foo")), 3L);
+        assertEval("foo3", TestingHelpers.bytesRef("foo", random()), 3L);
         assertEval("foo3", new BytesRef("foo"), (short)3);
     }
 

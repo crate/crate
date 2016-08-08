@@ -21,6 +21,7 @@
 
 package io.crate.operation.scalar;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
 import io.crate.metadata.*;
@@ -82,7 +83,8 @@ public class SubstrFunction extends Scalar<BytesRef, Object> implements DynamicF
         return substring(inputStr, startPos, endPos);
     }
 
-    private static BytesRef evaluate(@Nonnull BytesRef inputStr, int beginIdx, int len) {
+    @VisibleForTesting
+    static BytesRef evaluate(@Nonnull BytesRef inputStr, int beginIdx, int len) {
         final int startPos = Math.max(0, beginIdx - 1);
         if (startPos > inputStr.length - 1) {
             return EMPTY_BYTES_REF;
@@ -94,7 +96,8 @@ public class SubstrFunction extends Scalar<BytesRef, Object> implements DynamicF
         return substring(inputStr, startPos, endPos);
     }
 
-    public static BytesRef substring(BytesRef utf8, int begin, int end) {
+    @VisibleForTesting
+    static BytesRef substring(BytesRef utf8, int begin, int end) {
         int pos = utf8.offset;
         final int limit = pos + utf8.length;
         final byte[] bytes = utf8.bytes;

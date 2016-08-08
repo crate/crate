@@ -47,7 +47,7 @@ public class SubstrFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testSubstring() throws Exception {
         assertThat(SubstrFunction.substring(new BytesRef("cratedata"), 2, 5), is(new BytesRef("ate")));
-        assertThat(SubstrFunction.substring(TestingHelpers.addOffset(new BytesRef("cratedata")), 2, 5),
+        assertThat(SubstrFunction.substring(TestingHelpers.bytesRef("cratedata", random()), 2, 5),
                                             is(new BytesRef("ate")));
     }
 

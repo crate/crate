@@ -23,17 +23,17 @@
 package io.crate.protocols.postgres.types;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.*;
-import org.apache.lucene.util.BytesRef;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.junit.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
-public class PGTypesTest {
+public class PGTypesTest extends CrateUnitTest {
 
     @Test
     public void testCrate2PGType() throws Exception {
@@ -72,7 +72,7 @@ public class PGTypesTest {
     @Test
     public void testByteReadWrite() throws Exception {
         for (Entry entry : ImmutableList.of(
-            new Entry(DataTypes.STRING, new BytesRef("foobar")),
+            new Entry(DataTypes.STRING, TestingHelpers.bytesRef("foobar", random())),
             new Entry(DataTypes.LONG, 392873L),
             new Entry(DataTypes.INTEGER, 1234),
             new Entry(DataTypes.SHORT, (short)42),
@@ -81,7 +81,7 @@ public class PGTypesTest {
             new Entry(DataTypes.BOOLEAN, true),
             new Entry(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-05-08")),
             new Entry(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-05-08T16:34:33.123")),
-            new Entry(DataTypes.IP, new BytesRef("192.168.1.1")),
+            new Entry(DataTypes.IP, TestingHelpers.bytesRef("192.168.1.1", random())),
             new Entry(DataTypes.BYTE, (byte) 20)
         )) {
 
