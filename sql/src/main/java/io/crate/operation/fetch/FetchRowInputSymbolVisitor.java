@@ -46,6 +46,7 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
         private Map<TableIdent, FetchSource> fetchSources;
         private final FetchProjector.ArrayBackedRow inputRow = new FetchProjector.ArrayBackedRow();
         private final int[] docIdPositions;
+        private final Object[][] nullCells;
 
         public Context(Map<TableIdent, FetchSource> fetchSources) {
             assert !fetchSources.isEmpty();
@@ -59,6 +60,7 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
             this.fetchRows = new FetchProjector.ArrayBackedRow[numDocIds];
             this.docIdPositions = new int[numDocIds];
             this.partitionRows = new FetchProjector.ArrayBackedRow[numDocIds];
+            nullCells = new Object[numDocIds][];
 
             int idx = 0;
             for (FetchSource fetchSource : fetchSources.values()) {
@@ -68,6 +70,7 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
                     if (!fetchSource.partitionedByColumns().isEmpty()) {
                         partitionRows[idx] = new FetchProjector.ArrayBackedRow();
                     }
+                    nullCells[idx] = new Object[fetchSource.references().size()];
                     idx++;
                 }
             }
@@ -90,6 +93,10 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
 
         public FetchProjector.ArrayBackedRow inputRow() {
             return inputRow;
+        }
+
+        public Object[][] nullCells() {
+            return nullCells;
         }
 
         public Input<?> allocateInput(int index) {

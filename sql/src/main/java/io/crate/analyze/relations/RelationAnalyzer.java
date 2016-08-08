@@ -44,6 +44,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.*;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
@@ -60,7 +61,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     private final ClusterService clusterService;
     private final AnalysisMetaData analysisMetaData;
-    private static final EnumSet<Join.Type> ALLOWED_JOIN_TYPES = EnumSet.of(Join.Type.CROSS, Join.Type.INNER);
+    private static final EnumSet<Join.Type> ALLOWED_JOIN_TYPES = EnumSet.of(Join.Type.CROSS, Join.Type.INNER, Join.Type.LEFT);
 
     @Inject
     public RelationAnalyzer(ClusterService clusterService, AnalysisMetaData analysisMetaData) {
@@ -96,6 +97,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
         process(node.getLeft(), context);
         process(node.getRight(), context);
+
+        context.currentRelationContext().addJoinType(JoinType.values()[node.getType().ordinal()]);
 
         Optional<JoinCriteria> optCriteria = node.getCriteria();
         if (optCriteria.isPresent()) {
@@ -172,10 +175,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             // TODO: implement multi table selects
             // once this is used .normalize should for this class needs to be handled here too
             relation = new MultiSourceSelect(
-                    context.sources(),
-                    selectAnalysis.outputNames(),
-                    querySpec
-                );
+                context.sources(),
+                selectAnalysis.outputNames(),
+                querySpec,
+                context.joinPairs()
+            );
         }
 
         statementContext.endRelation();

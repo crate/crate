@@ -37,6 +37,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
@@ -46,7 +47,7 @@ public class ManyTableConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    public ManyTableConsumer(ConsumingPlanner consumingPlanner) {
+    ManyTableConsumer(ConsumingPlanner consumingPlanner) {
         this.visitor = new Visitor(consumingPlanner);
     }
 
@@ -121,8 +122,9 @@ public class ManyTableConsumer implements Consumer {
     private static Collection<QualifiedName> getOrderedRelationNames(MultiSourceSelect statement,
                                                                      Set<? extends Set<QualifiedName>> relationPairs) {
         Collection<QualifiedName> orderedRelations = ImmutableList.of();
-        if (statement.querySpec().orderBy().isPresent()) {
-            orderedRelations = getNamesFromOrderBy(statement.querySpec().orderBy().get());
+        Optional<OrderBy> orderBy = statement.querySpec().orderBy();
+        if (orderBy.isPresent()) {
+            orderedRelations = getNamesFromOrderBy(orderBy.get());
         }
         return orderByJoinConditions(statement.sources().keySet(), relationPairs, orderedRelations);
     }
@@ -192,13 +194,15 @@ public class ManyTableConsumer implements Consumer {
                 Symbol symbol = splitQuery.remove(names);
                 newQuerySpec.where(new WhereClause(symbol));
             }
+
             TwoTableJoin join = new TwoTableJoin(
-                    newQuerySpec,
-                    leftName,
-                    new MultiSourceSelect.Source(leftRelation, leftQuerySpec),
-                    rightName,
-                    rightSource,
-                    remainingOrderBy
+                newQuerySpec,
+                leftName,
+                new MultiSourceSelect.Source(leftRelation, leftQuerySpec),
+                rightName,
+                rightSource,
+                remainingOrderBy,
+                mss.joinTypeForRelations(leftName, rightName)
             );
 
             assert leftQuerySpec != null;
@@ -213,7 +217,9 @@ public class ManyTableConsumer implements Consumer {
 
             splitQuery = rewriteSplitQueryNames(splitQuery, leftName, rightName, join.name(), replaceFunction);
 
-            /**
+            mss.rewriteNamesOfJoinPairs(leftName, rightName, join.name());
+
+            /*
              * create a new query spec where all RelationColumn symbols with a QualifiedName
              * of {@link RelationColumnReWriteCtx#left} or {@link RelationColumnReWriteCtx#right}
              * are replaced with a RelationColumn with QualifiedName of {@link RelationColumnReWriteCtx#newName}
@@ -259,17 +265,26 @@ public class ManyTableConsumer implements Consumer {
 
     private static TwoTableJoin twoTableJoin(MultiSourceSelect mss) {
         assert mss.sources().size() == 2;
-        Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
+        Iterator<QualifiedName> it = mss.sources().keySet().iterator();
         QualifiedName left = it.next();
         QualifiedName right = it.next();
+        JoinType joinType = mss.joinTypeForRelations(left, right);
+
+        // TODO: enable optimization for all join types after RIGHT OUTER JOIN is implemented
+        if (joinType.ordinal() < JoinType.INNER.ordinal()) {
+            it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
+            left = it.next();
+            right = it.next();
+        }
 
         return new TwoTableJoin(
-                mss.querySpec(),
-                left,
-                mss.sources().get(left),
-                right,
-                mss.sources().get(right),
-                mss.remainingOrderBy()
+            mss.querySpec(),
+            left,
+            mss.sources().get(left),
+            right,
+            mss.sources().get(right),
+            mss.remainingOrderBy(),
+            joinType
         );
     }
 
@@ -335,7 +350,7 @@ public class ManyTableConsumer implements Consumer {
         private final Set<QualifiedName> qualifiedNames;
         private final HashSet<QualifiedName> foundNames;
 
-        public SubSetOfQualifiedNamesPredicate(Set<QualifiedName> qualifiedNames) {
+        SubSetOfQualifiedNamesPredicate(Set<QualifiedName> qualifiedNames) {
             this.qualifiedNames = qualifiedNames;
             foundNames = new HashSet<>();
         }
@@ -367,11 +382,11 @@ public class ManyTableConsumer implements Consumer {
         private final QualifiedName right;
         private final int rightOffset;
 
-        public RelationColumnReWriteCtx(TwoTableJoin join) {
+        RelationColumnReWriteCtx(TwoTableJoin join) {
             this(join.name(), join.leftName(), join.rightName(), join.left().querySpec().outputs().size());
         }
 
-        public RelationColumnReWriteCtx(QualifiedName newName, QualifiedName left, QualifiedName right, int rightOffset) {
+        RelationColumnReWriteCtx(QualifiedName newName, QualifiedName left, QualifiedName right, int rightOffset) {
             this.newName = newName;
             this.left = left;
             this.right = right;
@@ -383,7 +398,7 @@ public class ManyTableConsumer implements Consumer {
 
         private static final RelationColumnReWriter INSTANCE = new RelationColumnReWriter(false);
 
-        public RelationColumnReWriter(boolean inPlace) {
+        RelationColumnReWriter(boolean inPlace) {
             super(inPlace);
         }
 
@@ -403,7 +418,7 @@ public class ManyTableConsumer implements Consumer {
         private final Map<AnalyzedRelation, QualifiedName> relationToName;
         private final MultiSourceSelect mss;
 
-        public FieldToRelationColumnCtx(MultiSourceSelect mss) {
+        FieldToRelationColumnCtx(MultiSourceSelect mss) {
             relationToName = new IdentityHashMap<>(mss.sources().size());
             for (Map.Entry<QualifiedName, MultiSourceSelect.Source> entry : mss.sources().entrySet()) {
                 relationToName.put(entry.getValue().relation(), entry.getKey());
@@ -416,7 +431,7 @@ public class ManyTableConsumer implements Consumer {
 
         private static final FieldToRelationColumnVisitor INSTANCE = new FieldToRelationColumnVisitor(false);
 
-        public FieldToRelationColumnVisitor(boolean inPlace) {
+        FieldToRelationColumnVisitor(boolean inPlace) {
             super(inPlace);
         }
 
