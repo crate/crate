@@ -152,10 +152,10 @@ public class SysShardsTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        ReferenceInfo info = super.getReferenceInfo(columnIdent);
+    public Reference getReference(ColumnIdent columnIdent) {
+        Reference info = super.getReference(columnIdent);
         if (info == null) {
-            return nodesTableColumn.getReferenceInfo(this.ident(), columnIdent);
+            return nodesTableColumn.getReference(this.ident(), columnIdent);
         }
         return info;
     }

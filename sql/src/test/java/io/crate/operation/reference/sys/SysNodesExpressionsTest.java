@@ -239,7 +239,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testLoad() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.load", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.load", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression load =
             (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
 
@@ -259,7 +259,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testName() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.name", DataTypes.STRING, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.name", DataTypes.STRING, RowGranularity.NODE);
         @SuppressWarnings("unchecked") SimpleObjectExpression<BytesRef> name =
             (SimpleObjectExpression<BytesRef>) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
         assertEquals(new BytesRef("node 1"), name.value());
@@ -267,7 +267,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testId() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.id", DataTypes.STRING, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.id", DataTypes.STRING, RowGranularity.NODE);
         @SuppressWarnings("unchecked") SimpleObjectExpression<BytesRef> id =
             (SimpleObjectExpression<BytesRef>) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
         assertEquals(new BytesRef("node-id-1"), id.value());
@@ -275,7 +275,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testHostname() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.hostname", DataTypes.STRING, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.hostname", DataTypes.STRING, RowGranularity.NODE);
         @SuppressWarnings("unchecked") SimpleObjectExpression<BytesRef> expression =
             (SimpleObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
         BytesRef hostname = expression.value();
@@ -285,7 +285,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testRestUrl() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.rest_url", DataTypes.STRING, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.rest_url", DataTypes.STRING, RowGranularity.NODE);
         @SuppressWarnings("unchecked") SimpleObjectExpression<BytesRef> httpAddr =
             (SimpleObjectExpression<BytesRef>) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
         assertEquals(new BytesRef("http://localhost:44200"), httpAddr.value());
@@ -293,7 +293,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testPorts() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.port", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.port", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression port =
             (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
 
@@ -304,7 +304,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testMemory() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.mem", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.mem", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression mem =
             (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
 
@@ -319,7 +319,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testHeap() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.heap", DataTypes.STRING, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.heap", DataTypes.STRING, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression heap =
             (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
 
@@ -333,7 +333,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testFs() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression fs =
             (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
 
@@ -375,7 +375,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testVersion() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression version =
             (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
 
@@ -388,7 +388,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testNetwork() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression networkRef =
             (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
 
@@ -402,7 +402,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testNetworkTCP() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE, "tcp");
+        Reference refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE, "tcp");
         ColumnIdent columnIdent = refInfo.ident().columnIdent();
         io.crate.operation.reference.NestedObjectExpression network = (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(columnIdent.name());
         NestedObjectExpression tcpRef = (NestedObjectExpression) network.getChildImplementation(columnIdent.path().get(0));
@@ -416,7 +416,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testCpu() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression os =
             (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
 
@@ -434,7 +434,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testProcess() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.process", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.process", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression processRef = (io.crate.operation.reference.NestedObjectExpression)
             resolver.getChildImplementation(refInfo.ident().columnIdent().name());
 
@@ -451,7 +451,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testOsInfo() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.os_info", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.os_info", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression ref =
             (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
 
@@ -462,7 +462,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testNestedBytesRefExpressionsString() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
         ColumnIdent versionColIdent = refInfo.ident().columnIdent();
         io.crate.operation.reference.NestedObjectExpression version =
             (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(versionColIdent.name());

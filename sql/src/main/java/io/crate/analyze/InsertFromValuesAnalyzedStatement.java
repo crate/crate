@@ -21,10 +21,9 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -56,7 +55,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
         if (tableInfo.isPartitioned()) {
             for (Map<String, String> partitionMap : partitionMaps) {
                 partitionMap = new HashMap<>(tableInfo.partitionedByColumns().size());
-                for (ReferenceInfo partInfo : tableInfo.partitionedByColumns()) {
+                for (Reference partInfo : tableInfo.partitionedByColumns()) {
                     // initialize with null values for missing partitioned columns
                     partitionMap.put(partInfo.ident().columnIdent().name(), null);
                 }
@@ -71,7 +70,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
     // create and add a new partition map
     public Map<String, String> newPartitionMap() {
         Map<String, String> map = new HashMap<>(tableInfo().partitionedByColumns().size());
-        for (ReferenceInfo partInfo : tableInfo().partitionedByColumns()) {
+        for (Reference partInfo : tableInfo().partitionedByColumns()) {
             // initialize with null values for missing partitioned columns
             map.put(partInfo.ident().columnIdent().fqn(), null);
         }
@@ -86,7 +85,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
     private List<String> partitionedByColumnNames() {
         assert tableInfo != null;
         List<String> names = new ArrayList<>(tableInfo.partitionedByColumns().size());
-        for (ReferenceInfo info : tableInfo.partitionedByColumns()) {
+        for (Reference info : tableInfo.partitionedByColumns()) {
             names.add(info.ident().columnIdent().fqn());
         }
         return names;

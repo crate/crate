@@ -21,12 +21,11 @@
 
 package org.elasticsearch.action.bulk;
 
-import io.crate.analyze.symbol.Reference;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
@@ -62,8 +61,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
 
     TableIdent charactersIdent = new TableIdent(null, "characters");
 
-    Reference fooRef = new Reference(new ReferenceInfo(
-            new ReferenceIdent(charactersIdent, "foo"), RowGranularity.DOC, DataTypes.STRING));
+    Reference fooRef = new Reference(
+            new ReferenceIdent(charactersIdent, "foo"), RowGranularity.DOC, DataTypes.STRING);
 
     @Captor
     private ArgumentCaptor<ActionListener<BulkShardResponse>> bulkShardResponseListener;

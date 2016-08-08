@@ -225,16 +225,16 @@ public class AnalyzedTableElements {
                                           AnalysisMetaData analysisMetaData,
                                           ParameterContext parameterContext,
                                           StmtCtx stmtCtx) {
-        List<ReferenceInfo> tableReferenceInfos = new ArrayList<>();
+        List<Reference> tableReferences = new ArrayList<>();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
-            buildReferenceInfo(tableIdent, columnDefinition, tableReferenceInfos);
+            buildReference(tableIdent, columnDefinition, tableReferences);
         }
         if (tableInfo != null) {
             // add existing references
-            tableReferenceInfos.addAll(tableInfo.columns());
+            tableReferences.addAll(tableInfo.columns());
         }
 
-        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferenceInfos);
+        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData, parameterContext, tableReferenceResolver, null);
         SymbolPrinter printer = new SymbolPrinter(analysisMetaData.functions());
@@ -272,24 +272,24 @@ public class AnalyzedTableElements {
         columnDefinition.formattedGeneratedExpression(formattedExpression);
     }
 
-    private void buildReferenceInfo(TableIdent tableIdent, AnalyzedColumnDefinition columnDefinition, List<ReferenceInfo> referenceInfos) {
-        ReferenceInfo referenceInfo;
+    private void buildReference(TableIdent tableIdent, AnalyzedColumnDefinition columnDefinition, List<Reference> references) {
+        Reference reference;
         if (columnDefinition.generatedExpression() == null) {
-            referenceInfo = new ReferenceInfo(
+            reference = new Reference(
                     new ReferenceIdent(tableIdent, columnDefinition.ident()),
                     RowGranularity.DOC,
                     DataTypes.ofMappingNameSafe(columnDefinition.dataType()));
         } else {
-            referenceInfo = new GeneratedReferenceInfo(
+            reference = new GeneratedReference(
                     new ReferenceIdent(tableIdent, columnDefinition.ident()),
                     RowGranularity.DOC,
                     columnDefinition.dataType() ==
                     null ? DataTypes.UNDEFINED : DataTypes.ofMappingNameSafe(columnDefinition.dataType()),
                     "dummy expression, real one not needed here");
         }
-        referenceInfos.add(referenceInfo);
+        references.add(reference);
         for (AnalyzedColumnDefinition childDefinition : columnDefinition.children()) {
-            buildReferenceInfo(tableIdent, childDefinition, referenceInfos);
+            buildReference(tableIdent, childDefinition, references);
         }
     }
 
@@ -414,7 +414,7 @@ public class AnalyzedTableElements {
                     columnDefinition.ident().sqlFqn()));
         }
         columnIdents.remove(columnDefinition.ident());
-        columnDefinition.index(ReferenceInfo.IndexType.NO.toString());
+        columnDefinition.index(Reference.IndexType.NO.toString());
         partitionedByColumns.add(columnDefinition);
     }
 

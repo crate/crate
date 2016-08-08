@@ -26,15 +26,14 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-import io.crate.analyze.symbol.Reference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.TreeMap;
@@ -59,7 +58,7 @@ public class FetchPhaseTest {
         tableIndices.put(new TableIdent(null, "i2"), "i2_s2");
 
         ReferenceIdent nameIdent = new ReferenceIdent(t1, "name");
-        Reference name = new Reference(new ReferenceInfo(nameIdent, RowGranularity.DOC, DataTypes.STRING));
+        Reference name = new Reference(nameIdent, RowGranularity.DOC, DataTypes.STRING);
 
         FetchPhase orig = new FetchPhase(
                 1,

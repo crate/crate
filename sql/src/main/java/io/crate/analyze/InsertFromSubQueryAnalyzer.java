@@ -128,16 +128,16 @@ public class InsertFromSubQueryAnalyzer {
         LinkedHashSet<Reference> columns = new LinkedHashSet<>(targetColumnNames.size());
         for (String targetColumnName : targetColumnNames) {
             ColumnIdent columnIdent = new ColumnIdent(targetColumnName);
-            ReferenceInfo referenceInfo = targetTable.getReferenceInfo(columnIdent);
+            Reference reference = targetTable.getReference(columnIdent);
             Reference targetReference;
-            if (referenceInfo == null) {
-                DynamicReference reference = targetTable.getDynamic(columnIdent, true);
-                if (reference == null) {
+            if (reference == null) {
+                DynamicReference dynamicReference = targetTable.getDynamic(columnIdent, true);
+                if (dynamicReference == null) {
                     throw new ColumnUnknownException(targetColumnName);
                 }
-                targetReference = reference;
+                targetReference = dynamicReference;
             } else {
-                targetReference = new Reference(referenceInfo);
+                targetReference = reference;
             }
             if (!columns.add(targetReference)) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", targetColumnName));
@@ -150,11 +150,11 @@ public class InsertFromSubQueryAnalyzer {
     private static Collection<Reference> targetColumnsFromTargetTable(DocTableInfo targetTable, int numSourceColumns) {
         List<Reference> columns = new ArrayList<>(targetTable.columns().size());
         int idx = 0;
-        for (ReferenceInfo referenceInfo : targetTable.columns()) {
+        for (Reference reference : targetTable.columns()) {
             if (idx > numSourceColumns) {
                 break;
             }
-            columns.add(new Reference(referenceInfo));
+            columns.add(reference);
             idx++;
         }
         return columns;
@@ -181,7 +181,7 @@ public class InsertFromSubQueryAnalyzer {
                     "Type of subquery column %s (%s) does not match is not convertable to the type of table column %s (%s)",
                     failedSource,
                     failedSource.valueType(),
-                    failedTarget.info().ident().columnIdent().fqn(),
+                    failedTarget.ident().columnIdent().fqn(),
                     failedTarget.valueType()
             ));
         }

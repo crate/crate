@@ -37,7 +37,7 @@ import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-public class GeneratedReferenceInfoTest extends CrateUnitTest {
+public class GeneratedReferenceTest extends CrateUnitTest {
 
     private static final SqlExpressions SQL_EXPRESSIONS = new SqlExpressions(
             MapBuilder.<QualifiedName, AnalyzedRelation>newMapBuilder()
@@ -50,18 +50,18 @@ public class GeneratedReferenceInfoTest extends CrateUnitTest {
     public void testStreaming() throws Exception {
         ReferenceIdent referenceIdent = new ReferenceIdent(T3.T1_INFO.ident(), "generated_column");
         String formattedGeneratedExpression = "concat(a, 'bar')";
-        GeneratedReferenceInfo generatedReferenceInfo = new GeneratedReferenceInfo(referenceIdent, RowGranularity.DOC,
-                StringType.INSTANCE, ColumnPolicy.STRICT, ReferenceInfo.IndexType.ANALYZED,
+        GeneratedReference generatedReferenceInfo = new GeneratedReference(referenceIdent, RowGranularity.DOC,
+                StringType.INSTANCE, ColumnPolicy.STRICT, Reference.IndexType.ANALYZED,
                 formattedGeneratedExpression, false);
 
         generatedReferenceInfo.generatedExpression(SQL_EXPRESSIONS.normalize(SQL_EXPRESSIONS.asSymbol(formattedGeneratedExpression)));
-        generatedReferenceInfo.referencedReferenceInfos(ImmutableList.of(T3.T1_INFO.getReferenceInfo(new ColumnIdent("a"))));
+        generatedReferenceInfo.referencedReferences(ImmutableList.of(T3.T1_INFO.getReference(new ColumnIdent("a"))));
 
         BytesStreamOutput out = new BytesStreamOutput();
-        ReferenceInfo.toStream(generatedReferenceInfo, out);
+        Reference.toStream(generatedReferenceInfo, out);
 
         StreamInput in = StreamInput.wrap(out.bytes());
-        GeneratedReferenceInfo generatedReferenceInfo2 = ReferenceInfo.fromStream(in);
+        GeneratedReference generatedReferenceInfo2 = Reference.fromStream(in);
 
         assertThat(generatedReferenceInfo2, is(generatedReferenceInfo));
     }

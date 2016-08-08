@@ -184,35 +184,35 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testShardInfoLookup() throws Exception {
-        ReferenceInfo info = new ReferenceInfo(SysShardsTableInfo.ReferenceIdents.ID, RowGranularity.SHARD, IntegerType.INSTANCE);
-        assertEquals(info, schemas.getTableInfo(SysShardsTableInfo.IDENT).getReferenceInfo(SysShardsTableInfo.Columns.ID));
+        Reference info = new Reference(SysShardsTableInfo.ReferenceIdents.ID, RowGranularity.SHARD, IntegerType.INSTANCE);
+        assertEquals(info, schemas.getTableInfo(SysShardsTableInfo.IDENT).getReference(SysShardsTableInfo.Columns.ID));
     }
 
     @Test
     public void testClusterExpression() throws Exception {
         // Looking up cluster wide expressions must work too
-        ReferenceInfo refInfo = refInfo("sys.cluster.name", DataTypes.STRING, RowGranularity.CLUSTER);
+        Reference refInfo = refInfo("sys.cluster.name", DataTypes.STRING, RowGranularity.CLUSTER);
         ReferenceImplementation<BytesRef> name = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("crate"), name.value());
     }
 
     @Test
     public void testId() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.shards.id", DataTypes.INTEGER, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.id", DataTypes.INTEGER, RowGranularity.SHARD);
         ShardReferenceImplementation<Integer> shardExpression = (ShardReferenceImplementation<Integer>) resolver.getImplementation(refInfo);
         assertEquals(new Integer(1), shardExpression.value());
     }
 
     @Test
     public void testSize() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.shards.size", DataTypes.LONG, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.size", DataTypes.LONG, RowGranularity.SHARD);
         ShardReferenceImplementation<Long> shardExpression = (ShardReferenceImplementation<Long>) resolver.getImplementation(refInfo);
         assertEquals(new Long(123456), shardExpression.value());
     }
 
     @Test
     public void testNumDocs() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.shards.num_docs", DataTypes.LONG, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.num_docs", DataTypes.LONG, RowGranularity.SHARD);
         ShardReferenceImplementation<Long> shardExpression = (ShardReferenceImplementation<Long>) resolver.getImplementation(refInfo);
         assertEquals(new Long(654321), shardExpression.value());
 
@@ -222,35 +222,35 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testState() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.shards.state", DataTypes.STRING, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.state", DataTypes.STRING, RowGranularity.SHARD);
         ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("STARTED"), shardExpression.value());
     }
 
     @Test
     public void testRoutingState() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.shards.routing_state", DataTypes.STRING, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.routing_state", DataTypes.STRING, RowGranularity.SHARD);
         ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("RELOCATING"), shardExpression.value());
     }
 
     @Test
     public void testPrimary() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.shards.primary", DataTypes.BOOLEAN, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.primary", DataTypes.BOOLEAN, RowGranularity.SHARD);
         ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(true, shardExpression.value());
     }
 
     @Test
     public void testRelocatingNode() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.shards.relocating_node", DataTypes.STRING, RowGranularity.CLUSTER);
+        Reference refInfo = refInfo("sys.shards.relocating_node", DataTypes.STRING, RowGranularity.CLUSTER);
         ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("node_X"), shardExpression.value());
     }
 
     @Test
     public void testTableName() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
         ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
     }
@@ -260,7 +260,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         // expression should return the real table name
         indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
         prepare();
-        ReferenceInfo refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
         ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
 
@@ -272,7 +272,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     public void testPartitionIdent() throws Exception {
         indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
         prepare();
-        ReferenceInfo refInfo = refInfo("sys.shards.partition_ident", DataTypes.STRING, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.partition_ident", DataTypes.STRING, RowGranularity.SHARD);
         ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("_1"), shardExpression.value());
 
@@ -283,7 +283,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     @Test
     public void testPartitionIdentOfNonPartition() throws Exception {
         // expression should return NULL on non partitioned tables
-        ReferenceInfo refInfo = refInfo("sys.shards.partition_ident", DataTypes.STRING, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.partition_ident", DataTypes.STRING, RowGranularity.SHARD);
         ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef(""), shardExpression.value());
     }
@@ -292,7 +292,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     public void testOrphanPartition() throws Exception {
         indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
         prepare();
-        ReferenceInfo refInfo = refInfo("sys.shards.orphan_partition", DataTypes.STRING, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.orphan_partition", DataTypes.STRING, RowGranularity.SHARD);
         ShardReferenceImplementation<Boolean> shardExpression = (ShardReferenceImplementation<Boolean>) resolver.getImplementation(refInfo);
         assertEquals(true, shardExpression.value());
 
@@ -302,7 +302,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testSchemaName() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.shards.schema_name", DataTypes.STRING, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.schema_name", DataTypes.STRING, RowGranularity.SHARD);
         ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("doc"), shardExpression.value());
     }
@@ -311,7 +311,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     public void testCustomSchemaName() throws Exception {
         indexName = "my_schema.wikipedia_de";
         prepare();
-        ReferenceInfo refInfo = refInfo("sys.shards.schema_name", DataTypes.STRING, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.schema_name", DataTypes.STRING, RowGranularity.SHARD);
         ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("my_schema"), shardExpression.value());
         // reset indexName
@@ -323,7 +323,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         // expression should return the real table name
         indexName = "my_schema.wikipedia_de";
         prepare();
-        ReferenceInfo refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
         ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
 
@@ -333,7 +333,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
 
     @Test
     public void testRecoveryShardField() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.shards.recovery", DataTypes.OBJECT, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.recovery", DataTypes.OBJECT, RowGranularity.SHARD);
         NestedObjectExpression ref = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map<String, Object> recovery = ref.value();

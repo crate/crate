@@ -23,9 +23,10 @@ package io.crate.planner.projection;
 
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataTypes;
@@ -182,7 +183,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         super.readFrom(in);
         overwriteDuplicates = in.readBoolean();
         rawSourceReference = Reference.fromStream(in);
-        rawSourceSymbol = (InputColumn)Symbol.fromStream(in);
+        rawSourceSymbol = (InputColumn) Symbols.fromStream(in);
 
 
         if (in.readBoolean()) {
@@ -207,7 +208,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
         out.writeBoolean(overwriteDuplicates);
         Reference.toStream(rawSourceReference, out);
-        Symbol.toStream(rawSourceSymbol, out);
+        Symbols.toStream(rawSourceSymbol, out);
 
         if (includes == null) {
             out.writeBoolean(false);

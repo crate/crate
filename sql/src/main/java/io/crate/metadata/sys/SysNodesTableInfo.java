@@ -293,13 +293,13 @@ public class SysNodesTableInfo extends StaticTableInfo {
         this.tableColumn = new TableColumn(SYS_COL_IDENT, columnMap);
     }
 
-    public static ReferenceInfo tableColumnInfo(TableIdent tableIdent) {
-        return new ReferenceInfo(
+    public static Reference tableColumnInfo(TableIdent tableIdent) {
+        return new Reference(
             new ReferenceIdent(tableIdent, SYS_COL_IDENT),
             RowGranularity.NODE,
             ObjectType.INSTANCE,
             ColumnPolicy.STRICT,
-            ReferenceInfo.IndexType.NOT_ANALYZED,
+            Reference.IndexType.NOT_ANALYZED,
             true
         );
     }

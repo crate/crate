@@ -23,8 +23,9 @@ package io.crate.executor.transport;
 
 import com.google.common.base.Objects;
 import io.crate.Streamer;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
@@ -344,7 +345,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             if (assignmentsSize > 0) {
                 updateAssignments = new Symbol[assignmentsSize];
                 for (int i = 0; i < assignmentsSize; i++) {
-                    updateAssignments[i] = Symbol.fromStream(in);
+                    updateAssignments[i] = Symbols.fromStream(in);
                 }
             }
             int missingAssignmentsSize = in.readVInt();
@@ -368,7 +369,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             if (updateAssignments != null) {
                 out.writeVInt(updateAssignments.length);
                 for (Symbol updateAssignment : updateAssignments) {
-                    Symbol.toStream(updateAssignment, out);
+                    Symbols.toStream(updateAssignment, out);
                 }
             } else {
                 out.writeVInt(0);

@@ -27,7 +27,7 @@ import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.core.collections.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Assignment;
@@ -69,8 +69,8 @@ public class PartitionPropertiesAnalyzer {
 
             int idx = tableInfo.partitionedBy().indexOf(entry.getKey());
             try {
-                ReferenceInfo referenceInfo = tableInfo.partitionedByColumns().get(idx);
-                Object converted = referenceInfo.type().value(value);
+                Reference reference = tableInfo.partitionedByColumns().get(idx);
+                Object converted = reference.valueType().value(value);
                 values[idx] = converted == null ? null : DataTypes.STRING.value(converted);
             } catch (IndexOutOfBoundsException ex) {
                 throw new IllegalArgumentException(

@@ -37,7 +37,7 @@ public class PartitionReferenceResolverTest extends CrateUnitTest {
     @Test
     public void testClusterExpressionsNotAllowed() throws Exception {
         NestedReferenceResolver fallbackRefResolver = mock(NestedReferenceResolver.class);
-        ReferenceInfo refInfo = TestingHelpers.refInfo("foo.bar", DataTypes.STRING, RowGranularity.CLUSTER);
+        Reference refInfo = TestingHelpers.refInfo("foo.bar", DataTypes.STRING, RowGranularity.CLUSTER);
         when(fallbackRefResolver.getImplementation(refInfo)).thenReturn(new ReferenceImplementation() {
             @Override
             public Object value() {

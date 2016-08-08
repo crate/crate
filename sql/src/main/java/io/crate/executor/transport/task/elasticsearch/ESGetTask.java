@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
@@ -40,6 +39,7 @@ import io.crate.jobs.JobContextService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.QueryResultRowDownstream;
@@ -293,7 +293,7 @@ public class ESGetTask extends EsJobContextTask {
 
         @Override
         public Function<GetResponse, Object> build(final Reference reference, final GetResponseContext context) {
-            final String field = reference.info().ident().columnIdent().fqn();
+            final String field = reference.ident().columnIdent().fqn();
 
             if (field.startsWith("_")) {
                 switch (field) {

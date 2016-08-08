@@ -22,13 +22,12 @@
 
 package io.crate.analyze.symbol.format;
 
-import com.google.common.base.*;
 import io.crate.analyze.relations.RelationPrinter;
 import io.crate.analyze.symbol.*;
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.operation.operator.InOperator;
 import io.crate.operation.operator.any.AnyOperator;
 import io.crate.types.SetType;
@@ -278,10 +277,10 @@ public class SymbolPrinter {
             }
 
             if (context.isFullQualified()) {
-                context.builder.append(symbol.info().ident().tableIdent().sqlFqn())
+                context.builder.append(symbol.ident().tableIdent().sqlFqn())
                         .append(DOT);
             }
-            context.builder.append(symbol.info().ident().columnIdent().quotedOutputName());
+            context.builder.append(symbol.ident().columnIdent().quotedOutputName());
             return null;
         }
 

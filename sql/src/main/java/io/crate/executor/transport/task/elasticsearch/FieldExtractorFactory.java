@@ -22,7 +22,7 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Function;
-import io.crate.analyze.symbol.Reference;
+import io.crate.metadata.Reference;
 
 /**
  * Interface is used together with the {@link io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor}

@@ -402,7 +402,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                     assertThat(tableInfo, Matchers.notNullValue());
                     for (String fieldName : fieldNames) {
                         ColumnIdent columnIdent = ColumnIdent.fromPath(fieldName);
-                        assertThat(tableInfo.getReferenceInfo(columnIdent), Matchers.notNullValue());
+                        assertThat(tableInfo.getReference(columnIdent), Matchers.notNullValue());
                     }
                 }
             }

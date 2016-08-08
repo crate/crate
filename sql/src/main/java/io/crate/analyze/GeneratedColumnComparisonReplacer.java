@@ -67,9 +67,9 @@ public class GeneratedColumnComparisonReplacer {
         private final static ReferenceReplacer REFERENCE_REPLACER = new ReferenceReplacer();
 
         public static class Context {
-            private final Multimap<ReferenceInfo, GeneratedReferenceInfo> referencedRefsToGeneratedColumn;
+            private final Multimap<Reference, GeneratedReference> referencedRefsToGeneratedColumn;
 
-            public Context(Multimap<ReferenceInfo, GeneratedReferenceInfo> referencedRefsToGeneratedColumn) {
+            public Context(Multimap<Reference, GeneratedReference> referencedRefsToGeneratedColumn) {
                 this.referencedRefsToGeneratedColumn = referencedRefsToGeneratedColumn;
             }
         }
@@ -79,7 +79,7 @@ public class GeneratedColumnComparisonReplacer {
         }
 
         public Symbol addComparisons(Symbol symbol, DocTableInfo tableInfo) {
-            Multimap<ReferenceInfo, GeneratedReferenceInfo> referencedSingleReferences = extractGeneratedReferences(tableInfo);
+            Multimap<Reference, GeneratedReference> referencedSingleReferences = extractGeneratedReferences(tableInfo);
             if (referencedSingleReferences.isEmpty()) {
                 return symbol;
             } else {
@@ -112,10 +112,10 @@ public class GeneratedColumnComparisonReplacer {
 
 
         private Symbol addComparison(Function function, Reference reference, Symbol comparedAgainst, Context context) {
-            Collection<GeneratedReferenceInfo> genColInfos = context.referencedRefsToGeneratedColumn.get(reference.info());
+            Collection<GeneratedReference> genColInfos = context.referencedRefsToGeneratedColumn.get(reference);
             List<Function> comparisonsToAdd = new ArrayList<>(genColInfos.size());
             comparisonsToAdd.add(function);
-            for (GeneratedReferenceInfo genColInfo : genColInfos) {
+            for (GeneratedReference genColInfo : genColInfos) {
                 Function comparison = createAdditionalComparison(function, genColInfo, comparedAgainst);
                 if (comparison != null) {
                     comparisonsToAdd.add(comparison);
@@ -126,7 +126,7 @@ public class GeneratedColumnComparisonReplacer {
 
         @Nullable
         private Function createAdditionalComparison(Function function,
-                                                    GeneratedReferenceInfo generatedReference,
+                                                    GeneratedReference generatedReference,
                                                     Symbol comparedAgainst) {
             if (generatedReference != null &&
                 generatedReference.generatedExpression().symbolType().equals(SymbolType.FUNCTION)) {
@@ -146,11 +146,10 @@ public class GeneratedColumnComparisonReplacer {
                     }
                 }
 
-                Reference genColReference = new Reference(generatedReference);
-                Symbol wrapped = wrapInGenerationExpression(comparedAgainst, genColReference);
+                Symbol wrapped = wrapInGenerationExpression(comparedAgainst, generatedReference);
                 FunctionInfo comparisonFunctionInfo = new FunctionInfo(new FunctionIdent(operatorName,
-                        Arrays.asList(genColReference.info().type(), wrapped.valueType())), DataTypes.BOOLEAN);
-                return new Function(comparisonFunctionInfo, Arrays.asList(genColReference, wrapped));
+                        Arrays.asList(generatedReference.valueType(), wrapped.valueType())), DataTypes.BOOLEAN);
+                return new Function(comparisonFunctionInfo, Arrays.asList(generatedReference, wrapped));
 
             }
             return null;
@@ -158,17 +157,17 @@ public class GeneratedColumnComparisonReplacer {
 
         private Symbol wrapInGenerationExpression(Symbol wrapMeLikeItsHot, Reference generatedReference) {
             ReferenceReplacer.Context ctx = new ReferenceReplacer.Context(wrapMeLikeItsHot,
-                    ((GeneratedReferenceInfo) generatedReference.info()).referencedReferenceInfos().get(0));
-            return REFERENCE_REPLACER.process(((GeneratedReferenceInfo) generatedReference.info()).generatedExpression(), ctx);
+                    ((GeneratedReference) generatedReference).referencedReferences().get(0));
+            return REFERENCE_REPLACER.process(((GeneratedReference) generatedReference).generatedExpression(), ctx);
         }
 
-        private Multimap<ReferenceInfo, GeneratedReferenceInfo> extractGeneratedReferences(DocTableInfo tableInfo) {
-            Multimap<ReferenceInfo, GeneratedReferenceInfo> multiMap = HashMultimap.create();
+        private Multimap<Reference, GeneratedReference> extractGeneratedReferences(DocTableInfo tableInfo) {
+            Multimap<Reference, GeneratedReference> multiMap = HashMultimap.create();
 
-            for (GeneratedReferenceInfo referenceInfo : tableInfo.generatedColumns()) {
-                if (referenceInfo.referencedReferenceInfos().size() == 1 &&
-                    tableInfo.partitionedByColumns().contains(referenceInfo)) {
-                    multiMap.put(referenceInfo.referencedReferenceInfos().get(0), referenceInfo);
+            for (GeneratedReference generatedColumn : tableInfo.generatedColumns()) {
+                if (generatedColumn.referencedReferences().size() == 1 &&
+                    tableInfo.partitionedByColumns().contains(generatedColumn)) {
+                    multiMap.put(generatedColumn.referencedReferences().get(0), generatedColumn);
                 }
             }
             return multiMap;
@@ -180,9 +179,9 @@ public class GeneratedColumnComparisonReplacer {
         public static class Context {
 
             private final Symbol replaceWith;
-            private final ReferenceInfo toReplace;
+            private final Reference toReplace;
 
-            public Context(Symbol replaceWith, ReferenceInfo toReplace) {
+            public Context(Symbol replaceWith, Reference toReplace) {
                 this.replaceWith = replaceWith;
                 this.toReplace = toReplace;
             }
@@ -194,7 +193,7 @@ public class GeneratedColumnComparisonReplacer {
 
         @Override
         public Symbol visitReference(Reference symbol, Context context) {
-            if (symbol.info().equals(context.toReplace)) {
+            if (symbol.equals(context.toReplace)) {
                 return context.replaceWith;
             }
             return symbol;

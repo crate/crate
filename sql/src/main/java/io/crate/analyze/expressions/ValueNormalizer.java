@@ -26,7 +26,6 @@ import com.google.common.base.Preconditions;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
@@ -34,7 +33,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ConversionException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.StmtCtx;
 import io.crate.metadata.doc.DocTableInfo;
@@ -59,7 +58,7 @@ public class ValueNormalizer {
     }
 
     /**
-     * normalize and validate given value according to the corresponding {@link io.crate.analyze.symbol.Reference}
+     * normalize and validate given value according to the corresponding {@link io.crate.metadata.Reference}
      *
      * @param valueSymbol the value to normalize, might be anything from {@link io.crate.metadata.Scalar} to {@link io.crate.analyze.symbol.Literal}
      * @param reference   the reference to which the value has to comply in terms of type-compatibility
@@ -79,7 +78,7 @@ public class ValueNormalizer {
             literal = Literal.convert(literal, reference.valueType());
         } catch (ConversionException e) {
             throw new ColumnValidationException(
-                    reference.info().ident().columnIdent().name(),
+                    reference.ident().columnIdent().name(),
                     String.format(Locale.ENGLISH, "%s cannot be cast to type %s", SymbolPrinter.INSTANCE.printSimple(valueSymbol),
                             reference.valueType().getName()));
         }
@@ -90,13 +89,13 @@ public class ValueNormalizer {
         try {
             if (targetType == DataTypes.OBJECT) {
                 //noinspection unchecked
-                normalizeObjectValue((Map) value, reference.info());
+                normalizeObjectValue((Map) value, reference);
             } else if (isObjectArray(targetType)) {
-                normalizeObjectArrayValue((Object[]) value, reference.info());
+                normalizeObjectArrayValue((Object[]) value, reference);
             }
         } catch (ConversionException e) {
             throw new ColumnValidationException(
-                    reference.info().ident().columnIdent().name(),
+                    reference.ident().columnIdent().name(),
                     SymbolFormatter.format(
                             "\"%s\" has a type that can't be implicitly cast to that of \"%s\" (" + reference.valueType().getName() + ")",
                             literal,
@@ -118,11 +117,11 @@ public class ValueNormalizer {
     }
 
     @SuppressWarnings("unchecked")
-    private void normalizeObjectValue(Map<String, Object> value, ReferenceInfo info) {
+    private void normalizeObjectValue(Map<String, Object> value, Reference info) {
         for (Map.Entry<String, Object> entry : value.entrySet()) {
             ColumnIdent nestedIdent = ColumnIdent.getChild(info.ident().columnIdent(), entry.getKey());
             TableInfo tableInfo = schemas.getTableInfo(info.ident().tableIdent());
-            ReferenceInfo nestedInfo = tableInfo.getReferenceInfo(nestedIdent);
+            Reference nestedInfo = tableInfo.getReference(nestedIdent);
             if (nestedInfo == null) {
                 if (info.columnPolicy() == ColumnPolicy.IGNORED) {
                     continue;
@@ -139,15 +138,15 @@ public class ValueNormalizer {
                     throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(), "Invalid value");
                 }
                 dynamicReference.valueType(type);
-                nestedInfo = dynamicReference.info();
+                nestedInfo = dynamicReference;
             } else {
                 if (entry.getValue() == null) {
                     continue;
                 }
             }
-            if (nestedInfo.type() == DataTypes.OBJECT && entry.getValue() instanceof Map) {
+            if (nestedInfo.valueType() == DataTypes.OBJECT && entry.getValue() instanceof Map) {
                 normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo);
-            } else if (isObjectArray(nestedInfo.type()) && entry.getValue() instanceof Object[]) {
+            } else if (isObjectArray(nestedInfo.valueType()) && entry.getValue() instanceof Object[]) {
                 normalizeObjectArrayValue((Object[]) entry.getValue(), nestedInfo);
             } else {
                 entry.setValue(normalizePrimitiveValue(entry.getValue(), nestedInfo));
@@ -159,7 +158,7 @@ public class ValueNormalizer {
         return type.id() == ArrayType.ID && ((ArrayType) type).innerType().id() == ObjectType.ID;
     }
 
-    private void normalizeObjectArrayValue(Object[] value, ReferenceInfo arrayInfo) {
+    private void normalizeObjectArrayValue(Object[] value, Reference arrayInfo) {
         for (Object arrayItem : value) {
             Preconditions.checkArgument(arrayItem instanceof Map, "invalid value for object array type");
             // return value not used and replaced in value as arrayItem is a map that is mutated
@@ -169,15 +168,15 @@ public class ValueNormalizer {
         }
     }
 
-    private static Object normalizePrimitiveValue(Object primitiveValue, ReferenceInfo info) {
-        if (info.type().equals(DataTypes.STRING) && primitiveValue instanceof String) {
+    private static Object normalizePrimitiveValue(Object primitiveValue, Reference info) {
+        if (info.valueType().equals(DataTypes.STRING) && primitiveValue instanceof String) {
             return primitiveValue;
         }
         try {
-            return info.type().value(primitiveValue);
+            return info.valueType().value(primitiveValue);
         } catch (Exception e) {
             throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(),
-                    String.format(Locale.ENGLISH, "Invalid %s", info.type().getName())
+                    String.format(Locale.ENGLISH, "Invalid %s", info.valueType().getName())
             );
         }
     }

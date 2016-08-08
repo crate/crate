@@ -24,6 +24,7 @@ package io.crate.metadata;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import io.crate.analyze.symbol.SymbolType;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -36,19 +37,19 @@ import java.util.Collections;
 import java.util.List;
 
 
-public class IndexReferenceInfo extends ReferenceInfo {
+public class IndexReference extends Reference {
 
-    public static final ReferenceInfoFactory<IndexReferenceInfo> FACTORY = new ReferenceInfoFactory<IndexReferenceInfo>() {
+    public static final SymbolFactory<IndexReference> FACTORY = new SymbolFactory<IndexReference>() {
         @Override
-        public IndexReferenceInfo newInstance() {
-            return new IndexReferenceInfo();
+        public IndexReference newInstance() {
+            return new IndexReference();
         }
     };
 
     public static class Builder {
         private final ReferenceIdent ident;
         private IndexType indexType = IndexType.ANALYZED;
-        private List<ReferenceInfo> columns = new ArrayList<>();
+        private List<Reference> columns = new ArrayList<>();
         private String analyzer = null;
 
         public Builder(ReferenceIdent ident) {
@@ -61,7 +62,7 @@ public class IndexReferenceInfo extends ReferenceInfo {
             return this;
         }
 
-        public Builder addColumn(ReferenceInfo info) {
+        public Builder addColumn(Reference info) {
             this.columns.add(info);
             return this;
         }
@@ -71,28 +72,28 @@ public class IndexReferenceInfo extends ReferenceInfo {
             return this;
         }
 
-        public IndexReferenceInfo build() {
-            return new IndexReferenceInfo(ident, indexType, columns, analyzer);
+        public IndexReference build() {
+            return new IndexReference(ident, indexType, columns, analyzer);
         }
     }
 
     @Nullable
     private String analyzer;
-    private List<ReferenceInfo> columns;
+    private List<Reference> columns;
 
-    private IndexReferenceInfo() {
+    private IndexReference() {
     }
 
-    public IndexReferenceInfo(ReferenceIdent ident,
-                              IndexType indexType,
-                              List<ReferenceInfo> columns,
-                              @Nullable String analyzer) {
+    public IndexReference(ReferenceIdent ident,
+                          IndexType indexType,
+                          List<Reference> columns,
+                          @Nullable String analyzer) {
         super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false);
-        this.columns = MoreObjects.firstNonNull(columns, Collections.<ReferenceInfo>emptyList());
+        this.columns = MoreObjects.firstNonNull(columns, Collections.<Reference>emptyList());
         this.analyzer = analyzer;
     }
 
-    public List<ReferenceInfo> columns() {
+    public List<Reference> columns() {
         return columns;
     }
 
@@ -102,8 +103,8 @@ public class IndexReferenceInfo extends ReferenceInfo {
     }
 
     @Override
-    public ReferenceInfoType referenceInfoType() {
-        return ReferenceInfoType.INDEX;
+    public SymbolType symbolType() {
+        return SymbolType.INDEX_REFERENCE;
     }
 
     @Override
@@ -111,7 +112,7 @@ public class IndexReferenceInfo extends ReferenceInfo {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
-        IndexReferenceInfo that = (IndexReferenceInfo) o;
+        IndexReference that = (IndexReference) o;
         return Objects.equal(analyzer, that.analyzer) &&
                Objects.equal(columns, that.columns);
     }
@@ -123,7 +124,7 @@ public class IndexReferenceInfo extends ReferenceInfo {
 
     @Override
     public String toString() {
-        return "IndexReferenceInfo{" +
+        return "IndexReference{" +
                "analyzer='" + analyzer + '\'' +
                ", columns=" + columns +
                '}';
@@ -136,7 +137,7 @@ public class IndexReferenceInfo extends ReferenceInfo {
         int size = in.readVInt();
         columns = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            columns.add(ReferenceInfo.fromStream(in));
+            columns.add(Reference.fromStream(in));
         }
     }
 
@@ -145,8 +146,8 @@ public class IndexReferenceInfo extends ReferenceInfo {
         super.writeTo(out);
         out.writeOptionalString(analyzer);
         out.writeVInt(columns.size());
-        for (ReferenceInfo referenceInfo : columns) {
-            ReferenceInfo.toStream(referenceInfo, out);
+        for (Reference reference : columns) {
+            Reference.toStream(reference, out);
         }
     }
 }

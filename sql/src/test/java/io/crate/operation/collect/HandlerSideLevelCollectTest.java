@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
@@ -91,7 +90,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Schemas schemas =  internalCluster().getInstance(Schemas.class);
         TableInfo tableInfo = schemas.getTableInfo(new TableIdent("sys", "cluster"));
         Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null);
-        Reference clusterNameRef = new Reference(new ReferenceInfo(new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterNameExpression.NAME)), RowGranularity.CLUSTER, DataTypes.STRING));
+        Reference clusterNameRef = new Reference(new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterNameExpression.NAME)), RowGranularity.CLUSTER, DataTypes.STRING);
         RoutedCollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef), RowGranularity.CLUSTER);
         Bucket result = collect(collectNode);
         assertThat(result.size(), is(1));
@@ -112,8 +111,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         TableInfo tablesTableInfo = schemaInfo.getTableInfo("tables");
         Routing routing = tablesTableInfo.getRouting(WhereClause.MATCH_ALL, null);
         List<Symbol> toCollect = new ArrayList<>();
-        for (ReferenceInfo info : tablesTableInfo.columns()) {
-            toCollect.add(new Reference(info));
+        for (Reference reference : tablesTableInfo.columns()) {
+            toCollect.add(reference);
         }
         Symbol tableNameRef = toCollect.get(8);
 
@@ -134,8 +133,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         assert tableInfo != null;
         Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null);
         List<Symbol> toCollect = new ArrayList<>();
-        for (ReferenceInfo info : tableInfo.columns()) {
-            toCollect.add(new Reference(info));
+        for (Reference ref : tableInfo.columns()) {
+            toCollect.add(ref);
         }
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC);
         Bucket result = collect(collectNode);

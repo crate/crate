@@ -135,7 +135,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
             rightMergePhase.readFrom(in);
         }
         if (in.readBoolean()) {
-            filterSymbol = Symbol.fromStream(in);
+            filterSymbol = Symbols.fromStream(in);
         }
     }
 
@@ -171,7 +171,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
             out.writeBoolean(false);
         } else {
             out.writeBoolean(true);
-            Symbol.toStream(filterSymbol, out);
+            Symbols.toStream(filterSymbol, out);
         }
     }
 

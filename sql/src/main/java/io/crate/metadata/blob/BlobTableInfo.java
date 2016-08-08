@@ -52,12 +52,12 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
     private final BytesRef numberOfReplicas;
     private final ClusterService clusterService;
     private final String index;
-    private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
+    private final LinkedHashSet<Reference> columns = new LinkedHashSet<>();
     private final BytesRef blobsPath;
     private final TableParameterInfo tableParameterInfo;
     private ImmutableMap<String,Object> tableParameters;
 
-    public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
+    public static final Map<ColumnIdent, Reference> INFOS = new LinkedHashMap<>();
 
     private static final ImmutableList<ColumnIdent> primaryKey = ImmutableList.of(
             new ColumnIdent("digest"));
@@ -87,12 +87,12 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
 
     @Nullable
     @Override
-    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
+    public Reference getReference(ColumnIdent columnIdent) {
         return INFOS.get(columnIdent);
     }
 
     @Override
-    public Collection<ReferenceInfo> columns() {
+    public Collection<Reference> columns() {
         return columns;
     }
 
@@ -170,13 +170,13 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
     }
 
     @Override
-    public Iterator<ReferenceInfo> iterator() {
+    public Iterator<Reference> iterator() {
         return columns.iterator();
     }
 
     private void registerStaticColumns() {
         for (Tuple<String, DataType> column : staticColumns) {
-            ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(ident(), column.v1(), null),
+            Reference info = new Reference(new ReferenceIdent(ident(), column.v1(), null),
                     RowGranularity.DOC, column.v2());
             if (info.ident().isColumn()) {
                 columns.add(info);

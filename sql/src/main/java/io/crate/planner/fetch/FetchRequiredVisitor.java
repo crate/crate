@@ -23,6 +23,7 @@
 package io.crate.planner.fetch;
 
 import io.crate.analyze.symbol.*;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 
 import java.util.HashSet;

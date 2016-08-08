@@ -23,11 +23,13 @@
 package org.elasticsearch.action.bulk;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.analyze.symbol.Reference;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportShardUpsertAction;
-import io.crate.metadata.*;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
@@ -39,7 +41,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 import static org.mockito.Matchers.any;
@@ -48,8 +53,8 @@ import static org.mockito.Mockito.*;
 public class BulkRetryCoordinatorTest extends CrateUnitTest {
 
     private static TableIdent charactersIdent = new TableIdent(null, "foo");
-    private static Reference fooRef = new Reference(new ReferenceInfo(
-        new ReferenceIdent(charactersIdent, "bar"), RowGranularity.DOC, DataTypes.STRING));
+    private static Reference fooRef = new Reference(
+        new ReferenceIdent(charactersIdent, "bar"), RowGranularity.DOC, DataTypes.STRING);
     private static ShardId shardId = new ShardId("foo", 1);
 
     abstract class MockShardUpsertActionDelegate extends TransportShardUpsertActionDelegate {

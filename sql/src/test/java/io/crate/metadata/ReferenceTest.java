@@ -26,13 +26,13 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class ReferenceInfoTest extends CrateUnitTest {
+public class ReferenceTest extends CrateUnitTest {
 
     @Test
     public void testEquals() throws Exception {
@@ -40,27 +40,27 @@ public class ReferenceInfoTest extends CrateUnitTest {
         ReferenceIdent referenceIdent = new ReferenceIdent(tableIdent, "object_column");
         DataType dataType1 = new ArrayType(DataTypes.OBJECT);
         DataType dataType2 = new ArrayType(DataTypes.OBJECT);
-        ReferenceInfo referenceInfo1 = new ReferenceInfo(referenceIdent, RowGranularity.DOC, dataType1);
-        ReferenceInfo referenceInfo2 = new ReferenceInfo(referenceIdent, RowGranularity.DOC, dataType2);
-        assertTrue(referenceInfo1.equals(referenceInfo2));
+        Reference reference1 = new Reference(referenceIdent, RowGranularity.DOC, dataType1);
+        Reference reference2 = new Reference(referenceIdent, RowGranularity.DOC, dataType2);
+        assertTrue(reference1.equals(reference2));
     }
 
     @Test
     public void testStreaming() throws Exception {
         TableIdent tableIdent = new TableIdent("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(tableIdent, "object_column");
-        ReferenceInfo referenceInfo = new ReferenceInfo(referenceIdent,
+        Reference reference = new Reference(referenceIdent,
                                                         RowGranularity.DOC,
                                                         new ArrayType(DataTypes.OBJECT),
                                                         ColumnPolicy.STRICT,
-                                                        ReferenceInfo.IndexType.ANALYZED, false);
+                                                        Reference.IndexType.ANALYZED, false);
 
         BytesStreamOutput out = new BytesStreamOutput();
-        ReferenceInfo.toStream(referenceInfo, out);
+        Reference.toStream(reference, out);
 
         StreamInput in = StreamInput.wrap(out.bytes());
-        ReferenceInfo referenceInfo2 = ReferenceInfo.fromStream(in);
+        Reference reference2 = Reference.fromStream(in);
 
-        assertThat(referenceInfo2, is(referenceInfo));
+        assertThat(reference2, is(reference));
     }
 }

@@ -21,7 +21,10 @@
 
 package io.crate.operation.predicate;
 
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.DynamicReference;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.test.integration.CrateUnitTest;
@@ -60,10 +63,10 @@ public class IsNullPredicateTest extends CrateUnitTest {
 
     @Test
     public void testNormalizeReference() throws Exception {
-        Reference name_ref = new Reference(new ReferenceInfo(
+        Reference name_ref = new Reference(
                 new ReferenceIdent(new TableIdent(null, "dummy"), "name"),
                 RowGranularity.DOC,
-                DataTypes.STRING));
+                DataTypes.STRING);
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(name_ref));
         Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
         assertThat(symbol, instanceOf(Function.class));
@@ -71,10 +74,8 @@ public class IsNullPredicateTest extends CrateUnitTest {
 
     @Test
     public void testNormalizeDynamicReference() throws Exception {
-        DynamicReference name_ref = new DynamicReference(new ReferenceInfo(
-                new ReferenceIdent(new TableIdent(null, "dummy"), "name"),
-                RowGranularity.DOC,
-                DataTypes.UNDEFINED));
+        DynamicReference name_ref = new DynamicReference(
+            new ReferenceIdent(new TableIdent(null, "dummy"), "name"), RowGranularity.DOC);
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(name_ref));
         Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
         assertThat(symbol, isLiteral(true));

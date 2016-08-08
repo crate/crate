@@ -22,15 +22,15 @@
 package io.crate.operation.reference.partitioned;
 
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RowContextCollectorExpression;
 
 public class PartitionExpression extends RowContextCollectorExpression<PartitionName, Object> {
 
-    private final ReferenceInfo info;
+    private final Reference info;
     private final int valuesIndex;
 
-    public PartitionExpression(ReferenceInfo info, int valuesIndex) {
+    public PartitionExpression(Reference info, int valuesIndex) {
         this.info = info;
         this.valuesIndex = valuesIndex;
     }
@@ -38,10 +38,10 @@ public class PartitionExpression extends RowContextCollectorExpression<Partition
     @Override
     public Object value() {
         assert row != null : "row shouldn't be null for PartitionExpression";
-        return info.type().value(row.values().get(valuesIndex));
+        return info.valueType().value(row.values().get(valuesIndex));
     }
 
-    public ReferenceInfo info() {
+    public Reference info() {
         return info;
     }
 }

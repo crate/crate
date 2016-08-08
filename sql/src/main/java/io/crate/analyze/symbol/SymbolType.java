@@ -21,6 +21,11 @@
 
 package io.crate.analyze.symbol;
 
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.GeoReference;
+import io.crate.metadata.IndexReference;
+import io.crate.metadata.Reference;
+
 public enum SymbolType {
 
     AGGREGATION(Aggregation.FACTORY),
@@ -33,7 +38,10 @@ public enum SymbolType {
     VALUE(Value.FACTORY),
     MATCH_PREDICATE(MatchPredicate.FACTORY),
     FETCH_REFERENCE(null),
-    RELATION_COLUMN(RelationColumn.FACTORY);
+    RELATION_COLUMN(RelationColumn.FACTORY),
+    INDEX_REFERENCE(IndexReference.FACTORY),
+    GEO_REFERENCE(GeoReference.FACTORY),
+    GENERATED_REFERENCE(GeneratedReference.FACTORY);
 
     private final Symbol.SymbolFactory factory;
 

@@ -93,8 +93,8 @@ public class NodeStatsCollectSourceTest extends CrateUnitTest {
 
         // build where clause with id = ?
         SysNodesTableInfo tableInfo = mock(SysNodesTableInfo.class);
-        when(tableInfo.getReferenceInfo(new ColumnIdent("id"))).thenReturn(
-            new ReferenceInfo(new ReferenceIdent(new TableIdent("sys", "nodes"), "id"), RowGranularity.DOC, DataTypes.STRING));
+        when(tableInfo.getReference(new ColumnIdent("id"))).thenReturn(
+            new Reference(new ReferenceIdent(new TableIdent("sys", "nodes"), "id"), RowGranularity.DOC, DataTypes.STRING));
 
         TableRelation tableRelation = new TableRelation(tableInfo);
         Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(

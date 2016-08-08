@@ -3,7 +3,6 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
@@ -28,7 +27,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
 
     private NestedReferenceResolver referenceResolver;
     private Functions functions;
-    private ReferenceInfo dummyLoadInfo;
+    private Reference dummyLoadInfo;
 
     private final StmtCtx stmtCtx = new StmtCtx();
 
@@ -37,7 +36,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
         Map<ReferenceIdent, ReferenceImplementation> referenceImplementationMap = new HashMap<>(1, 1);
 
         ReferenceIdent dummyLoadIdent = new ReferenceIdent(new TableIdent("test", "dummy"), "load");
-        dummyLoadInfo = new ReferenceInfo(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE);
+        dummyLoadInfo = new Reference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE);
 
         referenceImplementationMap.put(dummyLoadIdent, new SimpleObjectExpression<Double>() {
             @Override
@@ -61,18 +60,15 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
      */
     private Function prepareFunctionTree() {
 
-        Reference load_1 = new Reference(dummyLoadInfo);
+        Reference load_1 = dummyLoadInfo;
         Literal<Double> d01 = Literal.newLiteral(0.08);
         Function load_eq_01 = new Function(
                 functionInfo(EqOperator.NAME, DataTypes.DOUBLE), Arrays.<Symbol>asList(load_1, d01));
 
         Symbol name_ref = new Reference(
-                new ReferenceInfo(
                         new ReferenceIdent(new TableIdent(null, "foo"), "name"),
                         RowGranularity.DOC,
-                        DataTypes.STRING
-                )
-        );
+                        DataTypes.STRING);
         Symbol x_literal = Literal.newLiteral("x");
         Symbol y_literal = Literal.newLiteral("y");
 

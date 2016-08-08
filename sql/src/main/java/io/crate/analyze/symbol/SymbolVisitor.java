@@ -21,6 +21,8 @@
 
 package io.crate.analyze.symbol;
 
+import io.crate.metadata.Reference;
+
 import javax.annotation.Nullable;
 
 

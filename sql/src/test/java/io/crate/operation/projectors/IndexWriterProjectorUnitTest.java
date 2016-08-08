@@ -24,7 +24,6 @@ package io.crate.operation.projectors;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
@@ -57,8 +56,8 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
 
     private final static ColumnIdent ID_IDENT = new ColumnIdent("id");
     private static final TableIdent bulkImportIdent = new TableIdent(null, "bulk_import");
-    private static Reference rawSourceReference = new Reference(new ReferenceInfo(
-            new ReferenceIdent(bulkImportIdent, "_raw"), RowGranularity.DOC, DataTypes.STRING));
+    private static Reference rawSourceReference = new Reference(
+            new ReferenceIdent(bulkImportIdent, "_raw"), RowGranularity.DOC, DataTypes.STRING);
 
     @Mock(answer = Answers.RETURNS_MOCKS)
     ClusterService clusterService;

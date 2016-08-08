@@ -44,34 +44,34 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
         public static final ColumnIdent GENERATION_EXPRESSION = new ColumnIdent("generation_expression");
     }
 
-    public static class ReferenceInfos {
-        public static final ReferenceInfo SCHEMA_NAME = info(Columns.SCHEMA_NAME, DataTypes.STRING);
-        public static final ReferenceInfo TABLE_NAME = info(Columns.TABLE_NAME, DataTypes.STRING);
-        public static final ReferenceInfo COLUMN_NAME = info(Columns.COLUMN_NAME, DataTypes.STRING);
-        public static final ReferenceInfo ORDINAL_POSITION = info(Columns.ORDINAL_POSITION, DataTypes.SHORT);
-        public static final ReferenceInfo DATA_TYPE = info(Columns.DATA_TYPE, DataTypes.STRING);
-        public static final ReferenceInfo IS_GENERATED = info(Columns.IS_GENERATED, DataTypes.BOOLEAN);
-        public static final ReferenceInfo IS_NULLABLE = info(Columns.IS_NULLABLE, DataTypes.BOOLEAN);
-        public static final ReferenceInfo GENERATION_EXPRESSION = info(Columns.GENERATION_EXPRESSION, DataTypes.STRING);
+    public static class References {
+        public static final Reference SCHEMA_NAME = info(Columns.SCHEMA_NAME, DataTypes.STRING);
+        public static final Reference TABLE_NAME = info(Columns.TABLE_NAME, DataTypes.STRING);
+        public static final Reference COLUMN_NAME = info(Columns.COLUMN_NAME, DataTypes.STRING);
+        public static final Reference ORDINAL_POSITION = info(Columns.ORDINAL_POSITION, DataTypes.SHORT);
+        public static final Reference DATA_TYPE = info(Columns.DATA_TYPE, DataTypes.STRING);
+        public static final Reference IS_GENERATED = info(Columns.IS_GENERATED, DataTypes.BOOLEAN);
+        public static final Reference IS_NULLABLE = info(Columns.IS_NULLABLE, DataTypes.BOOLEAN);
+        public static final Reference GENERATION_EXPRESSION = info(Columns.GENERATION_EXPRESSION, DataTypes.STRING);
     }
 
-    private static ReferenceInfo info(ColumnIdent columnIdent, DataType dataType) {
-        return new ReferenceInfo(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
+    private static Reference info(ColumnIdent columnIdent, DataType dataType) {
+        return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
     protected InformationColumnsTableInfo(ClusterService clusterService) {
         super(clusterService,
                 IDENT,
                 ImmutableList.of(Columns.SCHEMA_NAME, Columns.TABLE_NAME, Columns.COLUMN_NAME),
-                ImmutableSortedMap.<ColumnIdent, ReferenceInfo>naturalOrder()
-                    .put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME)
-                    .put(Columns.TABLE_NAME, ReferenceInfos.TABLE_NAME)
-                    .put(Columns.COLUMN_NAME, ReferenceInfos.COLUMN_NAME)
-                    .put(Columns.ORDINAL_POSITION, ReferenceInfos.ORDINAL_POSITION)
-                    .put(Columns.DATA_TYPE, ReferenceInfos.DATA_TYPE)
-                    .put(Columns.IS_GENERATED, ReferenceInfos.IS_GENERATED)
-                    .put(Columns.IS_NULLABLE, ReferenceInfos.IS_NULLABLE)
-                    .put(Columns.GENERATION_EXPRESSION, ReferenceInfos.GENERATION_EXPRESSION)
+                ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
+                    .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME)
+                    .put(Columns.TABLE_NAME, References.TABLE_NAME)
+                    .put(Columns.COLUMN_NAME, References.COLUMN_NAME)
+                    .put(Columns.ORDINAL_POSITION, References.ORDINAL_POSITION)
+                    .put(Columns.DATA_TYPE, References.DATA_TYPE)
+                    .put(Columns.IS_GENERATED, References.IS_GENERATED)
+                    .put(Columns.IS_NULLABLE, References.IS_NULLABLE)
+                    .put(Columns.GENERATION_EXPRESSION, References.GENERATION_EXPRESSION)
                     .build()
         );
     }

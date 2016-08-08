@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.executor.transport.task.elasticsearch.SortOrder;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
@@ -113,7 +114,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         // with the reference valueType.
         // this is why we use a custom comparator source with the same logic as ES
 
-        ColumnIdent columnIdent = symbol.info().ident().columnIdent();
+        ColumnIdent columnIdent = symbol.ident().columnIdent();
 
         if (columnIdent.isColumn()) {
             if (SortParseElement.SCORE_FIELD_NAME.equals(columnIdent.name())) {

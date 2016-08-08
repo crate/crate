@@ -26,6 +26,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Iterators;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.StmtCtx;
@@ -143,7 +144,7 @@ public class WhereClause extends QueryClause implements Streamable {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
-            query = Symbol.fromStream(in);
+            query = Symbols.fromStream(in);
         } else {
             noMatch = in.readBoolean();
         }
@@ -153,7 +154,7 @@ public class WhereClause extends QueryClause implements Streamable {
     public void writeTo(StreamOutput out) throws IOException {
         if (query != null) {
             out.writeBoolean(true);
-            Symbol.toStream(query, out);
+            Symbols.toStream(query, out);
         } else {
             out.writeBoolean(false);
             out.writeBoolean(noMatch);

@@ -25,6 +25,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.StmtCtx;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -126,7 +127,7 @@ public class OrderBy implements Streamable {
 
         orderBySymbols = new ArrayList<>(numOrderBy);
         for (int i = 0; i < numOrderBy; i++) {
-            orderBySymbols.add(Symbol.fromStream(in));
+            orderBySymbols.add(Symbols.fromStream(in));
         }
 
         nullsFirst = new Boolean[numOrderBy];
@@ -142,7 +143,7 @@ public class OrderBy implements Streamable {
             out.writeBoolean(reverseFlag);
         }
         for (Symbol symbol : orderBySymbols) {
-            Symbol.toStream(symbol, out);
+            Symbols.toStream(symbol, out);
         }
         for (Boolean nullFirst : nullsFirst) {
             out.writeOptionalBoolean(nullFirst);

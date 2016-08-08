@@ -22,9 +22,10 @@
 package io.crate.planner.projection;
 
 import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -145,7 +146,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         super.readFrom(in);
 
         if (in.readBoolean()) {
-            columnSymbols = Symbol.listFromStream(in);
+            columnSymbols = Symbols.listFromStream(in);
         }
         if (in.readBoolean()) {
             int length = in.readVInt();
@@ -159,7 +160,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             int mapSize = in.readVInt();
             onDuplicateKeyAssignments = new HashMap<>(mapSize);
             for (int i = 0; i < mapSize; i++) {
-                onDuplicateKeyAssignments.put(Reference.fromStream(in), Symbol.fromStream(in));
+                onDuplicateKeyAssignments.put(Reference.fromStream(in), Symbols.fromStream(in));
             }
         }
     }
@@ -172,7 +173,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             out.writeBoolean(false);
         } else {
             out.writeBoolean(true);
-            Symbol.toStream(columnSymbols, out);
+            Symbols.toStream(columnSymbols, out);
         }
         if (columnReferences == null) {
             out.writeBoolean(false);
@@ -180,7 +181,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             out.writeBoolean(true);
             out.writeVInt(columnReferences.size());
             for (Reference columnIdent : columnReferences) {
-                columnIdent.writeTo(out);
+                Reference.toStream(columnIdent, out);
             }
         }
 
@@ -191,7 +192,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             out.writeVInt(onDuplicateKeyAssignments.size());
             for (Map.Entry<Reference, Symbol> entry : onDuplicateKeyAssignments.entrySet()) {
                 Reference.toStream(entry.getKey(), out);
-                Symbol.toStream(entry.getValue(), out);
+                Symbols.toStream(entry.getValue(), out);
             }
         }
 

@@ -23,7 +23,7 @@
 package io.crate.metadata.sys;
 
 import com.google.common.base.Function;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.MockedClusterServiceModule;
@@ -39,11 +39,11 @@ import java.util.Locale;
 
 public class SystemTableInfoTest extends CrateUnitTest {
 
-    private static final Function<ReferenceInfo, Comparable> EXTRACT_COLUMN_IDENT = new Function<ReferenceInfo, Comparable>() {
+    private static final Function<Reference, Comparable> EXTRACT_COLUMN_IDENT = new Function<Reference, Comparable>() {
 
         @Nullable
         @Override
-        public Comparable apply(@Nullable ReferenceInfo input) {
+        public Comparable apply(@Nullable Reference input) {
             assert input != null;
             return input.ident().columnIdent().fqn();
         }

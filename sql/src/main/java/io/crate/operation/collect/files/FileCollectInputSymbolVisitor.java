@@ -21,9 +21,9 @@
 
 package io.crate.operation.collect.files;
 
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.operation.AbstractImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
@@ -58,7 +58,7 @@ public class FileCollectInputSymbolVisitor
 
     @Override
     public Input<?> visitReference(Reference symbol, Context context) {
-        LineCollectorExpression<?> implementation = referenceResolver.getImplementation(symbol.info());
+        LineCollectorExpression<?> implementation = referenceResolver.getImplementation(symbol);
         if (implementation == null) {
             throw new IllegalArgumentException(
                     SymbolFormatter.format("Can't handle Reference \"%s\"", symbol));

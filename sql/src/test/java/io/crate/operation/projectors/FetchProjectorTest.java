@@ -31,7 +31,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.symbol.FetchReference;
 import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.CollectionBucket;
@@ -155,18 +154,17 @@ public class FetchProjectorTest extends CrateUnitTest {
         indexToTable.put("t1", USER_TABLE_IDENT);
 
         ReferenceIdent referenceIdent = new ReferenceIdent(USER_TABLE_IDENT, "id");
-        ReferenceInfo referenceInfo = new ReferenceInfo(referenceIdent,
+        Reference reference = new Reference(referenceIdent,
             RowGranularity.DOC,
             LongType.INSTANCE,
             ColumnPolicy.STRICT,
-            ReferenceInfo.IndexType.NOT_ANALYZED,
+            Reference.IndexType.NOT_ANALYZED,
             true);
 
         Map<TableIdent, FetchSource> tableToFetchSource = new HashMap<>(2);
-        FetchSource fetchSource = new FetchSource(Collections.<ReferenceInfo>emptyList(),
+        FetchSource fetchSource = new FetchSource(Collections.<Reference>emptyList(),
             Collections.singletonList(new InputColumn(0)),
-            Collections.singletonList(new Reference(referenceInfo))
-            );
+            Collections.singletonList(reference));
         tableToFetchSource.put(USER_TABLE_IDENT, fetchSource);
 
         return new FetchProjectorContext(
@@ -182,14 +180,14 @@ public class FetchProjectorTest extends CrateUnitTest {
 
         InputColumn inputColumn = new InputColumn(0);
         ReferenceIdent referenceIdent = new ReferenceIdent(USER_TABLE_IDENT, "id");
-        ReferenceInfo referenceInfo = new ReferenceInfo(referenceIdent,
+        Reference reference = new Reference(referenceIdent,
             RowGranularity.DOC,
             LongType.INSTANCE,
             ColumnPolicy.STRICT,
-            ReferenceInfo.IndexType.NOT_ANALYZED,
+            Reference.IndexType.NOT_ANALYZED,
             true);
 
-        outputSymbols.add(new FetchReference(inputColumn, new Reference(referenceInfo)));
+        outputSymbols.add(new FetchReference(inputColumn, reference));
         return outputSymbols;
     }
 

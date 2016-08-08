@@ -2,8 +2,8 @@ package io.crate.operation.operator;
 
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.Reference;
 import io.crate.metadata.StmtCtx;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;

@@ -24,6 +24,7 @@ package io.crate.planner.projection;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -124,7 +125,7 @@ public class TopNProjection extends Projection {
         offset = in.readVInt();
         limit = in.readVInt();
 
-        outputs = Symbol.listFromStream(in);
+        outputs = Symbols.listFromStream(in);
 
         int numOrderBy = in.readVInt();
 
@@ -137,7 +138,7 @@ public class TopNProjection extends Projection {
 
             orderBy = new ArrayList<>(numOrderBy);
             for (int i = 0; i < reverseFlags.length; i++) {
-                orderBy.add(Symbol.fromStream(in));
+                orderBy.add(Symbols.fromStream(in));
             }
 
             nullsFirst = new Boolean[numOrderBy];
@@ -151,14 +152,14 @@ public class TopNProjection extends Projection {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(offset);
         out.writeVInt(limit);
-        Symbol.toStream(outputs, out);
+        Symbols.toStream(outputs, out);
         if (isOrdered()) {
             out.writeVInt(reverseFlags.length);
             for (boolean reverseFlag : reverseFlags) {
                 out.writeBoolean(reverseFlag);
             }
             for (Symbol symbol : orderBy) {
-                Symbol.toStream(symbol, out);
+                Symbols.toStream(symbol, out);
             }
             for (Boolean nullFirst : nullsFirst) {
                 out.writeOptionalBoolean(nullFirst);

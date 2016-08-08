@@ -29,9 +29,9 @@ import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReferenceInfo;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Path;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -56,14 +56,14 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
         @Override
         public Void visitReference(Reference symbol, DocTableRelation context) {
-            if (context.tableInfo.partitionedBy().contains(symbol.info().ident().columnIdent())) {
+            if (context.tableInfo.partitionedBy().contains(symbol.ident().columnIdent())) {
                 throw new UnsupportedOperationException(
                         SymbolFormatter.format(
                                 "cannot use partitioned column %s in ORDER BY clause", symbol));
-            } else if (symbol.info().indexType() == ReferenceInfo.IndexType.ANALYZED) {
+            } else if (symbol.indexType() == Reference.IndexType.ANALYZED) {
                 throw new UnsupportedOperationException(
                         SymbolFormatter.format("Cannot ORDER BY '%s': sorting on analyzed/fulltext columns is not possible", symbol));
-            } else if (symbol.info().indexType() == ReferenceInfo.IndexType.NO) {
+            } else if (symbol.indexType() == Reference.IndexType.NO) {
                 throw new UnsupportedOperationException(
                         SymbolFormatter.format("Cannot ORDER BY '%s': sorting on non-indexed columns is not possible", symbol));
             }
@@ -96,10 +96,10 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         if (operation == Operation.UPDATE) {
             ensureColumnCanBeUpdated(ci);
         }
-        ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(ci);
-        if (referenceInfo == null) {
-            referenceInfo = tableInfo.indexColumn(ci);
-            if (referenceInfo == null) {
+        Reference reference = tableInfo.getReference(ci);
+        if (reference == null) {
+            reference = tableInfo.indexColumn(ci);
+            if (reference == null) {
                 DynamicReference dynamic = tableInfo.getDynamic(ci, operation == Operation.INSERT || operation == Operation.UPDATE);
                 if (dynamic == null) {
                     return null;
@@ -108,9 +108,9 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
                 }
             }
         }
-        referenceInfo = checkNestedArray(ci, referenceInfo);
+        reference = checkNestedArray(ci, reference);
         // TODO: check allocated fields first?
-        return allocate(ci, new Reference(referenceInfo));
+        return allocate(ci, reference);
     }
 
     /**
@@ -126,15 +126,15 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
             ensureNotUpdated(ci, pkIdent, "Updating a primary key is not supported");
         }
-        List<GeneratedReferenceInfo> generatedReferenceInfos = tableInfo.generatedColumns();
+        List<GeneratedReference> generatedReferences = tableInfo.generatedColumns();
 
         for (ColumnIdent partitionIdent : tableInfo.partitionedBy()) {
             ensureNotUpdated(ci, partitionIdent, "Updating a partitioned-by column is not supported");
-            int idx = generatedReferenceInfos.indexOf(tableInfo.getReferenceInfo(partitionIdent));
+            int idx = generatedReferences.indexOf(tableInfo.getReference(partitionIdent));
             if (idx >= 0) {
-                GeneratedReferenceInfo generatedReferenceInfo = generatedReferenceInfos.get(idx);
-                for (ReferenceInfo referenceInfo : generatedReferenceInfo.referencedReferenceInfos()) {
-                    ensureNotUpdated(ci, referenceInfo.ident().columnIdent(),
+                GeneratedReference generatedReference = generatedReferences.get(idx);
+                for (Reference reference : generatedReference.referencedReferences()) {
+                    ensureNotUpdated(ci, reference.ident().columnIdent(),
                         "Updating a column which is referenced in a partitioned by generated column expression is not supported");
                 }
             }

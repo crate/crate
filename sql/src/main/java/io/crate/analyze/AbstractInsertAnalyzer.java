@@ -22,12 +22,11 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.analyze.symbol.Reference;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReferenceInfo;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.sql.tree.Insert;
 
 import java.util.ArrayList;
@@ -60,7 +59,7 @@ public abstract class AbstractInsertAnalyzer {
             context.columns(new ArrayList<Reference>(numColumns));
 
             int i = 0;
-            for (ReferenceInfo columnInfo : context.tableInfo().columns()) {
+            for (Reference columnInfo : context.tableInfo().columns()) {
                 if (i >= maxInsertValues) {
                     break;
                 }
@@ -101,11 +100,11 @@ public abstract class AbstractInsertAnalyzer {
     }
 
     private boolean checkReferencesForGeneratedColumn(ColumnIdent columnIdent, AbstractInsertAnalyzedStatement context) {
-        ReferenceInfo referenceInfo = context.tableInfo().getReferenceInfo(columnIdent);
-        if (referenceInfo instanceof GeneratedReferenceInfo) {
-            for (ReferenceInfo referencedReference : ((GeneratedReferenceInfo) referenceInfo).referencedReferenceInfos()) {
+        Reference reference = context.tableInfo().getReference(columnIdent);
+        if (reference instanceof GeneratedReference) {
+            for (Reference referencedReference : ((GeneratedReference) reference).referencedReferences()) {
                 for (Reference column : context.columns()) {
-                    if (column.info().equals(referencedReference) ||
+                    if (column.equals(referencedReference) ||
                         referencedReference.ident().columnIdent().isChildOf(column.ident().columnIdent())) {
                         return true;
                     }

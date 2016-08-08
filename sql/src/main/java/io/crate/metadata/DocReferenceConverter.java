@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import com.google.common.base.Predicate;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.doc.DocSysColumns;
 
@@ -42,7 +41,7 @@ public class DocReferenceConverter {
         public boolean apply(@Nullable Reference input) {
             assert input != null;
 
-            ReferenceIdent ident = input.info().ident();
+            ReferenceIdent ident = input.ident();
             String schema = ident.tableIdent().schema();
             return ReferenceInfos.isDefaultOrCustomSchema(schema);
         }
@@ -56,13 +55,13 @@ public class DocReferenceConverter {
     }
 
     public static Reference toSourceLookup(Reference reference) {
-        ReferenceIdent ident = reference.info().ident();
+        ReferenceIdent ident = reference.ident();
         if (ident.columnIdent().isSystemColumn()) {
             return reference;
         }
-        if (reference.info().granularity() == RowGranularity.DOC) {
-            return new Reference(reference.info().getRelocated(
-                    new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(DocSysColumns.DOC.name()))));
+        if (reference.granularity() == RowGranularity.DOC) {
+            return reference.getRelocated(
+                    new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(DocSysColumns.DOC.name())));
         }
         return reference;
     }

@@ -23,7 +23,7 @@
 package io.crate.metadata.table;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
 
 import javax.annotation.Nullable;
@@ -33,16 +33,16 @@ public abstract class StaticTableInfo implements TableInfo {
 
     private final TableIdent ident;
     private final List<ColumnIdent> primaryKey;
-    private final Collection<ReferenceInfo> columns;
-    protected final Map<ColumnIdent, ReferenceInfo> columnMap;
+    private final Collection<Reference> columns;
+    protected final Map<ColumnIdent, Reference> columnMap;
 
     /**
      * @param columns top level columns. If null the values of columnMap are used.
      *                Can/should be specified if columnMap contains nested columns.
      */
     public StaticTableInfo(TableIdent ident,
-                           Map<ColumnIdent, ReferenceInfo> columnMap,
-                           @Nullable Collection<ReferenceInfo> columns,
+                           Map<ColumnIdent, Reference> columnMap,
+                           @Nullable Collection<Reference> columns,
                            List<ColumnIdent> primaryKey) {
         this.ident = ident;
         this.columnMap = columnMap;
@@ -56,12 +56,12 @@ public abstract class StaticTableInfo implements TableInfo {
 
     @Nullable
     @Override
-    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
+    public Reference getReference(ColumnIdent columnIdent) {
         return columnMap.get(columnIdent);
     }
 
     @Override
-    public Collection<ReferenceInfo> columns() {
+    public Collection<Reference> columns() {
         return columns;
     }
 
@@ -86,7 +86,7 @@ public abstract class StaticTableInfo implements TableInfo {
     }
 
     @Override
-    public Iterator<ReferenceInfo> iterator() {
+    public Iterator<Reference> iterator() {
         return columnMap.values().iterator();
     }
 

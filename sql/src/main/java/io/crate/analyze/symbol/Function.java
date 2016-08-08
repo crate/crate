@@ -69,13 +69,13 @@ public class Function extends Symbol implements Cloneable {
     public void readFrom(StreamInput in) throws IOException {
         info = new FunctionInfo();
         info.readFrom(in);
-        arguments = Symbol.listFromStream(in);
+        arguments = Symbols.listFromStream(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         info.writeTo(out);
-        Symbol.toStream(arguments, out);
+        Symbols.toStream(arguments, out);
     }
 
     @Override

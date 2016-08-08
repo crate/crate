@@ -29,13 +29,12 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReferenceInfo;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.Plan;
@@ -110,7 +109,7 @@ public class CopyStatementPlanner {
         SourceIndexWriterProjection sourceIndexWriterProjection = new SourceIndexWriterProjection(
             table.ident(),
             partitionIdent,
-            new Reference(table.getReferenceInfo(DocSysColumns.RAW)),
+            table.getReference(DocSysColumns.RAW),
             table.primaryKey(),
             table.partitionedBy(),
             partitionValues,
@@ -130,37 +129,35 @@ public class CopyStatementPlanner {
         List<Symbol> toCollect = new ArrayList<>(referencesSize);
         // add primaryKey columns
         for (ColumnIdent primaryKey : table.primaryKey()) {
-            toCollect.add(new Reference(table.getReferenceInfo(primaryKey)));
+            toCollect.add(table.getReference(primaryKey));
         }
 
         // add partitioned columns (if not part of primaryKey)
-        Set<ReferenceInfo> referencedReferenceInfos = new HashSet<>();
+        Set<Reference> referencedReferences = new HashSet<>();
         for (String partitionedColumn : partitionedByNames) {
-            ReferenceInfo referenceInfo = table.getReferenceInfo(ColumnIdent.fromPath(partitionedColumn));
+            Reference reference = table.getReference(ColumnIdent.fromPath(partitionedColumn));
             Symbol symbol;
-            if (referenceInfo instanceof GeneratedReferenceInfo) {
-                symbol = ((GeneratedReferenceInfo) referenceInfo).generatedExpression();
-                referencedReferenceInfos.addAll(((GeneratedReferenceInfo) referenceInfo).referencedReferenceInfos());
+            if (reference instanceof GeneratedReference) {
+                symbol = ((GeneratedReference) reference).generatedExpression();
+                referencedReferences.addAll(((GeneratedReference) reference).referencedReferences());
             } else {
-                symbol = new Reference(referenceInfo);
+                symbol = reference;
             }
             toCollect.add(symbol);
         }
         // add clusteredBy column (if not part of primaryKey)
         if (clusteredByPrimaryKeyIdx == -1 && table.clusteredBy() != null && !DocSysColumns.ID.equals(table.clusteredBy())) {
-            toCollect.add(
-                new Reference(table.getReferenceInfo(table.clusteredBy())));
+            toCollect.add(table.getReference(table.clusteredBy()));
         }
         // add _raw or _doc
         if (table.isPartitioned() && analysis.partitionIdent() == null) {
-            toCollect.add(new Reference(table.getReferenceInfo(DocSysColumns.DOC)));
+            toCollect.add(table.getReference(DocSysColumns.DOC));
         } else {
-            toCollect.add(new Reference(table.getReferenceInfo(DocSysColumns.RAW)));
+            toCollect.add(table.getReference(DocSysColumns.RAW));
         }
 
         // add columns referenced by generated columns which are used as partitioned by column
-        for (ReferenceInfo referenceInfo : referencedReferenceInfos) {
-            Reference reference = new Reference(referenceInfo);
+        for (Reference reference : referencedReferences) {
             if (!toCollect.contains(reference)) {
                 toCollect.add(reference);
             }

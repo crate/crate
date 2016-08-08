@@ -36,19 +36,19 @@ public class DocSysColumns {
             .put(ID, UID.name())
             .build();
 
-    private static ReferenceInfo newInfo(TableIdent table, ColumnIdent column, DataType dataType) {
-        return new ReferenceInfo(new ReferenceIdent(table, column), RowGranularity.DOC, dataType);
+    private static Reference newInfo(TableIdent table, ColumnIdent column, DataType dataType) {
+        return new Reference(new ReferenceIdent(table, column), RowGranularity.DOC, dataType);
     }
 
-    public static List<Tuple<ColumnIdent, ReferenceInfo>> forTable(TableIdent tableIdent) {
-        List<Tuple<ColumnIdent, ReferenceInfo>> columns = new ArrayList<>(COLUMN_IDENTS.size());
+    public static List<Tuple<ColumnIdent, Reference>> forTable(TableIdent tableIdent) {
+        List<Tuple<ColumnIdent, Reference>> columns = new ArrayList<>(COLUMN_IDENTS.size());
         for (Map.Entry<ColumnIdent, DataType> entry : COLUMN_IDENTS.entrySet()) {
             columns.add(new Tuple<>(entry.getKey(), newInfo(tableIdent, entry.getKey(), entry.getValue())));
         }
         return columns;
     }
 
-    public static ReferenceInfo forTable(TableIdent table, ColumnIdent column){
+    public static Reference forTable(TableIdent table, ColumnIdent column){
         return newInfo(table, column, COLUMN_IDENTS.get(column));
     }
 

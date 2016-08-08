@@ -21,18 +21,14 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Reference;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.apache.http.annotation.Immutable;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.support.ActionFilters;
@@ -70,7 +66,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
     private final static TableIdent TABLE_IDENT = new TableIdent(null, "characters");
     private final static String PARTITION_INDEX = new PartitionName(TABLE_IDENT, Arrays.asList(new BytesRef("1395874800000"))).asIndexName();
     private final static Reference ID_REF = new Reference(
-            new ReferenceInfo(new ReferenceIdent(TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.SHORT));
+            new ReferenceIdent(TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.SHORT);
 
 
     static class TestingTransportShardUpsertAction extends TransportShardUpsertAction {
@@ -122,7 +118,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         // Avoid null pointer exceptions
         DocTableInfo tableInfo = mock(DocTableInfo.class);
         Schemas schemas = mock(Schemas.class);
-        when(tableInfo.columns()).thenReturn(Collections.<ReferenceInfo>emptyList());
+        when(tableInfo.columns()).thenReturn(Collections.<Reference>emptyList());
         when(schemas.getWritableTable(any(TableIdent.class))).thenReturn(tableInfo);
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
@@ -299,10 +295,10 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
 
     @Test
     public void testBuildMapFromSource() throws Exception {
-        Reference tsRef = new Reference(new ReferenceInfo(
-                new ReferenceIdent(TABLE_IDENT, "ts"), RowGranularity.DOC, DataTypes.TIMESTAMP));
-        Reference nameRef = new Reference(new ReferenceInfo(
-                new ReferenceIdent(TABLE_IDENT, "user", Arrays.asList("name")), RowGranularity.DOC, DataTypes.TIMESTAMP));
+        Reference tsRef = new Reference(
+                new ReferenceIdent(TABLE_IDENT, "ts"), RowGranularity.DOC, DataTypes.TIMESTAMP);
+        Reference nameRef = new Reference(
+                new ReferenceIdent(TABLE_IDENT, "user", Arrays.asList("name")), RowGranularity.DOC, DataTypes.TIMESTAMP);
 
 
         Reference[] insertColumns = new Reference[]{tsRef, nameRef};
@@ -315,8 +311,8 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
 
     @Test
     public void testBuildMapFromRawSource() throws Exception {
-        Reference rawRef = new Reference(new ReferenceInfo(
-                new ReferenceIdent(TABLE_IDENT, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING));
+        Reference rawRef = new Reference(
+                new ReferenceIdent(TABLE_IDENT, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING);
 
         BytesRef bytesRef = XContentFactory.jsonBuilder().startObject()
                 .field("ts", 1448274317000L)

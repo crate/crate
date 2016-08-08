@@ -22,7 +22,7 @@
 package io.crate.operation.reference.file;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.operation.collect.files.LineCollectorExpression;
 import io.crate.operation.reference.ReferenceResolver;
 
@@ -51,7 +51,7 @@ public class FileLineReferenceResolver implements ReferenceResolver<LineCollecto
     private FileLineReferenceResolver() {
     }
 
-    public LineCollectorExpression<?> getImplementation(ReferenceInfo refInfo) {
+    public LineCollectorExpression<?> getImplementation(Reference refInfo) {
         ExpressionBuilder builder = expressionBuilder.get(refInfo.ident().columnIdent().name());
         if (builder != null) {
             return builder.create();

@@ -62,10 +62,10 @@ public class MetaDataToASTNodeResolver {
         }
 
         private List<ColumnDefinition> extractColumnDefinitions(@Nullable ColumnIdent parent) {
-            Iterator<ReferenceInfo> referenceInfoIterator = tableInfo.iterator();
+            Iterator<Reference> referenceIterator = tableInfo.iterator();
             List<ColumnDefinition> elements = new ArrayList<>();
-            while (referenceInfoIterator.hasNext()) {
-                ReferenceInfo info = referenceInfoIterator.next();
+            while (referenceIterator.hasNext()) {
+                Reference info = referenceIterator.next();
                 ColumnIdent ident = info.ident().columnIdent();
                 if (ident.isSystemColumn()) continue;
                 if (parent != null && !ident.isChildOf(parent)) continue;
@@ -75,10 +75,10 @@ public class MetaDataToASTNodeResolver {
                 }
 
                 ColumnType columnType = null;
-                if (info.type().equals(DataTypes.OBJECT)) {
+                if (info.valueType().equals(DataTypes.OBJECT)) {
                     columnType = new ObjectColumnType(info.columnPolicy().value(), extractColumnDefinitions(ident));
-                } else if (info.type().id() == ArrayType.ID) {
-                    DataType innerType = ((CollectionType)info.type()).innerType();
+                } else if (info.valueType().id() == ArrayType.ID) {
+                    DataType innerType = ((CollectionType)info.valueType()).innerType();
                     ColumnType innerColumnType = null;
                     if (innerType.equals(DataTypes.OBJECT)) {
                         innerColumnType = new ObjectColumnType(info.columnPolicy().value(), extractColumnDefinitions(ident));
@@ -86,11 +86,11 @@ public class MetaDataToASTNodeResolver {
                         innerColumnType = new ColumnType(innerType.getName());
                     }
                     columnType = CollectionColumnType.array(innerColumnType);
-                } else if (info.type().id() == SetType.ID) {
-                    ColumnType innerColumnType = new ColumnType(((CollectionType) info.type()).innerType().getName());
+                } else if (info.valueType().id() == SetType.ID) {
+                    ColumnType innerColumnType = new ColumnType(((CollectionType) info.valueType()).innerType().getName());
                     columnType = CollectionColumnType.set(innerColumnType);
                 } else {
-                    columnType = new ColumnType(info.type().getName());
+                    columnType = new ColumnType(info.valueType().getName());
                 }
 
                 String columnName = ident.isColumn() ? ident.name() : ident.path().get(ident.path().size()-1);
@@ -98,34 +98,34 @@ public class MetaDataToASTNodeResolver {
                 if (!info.isNullable()) {
                     constraints.add(new NotNullColumnConstraint());
                 }
-                if (info.indexType().equals(ReferenceInfo.IndexType.NO)
-                        && !info.type().equals(DataTypes.OBJECT)
-                        && !(info.type().id() == ArrayType.ID && ((CollectionType)info.type()).innerType().equals(DataTypes.OBJECT))) {
+                if (info.indexType().equals(Reference.IndexType.NO)
+                        && !info.valueType().equals(DataTypes.OBJECT)
+                        && !(info.valueType().id() == ArrayType.ID && ((CollectionType)info.valueType()).innerType().equals(DataTypes.OBJECT))) {
                     constraints.add(IndexColumnConstraint.OFF);
-                } else if (info.indexType().equals(ReferenceInfo.IndexType.ANALYZED)) {
+                } else if (info.indexType().equals(Reference.IndexType.ANALYZED)) {
                     String analyzer = tableInfo.getAnalyzerForColumnIdent(ident);
                     GenericProperties properties = new GenericProperties();
                     if (analyzer != null) {
                         properties.add(new GenericProperty(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(), new StringLiteral(analyzer)));
                     }
                     constraints.add(new IndexColumnConstraint("fulltext", properties));
-                } else if (info.type().equals(DataTypes.GEO_SHAPE)) {
-                    GeoReferenceInfo geoReferenceInfo = (GeoReferenceInfo)info;
+                } else if (info.valueType().equals(DataTypes.GEO_SHAPE)) {
+                    GeoReference geoReference = (GeoReference)info;
                     GenericProperties properties = new GenericProperties();
-                    if (geoReferenceInfo.distanceErrorPct() != null) {
-                        properties.add(new GenericProperty("distance_error_pct", StringLiteral.fromObject(geoReferenceInfo.distanceErrorPct())));
+                    if (geoReference.distanceErrorPct() != null) {
+                        properties.add(new GenericProperty("distance_error_pct", StringLiteral.fromObject(geoReference.distanceErrorPct())));
                     }
-                    if (geoReferenceInfo.precision() != null) {
-                        properties.add(new GenericProperty("precision", StringLiteral.fromObject(geoReferenceInfo.precision())));
+                    if (geoReference.precision() != null) {
+                        properties.add(new GenericProperty("precision", StringLiteral.fromObject(geoReference.precision())));
                     }
-                    if (geoReferenceInfo.treeLevels() != null) {
-                        properties.add(new GenericProperty("tree_levels", StringLiteral.fromObject(geoReferenceInfo.treeLevels())));
+                    if (geoReference.treeLevels() != null) {
+                        properties.add(new GenericProperty("tree_levels", StringLiteral.fromObject(geoReference.treeLevels())));
                     }
-                    constraints.add(new IndexColumnConstraint(geoReferenceInfo.geoTree(), properties));
+                    constraints.add(new IndexColumnConstraint(geoReference.geoTree(), properties));
                 }
                 Expression expression = null;
-                if (info instanceof GeneratedReferenceInfo) {
-                    String formattedExpression = ((GeneratedReferenceInfo) info).formattedGeneratedExpression();
+                if (info instanceof GeneratedReference) {
+                    String formattedExpression = ((GeneratedReference) info).formattedGeneratedExpression();
                     expression = SqlParser.createExpression(formattedExpression);
                 }
 
@@ -150,17 +150,17 @@ public class MetaDataToASTNodeResolver {
             Iterator indexColumns = tableInfo.indexColumns();
             if (indexColumns != null) {
                 while (indexColumns.hasNext()) {
-                    IndexReferenceInfo indexRef = (IndexReferenceInfo) indexColumns.next();
+                    IndexReference indexRef = (IndexReference) indexColumns.next();
                     String name = indexRef.ident().columnIdent().name();
-                    List<Expression> columns = expressionsFromReferenceInfos(indexRef.columns());
-                    if (indexRef.indexType().equals(ReferenceInfo.IndexType.ANALYZED)) {
+                    List<Expression> columns = expressionsFromReferences(indexRef.columns());
+                    if (indexRef.indexType().equals(Reference.IndexType.ANALYZED)) {
                         String analyzer = indexRef.analyzer();
                         GenericProperties properties = new GenericProperties();
                         if (analyzer != null) {
                             properties.add(new GenericProperty(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(), new StringLiteral(analyzer)));
                         }
                         elements.add(new IndexDefinition(name, "fulltext", columns, properties));
-                    } else if (indexRef.indexType().equals(ReferenceInfo.IndexType.NOT_ANALYZED)) {
+                    } else if (indexRef.indexType().equals(Reference.IndexType.NOT_ANALYZED)) {
                         elements.add(new IndexDefinition(name, "plain", columns, null));
                     }
 
@@ -233,9 +233,9 @@ public class MetaDataToASTNodeResolver {
             return fqn;
         }
 
-        private List<Expression> expressionsFromReferenceInfos(List<ReferenceInfo> columns) {
+        private List<Expression> expressionsFromReferences(List<Reference> columns) {
             List<Expression> expressions = new ArrayList<>(columns.size());
-            for (ReferenceInfo ident : columns) {
+            for (Reference ident : columns) {
                 expressions.add(expressionFromColumn(ident.ident().columnIdent()));
             }
             return expressions;

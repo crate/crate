@@ -22,8 +22,8 @@
 package io.crate.planner.projection;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -106,15 +106,15 @@ public class FilterProjection extends Projection {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        query = Function.fromStream(in);
-        outputs = Symbol.listFromStream(in);
+        query = Symbols.fromStream(in);
+        outputs = Symbols.listFromStream(in);
         requiredGranularity = RowGranularity.fromStream(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        Function.toStream(query, out);
-        Symbol.toStream(outputs, out);
+        Symbols.toStream(query, out);
+        Symbols.toStream(outputs, out);
         RowGranularity.toStream(requiredGranularity, out);
     }
 

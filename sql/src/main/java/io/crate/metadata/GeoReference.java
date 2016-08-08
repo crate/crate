@@ -23,6 +23,7 @@ package io.crate.metadata;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import io.crate.analyze.symbol.SymbolType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -30,12 +31,12 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class GeoReferenceInfo extends ReferenceInfo {
+public class GeoReference extends Reference {
 
-    public static final ReferenceInfoFactory<GeoReferenceInfo> FACTORY = new ReferenceInfoFactory<GeoReferenceInfo>() {
+    public static final SymbolFactory<GeoReference> FACTORY = new SymbolFactory<GeoReference>() {
         @Override
-        public GeoReferenceInfo newInstance() {
-            return new GeoReferenceInfo();
+        public GeoReference newInstance() {
+            return new GeoReference();
         }
     };
 
@@ -46,19 +47,24 @@ public class GeoReferenceInfo extends ReferenceInfo {
     private @Nullable Integer treeLevels;
     private @Nullable Double distanceErrorPct;
 
-    private GeoReferenceInfo() {
+    private GeoReference() {
     }
 
-    public GeoReferenceInfo(ReferenceIdent ident,
-                            @Nullable String tree,
-                            @Nullable String precision,
-                            @Nullable Integer treeLevels,
-                            @Nullable Double distanceErrorPct) {
+    public GeoReference(ReferenceIdent ident,
+                        @Nullable String tree,
+                        @Nullable String precision,
+                        @Nullable Integer treeLevels,
+                        @Nullable Double distanceErrorPct) {
         super(ident, RowGranularity.DOC, DataTypes.GEO_SHAPE);
         this.geoTree = MoreObjects.firstNonNull(tree, DEFAULT_TREE);
         this.precision = precision;
         this.treeLevels = treeLevels;
         this.distanceErrorPct = distanceErrorPct;
+    }
+
+    @Override
+    public SymbolType symbolType() {
+        return SymbolType.GEO_REFERENCE;
     }
 
     public String geoTree() {
@@ -81,16 +87,11 @@ public class GeoReferenceInfo extends ReferenceInfo {
     }
 
     @Override
-    public ReferenceInfoType referenceInfoType() {
-        return ReferenceInfoType.GEO;
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
-        GeoReferenceInfo that = (GeoReferenceInfo) o;
+        GeoReference that = (GeoReference) o;
         return Objects.equal(geoTree, that.geoTree) &&
                Objects.equal(precision, that.precision) &&
                Objects.equal(treeLevels, that.treeLevels) &&
@@ -104,7 +105,7 @@ public class GeoReferenceInfo extends ReferenceInfo {
 
     @Override
     public String toString() {
-        return "GeoReferenceInfo{" +
+        return "GeoReference{" +
                "geoTree='" + geoTree + '\'' +
                ", precision=" + precision +
                ", treeLevels=" + treeLevels +

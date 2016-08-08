@@ -42,6 +42,7 @@ import io.crate.lucene.match.MatchQueryBuilder;
 import io.crate.lucene.match.MultiMatchQueryBuilder;
 import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
@@ -336,7 +337,7 @@ public class LuceneQueryBuilder {
             @Override
             protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
                 // 1 != any ( col ) -->  gt 1 or lt 1
-                String columnName = arrayReference.info().ident().columnIdent().fqn();
+                String columnName = arrayReference.ident().columnIdent().fqn();
                 Object value = literal.value();
 
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(arrayReference.valueType());
@@ -356,7 +357,7 @@ public class LuceneQueryBuilder {
             @Override
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
-                String columnName = reference.info().ident().columnIdent().fqn();
+                String columnName = reference.ident().columnIdent().fqn();
                 QueryBuilderHelper helper = QueryBuilderHelper.forType(reference.valueType());
 
                 BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
@@ -376,7 +377,7 @@ public class LuceneQueryBuilder {
                 String notLike = negateWildcard(regexString);
 
                 return new RegexpQuery(new Term(
-                        arrayReference.info().ident().columnIdent().fqn(),
+                        arrayReference.ident().columnIdent().fqn(),
                         notLike),
                         RegexpFlag.COMPLEMENT.value()
                 );
@@ -430,7 +431,7 @@ public class LuceneQueryBuilder {
 
             public Query toQuery(Reference reference, Object value, Context context) {
 
-                String columnName = reference.info().ident().columnIdent().fqn();
+                String columnName = reference.ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
                 return builder.like(columnName, value, context.indexCache.query());
             }
@@ -444,7 +445,7 @@ public class LuceneQueryBuilder {
                 if (tuple == null) {
                     return null;
                 }
-                String field = tuple.v1().info().ident().columnIdent().fqn();
+                String field = tuple.v1().ident().columnIdent().fqn();
                 Literal literal = tuple.v2();
                 return termsQuery(field, literal);
             }
@@ -472,7 +473,7 @@ public class LuceneQueryBuilder {
                 }
                 Reference reference = (Reference)arg;
 
-                String columnName = reference.info().ident().columnIdent().fqn();
+                String columnName = reference.ident().columnIdent().fqn();
                 QueryBuilderHelper builderHelper = QueryBuilderHelper.forType(reference.valueType());
                 return Queries.not(builderHelper.rangeQuery(columnName, null, null, true, true));
             }
@@ -488,7 +489,7 @@ public class LuceneQueryBuilder {
                 }
                 Reference reference = tuple.v1();
                 Literal literal = tuple.v2();
-                String columnName = reference.info().ident().columnIdent().fqn();
+                String columnName = reference.ident().columnIdent().fqn();
                 if (DataTypes.isCollectionType(reference.valueType()) && DataTypes.isCollectionType(literal.valueType())) {
                     List<Term> terms = getTerms(columnName, literal);
                     if (terms.isEmpty()) {
@@ -624,7 +625,7 @@ public class LuceneQueryBuilder {
             }
 
             public Query toQuery(Reference reference, DataType type, Object value) {
-                String columnName = reference.info().ident().columnIdent().fqn();
+                String columnName = reference.ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(type);
                 Tuple<?, ?> bounds = boundsFunction.apply(value);
                 assert bounds != null;
@@ -734,7 +735,7 @@ public class LuceneQueryBuilder {
             public Query apply(Function input, Context context) throws IOException {
                 Tuple<Reference, Literal> prepare = prepare(input);
                 if (prepare == null) { return null; }
-                String fieldName = prepare.v1().info().ident().columnIdent().fqn();
+                String fieldName = prepare.v1().ident().columnIdent().fqn();
                 Object value = prepare.v2().value();
 
                 if (value instanceof BytesRef) {
@@ -755,7 +756,7 @@ public class LuceneQueryBuilder {
             public Query apply(Function input, Context context) throws IOException {
                 Tuple<Reference, Literal> prepare = prepare(input);
                 if (prepare == null) { return null; }
-                String fieldName = prepare.v1().info().ident().columnIdent().fqn();
+                String fieldName = prepare.v1().ident().columnIdent().fqn();
                 Object value = prepare.v2().value();
 
                 if (value instanceof BytesRef) {
@@ -914,7 +915,7 @@ public class LuceneQueryBuilder {
                 }
                 Double distance = DataTypes.DOUBLE.value(functionLiteralPair.input().value());
 
-                String fieldName = distanceRefLiteral.reference().info().ident().columnIdent().fqn();
+                String fieldName = distanceRefLiteral.reference().ident().columnIdent().fqn();
                 GeoPointFieldMapper.GeoPointFieldType geoPointFieldType = getGeoPointFieldType(fieldName, context.mapperService);
                 IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(geoPointFieldType);
 
@@ -1101,7 +1102,7 @@ public class LuceneQueryBuilder {
             Symbol left = function.arguments().get(0);
             Symbol right = function.arguments().get(1);
             if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
-                String columnName = ((Reference) left).info().ident().columnIdent().name();
+                String columnName = ((Reference) left).ident().columnIdent().name();
                 if (Context.FILTERED_FIELDS.contains(columnName)) {
                     context.filteredFieldValues.put(columnName, ((Input) right).value());
                     return true;
@@ -1121,13 +1122,12 @@ public class LuceneQueryBuilder {
                 Symbol right = function.arguments().get(1);
                 if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
                     Reference ref = (Reference) left;
-                    if (ref.info().ident().columnIdent().equals(DocSysColumns.ID)) {
-                        function.setArgument(0,
-                                new Reference(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.UID)));
+                    if (ref.ident().columnIdent().equals(DocSysColumns.ID)) {
+                        function.setArgument(0, DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.UID));
                         function.setArgument(1, Literal.newLiteral(Uid.createUid(Constants.DEFAULT_MAPPING_TYPE,
                                 ValueSymbolVisitor.STRING.process(right))));
                     } else {
-                        String unsupportedMessage = context.unsupportedMessage(ref.info().ident().columnIdent().name());
+                        String unsupportedMessage = context.unsupportedMessage(ref.ident().columnIdent().name());
                         if (unsupportedMessage != null) {
                             throw new UnsupportedFeatureException(unsupportedMessage);
                         }
@@ -1284,7 +1284,7 @@ public class LuceneQueryBuilder {
         public Query visitReference(Reference symbol, Context context) {
             // called for queries like: where boolColumn
             if (symbol.valueType() == DataTypes.BOOLEAN) {
-                return QueryBuilderHelper.forType(DataTypes.BOOLEAN).eq(symbol.info().ident().columnIdent().fqn(), true);
+                return QueryBuilderHelper.forType(DataTypes.BOOLEAN).eq(symbol.ident().columnIdent().fqn(), true);
             }
             return super.visitReference(symbol, context);
         }

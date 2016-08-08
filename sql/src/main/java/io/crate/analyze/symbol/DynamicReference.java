@@ -21,12 +21,12 @@
 
 package io.crate.analyze.symbol;
 
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataType;
-import io.crate.types.UndefinedType;
+import io.crate.types.DataTypes;
 
 public class DynamicReference extends Reference {
 
@@ -39,24 +39,12 @@ public class DynamicReference extends Reference {
 
     public DynamicReference() {}
 
-    public DynamicReference(ReferenceInfo info) {
-        this.info = info;
+    public DynamicReference(ReferenceIdent ident, RowGranularity granularity) {
+        super(ident, granularity, DataTypes.UNDEFINED);
     }
 
-    public DynamicReference(ReferenceIdent ident, RowGranularity rowGranularity) {
-        this.info = new ReferenceInfo(ident, rowGranularity, UndefinedType.INSTANCE);
-    }
-
-    public void valueType(DataType dataType) {
-        assert this.info != null;
-        this.info = new ReferenceInfo(info.ident(), info.granularity(), dataType,
-                                      info.columnPolicy(), info.indexType(), info.isNullable());
-    }
-
-    public void columnPolicy(ColumnPolicy objectType) {
-        assert this.info != null;
-        this.info = new ReferenceInfo(info.ident(), info.granularity(), info.type(),
-                                      objectType, info.indexType(), info.isNullable());
+    public DynamicReference(ReferenceIdent ident, RowGranularity granularity, ColumnPolicy columnPolicy) {
+        super(ident, granularity, DataTypes.UNDEFINED, columnPolicy, IndexType.NOT_ANALYZED, true);
     }
 
     @Override
@@ -67,5 +55,9 @@ public class DynamicReference extends Reference {
     @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitDynamicReference(this, context);
+    }
+
+    public void valueType(DataType<?> targetType) {
+        type = targetType;
     }
 }

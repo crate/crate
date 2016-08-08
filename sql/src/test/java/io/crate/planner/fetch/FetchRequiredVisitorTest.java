@@ -25,9 +25,9 @@ package io.crate.planner.fetch;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -45,8 +45,8 @@ public class FetchRequiredVisitorTest extends CrateUnitTest {
     private final Function myFun = (Function) sqlExpressions.normalize(sqlExpressions.asSymbol("upper(a)"));
     private final Function bothFun = (Function) sqlExpressions.normalize(sqlExpressions.asSymbol("cast(a as integer) + x"));
     private final Function myOtherFun = (Function) sqlExpressions.normalize(sqlExpressions.asSymbol("lower(a)"));
-    private final Reference a = new Reference(T3.T1_INFO.getReferenceInfo(new ColumnIdent("a")));
-    private final Reference x = new Reference(T3.T1_INFO.getReferenceInfo(new ColumnIdent("x")));
+    private final Reference a = T3.T1_INFO.getReference(new ColumnIdent("a"));
+    private final Reference x = T3.T1_INFO.getReference(new ColumnIdent("x"));
 
 
     private FetchRequiredVisitor.Context context(List<Symbol> orderBySymbols) {

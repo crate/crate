@@ -42,12 +42,12 @@ public class DocTableInfoTest extends CrateUnitTest {
         DocTableInfo info = new DocTableInfo(
             tableIdent,
             ImmutableList.of(
-                    new ReferenceInfo(new ReferenceIdent(tableIdent, new ColumnIdent("o", ImmutableList.<String>of())), RowGranularity.DOC, DataTypes.OBJECT)
+                    new Reference(new ReferenceIdent(tableIdent, new ColumnIdent("o", ImmutableList.<String>of())), RowGranularity.DOC, DataTypes.OBJECT)
             ),
-            ImmutableList.<ReferenceInfo>of(),
-            ImmutableList.<GeneratedReferenceInfo>of(),
-            ImmutableMap.<ColumnIdent, IndexReferenceInfo>of(),
-            ImmutableMap.<ColumnIdent, ReferenceInfo>of(),
+            ImmutableList.<Reference>of(),
+            ImmutableList.<GeneratedReference>of(),
+            ImmutableMap.<ColumnIdent, IndexReference>of(),
+            ImmutableMap.<ColumnIdent, Reference>of(),
             ImmutableMap.<ColumnIdent, String>of(),
             ImmutableList.<ColumnIdent>of(),
             null,
@@ -66,7 +66,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             executorService
         );
 
-        ReferenceInfo foobar = info.getReferenceInfo(new ColumnIdent("o", ImmutableList.of("foobar")));
+        Reference foobar = info.getReference(new ColumnIdent("o", ImmutableList.of("foobar")));
         assertNull(foobar);
         DynamicReference reference = info.getDynamic(new ColumnIdent("o", ImmutableList.of("foobar")), false);
         assertNull(reference);
@@ -80,25 +80,25 @@ public class DocTableInfoTest extends CrateUnitTest {
 
         TableIdent dummy = new TableIdent(null, "dummy");
         ReferenceIdent foobarIdent = new ReferenceIdent(dummy, new ColumnIdent("foobar"));
-        ReferenceInfo strictParent = new ReferenceInfo(
+        Reference strictParent = new Reference(
                 foobarIdent,
                 RowGranularity.DOC,
                 DataTypes.OBJECT,
                 ColumnPolicy.STRICT,
-                ReferenceInfo.IndexType.NOT_ANALYZED,
+                Reference.IndexType.NOT_ANALYZED,
                 true
         );
 
-        ImmutableMap<ColumnIdent, ReferenceInfo> references = ImmutableMap.<ColumnIdent, ReferenceInfo>builder()
+        ImmutableMap<ColumnIdent, Reference> references = ImmutableMap.<ColumnIdent, Reference>builder()
                 .put(new ColumnIdent("foobar"), strictParent)
                 .build();
 
         DocTableInfo info = new DocTableInfo(
             dummy,
-            ImmutableList.<ReferenceInfo>of(strictParent),
-            ImmutableList.<ReferenceInfo>of(),
-            ImmutableList.<GeneratedReferenceInfo>of(),
-            ImmutableMap.<ColumnIdent, IndexReferenceInfo>of(),
+            ImmutableList.<Reference>of(strictParent),
+            ImmutableList.<Reference>of(),
+            ImmutableList.<GeneratedReference>of(),
+            ImmutableMap.<ColumnIdent, IndexReference>of(),
             references,
             ImmutableMap.<ColumnIdent, String>of(),
             ImmutableList.<ColumnIdent>of(),
@@ -120,14 +120,14 @@ public class DocTableInfoTest extends CrateUnitTest {
 
 
         ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo", "bar"));
-        assertNull(info.getReferenceInfo(columnIdent));
+        assertNull(info.getReference(columnIdent));
         assertNull(info.getDynamic(columnIdent, false));
 
         columnIdent = new ColumnIdent("foobar", Arrays.asList("foo"));
-        assertNull(info.getReferenceInfo(columnIdent));
+        assertNull(info.getReference(columnIdent));
         assertNull(info.getDynamic(columnIdent, false));
 
-        ReferenceInfo colInfo = info.getReferenceInfo(new ColumnIdent("foobar"));
+        Reference colInfo = info.getReference(new ColumnIdent("foobar"));
         assertNotNull(colInfo);
     }
 }

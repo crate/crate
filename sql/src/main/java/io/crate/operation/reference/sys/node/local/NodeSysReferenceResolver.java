@@ -25,7 +25,7 @@ package io.crate.operation.reference.sys.node.local;
 import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.sys.SysNodesTableInfo;
 
 import java.util.HashMap;
@@ -51,7 +51,7 @@ public class NodeSysReferenceResolver implements NestedReferenceResolver {
     }
 
     @Override
-    public ReferenceImplementation getImplementation(ReferenceInfo refInfo) {
+    public ReferenceImplementation getImplementation(Reference refInfo) {
         ReferenceIdent ident = refInfo.ident();
         if (SysNodesTableInfo.SYS_COL_NAME.equals(ident.columnIdent().name())) {
             if (ident.columnIdent().isColumn()) {

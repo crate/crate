@@ -28,7 +28,6 @@ import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
@@ -66,26 +65,17 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     private static final String TEST_TABLE_NAME = "test_table";
     private static final Reference testDocLevelReference = new Reference(
-            new ReferenceInfo(
-                    new ReferenceIdent(new TableIdent(null, TEST_TABLE_NAME), "doc"),
-                    RowGranularity.DOC,
-                    DataTypes.INTEGER
-            )
-    );
+        new ReferenceIdent(new TableIdent(null, TEST_TABLE_NAME), "doc"),
+        RowGranularity.DOC,
+        DataTypes.INTEGER);
     private static final Reference underscoreIdReference = new Reference(
-            new ReferenceInfo(
-                    new ReferenceIdent(new TableIdent(null, TEST_TABLE_NAME), "_id"),
-                    RowGranularity.DOC,
-                    DataTypes.STRING
-            )
-    );
+        new ReferenceIdent(new TableIdent(null, TEST_TABLE_NAME), "_id"),
+        RowGranularity.DOC,
+        DataTypes.STRING);
     private static final Reference underscoreRawReference = new Reference(
-            new ReferenceInfo(
-                    new ReferenceIdent(new TableIdent(null, TEST_TABLE_NAME), "_raw"),
-                    RowGranularity.DOC,
-                    DataTypes.STRING
-            )
-    );
+        new ReferenceIdent(new TableIdent(null, TEST_TABLE_NAME), "_raw"),
+        RowGranularity.DOC,
+        DataTypes.STRING );
 
     private static final String PARTITIONED_TABLE_NAME = "parted_table";
 
@@ -198,12 +188,12 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         TableIdent tableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
         RoutedCollectPhase collectNode = getCollectNode(
                 Arrays.<Symbol>asList(
-                        new Reference(new ReferenceInfo(new ReferenceIdent(tableIdent, "id"),
+                        new Reference(new ReferenceIdent(tableIdent, "id"),
                                 RowGranularity.DOC,
-                                DataTypes.INTEGER)),
-                        new Reference(new ReferenceInfo(new ReferenceIdent(tableIdent, "date"),
+                                DataTypes.INTEGER),
+                        new Reference(new ReferenceIdent(tableIdent, "date"),
                                 RowGranularity.SHARD,
-                                DataTypes.TIMESTAMP))),
+                                DataTypes.TIMESTAMP)),
                 routing,
                 WhereClause.MATCH_ALL
         );

@@ -30,7 +30,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 public class Aggregation extends Symbol {
@@ -123,7 +122,7 @@ public class Aggregation extends Symbol {
         toStep = Step.readFrom(in);
 
         valueType = DataTypes.fromStream(in);
-        inputs = Symbol.listFromStream(in);
+        inputs = Symbols.listFromStream(in);
     }
 
     @Override
@@ -134,6 +133,6 @@ public class Aggregation extends Symbol {
         Step.writeTo(toStep, out);
 
         DataTypes.toStream(valueType, out);
-        Symbol.toStream(inputs, out);
+        Symbols.toStream(inputs, out);
     }
 }

@@ -22,7 +22,7 @@
 package io.crate.operation.reference.doc.blob;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.operation.collect.blobs.BlobCollectorExpression;
 import io.crate.operation.reference.ReferenceResolver;
@@ -52,7 +52,7 @@ public class BlobReferenceResolver implements ReferenceResolver<BlobCollectorExp
     private BlobReferenceResolver() {}
 
     @Override
-    public BlobCollectorExpression<?> getImplementation(ReferenceInfo refInfo) {
+    public BlobCollectorExpression<?> getImplementation(Reference refInfo) {
         assert (BlobSchemaInfo.NAME.equals(refInfo.ident().tableIdent().schema()));
         ExpressionBuilder builder = expressionBuilder.get(refInfo.ident().columnIdent().name());
         if (builder != null) {

@@ -92,7 +92,7 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
     }
 
     private void ensureColumnLeafsAreNew(AnalyzedColumnDefinition column, TableInfo tableInfo) {
-        if ((!column.isParentColumn() || !column.hasChildren()) && tableInfo.getReferenceInfo(column.ident()) != null) {
+        if ((!column.isParentColumn() || !column.hasChildren()) && tableInfo.getReference(column.ident()) != null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "The table %s already has a column named %s",
                     tableInfo.ident().sqlFqn(),
@@ -108,7 +108,7 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
             if (pkIdent.name().equals("_id")) {
                 continue;
             }
-            ReferenceInfo pkInfo = context.table().getReferenceInfo(pkIdent);
+            Reference pkInfo = context.table().getReference(pkIdent);
             assert pkInfo != null;
 
             AnalyzedColumnDefinition pkColumn = new AnalyzedColumnDefinition(null);
@@ -116,8 +116,8 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
             pkColumn.name(pkIdent.name());
             pkColumn.isPrimaryKey(true);
 
-            assert !(pkInfo.type() instanceof CollectionType); // pk can't be an array
-            pkColumn.dataType(pkInfo.type().getName());
+            assert !(pkInfo.valueType() instanceof CollectionType); // pk can't be an array
+            pkColumn.dataType(pkInfo.valueType().getName());
             context.analyzedTableElements().add(pkColumn);
         }
 

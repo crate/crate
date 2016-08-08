@@ -24,9 +24,9 @@ package io.crate.operation.fetch;
 import io.crate.analyze.symbol.FetchReference;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Reference;
 import io.crate.core.collections.Row;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.BaseImplementationSymbolVisitor;
@@ -101,7 +101,7 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
             int fetchIdx = 0;
             FetchSource fs = null;
             for (FetchSource fetchSource : fetchSources.values()) {
-                idx = fetchSource.partitionedByColumns().indexOf(fetchReference.ref().info());
+                idx = fetchSource.partitionedByColumns().indexOf(fetchReference.ref());
                 if (idx >= 0) {
                     for (InputColumn col : fetchSource.docIdCols()) {
                         if (col.equals(fetchReference.docId())){
@@ -193,10 +193,10 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
 
     @Override
     public Input<?> visitFetchReference(FetchReference fetchReference, Context context) {
-        if (fetchReference.ref().info().granularity() == RowGranularity.DOC){
+        if (fetchReference.ref().granularity() == RowGranularity.DOC){
             return context.allocateInput(fetchReference);
         }
-        assert fetchReference.ref().info().granularity() == RowGranularity.PARTITION;
+        assert fetchReference.ref().granularity() == RowGranularity.PARTITION;
         return context.allocatePartitionedInput(fetchReference);
 
     }

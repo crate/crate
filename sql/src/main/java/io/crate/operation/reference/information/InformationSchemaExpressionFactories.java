@@ -23,7 +23,7 @@ package io.crate.operation.reference.information;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReferenceInfo;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.blob.BlobTableInfo;
@@ -203,7 +203,7 @@ public class InformationSchemaExpressionFactories {
                         return new InformationColumnsExpression<Boolean>() {
                             @Override
                             public Boolean value() {
-                                return row.info instanceof GeneratedReferenceInfo;
+                                return row.info instanceof GeneratedReference;
                             }
                         };
                     }
@@ -220,8 +220,8 @@ public class InformationSchemaExpressionFactories {
                         return new InformationColumnsExpression<BytesRef>() {
                             @Override
                             public BytesRef value() {
-                                if (row.info instanceof GeneratedReferenceInfo) {
-                                    return BytesRefs.toBytesRef(((GeneratedReferenceInfo) row.info).formattedGeneratedExpression());
+                                if (row.info instanceof GeneratedReference) {
+                                    return BytesRefs.toBytesRef(((GeneratedReference) row.info).formattedGeneratedExpression());
                                 }
                                 return null;
                             }

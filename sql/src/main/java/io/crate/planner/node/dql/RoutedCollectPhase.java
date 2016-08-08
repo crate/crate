@@ -28,6 +28,7 @@ import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.StmtCtx;
@@ -208,7 +209,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
 
         distributionInfo = DistributionInfo.fromStream(in);
 
-        toCollect = Symbol.listFromStream(in);
+        toCollect = Symbols.listFromStream(in);
         maxRowGranularity = RowGranularity.fromStream(in);
 
         if (in.readBoolean()) {
@@ -233,7 +234,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
 
         distributionInfo.writeTo(out);
 
-        Symbol.toStream(toCollect, out);
+        Symbols.toStream(toCollect, out);
         RowGranularity.toStream(maxRowGranularity, out);
 
         if (routing != null) {

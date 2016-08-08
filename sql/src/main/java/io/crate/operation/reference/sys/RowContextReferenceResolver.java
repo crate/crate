@@ -591,13 +591,13 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
     }
 
     @Override
-    public RowCollectExpression<?, ?> getImplementation(ReferenceInfo refInfo) {
+    public RowCollectExpression<?, ?> getImplementation(Reference refInfo) {
         return rowCollectExpressionFromFactoryMap(tableFactories, refInfo);
     }
 
     public static RowCollectExpression<?, ?> rowCollectExpressionFromFactoryMap(
             Map<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> factoryMap,
-            ReferenceInfo info) {
+            Reference info) {
 
         Map<ColumnIdent, RowCollectExpressionFactory> innerFactories = factoryMap.get(info.ident().tableIdent());
         if (innerFactories == null) {

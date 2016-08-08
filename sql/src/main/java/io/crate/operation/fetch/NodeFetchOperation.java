@@ -29,9 +29,9 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.executor.transport.StreamBucket;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
@@ -73,7 +73,7 @@ public class NodeFetchOperation {
             LuceneReferenceResolver resolver = new LuceneReferenceResolver(indexService.mapperService());
             ArrayList<LuceneCollectorExpression<?>> exprs = new ArrayList<>(refs.size());
             for (Reference reference : refs) {
-                exprs.add(resolver.getImplementation(reference.info()));
+                exprs.add(resolver.getImplementation(reference));
             }
             return new FetchCollector(
                 exprs,

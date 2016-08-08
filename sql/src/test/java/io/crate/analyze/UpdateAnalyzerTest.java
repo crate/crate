@@ -27,6 +27,11 @@ import io.crate.analyze.symbol.*;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.core.collections.Rows;
+import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.DynamicReference;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -227,8 +232,8 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         assertThat(((DocTableRelation) statement.sourceRelation()).tableInfo().ident(), is(new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users")));
 
         Reference ref = statement1.assignments().keySet().iterator().next();
-        assertThat(ref.info().ident().tableIdent().name(), is("users"));
-        assertThat(ref.info().ident().columnIdent().name(), is("name"));
+        assertThat(ref.ident().tableIdent().name(), is("users"));
+        assertThat(ref.ident().columnIdent().name(), is("name"));
         assertTrue(statement1.assignments().containsKey(ref));
 
         Symbol value = statement1.assignments().entrySet().iterator().next().getValue();
@@ -243,9 +248,9 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
         Reference ref = statement.assignments().keySet().iterator().next();
         assertThat(ref, instanceOf(DynamicReference.class));
-        Assert.assertEquals(DataTypes.LONG, ref.info().type());
-        assertThat(ref.info().ident().columnIdent().isColumn(), is(false));
-        assertThat(ref.info().ident().columnIdent().fqn(), is("details.arms"));
+        Assert.assertEquals(DataTypes.LONG, ref.valueType());
+        assertThat(ref.ident().columnIdent().isColumn(), is(false));
+        assertThat(ref.ident().columnIdent().fqn(), is("details.arms"));
     }
 
     @Test( expected = ColumnValidationException.class)
@@ -259,7 +264,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                 analyze("update users set other_id=9.9").nestedStatements().get(0);
         Reference ref = statement.assignments().keySet().iterator().next();
         assertThat(ref, not(instanceOf(DynamicReference.class)));
-        assertEquals(DataTypes.LONG, ref.info().type());
+        assertEquals(DataTypes.LONG, ref.valueType());
 
         Symbol value = statement.assignments().entrySet().iterator().next().getValue();
         assertThat(value, isLiteral(9L));
@@ -314,15 +319,15 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                         new Object[]{"Jeltz", 0, friends, "9"}).nestedStatements().get(0);
         assertThat(analysis.assignments().size(), is(3));
         assertThat(
-                analysis.assignments().get(new Reference(USER_TABLE_INFO.getReferenceInfo(new ColumnIdent("name")))),
+                analysis.assignments().get(USER_TABLE_INFO.getReference(new ColumnIdent("name"))),
                 isLiteral("Jeltz")
         );
         assertThat(
-                analysis.assignments().get(new Reference(USER_TABLE_INFO.getReferenceInfo(new ColumnIdent("friends")))),
+                analysis.assignments().get(USER_TABLE_INFO.getReference(new ColumnIdent("friends"))),
                 isLiteral(friends, new ArrayType(DataTypes.OBJECT))
         );
         assertThat(
-                analysis.assignments().get(new Reference(USER_TABLE_INFO.getReferenceInfo(new ColumnIdent("other_id")))),
+                analysis.assignments().get(USER_TABLE_INFO.getReference(new ColumnIdent("other_id"))),
                 isLiteral(0L)
         );
 
@@ -349,7 +354,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                 new Object[]{ new Map[0], 0 }).nestedStatements().get(0);
 
         Literal friendsLiteral = (Literal)analysis.assignments().get(
-                new Reference(USER_TABLE_INFO.getReferenceInfo(new ColumnIdent("friends"))));
+                USER_TABLE_INFO.getReference(new ColumnIdent("friends")));
         assertThat(friendsLiteral.valueType().id(), is(ArrayType.ID));
         assertEquals(DataTypes.OBJECT, ((ArrayType)friendsLiteral.valueType()).innerType());
         assertThat(((Object[]) friendsLiteral.value()).length, is(0));

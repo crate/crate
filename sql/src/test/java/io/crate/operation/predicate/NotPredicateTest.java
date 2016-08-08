@@ -23,7 +23,6 @@ package io.crate.operation.predicate;
 
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.operator.EqOperator;
@@ -53,10 +52,9 @@ public class NotPredicateTest extends CrateUnitTest {
     public void testNormalizeSymbol() throws Exception {
         NotPredicate notPredicate = new NotPredicate();
 
-        Reference name_ref = new Reference(new ReferenceInfo(
+        Reference name_ref = new Reference(
                 new ReferenceIdent(new TableIdent(null, "dummy"), "foo"),
-                RowGranularity.DOC, DataTypes.STRING)
-        );
+                RowGranularity.DOC, DataTypes.STRING);
         Function eqName = new Function(
                 new FunctionInfo(
                         new FunctionIdent(EqOperator.NAME,

@@ -24,7 +24,7 @@ package io.crate.operation.reference.sys.node.local;
 
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.monitor.DummyExtendedNodeInfo;
@@ -142,7 +142,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testLoad() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.load", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.load", DataTypes.OBJECT, RowGranularity.NODE);
         collectExpression = (CollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
 
@@ -154,7 +154,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testName() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.name", DataTypes.STRING, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.name", DataTypes.STRING, RowGranularity.NODE);
         collectExpression = (RowCollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
         assertThat(BytesRefs.toBytesRef("crate1"), is(collectExpression.value()));
@@ -162,7 +162,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testId() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.id", DataTypes.STRING, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.id", DataTypes.STRING, RowGranularity.NODE);
         collectExpression = (CollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
         assertThat(BytesRefs.toBytesRef("93c7ff92-52fa-11e6-aad8-3c15c2d3ad18"), is(collectExpression.value()));
@@ -170,7 +170,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testHostname() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.hostname", DataTypes.STRING, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.hostname", DataTypes.STRING, RowGranularity.NODE);
         collectExpression = (CollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
         assertThat(BytesRefs.toBytesRef("crate1.example.com"), is(collectExpression.value()));
@@ -178,7 +178,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testRestUrl() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.rest_url", DataTypes.STRING, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.rest_url", DataTypes.STRING, RowGranularity.NODE);
         collectExpression = (CollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
         assertThat(BytesRefs.toBytesRef("10.0.0.1:4200"), is(collectExpression.value()));
@@ -186,7 +186,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testPorts() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.port", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.port", DataTypes.OBJECT, RowGranularity.NODE);
         collectExpression = (RowCollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
 
@@ -197,7 +197,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testMemory() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.mem", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.mem", DataTypes.OBJECT, RowGranularity.NODE);
         collectExpression = (CollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
 
@@ -210,7 +210,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testHeap() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.heap", DataTypes.STRING, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.heap", DataTypes.STRING, RowGranularity.NODE);
         collectExpression = (CollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
 
@@ -222,7 +222,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testFs() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
         collectExpression = (CollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
 
@@ -278,7 +278,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testVersion() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
         collectExpression = (CollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
 
@@ -290,7 +290,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testNetwork() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE);
         collectExpression = (CollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
 
@@ -304,7 +304,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testNetworkTCP() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE, "tcp");
+        Reference refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE, "tcp");
         collectExpression = (CollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
         Map<String, Object> tcpStats = (Map<String, Object>) collectExpression.value();
@@ -317,7 +317,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testCpu() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
         collectExpression = (CollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
 
@@ -335,7 +335,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testProcess() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.process", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.process", DataTypes.OBJECT, RowGranularity.NODE);
         collectExpression = (CollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
 
@@ -352,7 +352,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testOsInfo() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.os_info", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.os_info", DataTypes.OBJECT, RowGranularity.NODE);
         collectExpression = (CollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
 
@@ -362,7 +362,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testNestedBytesRefExpressionsString() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
         collectExpression = (CollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
 

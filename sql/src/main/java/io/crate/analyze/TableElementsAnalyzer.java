@@ -24,7 +24,7 @@ package io.crate.analyze;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.sql.tree.*;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
@@ -206,9 +206,9 @@ public class TableElementsAnalyzer {
             if (node.indexMethod().equals("fulltext")) {
                 setAnalyzer(node.properties(), context, node.indexMethod());
             } else if (node.indexMethod().equalsIgnoreCase("plain")) {
-                context.analyzedColumnDefinition.index(ReferenceInfo.IndexType.NOT_ANALYZED.toString());
+                context.analyzedColumnDefinition.index(Reference.IndexType.NOT_ANALYZED.toString());
             } else if (node.indexMethod().equalsIgnoreCase("OFF")) {
-                context.analyzedColumnDefinition.index(ReferenceInfo.IndexType.NO.toString());
+                context.analyzedColumnDefinition.index(Reference.IndexType.NO.toString());
             } else if (node.indexMethod().equals("quadtree") || node.indexMethod().equals("geohash")) {
                 setGeoType(node.properties(), context, node.indexMethod());
             } else {
@@ -247,7 +247,7 @@ public class TableElementsAnalyzer {
 
         private void setAnalyzer(GenericProperties properties, ColumnDefinitionContext context,
                                  String indexMethod) {
-            context.analyzedColumnDefinition.index(ReferenceInfo.IndexType.ANALYZED.toString());
+            context.analyzedColumnDefinition.index(Reference.IndexType.ANALYZED.toString());
 
             Expression analyzerExpression = properties.get("analyzer");
             if (analyzerExpression == null) {

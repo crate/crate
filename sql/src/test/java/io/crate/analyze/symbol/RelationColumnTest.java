@@ -38,9 +38,9 @@ public class RelationColumnTest {
     public void testStreaming() throws Exception {
         RelationColumn rc = new RelationColumn(QualifiedName.of("a", "b"), 5, DataTypes.STRING);
         BytesStreamOutput out = new BytesStreamOutput(256);
-        Symbol.toStream(rc, out);
+        Symbols.toStream(rc, out);
         StreamInput in = StreamInput.wrap(out.bytes());
-        RelationColumn rc2 = (RelationColumn) Symbol.fromStream(in);
+        RelationColumn rc2 = (RelationColumn) Symbols.fromStream(in);
         assertThat(rc2, is(rc));
     }
 }

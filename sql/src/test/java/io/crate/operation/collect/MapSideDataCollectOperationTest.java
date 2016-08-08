@@ -73,7 +73,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
         Functions functions = getFunctions();
         NestedReferenceResolver referenceResolver = new NestedReferenceResolver() {
             @Override
-            public ReferenceImplementation getImplementation(ReferenceInfo referenceInfo) {
+            public ReferenceImplementation getImplementation(Reference referenceInfo) {
                 return null;
             }
         };

@@ -62,11 +62,11 @@ public class DocTableInfo implements TableInfo, ShardedTable {
 
     private final TimeValue routingFetchTimeout;
 
-    private final List<ReferenceInfo> columns;
-    private final List<GeneratedReferenceInfo> generatedColumns;
-    private final List<ReferenceInfo> partitionedByColumns;
-    private final Map<ColumnIdent, IndexReferenceInfo> indexColumns;
-    private final ImmutableMap<ColumnIdent, ReferenceInfo> references;
+    private final List<Reference> columns;
+    private final List<GeneratedReference> generatedColumns;
+    private final List<Reference> partitionedByColumns;
+    private final Map<ColumnIdent, IndexReference> indexColumns;
+    private final ImmutableMap<ColumnIdent, Reference> references;
     private final ImmutableMap<ColumnIdent, String> analyzers;
     private final TableIdent ident;
     private final List<ColumnIdent> primaryKeys;
@@ -92,11 +92,11 @@ public class DocTableInfo implements TableInfo, ShardedTable {
     private final IndexNameExpressionResolver indexNameExpressionResolver;
 
     public DocTableInfo(TableIdent ident,
-                        List<ReferenceInfo> columns,
-                        List<ReferenceInfo> partitionedByColumns,
-                        List<GeneratedReferenceInfo> generatedColumns,
-                        ImmutableMap<ColumnIdent, IndexReferenceInfo> indexColumns,
-                        ImmutableMap<ColumnIdent, ReferenceInfo> references,
+                        List<Reference> columns,
+                        List<Reference> partitionedByColumns,
+                        List<GeneratedReference> generatedColumns,
+                        ImmutableMap<ColumnIdent, IndexReference> indexColumns,
+                        ImmutableMap<ColumnIdent, Reference> references,
                         ImmutableMap<ColumnIdent, String> analyzers,
                         List<ColumnIdent> primaryKeys,
                         ColumnIdent clusteredBy,
@@ -148,21 +148,21 @@ public class DocTableInfo implements TableInfo, ShardedTable {
     }
 
     @Nullable
-    public ReferenceInfo getReferenceInfo(ColumnIdent columnIdent) {
-        ReferenceInfo referenceInfo = references.get(columnIdent);
-        if (referenceInfo == null) {
-            return docColumn.getReferenceInfo(ident(), columnIdent);
+    public Reference getReference(ColumnIdent columnIdent) {
+        Reference reference = references.get(columnIdent);
+        if (reference == null) {
+            return docColumn.getReference(ident(), columnIdent);
         }
-        return referenceInfo;
+        return reference;
     }
 
 
     @Override
-    public Collection<ReferenceInfo> columns() {
+    public Collection<Reference> columns() {
         return columns;
     }
 
-    public List<GeneratedReferenceInfo> generatedColumns() {
+    public List<GeneratedReference> generatedColumns() {
         return generatedColumns;
     }
 
@@ -343,7 +343,7 @@ public class DocTableInfo implements TableInfo, ShardedTable {
      * guaranteed to be in the same order as defined in CREATE TABLE statement
      * @return always a list, never null
      */
-    public List<ReferenceInfo> partitionedByColumns() {
+    public List<Reference> partitionedByColumns() {
         return partitionedByColumns;
     }
 
@@ -372,16 +372,16 @@ public class DocTableInfo implements TableInfo, ShardedTable {
         return isPartitioned;
     }
 
-    public IndexReferenceInfo indexColumn(ColumnIdent ident) {
+    public IndexReference indexColumn(ColumnIdent ident) {
         return indexColumns.get(ident);
     }
 
-    public Iterator<IndexReferenceInfo> indexColumns() {
+    public Iterator<IndexReference> indexColumns() {
         return indexColumns.values().iterator();
     }
 
     @Override
-    public Iterator<ReferenceInfo> iterator() {
+    public Iterator<Reference> iterator() {
         return references.values().iterator();
     }
 
@@ -473,10 +473,10 @@ public class DocTableInfo implements TableInfo, ShardedTable {
         if (!ident.isColumn()) {
             // see if parent is strict object
             ColumnIdent parentIdent = ident.getParent();
-            ReferenceInfo parentInfo = null;
+            Reference parentInfo = null;
 
             while (parentIdent != null) {
-                parentInfo = getReferenceInfo(parentIdent);
+                parentInfo = getReference(parentIdent);
                 if (parentInfo != null) {
                     break;
                 }
@@ -501,11 +501,10 @@ public class DocTableInfo implements TableInfo, ShardedTable {
             default:
                 break;
         }
-        DynamicReference reference = new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
         if (parentIsIgnored) {
-            reference.columnPolicy(ColumnPolicy.IGNORED);
+            return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity(), ColumnPolicy.IGNORED);
         }
-        return reference;
+        return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
     }
 
     @Override

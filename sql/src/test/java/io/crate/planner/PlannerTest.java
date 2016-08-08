@@ -467,7 +467,7 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(aggregationInput.symbolType(), is(SymbolType.INPUT_COLUMN));
 
         assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
-        assertThat(((Reference) collectPhase.toCollect().get(0)).info().ident().columnIdent().name(), is("name"));
+        assertThat(((Reference) collectPhase.toCollect().get(0)).ident().columnIdent().name(), is("name"));
 
         MergePhase mergeNode = globalAggregate.localMerge();
         assertThat(mergeNode.projections().size(), is(2));
@@ -609,8 +609,8 @@ public class PlannerTest extends AbstractPlannerTest {
         // collect
         assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
         assertThat(collectPhase.toCollect().size(), is(2));
-        assertThat(((Reference)collectPhase.toCollect().get(0)).info().ident().columnIdent().name(), is("id"));
-        assertThat(((Reference)collectPhase.toCollect().get(1)).info().ident().columnIdent().name(), is("name"));
+        assertThat(((Reference)collectPhase.toCollect().get(0)).ident().columnIdent().name(), is("id"));
+        assertThat(((Reference)collectPhase.toCollect().get(1)).ident().columnIdent().name(), is("name"));
         Projection projection = collectPhase.projections().get(0);
         assertThat(projection, instanceOf(GroupProjection.class));
         GroupProjection groupProjection = (GroupProjection)projection;
@@ -666,7 +666,7 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(collectPhase.projections().get(0), instanceOf(UpdateProjection.class));
         assertThat(collectPhase.toCollect().size(), is(1));
         assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
-        assertThat(((Reference)collectPhase.toCollect().get(0)).info().ident().columnIdent().fqn(), is("_uid"));
+        assertThat(((Reference)collectPhase.toCollect().get(0)).ident().columnIdent().fqn(), is("_uid"));
 
         UpdateProjection updateProjection = (UpdateProjection)collectPhase.projections().get(0);
         assertThat(updateProjection.uidSymbol(), instanceOf(InputColumn.class));
@@ -736,8 +736,8 @@ public class PlannerTest extends AbstractPlannerTest {
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
         Reference nameRef = (Reference)node.toCollect().get(0);
 
-        assertThat(nameRef.info().ident().columnIdent().name(), is(DocSysColumns.DOC.name()));
-        assertThat(nameRef.info().ident().columnIdent().path().get(0), is("name"));
+        assertThat(nameRef.ident().columnIdent().name(), is(DocSysColumns.DOC.name()));
+        assertThat(nameRef.ident().columnIdent().path().get(0), is("name"));
     }
 
     @Test
@@ -1142,8 +1142,8 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(toCollect.size(), is(2));
         assertThat(toCollect.get(0), isFunction("to_long"));
         assertThat(((Function) toCollect.get(0)).arguments().get(0), isReference("_doc['id']"));
-        assertThat((Reference) toCollect.get(1), equalTo(new Reference(new ReferenceInfo(
-                new ReferenceIdent(new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted"), "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP))));
+        assertThat((Reference) toCollect.get(1), equalTo(new Reference(
+                new ReferenceIdent(new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted"), "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP)));
     }
 
     @Test
@@ -1585,7 +1585,7 @@ public class PlannerTest extends AbstractPlannerTest {
                         new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)),
                         DataTypes.BOOLEAN),
                         Arrays.asList(
-                                new Reference(tableInfo.getReferenceInfo(new ColumnIdent("id"))),
+                                tableInfo.getReference(new ColumnIdent("id")),
                                 Literal.newLiteral(2))
                 ));
 

@@ -24,8 +24,8 @@ package io.crate.operation.reference.sys.check.cluster;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.SysClusterTableInfo;
@@ -47,7 +47,7 @@ public class MinMasterNodesSysCheck extends AbstractSysCheck {
             "must not be less than half + 1 of eligible master nodes in the cluster. " +
             "It should be set to (number_master_nodes / 2) + 1.";
 
-    private static final ReferenceInfo MIN_MASTER_NODES_REFERENCE_INFO = new ReferenceInfo(
+    private static final Reference MIN_MASTER_NODES_REFERENCE_INFO = new Reference(
             new ReferenceIdent(
                     SysClusterTableInfo.IDENT,
                     ClusterSettingsExpression.NAME,

@@ -65,7 +65,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                     int numPartitionedColumns = info.partitionedByColumns().size();
 
                     assert partitionName.values().size() == numPartitionedColumns : "invalid number of partitioned columns";
-                    for (ReferenceInfo partitionedInfo : info.partitionedByColumns()) {
+                    for (Reference partitionedInfo : info.partitionedByColumns()) {
                         builder.put(partitionedInfo.ident(), new PartitionedColumnExpression(
                                 partitionedInfo,
                                 partitionName.values().get(i)

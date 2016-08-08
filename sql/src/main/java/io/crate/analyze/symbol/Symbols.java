@@ -26,14 +26,16 @@ import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.exceptions.ConversionException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReferenceInfo;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.io.IOException;
+import java.util.*;
 
 public class Symbols {
 
@@ -52,7 +54,7 @@ public class Symbols {
     public static final Predicate<Symbol> IS_GENERATED_COLUMN = new Predicate<Symbol>() {
         @Override
         public boolean apply(@Nullable Symbol input) {
-            return input instanceof Reference && ((Reference)input).info() instanceof GeneratedReferenceInfo;
+            return input instanceof GeneratedReference;
         }
     };
 
@@ -103,6 +105,37 @@ public class Symbols {
             }
         }
         return collection;
+    }
+
+    public static void toStream(Collection<? extends Symbol> symbols, StreamOutput out) throws IOException {
+        out.writeVInt(symbols.size());
+        for (Symbol symbol : symbols) {
+            toStream(symbol, out);
+        }
+    }
+
+    public static void toStream(Symbol symbol, StreamOutput out) throws IOException {
+        out.writeVInt(symbol.symbolType().ordinal());
+        symbol.writeTo(out);
+    }
+
+    public static List<Symbol> listFromStream(StreamInput in) throws IOException {
+        int numSymbols = in.readVInt();
+        if (numSymbols == 0) {
+            return Collections.emptyList();
+        }
+        List<Symbol> symbols = new ArrayList<>(numSymbols);
+        for (int i = 0; i < numSymbols; i++) {
+            symbols.add(fromStream(in));
+        }
+        return symbols;
+    }
+
+    public static Symbol fromStream(StreamInput in) throws IOException {
+        Symbol symbol = SymbolType.values()[in.readVInt()].newInstance();
+        symbol.readFrom(in);
+
+        return symbol;
     }
 
     private static class HasColumnVisitor extends SymbolVisitor<ColumnIdent, Boolean> {

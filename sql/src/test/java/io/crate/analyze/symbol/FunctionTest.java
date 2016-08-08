@@ -52,10 +52,10 @@ public class FunctionTest extends CrateUnitTest {
         );
 
         BytesStreamOutput output = new BytesStreamOutput();
-        Symbol.toStream(fn, output);
+        Symbols.toStream(fn, output);
 
         StreamInput input = StreamInput.wrap(output.bytes());
-        Function fn2 = (Function)Symbol.fromStream(input);
+        Function fn2 = (Function) Symbols.fromStream(input);
 
         assertThat(fn, is(equalTo(fn2)));
         assertThat(fn.hashCode(), is(fn2.hashCode()));

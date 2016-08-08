@@ -23,7 +23,7 @@ package io.crate.operation.reference.doc.lucene;
 
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.types.*;
@@ -43,7 +43,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     }
 
     @Override
-    public LuceneCollectorExpression<?> getImplementation(ReferenceInfo refInfo) {
+    public LuceneCollectorExpression<?> getImplementation(Reference refInfo) {
         assert refInfo.granularity() == RowGranularity.DOC;
 
         if (RawCollectorExpression.COLUMN_NAME.equals(refInfo.ident().columnIdent().name())){
@@ -70,7 +70,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             return NULL_COLLECTOR_EXPRESSION;
         }
 
-        switch (refInfo.type().id()) {
+        switch (refInfo.valueType().id()) {
             case ByteType.ID:
                 return new ByteColumnReference(colName);
             case ShortType.ID:
@@ -97,7 +97,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case GeoShapeType.ID:
                 return new GeoShapeColumnReference(colName);
             default:
-                throw new UnhandledServerException(String.format(Locale.ENGLISH, "unsupported type '%s'", refInfo.type().getName()));
+                throw new UnhandledServerException(String.format(Locale.ENGLISH, "unsupported type '%s'", refInfo.valueType().getName()));
         }
     }
 

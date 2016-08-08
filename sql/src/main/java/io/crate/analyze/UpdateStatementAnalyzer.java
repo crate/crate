@@ -27,14 +27,13 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.*;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
@@ -62,12 +61,12 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             VERSION_SEARCH_EX_MSG);
 
 
-    private static final Predicate<ReferenceInfo> IS_OBJECT_ARRAY = new Predicate<ReferenceInfo>() {
+    private static final Predicate<Reference> IS_OBJECT_ARRAY = new Predicate<Reference>() {
         @Override
-        public boolean apply(@Nullable ReferenceInfo input) {
+        public boolean apply(@Nullable Reference input) {
             return input != null
-                    && input.type().id() == ArrayType.ID
-                    && ((ArrayType)input.type()).innerType().equals(DataTypes.OBJECT);
+                    && input.valueType().id() == ArrayType.ID
+                    && ((ArrayType)input.valueType()).innerType().equals(DataTypes.OBJECT);
         }
     };
 
@@ -165,8 +164,8 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             columnExpressionAnalyzer.convert(node.columnName(), expressionAnalysisContext),
             expressionAnalysisContext.statementContext());
 
-        final ColumnIdent ident = reference.info().ident().columnIdent();
-        if (hasMatchingParent(tableInfo, reference.info(), IS_OBJECT_ARRAY)) {
+        final ColumnIdent ident = reference.ident().columnIdent();
+        if (hasMatchingParent(tableInfo, reference, IS_OBJECT_ARRAY)) {
             // cannot update fields of object arrays
             throw new IllegalArgumentException("Updating fields of object arrays is not supported");
         }
@@ -183,10 +182,10 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     }
 
 
-    private boolean hasMatchingParent(TableInfo tableInfo, ReferenceInfo info, Predicate<ReferenceInfo> parentMatchPredicate) {
+    private boolean hasMatchingParent(TableInfo tableInfo, Reference info, Predicate<Reference> parentMatchPredicate) {
         ColumnIdent parent = info.ident().columnIdent().getParent();
         while (parent != null) {
-            ReferenceInfo parentInfo = tableInfo.getReferenceInfo(parent);
+            Reference parentInfo = tableInfo.getReference(parent);
             if (parentMatchPredicate.apply(parentInfo)) {
                 return true;
             }

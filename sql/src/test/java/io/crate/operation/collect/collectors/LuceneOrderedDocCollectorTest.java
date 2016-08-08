@@ -25,10 +25,9 @@ package io.crate.operation.collect.collectors;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
@@ -59,7 +58,7 @@ import static org.hamcrest.core.Is.is;
 
 public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
-    private static final ReferenceInfo INFO = new ReferenceInfo(new ReferenceIdent(new TableIdent(null, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
+    private static final Reference REFERENCE = new Reference(new ReferenceIdent(new TableIdent(null, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
 
     private Directory createLuceneIndex() throws IOException {
         Path tmpDir = newTempDir();
@@ -108,7 +107,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     }
 
     private Long[] nextPageQuery(IndexReader reader, FieldDoc lastCollected, boolean reverseFlag, @Nullable Boolean nullFirst) throws IOException {
-        OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(new Reference(INFO)),
+        OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(REFERENCE),
                 new boolean[]{reverseFlag},
                 new Boolean[]{nullFirst});
 

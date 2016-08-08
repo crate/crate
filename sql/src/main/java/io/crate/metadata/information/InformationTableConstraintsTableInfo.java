@@ -41,26 +41,26 @@ public class InformationTableConstraintsTableInfo extends InformationTableInfo {
         public static final ColumnIdent CONSTRAINT_TYPE = new ColumnIdent("constraint_type");
     }
 
-    public static class ReferenceInfos {
-        public static final ReferenceInfo SCHEMA_NAME = info(Columns.SCHEMA_NAME, DataTypes.STRING);
-        public static final ReferenceInfo TABLE_NAME = info(Columns.TABLE_NAME, DataTypes.STRING);
-        public static final ReferenceInfo CONSTRAINT_NAME = info(Columns.CONSTRAINT_NAME, new ArrayType(DataTypes.STRING));
-        public static final ReferenceInfo CONSTRAINT_TYPE = info(Columns.CONSTRAINT_TYPE, DataTypes.STRING);
+    public static class References {
+        public static final Reference SCHEMA_NAME = createRef(Columns.SCHEMA_NAME, DataTypes.STRING);
+        public static final Reference TABLE_NAME = createRef(Columns.TABLE_NAME, DataTypes.STRING);
+        public static final Reference CONSTRAINT_NAME = createRef(Columns.CONSTRAINT_NAME, new ArrayType(DataTypes.STRING));
+        public static final Reference CONSTRAINT_TYPE = createRef(Columns.CONSTRAINT_TYPE, DataTypes.STRING);
     }
 
-    private static ReferenceInfo info(ColumnIdent columnIdent, DataType dataType) {
-        return new ReferenceInfo(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
+    private static Reference createRef(ColumnIdent columnIdent, DataType dataType) {
+        return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
     protected InformationTableConstraintsTableInfo(ClusterService clusterService) {
         super(clusterService,
                 IDENT,
                 ImmutableList.<ColumnIdent>of(),
-                ImmutableSortedMap.<ColumnIdent, ReferenceInfo>naturalOrder()
-                    .put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME)
-                    .put(Columns.TABLE_NAME, ReferenceInfos.TABLE_NAME)
-                    .put(Columns.CONSTRAINT_NAME, ReferenceInfos.CONSTRAINT_NAME)
-                    .put(Columns.CONSTRAINT_TYPE, ReferenceInfos.CONSTRAINT_TYPE)
+                ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
+                    .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME)
+                    .put(Columns.TABLE_NAME, References.TABLE_NAME)
+                    .put(Columns.CONSTRAINT_NAME, References.CONSTRAINT_NAME)
+                    .put(Columns.CONSTRAINT_TYPE, References.CONSTRAINT_TYPE)
                     .build()
         );
     }

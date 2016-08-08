@@ -33,7 +33,6 @@ import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolPrinter;
@@ -180,18 +179,18 @@ public class CopyStatementAnalyzer {
             if (tableRelation.tableInfo().isPartitioned() && partitions.isEmpty()) {
                 // table is partitioned, insert partitioned columns into the output
                 overwrites = new HashMap<>();
-                for (ReferenceInfo referenceInfo : tableRelation.tableInfo().partitionedByColumns()) {
-                    if (!(referenceInfo instanceof GeneratedReferenceInfo)) {
-                        overwrites.put(referenceInfo.ident().columnIdent(), new Reference(referenceInfo));
+                for (Reference reference : tableRelation.tableInfo().partitionedByColumns()) {
+                    if (!(reference instanceof GeneratedReference)) {
+                        overwrites.put(reference.ident().columnIdent(), reference);
                     }
                 }
                 if (overwrites.size() > 0) {
-                    sourceRef = new Reference(tableRelation.tableInfo().getReferenceInfo(DocSysColumns.DOC));
+                    sourceRef = tableRelation.tableInfo().getReference(DocSysColumns.DOC);
                 } else {
-                    sourceRef = new Reference(tableRelation.tableInfo().getReferenceInfo(DocSysColumns.RAW));
+                    sourceRef = tableRelation.tableInfo().getReference(DocSysColumns.RAW);
                 }
             } else {
-                sourceRef = new Reference(tableRelation.tableInfo().getReferenceInfo(DocSysColumns.RAW));
+                sourceRef = tableRelation.tableInfo().getReference(DocSysColumns.RAW);
             }
             outputs = ImmutableList.<Symbol>of(sourceRef);
         }

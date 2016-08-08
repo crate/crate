@@ -25,10 +25,10 @@ package io.crate.operation.collect.collectors;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
 import io.crate.lucene.QueryBuilderHelper;
+import io.crate.metadata.Reference;
 import io.crate.operation.Input;
 import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
@@ -182,7 +182,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
                     continue;
                 }
                 QueryBuilderHelper helper = QueryBuilderHelper.forType(order.valueType());
-                String columnName = ((Reference) order).info().ident().columnIdent().fqn();
+                String columnName = ((Reference) order).ident().columnIdent().fqn();
 
                 Query orderQuery;
                 // nulls already gone, so they should be excluded

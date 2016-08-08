@@ -35,12 +35,12 @@ import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.planner.Planner;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectAndMerge;
-import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -196,11 +196,11 @@ public class GlobalAggregateConsumer implements Consumer {
         @Override
         public Void visitReference(Reference symbol, OutputValidatorContext context) {
             if (context.insideAggregation) {
-                ReferenceInfo.IndexType indexType = symbol.info().indexType();
-                if (indexType == ReferenceInfo.IndexType.ANALYZED) {
+                Reference.IndexType indexType = symbol.indexType();
+                if (indexType == Reference.IndexType.ANALYZED) {
                     throw new IllegalArgumentException(SymbolFormatter.format(
                             "Cannot select analyzed column '%s' within grouping or aggregations", symbol));
-                } else if (indexType == ReferenceInfo.IndexType.NO) {
+                } else if (indexType == Reference.IndexType.NO) {
                     throw new IllegalArgumentException(SymbolFormatter.format(
                             "Cannot select non-indexed column '%s' within grouping or aggregations", symbol));
                 }

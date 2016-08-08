@@ -22,7 +22,7 @@
 package io.crate.operation.reference.sys;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.monitor.MonitorModule;
 import io.crate.operation.reference.NestedObjectExpression;
@@ -68,7 +68,7 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTe
     @Test
     public void testLoad() throws Exception {
         prepare(true);
-        ReferenceInfo refInfo = refInfo("sys.nodes.load", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.load", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression load =
             (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
         Map<String, Object> loadValue = load.value();
@@ -80,7 +80,7 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTe
     @Test
     public void testFs() throws Exception {
         prepare(true);
-        ReferenceInfo refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression fs = (io.crate.operation.reference.NestedObjectExpression)
             resolver.getChildImplementation(refInfo.ident().columnIdent().name());
 
@@ -98,7 +98,7 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTe
     @Test
     public void testCpu() throws Exception {
         prepare(true);
-        ReferenceInfo refInfo = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression os = (io.crate.operation.reference.NestedObjectExpression)
             resolver.getChildImplementation(refInfo.ident().columnIdent().name());
 
@@ -116,7 +116,7 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTe
     @Test
     public void testFsDataOnNonDataNode() throws Exception {
         prepare(false);
-        ReferenceInfo refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE, "data");
+        Reference refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE, "data");
         ColumnIdent columnIdent = refInfo.ident().columnIdent();
         NestedObjectExpression fs = (NestedObjectExpression)
             resolver.getChildImplementation(columnIdent.name());

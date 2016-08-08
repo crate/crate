@@ -24,11 +24,10 @@ package io.crate.analyze;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import io.crate.analyze.symbol.DynamicReference;
-import io.crate.analyze.symbol.Reference;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocTableInfo;
 
 import java.util.HashSet;
@@ -47,7 +46,7 @@ public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStateme
     private int routingColumnIndex = -1;
     protected DocTableInfo tableInfo;
 
-    private final Set<ReferenceInfo> allocatedReferences = new HashSet<>();
+    private final Set<Reference> allocatedReferences = new HashSet<>();
 
     public List<Reference> columns() {
         return columns;
@@ -92,25 +91,24 @@ public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStateme
 
     public Reference allocateUniqueReference(ReferenceIdent ident) {
         ColumnIdent column = ident.columnIdent();
-        ReferenceInfo referenceInfo = tableInfo.getReferenceInfo(column);
-        if (referenceInfo == null) {
-            referenceInfo = tableInfo.indexColumn(column);
-            if (referenceInfo == null) {
+        Reference ref = tableInfo.getReference(column);
+        if (ref == null) {
+            ref = tableInfo.indexColumn(column);
+            if (ref == null) {
                 DynamicReference reference = tableInfo.getDynamic(column, true);
                 if (reference == null) {
                     throw new ColumnUnknownException(column.sqlFqn());
                 }
-                referenceInfo = reference.info();
-                if (!allocatedReferences.add(referenceInfo)) {
+                if (!allocatedReferences.add(reference)) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", ident.columnIdent().sqlFqn()));
                 }
                 return reference;
             }
         }
-        if (!allocatedReferences.add(referenceInfo)) {
+        if (!allocatedReferences.add(ref)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", ident.columnIdent().sqlFqn()));
         }
-        return new Reference(referenceInfo);
+        return ref;
     }
 
     @Override

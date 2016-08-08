@@ -99,15 +99,15 @@ public class InformationTableInfo extends StaticTableInfo {
     protected InformationTableInfo(ClusterService clusterService,
                                    TableIdent ident,
                                    ImmutableList<ColumnIdent> primaryKeyIdentList,
-                                   Map<ColumnIdent, ReferenceInfo> references) {
+                                   Map<ColumnIdent, Reference> references) {
         this(clusterService, ident, primaryKeyIdentList, references, null);
     }
 
     protected InformationTableInfo(ClusterService clusterService,
                                    TableIdent ident,
                                    ImmutableList<ColumnIdent> primaryKeyIdentList,
-                                   Map<ColumnIdent, ReferenceInfo> references,
-                                   @Nullable ImmutableList<ReferenceInfo> columns) {
+                                   Map<ColumnIdent, Reference> references,
+                                   @Nullable ImmutableList<Reference> columns) {
         super(ident, references, columns, primaryKeyIdentList);
         this.clusterService = clusterService;
     }

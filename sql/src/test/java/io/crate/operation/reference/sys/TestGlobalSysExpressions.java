@@ -70,8 +70,8 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
     private NestedReferenceResolver resolver;
     private Schemas schemas;
 
-    private ReferenceInfo loadInfo;
-    private ReferenceInfo load1Info;
+    private Reference loadInfo;
+    private Reference load1Info;
     private ThreadPool threadPool;
 
 
@@ -85,8 +85,8 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
         ).createInjector();
         resolver = injector.getInstance(NestedReferenceResolver.class);
         schemas = injector.getInstance(Schemas.class);
-        loadInfo = schemas.getTableInfo(SysNodesTableInfo.IDENT).getReferenceInfo(new ColumnIdent("load"));
-        load1Info = schemas.getTableInfo(SysNodesTableInfo.IDENT).getReferenceInfo(new ColumnIdent("load", "1"));
+        loadInfo = schemas.getTableInfo(SysNodesTableInfo.IDENT).getReference(new ColumnIdent("load"));
+        load1Info = schemas.getTableInfo(SysNodesTableInfo.IDENT).getReference(new ColumnIdent("load", "1"));
     }
 
     @After
@@ -140,16 +140,16 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
     public void testInfoLookup() throws Exception {
         ReferenceIdent ident = loadInfo.ident();
         TableInfo sysNodesTableInfo = schemas.getTableInfo(SysNodesTableInfo.IDENT);
-        assertEquals(loadInfo, sysNodesTableInfo.getReferenceInfo(ident.columnIdent()));
+        assertEquals(loadInfo, sysNodesTableInfo.getReference(ident.columnIdent()));
 
         ident = load1Info.ident();
-        assertEquals(sysNodesTableInfo.getReferenceInfo(ident.columnIdent()), load1Info);
+        assertEquals(sysNodesTableInfo.getReference(ident.columnIdent()), load1Info);
     }
 
 
     @Test
     public void testChildImplementationLookup() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.nodes.load", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference refInfo = refInfo("sys.nodes.load", DataTypes.OBJECT, RowGranularity.NODE);
         NestedObjectExpression load = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Input ci = load.getChildImplementation("1");
@@ -161,7 +161,7 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
 
     @Test
     public void testClusterSettings() throws Exception {
-        ReferenceInfo refInfo = refInfo("sys.cluster.settings", DataTypes.OBJECT, RowGranularity.CLUSTER);
+        Reference refInfo = refInfo("sys.cluster.settings", DataTypes.OBJECT, RowGranularity.CLUSTER);
         NestedObjectExpression settingsExpression = (NestedObjectExpression) resolver.getImplementation(refInfo);
 
         Map settings = settingsExpression.value();

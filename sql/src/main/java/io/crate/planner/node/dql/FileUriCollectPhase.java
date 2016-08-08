@@ -24,6 +24,7 @@ package io.crate.planner.node.dql;
 import com.google.common.base.MoreObjects;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.StmtCtx;
 import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.planner.distribution.DistributionInfo;
@@ -133,7 +134,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         super.readFrom(in);
         compression = in.readOptionalString();
         sharedStorage = in.readOptionalBoolean();
-        targetUri = Symbol.fromStream(in);
+        targetUri = Symbols.fromStream(in);
 
         int numNodes = in.readVInt();
         List<String> nodes = new ArrayList<>(numNodes);
@@ -141,7 +142,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
             nodes.add(in.readString());
         }
         this.executionNodes = nodes;
-        toCollect = Symbol.listFromStream(in);
+        toCollect = Symbols.listFromStream(in);
     }
 
     @Override
@@ -149,12 +150,12 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         super.writeTo(out);
         out.writeOptionalString(compression);
         out.writeOptionalBoolean(sharedStorage);
-        Symbol.toStream(targetUri, out);
+        Symbols.toStream(targetUri, out);
         out.writeVInt(executionNodes.size());
         for (String node : executionNodes) {
             out.writeString(node);
         }
-        Symbol.toStream(toCollect, out);
+        Symbols.toStream(toCollect, out);
     }
 
     @Override

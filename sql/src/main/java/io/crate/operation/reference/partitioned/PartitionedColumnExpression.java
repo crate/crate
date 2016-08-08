@@ -21,8 +21,8 @@
 
 package io.crate.operation.reference.partitioned;
 
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
 
@@ -30,11 +30,11 @@ public class PartitionedColumnExpression implements ShardReferenceImplementation
 
     private final Object value;
 
-    public PartitionedColumnExpression(ReferenceInfo info, BytesRef stringValue) {
+    public PartitionedColumnExpression(Reference info, BytesRef stringValue) {
         if (stringValue == null) {
             this.value = null;
         } else {
-            this.value = info.type().value(stringValue);
+            this.value = info.valueType().value(stringValue);
         }
     }
 

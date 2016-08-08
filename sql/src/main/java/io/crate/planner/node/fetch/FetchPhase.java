@@ -23,7 +23,7 @@ package io.crate.planner.node.fetch;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import io.crate.analyze.symbol.Reference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
@@ -142,7 +142,7 @@ public class FetchPhase implements ExecutionPhase {
 
         out.writeVInt(fetchRefs.size());
         for (Reference ref : fetchRefs) {
-            ref.writeTo(out);
+            Reference.toStream(ref, out);
         }
         Map<TableIdent, Collection<String>> map = tableIndices.asMap();
         out.writeVInt(map.size());

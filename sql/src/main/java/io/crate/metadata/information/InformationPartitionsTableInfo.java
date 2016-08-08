@@ -33,117 +33,117 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
     public static final String NAME = "table_partitions";
     public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
 
-    public static class ReferenceInfos {
-        public static final ReferenceInfo TABLE_NAME = info(Columns.TABLE_NAME, DataTypes.STRING);
-        public static final ReferenceInfo SCHEMA_NAME = info(Columns.SCHEMA_NAME, DataTypes.STRING);
-        public static final ReferenceInfo PARTITION_IDENT = info(Columns.PARTITION_IDENT, DataTypes.STRING);
-        public static final ReferenceInfo VALUES = info(Columns.VALUES, DataTypes.OBJECT);
-        public static final ReferenceInfo NUMBER_OF_SHARDS = info(Columns.NUMBER_OF_SHARDS, DataTypes.INTEGER);
-        public static final ReferenceInfo NUMBER_OF_REPLICAS = info(Columns.NUMBER_OF_REPLICAS, DataTypes.STRING);
+    public static class References {
+        public static final Reference TABLE_NAME = createRef(Columns.TABLE_NAME, DataTypes.STRING);
+        public static final Reference SCHEMA_NAME = createRef(Columns.SCHEMA_NAME, DataTypes.STRING);
+        public static final Reference PARTITION_IDENT = createRef(Columns.PARTITION_IDENT, DataTypes.STRING);
+        public static final Reference VALUES = createRef(Columns.VALUES, DataTypes.OBJECT);
+        public static final Reference NUMBER_OF_SHARDS = createRef(Columns.NUMBER_OF_SHARDS, DataTypes.INTEGER);
+        public static final Reference NUMBER_OF_REPLICAS = createRef(Columns.NUMBER_OF_REPLICAS, DataTypes.STRING);
 
-        public static final ReferenceInfo TABLE_SETTINGS = info(Columns.TABLE_SETTINGS, DataTypes.OBJECT);
+        public static final Reference TABLE_SETTINGS = createRef(Columns.TABLE_SETTINGS, DataTypes.OBJECT);
 
-        public static final ReferenceInfo TABLE_SETTINGS_BLOCKS = info(
+        public static final Reference TABLE_SETTINGS_BLOCKS = createRef(
                 Columns.TABLE_SETTINGS_BLOCKS, DataTypes.OBJECT);
-        public static final ReferenceInfo TABLE_SETTINGS_BLOCKS_READ_ONLY = info(
+        public static final Reference TABLE_SETTINGS_BLOCKS_READ_ONLY = createRef(
                 Columns.TABLE_SETTINGS_BLOCKS_READ_ONLY, DataTypes.BOOLEAN);
-        public static final ReferenceInfo TABLE_SETTINGS_BLOCKS_READ = info(
+        public static final Reference TABLE_SETTINGS_BLOCKS_READ = createRef(
                 Columns.TABLE_SETTINGS_BLOCKS_READ, DataTypes.BOOLEAN);
-        public static final ReferenceInfo TABLE_SETTINGS_BLOCKS_WRITE = info(
+        public static final Reference TABLE_SETTINGS_BLOCKS_WRITE = createRef(
                 Columns.TABLE_SETTINGS_BLOCKS_WRITE, DataTypes.BOOLEAN);
-        public static final ReferenceInfo TABLE_SETTINGS_BLOCKS_METADATA = info(
+        public static final Reference TABLE_SETTINGS_BLOCKS_METADATA = createRef(
                 Columns.TABLE_SETTINGS_BLOCKS_METADATA, DataTypes.BOOLEAN);
 
-        public static final ReferenceInfo TABLE_SETTINGS_TRANSLOG = info(
+        public static final Reference TABLE_SETTINGS_TRANSLOG = createRef(
                 Columns.TABLE_SETTINGS_TRANSLOG, DataTypes.OBJECT);
-        public static final ReferenceInfo TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS = info(
+        public static final Reference TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS = createRef(
                 Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS, DataTypes.INTEGER);
-        public static final ReferenceInfo TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE = info(
+        public static final Reference TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE = createRef(
                 Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE, DataTypes.LONG);
-        public static final ReferenceInfo TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD = info(
+        public static final Reference TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD = createRef(
                 Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD, DataTypes.LONG);
-        public static final ReferenceInfo TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH = info(
+        public static final Reference TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH = createRef(
                 Columns.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH, DataTypes.BOOLEAN);
-        public static final ReferenceInfo TABLE_SETTINGS_TRANSLOG_INTERVAL = info(
+        public static final Reference TABLE_SETTINGS_TRANSLOG_INTERVAL = createRef(
                 Columns.TABLE_SETTINGS_TRANSLOG_INTERVAL, DataTypes.LONG);
 
-        public static final ReferenceInfo TABLE_SETTINGS_ROUTING= info(
+        public static final Reference TABLE_SETTINGS_ROUTING= createRef(
                 Columns.TABLE_SETTINGS_ROUTING, DataTypes.OBJECT);
-        public static final ReferenceInfo TABLE_SETTINGS_ROUTING_ALLOCATION = info(
+        public static final Reference TABLE_SETTINGS_ROUTING_ALLOCATION = createRef(
                 Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, DataTypes.OBJECT);
-        public static final ReferenceInfo TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE = info(
+        public static final Reference TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE = createRef(
                 Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, DataTypes.STRING);
-        public static final ReferenceInfo TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = info(
+        public static final Reference TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = createRef(
                 Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, DataTypes.INTEGER);
 
-        public static final ReferenceInfo TABLE_SETTINGS_RECOVERY = info(
+        public static final Reference TABLE_SETTINGS_RECOVERY = createRef(
                 Columns.TABLE_SETTINGS_RECOVERY, DataTypes.OBJECT);
-        public static final ReferenceInfo TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = info(
+        public static final Reference TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = createRef(
                 Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, DataTypes.STRING);
-        public static final ReferenceInfo TABLE_SETTINGS_WARMER = info(
+        public static final Reference TABLE_SETTINGS_WARMER = createRef(
                 Columns.TABLE_SETTINGS_WARMER, DataTypes.OBJECT);
-        public static final ReferenceInfo TABLE_SETTINGS_WARMER_ENABLED = info(
+        public static final Reference TABLE_SETTINGS_WARMER_ENABLED = createRef(
                 Columns.TABLE_SETTINGS_WARMER_ENABLED, DataTypes.BOOLEAN);
 
-        public static final ReferenceInfo TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL = info(
+        public static final Reference TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL = createRef(
                 Columns.TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL, DataTypes.STRING);
 
-        public static final ReferenceInfo TABLE_SETTINGS_UNASSIGNED = info(
+        public static final Reference TABLE_SETTINGS_UNASSIGNED = createRef(
                 Columns.TABLE_SETTINGS_UNASSIGNED, DataTypes.OBJECT);
-        public static final ReferenceInfo TABLE_SETTINGS_UNASSIGNED_NODE_LEFT = info(
+        public static final Reference TABLE_SETTINGS_UNASSIGNED_NODE_LEFT = createRef(
                 Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT, DataTypes.OBJECT);
-        public static final ReferenceInfo TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = info(
+        public static final Reference TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = createRef(
                 Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, DataTypes.LONG);
     }
 
-    private static ReferenceInfo info(ColumnIdent columnIdent, DataType dataType) {
-        return new ReferenceInfo(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
+    private static Reference createRef(ColumnIdent columnIdent, DataType dataType) {
+        return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
     protected InformationPartitionsTableInfo(ClusterService clusterService) {
         super(clusterService,
                 IDENT,
                 ImmutableList.<ColumnIdent>of(),
-                ImmutableSortedMap.<ColumnIdent, ReferenceInfo>naturalOrder()
-                   .put(Columns.TABLE_NAME, ReferenceInfos.TABLE_NAME)
-                   .put(Columns.SCHEMA_NAME, ReferenceInfos.SCHEMA_NAME)
-                   .put(Columns.PARTITION_IDENT, ReferenceInfos.PARTITION_IDENT)
-                   .put(Columns.VALUES, ReferenceInfos.VALUES)
-                   .put(Columns.NUMBER_OF_SHARDS, ReferenceInfos.NUMBER_OF_SHARDS)
-                   .put(Columns.NUMBER_OF_REPLICAS, ReferenceInfos.NUMBER_OF_REPLICAS)
-                   .put(Columns.TABLE_SETTINGS, ReferenceInfos.TABLE_SETTINGS)
-                   .put(Columns.TABLE_SETTINGS_BLOCKS, ReferenceInfos.TABLE_SETTINGS_BLOCKS)
-                   .put(Columns.TABLE_SETTINGS_BLOCKS_READ_ONLY, ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ_ONLY)
-                   .put(Columns.TABLE_SETTINGS_BLOCKS_READ, ReferenceInfos.TABLE_SETTINGS_BLOCKS_READ)
-                   .put(Columns.TABLE_SETTINGS_BLOCKS_WRITE, ReferenceInfos.TABLE_SETTINGS_BLOCKS_WRITE)
-                   .put(Columns.TABLE_SETTINGS_BLOCKS_METADATA, ReferenceInfos.TABLE_SETTINGS_BLOCKS_METADATA)
-                   .put(Columns.TABLE_SETTINGS_TRANSLOG, ReferenceInfos.TABLE_SETTINGS_TRANSLOG)
-                   .put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS)
-                   .put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE)
-                   .put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD)
-                   .put(Columns.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH)
-                   .put(Columns.TABLE_SETTINGS_TRANSLOG_INTERVAL, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_INTERVAL)
-                   .put(Columns.TABLE_SETTINGS_ROUTING, ReferenceInfos.TABLE_SETTINGS_ROUTING)
-                   .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION)
-                   .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE)
-                   .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, ReferenceInfos.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE)
-                   .put(Columns.TABLE_SETTINGS_RECOVERY, ReferenceInfos.TABLE_SETTINGS_RECOVERY)
-                   .put(Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, ReferenceInfos.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS)
-                   .put(Columns.TABLE_SETTINGS_WARMER, ReferenceInfos.TABLE_SETTINGS_WARMER)
-                   .put(Columns.TABLE_SETTINGS_WARMER_ENABLED, ReferenceInfos.TABLE_SETTINGS_WARMER_ENABLED)
-                   .put(Columns.TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL, ReferenceInfos.TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL)
-                   .put(Columns.TABLE_SETTINGS_UNASSIGNED, ReferenceInfos.TABLE_SETTINGS_UNASSIGNED)
-                   .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT, ReferenceInfos.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT)
-                   .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, ReferenceInfos.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
+                ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
+                   .put(Columns.TABLE_NAME, References.TABLE_NAME)
+                   .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME)
+                   .put(Columns.PARTITION_IDENT, References.PARTITION_IDENT)
+                   .put(Columns.VALUES, References.VALUES)
+                   .put(Columns.NUMBER_OF_SHARDS, References.NUMBER_OF_SHARDS)
+                   .put(Columns.NUMBER_OF_REPLICAS, References.NUMBER_OF_REPLICAS)
+                   .put(Columns.TABLE_SETTINGS, References.TABLE_SETTINGS)
+                   .put(Columns.TABLE_SETTINGS_BLOCKS, References.TABLE_SETTINGS_BLOCKS)
+                   .put(Columns.TABLE_SETTINGS_BLOCKS_READ_ONLY, References.TABLE_SETTINGS_BLOCKS_READ_ONLY)
+                   .put(Columns.TABLE_SETTINGS_BLOCKS_READ, References.TABLE_SETTINGS_BLOCKS_READ)
+                   .put(Columns.TABLE_SETTINGS_BLOCKS_WRITE, References.TABLE_SETTINGS_BLOCKS_WRITE)
+                   .put(Columns.TABLE_SETTINGS_BLOCKS_METADATA, References.TABLE_SETTINGS_BLOCKS_METADATA)
+                   .put(Columns.TABLE_SETTINGS_TRANSLOG, References.TABLE_SETTINGS_TRANSLOG)
+                   .put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS, References.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS)
+                   .put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE, References.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE)
+                   .put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD, References.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD)
+                   .put(Columns.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH, References.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH)
+                   .put(Columns.TABLE_SETTINGS_TRANSLOG_INTERVAL, References.TABLE_SETTINGS_TRANSLOG_INTERVAL)
+                   .put(Columns.TABLE_SETTINGS_ROUTING, References.TABLE_SETTINGS_ROUTING)
+                   .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, References.TABLE_SETTINGS_ROUTING_ALLOCATION)
+                   .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, References.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE)
+                   .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, References.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE)
+                   .put(Columns.TABLE_SETTINGS_RECOVERY, References.TABLE_SETTINGS_RECOVERY)
+                   .put(Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, References.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS)
+                   .put(Columns.TABLE_SETTINGS_WARMER, References.TABLE_SETTINGS_WARMER)
+                   .put(Columns.TABLE_SETTINGS_WARMER_ENABLED, References.TABLE_SETTINGS_WARMER_ENABLED)
+                   .put(Columns.TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL, References.TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL)
+                   .put(Columns.TABLE_SETTINGS_UNASSIGNED, References.TABLE_SETTINGS_UNASSIGNED)
+                   .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT, References.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT)
+                   .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, References.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
                    .build(),
                 ImmutableList.of(
-                        ReferenceInfos.NUMBER_OF_REPLICAS,
-                        ReferenceInfos.NUMBER_OF_SHARDS,
-                        ReferenceInfos.PARTITION_IDENT,
-                        ReferenceInfos.SCHEMA_NAME,
-                        ReferenceInfos.TABLE_SETTINGS,
-                        ReferenceInfos.TABLE_NAME,
-                        ReferenceInfos.VALUES
+                        References.NUMBER_OF_REPLICAS,
+                        References.NUMBER_OF_SHARDS,
+                        References.PARTITION_IDENT,
+                        References.SCHEMA_NAME,
+                        References.TABLE_SETTINGS,
+                        References.TABLE_NAME,
+                        References.VALUES
                 )
         );
     }

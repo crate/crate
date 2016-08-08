@@ -22,7 +22,7 @@
 package io.crate.operation.reference.doc.lucene;
 
 import com.google.common.base.Joiner;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import org.apache.lucene.index.LeafReaderContext;
@@ -48,14 +48,14 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         return XContentHelper.convertToMap(visitor.source(), false).v2();
     }
 
-    public static LuceneCollectorExpression<?> create(final ReferenceInfo referenceInfo) {
-        assert referenceInfo.ident().columnIdent().name().equals(DocSysColumns.DOC.name());
-        if (referenceInfo.ident().columnIdent().path().size() == 0) {
+    public static LuceneCollectorExpression<?> create(final Reference reference) {
+        assert reference.ident().columnIdent().name().equals(DocSysColumns.DOC.name());
+        if (reference.ident().columnIdent().path().size() == 0) {
             return new DocCollectorExpression();
         }
 
-        assert referenceInfo.ident().columnIdent().path().size() > 0;
-        final String fqn = Joiner.on(".").join(referenceInfo.ident().columnIdent().path());
+        assert reference.ident().columnIdent().path().size() > 0;
+        final String fqn = Joiner.on(".").join(reference.ident().columnIdent().path());
         return new ChildDocCollectorExpression() {
 
             @Override
@@ -69,7 +69,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
                 // for example:
                 //      sourceExtractor might read byte as int and
                 //      then eq(byte, byte) would get eq(byte, int) and fail
-                return referenceInfo.type().value(sourceLookup.extractValue(fqn));
+                return reference.valueType().value(sourceLookup.extractValue(fqn));
             }
         };
     }

@@ -23,6 +23,7 @@ package io.crate.planner.projection;
 
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -96,19 +97,19 @@ public class GroupProjection extends Projection {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        keys = Symbol.listFromStream(in);
+        keys = Symbols.listFromStream(in);
         int size = in.readVInt();
         values = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            values.add((Aggregation) Symbol.fromStream(in));
+            values.add((Aggregation) Symbols.fromStream(in));
         }
         requiredGranularity = RowGranularity.fromStream(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        Symbol.toStream(keys, out);
-        Symbol.toStream(values, out);
+        Symbols.toStream(keys, out);
+        Symbols.toStream(values, out);
         RowGranularity.toStream(requiredGranularity, out);
     }
 

@@ -169,8 +169,8 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
                 .add("name", DataTypes.STRING, null)
                 .add("id", DataTypes.LONG, null)
                 .add("date", DataTypes.TIMESTAMP, null)
-                .add("text", DataTypes.STRING, null, ReferenceInfo.IndexType.ANALYZED)
-                .add("no_index", DataTypes.STRING, null, ReferenceInfo.IndexType.NO)
+                .add("text", DataTypes.STRING, null, Reference.IndexType.ANALYZED)
+                .add("no_index", DataTypes.STRING, null, Reference.IndexType.NO)
                 .addPrimaryKey("id")
                 .clusteredBy("id")
                 .build();

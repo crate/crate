@@ -123,17 +123,17 @@ public class InformationSchemaIterables {
     static class ColumnsIterator implements Iterator<ColumnContext>, Iterable<ColumnContext> {
 
         private final ColumnContext context = new ColumnContext();
-        private final Iterator<ReferenceInfo> columns;
+        private final Iterator<Reference> columns;
 
         ColumnsIterator(TableInfo ti) {
             context.tableInfo = ti;
             context.ordinal = 0;
-            columns = FluentIterable.from(ti).filter(new Predicate<ReferenceInfo>() {
+            columns = FluentIterable.from(ti).filter(new Predicate<Reference>() {
                 @Override
-                public boolean apply(@Nullable ReferenceInfo input) {
+                public boolean apply(@Nullable Reference input) {
                     return input != null
                             && !input.ident().columnIdent().isSystemColumn()
-                            && input.type() != DataTypes.NOT_SUPPORTED;
+                            && input.valueType() != DataTypes.NOT_SUPPORTED;
                 }
             }).iterator();
         }

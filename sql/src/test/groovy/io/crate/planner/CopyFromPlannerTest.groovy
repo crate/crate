@@ -23,7 +23,6 @@
 package io.crate.planner
 
 import io.crate.analyze.symbol.Literal
-import io.crate.analyze.symbol.Reference
 import io.crate.metadata.doc.DocSysColumns
 import io.crate.planner.node.dql.CollectAndMerge
 import io.crate.planner.node.dql.FileUriCollectPhase
@@ -74,8 +73,7 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
         SourceIndexWriterProjection projection =
                 (SourceIndexWriterProjection) collectAndMerge.collectPhase().projections().get(0);
         assert projection.clusteredBy() == null;
-        assert collectAndMerge.collectPhase().toCollect() ==
-                [new Reference(T3.T1_INFO.getReferenceInfo(DocSysColumns.RAW))]
+        assert collectAndMerge.collectPhase().toCollect() == [T3.T1_INFO.getReference(DocSysColumns.RAW)]
     }
 
     @Test (expected = IllegalArgumentException.class)

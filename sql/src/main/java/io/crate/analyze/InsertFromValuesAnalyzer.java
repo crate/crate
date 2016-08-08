@@ -28,7 +28,10 @@ import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
@@ -108,9 +111,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 tableInfo, analysis.parameterContext().numBulkParams());
         handleInsertColumns(node, node.maxValuesLength(), statement);
 
-        Set<ReferenceInfo> allReferencedReferences = new HashSet<>();
-        for (GeneratedReferenceInfo generatedReferenceInfo : tableInfo.generatedColumns()) {
-            allReferencedReferences.addAll(generatedReferenceInfo.referencedReferenceInfos());
+        Set<Reference> allReferencedReferences = new HashSet<>();
+        for (GeneratedReference reference : tableInfo.generatedColumns()) {
+            allReferencedReferences.addAll(reference.referencedReferences());
         }
         ReferenceToLiteralConverter.Context referenceToLiteralContext = new ReferenceToLiteralConverter.Context(
                 statement.columns(), allReferencedReferences);
@@ -249,7 +252,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
             // implicit type conversion
             Reference column = context.columns().get(i);
-            final ColumnIdent columnIdent = column.info().ident().columnIdent();
+            final ColumnIdent columnIdent = column.ident().columnIdent();
             Object value;
             try {
                 valuesSymbol = valueNormalizer.normalizeInputForReference(
@@ -438,23 +441,22 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     private void processGeneratedExpressions(GeneratedExpressionContext context) {
         List<ColumnIdent> primaryKey = context.analyzedStatement.tableInfo().primaryKey();
-        for (GeneratedReferenceInfo referenceInfo : context.tableRelation.tableInfo().generatedColumns()) {
-            Reference reference = new Reference(referenceInfo);
-            Symbol valueSymbol = TO_LITERAL_CONVERTER.process(referenceInfo.generatedExpression(), context.referenceToLiteralContext);
+        for (GeneratedReference reference : context.tableRelation.tableInfo().generatedColumns()) {
+            Symbol valueSymbol = TO_LITERAL_CONVERTER.process(reference.generatedExpression(), context.referenceToLiteralContext);
             valueSymbol = context.expressionAnalyzer.normalize(valueSymbol, context.stmtCtx);
             if (valueSymbol.symbolType() == SymbolType.LITERAL) {
                 Object value = ((Input) valueSymbol).value();
-                if (primaryKey.contains(referenceInfo.ident().columnIdent()) && context.analyzedStatement.columns().indexOf(reference) == -1) {
-                    int idx = primaryKey.indexOf(referenceInfo.ident().columnIdent());
+                if (primaryKey.contains(reference.ident().columnIdent()) && context.analyzedStatement.columns().indexOf(reference) == -1) {
+                    int idx = primaryKey.indexOf(reference.ident().columnIdent());
                     addPrimaryKeyValue(idx, value, context.primaryKeyValues);
                 }
                 ColumnIdent routingColumn = context.analyzedStatement.tableInfo().clusteredBy();
-                if (routingColumn != null && routingColumn.equals(referenceInfo.ident().columnIdent())) {
+                if (routingColumn != null && routingColumn.equals(reference.ident().columnIdent())) {
                     context.routingValue = extractRoutingValue(routingColumn, value, context.analyzedStatement);
                 }
                 if (context.tableRelation.tableInfo().isPartitioned()
-                    && context.tableRelation.tableInfo().partitionedByColumns().contains(referenceInfo)) {
-                    addGeneratedPartitionedColumnValue(referenceInfo.ident().columnIdent(), value,
+                    && context.tableRelation.tableInfo().partitionedByColumns().contains(reference)) {
+                    addGeneratedPartitionedColumnValue(reference.ident().columnIdent(), value,
                             context.analyzedStatement.currentPartitionMap());
                 } else {
                     context.insertValues = addGeneratedColumnValue(context.analyzedStatement, reference, value, context.insertValues);

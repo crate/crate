@@ -21,7 +21,7 @@
 
 package io.crate.executor.transport;
 
-import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.Value;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
@@ -37,10 +37,10 @@ public class SymbolSerializerTest extends CrateUnitTest {
         Value v = new Value(DataTypes.STRING);
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Symbol.toStream(v, out);
+        Symbols.toStream(v, out);
 
         StreamInput in = StreamInput.wrap(out.bytes());
-        Value v2 = (Value) Symbol.fromStream(in);
+        Value v2 = (Value) Symbols.fromStream(in);
         assertEquals(v2.valueType(), DataTypes.STRING);
     }
 }

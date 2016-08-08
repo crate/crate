@@ -30,19 +30,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public interface TableInfo extends Iterable<ReferenceInfo> {
+public interface TableInfo extends Iterable<Reference> {
 
     /**
      * returns information about a column with the given ident.
      * returns null if this table contains no such column.
      */
     @Nullable
-    ReferenceInfo getReferenceInfo(ColumnIdent columnIdent);
+    Reference getReference(ColumnIdent columnIdent);
 
     /**
      * returns the top level columns of this table with predictable order
      */
-    Collection<ReferenceInfo> columns();
+    Collection<Reference> columns();
 
     RowGranularity rowGranularity();
 

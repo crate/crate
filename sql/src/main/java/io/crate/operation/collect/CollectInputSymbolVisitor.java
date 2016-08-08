@@ -22,11 +22,11 @@
 package io.crate.operation.collect;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.operation.AbstractImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.reference.ReferenceResolver;
@@ -95,7 +95,7 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
             context.docLevelExpressions.add(docLevelExpression);
             return docLevelExpression;
         } else {
-            E docLevelExpression = referenceResolver.getImplementation(symbol.info());
+            E docLevelExpression = referenceResolver.getImplementation(symbol);
             if (docLevelExpression == null) {
                 throw new UnhandledServerException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
             }

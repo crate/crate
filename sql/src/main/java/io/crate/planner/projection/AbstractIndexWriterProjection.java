@@ -24,6 +24,7 @@ package io.crate.planner.projection;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.Value;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TableIdent;
@@ -125,7 +126,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         tableIdent = TableIdent.fromStream(in);
 
         partitionIdent = in.readOptionalString();
-        idSymbols = Symbol.listFromStream(in);
+        idSymbols = Symbols.listFromStream(in);
 
         int numPks = in.readVInt();
         primaryKeys = new ArrayList<>(numPks);
@@ -133,9 +134,9 @@ public abstract class AbstractIndexWriterProjection extends Projection {
             primaryKeys.add(ColumnIdent.fromStream(in));
         }
 
-        partitionedBySymbols = Symbol.listFromStream(in);
+        partitionedBySymbols = Symbols.listFromStream(in);
         if (in.readBoolean()) {
-            clusteredBySymbol = Symbol.fromStream(in);
+            clusteredBySymbol = Symbols.fromStream(in);
         } else {
             clusteredBySymbol = null;
         }
@@ -190,17 +191,17 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         tableIdent.writeTo(out);
         out.writeOptionalString(partitionIdent);
 
-        Symbol.toStream(idSymbols, out);
+        Symbols.toStream(idSymbols, out);
         out.writeVInt(primaryKeys.size());
         for (ColumnIdent primaryKey : primaryKeys) {
             primaryKey.writeTo(out);
         }
-        Symbol.toStream(partitionedBySymbols, out);
+        Symbols.toStream(partitionedBySymbols, out);
         if (clusteredBySymbol == null) {
             out.writeBoolean(false);
         } else {
             out.writeBoolean(true);
-            Symbol.toStream(clusteredBySymbol, out);
+            Symbols.toStream(clusteredBySymbol, out);
         }
 
         if (clusteredByColumn == null) {

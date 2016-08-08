@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.Operators;
@@ -69,7 +70,7 @@ public class VersionRewriter {
                 }
 
                 Reference reference = (Reference) left;
-                ColumnIdent columnIdent = reference.info().ident().columnIdent();
+                ColumnIdent columnIdent = reference.ident().columnIdent();
 
                 if (DocSysColumns.VERSION.equals(columnIdent)) {
                     assert context.version == null;

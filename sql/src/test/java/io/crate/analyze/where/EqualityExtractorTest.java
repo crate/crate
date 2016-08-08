@@ -26,7 +26,6 @@ import io.crate.analyze.BaseAnalyzerTest;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
@@ -118,11 +117,11 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
     }
 
     private Reference Ref(String name, DataType type) {
-        return new Reference(new ReferenceInfo(
+        return new Reference(
                 new ReferenceIdent(new TableIdent("testschema", "test"), name),
                 RowGranularity.DOC,
                 type
-        ));
+        );
     }
 
     private Function Eq(Symbol left, Symbol right) {

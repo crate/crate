@@ -25,10 +25,10 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
+import io.crate.metadata.Reference;
 import io.crate.metadata.table.Operation;
 
 import java.util.HashMap;
@@ -79,7 +79,7 @@ public class UpdateAnalyzedStatement implements AnalyzedRelation, AnalyzedStatem
 
         public void addAssignment(Reference reference, Symbol value) {
             if (assignments.containsKey(reference)) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference repeated %s", reference.info().ident().columnIdent().sqlFqn()));
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference repeated %s", reference.ident().columnIdent().sqlFqn()));
             }
             assignments.put(reference, value);
         }

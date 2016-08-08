@@ -21,11 +21,11 @@
 
 package io.crate.operation.reference.information;
 
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
 
 public class ColumnContext {
     public TableInfo tableInfo;
-    public ReferenceInfo info;
+    public Reference info;
     public Short ordinal;
 }

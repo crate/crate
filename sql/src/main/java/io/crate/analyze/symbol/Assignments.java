@@ -22,10 +22,10 @@
 
 package io.crate.analyze.symbol;
 
+import io.crate.metadata.Reference;
 import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Map;
 
 public class Assignments {

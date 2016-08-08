@@ -134,10 +134,10 @@ public class WhereClauseAnalyzer {
 
 
     private static PartitionReferenceResolver preparePartitionResolver(
-            NestedReferenceResolver referenceResolver, List<ReferenceInfo> partitionColumns) {
+            NestedReferenceResolver referenceResolver, List<Reference> partitionColumns) {
         List<PartitionExpression> partitionExpressions = new ArrayList<>(partitionColumns.size());
         int idx = 0;
-        for (ReferenceInfo partitionedByColumn : partitionColumns) {
+        for (Reference partitionedByColumn : partitionColumns) {
             partitionExpressions.add(new PartitionExpression(partitionedByColumn, idx));
             idx++;
         }

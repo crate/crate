@@ -23,10 +23,10 @@ package io.crate.operation.scalar.cast;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ConversionException;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.Reference;
 import io.crate.metadata.StmtCtx;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.testing.TestingHelpers;

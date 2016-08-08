@@ -21,7 +21,10 @@
 package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
@@ -149,7 +152,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeSymbolReferenceTimestamp() throws Exception {
         Function function = new Function(func.info(),
-                Arrays.<Symbol>asList(new Reference(new ReferenceInfo(null,null, DataTypes.STRING)), new Reference(new ReferenceInfo(null,null, DataTypes.TIMESTAMP))));
+                Arrays.<Symbol>asList(new Reference(null,null, DataTypes.STRING), new Reference(null,null, DataTypes.TIMESTAMP)));
         Symbol result = func.normalizeSymbol(function, stmtCtx);
         assertSame(function, result);
     }
@@ -248,7 +251,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeSymbolTzAwareReferenceTimestamp() throws Exception {
         Function function = new Function(funcTZ.info(),
                 Arrays.<Symbol>asList(Literal.newLiteral("day"), Literal.newLiteral("+01:00"),
-                        new Reference(new ReferenceInfo(null,null,DataTypes.TIMESTAMP))));
+                        new Reference(null,null,DataTypes.TIMESTAMP)));
         Symbol result = funcTZ.normalizeSymbol(function, stmtCtx);
         assertSame(function, result);
     }

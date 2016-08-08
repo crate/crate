@@ -29,6 +29,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.DocReferenceConverter;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataTypes;
@@ -61,7 +62,7 @@ public class FetchPushDown {
     }
 
     private FetchReference allocateReference(Reference ref) {
-        RowGranularity granularity = ref.info().granularity();
+        RowGranularity granularity = ref.granularity();
         if (granularity == RowGranularity.DOC) {
             ref = DocReferenceConverter.toSourceLookup(ref);
             if (fetchRefs == null) {
@@ -105,7 +106,7 @@ public class FetchPushDown {
 
         // build the subquery
         QuerySpec sub = new QuerySpec();
-        Reference docIdReference = new Reference(DocSysColumns.forTable(docTableRelation.tableInfo().ident(), DocSysColumns.DOCID));
+        Reference docIdReference = DocSysColumns.forTable(docTableRelation.tableInfo().ident(), DocSysColumns.DOCID);
 
         List<Symbol> outputs = new ArrayList<>();
         if (orderBy.isPresent()) {

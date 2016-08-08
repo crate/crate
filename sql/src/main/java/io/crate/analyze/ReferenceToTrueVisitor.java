@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.symbol.*;
+import io.crate.metadata.Reference;
 import io.crate.operation.operator.Operators;
 import io.crate.operation.predicate.NotPredicate;
 

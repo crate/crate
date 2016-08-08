@@ -23,10 +23,13 @@ package io.crate.planner.node.dql;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 
 import java.util.List;
 
@@ -52,7 +55,7 @@ public class GroupByConsumer {
         // as clustered by column == pk column  in that case
         Symbol groupByKey = groupBySymbols.get(0);
         return (groupByKey instanceof Reference
-                && ((Reference) groupByKey).info().ident().columnIdent()
+                && ((Reference) groupByKey).ident().columnIdent()
                     .equals(tableRelation.tableInfo().clusteredBy()));
     }
 
@@ -64,7 +67,7 @@ public class GroupByConsumer {
         for (int i = 0, groupBySize = groupBy.size(); i < groupBySize; i++) {
             Symbol groupBySymbol = groupBy.get(i);
             if (groupBySymbol instanceof Reference) {
-                ColumnIdent columnIdent = ((Reference) groupBySymbol).info().ident().columnIdent();
+                ColumnIdent columnIdent = ((Reference) groupBySymbol).ident().columnIdent();
                 ColumnIdent pkIdent = primaryKeys.get(i);
                 if (!pkIdent.equals(columnIdent)) {
                     return false;
@@ -94,10 +97,10 @@ public class GroupByConsumer {
 
         @Override
         public Void visitReference(Reference symbol, DocTableRelation context) {
-            if (symbol.info().indexType() == ReferenceInfo.IndexType.ANALYZED) {
+            if (symbol.indexType() == Reference.IndexType.ANALYZED) {
                 throw new IllegalArgumentException(
                         SymbolFormatter.format("Cannot GROUP BY '%s': grouping on analyzed/fulltext columns is not possible", symbol));
-            } else if (symbol.info().indexType() == ReferenceInfo.IndexType.NO) {
+            } else if (symbol.indexType() == Reference.IndexType.NO) {
                 throw new IllegalArgumentException(
                         SymbolFormatter.format("Cannot GROUP BY '%s': grouping on non-indexed columns is not possible", symbol));
             }

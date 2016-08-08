@@ -146,37 +146,36 @@ public class SymbolPrinterTest extends CrateUnitTest {
 
     @Test
     public void testReference() throws Exception {
-        Reference r = new Reference(new ReferenceInfo(new ReferenceIdent(
+        Reference r = new Reference(new ReferenceIdent(
                 new TableIdent("sys", "table"),
                 new ColumnIdent("column", Arrays.asList("path", "nested"))),
-                RowGranularity.DOC, DataTypes.STRING));
+                RowGranularity.DOC, DataTypes.STRING);
         assertPrint(r, "sys.\"table\".\"column\"['path']['nested']");
     }
 
     @Test
     public void testDocReference() throws Exception {
-        Reference r = new Reference(new ReferenceInfo(new ReferenceIdent(
+        Reference r = new Reference(new ReferenceIdent(
                 new TableIdent("doc", "table"),
                 new ColumnIdent("column", Arrays.asList("path", "nested"))),
-                RowGranularity.DOC, DataTypes.STRING));
+                RowGranularity.DOC, DataTypes.STRING);
         assertPrint(r, "doc.\"table\".\"column\"['path']['nested']");
     }
 
     @Test
     public void testDynamicReference() throws Exception {
-        Reference r = new DynamicReference(new ReferenceInfo(new ReferenceIdent(
-                new TableIdent("schema", "table"),
-                new ColumnIdent("column", Arrays.asList("path", "nested"))),
-                RowGranularity.DOC, DataTypes.STRING));
+        Reference r = new DynamicReference(
+            new ReferenceIdent(new TableIdent("schema", "table"), new ColumnIdent("column", Arrays.asList("path", "nested"))),
+            RowGranularity.DOC);
         assertPrint(r, "schema.\"table\".\"column\"['path']['nested']");
     }
 
     @Test
     public void testReferenceEscaped() throws Exception {
-        Reference r = new Reference(new ReferenceInfo(new ReferenceIdent(
+        Reference r = new Reference(new ReferenceIdent(
                 new TableIdent("doc", "table"),
                 new ColumnIdent("colum\"n")),
-                RowGranularity.DOC, DataTypes.STRING));
+                RowGranularity.DOC, DataTypes.STRING);
         assertPrint(r, "doc.\"table\".\"colum\"\"n\"");
     }
 
@@ -223,7 +222,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
         Literal<Float> f = Literal.newLiteral(500.887f);
         assertPrint(f, "500.887");
     }
-    
+
     @Test
     public void testExtract() throws Exception {
         assertPrintIsParseable("extract(century from '1970-01-01')");

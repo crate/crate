@@ -22,6 +22,7 @@
 package io.crate.planner.projection;
 
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -117,7 +118,7 @@ public class UpdateProjection extends DMLProjection {
         int assignmentsSize = in.readVInt();
         assignments = new Symbol[assignmentsSize];
         for (int i = 0; i < assignmentsSize; i++) {
-            assignments[i] = Symbol.fromStream(in);
+            assignments[i] = Symbols.fromStream(in);
         }
         requiredVersion = in.readVLong();
         if (requiredVersion == 0) {
@@ -134,7 +135,7 @@ public class UpdateProjection extends DMLProjection {
         }
         out.writeVInt(assignments.length);
         for (int i = 0; i < assignments.length; i++) {
-            Symbol.toStream(assignments[i], out);
+            Symbols.toStream(assignments[i], out);
         }
         if (requiredVersion == null) {
             out.writeVLong(0);

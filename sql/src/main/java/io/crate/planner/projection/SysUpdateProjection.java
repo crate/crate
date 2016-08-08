@@ -22,9 +22,10 @@
 
 package io.crate.planner.projection;
 
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.Value;
+import io.crate.metadata.Reference;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -74,7 +75,7 @@ public class SysUpdateProjection extends Projection {
         int numAssignments = in.readVInt();
         assignments = new HashMap<>(numAssignments, 1.0f);
         for (int i = 0; i < numAssignments; i++) {
-            assignments.put(Reference.fromStream(in), Symbol.fromStream(in));
+            assignments.put(Reference.fromStream(in), Symbols.fromStream(in));
         }
     }
 
@@ -83,7 +84,7 @@ public class SysUpdateProjection extends Projection {
         out.writeVInt(assignments.size());
         for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
             Reference.toStream(e.getKey(), out);
-            Symbol.toStream(e.getValue(), out);
+            Symbols.toStream(e.getValue(), out);
         }
     }
 

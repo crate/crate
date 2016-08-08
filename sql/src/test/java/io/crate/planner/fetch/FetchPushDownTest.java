@@ -29,7 +29,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
@@ -51,24 +50,17 @@ public class FetchPushDownTest {
     private static final DocTableInfo TABLE_INFO = TestingTableInfo.builder(TABLE_IDENT, mock(Routing.class)).build();
     private static final DocTableRelation TABLE_REL = new DocTableRelation(TABLE_INFO);
 
-    private static final Reference REF_SCORE = new Reference(
-            DocSysColumns.forTable(TABLE_IDENT, DocSysColumns.SCORE));
+    private static final Reference REF_SCORE = DocSysColumns.forTable(TABLE_IDENT, DocSysColumns.SCORE);
 
     private static final Reference REF_I = new Reference(
-            new ReferenceInfo(
-                    new ReferenceIdent(new TableIdent("s", "t"), "i"),
-                    RowGranularity.DOC,
-                    DataTypes.INTEGER
-            )
-    );
+        new ReferenceIdent(new TableIdent("s", "t"), "i"),
+        RowGranularity.DOC,
+        DataTypes.INTEGER);
 
     private static final Reference REF_A = new Reference(
-            new ReferenceInfo(
-                    new ReferenceIdent(new TableIdent("s", "t"), "a"),
-                    RowGranularity.DOC,
-                    DataTypes.STRING
-            )
-    );
+        new ReferenceIdent(new TableIdent("s", "t"), "a"),
+        RowGranularity.DOC,
+        DataTypes.STRING);
 
     @Test
     public void testLimitIsPushedDown() throws Exception {

@@ -31,23 +31,23 @@ import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class IndexReferenceInfoTest extends CrateUnitTest {
+public class IndexReferenceTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
         TableIdent tableIdent = new TableIdent("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(tableIdent, "string_col");
-        ReferenceInfo referenceInfo = new ReferenceInfo(referenceIdent, RowGranularity.DOC, StringType.INSTANCE);
+        Reference reference = new Reference(referenceIdent, RowGranularity.DOC, StringType.INSTANCE);
 
         ReferenceIdent indexReferenceIdent = new ReferenceIdent(tableIdent, "index_column");
-        IndexReferenceInfo indexReferenceInfo = new IndexReferenceInfo(indexReferenceIdent,
-                ReferenceInfo.IndexType.ANALYZED, ImmutableList.of(referenceInfo), "my_analyzer");
+        IndexReference indexReferenceInfo = new IndexReference(indexReferenceIdent,
+                Reference.IndexType.ANALYZED, ImmutableList.of(reference), "my_analyzer");
 
         BytesStreamOutput out = new BytesStreamOutput();
-        ReferenceInfo.toStream(indexReferenceInfo, out);
+        Reference.toStream(indexReferenceInfo, out);
 
         StreamInput in = StreamInput.wrap(out.bytes());
-        IndexReferenceInfo indexReferenceInfo2 = ReferenceInfo.fromStream(in);
+        IndexReference indexReferenceInfo2 = Reference.fromStream(in);
 
         assertThat(indexReferenceInfo2, is(indexReferenceInfo));
     }

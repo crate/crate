@@ -26,6 +26,7 @@ import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.DocReferenceConverter;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
@@ -94,7 +95,7 @@ public class MultiSourceFetchPushDown {
 
                 ArrayList<Symbol> qtOutputs = new ArrayList<>(
                         source.querySpec().outputs().size() - canBeFetched.size() + 1);
-                Reference docId = new Reference(rel.tableInfo().getReferenceInfo(DocSysColumns.DOCID));
+                Reference docId = rel.tableInfo().getReference(DocSysColumns.DOCID);
                 qtOutputs.add(docId);
 
                 for (Symbol output : source.querySpec().outputs()) {
@@ -161,7 +162,7 @@ public class MultiSourceFetchPushDown {
             fetchSources.put(fr.ref().ident().tableIdent(), fs);
         }
         fs.docIdCols().add((InputColumn) fr.docId());
-        if (fr.ref().info().granularity() == RowGranularity.DOC) {
+        if (fr.ref().granularity() == RowGranularity.DOC) {
             fs.references().add(fr.ref());
         }
     }

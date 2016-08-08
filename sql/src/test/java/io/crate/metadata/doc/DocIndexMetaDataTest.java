@@ -154,8 +154,8 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         IndexMetaData metaData = getIndexMetaData("test1", builder);
         DocIndexMetaData md = newMeta(metaData, "test1");
 
-        ReferenceInfo referenceInfo = md.references().get(new ColumnIdent("person", Arrays.asList("addresses", "city")));
-        assertNotNull(referenceInfo);
+        Reference reference = md.references().get(new ColumnIdent("person", Arrays.asList("addresses", "city")));
+        assertNotNull(reference);
     }
 
     @Test
@@ -273,27 +273,27 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         assertEquals(6, md.columns().size());
         assertEquals(16, md.references().size());
 
-        ImmutableList<ReferenceInfo> columns = ImmutableList.copyOf(md.columns());
+        ImmutableList<Reference> columns = ImmutableList.copyOf(md.columns());
 
         assertThat(columns.get(0).ident().columnIdent().name(), is("content"));
-        assertEquals(DataTypes.STRING, columns.get(0).type());
-        assertEquals(ReferenceInfo.IndexType.ANALYZED, columns.get(0).indexType());
+        assertEquals(DataTypes.STRING, columns.get(0).valueType());
+        assertEquals(Reference.IndexType.ANALYZED, columns.get(0).indexType());
         assertThat(columns.get(0).ident().tableIdent().name(), is("test1"));
 
-        ImmutableList<ReferenceInfo> references = ImmutableList.<ReferenceInfo>copyOf(md.references().values());
+        ImmutableList<Reference> references = ImmutableList.<Reference>copyOf(md.references().values());
 
 
-        ReferenceInfo birthday = md.references().get(new ColumnIdent("person", "birthday"));
-        assertEquals(DataTypes.TIMESTAMP, birthday.type());
-        assertEquals(ReferenceInfo.IndexType.NOT_ANALYZED, birthday.indexType());
+        Reference birthday = md.references().get(new ColumnIdent("person", "birthday"));
+        assertEquals(DataTypes.TIMESTAMP, birthday.valueType());
+        assertEquals(Reference.IndexType.NOT_ANALYZED, birthday.indexType());
 
-        ReferenceInfo title = md.references().get(new ColumnIdent("title"));
-        assertEquals(ReferenceInfo.IndexType.NO, title.indexType());
+        Reference title = md.references().get(new ColumnIdent("title"));
+        assertEquals(Reference.IndexType.NO, title.indexType());
 
-        List<String> fqns = Lists.transform(references, new Function<ReferenceInfo, String>() {
+        List<String> fqns = Lists.transform(references, new Function<Reference, String>() {
             @Nullable
             @Override
-            public String apply(@Nullable ReferenceInfo input) {
+            public String apply(@Nullable Reference input) {
                 return input.ident().columnIdent().fqn();
             }
         });
@@ -359,7 +359,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         assertEquals(6, md.columns().size());
         assertEquals(16, md.references().size());
         assertEquals(1, md.partitionedByColumns().size());
-        assertEquals(DataTypes.TIMESTAMP, md.partitionedByColumns().get(0).type());
+        assertEquals(DataTypes.TIMESTAMP, md.partitionedByColumns().get(0).valueType());
         assertThat(md.partitionedByColumns().get(0).ident().columnIdent().fqn(), is("datum"));
 
         assertThat(md.partitionedBy().size(), is(1));
@@ -497,13 +497,13 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                 .endObject();
 
         DocIndexMetaData metaData = newMeta(getIndexMetaData("test", builder), "test");
-        ReferenceInfo id = metaData.references().get(new ColumnIdent("_id"));
+        Reference id = metaData.references().get(new ColumnIdent("_id"));
         assertNotNull(id);
 
-        ReferenceInfo version = metaData.references().get(new ColumnIdent("_version"));
+        Reference version = metaData.references().get(new ColumnIdent("_version"));
         assertNotNull(version);
 
-        ReferenceInfo score = metaData.references().get(new ColumnIdent("_score"));
+        Reference score = metaData.references().get(new ColumnIdent("_score"));
         assertNotNull(score);
     }
 
@@ -691,13 +691,13 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         assertThat(md.columns().size(), is(2));
-        ReferenceInfo week = md.references().get(new ColumnIdent("week"));
+        Reference week = md.references().get(new ColumnIdent("week"));
         assertThat(week, Matchers.notNullValue());
         assertThat(week.isNullable(), is(false));
-        assertThat(week, instanceOf(GeneratedReferenceInfo.class));
-        assertThat(((GeneratedReferenceInfo) week).formattedGeneratedExpression(), is("date_trunc('week', ts)"));
-        assertThat(((GeneratedReferenceInfo) week).generatedExpression(), isFunction("date_trunc", isLiteral("week"), isReference("ts")));
-        assertThat(((GeneratedReferenceInfo) week).referencedReferenceInfos(), contains(isReferenceInfo("ts")));
+        assertThat(week, instanceOf(GeneratedReference.class));
+        assertThat(((GeneratedReference) week).formattedGeneratedExpression(), is("date_trunc('week', ts)"));
+        assertThat(((GeneratedReference) week).generatedExpression(), isFunction("date_trunc", isLiteral("week"), isReference("ts")));
+        assertThat(((GeneratedReference) week).referencedReferences(), contains(isReference("ts")));
     }
 
     @Test
@@ -860,9 +860,9 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                 .endObject();
         DocIndexMetaData md = newMeta(getIndexMetaData("test_analyzer", builder), "test_analyzer");
         assertThat(md.columns().size(), is(2));
-        assertThat(md.columns().get(0).indexType(), is(ReferenceInfo.IndexType.ANALYZED));
+        assertThat(md.columns().get(0).indexType(), is(Reference.IndexType.ANALYZED));
         assertThat(md.columns().get(0).ident().columnIdent().fqn(), is("content_de"));
-        assertThat(md.columns().get(1).indexType(), is(ReferenceInfo.IndexType.ANALYZED));
+        assertThat(md.columns().get(1).indexType(), is(Reference.IndexType.ANALYZED));
         assertThat(md.columns().get(1).ident().columnIdent().fqn(), is("content_en"));
     }
 
@@ -870,8 +870,8 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
     public void testGeoPointType() throws Exception {
         DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table foo (p geo_point)");
         assertThat(md.columns().size(), is(1));
-        ReferenceInfo referenceInfo = md.columns().get(0);
-        assertThat((GeoPointType) referenceInfo.type(), equalTo(DataTypes.GEO_POINT));
+        Reference reference = md.columns().get(0);
+        assertThat((GeoPointType) reference.valueType(), equalTo(DataTypes.GEO_POINT));
     }
 
     @Test
@@ -888,7 +888,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
 
         assertThat(md.columns().size(), is(4));
         assertThat(md.primaryKey(), Matchers.contains(new ColumnIdent("id"), new ColumnIdent("date")));
-        assertThat(md.references().get(new ColumnIdent("tags")).type(), is((DataType) new ArrayType(DataTypes.STRING)));
+        assertThat(md.references().get(new ColumnIdent("tags")).valueType(), is((DataType) new ArrayType(DataTypes.STRING)));
     }
 
     @Test
@@ -898,7 +898,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                         "id int primary key," +
                         "details object as (names array(string))" +
                         ") with (number_of_replicas=0)");
-        DataType type = md.references().get(new ColumnIdent("details", "names")).type();
+        DataType type = md.references().get(new ColumnIdent("details", "names")).valueType();
         assertThat(type, Matchers.<DataType>equalTo(new ArrayType(DataTypes.STRING)));
     }
 
@@ -967,9 +967,9 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                 ")");
         assertThat(md.indices().size(), is(1));
         assertThat(md.columns().size(), is(3));
-        assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft")), instanceOf(IndexReferenceInfo.class));
-        IndexReferenceInfo indexInfo = md.indices().get(ColumnIdent.fromPath("fun_name_ft"));
-        assertThat(indexInfo.indexType(), is(ReferenceInfo.IndexType.ANALYZED));
+        assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft")), instanceOf(IndexReference.class));
+        IndexReference indexInfo = md.indices().get(ColumnIdent.fromPath("fun_name_ft"));
+        assertThat(indexInfo.indexType(), is(Reference.IndexType.ANALYZED));
         assertThat(indexInfo.ident().columnIdent().fqn(), is("fun_name_ft"));
     }
 
@@ -985,9 +985,9 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                 ")");
         assertThat(md.indices().size(), is(1));
         assertThat(md.columns().size(), is(3));
-        assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft")), instanceOf(IndexReferenceInfo.class));
-        IndexReferenceInfo indexInfo = md.indices().get(ColumnIdent.fromPath("fun_name_ft"));
-        assertThat(indexInfo.indexType(), is(ReferenceInfo.IndexType.ANALYZED));
+        assertThat(md.indices().get(ColumnIdent.fromPath("fun_name_ft")), instanceOf(IndexReference.class));
+        IndexReference indexInfo = md.indices().get(ColumnIdent.fromPath("fun_name_ft"));
+        assertThat(indexInfo.indexType(), is(Reference.IndexType.ANALYZED));
         assertThat(indexInfo.ident().columnIdent().fqn(), is("fun_name_ft"));
     }
 
@@ -1095,9 +1095,9 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                 "  tags array(string)," +
                 "  scores array(short)" +
                 ")");
-        assertThat(md.references().get(ColumnIdent.fromPath("tags")).type(),
+        assertThat(md.references().get(ColumnIdent.fromPath("tags")).valueType(),
                 is((DataType)new ArrayType(DataTypes.STRING)));
-        assertThat(md.references().get(ColumnIdent.fromPath("scores")).type(),
+        assertThat(md.references().get(ColumnIdent.fromPath("scores")).valueType(),
                 is((DataType)new ArrayType(DataTypes.SHORT)));
     }
 
@@ -1111,20 +1111,20 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                 "    quote string index using fulltext" +
                 "  ))" +
                 ")");
-        assertThat(md.references().get(ColumnIdent.fromPath("tags")).type(),
+        assertThat(md.references().get(ColumnIdent.fromPath("tags")).valueType(),
                 is((DataType)new ArrayType(DataTypes.OBJECT)));
         assertThat(md.references().get(ColumnIdent.fromPath("tags")).columnPolicy(),
                 is(ColumnPolicy.STRICT));
-        assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).type(),
+        assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).valueType(),
                 is((DataType)DataTypes.DOUBLE));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).indexType(),
-                is(ReferenceInfo.IndexType.NO));
-        assertThat(md.references().get(ColumnIdent.fromPath("tags.numbers")).type(),
+                is(Reference.IndexType.NO));
+        assertThat(md.references().get(ColumnIdent.fromPath("tags.numbers")).valueType(),
                 is((DataType)new ArrayType(DataTypes.INTEGER)));
-        assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).type(),
+        assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).valueType(),
                 is((DataType)DataTypes.STRING));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).indexType(),
-                is(ReferenceInfo.IndexType.ANALYZED));
+                is(Reference.IndexType.ANALYZED));
     }
 
     @Test
@@ -1174,9 +1174,9 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         DocIndexMetaData docIndexMetaData = newMeta(indexMetaData, "test1");
 
         // ARRAY TYPES NOT DETECTED
-        assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("array_col")).type(),
+        assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("array_col")).valueType(),
                 is((DataType)DataTypes.IP));
-        assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("nested.inner_nested")).type(),
+        assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("nested.inner_nested")).valueType(),
                 is((DataType)DataTypes.TIMESTAMP));
     }
 
@@ -1219,9 +1219,9 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                 .endObject();
         IndexMetaData indexMetaData = getIndexMetaData("test1", builder);
         DocIndexMetaData docIndexMetaData = newMeta(indexMetaData, "test1");
-        assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("array_col")).type(),
+        assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("array_col")).valueType(),
                 is((DataType) new ArrayType(DataTypes.IP)));
-        assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("nested.inner_nested")).type(),
+        assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("nested.inner_nested")).valueType(),
                 is((DataType) new ArrayType(DataTypes.TIMESTAMP)));
     }
 
@@ -1275,8 +1275,8 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         DocIndexMetaData metaData = getDocIndexMetaDataFromStatement(
                 "create table t (tags array(string) index using fulltext)");
 
-        ReferenceInfo referenceInfo = metaData.columns().get(0);
-        assertThat(referenceInfo.type(), equalTo((DataType) new ArrayType(DataTypes.STRING)));
+        Reference reference = metaData.columns().get(0);
+        assertThat(reference.valueType(), equalTo((DataType) new ArrayType(DataTypes.STRING)));
     }
 
     @Test
@@ -1326,12 +1326,12 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         assertThat(md.columns().size(), is(2));
-        ReferenceInfo week = md.references().get(new ColumnIdent("week"));
+        Reference week = md.references().get(new ColumnIdent("week"));
         assertThat(week, Matchers.notNullValue());
-        assertThat(week, instanceOf(GeneratedReferenceInfo.class));
-        assertThat(((GeneratedReferenceInfo) week).formattedGeneratedExpression(), is("date_trunc('week', ts)"));
-        assertThat(((GeneratedReferenceInfo) week).generatedExpression(), isFunction("date_trunc", isLiteral("week"), isReference("ts")));
-        assertThat(((GeneratedReferenceInfo) week).referencedReferenceInfos(), contains(isReferenceInfo("ts")));
+        assertThat(week, instanceOf(GeneratedReference.class));
+        assertThat(((GeneratedReference) week).formattedGeneratedExpression(), is("date_trunc('week', ts)"));
+        assertThat(((GeneratedReference) week).generatedExpression(), isFunction("date_trunc", isLiteral("week"), isReference("ts")));
+        assertThat(((GeneratedReference) week).referencedReferences(), contains(isReference("ts")));
     }
 
     @Test

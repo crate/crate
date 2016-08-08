@@ -24,7 +24,7 @@ package io.crate.metadata.blob;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
@@ -46,9 +46,9 @@ public class BlobTableInfoTest extends CrateUnitTest {
 
     @Test
     public void testGetColumnInfo() throws Exception {
-        ReferenceInfo foobar = info.getReferenceInfo(new ColumnIdent("digest"));
+        Reference foobar = info.getReference(new ColumnIdent("digest"));
         assertNotNull(foobar);
-        assertEquals(DataTypes.STRING, foobar.type());
+        assertEquals(DataTypes.STRING, foobar.valueType());
 
         DynamicReference reference = info.getDynamic(new ColumnIdent("foobar"));
         assertNull(reference);

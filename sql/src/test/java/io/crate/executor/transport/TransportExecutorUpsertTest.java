@@ -21,12 +21,14 @@
 
 package io.crate.executor.transport;
 
-import com.carrotsearch.hppc.ObjectIntHashMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.RowCountResult;
 import io.crate.executor.TaskResult;
@@ -274,9 +276,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
         assert tableInfo != null;
         Reference uidReference = new Reference(
-            new ReferenceInfo(
-                new ReferenceIdent(tableInfo.ident(), "_uid"),
-                RowGranularity.DOC, DataTypes.STRING));
+            new ReferenceIdent(tableInfo.ident(), "_uid"), RowGranularity.DOC, DataTypes.STRING);
 
         // 1st collect and merge nodes
         Function query = new Function(new FunctionInfo(

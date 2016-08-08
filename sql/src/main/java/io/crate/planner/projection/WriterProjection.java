@@ -44,9 +44,9 @@ public class WriterProjection extends Projection {
             new Value(DataTypes.LONG) // number of lines written
     );
 
-    private final static Reference SHARD_ID_REF = new Reference(new ReferenceInfo(SysShardsTableInfo.ReferenceIdents.ID, RowGranularity.SHARD, IntegerType.INSTANCE));
-    private final static Reference TABLE_NAME_REF = new Reference(new ReferenceInfo(SysShardsTableInfo.ReferenceIdents.TABLE_NAME, RowGranularity.SHARD, StringType.INSTANCE));
-    private final static Reference PARTITION_IDENT_REF = new Reference(new ReferenceInfo(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT, RowGranularity.SHARD, StringType.INSTANCE));
+    private final static Reference SHARD_ID_REF = new Reference(SysShardsTableInfo.ReferenceIdents.ID, RowGranularity.SHARD, IntegerType.INSTANCE);
+    private final static Reference TABLE_NAME_REF = new Reference(SysShardsTableInfo.ReferenceIdents.TABLE_NAME, RowGranularity.SHARD, StringType.INSTANCE);
+    private final static Reference PARTITION_IDENT_REF = new Reference(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT, RowGranularity.SHARD, StringType.INSTANCE);
 
 
     public static final Symbol DIRECTORY_TO_FILENAME = new Function(new FunctionInfo(
@@ -147,7 +147,7 @@ public class WriterProjection extends Projection {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        uri = Symbol.fromStream(in);
+        uri = Symbols.fromStream(in);
         int size = in.readVInt();
         if (size > 0) {
             outputNames = new ArrayList<>(size);
@@ -155,11 +155,11 @@ public class WriterProjection extends Projection {
                 outputNames.add(in.readString());
             }
         }
-        inputs = Symbol.listFromStream(in);
+        inputs = Symbols.listFromStream(in);
         int numOverwrites = in.readVInt();
         overwrites = new HashMap<>(numOverwrites);
         for (int i = 0; i < numOverwrites; i++) {
-            overwrites.put(ColumnIdent.fromStream(in), Symbol.fromStream(in));
+            overwrites.put(ColumnIdent.fromStream(in), Symbols.fromStream(in));
         }
         int compressionTypeOrdinal = in.readInt();
         compressionType = compressionTypeOrdinal >= 0 ? CompressionType.values()[compressionTypeOrdinal] : null;
@@ -168,7 +168,7 @@ public class WriterProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        Symbol.toStream(uri, out);
+        Symbols.toStream(uri, out);
         if (outputNames != null) {
             out.writeVInt(outputNames.size());
             for (String name : outputNames) {
@@ -177,12 +177,12 @@ public class WriterProjection extends Projection {
         } else {
             out.writeVInt(0);
         }
-        Symbol.toStream(inputs, out);
+        Symbols.toStream(inputs, out);
 
         out.writeVInt(overwrites.size());
         for (Map.Entry<ColumnIdent, Symbol> entry : overwrites.entrySet()) {
             entry.getKey().writeTo(out);
-            Symbol.toStream(entry.getValue(), out);
+            Symbols.toStream(entry.getValue(), out);
         }
         out.writeInt(compressionType != null ? compressionType.ordinal() : -1);
         out.writeInt(outputFormat.ordinal());

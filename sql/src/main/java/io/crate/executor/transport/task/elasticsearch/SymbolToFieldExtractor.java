@@ -25,6 +25,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
+import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 
 import javax.annotation.Nullable;

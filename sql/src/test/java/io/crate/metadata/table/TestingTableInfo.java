@@ -29,7 +29,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
-import io.crate.analyze.symbol.Reference;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -53,11 +52,11 @@ public class TestingTableInfo extends DocTableInfo {
     private Routing routing;
 
     public TestingTableInfo(TableIdent ident,
-                            List<ReferenceInfo> columns,
-                            List<ReferenceInfo> partitionedByColumns,
-                            List<GeneratedReferenceInfo> generatedColumns,
-                            ImmutableMap<ColumnIdent, IndexReferenceInfo> indexColumns,
-                            ImmutableMap<ColumnIdent, ReferenceInfo> references,
+                            List<Reference> columns,
+                            List<Reference> partitionedByColumns,
+                            List<GeneratedReference> generatedColumns,
+                            ImmutableMap<ColumnIdent, IndexReference> indexColumns,
+                            ImmutableMap<ColumnIdent, Reference> references,
                             List<ColumnIdent> primaryKeys,
                             ColumnIdent clusteredBy,
                             boolean isAlias,
@@ -88,14 +87,14 @@ public class TestingTableInfo extends DocTableInfo {
 
     public static class Builder {
 
-        private final ImmutableList.Builder<ReferenceInfo> columns = ImmutableList.builder();
-        private final ImmutableMap.Builder<ColumnIdent, ReferenceInfo> references = ImmutableMap.builder();
-        private final ImmutableList.Builder<ReferenceInfo> partitionedByColumns = ImmutableList.builder();
-        private final ImmutableList.Builder<GeneratedReferenceInfo> generatedColumns = ImmutableList.builder();
+        private final ImmutableList.Builder<Reference> columns = ImmutableList.builder();
+        private final ImmutableMap.Builder<ColumnIdent, Reference> references = ImmutableMap.builder();
+        private final ImmutableList.Builder<Reference> partitionedByColumns = ImmutableList.builder();
+        private final ImmutableList.Builder<GeneratedReference> generatedColumns = ImmutableList.builder();
         private final ImmutableList.Builder<ColumnIdent> primaryKey = ImmutableList.builder();
         private final ImmutableList.Builder<ColumnIdent> partitionedBy = ImmutableList.builder();
         private final ImmutableList.Builder<PartitionName> partitions = ImmutableList.builder();
-        private final ImmutableMap.Builder<ColumnIdent, IndexReferenceInfo> indexColumns = ImmutableMap.builder();
+        private final ImmutableMap.Builder<ColumnIdent, IndexReference> indexColumns = ImmutableMap.builder();
         private ColumnIdent clusteredBy;
 
         private final int numberOfShards = 1;
@@ -157,8 +156,8 @@ public class TestingTableInfo extends DocTableInfo {
             );
         }
 
-        private ReferenceInfo genInfo(ColumnIdent columnIdent, DataType type) {
-            return new ReferenceInfo(
+        private Reference genInfo(ColumnIdent columnIdent, DataType type) {
+            return new Reference(
                     new ReferenceIdent(ident, columnIdent.name(), columnIdent.path()),
                     RowGranularity.DOC, type
             );
@@ -180,26 +179,26 @@ public class TestingTableInfo extends DocTableInfo {
             return add(column, type, path, ColumnPolicy.DYNAMIC);
         }
         public Builder add(String column, DataType type, List<String> path, ColumnPolicy columnPolicy) {
-            return add(column, type, path, columnPolicy, ReferenceInfo.IndexType.NOT_ANALYZED, false, true);
+            return add(column, type, path, columnPolicy, Reference.IndexType.NOT_ANALYZED, false, true);
         }
-        public Builder add(String column, DataType type, List<String> path, ReferenceInfo.IndexType indexType) {
+        public Builder add(String column, DataType type, List<String> path, Reference.IndexType indexType) {
             return add(column, type, path, ColumnPolicy.DYNAMIC, indexType, false, true);
         }
         public Builder add(String column, DataType type, List<String> path,
                            boolean partitionBy) {
             return add(column, type, path, ColumnPolicy.DYNAMIC,
-                    ReferenceInfo.IndexType.NOT_ANALYZED, partitionBy, true);
+                    Reference.IndexType.NOT_ANALYZED, partitionBy, true);
         }
 
         public Builder add(String column, DataType type, List<String> path,
-                           ColumnPolicy columnPolicy, ReferenceInfo.IndexType indexType,
+                           ColumnPolicy columnPolicy, Reference.IndexType indexType,
                            boolean partitionBy,
                            boolean nullable) {
             RowGranularity rowGranularity = RowGranularity.DOC;
             if (partitionBy) {
                 rowGranularity = RowGranularity.PARTITION;
             }
-            ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(ident, column, path),
+            Reference info = new Reference(new ReferenceIdent(ident, column, path),
                     rowGranularity, type, columnPolicy, indexType, nullable);
             if (info.ident().isColumn()) {
                 columns.add(info);
@@ -222,8 +221,8 @@ public class TestingTableInfo extends DocTableInfo {
             if (partitionBy) {
                 rowGranularity = RowGranularity.PARTITION;
             }
-            GeneratedReferenceInfo info = new GeneratedReferenceInfo(new ReferenceIdent(ident, column),
-                rowGranularity, type, ColumnPolicy.DYNAMIC, ReferenceInfo.IndexType.NOT_ANALYZED, expression, nullable);
+            GeneratedReference info = new GeneratedReference(new ReferenceIdent(ident, column),
+                rowGranularity, type, ColumnPolicy.DYNAMIC, Reference.IndexType.NOT_ANALYZED, expression, nullable);
 
             generatedColumns.add(info);
             if (info.ident().isColumn()) {
@@ -237,11 +236,11 @@ public class TestingTableInfo extends DocTableInfo {
             return this;
         }
 
-        public Builder addIndex(ColumnIdent columnIdent, ReferenceInfo.IndexType indexType) {
-            IndexReferenceInfo info = new IndexReferenceInfo(
+        public Builder addIndex(ColumnIdent columnIdent, Reference.IndexType indexType) {
+            IndexReference info = new IndexReference(
                     new ReferenceIdent(ident, columnIdent),
                     indexType,
-                    Collections.<ReferenceInfo>emptyList(),
+                    Collections.<Reference>emptyList(),
                     null);
             indexColumns.put(columnIdent, info);
             return this;
@@ -270,24 +269,15 @@ public class TestingTableInfo extends DocTableInfo {
             return this;
         }
 
-        private void initializeGeneratedExpressions(Functions functions, Collection<ReferenceInfo> columns) {
+        private void initializeGeneratedExpressions(Functions functions, Collection<Reference> columns) {
             TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(columns);
             ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                     functions, null, null, tableReferenceResolver, null);
-            for (GeneratedReferenceInfo generatedReferenceInfo : generatedColumns.build()) {
+            for (GeneratedReference generatedReferenceInfo : generatedColumns.build()) {
                 Expression expression = SqlParser.createExpression(generatedReferenceInfo.formattedGeneratedExpression());
                 ExpressionAnalysisContext context = new ExpressionAnalysisContext(new StmtCtx());
                 generatedReferenceInfo.generatedExpression(expressionAnalyzer.convert(expression, context));
-                generatedReferenceInfo.referencedReferenceInfos(ImmutableList.copyOf(Lists.transform(tableReferenceResolver.references(), new Function<Reference, ReferenceInfo>() {
-                    @Nullable
-                    @Override
-                    public ReferenceInfo apply(@Nullable Reference input) {
-                        if (input == null) {
-                            return null;
-                        }
-                        return input.info();
-                    }
-                })));
+                generatedReferenceInfo.referencedReferences(ImmutableList.copyOf(tableReferenceResolver.references()));
                 tableReferenceResolver.references().clear();
             }
         }

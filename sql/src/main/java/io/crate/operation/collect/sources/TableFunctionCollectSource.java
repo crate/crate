@@ -24,12 +24,11 @@ package io.crate.operation.collect.sources;
 
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.core.collections.Row;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.operation.BaseImplementationSymbolVisitor;
@@ -88,10 +87,10 @@ public class TableFunctionCollectSource implements CollectSource {
     }
 
     private static class Context {
-        final List<ReferenceInfo> columns;
+        final List<Reference> columns;
         final List<InputCollectExpression> collectExpressions = new ArrayList<>();
 
-        public Context(List<ReferenceInfo> columns) {
+        public Context(List<Reference> columns) {
             this.columns = columns;
         }
     }
@@ -104,7 +103,7 @@ public class TableFunctionCollectSource implements CollectSource {
 
         @Override
         public Input<?> visitReference(Reference symbol, Context context) {
-            int position = context.columns.indexOf(symbol.info());
+            int position = context.columns.indexOf(symbol);
             InputCollectExpression collectExpression = new InputCollectExpression(position);
             context.collectExpressions.add(collectExpression);
             return collectExpression;

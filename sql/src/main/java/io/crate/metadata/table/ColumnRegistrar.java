@@ -33,8 +33,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class ColumnRegistrar {
-    private final ImmutableSortedMap.Builder<ColumnIdent, ReferenceInfo> infosBuilder;
-    private final ImmutableSortedSet.Builder<ReferenceInfo> columnsBuilder;
+    private final ImmutableSortedMap.Builder<ColumnIdent, Reference> infosBuilder;
+    private final ImmutableSortedSet.Builder<Reference> columnsBuilder;
 
     private final TableIdent tableIdent;
     private final RowGranularity rowGranularity;
@@ -43,7 +43,7 @@ public class ColumnRegistrar {
         this.tableIdent = tableIdent;
         this.rowGranularity = rowGranularity;
         this.infosBuilder = ImmutableSortedMap.naturalOrder();
-        this.columnsBuilder = ImmutableSortedSet.orderedBy(ReferenceInfo.COMPARE_BY_COLUMN_IDENT);
+        this.columnsBuilder = ImmutableSortedSet.orderedBy(Reference.COMPARE_BY_COLUMN_IDENT);
     }
 
     public ColumnRegistrar register(String column, DataType type, @Nullable List<String> path) {
@@ -51,7 +51,7 @@ public class ColumnRegistrar {
     }
 
     public ColumnRegistrar register(ColumnIdent column, DataType type) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(tableIdent, column), rowGranularity, type);
+        Reference info = new Reference(new ReferenceIdent(tableIdent, column), rowGranularity, type);
         if (info.ident().isColumn()) {
             columnsBuilder.add(info);
         }
@@ -59,16 +59,16 @@ public class ColumnRegistrar {
         return this;
     }
 
-    public ColumnRegistrar putInfoOnly(ColumnIdent columnIdent, ReferenceInfo referenceInfo) {
-        infosBuilder.put(columnIdent, referenceInfo);
+    public ColumnRegistrar putInfoOnly(ColumnIdent columnIdent, Reference reference) {
+        infosBuilder.put(columnIdent, reference);
         return this;
     }
 
-    public Map<ColumnIdent, ReferenceInfo> infos() {
+    public Map<ColumnIdent, Reference> infos() {
         return infosBuilder.build();
     }
 
-    public Set<ReferenceInfo> columns() {
+    public Set<Reference> columns() {
         return columnsBuilder.build();
     }
 }

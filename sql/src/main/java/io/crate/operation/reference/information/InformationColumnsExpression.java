@@ -67,8 +67,8 @@ public abstract class InformationColumnsExpression<T>
 
         @Override
         public BytesRef value() {
-            assert row.info.type() != null && row.info.type().getName() != null : "columns must always have a type and the type must have a name";
-            return new BytesRef(row.info.type().getName());
+            assert row.info.valueType() != null && row.info.valueType().getName() != null : "columns must always have a type and the type must have a name";
+            return new BytesRef(row.info.valueType().getName());
         }
     }
 

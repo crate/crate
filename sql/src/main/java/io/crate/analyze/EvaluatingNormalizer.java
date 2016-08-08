@@ -23,10 +23,7 @@ package io.crate.analyze;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.reference.ReferenceResolver;
 import org.elasticsearch.common.logging.ESLogger;
@@ -123,7 +120,7 @@ public class EvaluatingNormalizer {
                 for (Map.Entry<Field, Double> entry : fieldBoostMap.entrySet()) {
                     Symbol resolved = process(entry.getKey(), null);
                     if (resolved instanceof Reference) {
-                        fqnBoostMap.put(((Reference) resolved).info().ident().columnIdent().fqn(), entry.getValue());
+                        fqnBoostMap.put(((Reference) resolved).ident().columnIdent().fqn(), entry.getValue());
                     } else {
                         return matchPredicate;
                     }
@@ -155,13 +152,13 @@ public class EvaluatingNormalizer {
 
         @Override
         public Symbol visitReference(Reference symbol, StmtCtx context) {
-            if (symbol.info().granularity().ordinal() > granularity.ordinal()) {
+            if (symbol.granularity().ordinal() > granularity.ordinal()) {
                 return symbol;
             }
 
-            Input input = referenceResolver.getImplementation(symbol.info());
+            Input input = referenceResolver.getImplementation(symbol);
             if (input != null) {
-                return Literal.newLiteral(symbol.info().type(), input.value());
+                return Literal.newLiteral(symbol.valueType(), input.value());
             }
 
             if (logger.isTraceEnabled()) {

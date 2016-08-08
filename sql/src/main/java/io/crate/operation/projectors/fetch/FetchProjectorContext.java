@@ -30,7 +30,7 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.Streamer;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.node.fetch.FetchSource;
 import org.apache.lucene.util.BytesRef;
@@ -87,7 +87,7 @@ public class FetchProjectorContext {
 
     }
 
-    private Object[] partitionValues(String index, List<ReferenceInfo> partitionByColumns) {
+    private Object[] partitionValues(String index, List<Reference> partitionByColumns) {
         if (partitionByColumns.isEmpty()) {
             return null;
         }
@@ -95,7 +95,7 @@ public class FetchProjectorContext {
         List<BytesRef> partitionRowValues = pn.values();
         Object[] partitionValues = new Object[partitionRowValues.size()];
         for (int i = 0; i < partitionRowValues.size(); i++) {
-            partitionValues[i] = partitionByColumns.get(i).type().value(partitionRowValues.get(i));
+            partitionValues[i] = partitionByColumns.get(i).valueType().value(partitionRowValues.get(i));
         }
         return partitionValues;
     }

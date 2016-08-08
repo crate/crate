@@ -53,7 +53,7 @@ public class RecoveryShardReferenceResolver extends AbstractReferenceResolver {
     }
 
     @Override
-    public ReferenceImplementation getImplementation(ReferenceInfo refInfo) {
+    public ReferenceImplementation getImplementation(Reference refInfo) {
         ReferenceImplementation impl = staticReferencesResolver.getImplementation(refInfo);
         if (impl == null) {
             impl = super.getImplementation(refInfo);

@@ -24,6 +24,8 @@ package io.crate.metadata;
 
 import com.google.common.base.Objects;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -33,37 +35,37 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GeneratedReferenceInfo extends ReferenceInfo {
+public class GeneratedReference extends Reference {
 
-    public static final ReferenceInfoFactory<GeneratedReferenceInfo> FACTORY = new ReferenceInfoFactory<GeneratedReferenceInfo>() {
+    public static final SymbolFactory<GeneratedReference> FACTORY = new SymbolFactory<GeneratedReference>() {
         @Override
-        public GeneratedReferenceInfo newInstance() {
-            return new GeneratedReferenceInfo();
+        public GeneratedReference newInstance() {
+            return new GeneratedReference();
         }
     };
 
     private String formattedGeneratedExpression;
     private Symbol generatedExpression;
-    private List<ReferenceInfo> referencedReferenceInfos;
+    private List<Reference> referencedReferences;
 
-    private GeneratedReferenceInfo() {
+    private GeneratedReference() {
     }
 
-    public GeneratedReferenceInfo(ReferenceIdent ident,
-                                  RowGranularity granularity,
-                                  DataType type,
-                                  ColumnPolicy columnPolicy,
-                                  IndexType indexType,
-                                  String formattedGeneratedExpression,
-                                  boolean nullable) {
+    public GeneratedReference(ReferenceIdent ident,
+                              RowGranularity granularity,
+                              DataType type,
+                              ColumnPolicy columnPolicy,
+                              IndexType indexType,
+                              String formattedGeneratedExpression,
+                              boolean nullable) {
         super(ident, granularity, type, columnPolicy, indexType, nullable);
         this.formattedGeneratedExpression = formattedGeneratedExpression;
     }
 
-    public GeneratedReferenceInfo(ReferenceIdent ident,
-                                  RowGranularity granularity,
-                                  DataType type,
-                                  String formattedGeneratedExpression) {
+    public GeneratedReference(ReferenceIdent ident,
+                              RowGranularity granularity,
+                              DataType type,
+                              String formattedGeneratedExpression) {
         super(ident, granularity, type);
         this.formattedGeneratedExpression = formattedGeneratedExpression;
     }
@@ -81,17 +83,17 @@ public class GeneratedReferenceInfo extends ReferenceInfo {
         return generatedExpression;
     }
 
-    public void referencedReferenceInfos(List<ReferenceInfo> referenceInfos) {
-        this.referencedReferenceInfos = referenceInfos;
+    public void referencedReferences(List<Reference> references) {
+        this.referencedReferences = references;
     }
 
-    public List<ReferenceInfo> referencedReferenceInfos() {
-        return referencedReferenceInfos;
+    public List<Reference> referencedReferences() {
+        return referencedReferences;
     }
 
     @Override
-    public ReferenceInfoType referenceInfoType() {
-        return ReferenceInfoType.GENERATED;
+    public SymbolType symbolType() {
+        return SymbolType.GENERATED_REFERENCE;
     }
 
     @Override
@@ -99,24 +101,24 @@ public class GeneratedReferenceInfo extends ReferenceInfo {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
-        GeneratedReferenceInfo that = (GeneratedReferenceInfo) o;
+        GeneratedReference that = (GeneratedReference) o;
         return Objects.equal(formattedGeneratedExpression, that.formattedGeneratedExpression) &&
                Objects.equal(generatedExpression, that.generatedExpression) &&
-               Objects.equal(referencedReferenceInfos, that.referencedReferenceInfos);
+               Objects.equal(referencedReferences, that.referencedReferences);
     }
 
     @Override
     public int hashCode() {
         return Objects.hashCode(super.hashCode(), formattedGeneratedExpression,
-                generatedExpression, referencedReferenceInfos);
+                generatedExpression, referencedReferences);
     }
 
     @Override
     public String toString() {
-        return "GeneratedReferenceInfo{" +
+        return "GeneratedReference{" +
                "formattedGeneratedExpression='" + formattedGeneratedExpression + '\'' +
                ", generatedExpression=" + generatedExpression +
-               ", referencedReferenceInfos=" + referencedReferenceInfos +
+               ", referencedReferences=" + referencedReferences +
                '}';
     }
 
@@ -124,11 +126,11 @@ public class GeneratedReferenceInfo extends ReferenceInfo {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         formattedGeneratedExpression = in.readString();
-        generatedExpression = Symbol.fromStream(in);
+        generatedExpression = Symbols.fromStream(in);
         int size = in.readVInt();
-        referencedReferenceInfos = new ArrayList<>(size);
+        referencedReferences = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            referencedReferenceInfos.add(ReferenceInfo.fromStream(in));
+            referencedReferences.add(Reference.fromStream(in));
         }
     }
 
@@ -136,10 +138,10 @@ public class GeneratedReferenceInfo extends ReferenceInfo {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeString(formattedGeneratedExpression);
-        Symbol.toStream(generatedExpression, out);
-        out.writeVInt(referencedReferenceInfos.size());
-        for (ReferenceInfo referenceInfo : referencedReferenceInfos) {
-            ReferenceInfo.toStream(referenceInfo, out);
+        Symbols.toStream(generatedExpression, out);
+        out.writeVInt(referencedReferences.size());
+        for (Reference reference : referencedReferences) {
+            Reference.toStream(reference, out);
         }
     }
 }

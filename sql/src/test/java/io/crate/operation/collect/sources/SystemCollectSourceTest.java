@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
@@ -55,8 +54,8 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
     public void testOrderBySymbolsDoNotAppearTwiceInRows() throws Exception {
         SystemCollectSource systemCollectSource = internalCluster().getInstance(SystemCollectSource.class);
 
-        Reference shardId = new Reference(new ReferenceInfo(
-            new ReferenceIdent(new TableIdent("sys", "shards"), "id"), RowGranularity.SHARD, DataTypes.INTEGER));
+        Reference shardId = new Reference(
+            new ReferenceIdent(new TableIdent("sys", "shards"), "id"), RowGranularity.SHARD, DataTypes.INTEGER);
 
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             UUID.randomUUID(),
