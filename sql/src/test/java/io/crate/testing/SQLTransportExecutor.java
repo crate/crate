@@ -258,6 +258,13 @@ public class SQLTransportExecutor {
             );
         } else {
             int updateCount = preparedStatement.getUpdateCount();
+            if (updateCount < 0) {
+                /*
+                 * In Crate -1 means row-count unknown, and -2 means error. In JDBC -2 means row-count unknown and -3 means error.
+                 * See {@link java.sql.Statement#EXECUTE_FAILED}
+                 */
+                updateCount += 1;
+            }
             return new SQLResponse(
                 new String[0],
                 new Object[0][],
