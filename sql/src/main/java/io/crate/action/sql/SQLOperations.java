@@ -22,9 +22,12 @@
 
 package io.crate.action.sql;
 
+import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.concurrent.CompletionListener;
+import io.crate.core.collections.Row;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.Executor;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
@@ -34,6 +37,7 @@ import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.Portal;
 import io.crate.protocols.postgres.SimplePortal;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Query;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.elasticsearch.cluster.ClusterService;
@@ -256,11 +260,20 @@ public class SQLOperations {
                      * and finally:
                      *
                      *      sync
-                     *
-                     * We can't analyze a statement without params which is why null is returned here.
-                     * This isn't the correct thing to do. It results in a "NoData" msg sent to the client.
-                     * But at least the JDBC client can handle that and just follows up with bind/describe again.
                      */
+                    PreparedStmt preparedStmt = preparedStatements.get(portalOrStatement);
+                    if (preparedStmt == null) {
+                        return null;
+                    }
+                     // analysis would fail for insert statements with NullParameters because primary keys may not be null
+                    if (preparedStmt.statement() instanceof Query) {
+                        Analysis analysis = analyzer.analyze(preparedStmt.statement(),
+                            new ParameterContext(NullRow.INSTANCE, Collections.<Row>emptyList(), defaultSchema, options));
+                        if (analysis.rootRelation() == null) {
+                            return null;
+                        }
+                        return analysis.rootRelation().fields();
+                    }
                     return null;
             }
             throw new AssertionError("Unsupported type: " + type);

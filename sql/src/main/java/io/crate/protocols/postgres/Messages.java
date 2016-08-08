@@ -28,6 +28,7 @@ import io.crate.exceptions.Exceptions;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -340,11 +341,19 @@ class Messages {
             buffer.writeInt(0);     // table_oid
             buffer.writeShort(0);   // attr_num
 
-            PGType pgType = PGTypes.get(column.valueType());
-            buffer.writeInt(pgType.oid());
-            buffer.writeShort(pgType.typeLen());
-            buffer.writeInt(pgType.typeMod());
-            buffer.writeShort(FormatCodes.getFormatCode(formatCodes, idx).ordinal());
+            if (column.valueType().equals(DataTypes.UNDEFINED)) {
+                // oid = 0 is unspecified -> this is not part of PGTypes because this type should not appear in the pg_type table
+                buffer.writeInt(0);
+                buffer.writeShort(-1);
+                buffer.writeInt(-1);
+                buffer.writeShort(FormatCodes.FormatCode.TEXT.ordinal());
+            } else {
+                PGType pgType = PGTypes.get(column.valueType());
+                buffer.writeInt(pgType.oid());
+                buffer.writeShort(pgType.typeLen());
+                buffer.writeInt(pgType.typeMod());
+                buffer.writeShort(FormatCodes.getFormatCode(formatCodes, idx).ordinal());
+            }
 
             idx++;
         }

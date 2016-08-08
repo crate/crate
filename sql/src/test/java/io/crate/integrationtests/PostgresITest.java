@@ -64,9 +64,9 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Before
     public void initProperties() throws Exception {
-        if (randomBoolean()) {
+//        if (randomBoolean()) {
             properties.setProperty("prepareThreshold", "-1"); // force binary transfer
-        }
+//        }
     }
 
     @Test
@@ -350,7 +350,11 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             preparedStatement.setInt(2, 10);
             preparedStatement.addBatch();
 
-            assertThat(preparedStatement.executeBatch(), is(new int[] { 1, 1}));
+            try {
+                assertThat(preparedStatement.executeBatch(), is(new int[]{1, 1}));
+            } catch (BatchUpdateException e) {
+                throw e.getNextException();
+            }
             conn.createStatement().executeUpdate("refresh table t");
 
             preparedStatement = conn.prepareStatement("update t set x = log(x) where id = ?");

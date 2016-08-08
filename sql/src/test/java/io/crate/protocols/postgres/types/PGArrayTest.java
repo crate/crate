@@ -24,6 +24,8 @@ package io.crate.protocols.postgres.types;
 
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -36,6 +38,12 @@ import static org.junit.Assert.assertThat;
 public class PGArrayTest {
 
     private PGArray pgArray = PGArray.INT4_ARRAY;
+
+    @Test
+    public void testWriteAsBinary() throws Exception {
+        ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+        pgArray.writeAsBinary(buffer, new int[] { 10, 20, 30 });
+    }
 
     @Test
     public void testEncodeUTF8Text() throws Exception {
