@@ -57,6 +57,11 @@ class VarCharType extends PGType {
     }
 
     @Override
+    public int writeAsText(ChannelBuffer buffer, @Nonnull Object value) {
+        return writeAsBinary(buffer, value);
+    }
+
+    @Override
     protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
         if (value instanceof String) {
             return ((String) value).getBytes(StandardCharsets.UTF_8);

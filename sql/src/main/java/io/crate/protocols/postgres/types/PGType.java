@@ -80,7 +80,7 @@ public abstract class PGType {
      *
      * @return the number of bytes written. (4 (int32)  + N)
      */
-    public final int writeAsText(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsText(ChannelBuffer buffer, @Nonnull Object value) {
         byte[] bytes = encodeAsUTF8Text(value);
         buffer.writeInt(bytes.length);
         buffer.writeBytes(bytes);
