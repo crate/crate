@@ -332,7 +332,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         };
         Bucket rows = executeNestedLoop(leftRows, rightRows, rowFilterPredicate, JoinType.LEFT);
 
-        assertThat(TestingHelpers.printedTable(rows), is("" +
+        assertThat(TestingHelpers.printedTable(rows), is(
                                                          "1| NULL\n" +
                                                          "2| 2\n" +
                                                          "3| 3\n"));
