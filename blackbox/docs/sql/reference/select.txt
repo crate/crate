@@ -126,11 +126,11 @@ A ``joined_relation`` is a relation which joins two relations together. See
     relation { , | join_type JOIN } relation [ ON join_condition ]
 
 
-:join_type: Either CROSS or INNER. Other types are not supported
+:join_type: LEFT [OUTER], RIGHT [OUTER], FULL [OUTER], CROSS or INNER.
 
 :join_condition: An expression which specifies which rows in a join are
-                 considered a match. The join_condition is only applicable for
-                 joins of type INNER and must have a returning value of type
+                 considered a match. The join_condition is not applicable for
+                 joins of type CROSS and must have a returning value of type
                  ``boolean``.
 
 Table Function
