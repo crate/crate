@@ -76,6 +76,102 @@ the other table::
     +----+------------+------------------+
     SELECT 4 rows in set (... sec)
 
+Left Outer Joins
+----------------
+
+**Left** outer join returns tuples for all matching records of the ​*left*​ and ​*right*​ relation
+like **Inner** join. Additionally it returns tuples for all other records from ​*left*​ that don't
+match any record on the ​*right*​ by using null values for the columns of the ​*right*​ relation::
+
+    cr> select e.name || ' ' || e.surname as employee, d.name as manager_of_department
+    ... from employees e left join departments d
+    ... on e.id = d.manager_id
+    ... order by e.id;
+    +-------------------------------+-----------------------+
+    | employee                      | manager_of_department |
+    +-------------------------------+-----------------------+
+    | John Doe                      | Administration        |
+    | John Smith                    | IT                    |
+    | Sean Lee                      |                       |
+    | Rebecca Sean                  |                       |
+    | Tim Ducan                     |                       |
+    | Robert Duval                  |                       |
+    | Clint Johnson                 |                       |
+    | Sarrah Mcmillan               |                       |
+    | David Limb                    |                       |
+    | David Bowe                    |                       |
+    | Smith Clark                   | Marketing             |
+    | Ted Kennedy                   |                       |
+    | Ronald Reagan                 |                       |
+    | Franlkin Rossevelt            |                       |
+    | Sam Malone                    |                       |
+    | Marry Georgia                 |                       |
+    | Tim Doe                       | Human Resources       |
+    | Tim Malone                    | Purchasing            |
+    +-------------------------------+-----------------------+
+    SELECT 18 rows in set (... sec)
+
+Right Outer Joins
+-----------------
+
+**Right** outer join returns tuples for all matching records of the ​*right*​ and ​*left*​ relation
+like **Inner** join. Additionally it returns tuples for all other records from ​*right*​ that don't
+match any record on the ​*left*​ by using null values for the columns of the ​*left*​ relation::
+
+    cr> select e.name || ' ' || e.surname as employee, d.name as manager_of_department
+    ... from employees e right join departments d
+    ... on e.id = d.manager_id
+    ... order by d.id;
+    +-------------------------------+-----------------------+
+    | employee                      | manager_of_department |
+    +-------------------------------+-----------------------+
+    | John Doe                      | Administration        |
+    | Smith Clark                   | Marketing             |
+    | Tim Malone                    | Purchasing            |
+    | Tim Doe                       | Human Resources       |
+    |                               | Shipping              |
+    | John Smith                    | IT                    |
+    +-------------------------------+-----------------------+
+    SELECT 6 rows in set (... sec)
+
+Full Outer Joins
+----------------
+
+**Full** outer join returns tuples for all matching records of the ​*left*​ and ​*right*​ relation
+like **Inner** join. Additionally it returns tuples for all other records from ​*left*​ that don't
+match any record on the ​*right*​ by using null values for the columns of the ​*right*​ relation.
+Additionally it returns tuples for all other records from ​*right*​ that don't match any record on
+the ​*left*​ by using null values for the columns of the ​*left*​ relation::
+
+    cr> select e.name || ' ' || e.surname as employee, d.name as manager_of_department
+    ... from employees e full join departments d
+    ... on e.id = d.manager_id
+    ... order by e.id;
+    +-------------------------------+-----------------------+
+    | employee                      | manager_of_department |
+    +-------------------------------+-----------------------+
+    | John Doe                      | Administration        |
+    | John Smith                    | IT                    |
+    | Sean Lee                      |                       |
+    | Rebecca Sean                  |                       |
+    | Tim Ducan                     |                       |
+    | Robert Duval                  |                       |
+    | Clint Johnson                 |                       |
+    | Sarrah Mcmillan               |                       |
+    | David Limb                    |                       |
+    | David Bowe                    |                       |
+    | Smith Clark                   | Marketing             |
+    | Ted Kennedy                   |                       |
+    | Ronald Reagan                 |                       |
+    | Franlkin Rossevelt            |                       |
+    | Sam Malone                    |                       |
+    | Marry Georgia                 |                       |
+    | Tim Doe                       | Human Resources       |
+    | Tim Malone                    | Purchasing            |
+    |                               | Shipping              |
+    +-------------------------------+-----------------------+
+    SELECT 19 rows in set (... sec)
+
 Join Conditions
 ...............
 
