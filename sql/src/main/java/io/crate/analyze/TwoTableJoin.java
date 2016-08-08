@@ -30,6 +30,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.ArrayList;
@@ -45,13 +46,15 @@ public class TwoTableJoin implements QueriedRelation {
     private final Optional<OrderBy> remainingOrderBy;
     private final List<Field> fields;
     private final QualifiedName name;
+    private final JoinType joinType;
 
     public TwoTableJoin(QuerySpec querySpec,
                         QualifiedName leftName,
                         MultiSourceSelect.Source left,
                         QualifiedName rightName,
                         MultiSourceSelect.Source right,
-                        Optional<OrderBy> remainingOrderBy) {
+                        Optional<OrderBy> remainingOrderBy,
+                        JoinType joinType) {
         this.querySpec = querySpec;
         this.leftName = leftName;
         this.left = left;
@@ -59,6 +62,7 @@ public class TwoTableJoin implements QueriedRelation {
         this.right = right;
         this.name = QualifiedName.of("join", leftName.toString(), rightName.toString());
         this.remainingOrderBy = remainingOrderBy;
+        this.joinType = joinType;
         fields = new ArrayList<>(querySpec.outputs().size());
         for (int i = 0; i < querySpec.outputs().size(); i++) {
             fields.add(new Field(this, new ColumnIndex(i), querySpec.outputs().get(i).valueType()));
@@ -80,6 +84,10 @@ public class TwoTableJoin implements QueriedRelation {
     @Override
     public QuerySpec querySpec() {
         return querySpec;
+    }
+
+    public JoinType joinType() {
+        return joinType;
     }
 
     @Override
