@@ -58,6 +58,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
     private JoinType joinType;
     @Nullable
     private Symbol filterSymbol;
+    private int numRightOutputs;
 
     public NestedLoopPhase() {}
 
@@ -69,7 +70,8 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
                            @Nullable MergePhase rightMergePhase,
                            Collection<String> executionNodes,
                            JoinType joinType,
-                           @Nullable Symbol filterSymbol) {
+                           @Nullable Symbol filterSymbol,
+                           int numRightOutputs) {
         super(jobId, executionNodeId, name, projections);
         Projection lastProjection = Iterables.getLast(projections, null);
         assert lastProjection != null;
@@ -79,6 +81,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
         this.executionNodes = executionNodes;
         this.joinType = joinType;
         this.filterSymbol = filterSymbol;
+        this.numRightOutputs = numRightOutputs;
     }
 
     @Override
@@ -114,6 +117,10 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
         return joinType;
     }
 
+    public int numRightOutputs() {
+        return numRightOutputs;
+    }
+
     @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
         return visitor.visitNestedLoopPhase(this, context);
@@ -145,6 +152,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
             filterSymbol = Symbols.fromStream(in);
         }
         joinType = JoinType.values()[in.readVInt()];
+        numRightOutputs = in.readVInt();
     }
 
     @Override
@@ -183,6 +191,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
         }
 
         out.writeVInt(joinType.ordinal());
+        out.writeVInt(numRightOutputs);
     }
 
     @Override
