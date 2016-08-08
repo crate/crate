@@ -38,6 +38,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.analyze.where.WhereClauseAnalyzer;
+import io.crate.core.collections.Row;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
@@ -117,7 +118,7 @@ public class CopyStatementAnalyzer {
         return new CopyFromAnalyzedStatement(tableInfo, settings, uri, partitionIdent, nodeFilters);
     }
 
-    private static Predicate<DiscoveryNode> discoveryNodePredicate(Object[] parameters, @Nullable Expression nodeFiltersExpression) {
+    private static Predicate<DiscoveryNode> discoveryNodePredicate(Row parameters, @Nullable Expression nodeFiltersExpression) {
         if (nodeFiltersExpression == null) {
             return Predicates.alwaysTrue();
         }

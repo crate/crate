@@ -26,6 +26,9 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.repositories.RepositorySettingsModule;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.RowN;
+import io.crate.core.collections.Rows;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -58,10 +61,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.*;
@@ -227,7 +227,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
     private DeleteAnalyzedStatement analyzeDelete(String stmt, Object[][] bulkArgs) {
         return (DeleteAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt),
-                new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+                new ParameterContext(Row.EMPTY, Rows.of(bulkArgs), Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
     }
 
     private DeleteAnalyzedStatement analyzeDelete(String stmt) {
@@ -236,12 +236,12 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
     private UpdateAnalyzedStatement analyzeUpdate(String stmt) {
         return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt),
-                new ParameterContext(new Object[0], new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+                new ParameterContext(Row.EMPTY, Collections.<Row>emptyList(), Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
     }
 
     private WhereClause analyzeSelect(String stmt, Object... args) {
         SelectAnalyzedStatement statement = (SelectAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt),
-                new ParameterContext(args, new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+                new ParameterContext(new RowN(args), Collections.<Row>emptyList(), Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
         return statement.relation().querySpec().where();
     }
 

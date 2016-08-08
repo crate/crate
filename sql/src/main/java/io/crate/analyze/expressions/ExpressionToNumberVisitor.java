@@ -21,16 +21,17 @@
 
 package io.crate.analyze.expressions;
 
+import io.crate.core.collections.Row;
 import io.crate.sql.tree.*;
 
 import java.util.Locale;
 
-public class ExpressionToNumberVisitor extends AstVisitor<Number, Object[]> {
+public class ExpressionToNumberVisitor extends AstVisitor<Number, Row> {
 
     private static final ExpressionToNumberVisitor INSTANCE = new ExpressionToNumberVisitor();
     private ExpressionToNumberVisitor() {}
 
-    public static Number convert(Node node, Object[] parameters) {
+    public static Number convert(Node node, Row parameters) {
         return INSTANCE.process(node, parameters);
     }
 
@@ -50,29 +51,29 @@ public class ExpressionToNumberVisitor extends AstVisitor<Number, Object[]> {
     }
 
     @Override
-    protected Number visitStringLiteral(StringLiteral node, Object[] context) {
+    protected Number visitStringLiteral(StringLiteral node, Row context) {
         return parseString(node.getValue());
     }
 
     @Override
-    protected Number visitLongLiteral(LongLiteral node, Object[] context) {
+    protected Number visitLongLiteral(LongLiteral node, Row context) {
         return node.getValue();
     }
 
     @Override
-    protected Number visitDoubleLiteral(DoubleLiteral node, Object[] context) {
+    protected Number visitDoubleLiteral(DoubleLiteral node, Row context) {
         return node.getValue();
     }
 
     @Override
-    protected Number visitNullLiteral(NullLiteral node, Object[] context) {
+    protected Number visitNullLiteral(NullLiteral node, Row context) {
         return null;
     }
 
     @Override
-    public Number visitParameterExpression(ParameterExpression node, Object[] context) {
+    public Number visitParameterExpression(ParameterExpression node, Row context) {
         Number num;
-        Object param = context[node.index()];
+        Object param = context.get(node.index());
         if (param instanceof Number) {
             num = (Number)param;
         } else if (param instanceof String) {
@@ -85,7 +86,7 @@ public class ExpressionToNumberVisitor extends AstVisitor<Number, Object[]> {
     }
 
     @Override
-    protected Number visitNegativeExpression(NegativeExpression node, Object[] context) {
+    protected Number visitNegativeExpression(NegativeExpression node, Row context) {
         Number n = process(node.getValue(), context);
         if (n instanceof Long) {
             return -1L * (Long)n;
@@ -98,7 +99,7 @@ public class ExpressionToNumberVisitor extends AstVisitor<Number, Object[]> {
     }
 
     @Override
-    protected Number visitNode(Node node, Object[] context) {
+    protected Number visitNode(Node node, Row context) {
         throw new IllegalArgumentException(String.format(Locale.ENGLISH, "invalid number %s", node));
     }
 }

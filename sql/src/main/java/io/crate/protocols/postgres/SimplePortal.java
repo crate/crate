@@ -34,6 +34,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.concurrent.CompletionListener;
 import io.crate.core.collections.Row;
+import io.crate.core.collections.RowN;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.executor.Executor;
@@ -56,8 +57,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-
-import static io.crate.action.sql.SQLBulkRequest.EMPTY_BULK_ARGS;
 
 public class SimplePortal extends AbstractPortal {
 
@@ -129,8 +128,8 @@ public class SimplePortal extends AbstractPortal {
         this.resultFormatCodes = resultFormatCodes;
         if (analysis == null) {
             analysis = sessionData.getAnalyzer().analyze(statement,
-                new ParameterContext(getArgs(),
-                    EMPTY_BULK_ARGS,
+                new ParameterContext(new RowN(params.toArray()),
+                    Collections.<Row>emptyList(),
                     sessionData.getDefaultSchema(),
                     sessionData.options()));
             AnalyzedRelation rootRelation = analysis.rootRelation();
@@ -214,10 +213,6 @@ public class SimplePortal extends AbstractPortal {
         return true;
     }
 
-    private Object[] getArgs() {
-        return params.toArray(new Object[0]);
-    }
-
     private void validateReadOnly(Analysis analysis) {
         if (analysis != null && analysis.analyzedStatement().isWriteOperation() && sessionData.isReadOnly()) {
             throw new ReadOnlyException();
@@ -290,7 +285,7 @@ public class SimplePortal extends AbstractPortal {
                         LOGGER.debug("Killed {} jobs before Retry", killResponse.numKilled());
 
                         Analysis analysis = analyzer.analyze(portal.statement,
-                            new ParameterContext(portal.getArgs(), EMPTY_BULK_ARGS, defaultSchema, options));
+                            new ParameterContext(new RowN(portal.params.toArray()), Collections.<Row>emptyList(), defaultSchema, options));
                         Plan plan = planner.plan(analysis, jobId, 0, portal.maxRows);
                         executor.execute(plan, portal.rowReceiver);
                     }

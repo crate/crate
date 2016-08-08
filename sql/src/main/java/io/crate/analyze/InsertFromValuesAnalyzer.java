@@ -105,7 +105,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 analysisMetaData, analysis.parameterContext(), fieldProvider, valuesResolver);
 
         InsertFromValuesAnalyzedStatement statement = new InsertFromValuesAnalyzedStatement(
-                tableInfo, analysis.parameterContext().bulkParameters.length);
+                tableInfo, analysis.parameterContext().numBulkParams());
         handleInsertColumns(node, node.maxValuesLength(), statement);
 
         Set<ReferenceInfo> allReferencedReferences = new HashSet<>();
@@ -181,8 +181,8 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             DocTableInfo tableInfo = statement.tableInfo();
             int numPks = tableInfo.primaryKey().size();
             Function<List<BytesRef>, String> idFunction = Id.compile(tableInfo.primaryKey(), tableInfo.clusteredBy());
-            if (parameterContext.bulkParameters.length > 0) {
-                for (int i = 0; i < parameterContext.bulkParameters.length; i++) {
+            if (parameterContext.numBulkParams() > 0) {
+                for (int i = 0; i < parameterContext.numBulkParams(); i++) {
                     parameterContext.setBulkIdx(i);
                     addValues(
                         tableRelation,

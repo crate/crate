@@ -25,6 +25,27 @@ import com.google.common.base.Function;
 
 public interface Row {
 
+
+    Row EMPTY = new Row() {
+
+        private final Object[] EMPTY_CELLS = new Object[0];
+
+        @Override
+        public int size() {
+            return 0;
+        }
+
+        @Override
+        public Object get(int index) {
+            throw new IndexOutOfBoundsException("EMPTY row has no cells");
+        }
+
+        @Override
+        public Object[] materialize() {
+            return EMPTY_CELLS;
+        }
+    };
+
     Function<Row, Object[]> MATERIALIZE = new Function<Row, Object[]>() {
         @Override
         public Object[] apply(Row input) {

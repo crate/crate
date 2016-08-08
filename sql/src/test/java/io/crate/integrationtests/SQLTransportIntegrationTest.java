@@ -31,6 +31,7 @@ import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
+import io.crate.core.collections.Row;
 import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.executor.transport.TransportShardAction;
@@ -306,7 +307,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         Analyzer analyzer = internalCluster().getInstance(Analyzer.class, nodeName);
         Planner planner = internalCluster().getInstance(Planner.class, nodeName);
 
-        ParameterContext parameterContext = new ParameterContext(new Object[0], new Object[0][], null);
+        ParameterContext parameterContext = new ParameterContext(Row.EMPTY, Collections.<Row>emptyList(), null);
         Plan plan = planner.plan(analyzer.analyze(SqlParser.createStatement(stmt), parameterContext), UUID.randomUUID(), 0, 0);
         return new PlanForNode(plan, nodeName);
     }

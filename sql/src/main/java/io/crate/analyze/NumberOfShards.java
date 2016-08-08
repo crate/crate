@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionToNumberVisitor;
+import io.crate.core.collections.Row;
 import io.crate.sql.tree.ClusteredBy;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -39,7 +40,7 @@ public class NumberOfShards {
         this.clusterService = clusterService;
     }
 
-    int fromClusteredByClause(ClusteredBy clusteredBy, Object[] parameters) {
+    int fromClusteredByClause(ClusteredBy clusteredBy, Row parameters) {
         if (clusteredBy.numberOfShards().isPresent()) {
             int numShards = ExpressionToNumberVisitor.convert(clusteredBy.numberOfShards().get(), parameters).intValue();
             if (numShards < 1) {

@@ -31,6 +31,8 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionState;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.RowN;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.operation.collect.StatsTables;
@@ -42,12 +44,11 @@ import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static io.crate.action.sql.SQLBulkRequest.EMPTY_BULK_ARGS;
 
 class BatchPortal extends AbstractPortal {
 
@@ -101,7 +102,7 @@ class BatchPortal extends AbstractPortal {
         this.resultFormatCodes.add(resultFormatCodes);
         analysis.add(sessionData.getAnalyzer().analyze(statement,
             new ParameterContext(getArgs(),
-                EMPTY_BULK_ARGS,
+                Collections.<Row>emptyList(),
                 sessionData.getDefaultSchema(),
                 sessionData.options())));
         return this;
@@ -146,8 +147,8 @@ class BatchPortal extends AbstractPortal {
         }
     }
 
-    private Object[] getArgs() {
-        return batchParams.get(batchParams.size() - 1).toArray(new Object[0]);
+    private Row getArgs() {
+        return new RowN(batchParams.get(batchParams.size() - 1).toArray());
     }
 
     private void validate(Analysis analysis) {

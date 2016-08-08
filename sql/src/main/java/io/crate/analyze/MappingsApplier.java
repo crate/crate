@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.core.collections.Row;
 import io.crate.sql.tree.Expression;
 
 import java.util.Locale;
@@ -38,7 +39,7 @@ public abstract class MappingsApplier {
         this.defaultValue = defaultValue;
     }
 
-    public abstract void apply(Map<String, Object> mappings, Object[] parameters, Expression expression);
+    public abstract void apply(Map<String, Object> mappings, Row parameters, Expression expression);
 
     public void applyValue(Map<String, Object> mappings, Object value) {
         try {

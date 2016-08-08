@@ -34,6 +34,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.core.collections.Row;
 import io.crate.metadata.*;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
@@ -70,7 +71,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     @Before
     public void prepare() throws Exception {
         mockedAnalysisMetaData = mock(AnalysisMetaData.class);
-        emptyParameterContext = new ParameterContext(new Object[0], new Object[0][], null);
+        emptyParameterContext = ParameterContext.EMPTY;
         dummySources = ImmutableMap.of(new QualifiedName("foo"), (AnalyzedRelation) new DummyRelation());
         context = new ExpressionAnalysisContext(new StmtCtx());
 
@@ -111,7 +112,8 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     public void testQuotedSubscriptExpression() throws Exception {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 mockedAnalysisMetaData,
-                new ParameterContext(new Object[0], new Object[0][], null, EnumSet.of(SQLOperations.Option.ALLOW_QUOTED_SUBSCRIPT)),
+                new ParameterContext(Row.EMPTY, Collections.<Row>emptyList(),
+                    null, EnumSet.of(SQLOperations.Option.ALLOW_QUOTED_SUBSCRIPT)),
                 new FullQualifedNameFieldProvider(dummySources),
                 null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(new StmtCtx());

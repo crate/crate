@@ -311,7 +311,7 @@ public class ExpressionAnalyzer {
             Symbol expression = process(node.getExpression(), context);
             expression = castIfNeededOrFail(expression, DataTypes.TIMESTAMP);
             return context.allocateFunction(
-                    ExtractFunctions.functionInfo(node.getField(parameterContext.parameters())),
+                    ExtractFunctions.functionInfo(node.getField(parameterContext.parameters().materialize())),
                     Arrays.asList(expression));
         }
 

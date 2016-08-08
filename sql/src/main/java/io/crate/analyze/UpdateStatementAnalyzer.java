@@ -111,8 +111,8 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.statementContext());
 
         int numNested = 1;
-        if (analysis.parameterContext().bulkParameters.length > 0) {
-            numNested = analysis.parameterContext().bulkParameters.length;
+        if (analysis.parameterContext().numBulkParams() > 0) {
+            numNested = analysis.parameterContext().numBulkParams();
         }
 
         WhereClauseAnalyzer whereClauseAnalyzer = null;

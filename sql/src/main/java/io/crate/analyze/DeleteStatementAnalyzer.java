@@ -115,7 +115,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         );
 
         if (analysis.parameterContext().hasBulkParams()) {
-            numNested = analysis.parameterContext().bulkParameters.length;
+            numNested = analysis.parameterContext().numBulkParams();
         }
         for (int i = 0; i < numNested; i++) {
             analysis.parameterContext().setBulkIdx(i);

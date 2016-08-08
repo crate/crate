@@ -27,6 +27,8 @@ import io.crate.analyze.Analyzer;
 import io.crate.analyze.BaseAnalyzerTest;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.repositories.RepositorySettingsModule;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.Rows;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.*;
@@ -276,7 +278,7 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
     protected <T extends Plan> T plan(String statement, int maxRows, int softLimit) {
         //noinspection unchecked: for testing this is fine
         return (T) planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-            new ParameterContext(new Object[0], new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)),
+            new ParameterContext(Row.EMPTY, Collections.<Row>emptyList(), Schemas.DEFAULT_SCHEMA_NAME)),
             UUID.randomUUID(), softLimit, maxRows);
     }
 
@@ -286,6 +288,6 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
 
     protected Plan plan(String statement, Object[][] bulkArgs) {
         return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-            new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID(), 0, 0);
+            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs), Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID(), 0, 0);
     }
 }

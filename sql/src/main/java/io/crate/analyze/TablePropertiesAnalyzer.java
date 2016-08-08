@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.core.collections.Row;
 import io.crate.metadata.settings.CrateTableSettings;
 import io.crate.metadata.settings.SettingsApplier;
 import io.crate.metadata.settings.SettingsAppliers;
@@ -120,14 +121,14 @@ public class TablePropertiesAnalyzer {
     public void analyze(TableParameter tableParameter,
                         TableParameterInfo tableParameterInfo,
                         Optional<GenericProperties> properties,
-                        Object[] parameters) {
+                        Row parameters) {
         analyze(tableParameter, tableParameterInfo, properties, parameters, false);
     }
 
     public void analyze(TableParameter tableParameter,
                         TableParameterInfo tableParameterInfo,
                         Optional<GenericProperties> properties,
-                        Object[] parameters,
+                        Row parameters,
                         boolean withDefaults) {
         if (withDefaults) {
             SettingsApplier settingsApplier = SETTINGS_APPLIER.get(TableParameterInfo.NUMBER_OF_REPLICAS);
@@ -207,7 +208,7 @@ public class TablePropertiesAnalyzer {
 
         @Override
         public void apply(Settings.Builder settingsBuilder,
-                          Object[] parameters,
+                          Row parameters,
                           Expression expression) {
             Preconditions.checkArgument(!(expression instanceof ArrayLiteral),
                     String.format(Locale.ENGLISH, "array literal not allowed for \"%s\"", ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.NUMBER_OF_REPLICAS)));
@@ -248,7 +249,7 @@ public class TablePropertiesAnalyzer {
 
         @Override
         public void apply(Settings.Builder settingsBuilder,
-                          Object[] parameters,
+                          Row parameters,
                           Expression expression) {
             Number refreshIntervalValue;
             try {
@@ -290,7 +291,7 @@ public class TablePropertiesAnalyzer {
 
         @SuppressWarnings("SuspiciousMethodCalls")
         @Override
-        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression) {
             Object shardsRecoverySettings;
             try {
                 shardsRecoverySettings = ExpressionToNumberVisitor.convert(expression, parameters).intValue();
@@ -315,7 +316,7 @@ public class TablePropertiesAnalyzer {
 
         @Override
         public void apply(Settings.Builder settingsBuilder,
-                          Object[] parameters,
+                          Row parameters,
                           Expression expression) {
             int numberOfShardsValue = 0;
             try {
@@ -349,7 +350,7 @@ public class TablePropertiesAnalyzer {
 
         @Override
         public void apply(Settings.Builder settingsBuilder,
-                          Object[] parameters,
+                          Row parameters,
                           Expression expression) {
             String blobPath;
             try {
@@ -376,7 +377,7 @@ public class TablePropertiesAnalyzer {
 
         @Override
         public void apply(Map<String, Object> mappings,
-                          Object[] parameters,
+                          Row parameters,
                           Expression expression) {
             ColumnPolicy policy;
             try {

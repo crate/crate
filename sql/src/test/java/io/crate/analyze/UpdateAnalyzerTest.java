@@ -24,6 +24,9 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.*;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.RowN;
+import io.crate.core.collections.Rows;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -146,12 +149,12 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[] params) {
         return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(params, new Object[0][], Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+                new ParameterContext(new RowN(params), Collections.<Row>emptyList(), Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
     }
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
         return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+                new ParameterContext(Row.EMPTY, Rows.of(bulkArgs), Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
     }
 
     @Test

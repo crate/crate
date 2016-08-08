@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.core.collections.Row;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
@@ -65,7 +66,7 @@ public class PartitionPropertiesAnalyzerTest extends BaseAnalyzerTest {
                 Arrays.asList(new Assignment(
                         new QualifiedNameReference(new QualifiedName("name")),
                         new StringLiteral("foo"))),
-                new Object[0]);
+                Row.EMPTY);
         assertThat(partitionName.asIndexName(), is(".partitioned.users.0426crrf"));
     }
 }

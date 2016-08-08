@@ -20,16 +20,26 @@
  * agreement.
  */
 
-package io.crate.metadata.settings;
+package io.crate.core.collections;
 
-import io.crate.core.collections.Row;
-import io.crate.sql.tree.Expression;
-import org.elasticsearch.common.settings.Settings;
+import java.util.ArrayList;
+import java.util.List;
 
-public interface SettingsApplier {
-    void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression);
+public class Rows {
 
-    void applyValue(Settings.Builder settingsBuilder, Object value);
+    public static List<Row> of(Object[][] rows) {
+        List<Row> rowList = new ArrayList<>(rows.length);
+        for (Object[] row : rows) {
+            rowList.add(new RowN(row));
+        }
+        return rowList;
+    }
 
-    Settings getDefault();
+    public static List<Row> of(List<List<Object>> rows) {
+        List<Row> rowList = new ArrayList<>(rows.size());
+        for (List<Object> row : rows) {
+            rowList.add(new RowN(row.toArray(new Object[0])));
+        }
+        return rowList;
+    }
 }

@@ -25,6 +25,7 @@ package io.crate.metadata.settings;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import io.crate.analyze.expressions.*;
+import io.crate.core.collections.Row;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.types.BooleanType;
@@ -99,7 +100,7 @@ public class SettingsAppliers {
         }
 
         @Override
-        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression) {
             try {
                 applyValue(settingsBuilder, ExpressionToNumberVisitor.convert(expression, parameters));
             } catch (IllegalArgumentException e) {
@@ -117,7 +118,7 @@ public class SettingsAppliers {
         }
 
         @Override
-        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression) {
             try {
                 applyValue(settingsBuilder, ExpressionToMemoryValueVisitor.convert(expression, parameters, name));
             } catch (IllegalArgumentException e) {
@@ -150,7 +151,7 @@ public class SettingsAppliers {
         }
 
         @Override
-        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression) {
             Object value = null;
             try {
                 value = ExpressionToObjectVisitor.convert(expression, parameters);
@@ -179,7 +180,7 @@ public class SettingsAppliers {
         }
 
         @Override
-        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression) {
             try {
                 applyValue(settingsBuilder, ExpressionToObjectVisitor.convert(expression, parameters));
             } catch (IllegalArgumentException e) {
@@ -265,7 +266,7 @@ public class SettingsAppliers {
         }
 
         @Override
-        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression) {
             ByteSizeValue byteSizeValue;
             try {
                 byteSizeValue = ExpressionToByteSizeValueVisitor.convert(expression, parameters);
@@ -326,7 +327,7 @@ public class SettingsAppliers {
         }
 
         @Override
-        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression) {
             if (expression instanceof ObjectLiteral) {
                 throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, "Object values are not allowed at '%s'", name));
@@ -353,7 +354,7 @@ public class SettingsAppliers {
         }
 
         @Override
-        public void apply(Settings.Builder settingsBuilder, Object[] parameters, Expression expression) {
+        public void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression) {
             TimeValue time;
             try {
                 time = ExpressionToTimeValueVisitor.convert(expression, parameters, name);

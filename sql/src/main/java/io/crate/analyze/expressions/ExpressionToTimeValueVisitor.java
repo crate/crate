@@ -21,6 +21,7 @@
 
 package io.crate.analyze.expressions;
 
+import io.crate.core.collections.Row;
 import io.crate.sql.tree.*;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.unit.TimeValue;
@@ -34,15 +35,15 @@ public class ExpressionToTimeValueVisitor {
 
     private ExpressionToTimeValueVisitor() {}
 
-    public static TimeValue convert(Node node, Object[] parameters, String settingName) {
+    public static TimeValue convert(Node node, Row parameters, String settingName) {
         return VISITOR.process(node, new Context(settingName, parameters));
     }
 
     private static class Context {
         final String settingName;
-        final Object[] params;
+        final Row params;
 
-        public Context(String settingName, Object[] params) {
+        public Context(String settingName, Row params) {
             this.settingName = settingName;
             this.params = params;
         }
@@ -73,7 +74,7 @@ public class ExpressionToTimeValueVisitor {
         @Override
         public TimeValue visitParameterExpression(ParameterExpression node, Context context) {
             TimeValue timeValue;
-            Object param = context.params[node.index()];
+            Object param = context.params.get(node.index());
             if (param instanceof Number) {
                 timeValue = new TimeValue(((Number) param).longValue());
             } else if (param instanceof String) {

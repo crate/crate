@@ -30,6 +30,8 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.concurrent.CompletionListener;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.Rows;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.executor.Executor;
@@ -48,7 +50,7 @@ import java.util.UUID;
 
 class BulkPortal extends AbstractPortal {
 
-    private final List<List<Object>> bulkParams = new ArrayList<>();
+    private final List<List<Object>> bulkArgs = new ArrayList<>();
     private final List<ResultReceiver> resultReceivers = new ArrayList<>();
     private String query;
     private Statement statement;
@@ -69,7 +71,7 @@ class BulkPortal extends AbstractPortal {
         this.outputTypes = outputTypes;
         this.resultReceivers.add(resultReceiver);
         this.maxRows = maxRows;
-        this.bulkParams.add(params);
+        this.bulkArgs.add(params);
     }
 
     @Override
@@ -93,7 +95,7 @@ class BulkPortal extends AbstractPortal {
                        Statement statement,
                        List<Object> params,
                        @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
-        this.bulkParams.add(params);
+        this.bulkArgs.add(params);
         return this;
     }
 
@@ -113,10 +115,11 @@ class BulkPortal extends AbstractPortal {
 
     @Override
     public void sync(Planner planner, StatsTables statsTables, CompletionListener listener) {
-        Object[][] bulkArgs = toBulkArgs(bulkParams);
+        List<Row> bulkParams = Rows.of(bulkArgs);
         Analysis analysis = sessionData.getAnalyzer().analyze(statement,
-            new ParameterContext(new Object[0],
-                bulkArgs,
+            new ParameterContext(
+                Row.EMPTY,
+                bulkParams,
                 sessionData.getDefaultSchema(),
                 sessionData.options()));
         UUID jobId = UUID.randomUUID();
@@ -158,13 +161,5 @@ class BulkPortal extends AbstractPortal {
                 statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
             }
         });
-    }
-
-    private static Object[][] toBulkArgs(List<List<Object>> bulkParams) {
-        Object[][] bulkArgs = new Object[bulkParams.size()][];
-        for (int i = 0; i < bulkArgs.length; i++) {
-            bulkArgs[i] = bulkParams.get(i).toArray(new Object[0]);
-        }
-        return bulkArgs;
     }
 }

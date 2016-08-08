@@ -24,6 +24,9 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.repositories.RepositorySettingsModule;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.RowN;
+import io.crate.core.collections.Rows;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
@@ -43,10 +46,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.newMockedThreadPool;
@@ -228,12 +228,12 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
 
     protected Analysis analysis(String statement, Object[][] bulkArgs) {
         return analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], bulkArgs, Schemas.DEFAULT_SCHEMA_NAME));
+                new ParameterContext(Row.EMPTY, Rows.of(bulkArgs), Schemas.DEFAULT_SCHEMA_NAME));
     }
 
     protected Analysis analysis(String statement, Object [] params) {
         return analyzer.analyze(SqlParser.createStatement(statement),
-                new ParameterContext(params, new Object[0][], Schemas.DEFAULT_SCHEMA_NAME));
+                new ParameterContext(new RowN(params), Collections.<Row>emptyList(), Schemas.DEFAULT_SCHEMA_NAME));
     }
 
     protected List<Module> getModules() {

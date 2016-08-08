@@ -21,25 +21,26 @@
 
 package io.crate.analyze.expressions;
 
+import io.crate.core.collections.Row;
 import io.crate.sql.tree.*;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
 import java.util.Locale;
 
-public class ExpressionToByteSizeValueVisitor extends AstVisitor<ByteSizeValue, Object[]> {
+public class ExpressionToByteSizeValueVisitor extends AstVisitor<ByteSizeValue, Row> {
 
     public static final ByteSizeValue DEFAULT_VALUE = new ByteSizeValue(0);
     private static final ExpressionToByteSizeValueVisitor INSTANCE = new ExpressionToByteSizeValueVisitor();
 
     private ExpressionToByteSizeValueVisitor() {}
 
-    public static ByteSizeValue convert(Node node, Object[] parameters) {
+    public static ByteSizeValue convert(Node node, Row parameters) {
         return INSTANCE.process(node, parameters);
     }
 
     @Override
-    protected ByteSizeValue visitStringLiteral(StringLiteral node, Object[] context) {
+    protected ByteSizeValue visitStringLiteral(StringLiteral node, Row context) {
         try {
             return ByteSizeValue.parseBytesSizeValue(node.getValue(), DEFAULT_VALUE.toString());
         } catch (ElasticsearchParseException e) {
@@ -49,19 +50,19 @@ public class ExpressionToByteSizeValueVisitor extends AstVisitor<ByteSizeValue, 
     }
 
     @Override
-    protected ByteSizeValue visitLongLiteral(LongLiteral node, Object[] context) {
+    protected ByteSizeValue visitLongLiteral(LongLiteral node, Row context) {
         return new ByteSizeValue(node.getValue());
     }
 
     @Override
-    protected ByteSizeValue visitDoubleLiteral(DoubleLiteral node, Object[] context) {
+    protected ByteSizeValue visitDoubleLiteral(DoubleLiteral node, Row context) {
         return new ByteSizeValue(((Double) node.getValue()).longValue());
     }
 
     @Override
-    public ByteSizeValue visitParameterExpression(ParameterExpression node, Object[] context) {
+    public ByteSizeValue visitParameterExpression(ParameterExpression node, Row context) {
         ByteSizeValue byteSizeValue;
-        Object param = context[node.index()];
+        Object param = context.get(node.index());
         if (param instanceof Number) {
             byteSizeValue = new ByteSizeValue(((Number) param).longValue());
         } else if (param instanceof String) {
@@ -79,7 +80,7 @@ public class ExpressionToByteSizeValueVisitor extends AstVisitor<ByteSizeValue, 
     }
 
     @Override
-    protected ByteSizeValue visitNode(Node node, Object[] context) {
+    protected ByteSizeValue visitNode(Node node, Row context) {
         throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid byte size value %s", node));
     }
 

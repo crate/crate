@@ -22,63 +22,64 @@
 package io.crate.analyze.expressions;
 
 
+import io.crate.core.collections.Row;
 import io.crate.sql.tree.*;
 
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-public class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
+public class ExpressionToObjectVisitor extends AstVisitor<Object, Row> {
 
     private final static ExpressionToObjectVisitor INSTANCE = new ExpressionToObjectVisitor();
     private ExpressionToObjectVisitor() {}
 
-    public static Object convert(Node node, Object[] parameters) {
+    public static Object convert(Node node, Row parameters) {
         return INSTANCE.process(node, parameters);
     }
 
     @Override
-    protected String visitQualifiedNameReference(QualifiedNameReference node, Object[] parameters) {
+    protected String visitQualifiedNameReference(QualifiedNameReference node, Row parameters) {
         return node.getName().getSuffix();
     }
 
     @Override
-    protected Object visitBooleanLiteral(BooleanLiteral node, Object[] context) {
+    protected Object visitBooleanLiteral(BooleanLiteral node, Row context) {
         return node.getValue();
     }
 
     @Override
-    protected String visitStringLiteral(StringLiteral node, Object[] parameters) {
+    protected String visitStringLiteral(StringLiteral node, Row parameters) {
         return node.getValue();
     }
 
     @Override
-    public Object visitParameterExpression(ParameterExpression node, Object[] parameters) {
-        return parameters[node.index()];
+    public Object visitParameterExpression(ParameterExpression node, Row parameters) {
+        return parameters.get(node.index());
     }
 
     @Override
-    protected Object visitLongLiteral(LongLiteral node, Object[] context) {
+    protected Object visitLongLiteral(LongLiteral node, Row context) {
         return node.getValue();
     }
 
     @Override
-    protected Object visitDoubleLiteral(DoubleLiteral node, Object[] context) {
+    protected Object visitDoubleLiteral(DoubleLiteral node, Row context) {
         return node.getValue();
     }
 
     @Override
-    protected Object visitNullLiteral(NullLiteral node, Object[] context) {
+    protected Object visitNullLiteral(NullLiteral node, Row context) {
         return null;
     }
 
     @Override
-    protected String visitSubscriptExpression(SubscriptExpression node, Object[] context) {
+    protected String visitSubscriptExpression(SubscriptExpression node, Row context) {
         return String.format(Locale.ENGLISH, "%s.%s", process(node.name(), context), process(node.index(), context));
     }
 
     @Override
-    public Object[] visitArrayLiteral(ArrayLiteral node, Object[] context) {
+    public Object[] visitArrayLiteral(ArrayLiteral node, Row context) {
         Object[] array = new Object[node.values().size()];
         for (int i = 0; i< node.values().size(); i++) {
             array[i] = node.values().get(i).accept(this, context);
@@ -87,7 +88,7 @@ public class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
     }
 
     @Override
-    public Map<String, Object> visitObjectLiteral(ObjectLiteral node, Object[] context) {
+    public Map<String, Object> visitObjectLiteral(ObjectLiteral node, Row context) {
         Map<String, Object> object = new HashMap<>();
         for (Map.Entry<String, Expression> entry : node.values().entries()) {
             if (object.put(entry.getKey(), entry.getValue().accept(this, context)) != null) {
@@ -102,7 +103,7 @@ public class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
     }
 
     @Override
-    protected Object visitNegativeExpression(NegativeExpression node, Object[] context) {
+    protected Object visitNegativeExpression(NegativeExpression node, Row context) {
         Object o = process(node.getValue(), context);
         if (o instanceof Long) {
             return -1L * (Long)o;
@@ -115,7 +116,7 @@ public class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
     }
 
     @Override
-    protected Object visitNode(Node node, Object[] context) {
+    protected Object visitNode(Node node, Row context) {
         throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle %s.", node));
     }
 }

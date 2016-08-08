@@ -140,7 +140,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     public <T> T plan(String statement) {
         Analysis analysis = analyzer.analyze(
                 SqlParser.createStatement(statement),
-                new ParameterContext(new Object[0], new Object[0][], null));
+                ParameterContext.EMPTY);
         //noinspection unchecked
         return (T) planner.plan(analysis, UUID.randomUUID(), 0, 0);
     }
