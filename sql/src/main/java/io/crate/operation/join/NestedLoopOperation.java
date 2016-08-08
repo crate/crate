@@ -113,9 +113,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
     private volatile Throwable upstreamFailure;
     private volatile boolean stop = false;
 
-    private Row outerNullRow;
-    private Row innerNullRow;
-
     @Override
     public void addListener(CompletionListener listener) {
         Futures.addCallback(completionFuture, listener);
@@ -126,18 +123,14 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
     public NestedLoopOperation(int phaseId,
                                RowReceiver rowReceiver,
                                Predicate<Row> rowFilterPredicate,
-                               JoinType joinType) {
+                               JoinType joinType,
+                               int rightNumOutputs) {
         this.phaseId = phaseId;
         this.downstream = rowReceiver;
         this.rowFilterPredicate = rowFilterPredicate;
         this.joinType = joinType;
         left = new LeftRowReceiver();
-        right = new RightRowReceiver();
-    }
-
-    @VisibleForTesting
-    NestedLoopOperation(int phaseId, RowReceiver rowReceiver) {
-        this(phaseId, rowReceiver, Predicates.<Row>alwaysTrue(), JoinType.INNER);
+        right = new RightRowReceiver(rightNumOutputs);
     }
 
     public ListenableRowReceiver leftRowReceiver() {
@@ -159,6 +152,11 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         volatile Row outerRow;
         volatile Row innerRow;
+        Row innerNullRow;
+
+        CombinedRow(int innerOutputSize) {
+            innerNullRow = new RowNull(innerOutputSize);
+        }
 
         @Override
         public int size() {
@@ -339,7 +337,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
     private class RightRowReceiver extends AbstractRowReceiver {
 
-        private final CombinedRow combinedRow = new CombinedRow();
+        private final CombinedRow combinedRow;
         private final Set<Requirement> requirements;
 
         Row lastRow = null;
@@ -347,8 +345,9 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         private boolean pauseFromDownstream = false;
         private boolean matched = false;
 
-        RightRowReceiver() {
+        RightRowReceiver(int numOutputs) {
             requirements = Requirements.add(downstream.requirements(), Requirement.REPEAT);
+            combinedRow = new CombinedRow(numOutputs);
         }
 
         @Override
@@ -411,17 +410,14 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         @Override
         public void finish(final RepeatHandle repeatHandle) {
-            if (joinType == JoinType.LEFT && !matched) {
+            if (joinType == JoinType.LEFT && !matched && left.lastRow != null) {
                 // emit row with right one nulled
-                if (innerNullRow == null) {
-                    assert combinedRow.innerRow != null : "inner row must be set before initializing inner null row";
-                    innerNullRow = new RowNull(combinedRow.innerRow.size());
-                }
-                combinedRow.innerRow = innerNullRow;
+                combinedRow.outerRow = left.lastRow;
+                combinedRow.innerRow = combinedRow.innerNullRow;
                 emitRowAndTrace(combinedRow);
-                // reset
-                matched = true;
             }
+            // reset matched
+            matched = false;
 
             LOGGER.trace("phase={} side=right method=finish firstCall={}", phaseId, firstCall);
 
