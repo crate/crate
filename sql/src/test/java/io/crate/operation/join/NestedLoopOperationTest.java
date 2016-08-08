@@ -23,6 +23,8 @@ package io.crate.operation.join;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.*;
@@ -36,6 +38,7 @@ import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.SimpleTopNProjector;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.RowCollectionBucket;
@@ -44,6 +47,7 @@ import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.util.CollectionUtils;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -58,8 +62,15 @@ import static org.hamcrest.core.Is.is;
 public class NestedLoopOperationTest extends CrateUnitTest {
 
     private Bucket executeNestedLoop(List<Row> leftRows, List<Row> rightRows) throws Exception {
+        return executeNestedLoop(leftRows, rightRows, Predicates.<Row>alwaysTrue(), JoinType.INNER);
+    }
+
+    private Bucket executeNestedLoop(List<Row> leftRows,
+                                     List<Row> rightRows,
+                                     Predicate<Row> filterPredicate,
+                                     JoinType joinType) throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        final NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(0, rowReceiver);
+        final NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(0, rowReceiver, filterPredicate, joinType);
 
         PageDownstream leftPageDownstream = pageDownstream(nestedLoopOperation.leftRowReceiver());
         PageDownstream rightPageDownstream = pageDownstream(nestedLoopOperation.rightRowReceiver());
@@ -307,6 +318,26 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         // join is used to make sure the are no "lingering thread" warnings from randomized-test
         t.join(5000);
     }
+
+    @Test
+    public void testNestedLoopOperationWithLeftOuterJoin() throws Exception {
+        List<Row> leftRows = asRows(1, 2, 3);
+        List<Row> rightRows = asRows(2, 3, 4);
+
+        Predicate<Row> rowFilterPredicate = new Predicate<Row>() {
+            @Override
+            public boolean apply(@Nullable Row input) {
+                return input.get(0) == input.get(1);
+            }
+        };
+        Bucket rows = executeNestedLoop(leftRows, rightRows, rowFilterPredicate, JoinType.LEFT);
+
+        assertThat(TestingHelpers.printedTable(rows), is(
+                                                         "1| NULL\n" +
+                                                         "2| 2\n" +
+                                                         "3| 3\n"));
+    }
+
 
     private static List<ListenableRowReceiver> getRandomLeftAndRightRowReceivers(CollectingRowReceiver receiver) {
         NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(0, receiver);

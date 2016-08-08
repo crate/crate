@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -66,6 +67,7 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
             mp1,
             mp2,
             Sets.newHashSet("node1", "node2"),
+            JoinType.INNER,
             filterCondition
             );
 
@@ -81,5 +83,6 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
         assertThat(node.name(), is(node2.name()));
         assertThat(node.outputTypes(), is(node2.outputTypes()));
         assertThat(node.filterSymbol(), is(node2.filterSymbol()));
+        assertThat(node.joinType(), is(node2.joinType()));
     }
 }

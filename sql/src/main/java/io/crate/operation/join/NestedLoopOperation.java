@@ -33,7 +33,9 @@ import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionState;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
+import io.crate.core.collections.RowNull;
 import io.crate.operation.projectors.*;
+import io.crate.planner.node.dql.join.JoinType;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -106,9 +108,13 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
     private final int phaseId;
     private final RowReceiver downstream;
     private final Predicate<Row> rowFilterPredicate;
+    private final JoinType joinType;
 
     private volatile Throwable upstreamFailure;
     private volatile boolean stop = false;
+
+    private Row outerNullRow;
+    private Row innerNullRow;
 
     @Override
     public void addListener(CompletionListener listener) {
@@ -117,17 +123,21 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
     private final AtomicBoolean leadAcquired = new AtomicBoolean(false);
 
-    public NestedLoopOperation(int phaseId, RowReceiver rowReceiver, Predicate<Row> rowFilterPredicate) {
+    public NestedLoopOperation(int phaseId,
+                               RowReceiver rowReceiver,
+                               Predicate<Row> rowFilterPredicate,
+                               JoinType joinType) {
         this.phaseId = phaseId;
         this.downstream = rowReceiver;
         this.rowFilterPredicate = rowFilterPredicate;
+        this.joinType = joinType;
         left = new LeftRowReceiver();
         right = new RightRowReceiver();
     }
 
     @VisibleForTesting
     NestedLoopOperation(int phaseId, RowReceiver rowReceiver) {
-        this(phaseId, rowReceiver, Predicates.<Row>alwaysTrue());
+        this(phaseId, rowReceiver, Predicates.<Row>alwaysTrue(), JoinType.INNER);
     }
 
     public ListenableRowReceiver leftRowReceiver() {
@@ -335,7 +345,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         Row lastRow = null;
         boolean firstCall = true;
         private boolean pauseFromDownstream = false;
-
+        private boolean matched = false;
 
         RightRowReceiver() {
             requirements = Requirements.add(downstream.requirements(), Requirement.REPEAT);
@@ -382,19 +392,37 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             if (!rowFilterPredicate.apply(combinedRow)) {
                 return Result.CONTINUE;
             }
+            matched = true;
 
-            Result result = downstream.setNextRow(combinedRow);
-            if (LOGGER.isTraceEnabled() && result != Result.CONTINUE) {
-                LOGGER.trace("phase={} side=right method=emitRow result={}", phaseId, result);
-            }
+            Result result = emitRowAndTrace(combinedRow);
             if (result == Result.PAUSE) {
                 pauseFromDownstream = true;
             }
             return result;
         }
 
+        private RowReceiver.Result emitRowAndTrace(Row row) {
+            RowReceiver.Result result = downstream.setNextRow(row);
+            if (LOGGER.isTraceEnabled() && result != Result.CONTINUE) {
+                LOGGER.trace("phase={} side=right method=emitRow result={}", phaseId, result);
+            }
+            return result;
+        }
+
         @Override
         public void finish(final RepeatHandle repeatHandle) {
+            if (joinType == JoinType.LEFT && !matched) {
+                // emit row with right one nulled
+                if (innerNullRow == null) {
+                    assert combinedRow.innerRow != null : "inner row must be set before initializing inner null row";
+                    innerNullRow = new RowNull(combinedRow.innerRow.size());
+                }
+                combinedRow.innerRow = innerNullRow;
+                emitRowAndTrace(combinedRow);
+                // reset
+                matched = true;
+            }
+
             LOGGER.trace("phase={} side=right method=finish firstCall={}", phaseId, firstCall);
 
             upstreamFinished = true;
