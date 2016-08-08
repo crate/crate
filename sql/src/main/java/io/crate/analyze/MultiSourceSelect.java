@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.*;
@@ -37,16 +38,18 @@ public class MultiSourceSelect implements QueriedRelation {
     private final HashMap<QualifiedName, Source> sources;
     private final QuerySpec querySpec;
     private final Fields fields;
+    private final List<JoinPair> joinPairs;
     private QualifiedName qualifiedName;
 
-    public MultiSourceSelect(
-            Map<QualifiedName, AnalyzedRelation> sources,
-            Collection<? extends Path> outputNames,
-            QuerySpec querySpec) {
+    public MultiSourceSelect(Map<QualifiedName, AnalyzedRelation> sources,
+                             Collection<? extends Path> outputNames,
+                             QuerySpec querySpec,
+                             List<JoinPair> joinPairs) {
         assert sources.size() > 1 : "MultiSourceSelect requires at least 2 relations";
         this.splitter = new RelationSplitter(querySpec, sources.values());
         this.sources = initializeSources(sources);
         this.querySpec = querySpec;
+        this.joinPairs = joinPairs;
         assert outputNames.size() == querySpec.outputs().size() : "size of outputNames and outputSymbols must match";
         fields = new Fields(outputNames.size());
         Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
@@ -65,6 +68,34 @@ public class MultiSourceSelect implements QueriedRelation {
 
     public Map<QualifiedName, Source> sources() {
         return sources;
+    }
+
+    public JoinType joinTypeForRelations(QualifiedName left, QualifiedName right) {
+        for (JoinPair joinPair : joinPairs) {
+            if (joinPair.equalsNames(left, right)) {
+                return joinPair.joinType();
+            }
+        }
+        // check if relations were switched due to some optimization
+        for (JoinPair joinPair : joinPairs) {
+            if (joinPair.equalsNames(right, left)) {
+                return joinPair.joinType().invert();
+            }
+        }
+
+        // default to cross join (or inner, doesn't matter)
+        return JoinType.CROSS;
+    }
+
+    public void rewriteNamesOfJoinPairs(QualifiedName left, QualifiedName right, QualifiedName newName) {
+        for (JoinPair joinPair : joinPairs) {
+            joinPair.replaceNames(left, right, newName);
+        }
+
+    }
+
+    public List<JoinPair> joinPairs() {
+        return joinPairs;
     }
 
     @Override

@@ -29,6 +29,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.StmtCtx;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
@@ -46,8 +47,12 @@ public class RelationAnalysisContext {
 
     private ExpressionAnalyzer expressionAnalyzer;
     private FieldProvider fieldProvider;
+
     @Nullable
     private List<Symbol> joinConditions;
+
+    @Nullable
+    private List<JoinPair> joinPairs;
 
     RelationAnalysisContext(ParameterContext parameterContext,
                             StmtCtx stmtCtx,
@@ -59,7 +64,7 @@ public class RelationAnalysisContext {
         expressionAnalysisContext = new ExpressionAnalysisContext(stmtCtx);
     }
 
-    public boolean isAliasedRelation() {
+    boolean isAliasedRelation() {
         return aliasedRelation;
     }
 
@@ -79,6 +84,39 @@ public class RelationAnalysisContext {
             joinConditions = new ArrayList<>();
         }
         joinConditions.add(symbol);
+    }
+
+    private void addJoinPair(JoinPair joinType) {
+        if (joinPairs == null) {
+            joinPairs = new ArrayList<>();
+        }
+        joinPairs.add(joinType);
+    }
+
+    void addJoinType(JoinType joinType) {
+        int size = sources.size();
+        assert size >= 2 : "sources must be added first, cannot add join type for only 1 source";
+        Iterator<QualifiedName> it = sources.keySet().iterator();
+        QualifiedName left = null;
+        QualifiedName right = null;
+        int idx = 0;
+        while (it.hasNext()) {
+            QualifiedName sourceName = it.next();
+            if (idx == size - 2) {
+                left = sourceName;
+            } else if (idx == size - 1) {
+                right = sourceName;
+            }
+            idx++;
+        }
+        addJoinPair(new JoinPair(left, right, joinType));
+    }
+
+    List<JoinPair> joinPairs() {
+        if (joinPairs == null) {
+            return ImmutableList.of();
+        }
+        return joinPairs;
     }
 
     private void addSourceRelation(QualifiedName qualifiedName, AnalyzedRelation relation) {
