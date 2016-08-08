@@ -37,6 +37,7 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.Projection;
@@ -249,6 +250,7 @@ public class NestedLoopConsumer implements Consumer {
                 leftMerge,
                 rightMerge,
                 nlExecutionNodes,
+                JoinType.INNER,
                 filterSymbol
             );
             MergePhase localMergePhase = null;
