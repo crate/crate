@@ -753,8 +753,11 @@ public class TestStatementBuilder {
         printStatement("select * from foo inner join bar on foo.id = bar.id");
 
         printStatement("select * from foo left outer join bar on foo.id = bar.id");
+        printStatement("select * from foo left join bar on foo.id = bar.id");
         printStatement("select * from foo right outer join bar on foo.id = bar.id");
+        printStatement("select * from foo right join bar on foo.id = bar.id");
         printStatement("select * from foo full outer join bar on foo.id = bar.id");
+        printStatement("select * from foo full join bar on foo.id = bar.id");
     }
 
     private static void printStatement(String sql)
