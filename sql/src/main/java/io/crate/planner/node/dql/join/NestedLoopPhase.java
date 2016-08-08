@@ -55,6 +55,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
     private MergePhase leftMergePhase;
     private MergePhase rightMergePhase;
     private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
+    private JoinType joinType;
     @Nullable
     private Symbol filterSymbol;
 
@@ -67,6 +68,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
                            @Nullable MergePhase leftMergePhase,
                            @Nullable MergePhase rightMergePhase,
                            Collection<String> executionNodes,
+                           JoinType joinType,
                            @Nullable Symbol filterSymbol) {
         super(jobId, executionNodeId, name, projections);
         Projection lastProjection = Iterables.getLast(projections, null);
@@ -75,6 +77,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
         this.leftMergePhase = leftMergePhase;
         this.rightMergePhase = rightMergePhase;
         this.executionNodes = executionNodes;
+        this.joinType = joinType;
         this.filterSymbol = filterSymbol;
     }
 
@@ -107,6 +110,10 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
         return filterSymbol;
     }
 
+    public JoinType joinType() {
+        return joinType;
+    }
+
     @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
         return visitor.visitNestedLoopPhase(this, context);
@@ -137,6 +144,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
         if (in.readBoolean()) {
             filterSymbol = Symbols.fromStream(in);
         }
+        joinType = JoinType.values()[in.readVInt()];
     }
 
     @Override
@@ -173,6 +181,8 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
             out.writeBoolean(true);
             Symbols.toStream(filterSymbol, out);
         }
+
+        out.writeVInt(joinType.ordinal());
     }
 
     @Override
