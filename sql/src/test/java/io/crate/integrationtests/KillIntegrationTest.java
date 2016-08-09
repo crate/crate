@@ -102,9 +102,15 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
             if (killAll) {
                 execute("kill all");
             } else {
-                SQLResponse logResponse = execute("select * from sys.jobs where stmt = ?", new Object[]{statement});
-                String jobId = logResponse.rows()[0][0].toString();
-                execute("kill ?", new Object[]{jobId});
+                assertBusy(new Runnable() {
+                    @Override
+                    public void run() {
+                        SQLResponse logResponse = execute("select * from sys.jobs where stmt = ?", new Object[]{statement});
+                        assertThat(logResponse.rowCount(), greaterThan(0L));
+                        String jobId = logResponse.rows()[0][0].toString();
+                        execute("kill ?", new Object[]{jobId});
+                    }
+                });
             }
             executor.shutdown();
             executor.awaitTermination(5L, TimeUnit.SECONDS);
