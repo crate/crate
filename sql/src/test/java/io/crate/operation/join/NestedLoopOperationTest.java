@@ -357,6 +357,19 @@ public class NestedLoopOperationTest extends CrateUnitTest {
                                                          "NULL| 4\n"));
     }
 
+    @Test
+    public void testNestedLoopOperationWithFullOuterJoin() throws Exception {
+        List<Row> leftRows = asRows(3, 5, 6, 7);
+        List<Row> rightRows = asRows(1, 2, 3, 4, 5);
+        Bucket rows = executeNestedLoop(leftRows, rightRows, ROW_FILTER_PREDICATE, JoinType.FULL, 1, 1);
+        assertThat(TestingHelpers.printedTable(rows), is("3| 3\n" +
+                                                         "5| 5\n" +
+                                                         "6| NULL\n" +
+                                                         "7| NULL\n" +
+                                                         "NULL| 1\n" +
+                                                         "NULL| 2\n" +
+                                                         "NULL| 4\n"));
+    }
 
     private static List<ListenableRowReceiver> getRandomLeftAndRightRowReceivers(CollectingRowReceiver receiver) {
         NestedLoopOperation nestedLoopOperation = unfilteredNestedLoopOperation(0, receiver);

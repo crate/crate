@@ -24,8 +24,6 @@ package io.crate.operation.join;
 
 import org.apache.lucene.util.LongBitSet;
 
-import java.util.ArrayList;
-
 /**
  * This BitSet is used to mark matched rows between left and right in {@link NestedLoopOperation}
  *
@@ -37,8 +35,8 @@ import java.util.ArrayList;
  * each time size is reached.
  */
 class LuceneLongBitSetWrapper {
-    long size = 1024;
-    LongBitSet bitSet = new LongBitSet(size);
+    private long size = 1024;
+    private LongBitSet bitSet = new LongBitSet(size);
 
     void set(long idx) {
         if (idx >= size) {
