@@ -68,6 +68,29 @@ import java.util.concurrent.atomic.AtomicReference;
  *             RowReceiver
  * </pre>
  *
+ * In case of Right & Full (Outer) Join once the whole left-right loop is finished a last loop
+ * on the right is executed in order to emit rows from the right that weren't matched with rows
+ * from left:
+ * <pre>
+ *      for (leftRow in left) {
+ *          for (rightRow in right) {
+ *              if matched {
+ *                  markMatched(position)
+ *                  emitIfMatch
+ *              }
+ *          }
+ *      }
+ *
+ *      for (rightRow in right) {
+ *          if notMatched(position) {
+ *              emitWithLeftAsNull
+ *          }
+ *      }
+ *</pre>
+ * As a consequence of this algorithm the ordering of the emitted rows
+ * doesn't match the order of the rows as received from the upstreams.
+ *
+ *
  * Implementation details:
  *
  * Both upstreams start concurrently. {@link #leadAcquired} is used to pause the first upstream and at then point
@@ -122,13 +145,18 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                                RowReceiver rowReceiver,
                                Predicate<Row> rowFilterPredicate,
                                JoinType joinType,
+                               int leftNumOutputs,
                                int rightNumOutputs) {
         this.phaseId = phaseId;
         this.downstream = rowReceiver;
         this.rowFilterPredicate = rowFilterPredicate;
         this.joinType = joinType;
         left = new LeftRowReceiver();
-        right = new RightRowReceiver(rightNumOutputs);
+        if (JoinType.RIGHT == joinType) {
+            right = new RightJoinRightRowReceiver(leftNumOutputs, rightNumOutputs);
+        } else {
+            right = new RightRowReceiver(leftNumOutputs, rightNumOutputs);
+        }
     }
 
     public ListenableRowReceiver leftRowReceiver() {
@@ -150,9 +178,11 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         volatile Row outerRow;
         volatile Row innerRow;
+        Row outerNullRow;
         Row innerNullRow;
 
-        CombinedRow(int innerOutputSize) {
+        CombinedRow(int outerOutputSize, int innerOutputSize) {
+            outerNullRow = new RowNull(outerOutputSize);
             innerNullRow = new RowNull(innerOutputSize);
         }
 
@@ -202,6 +232,10 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                     phaseId, getClass().getSimpleName(), left.upstreamFinished, right.upstreamFinished);
             }
             if (!left.upstreamFinished || !right.upstreamFinished) {
+                return false;
+            }
+            if (JoinType.RIGHT == joinType && !right.emitRightJoin) {
+                right.emitRightJoin = true;
                 return false;
             }
             if (upstreamFailure == null) {
@@ -335,7 +369,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
     private void switchTo(AtomicReference<ResumeHandle> atomicResumeable) {
         ResumeHandle resumeHandle;
         int sleep = 10;
-        /**
+        /*
          * Usually this loop exits immediately.
          * There is only a race condition during the "start/lead-acquisition" where that's not the case:
          * E.g.
@@ -366,16 +400,17 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
     private class RightRowReceiver extends AbstractRowReceiver {
 
-        private final CombinedRow combinedRow;
+        final CombinedRow combinedRow;
         private final Set<Requirement> requirements;
 
         Row lastRow = null;
         private boolean suspendThread = false;
-        private boolean matched = false;
+        boolean matched = false;
+        boolean emitRightJoin = false;
 
-        RightRowReceiver(int numOutputs) {
+        RightRowReceiver(int leftNumOutputs, int rightNumOutputs) {
             requirements = Requirements.add(downstream.requirements(), Requirement.REPEAT);
-            combinedRow = new CombinedRow(numOutputs);
+            combinedRow = new CombinedRow(leftNumOutputs, rightNumOutputs);
         }
 
         @Override
@@ -413,21 +448,19 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             return emitRow(rightRow);
         }
 
-        private Result emitRow(Row row) {
+        protected Result emitRow(Row row) {
             combinedRow.outerRow = left.lastRow;
             combinedRow.innerRow = row;
 
-            // filter logic
+            // Check for matching rows
             if (!rowFilterPredicate.apply(combinedRow)) {
                 return Result.CONTINUE;
             }
             matched = true;
-
-            Result result = emitRowAndTrace(combinedRow);
-            return result;
+            return emitRowAndTrace(combinedRow);
         }
 
-        private RowReceiver.Result emitRowAndTrace(Row row) {
+        RowReceiver.Result emitRowAndTrace(Row row) {
             RowReceiver.Result result = downstream.setNextRow(row);
             if (LOGGER.isTraceEnabled() && result != Result.CONTINUE) {
                 LOGGER.trace("phase={} side=right method=emitRow result={}", phaseId, result);
@@ -437,7 +470,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         @Override
         public void finish(final RepeatHandle repeatHandle) {
-            if (joinType == JoinType.LEFT && !matched && left.lastRow != null) {
+            if (JoinType.LEFT == joinType && !matched && left.lastRow != null) {
                 // emit row with right one nulled
                 combinedRow.outerRow = left.lastRow;
                 combinedRow.innerRow = combinedRow.innerNullRow;
@@ -517,6 +550,52 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                 }
                 delegate.resume(async);
             }
+        }
+    }
+
+    private class RightJoinRightRowReceiver extends RightRowReceiver {
+
+        private final LuceneLongBitSetWrapper matchedRows = new LuceneLongBitSetWrapper();
+        private long rowPosition = -1;
+
+        RightJoinRightRowReceiver(int leftNumOutputs, int rightNumOutputs) {
+            super(leftNumOutputs, rightNumOutputs);
+        }
+
+        @Override
+        public Result setNextRow(final Row rightRow) {
+            if (!stop) {
+                rowPosition++;
+            }
+            return super.setNextRow(rightRow);
+        }
+
+        protected Result emitRow(Row row) {
+            if (emitRightJoin) {
+                if (!matchedRows.get(rowPosition)) {
+                    combinedRow.outerRow = combinedRow.outerNullRow;
+                    combinedRow.innerRow = row;
+                    return emitRowAndTrace(combinedRow);
+                }
+                return Result.CONTINUE;
+            } else {
+                combinedRow.outerRow = left.lastRow;
+                combinedRow.innerRow = row;
+
+                // Check if left & right rows match
+                if (!rowFilterPredicate.apply(combinedRow)) {
+                    return Result.CONTINUE;
+                }
+                matched = true;
+                matchedRows.set(rowPosition);
+                return emitRowAndTrace(combinedRow);
+            }
+        }
+
+        @Override
+        public void finish(final RepeatHandle repeatHandle) {
+            rowPosition = -1;
+            super.finish(repeatHandle);
         }
     }
 }

@@ -573,6 +573,7 @@ public class ContextPreparer extends AbstractComponent {
                 flatProjectorChain.firstProjector(),
                 rowFilter,
                 phase.joinType(),
+                phase.numLeftOutputs(),
                 phase.numRightOutputs());
             PageDownstreamContext left = pageDownstreamContextForNestedLoop(
                 phase.executionPhaseId(),
