@@ -28,49 +28,38 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class NodeStatsRequest extends TransportRequest {
 
-    private String nodeId;
-    private Set<ColumnIdent> columnIdents;
+    private Set<ColumnIdent> columns;
 
-    public NodeStatsRequest() {
-    }
+    public NodeStatsRequest() {}
 
-    public NodeStatsRequest(String nodeId, Set<ColumnIdent> columnIdents) {
-        this.nodeId = nodeId;
-        this.columnIdents = columnIdents;
-    }
-
-    public String nodeId() {
-        return nodeId;
+    public NodeStatsRequest(Set<ColumnIdent> columns) {
+        this.columns = columns;
     }
 
     public Set<ColumnIdent> columnIdents() {
-        return columnIdents;
+        return columns;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        nodeId = in.readString();
-        columnIdents = new HashSet<>();
+        columns = new HashSet<>();
         int columnIdentsSize = in.readVInt();
         for (int i = 0; i < columnIdentsSize; i++) {
-            columnIdents.add(ColumnIdent.fromStream(in));
+            columns.add(ColumnIdent.fromStream(in));
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(nodeId);
-        out.writeVInt(columnIdents.size());
-        for (ColumnIdent columnIdent : columnIdents) {
+        out.writeVInt(columns.size());
+        for (ColumnIdent columnIdent : columns) {
             columnIdent.writeTo(out);
         }
     }

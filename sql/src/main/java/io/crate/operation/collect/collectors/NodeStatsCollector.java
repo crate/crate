@@ -74,7 +74,7 @@ public class NodeStatsCollector implements CrateCollector {
         final List<NodeStatsContext> rows = Collections.synchronizedList(new ArrayList<NodeStatsContext>());
         for (final DiscoveryNode node : nodes) {
             Set<ColumnIdent> toCollect = topLevelColumnIdentVisitor.process(collectPhase.toCollect());
-            final NodeStatsRequest request = new NodeStatsRequest(node.id(), toCollect);
+            final NodeStatsRequest request = new NodeStatsRequest(toCollect);
 
             transportStatTablesAction.execute(node.id(), request, new ActionListener<NodeStatsResponse>() {
                 @Override
