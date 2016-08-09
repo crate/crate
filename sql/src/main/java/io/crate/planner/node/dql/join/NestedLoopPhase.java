@@ -58,6 +58,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
     private JoinType joinType;
     @Nullable
     private Symbol filterSymbol;
+    private int numLeftOutputs;
     private int numRightOutputs;
 
     public NestedLoopPhase() {}
@@ -71,6 +72,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
                            Collection<String> executionNodes,
                            JoinType joinType,
                            @Nullable Symbol filterSymbol,
+                           int numLeftOutputs,
                            int numRightOutputs) {
         super(jobId, executionNodeId, name, projections);
         Projection lastProjection = Iterables.getLast(projections, null);
@@ -81,6 +83,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
         this.executionNodes = executionNodes;
         this.joinType = joinType;
         this.filterSymbol = filterSymbol;
+        this.numLeftOutputs = numLeftOutputs;
         this.numRightOutputs = numRightOutputs;
     }
 
@@ -115,6 +118,10 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
 
     public JoinType joinType() {
         return joinType;
+    }
+
+    public int numLeftOutputs() {
+        return numLeftOutputs;
     }
 
     public int numRightOutputs() {
@@ -152,6 +159,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
             filterSymbol = Symbols.fromStream(in);
         }
         joinType = JoinType.values()[in.readVInt()];
+        numLeftOutputs = in.readVInt();
         numRightOutputs = in.readVInt();
     }
 
@@ -191,6 +199,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
         }
 
         out.writeVInt(joinType.ordinal());
+        out.writeVInt(numLeftOutputs);
         out.writeVInt(numRightOutputs);
     }
 
@@ -199,6 +208,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
         MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
                 .add("executionPhaseId", executionPhaseId())
                 .add("name", name())
+                .add("joinType", joinType)
                 .add("outputTypes", outputTypes)
                 .add("jobId", jobId())
                 .add("executionNodes", executionNodes)
