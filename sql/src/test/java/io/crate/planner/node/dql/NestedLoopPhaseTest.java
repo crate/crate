@@ -69,6 +69,7 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
             Sets.newHashSet("node1", "node2"),
             JoinType.INNER,
             filterCondition,
+            1,
             1
             );
 
@@ -85,6 +86,7 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
         assertThat(node.outputTypes(), is(node2.outputTypes()));
         assertThat(node.filterSymbol(), is(node2.filterSymbol()));
         assertThat(node.joinType(), is(node2.joinType()));
+        assertThat(node.numLeftOutputs(), is(node2.numLeftOutputs()));
         assertThat(node.numRightOutputs(), is(node2.numRightOutputs()));
     }
 }
