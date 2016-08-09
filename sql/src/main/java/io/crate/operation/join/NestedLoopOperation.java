@@ -133,6 +133,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
     private volatile Throwable upstreamFailure;
     private volatile boolean stop = false;
+    private volatile boolean emitRightJoin = false;
 
     @Override
     public void addListener(CompletionListener listener) {
@@ -152,7 +153,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         this.rowFilterPredicate = rowFilterPredicate;
         this.joinType = joinType;
         left = new LeftRowReceiver();
-        if (JoinType.RIGHT == joinType) {
+        if (JoinType.RIGHT == joinType || JoinType.FULL == joinType) {
             right = new RightJoinRightRowReceiver(leftNumOutputs, rightNumOutputs);
         } else {
             right = new RightRowReceiver(leftNumOutputs, rightNumOutputs);
@@ -372,7 +373,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         boolean firstCall = true;
         protected boolean pauseFromDownstream = false;
         protected boolean matched = false;
-        protected boolean emitRightJoin = false;
 
         RightRowReceiver(int leftNumOutputs, int rightNumOutputs) {
             requirements = Requirements.add(downstream.requirements(), Requirement.REPEAT);
@@ -437,7 +437,8 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         @Override
         public void finish(final RepeatHandle repeatHandle) {
-            if (JoinType.LEFT == joinType && !matched && left.lastRow != null) {
+            if ((JoinType.LEFT == joinType || JoinType.FULL == joinType) &&
+                !matched && left.lastRow != null && !emitRightJoin) {
                 // emit row with right one nulled
                 combinedRow.outerRow = left.lastRow;
                 combinedRow.innerRow = combinedRow.innerNullRow;
@@ -590,8 +591,8 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
     private boolean tryFinish() {
         LOGGER.trace("phase={} method=tryFinish leftFinished={} rightFinished={}", phaseId, left.upstreamFinished, right.upstreamFinished);
         if (left.upstreamFinished && right.upstreamFinished) {
-            if (JoinType.RIGHT == joinType && !right.emitRightJoin) {
-                right.emitRightJoin = true;
+            if ((JoinType.RIGHT == joinType || JoinType.FULL == joinType) && !emitRightJoin) {
+                emitRightJoin = true;
                 return false;
             }
             if (upstreamFailure == null) {
