@@ -571,44 +571,4 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
             throw Exceptions.unwrap(t);
         }
     }
-
-    private void setupLeftJoinTestData() {
-        execute("create table employees (id integer, name string, office_id integer, professions_id integer)");
-        execute("create table offices (id integer, name string)");
-        execute("create table professions (id integer, name string)");
-        ensureYellow();
-        execute("insert into employees (id, name, office_id, profession_id) values" +
-                " (1, 'Trillian', 2, 3), (2, 'Ford Perfect', 4, 2), (3, 'Douglas Adams', 3, 1)");
-        execute("insert into offices (id, name) values (1, 'Hobbit House'), (2, 'Entresol'), (3, 'Chief Office')");
-        execute("insert into professions (id, name) values (1, 'Writer'), (2, 'Traveler'), (3, 'Commander'), (4, 'Janitor')");
-        execute("refresh table employees, offices, professions");
-    }
-
-    @Test
-    public void testLeftOuterJoin() throws Exception {
-        setupLeftJoinTestData();
-
-        // which employee works in which office?
-        execute("select persons.name, offices.name from" +
-                " employees as persons left join offices on office_id = offices.id" +
-                " order by offices.id");
-        assertThat(printedTable(response.rows()), is(
-                                                     "Trillian| Entresol\n" +
-                                                     "Douglas Adams| Chief Office\n" +
-                                                     "Ford Perfect| NULL\n"));
-    }
-
-    @Test
-    public void test3TableLeftOuterJoin() throws Exception {
-        setupLeftJoinTestData();
-        execute(
-            "select professions.name, employees.name, offices.name from" +
-            " professions left join employees on profession_id = professions.id" +
-            " left join offices on office_id = offices.id" +
-            " order by professions.id");
-        assertThat(printedTable(response.rows()), is("Writer| Douglas Adams| Chief Office\n" +
-                                                     "Traveler| Ford Perfect| NULL\n" +
-                                                     "Commander| Trillian| Entresol\n" +
-                                                     "Janitor| NULL| NULL\n"));
-    }
 }
