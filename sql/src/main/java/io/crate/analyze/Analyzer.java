@@ -175,6 +175,11 @@ public class Analyzer {
             return showStatementAnalyzer.analyze(node, analysis);
         }
 
+        @Override
+        public AnalyzedStatement visitShowTransaction(ShowTransaction showTransaction, Analysis context) {
+            return showStatementAnalyzer.analyze(showTransaction, context);
+        }
+
         public AnalyzedStatement visitShowTables(ShowTables node, Analysis analysis) {
             return showStatementAnalyzer.analyze(node, analysis);
         }

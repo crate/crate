@@ -30,6 +30,7 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowSchemas;
 import io.crate.sql.tree.ShowTables;
+import io.crate.sql.tree.ShowTransaction;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
@@ -46,6 +47,28 @@ public class ShowStatementAnalyzer {
 
     public ShowStatementAnalyzer(Analyzer analyzer) {
         this.analyzer = analyzer;
+    }
+
+    public AnalyzedStatement analyze(ShowTransaction node, Analysis analysis) {
+        /*
+         * Rewrite
+         *     SHOW TRANSACTION ISOLATION LEVEL
+         * To
+         *      select 'read uncommitted' from sys.cluster
+         *
+         * In order to return a single row with 'read uncommitted`.
+         *
+         * 'read uncommitted' is used because it matches the behaviour in Crate best.
+         * Although there would be read-isolation on a lucene-reader basis there are no transactions so anything written
+         * by any other client *may* become visible at any time.
+         *
+         * See https://www.postgresql.org/docs/9.5/static/transaction-iso.html
+         */
+        Analysis newAnalysis = analyzer.analyze(
+            SqlParser.createStatement("select 'read uncommitted' as transaction_isolation from sys.cluster"),
+            ParameterContext.EMPTY);
+        analysis.rootRelation(newAnalysis.rootRelation());
+        return newAnalysis.analyzedStatement();
     }
 
     public AnalyzedStatement analyze(ShowSchemas node, Analysis analysis) {

@@ -130,6 +130,21 @@ Crate::
     SELECT 20 rows in set (... sec)
 
 
+show transaction isolation
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For compatibility with JDBC the `SHOW TRANSACTION ISOLATION LEVEL` statement is
+implemented::
+
+    cr> show transaction isolation level;
+    +-----------------------+
+    | transaction_isolation |
+    +-----------------------+
+    | read uncommitted      |
+    +-----------------------+
+    SHOW 1 row in set (... sec)
+
+
 Connection failover and load balancing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

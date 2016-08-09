@@ -71,6 +71,7 @@ statement returns [Statement value]
     : query                     { $value = $query.value; }
     | explain                   { $value = $explain.value; }
     | showTables                { $value = $showTables.value; }
+    | showTransaction           { $value = $showTransaction.value; }
     | showSchemas               { $value = $showSchemas.value; }
     | showCatalogs              { $value = $showCatalogs.value; }
     | showColumns               { $value = $showColumns.value; }
@@ -588,6 +589,10 @@ explainOption returns [ExplainOption value]
 
 showTables returns [Statement value]
     : ^(SHOW_TABLES schema=fromOrIn? (likePattern | whereClause)?) { $value = new ShowTables($schema.value, $likePattern.value, $whereClause.value); }
+    ;
+
+showTransaction returns [Statement value]
+    : SHOW_TRANSACTION { $value = new ShowTransaction(); }
     ;
 
 showSchemas returns [Statement value]

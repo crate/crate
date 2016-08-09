@@ -299,6 +299,11 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testShowTransactionLevel() throws Exception {
+        printStatement("show transaction isolation level");
+    }
+
+    @Test
     public void testTableFunctions() throws Exception {
         printStatement("select * from unnest([1, 2], ['Arthur', 'Marvin'])");
         printStatement("select * from unnest(?, ?)");

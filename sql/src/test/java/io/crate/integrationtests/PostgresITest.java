@@ -72,6 +72,14 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testGetTransactionIsolation() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            int var = conn.getTransactionIsolation();
+            assertThat(var, is(Connection.TRANSACTION_READ_UNCOMMITTED));
+        }
+    }
+
+    @Test
     public void testUseOfUnsupportedType() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             PreparedStatement stmt = conn.prepareStatement("select ? from sys.cluster");

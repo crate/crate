@@ -74,6 +74,7 @@ tokens {
     NEGATIVE;
     QNAME;
     SHOW_TABLES;
+    SHOW_TRANSACTION;
     SHOW_SCHEMAS;
     SHOW_CATALOGS;
     SHOW_COLUMNS;
@@ -205,6 +206,7 @@ statement
     | explainStmt
     | showSchemasStmt
     | showTablesStmt
+    | showTransactionStmt
 //    | showCatalogsStmt
     | showColumnsStmt
 //    | showPartitionsStmt
@@ -673,6 +675,10 @@ showTablesStmt
     : SHOW TABLES fromOrIn? likeOrWhere? -> ^(SHOW_TABLES fromOrIn? likeOrWhere?)
     ;
 
+showTransactionStmt
+    : SHOW TRANSACTION ISOLATION LEVEL -> ^(SHOW_TRANSACTION)
+    ;
+
 showSchemasStmt
     : SHOW SCHEMAS likeOrWhere? -> ^(SHOW_SCHEMAS likeOrWhere?)
     ;
@@ -1123,6 +1129,7 @@ nonReserved
     | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
+    | ISOLATION | TRANSACTION | LEVEL
     ;
 
 SELECT: 'SELECT';
@@ -1241,6 +1248,9 @@ DISTRIBUTED: 'DISTRIBUTED';
 CAST: 'CAST';
 TRY_CAST: 'TRY_CAST';
 SHOW: 'SHOW';
+TRANSACTION: 'TRANSACTION';
+ISOLATION: 'ISOLATION';
+LEVEL: 'LEVEL';
 TABLES: 'TABLES';
 SCHEMAS: 'SCHEMAS';
 CATALOGS: 'CATALOGS';
