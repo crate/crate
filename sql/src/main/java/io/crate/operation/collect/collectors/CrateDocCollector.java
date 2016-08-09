@@ -26,12 +26,12 @@ import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
+import io.crate.exceptions.CircuitBreakingException;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectionFinishedEarlyException;
 import io.crate.operation.collect.CollectionPauseException;
 import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.collect.UnexpectedCollectionTerminatedException;
 import io.crate.operation.projectors.ExecutorResumeHandle;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
@@ -288,10 +288,10 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
             throw new AssertionError("Unrecognized setNextRow result: " + result);
         }
 
-        private void checkCircuitBreaker() throws UnexpectedCollectionTerminatedException {
+        private void checkCircuitBreaker() throws CircuitBreakingException {
             if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
                 // stop collecting because breaker limit was reached
-                throw new UnexpectedCollectionTerminatedException(
+                throw new CircuitBreakingException(
                         CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
                                 ramAccountingContext.limit()));
             }
