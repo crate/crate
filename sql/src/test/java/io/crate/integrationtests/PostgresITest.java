@@ -31,6 +31,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import java.sql.*;
 import java.util.*;
@@ -87,6 +88,21 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
             expectedException.expectMessage("Can't map PGType with oid=2950 to Crate type");
             stmt.executeQuery();
+        }
+    }
+
+    @Test
+    public void testEmptyStatement() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            assertThat(conn.createStatement().execute(""), is(false));
+
+            try {
+                conn.createStatement().executeQuery("");
+                fail("executeQuery with empty query should throw a 'No results were returned by the query' error");
+            } catch (PSQLException e) {
+                // can't use expectedException.expectMessage because error messages are localized and locale is randomized
+                assertThat(e.getSQLState(), is(PSQLState.NO_DATA.getState()));
+            }
         }
     }
 

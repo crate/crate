@@ -460,7 +460,16 @@ class ConnectionContext {
     private void handleExecute(ChannelBuffer buffer, Channel channel) {
         String portalName = readCString(buffer);
         int maxRows = buffer.readInt();
-        ResultReceiver resultReceiver = createResultReceiver(channel, session.getQuery(portalName),
+        String query = session.getQuery(portalName);
+        if (query.isEmpty()) {
+             // remove portal so that it doesn't stick around and no attempt to batch it with follow up statement is made
+            session.close((byte)'P', portalName);
+            Messages.sendEmptyQueryResponse(channel);
+            return;
+        }
+        ResultReceiver resultReceiver = createResultReceiver(
+            channel,
+            query,
             session.getOutputTypes(portalName),
             session.getResultFormatCodes(portalName));
         session.execute(portalName, maxRows, resultReceiver);
