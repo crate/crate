@@ -26,6 +26,7 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.collections.Row;
+import io.crate.exceptions.Exceptions;
 import io.crate.types.DataType;
 import org.jboss.netty.channel.Channel;
 
@@ -75,7 +76,7 @@ class ResultSetReceiver implements ResultReceiver {
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        Messages.sendErrorResponse(channel, throwable);
+        Messages.sendErrorResponse(channel, Exceptions.createSQLActionException(throwable));
         listener.onFailure(throwable);
     }
 
