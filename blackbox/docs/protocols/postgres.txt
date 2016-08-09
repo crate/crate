@@ -34,13 +34,13 @@ Therefore clients should generally enable ``autocommit``.
     or rollback calls are ignored.
 
 
-Compatibility & Implementation Status
--------------------------------------
+Server Compatibility & Implementation Status
+============================================
 
 Crate emulates server version ``9.5``
 
 Start-up
-~~~~~~~~
+--------
 
 The connection handshake is implemented without authentication support. Crate
 will always respond with ``AuthenticationOK``.
@@ -54,7 +54,7 @@ The server will inform the Client that ``UTF8`` encoding should be used. Any
 other encoding is not supported.
 
 Simple Query
-~~~~~~~~~~~~
+------------
 
 The `Simple Query`_ protocol is implemented with the following limitations:
 
@@ -63,7 +63,7 @@ The `Simple Query`_ protocol is implemented with the following limitations:
 
 
 Extended Query
-~~~~~~~~~~~~~~
+--------------
 
 The `Extended Query`_ protocol is implemented with the following limitations:
 
@@ -74,19 +74,19 @@ The `Extended Query`_ protocol is implemented with the following limitations:
   statements is delayed until the ``Sync`` message is received
 
 Copy Operations
-~~~~~~~~~~~~~~~
+---------------
 
 The COPY sub-protocol is not supported as this lacks corresponding SQL support
 in Crate.
 
 Function Call
-~~~~~~~~~~~~~
+-------------
 
 The Function call sub-protocol is not supported as this is considered a legacy
 feature.
 
 Canceling Requests in Progress
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------
 
 Operations can be cancelled using the ``KILL`` statement. There is no support
 for the ``CancelRequest`` message and the Server also won't send a
@@ -94,7 +94,7 @@ for the ``CancelRequest`` message and the Server also won't send a
 
 
 pg_type
-~~~~~~~
+-------
 
 Some clients require the `pg_catalog.pg_type` in order to be able to stream
 arrays or other non-primitive types.
@@ -131,7 +131,7 @@ Crate::
 
 
 show transaction isolation
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------
 
 For compatibility with JDBC the `SHOW TRANSACTION ISOLATION LEVEL` statement is
 implemented::
@@ -143,6 +143,36 @@ implemented::
     | read uncommitted      |
     +-----------------------+
     SHOW 1 row in set (... sec)
+
+
+Client compatibility
+====================
+
+JDBC
+----
+
+The `pgjdbc`_ JDBC driver starting with version ``9.4.1209`` can be used with
+Crate.
+
+
+Limitations
+~~~~~~~~~~~
+
+- *reflection* methods like ``conn.getMetaData().getTables(...)`` will not work
+  since they require postgres specific tables which do not exist in Crate.
+  As a workaround it is possible to query the standard ``information_schema``
+  tables manually using ``SELECT`` statements.
+
+- ``OBJECT`` and ``GEO_SHAPE`` can be streamed as ``JSON`` but require a
+  unreleased version of `pgjdbc`_.
+
+- The behaviour of ``PreparedStatement.executeBatch`` in error cases depends on
+  in which stage an error occurs.
+  It may raise ``BatchUpdateException`` without processing any items.
+  Or it may continue processing the items in which case the result might
+  contain individual items marked with ``EXECUTE_FAILED`` (-3).
+
+- Transaction limitations as described in the beginning of this document apply.
 
 
 Connection failover and load balancing
@@ -161,3 +191,4 @@ Connection failover and load balancing is supported as described here:
 .. _Simple Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#AEN108745
 .. _Extended Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
 .. _PostgreSQL JDBC connection failover: https://jdbc.postgresql.org/documentation/head/connect.html#connection-failover
+.. _pgjdbc: https://github.com/pgjdbc/pgjdbc
