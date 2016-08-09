@@ -318,7 +318,15 @@ class ConnectionContext {
             try {
                 Messages.sendErrorResponse(ctx.getChannel(), e.getCause());
             } catch (Throwable t) {
-                LOGGER.error("Error trying to send error to client", t);
+                try {
+                    LOGGER.error("Error trying to send error to client", t);
+                } catch (Throwable ti) {
+                    try {
+                        ti.printStackTrace(System.err);
+                    } catch (Throwable tx) {
+                        // prevent infinite exceptionCaught loop
+                    }
+                }
             }
         }
 
