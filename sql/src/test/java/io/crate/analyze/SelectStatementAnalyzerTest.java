@@ -814,18 +814,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testRightOuterJoinSyntaxIsNotSupported() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        analyze("select * from users right outer join users_multi_pk on users.id = users_multi_pk.id");
-    }
-
-    @Test
-    public void testFullOuterJoinSyntaxIsNotSupported() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        analyze("select * from users full outer join users_multi_pk on users.id = users_multi_pk.id");
-    }
-
-    @Test
     public void testJoinUsingSyntax() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         analyze("select * from users join users_multi_pk using (id)");

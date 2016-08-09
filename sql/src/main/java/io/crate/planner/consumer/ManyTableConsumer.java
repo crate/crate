@@ -283,7 +283,7 @@ public class ManyTableConsumer implements Consumer {
 
     private static TwoTableJoin twoTableJoin(MultiSourceSelect mss) {
         assert mss.sources().size() == 2;
-        Iterator<QualifiedName> it = mss.sources().keySet().iterator();
+        Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
         QualifiedName left = it.next();
         QualifiedName right = it.next();
         JoinType joinType = mss.joinTypeForRelations(left, right);

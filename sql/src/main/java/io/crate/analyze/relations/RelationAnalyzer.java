@@ -63,7 +63,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     private final ClusterService clusterService;
     private final AnalysisMetaData analysisMetaData;
-    private static final EnumSet<Join.Type> ALLOWED_JOIN_TYPES = EnumSet.of(Join.Type.CROSS, Join.Type.INNER, Join.Type.LEFT);
+    private static final EnumSet<Join.Type> ALLOWED_JOIN_TYPES =
+        EnumSet.of(Join.Type.CROSS, Join.Type.INNER, Join.Type.LEFT, Join.Type.RIGHT, Join.Type.FULL);
 
     @Inject
     public RelationAnalyzer(ClusterService clusterService, AnalysisMetaData analysisMetaData) {
