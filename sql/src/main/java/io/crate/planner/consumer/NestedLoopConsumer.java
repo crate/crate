@@ -254,6 +254,7 @@ public class NestedLoopConsumer implements Consumer {
                 nlExecutionNodes,
                 joinType,
                 filterSymbol,
+                left.querySpec().outputs().size(),
                 right.querySpec().outputs().size()
             );
             MergePhase localMergePhase = null;

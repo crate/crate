@@ -124,7 +124,8 @@ public class NestedLoopOperationBenchmark {
         Iterable<Row> right = RowSender.rowRange(0, rightSize);
 
         RowCountRowReceiver receiver = new RowCountRowReceiver();
-        NestedLoopOperation operation = new NestedLoopOperation(0, receiver, Predicates.<Row>alwaysTrue(), JoinType.CROSS, 0);
+        NestedLoopOperation operation = new NestedLoopOperation(0, receiver, Predicates.<Row>alwaysTrue(),
+            JoinType.CROSS, 0, 0);
         ListenableRowReceiver leftSide = operation.leftRowReceiver();
         ListenableRowReceiver rightSide = operation.rightRowReceiver();
 
