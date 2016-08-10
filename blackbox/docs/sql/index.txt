@@ -30,3 +30,4 @@ see :doc:`sql`. For general information about SQL please refer to
    snapshot_restore
    optimize
    sql
+   features
