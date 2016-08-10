@@ -169,6 +169,10 @@ Limitations
 - ``OBJECT`` and ``GEO_SHAPE`` can be streamed as ``JSON`` but require at least
   version ``9.4.1210`` of `pgjdbc`_.
 
+- Multidimensional arrays will be streamed as ``JSON`` encoded string. This is
+  done to avoid a limitation of the postgres binary streaming protocol in which
+  all sub-arrays are required to have the same length.
+
 - The behaviour of ``PreparedStatement.executeBatch`` in error cases depends on
   in which stage an error occurs.
   It may raise ``BatchUpdateException`` without processing any items.
