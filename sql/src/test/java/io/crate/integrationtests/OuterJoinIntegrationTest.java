@@ -24,16 +24,17 @@ package io.crate.integrationtests;
 
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2)
 @UseJdbc
 public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
 
-    private void setupOuterJoinTestData() {
+    @Before
+    public void setupTestData() {
         execute("create table employees (id integer, name string, office_id integer, profession_id integer)");
         execute("create table offices (id integer, name string)");
         execute("create table professions (id integer, name string)");
@@ -47,8 +48,6 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testLeftOuterJoin() throws Exception {
-        setupOuterJoinTestData();
-
         // which employee works in which office?
         execute("select persons.name, offices.name from" +
                 " employees as persons left join offices on office_id = offices.id" +
@@ -60,7 +59,6 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void test3TableLeftOuterJoin() throws Exception {
-        setupOuterJoinTestData();
         execute(
             "select professions.name, employees.name, offices.name from" +
             " professions left join employees on profession_id = professions.id" +
@@ -74,35 +72,28 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testRightOuterJoin() throws Exception {
-        setupOuterJoinTestData();
-
-        // which employee works in which office?
-        execute("select persons.name, offices.name from" +
-                " offices right join employees as persons on office_id = offices.id" +
+        execute("select offices.name, persons.name from" +
+                " employees as persons right join offices on office_id = offices.id" +
                 " order by offices.id");
-        assertThat(printedTable(response.rows()), is("Trillian| Entresol\n" +
-                                                     "Douglas Adams| Chief Office\n" +
-                                                     "Ford Perfect| NULL\n"));
+        assertThat(printedTable(response.rows()), is("Hobbit House| NULL\n" +
+                                                     "Entresol| Trillian\n" +
+                                                     "Chief Office| Douglas Adams\n"));
     }
 
     @Test
-    public void test3TableRightOuterJoin() throws Exception {
-        setupOuterJoinTestData();
+    public void test3TableLeftAndRightOuterJoin() throws Exception {
         execute(
             "select professions.name, employees.name, offices.name from" +
-            " offices right join employees on profession_id = professions.id" +
+            " offices left join employees on profession_id = professions.id" +
             " right join professions on office_id = offices.id" +
             " order by professions.id");
         assertThat(printedTable(response.rows()), is("Writer| Douglas Adams| Chief Office\n" +
-                                                     "Traveler| Ford Perfect| NULL\n" +
                                                      "Commander| Trillian| Entresol\n" +
-                                                     "Janitor| NULL| NULL\n"));
+                                                     "NULL| NULL| Hobbit House\n"));
     }
 
     @Test
     public void testFullOuterJoin() throws Exception {
-        setupOuterJoinTestData();
-
         execute("select persons.name, offices.name from" +
                 " offices full join employees as persons on office_id = offices.id" +
                 " order by offices.id");
