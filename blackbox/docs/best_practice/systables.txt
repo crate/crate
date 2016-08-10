@@ -184,7 +184,8 @@ The **sys.shards** table contains even more information about the
 rebalancing activities. Sometimes Crate needs to transfer one shard to
 another node, since that may be necessary to ensure there are enough
 replicas of it distributed in the cluster. You can estimate the
-progress of that operation with the **recovery** object. To monitor the progress of the shard transfer, run this query:
+progress of that operation with the **recovery** object. To monitor the
+progress of the shard transfer, run this query::
 
     cr> select _node['hostname'], id, recovery['stage'], recovery['size']['percent'], routing_state, state from sys.shards
     ... where routing_state in ('RELOCATING','INITIALIZING') order by id;
@@ -194,12 +195,15 @@ progress of that operation with the **recovery** object. To monitor the progress
     +-------------------+----+-------------------+-----------------------------+---------------+-------+
     SELECT ... in set (... sec)
 
-It lists pairs of rows, in which the first row denotes the destination shard and the second row the source shard.
-Each row contains the shard's hostname, id and the recovery percentage of the transferred shard.
-When the shard starts relocating, a new shard entry appears in the **sys.shards** table with a
-**routing_state** of `INITIALIZING`. The **state** of this row is `RECOVERING`. Meanwhile, the value of
-**routing_state** of the source row switches from `STARTED` to `RELOCATING` until the transfer is done.
-After that, the source row is deleted from **sys.shards** automatically.
+It lists pairs of rows, in which the first row denotes the destination shard
+and the second row the source shard.
+Each row contains the shard's hostname, id and the recovery percentage of the
+transferred shard. When the shard starts relocating, a new shard entry
+appears in the  **sys.shards** table with a **routing_state** of `INITIALIZING`.
+The **state** of this row is `RECOVERING`. Meanwhile, the value of
+**routing_state** of the source row switches from `STARTED` to `RELOCATING`
+until the transfer is done. After that, the source row is deleted from
+**sys.shards** automatically.
 
 To find out on which specific node a shard is stored, also use the
 object in the **_node** system column that is available for this
