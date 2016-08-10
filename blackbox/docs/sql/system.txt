@@ -547,6 +547,13 @@ at query time. Use the probe timestamp to get the time of the collect. When anal
 cpu usage over time, always use ``process['probe_timestamp']`` to calculate the time difference
 between 2 probes.
 
+.. note::
+
+    If one of the queried nodes is not responding within three seconds
+    it returns ``null`` every column except ``id`` and ``name``.
+    This behaviour could be used to detect hanging nodes.
+
+
 .. _sys-node-checks:
 
 Node Checks
