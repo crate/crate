@@ -114,7 +114,7 @@ public class RelationAnalysisContext {
 
     List<JoinPair> joinPairs() {
         if (joinPairs == null) {
-            return ImmutableList.of();
+            return new ArrayList<>();
         }
         return joinPairs;
     }
