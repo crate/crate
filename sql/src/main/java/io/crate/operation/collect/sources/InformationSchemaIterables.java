@@ -29,6 +29,7 @@ import com.google.common.collect.FluentIterable;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.collect.files.SqlFeaturesIterable;
 import io.crate.operation.reference.information.ColumnContext;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
@@ -45,11 +46,13 @@ public class InformationSchemaIterables {
     private final Supplier<Iterable<?>> columnsGetter;
     private final Supplier<Iterable<?>> constraintsGetter;
     private final Supplier<Iterable<?>> routinesGetter;
+    private final Supplier<Iterable<?>> featuresGetter;
 
     @Inject
     public InformationSchemaIterables(final Schemas schemas,
                                       FulltextAnalyzerResolver ftResolver,
-                                      ClusterService clusterService) {
+                                      ClusterService clusterService,
+                                      SqlFeaturesIterable featuresIterable) {
         this.schemas = Suppliers.<Iterable<?>>ofInstance(schemas);
         FluentIterable<TableInfo> tablesIterable = FluentIterable.from(schemas)
                 .transformAndConcat(new Function<SchemaInfo, Iterable<TableInfo>>() {
@@ -94,6 +97,8 @@ public class InformationSchemaIterables {
                         return input != null;
                     }
                 }));
+
+        featuresGetter = Suppliers.<Iterable<?>>ofInstance(featuresIterable);
     }
 
     public Supplier<Iterable<?>> schemas() {
@@ -118,6 +123,10 @@ public class InformationSchemaIterables {
 
     public Supplier<Iterable<?>> routines() {
         return routinesGetter;
+    }
+
+    public Supplier<Iterable<?>> features() {
+        return featuresGetter;
     }
 
     static class ColumnsIterator implements Iterator<ColumnContext>, Iterable<ColumnContext> {
