@@ -23,14 +23,14 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import io.crate.analyze.*;
+import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.MockedClusterServiceModule;
@@ -45,7 +45,6 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Set;
 
 import static io.crate.testing.TestingHelpers.isSQL;
 import static io.crate.testing.TestingHelpers.newMockedThreadPool;
@@ -136,25 +135,38 @@ public class ManyTableConsumerTest {
     }
 
     @Test
-    public void testOptimizeJoin() throws Exception {
-        Set<QualifiedName> pair1 = Sets.newHashSet(T3.T1, T3.T3);
-        Set<QualifiedName> pair2 = Sets.newHashSet(T3.T3, T3.T2);
+    public void testOptimizeJoinNoPresort() throws Exception {
+        JoinPair pair1 = new JoinPair(T3.T1, T3.T2, JoinType.CROSS);
+        JoinPair pair2 = new JoinPair(T3.T2, T3.T3, JoinType.CROSS);
         @SuppressWarnings("unchecked")
         Collection<QualifiedName> qualifiedNames = ManyTableConsumer.orderByJoinConditions(
                 Arrays.asList(T3.T1, T3.T2, T3.T3),
-                Sets.newHashSet(pair1, pair2),
+                ImmutableList.of(pair1, pair2),
                 ImmutableList.<QualifiedName>of());
 
-        assertThat(qualifiedNames, Matchers.contains(T3.T1, T3.T3, T3.T2));
+        assertThat(qualifiedNames, Matchers.contains(T3.T1, T3.T2, T3.T3));
     }
 
     @Test
     public void testOptimizeJoinWithoutJoinConditionsAndPreSort() throws Exception {
         Collection<QualifiedName> qualifiedNames = ManyTableConsumer.orderByJoinConditions(
                 Arrays.asList(T3.T1, T3.T2, T3.T3),
-                ImmutableSet.<Set<QualifiedName>>of(),
+                ImmutableList.<JoinPair>of(),
                 ImmutableList.of(T3.T2));
 
         assertThat(qualifiedNames, Matchers.contains(T3.T2, T3.T1, T3.T3));
+    }
+
+    @Test
+    public void testNoOptimizeWithSortingAndOuterJoin() throws Exception {
+        JoinPair pair1 = new JoinPair(T3.T1, T3.T2, JoinType.LEFT);
+        JoinPair pair2 = new JoinPair(T3.T2, T3.T3, JoinType.LEFT);
+        @SuppressWarnings("unchecked")
+        Collection<QualifiedName> qualifiedNames = ManyTableConsumer.orderByJoinConditions(
+            Arrays.asList(T3.T1, T3.T2, T3.T3),
+            ImmutableList.of(pair1, pair2),
+            ImmutableList.of(T3.T3, T3.T2));
+
+        assertThat(qualifiedNames, Matchers.contains(T3.T1, T3.T2, T3.T3));
     }
 }
