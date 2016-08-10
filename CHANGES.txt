@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - F501: Added SQL conformance info to ``information_schema.sql_features``
+
  - Updated crate-admin to ``0.19.0`` which contains following changes:
 
    - Display failing node checks on overview page and allow to dismiss them.

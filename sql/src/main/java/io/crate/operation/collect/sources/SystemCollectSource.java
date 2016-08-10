@@ -82,6 +82,7 @@ public class SystemCollectSource implements CollectSource {
             .put(InformationColumnsTableInfo.IDENT.fqn(), informationSchemaIterables.columns())
             .put(InformationTableConstraintsTableInfo.IDENT.fqn(), informationSchemaIterables.constraints())
             .put(InformationRoutinesTableInfo.IDENT.fqn(), informationSchemaIterables.routines())
+            .put(InformationSqlFeaturesTableInfo.IDENT.fqn(), informationSchemaIterables.features())
             .put(SysJobsTableInfo.IDENT.fqn(), statsTables.jobsGetter())
             .put(SysJobsLogTableInfo.IDENT.fqn(), statsTables.jobsLogGetter())
             .put(SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter())
