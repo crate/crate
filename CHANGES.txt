@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved the performance of sorted join queries
+
 2016/08/05 0.55.3
 =================
 
