@@ -235,12 +235,16 @@ public class NestedLoopConsumer implements Consumer {
             }
 
             Planner.Context.Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
+            OrderBy orderBy = statement.remainingOrderBy().orNull();
+            if (orderBy == null && joinType.isOuter()) {
+                orderBy = orderByBeforeSplit;
+            }
             TopNProjection topN = ProjectionBuilder.topNProjection(
-                    nlOutputs,
-                    statement.remainingOrderBy().orNull(),
-                    isDistributed ? 0 : querySpec.offset(),
-                    isDistributed ? limits.limitAndOffset() : limits.finalLimit(),
-                    postNLOutputs
+                nlOutputs,
+                orderBy,
+                isDistributed ? 0 : querySpec.offset(),
+                isDistributed ? limits.limitAndOffset() : limits.finalLimit(),
+                postNLOutputs
             );
             projections.add(topN);
 

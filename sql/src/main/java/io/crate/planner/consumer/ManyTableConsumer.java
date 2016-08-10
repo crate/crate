@@ -28,6 +28,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.*;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.analyze.relations.RemainingOrderBy;
@@ -40,11 +41,15 @@ import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
 import java.util.*;
 
 public class ManyTableConsumer implements Consumer {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(ManyTableConsumer.class);
 
     private final Visitor visitor;
 
@@ -63,17 +68,20 @@ public class ManyTableConsumer implements Consumer {
      *
      *
      * @param relations all relations, e.g. [t1, t2, t3, t3]
-     * @param joinedRelations contains all relations that have a join condition e.g. {{t1, t2}, {t2, t3}}
+     * @param joinPairs contains a list of {@link JoinPair}.
      * @param preSorted a ordered subset of the relations. The result will start with those relations.
      *                  E.g. [t3] - This would cause the result to start with [t3]
      */
     static Collection<QualifiedName> orderByJoinConditions(Collection<QualifiedName> relations,
-                                                           Set<? extends Set<QualifiedName>> joinedRelations,
+                                                           List<JoinPair> joinPairs,
                                                            Collection<QualifiedName> preSorted) {
+        if (preSorted.isEmpty()) {
+            return relations;
+        }
         if (relations.size() == preSorted.size()) {
             return preSorted;
         }
-        if (relations.size() == 2 || joinedRelations.isEmpty()) {
+        if (relations.size() == 2 || joinPairs.isEmpty()) {
             LinkedHashSet<QualifiedName> qualifiedNames = new LinkedHashSet<>(preSorted);
             qualifiedNames.addAll(relations);
             return qualifiedNames;
@@ -81,9 +89,10 @@ public class ManyTableConsumer implements Consumer {
 
         // Create a Copy to ensure equals works correctly for the subList check below.
         preSorted = ImmutableList.copyOf(preSorted);
-        Set<QualifiedName> pair = new HashSet<>(2);
+        Set<QualifiedName> outerJoinRelations = JoinPair.outerJoinRelations(joinPairs);
         Collection<QualifiedName> bestOrder = null;
         int best = -1;
+        outerloop:
         for (List<QualifiedName> permutation : Collections2.permutations(relations)) {
             if (!preSorted.equals(permutation.subList(0, preSorted.size()))) {
                 continue;
@@ -93,10 +102,19 @@ public class ManyTableConsumer implements Consumer {
                 QualifiedName a = permutation.get(i);
                 QualifiedName b = permutation.get(i + 1);
 
-                pair.clear();
-                pair.add(a);
-                pair.add(b);
-                joinPushDowns += joinedRelations.contains(pair) ? 1 : 0;
+                JoinType joinType = JoinPair.joinTypeForRelations(a, b, joinPairs, false);
+                if (joinType == null) {
+                    // relations are not directly joined, lets check if they are part of an outer join
+                    if (outerJoinRelations.contains(a) || outerJoinRelations.contains(b)) {
+                        // part of an outer join, don't change pairs, permutation not possible
+                        continue outerloop;
+                    } else {
+                        joinPushDowns += 0;
+                    }
+                } else {
+                    // relations are directly joined
+                    joinPushDowns += 1;
+                }
             }
             if (joinPushDowns == relations.size() - 1) {
                 return permutation;
@@ -105,6 +123,9 @@ public class ManyTableConsumer implements Consumer {
                 best = joinPushDowns;
                 bestOrder = permutation;
             }
+        }
+        if (bestOrder == null) {
+            bestOrder = relations;
         }
         return bestOrder;
     }
@@ -121,13 +142,13 @@ public class ManyTableConsumer implements Consumer {
     }
 
     private static Collection<QualifiedName> getOrderedRelationNames(MultiSourceSelect statement,
-                                                                     Set<? extends Set<QualifiedName>> relationPairs) {
+                                                                     List<JoinPair> joinPairs) {
         Collection<QualifiedName> orderedRelations = ImmutableList.of();
         Optional<OrderBy> orderBy = statement.querySpec().orderBy();
         if (orderBy.isPresent()) {
             orderedRelations = getNamesFromOrderBy(orderBy.get());
         }
-        return orderByJoinConditions(statement.sources().keySet(), relationPairs, orderedRelations);
+        return orderByJoinConditions(statement.sources().keySet(), joinPairs, orderedRelations);
     }
 
     /**
@@ -171,8 +192,13 @@ public class ManyTableConsumer implements Consumer {
             splitQuery = QuerySplitter.split(mss.querySpec().where().query());
             mss.querySpec().where(WhereClause.MATCH_ALL);
         }
-        Collection<QualifiedName> orderedRelationNames = getOrderedRelationNames(mss, splitQuery.keySet());
+        mss.addImplicitInnerJoinPairs(splitQuery.keySet());
+
+        Collection<QualifiedName> orderedRelationNames = getOrderedRelationNames(mss, mss.joinPairs());
         Iterator<QualifiedName> it = orderedRelationNames.iterator();
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("relations={} orderedRelations={}", mss.sources().keySet(), orderedRelationNames);
+        }
 
         QualifiedName leftName = it.next();
         QuerySpec rootQuerySpec = mss.querySpec();
@@ -201,6 +227,10 @@ public class ManyTableConsumer implements Consumer {
                 remainingOrderByToApply = Optional.of(remainingOrderBy.get().orderBy());
                 remainingOrderBy = Optional.absent();
             }
+
+            // TODO: remove orderBy from left or right QuerySpec for outer join if orderBy is on outer table
+            // NestedLoop will add NULL rows - so order by needs to be applied after the NestedLoop
+            JoinType joinType = mss.joinTypeForRelations(leftName, rightName);
             TwoTableJoin join = new TwoTableJoin(
                 newQuerySpec,
                 leftName,
@@ -208,7 +238,7 @@ public class ManyTableConsumer implements Consumer {
                 rightName,
                 rightSource,
                 remainingOrderByToApply,
-                mss.joinTypeForRelations(leftName, rightName)
+                joinType
             );
 
             assert leftQuerySpec != null;
@@ -283,14 +313,14 @@ public class ManyTableConsumer implements Consumer {
 
     private static TwoTableJoin twoTableJoin(MultiSourceSelect mss) {
         assert mss.sources().size() == 2;
-        Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
+        Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableList.<JoinPair>of()).iterator();
         QualifiedName left = it.next();
         QualifiedName right = it.next();
         JoinType joinType = mss.joinTypeForRelations(left, right);
 
         // TODO: enable optimization for all join types after RIGHT OUTER JOIN is implemented
         if (joinType.ordinal() < JoinType.INNER.ordinal()) {
-            it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
+            it = getOrderedRelationNames(mss, ImmutableList.<JoinPair>of()).iterator();
             left = it.next();
             right = it.next();
         }

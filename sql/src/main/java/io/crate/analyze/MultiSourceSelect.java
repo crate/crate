@@ -70,32 +70,35 @@ public class MultiSourceSelect implements QueriedRelation {
         return sources;
     }
 
-    public JoinType joinTypeForRelations(QualifiedName left, QualifiedName right) {
-        for (JoinPair joinPair : joinPairs) {
-            if (joinPair.equalsNames(left, right)) {
-                return joinPair.joinType();
-            }
-        }
-        // check if relations were switched due to some optimization
-        for (JoinPair joinPair : joinPairs) {
-            if (joinPair.equalsNames(right, left)) {
-                return joinPair.joinType().invert();
-            }
-        }
+    public List<JoinPair> joinPairs() {
+        return joinPairs;
+    }
 
-        // default to cross join (or inner, doesn't matter)
-        return JoinType.CROSS;
+    public JoinType joinTypeForRelations(QualifiedName left, QualifiedName right) {
+        JoinType joinType = JoinPair.joinTypeForRelations(left, right, joinPairs);
+        if (joinType == null) {
+            // default to cross join (or inner, doesn't matter)
+            return JoinType.CROSS;
+        }
+        return joinType;
     }
 
     public void rewriteNamesOfJoinPairs(QualifiedName left, QualifiedName right, QualifiedName newName) {
         for (JoinPair joinPair : joinPairs) {
             joinPair.replaceNames(left, right, newName);
         }
-
     }
 
-    public List<JoinPair> joinPairs() {
-        return joinPairs;
+    public void addImplicitInnerJoinPairs(Set<Set<QualifiedName>> innerJoinPairs) {
+        for (Set<QualifiedName> relationPairs : innerJoinPairs) {
+            assert relationPairs.size() == 2 : "relation pair is not a valid pair (size is not 2)";
+            Iterator<QualifiedName> it = relationPairs.iterator();
+            QualifiedName left = it.next();
+            QualifiedName right = it.next();
+            if (JoinPair.joinTypeForRelations(left, right, joinPairs) == null) {
+                joinPairs.add(new JoinPair(left, right, JoinType.INNER));
+            }
+        }
     }
 
     @Override
