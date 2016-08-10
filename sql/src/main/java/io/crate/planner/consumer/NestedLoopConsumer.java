@@ -258,7 +258,7 @@ public class NestedLoopConsumer implements Consumer {
                 assert localMergePhase != null : "local merge phase must not be null";
                 TopNProjection finalTopN = ProjectionBuilder.topNProjection(
                         postNLOutputs,
-                        orderByBeforeSplit,
+                        null, // orderBy = null because mergePhase receives data sorted
                         querySpec.offset(),
                         limits.finalLimit(),
                         querySpec.outputs()
