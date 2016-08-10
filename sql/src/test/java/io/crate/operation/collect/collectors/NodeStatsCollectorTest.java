@@ -29,7 +29,6 @@ import io.crate.executor.transport.TransportNodeStatsAction;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.projectors.RowReceiver;
@@ -71,7 +70,7 @@ public class NodeStatsCollectorTest extends CrateUnitTest {
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.ID),
             RowGranularity.DOC, DataTypes.STRING);
         hostnameRef = new Reference(
-            new ReferenceIdent(systable, SysNodesTableInfo.Columns.HOSTNAME),
+            new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.HOSTNAME),
                 RowGranularity.DOC, DataTypes.STRING);
         collectPhase = mock(RoutedCollectPhase.class);
         when(collectPhase.whereClause()).thenReturn(WhereClause.NO_MATCH);
