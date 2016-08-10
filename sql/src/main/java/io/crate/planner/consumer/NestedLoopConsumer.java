@@ -127,10 +127,11 @@ public class NestedLoopConsumer implements Consumer {
                 MappingSymbolVisitor.inPlace().processInplace(statement.remainingOrderBy().get().orderBySymbols(), symbolMap);
             }
 
+            JoinType joinType = statement.joinType();
             WhereClause where = querySpec.where();
             boolean filterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
             boolean hasDocTables = left instanceof QueriedDocTable || right instanceof QueriedDocTable;
-            boolean isDistributed = hasDocTables && filterNeeded;
+            boolean isDistributed = hasDocTables && filterNeeded && !joinType.isOuter();
 
             if (filterNeeded || statement.remainingOrderBy().isPresent()) {
                 left.querySpec().limit(null);
@@ -160,7 +161,6 @@ public class NestedLoopConsumer implements Consumer {
                 return new NoopPlannedAnalyzedRelation(statement, context.plannerContext().jobId());
             }
 
-            JoinType joinType = statement.joinType();
             boolean broadcastLeftTable = false;
             if (isDistributed) {
                 broadcastLeftTable = isLeftSmallerThanRight(left, right);
