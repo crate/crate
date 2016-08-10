@@ -40,12 +40,12 @@ public class PGArrayTest {
     @Test
     public void testEncodeUTF8Text() throws Exception {
         // 1-dimension array
-        byte[] bytes = pgArray.encodeAsUTF8Text(new Object[]{10, 20});
+        byte[] bytes = pgArray.encodeAsUTF8Text(new Object[] { 10, 20 });
         String s = new String(bytes, StandardCharsets.UTF_8);
         assertThat(s, is("{\"10\",\"20\"}"));
 
         // 3-dimension array
-        bytes = pgArray.encodeAsUTF8Text(new Object[][][]{{{1, 2}, {3, 4}}, {{5, 6}, {7}}});
+        bytes = pgArray.encodeAsUTF8Text(new Object[][][] {{{1, 2}, {3, 4}}, {{5, 6}, {7}}});
         s = new String(bytes, StandardCharsets.UTF_8);
         assertThat(s, is("{{{\"1\",\"2\"},{\"3\",\"4\"}},{{\"5\",\"6\"},{\"7\"}}}"));
     }
@@ -82,29 +82,29 @@ public class PGArrayTest {
         // 3-dimension array
         // Decode
         s = "{{{\"{\"names\":[\"A\",\"B\"]}\",\"{\"names\":[\"C\",\"D\"]}\"}," +
-            "{\"{\"names\":[\"E\",\"F\"]}\",\"{\"names\":[\"G\",\"H\"]}\"}}," +
-            "{{\"{\"names\":[\"I\",\"J\"]}\",\"{\"names\":[\"K\",\"L\"]}\"}," +
-            "{\"{\"names\":[\"M\",\"N\"]}\",\"{\"names\":[\"O\",\"P\"]}\"}}}";
+              "{\"{\"names\":[\"E\",\"F\"]}\",\"{\"names\":[\"G\",\"H\"]}\"}}," +
+             "{{\"{\"names\":[\"I\",\"J\"]}\",\"{\"names\":[\"K\",\"L\"]}\"}," +
+              "{\"{\"names\":[\"M\",\"N\"]}\",\"{\"names\":[\"O\",\"P\"]}\"}}}";
         values = (Object[]) PGArray.JSON_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
 
-        names = (List<String>) ((Map) ((Object[]) ((Object[]) values[0])[0])[0]).get("names");
+        names = (List<String>) ((Map) ((Object[])((Object[])values[0])[0])[0]).get("names");
         assertThat(names, Matchers.contains("A", "B"));
-        names = (List<String>) ((Map) ((Object[]) ((Object[]) values[0])[0])[1]).get("names");
+        names = (List<String>) ((Map) ((Object[])((Object[])values[0])[0])[1]).get("names");
         assertThat(names, Matchers.contains("C", "D"));
 
-        names = (List<String>) ((Map) ((Object[]) ((Object[]) values[0])[1])[0]).get("names");
+        names = (List<String>) ((Map) ((Object[])((Object[])values[0])[1])[0]).get("names");
         assertThat(names, Matchers.contains("E", "F"));
-        names = (List<String>) ((Map) ((Object[]) ((Object[]) values[0])[1])[1]).get("names");
+        names = (List<String>) ((Map) ((Object[])((Object[])values[0])[1])[1]).get("names");
         assertThat(names, Matchers.contains("G", "H"));
 
-        names = (List<String>) ((Map) ((Object[]) ((Object[]) values[1])[0])[0]).get("names");
+        names = (List<String>) ((Map) ((Object[])((Object[])values[1])[0])[0]).get("names");
         assertThat(names, Matchers.contains("I", "J"));
-        names = (List<String>) ((Map) ((Object[]) ((Object[]) values[1])[0])[1]).get("names");
+        names = (List<String>) ((Map) ((Object[])((Object[])values[1])[0])[1]).get("names");
         assertThat(names, Matchers.contains("K", "L"));
 
-        names = (List<String>) ((Map) ((Object[]) ((Object[]) values[1])[1])[0]).get("names");
+        names = (List<String>) ((Map) ((Object[])((Object[])values[1])[1])[0]).get("names");
         assertThat(names, Matchers.contains("M", "N"));
-        names = (List<String>) ((Map) ((Object[]) ((Object[]) values[1])[1])[1]).get("names");
+        names = (List<String>) ((Map) ((Object[])((Object[])values[1])[1])[1]).get("names");
         assertThat(names, Matchers.contains("O", "P"));
 
         // Encode
@@ -137,14 +137,14 @@ public class PGArrayTest {
     public void testDecodeUTF8Text() throws Exception {
         // 1-dimension array
         Object o = pgArray.decodeUTF8Text("{\"10\",\"20\"}".getBytes(StandardCharsets.UTF_8));
-        assertThat((Object[]) o, is(new Object[]{10, 20}));
+        assertThat((Object[]) o, is(new Object[] {10, 20}));
 
         // 2-dimension array
         o = pgArray.decodeUTF8Text("{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}}".getBytes(StandardCharsets.UTF_8));
-        assertThat(((Object[]) o), Is.<Object[]>is(new Object[][]{{1, null, 2}, {null, 3, 4}}));
+        assertThat(((Object[]) o), Is.<Object[]>is(new Object[][] {{1, null, 2}, {null, 3, 4}}));
 
         // 3-dimension array
         o = pgArray.decodeUTF8Text("{{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}},{{\"5\",NULL,\"6\"},{\"7\"}}".getBytes(StandardCharsets.UTF_8));
-        assertThat(((Object[]) o), Is.<Object[]>is(new Object[][][]{{{1, null, 2}, {null, 3, 4}}, {{5, null, 6}, {7}}}));
+        assertThat(((Object[]) o), Is.<Object[]>is(new Object[][][] {{{1, null, 2}, {null, 3, 4}}, {{5, null, 6}, {7}}}));
     }
 }
