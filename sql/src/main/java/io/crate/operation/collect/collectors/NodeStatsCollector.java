@@ -30,6 +30,7 @@ import io.crate.executor.transport.TransportNodeStatsAction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.RowsTransformer;
@@ -72,10 +73,28 @@ public class NodeStatsCollector implements CrateCollector {
     public void doCollect() {
         remainingRequests.set(nodes.size());
         final List<NodeStatsContext> rows = Collections.synchronizedList(new ArrayList<NodeStatsContext>());
+        Set<ColumnIdent> toCollect = topLevelColumnIdentVisitor.process(collectPhase.toCollect());
+        // check if toCollect only contains id and name, then it's not necessary to perform a request
+        boolean emitDirectly = false;
+        switch (toCollect.size()) {
+            case 1:
+                emitDirectly = toCollect.contains(SysNodesTableInfo.Columns.ID) ||
+                               toCollect.contains(SysNodesTableInfo.Columns.NAME);
+                break;
+            case 2:
+                emitDirectly = toCollect.contains(SysNodesTableInfo.Columns.ID) &&
+                               toCollect.contains(SysNodesTableInfo.Columns.NAME);
+                break;
+        }
         for (final DiscoveryNode node : nodes) {
-            Set<ColumnIdent> toCollect = topLevelColumnIdentVisitor.process(collectPhase.toCollect());
+            if (emitDirectly) {
+                rows.add(new NodeStatsContext(node.id(), node.name()));
+                if (remainingRequests.decrementAndGet() == 0) {
+                    emmitRows(rows);
+                }
+                continue;
+            }
             final NodeStatsRequest request = new NodeStatsRequest(toCollect);
-
             transportStatTablesAction.execute(node.id(), request, new ActionListener<NodeStatsResponse>() {
                 @Override
                 public void onResponse(NodeStatsResponse response) {
