@@ -42,4 +42,8 @@ public enum JoinType {
     public JoinType invert() {
         return this;
     }
+
+    public boolean isOuter() {
+        return ordinal() > INNER.ordinal();
+    }
 }
