@@ -23,7 +23,6 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.UseJdbc;
-import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -57,6 +56,16 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
                                                      "Ford Perfect| NULL\n"));
     }
 
+    public void testLeftOuterJoinOrderOnOuterTable() throws Exception {
+        // which employee works in which office?
+        execute("select persons.name, offices.name from" +
+                " employees as persons left join offices on office_id = offices.id" +
+                " order by offices.name nulls first");
+        assertThat(printedTable(response.rows()), is("Ford Perfect| NULL\n" +
+                                                     "Douglas Adams| Chief Office\n" +
+                                                     "Trillian| Entresol\n"));
+    }
+
     @Test
     public void test3TableLeftOuterJoin() throws Exception {
         execute(
@@ -68,6 +77,19 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
                                                      "Traveler| Ford Perfect| NULL\n" +
                                                      "Commander| Trillian| Entresol\n" +
                                                      "Janitor| NULL| NULL\n"));
+    }
+
+    @Test
+    public void test3TableLeftOuterJoinOrderByOuterTable() throws Exception {
+        execute(
+            "select professions.name, employees.name, offices.name from" +
+            " professions left join employees on profession_id = professions.id" +
+            " left join offices on office_id = offices.id" +
+            " order by offices.name nulls first, professions.id nulls first");
+        assertThat(printedTable(response.rows()), is("Traveler| Ford Perfect| NULL\n" +
+                                                     "Janitor| NULL| NULL\n" +
+                                                     "Writer| Douglas Adams| Chief Office\n" +
+                                                     "Commander| Trillian| Entresol\n"));
     }
 
     @Test
@@ -84,12 +106,13 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
     public void test3TableLeftAndRightOuterJoin() throws Exception {
         execute(
             "select professions.name, employees.name, offices.name from" +
-            " offices left join employees on profession_id = professions.id" +
-            " right join professions on office_id = offices.id" +
+            " offices left join employees on office_id = offices.id" +
+            " right join professions on profession_id = professions.id" +
             " order by professions.id");
         assertThat(printedTable(response.rows()), is("Writer| Douglas Adams| Chief Office\n" +
+                                                     "Traveler| NULL| NULL\n" +
                                                      "Commander| Trillian| Entresol\n" +
-                                                     "NULL| NULL| Hobbit House\n"));
+                                                     "Janitor| NULL| NULL\n"));
     }
 
     @Test

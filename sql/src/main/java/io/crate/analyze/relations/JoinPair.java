@@ -26,13 +26,18 @@ import com.google.common.base.Objects;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
+import javax.annotation.Nullable;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 public class JoinPair {
 
     private QualifiedName left;
     private QualifiedName right;
     private final JoinType joinType;
 
-    JoinPair(QualifiedName left, QualifiedName right, JoinType joinType) {
+    public JoinPair(QualifiedName left, QualifiedName right, JoinType joinType) {
         this.left = left;
         this.right = right;
         this.joinType = joinType;
@@ -68,5 +73,43 @@ public class JoinPair {
     @Override
     public int hashCode() {
         return Objects.hashCode(left, right, joinType);
+    }
+
+    @Nullable
+    public static JoinType joinTypeForRelations(QualifiedName left, QualifiedName right, List<JoinPair> joinPairs) {
+        return joinTypeForRelations(left, right, joinPairs, true);
+    }
+
+    @Nullable
+    public static JoinType joinTypeForRelations(QualifiedName left,
+                                                QualifiedName right,
+                                                List<JoinPair> joinPairs,
+                                                boolean checkReversePair) {
+        for (JoinPair joinPair : joinPairs) {
+            if (joinPair.equalsNames(left, right)) {
+                return joinPair.joinType();
+            }
+        }
+        // check if relations were switched due to some optimization
+        if (checkReversePair) {
+            for (JoinPair joinPair : joinPairs) {
+                if (joinPair.equalsNames(right, left)) {
+                    return joinPair.joinType().invert();
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public static Set<QualifiedName> outerJoinRelations(List<JoinPair> joinPairs) {
+        Set<QualifiedName> outerJoinRelations = new HashSet<>();
+        for (JoinPair joinPair : joinPairs) {
+            if (joinPair.joinType().isOuter()) {
+                outerJoinRelations.add(joinPair.left);
+                outerJoinRelations.add(joinPair.right);
+            }
+        }
+        return outerJoinRelations;
     }
 }
