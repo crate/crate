@@ -32,6 +32,7 @@ settings like the ``number of shards`` or ``number of replicas``::
     | information_schema | columns           |                1 |                  0 |
     | information_schema | routines          |                1 |                  0 |
     | information_schema | schemata          |                1 |                  0 |
+    | information_schema | sql_features      |                1 |                  0 |
     | information_schema | table_constraints |                1 |                  0 |
     | information_schema | table_partitions  |                1 |                  0 |
     | information_schema | tables            |                1 |                  0 |
@@ -48,7 +49,7 @@ settings like the ``number of shards`` or ``number of replicas``::
     | sys                | shards            |                1 |                  0 |
     | sys                | snapshots         |                1 |                  0 |
     +--------------------+-------------------+------------------+--------------------+
-    SELECT 23 rows in set (... sec)
+    SELECT 24 rows in set (... sec)
 
 The table also contains additional information such as specified routing
 (:ref:`sql_ddl_sharding`) and partitioned by (:ref:`sql_ddl_partitioned_by`)
@@ -345,3 +346,11 @@ available: ``blob``, ``doc``, ``information_schema`` and ``sys``::
     | sys                |
     +--------------------+
     SELECT 5 rows in set (... sec)
+
+SQL Features
+============
+
+The ``sql_features`` table outlines supported and unsupported SQL features of
+Crate based to the current SQL standard (see :ref:`sql_supported_features`)::
+
+    cr> select * from information_schema.sql_features;

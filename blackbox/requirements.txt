@@ -5,6 +5,7 @@ colorama==0.3.7
 crash==0.17.0
 crate==0.16.0
 crate-docs-theme==0.5.13
+sphinx-csv-filter==0.1.0
 docutils==0.12
 imagesize==0.7.1
 Jinja2==2.8
