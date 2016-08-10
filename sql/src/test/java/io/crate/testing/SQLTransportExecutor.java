@@ -326,7 +326,7 @@ public class SQLTransportExecutor {
                 XContentParser parser = JsonXContent.jsonXContent.createParser(bytes);
                 if (bytes.length >= 1 && bytes[0] == '[') {
                     parser.nextToken();
-                    return parser.list().toArray(new Object[0]);
+                    return recursiveListToArray(parser.list());
                 } else {
                     return parser.mapOrdered();
                 }
@@ -336,6 +336,18 @@ public class SQLTransportExecutor {
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    private Object recursiveListToArray(Object value) {
+        if (value instanceof List) {
+            List list = (List) value;
+            Object[] arr = list.toArray(new Object[0]);
+            for (int i = 0; i < list.size(); i++) {
+                arr[i] = recursiveListToArray(list.get(i));
+            }
+            return arr;
+        }
+        return value;
     }
 
     private static Object getCharArray(ResultSet resultSet, int i) throws SQLException {

@@ -75,6 +75,37 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testMultidimensionalArrayWithDifferentSizedArrays() throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty(PGProperty.PREFER_QUERY_MODE.getName(), PreferQueryMode.SIMPLE.value());
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            Statement statement = conn.createStatement();
+            statement.executeUpdate("create table t (o1 array(object as (o2 array(object as (x int)))))");
+            ensureYellow();
+
+            statement.setEscapeProcessing(false);
+            statement.executeUpdate("insert into t (o1) values ( [ {o2=[{x=1}, {x=2}]}, {o2=[{x=3}]} ] )");
+            statement.executeUpdate("refresh table t");
+
+            ResultSet resultSet = statement.executeQuery("select o1['o2']['x'] from t");
+            assertThat(resultSet.next(), is(true));
+            String array = resultSet.getString(1);
+            assertThat(array, is("[[1,2],[3]]"));
+        }
+
+        /*
+        properties = new Properties();
+        properties.setProperty("prepareThreshold", "-1"); // force binary transfer
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            ResultSet resultSet = conn.createStatement().executeQuery("select o1['o2']['x'] from t");
+            assertThat(resultSet.next(), is(true));
+            String array = resultSet.getString(1);
+            assertThat(array, is("[[1,2],[3]]"));
+        }
+        */
+    }
+
+    @Test
     public void testUseOfUnsupportedType() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             PreparedStatement stmt = conn.prepareStatement("select ? from sys.cluster");
