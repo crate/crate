@@ -364,7 +364,7 @@ public class SQLTransportExecutor {
         }
     }
 
-    private ActionFuture<SQLResponse> execute(SQLRequest request) {
+    public ActionFuture<SQLResponse> execute(SQLRequest request) {
         AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new TestTransportActionFuture<>();
         clientProvider.client().execute(SQLAction.INSTANCE, request, actionFuture);
         return actionFuture;
