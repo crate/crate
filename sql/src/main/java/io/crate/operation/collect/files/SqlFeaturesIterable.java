@@ -23,16 +23,13 @@
 package io.crate.operation.collect.files;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.io.*;
-import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
