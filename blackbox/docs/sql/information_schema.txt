@@ -354,3 +354,42 @@ The ``sql_features`` table outlines supported and unsupported SQL features of
 Crate based to the current SQL standard (see :ref:`sql_supported_features`)::
 
     cr> select * from information_schema.sql_features;
+
++------------------+-----------+----------+
+| Name             | Data Type | Nullable |
++==================+===========+==========+
+| feature_id       | String    | NO       |
++------------------+-----------+----------+
+| feature_name     | String    | NO       |
++------------------+-----------+----------+
+| sub_feature_id   | String    | NO       |
++------------------+-----------+----------+
+| sub_feature_name | String    | NO       |
++------------------+-----------+----------+
+| is_supported     | String    | NO       |
++------------------+-----------+----------+
+| is_verified_by   | String    | YES      |
++------------------+-----------+----------+
+| comments         | String    | YES      |
++------------------+-----------+----------+
+
+
+:feature_id:
+    Identifier of the feature
+:feature_name:
+    Descriptive name of the feature by the Standard
+:sub_feature_id:
+    Identifier of the subfeature;
+    If it has zero-length, this is a feature
+:sub_feature_name:
+    Descriptive name of the subfeature by the Standard;
+    If it has zero-length, this is a feature
+:is_supported:
+    ``YES`` if the feature is fully supported by the current version of Crate,
+    ``NO`` if not
+:is_verified_by:
+    Identifies the conformance test used to verify the claim;
+    Always ``NULL`` since the Crate development group does not perform formal
+    testing of feature conformance
+:comments:
+    Either ``NULL`` or shows a comment about the supported status of the feature
