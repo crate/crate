@@ -77,6 +77,7 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
         tableFactories.put(InformationPartitionsTableInfo.IDENT, InformationSchemaExpressionFactories.tablePartitionsFactories());
         tableFactories.put(InformationColumnsTableInfo.IDENT, InformationSchemaExpressionFactories.columnsFactories());
         tableFactories.put(InformationTablesTableInfo.IDENT, InformationSchemaExpressionFactories.tablesFactories());
+        tableFactories.put(InformationSqlFeaturesTableInfo.IDENT, InformationSchemaExpressionFactories.sqlFeaturesFactories());
 
         tableFactories.put(SysNodesTableInfo.IDENT, SysNodesExpressionFactories.getSysNodesTableInfoFactories());
         tableFactories.put(SysShardsTableInfo.IDENT, UnassignedShardsExpressionFactories.getSysShardsTableInfoFactories());

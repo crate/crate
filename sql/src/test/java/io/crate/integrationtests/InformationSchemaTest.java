@@ -61,12 +61,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultTables() throws Exception {
         execute("select * from information_schema.tables order by schema_name, table_name");
-        assertEquals(18L, response.rowCount());
+        assertEquals(19L, response.rowCount());
 
         assertThat(TestingHelpers.printedTable(response.rows()), is(
                 "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| columns\n" +
                 "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| routines\n" +
                 "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| schemata\n" +
+                "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| sql_features\n" +
                 "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| table_constraints\n" +
                 "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| table_partitions\n" +
                 "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| tables\n" +
@@ -117,14 +118,14 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         serviceSetup();
 
         execute("select * from information_schema.tables");
-        assertEquals(21L, response.rowCount());
+        assertEquals(22L, response.rowCount());
 
         client().execute(SQLAction.INSTANCE,
             new SQLRequest("create table t4 (col1 integer, col2 string) with (number_of_replicas=0)")).actionGet();
         ensureGreen("t4");
 
         execute("select * from information_schema.tables");
-        assertEquals(22L, response.rowCount());
+        assertEquals(23L, response.rowCount());
     }
 
     @Test
@@ -265,12 +266,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     public void testSelectFromTableConstraints() throws Exception {
 
         execute("select * from INFORMATION_SCHEMA.table_constraints order by schema_name asc, table_name asc");
-        assertEquals(11L, response.rowCount());
+        assertEquals(12L, response.rowCount());
         assertThat(response.cols(),
                 arrayContaining("constraint_name", "constraint_type", "schema_name", "table_name"));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
                 "[schema_name, table_name, column_name]| PRIMARY_KEY| information_schema| columns\n" +
                 "[schema_name]| PRIMARY_KEY| information_schema| schemata\n" +
+                "[feature_id, feature_name, sub_feature_id, sub_feature_name, is_supported, is_verified_by, comments]| PRIMARY_KEY| information_schema| sql_features\n" +
                 "[schema_name, table_name]| PRIMARY_KEY| information_schema| tables\n" +
                 "[id]| PRIMARY_KEY| sys| checks\n" +
                 "[id]| PRIMARY_KEY| sys| jobs\n" +
@@ -435,7 +437,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(342L, response.rowCount());
+        assertEquals(349L, response.rowCount());
     }
 
     @Test
@@ -628,7 +630,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("select count(*) from information_schema.tables");
         assertEquals(1, response.rowCount());
-        assertEquals(21L, response.rows()[0][0]);
+        assertEquals(22L, response.rows()[0][0]);
     }
 
     @Test
@@ -1059,5 +1061,15 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select column_name, is_generated, generation_expression from information_schema.columns where is_generated = true");
         assertThat(TestingHelpers.printedTable(response.rows()),
                 is("name| true| concat(concat(lastname, '_'), firstname)\n"));
+    }
+
+    @Test
+    public void testSelectSqlFeatures() throws Exception {
+        execute("select * from information_schema.sql_features order by feature_id asc");
+        assertThat(response.rowCount(), is(672L));
+
+        execute("select feature_id, feature_name from information_schema.sql_features where feature_id='E011'");
+        assertThat(response.rowCount(), is(7L));
+        assertThat((String) response.rows()[0][1], is("Numeric data types"));
     }
 }

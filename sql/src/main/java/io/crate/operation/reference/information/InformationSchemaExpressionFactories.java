@@ -33,6 +33,7 @@ import io.crate.metadata.information.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.collect.files.SqlFeatureContext;
 import io.crate.operation.reference.partitioned.PartitionsSettingsExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -371,5 +372,89 @@ public class InformationSchemaExpressionFactories {
                             }
                         }
                 ).build();
+    }
+
+    public static Map<ColumnIdent, RowCollectExpressionFactory> sqlFeaturesFactories() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
+                .put(InformationSqlFeaturesTableInfo.Columns.FEATURE_ID, new RowCollectExpressionFactory() {
+
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<SqlFeatureContext, BytesRef>() {
+
+                            @Override
+                            public BytesRef value() {
+                                return BytesRefs.toBytesRef(row.featureId);
+                            }
+                        };
+                    }
+                })
+                .put(InformationSqlFeaturesTableInfo.Columns.FEATURE_NAME, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<SqlFeatureContext, BytesRef>() {
+                            @Override
+                            public BytesRef value() {
+                                return BytesRefs.toBytesRef(row.featureName);
+                            }
+                        };
+                    }
+                })
+                .put(InformationSqlFeaturesTableInfo.Columns.SUB_FEATURE_ID, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<SqlFeatureContext, BytesRef>() {
+                            @Override
+                            public BytesRef value() {
+                                return BytesRefs.toBytesRef(row.featureName);
+                            }
+                        };
+                    }
+                })
+                .put(InformationSqlFeaturesTableInfo.Columns.SUB_FEATURE_NAME, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<SqlFeatureContext, BytesRef>() {
+                            @Override
+                            public BytesRef value() {
+                                return BytesRefs.toBytesRef(row.featureName);
+                            }
+                        };
+                    }
+                })
+                .put(InformationSqlFeaturesTableInfo.Columns.IS_SUPPORTED, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<SqlFeatureContext, Boolean>() {
+                            @Override
+                            public Boolean value() {
+                                return row.isSupported;
+                            }
+                        };
+                    }
+                })
+                .put(InformationSqlFeaturesTableInfo.Columns.IS_VERIFIED_BY, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<SqlFeatureContext, BytesRef>() {
+                            @Override
+                            public BytesRef value() {
+                                return BytesRefs.toBytesRef(row.isVerifiedBy);
+                            }
+                        };
+                    }
+                })
+                .put(InformationSqlFeaturesTableInfo.Columns.COMMENTS, new RowCollectExpressionFactory() {
+                    @Override
+                    public RowCollectExpression create() {
+                        return new RowContextCollectorExpression<SqlFeatureContext, BytesRef>() {
+                            @Override
+                            public BytesRef value() {
+                                return BytesRefs.toBytesRef(row.comments);
+                            }
+                        };
+                    }
+                })
+                .build();
     }
 }
