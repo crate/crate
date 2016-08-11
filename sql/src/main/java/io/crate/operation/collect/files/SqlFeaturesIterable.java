@@ -22,6 +22,8 @@
 
 package io.crate.operation.collect.files;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
@@ -30,7 +32,9 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 public class SqlFeaturesIterable implements Iterable {
@@ -88,10 +92,20 @@ public class SqlFeaturesIterable implements Iterable {
         @Override
         public SqlFeatureContext next() {
             String next = nextLine();
+            SqlFeatureContext ctx = null;
             if (next != null) {
-                return new SqlFeatureContext();
+                List<String> parts = Splitter.on("\t").splitToList(next);
+                ctx = SqlFeatureContext.builder()
+                    .featureId(parts.get(0))
+                    .featureName(parts.get(1))
+                    .subFeatureId(parts.get(2))
+                    .subFeatureName(parts.get(3))
+                    .isSupported(parts.get(4).equals("YES"))
+                    .isVerifiedBy(parts.get(5).isEmpty() ? null : parts.get(5))
+                    .comments(parts.get(6).isEmpty() ? null : parts.get(6))
+                    .build();
             }
-            return null;
+            return ctx;
         }
 
         @Nullable
