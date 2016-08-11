@@ -43,6 +43,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.Matchers.*;
 
 @UseJdbc
@@ -105,7 +106,15 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 assertBusy(new Runnable() {
                     @Override
                     public void run() {
-                        SQLResponse logResponse = execute("select * from sys.jobs where stmt = ?", new Object[]{statement});
+                        SQLResponse logResponse = execute("select * from sys.jobs where stmt = ?", $(statement));
+                        if (logResponse.rowCount() == 0) {
+                            logResponse = execute("select * from sys.jobs_log where stmt = ?", $(statement));
+                            if (logResponse.rowCount() > 0L) {
+                                // query finished before jobId could be retrieved
+                                // finishing without killing - test will pass which is okay because it is not deterministic by design
+                                return;
+                            }
+                        }
                         assertThat(logResponse.rowCount(), greaterThan(0L));
                         String jobId = logResponse.rows()[0][0].toString();
                         execute("kill ?", new Object[]{jobId});
