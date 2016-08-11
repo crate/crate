@@ -34,19 +34,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-public class SqlFeaturesIterable implements Iterable {
+public class SqlFeaturesIterable implements Iterable<SqlFeatureContext> {
 
-    private final File features;
+    private static final Splitter TAB_SPLITTER = Splitter.on("\t");
+    private static final URL SQL_FEATURES = SqlFeaturesIterator.class.getResource("/sql_features.tsv");
 
     @Inject
     public SqlFeaturesIterable() {
-        URL resource = SqlFeaturesIterator.class.getResource("/sql_features.tsv");
-        assert resource != null;
-        features = new File(resource.getFile());
     }
 
     @Override
-    public Iterator iterator() {
+    public SqlFeaturesIterator iterator() {
         return new SqlFeaturesIterator();
     }
 
@@ -56,34 +54,31 @@ public class SqlFeaturesIterable implements Iterable {
         private String nextLine;
 
         SqlFeaturesIterator() {
-            BufferedReader tmp;
-            try {
-                tmp = Files.newBufferedReader(features.toPath(), Charset.forName("UTF-8"));
-            } catch (IOException e) {
-                tmp = null;
-            }
-            reader = tmp;
+            File features = new File(SQL_FEATURES.getFile());
+            reader = getReader(features);
             if (reader != null) {
-                try {
-                    nextLine = tmp.readLine();
-                } catch (IOException e) {
-                    nextLine = null;
-                }
+                readNextLine();
+            }
+        }
+
+        private BufferedReader getReader(File features) {
+            try {
+                return Files.newBufferedReader(features.toPath(), Charset.forName("UTF-8"));
+            } catch (IOException e) {
+                return null;
             }
         }
 
         @Override
         public boolean hasNext() {
-            if (nextLine != null) {
-                return true;
-            } else {
+            boolean hasNext = nextLine != null;
+            if (!hasNext) {
                 try {
-                    nextLine = reader.readLine();
-                    return (nextLine != null);
+                    reader.close();
                 } catch (IOException e) {
-                    return false;
                 }
             }
+            return hasNext;
         }
 
         @Override
@@ -91,7 +86,7 @@ public class SqlFeaturesIterable implements Iterable {
             String next = nextLine();
             SqlFeatureContext ctx = null;
             if (next != null) {
-                List<String> parts = Splitter.on("\t").splitToList(next);
+                List<String> parts = TAB_SPLITTER.splitToList(next);
                 ctx = SqlFeatureContext.builder()
                     .featureId(parts.get(0))
                     .featureName(parts.get(1))
@@ -107,12 +102,19 @@ public class SqlFeaturesIterable implements Iterable {
 
         @Nullable
         private String nextLine() {
-            if (nextLine != null || hasNext()) {
-                String line = nextLine;
-                nextLine = null;
-                return line;
-            } else {
+            String line = nextLine;
+            readNextLine();
+            if (line == null) {
                 throw new NoSuchElementException();
+            }
+            return line;
+        }
+
+        private void readNextLine() {
+            try {
+                nextLine = reader.readLine();
+            } catch (IOException e) {
+                nextLine = null;
             }
         }
 
