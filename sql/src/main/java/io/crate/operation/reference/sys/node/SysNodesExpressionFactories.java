@@ -40,8 +40,7 @@ public class SysNodesExpressionFactories {
     public SysNodesExpressionFactories() {
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory> getSysNodesTableInfoFactories() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
+    private static Map<ColumnIdent, RowCollectExpressionFactory> sysNodeTableInfoFactories = ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
             .put(SysNodesTableInfo.Columns.ID, new RowCollectExpressionFactory() {
                 @Override
                 public RowCollectExpression create() {
@@ -435,5 +434,9 @@ public class SysNodesExpressionFactories {
                 }
             })
             .build();
+
+    public static Map<ColumnIdent, RowCollectExpressionFactory> getSysNodesTableInfoFactories() {
+        return sysNodeTableInfoFactories;
     }
+
 }
