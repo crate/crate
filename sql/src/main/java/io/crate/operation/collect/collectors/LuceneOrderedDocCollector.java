@@ -176,7 +176,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
             Object value = lastCollected.fields[i];
             if (order instanceof Reference) {
                 boolean nullsFirst = orderBy.nullsFirst()[i] == null ? false : orderBy.nullsFirst()[i];
-                value = value.equals(missingValues[i]) ? null : value;
+                value = value == null || value.equals(missingValues[i]) ? null : value;
                 if (nullsFirst && value == null) {
                     // no filter needed
                     continue;

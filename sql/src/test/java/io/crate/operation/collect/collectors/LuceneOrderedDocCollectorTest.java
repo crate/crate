@@ -52,6 +52,7 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collections;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -124,6 +125,14 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
             results[i] = value.equals(missingValue) ? null : value;
         }
         return results;
+    }
+
+    @Test
+    public void testNextPageQueryWithLastCollectedNullValue() throws Exception {
+        FieldDoc fieldDoc = new FieldDoc(1, 0, new Object[]{null});
+        OrderBy orderBy = new OrderBy(Collections.<Symbol>singletonList(REFERENCE), new boolean[]{false}, new Boolean[]{null});
+        Object missingValue = LuceneMissingValue.missingValue(orderBy, 0);
+        LuceneOrderedDocCollector.nextPageQuery(fieldDoc, orderBy, new Object[]{missingValue});
     }
 
     // search after queries
