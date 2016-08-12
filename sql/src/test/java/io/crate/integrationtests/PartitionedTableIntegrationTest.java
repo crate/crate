@@ -1994,4 +1994,22 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat((String) response.rows()[0][1], is("3"));
         assertThat((String) response.rows()[1][1], is("0"));
     }
+
+    @Test
+    public void testSelectByIdEmptyPartitionedTable() {
+        execute("create table test (id integer, entity integer, primary key(id, entity))" +
+                " partitioned by (entity) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("select * from test where entity = 0 and id = 0");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void testSelectByMultiIdEmptyPartitionedTable() {
+        execute("create table test (id integer, entity integer, primary key(id, entity))" +
+                " partitioned by (entity) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("select * from test where entity = 0 and (id = 0 or id = 1)");
+        assertThat(response.rowCount(), is(0L));
+    }
 }

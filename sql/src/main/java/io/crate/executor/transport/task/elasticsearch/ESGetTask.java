@@ -53,6 +53,7 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
 import java.util.*;
@@ -98,7 +99,7 @@ public class ESGetTask extends EsJobContextTask {
         } else {
             request = prepareGetRequest(esGet, fsc);
             transportAction = getAction;
-            listener = new GetResponseListener(result, extractors);
+            listener = new GetResponseListener(result, extractors, esGet.tableInfo().isPartitioned());
         }
 
         createContextBuilder("lookup by primary key", ImmutableList.of(request), ImmutableList.of(listener),
@@ -196,11 +197,10 @@ public class ESGetTask extends EsJobContextTask {
     }
 
 
-    static class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
+    private static class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
 
         private final List<Function<GetResponse, Object>> fieldExtractors;
         private final RowReceiver downstream;
-
 
         MultiGetResponseListener(List<Function<GetResponse, Object>> extractors,
                                  RowReceiver rowDownstreamHandle) {
@@ -247,9 +247,13 @@ public class ESGetTask extends EsJobContextTask {
         private final Bucket bucket;
         private final FieldExtractorRow<GetResponse> row;
         private final SettableFuture<TaskResult> result;
+        private final boolean isPartitionedTable;
 
-        GetResponseListener(SettableFuture<TaskResult> result, List<Function<GetResponse, Object>> extractors) {
+        GetResponseListener(SettableFuture<TaskResult> result,
+                            List<Function<GetResponse, Object>> extractors,
+                            boolean isPartitionedTable) {
             this.result = result;
+            this.isPartitionedTable = isPartitionedTable;
             row = new FieldExtractorRow<>(extractors);
             bucket = Buckets.of(row);
         }
@@ -266,6 +270,10 @@ public class ESGetTask extends EsJobContextTask {
 
         @Override
         public void onFailure(Throwable e) {
+            if (isPartitionedTable && e instanceof IndexNotFoundException) {
+                result.set(TaskResult.EMPTY_RESULT);
+                return;
+            }
             result.setException(e);
         }
     }
@@ -348,5 +356,4 @@ public class ESGetTask extends EsJobContextTask {
             };
         }
     }
-
 }
