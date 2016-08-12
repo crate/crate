@@ -57,6 +57,7 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
 import java.util.*;
@@ -103,7 +104,7 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         } else {
             request = prepareGetRequest(node, fsc);
             transportAction = getAction;
-            listener = new GetResponseListener(result, extractors);
+            listener = new GetResponseListener(result, extractors, node.tableInfo().isPartitioned());
         }
 
         createContextBuilder("lookup by primary key", ImmutableList.of(request), ImmutableList.of(listener),
@@ -263,9 +264,13 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
         private final Bucket bucket;
         private final FieldExtractorRow<GetResponse> row;
         private final SettableFuture<TaskResult> result;
+        private final boolean isPartitionedTable;
 
-        public GetResponseListener(SettableFuture<TaskResult> result, List<Function<GetResponse, Object>> extractors) {
+        GetResponseListener(SettableFuture<TaskResult> result,
+                            List<Function<GetResponse, Object>> extractors,
+                            boolean isPartitionedTable) {
             this.result = result;
+            this.isPartitionedTable = isPartitionedTable;
             row = new FieldExtractorRow<>(extractors);
             bucket = Buckets.of(row);
         }
@@ -282,6 +287,10 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
 
         @Override
         public void onFailure(Throwable e) {
+            if (isPartitionedTable && e instanceof IndexNotFoundException) {
+                result.set(TaskResult.EMPTY_RESULT);
+                return;
+            }
             result.setException(e);
         }
     }
@@ -364,5 +373,4 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
             };
         }
     }
-
 }
