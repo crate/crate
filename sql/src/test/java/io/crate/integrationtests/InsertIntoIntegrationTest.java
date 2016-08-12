@@ -21,17 +21,14 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
-import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import io.crate.types.ArrayType;
-import io.crate.types.GeoPointType;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
 import org.hamcrest.core.IsNull;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,9 +39,7 @@ import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, randomDynamicTemplates = false)
@@ -1121,5 +1116,33 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (o object as (x int)) partitioned by (o['x'])");
         ensureYellow();
         assertThat(execute("insert into t (o) (select {x=10} from sys.cluster)").rowCount(), is(1L));
+    }
+
+    /**
+     * Test that when an error happens on the primary, the record should never be inserted on the replica.
+     * Since we cannot force a select statement to be executed on a replica, we repeat this test to increase the chance.
+     */
+    @Repeat(iterations = 5)
+    @Test
+    public void testInsertWithErrorMustNotBeInsertedOnReplica() throws Exception {
+        execute("create table test (id integer primary key, name string) with (number_of_replicas=1)");
+        ensureYellow();
+        execute("insert into test (id, name) values (1, 'foo')");
+        assertThat(response.rowCount(), is(1L));
+        try {
+            execute("insert into test (id, name) values (1, 'bar')");
+            fail("Expecting a DuplicateKeyException");
+        } catch (SQLActionException e) {
+            assertThat(e.getMessage(), containsString("DuplicateKeyException"));
+        }
+        refresh();
+
+        // we want to read from the replica but cannot force it, lets select twice to increase chances
+        execute("select _version, name from test");
+        assertThat((String) response.rows()[0][1], is("foo"));
+        assertThat((Long) response.rows()[0][0], is(1L));
+        execute("select _version, name from test");
+        assertThat((String) response.rows()[0][1], is("foo"));
+        assertThat((Long) response.rows()[0][0], is(1L));
     }
 }

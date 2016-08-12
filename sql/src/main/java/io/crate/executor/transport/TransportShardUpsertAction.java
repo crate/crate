@@ -152,6 +152,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 logger.debug("{} failed to execute upsert for [{}]/[{}]",
                         t, request.shardId(), request.type(), item.id());
                 if (!request.continueOnError()) {
+                    // *mark* the item as failed by set the source to null
+                    // to prevent the replica operation from processing this concrete item
+                    item.source(null);
                     shardResponse.failure(t);
                     break;
                 }
