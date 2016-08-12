@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a NPE in ordered select statements.
+
  - Fix: Prevent writing a row to the replica when an error happened on the
    primary shard.
 
