@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Prevent writing a row to the replica when an error happened on the
+   primary shard.
+
  - Fix: Querying a partitioned table by a single primary key raised an
    exception instead of responding whith a zero row count.
 
