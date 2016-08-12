@@ -27,7 +27,6 @@ import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolType;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.*;
@@ -35,7 +34,7 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.Input;
+import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.MockedClusterServiceModule;
 import io.crate.types.DataType;
@@ -91,45 +90,20 @@ public class ValueNormalizerTest extends CrateUnitTest {
     private final StmtCtx stmtCtx = new StmtCtx();
 
 
-    static class AbsFunction extends Scalar<Double, Number> {
-
-        @Override
-        public Double evaluate(Input<Number>... args) {
-            if (args == null || args.length == 0) {
-                return 0.0d;
-            }
-            return Math.abs((args[0].value()).doubleValue());
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return TEST_FUNCTION_INFO;
-        }
-
-        @Override
-        public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
-            if (symbol.arguments().size() == 1
-                    && symbol.arguments().get(0).symbolType() == SymbolType.LITERAL
-                    && symbol.arguments().get(0).valueType().equals(DataTypes.DOUBLE)) {
-                return Literal.newLiteral(evaluate(((Input)symbol.arguments().get(0))));
-            }
-            return symbol;
-        }
-    }
-
     @Before
     public void prepare() {
         threadPool = new ThreadPool("testing");
         Injector injector = new ModulesBuilder()
-                .add(new Module() {
-                    @Override
-                    public void configure(Binder binder) {
-                        binder.bind(ThreadPool.class).toInstance(threadPool);
-                    }
-                })
-                .add(new MockedClusterServiceModule())
-                .add(new TestMetaDataModule())
-                .createInjector();
+            .add(new Module() {
+                @Override
+                public void configure(Binder binder) {
+                    binder.bind(ThreadPool.class).toInstance(threadPool);
+                }
+            })
+            .add(new MockedClusterServiceModule())
+            .add(new ScalarFunctionModule())
+            .add(new TestMetaDataModule())
+            .createInjector();
         valueNormalizer = new ValueNormalizer(injector.getInstance(Schemas.class),
                 new EvaluatingNormalizer(
                         injector.getInstance(Functions.class),
@@ -144,11 +118,6 @@ public class ValueNormalizerTest extends CrateUnitTest {
     }
 
     static class TestMetaDataModule extends MetaDataModule {
-        @Override
-        protected void bindFunctions() {
-            super.bindFunctions();
-            functionBinder.addBinding(TEST_FUNCTION_INFO.ident()).toInstance(new AbsFunction());
-        }
 
         @Override
         protected void bindSchemas() {
