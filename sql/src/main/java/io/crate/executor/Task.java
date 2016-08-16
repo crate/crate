@@ -48,5 +48,5 @@ public interface Task {
      *
      * @throws UnsupportedOperationException if the task doesn't support bulk operations
      */
-    List<? extends ListenableFuture<TaskResult>> executeBulk();
+    ListenableFuture<List<Long>> executeBulk();
 }

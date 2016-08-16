@@ -23,19 +23,15 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
-import io.crate.executor.TaskResult;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
-
-import java.util.List;
 
 public class ESClusterUpdateSettingsTask extends JobTask {
 
@@ -63,10 +59,5 @@ public class ESClusterUpdateSettingsTask extends JobTask {
     public void execute(RowReceiver rowReceiver) {
         OneRowActionListener<ClusterUpdateSettingsResponse> actionListener = new OneRowActionListener<>(rowReceiver, TO_ONE_ROW);
         transport.execute(request, actionListener);
-    }
-
-    @Override
-    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
-        throw new UnsupportedOperationException("cluster update settings task cannot be executed as bulk operation");
     }
 }

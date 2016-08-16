@@ -28,8 +28,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
+import io.crate.core.collections.Bucket;
 import io.crate.exceptions.Exceptions;
-import io.crate.executor.TaskResult;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -91,7 +91,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         PlanForNode plan = plan("select * from t");
         execute("drop table t");
-        ListenableFuture<TaskResult> future = execute(plan);
+        ListenableFuture<Bucket> future = execute(plan).resultFuture();
         try {
             future.get(5, TimeUnit.SECONDS);
         } catch (Throwable t) {
@@ -108,7 +108,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         PlanForNode plan = plan("delete from parted_table where day='2016-06-07'");
         execute("delete from parted_table where day='2016-06-07'");
-        ListenableFuture<TaskResult> future = execute(plan);
+        ListenableFuture<Bucket> future = execute(plan).resultFuture();
         try {
             future.get(5, TimeUnit.SECONDS);
         } catch (Throwable t) {
@@ -1054,7 +1054,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("refresh table test");
         assertTrue(response.hasRowCount());
-        assertThat(response.rows(), is(TaskResult.EMPTY_OBJS));
+        assertThat(response.rows().length, is(0));
 
         execute("select count(*) from test");
         assertThat((Long) response.rows()[0][0], is(3L));

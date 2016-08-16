@@ -22,27 +22,24 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Buckets;
-import io.crate.executor.QueryResult;
-import io.crate.executor.TaskResult;
+import io.crate.executor.JobTask;
+import io.crate.executor.transport.TransportActionProvider;
+import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.operation.QueryResultRowDownstream;
 import io.crate.operation.projectors.*;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.projection.Projection;
@@ -50,60 +47,253 @@ import io.crate.planner.projection.TopNProjection;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
-public class ESGetTask extends EsJobContextTask {
+public class ESGetTask extends JobTask {
 
     private final static SymbolToFieldExtractor<GetResponse> SYMBOL_TO_FIELD_EXTRACTOR =
             new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
 
     private final static Set<ColumnIdent> FETCH_SOURCE_COLUMNS = ImmutableSet.of(DocSysColumns.DOC, DocSysColumns.RAW);
+    private final ProjectorFactory projectorFactory;
+    private final TransportActionProvider transportActionProvider;
+    private final ESGet esGet;
+
+    private final JobContextService jobContextService;
+    private final List<Function<GetResponse, Object>> extractors;
+    private final FetchSourceContext fsc;
+
+    static abstract class JobContext<Action extends TransportAction<Request, Response>,
+        Request extends ActionRequest, Response extends ActionResponse> extends AbstractExecutionSubContext
+        implements ActionListener<Response> {
+
+        private static final ESLogger LOGGER = Loggers.getLogger(JobContext.class);
+
+
+        private final Request request;
+        protected RowReceiver downstream;
+
+        private final Action transportAction;
+        protected final ESGetTask task;
+
+        JobContext(ESGetTask task, Action transportAction, RowReceiver downstream) {
+            super(task.esGet.executionPhaseId(), LOGGER);
+            this.task = task;
+            this.transportAction = transportAction;
+            this.request = prepareRequest(task.esGet, task.fsc);
+            this.downstream = downstream;
+        }
+
+        protected abstract Request prepareRequest(ESGet node, FetchSourceContext fsc);
+
+        @Override
+        protected void innerStart() {
+            transportAction.execute(request, this);
+        }
+    }
+
+    private static class MultiGetJobContext extends JobContext<TransportMultiGetAction, MultiGetRequest, MultiGetResponse> {
+
+
+        MultiGetJobContext(ESGetTask task,
+                           TransportMultiGetAction transportAction,
+                           RowReceiver downstream) {
+            super(task, transportAction, downstream);
+            assert task.esGet.docKeys().size() > 1;
+            assert task.projectorFactory != null;
+        }
+
+        @Override
+        protected void innerPrepare() throws Exception {
+            FlatProjectorChain projectorChain = getFlatProjectorChain(downstream);
+            downstream = projectorChain.firstProjector();
+            projectorChain.prepare();
+        }
+
+        private FlatProjectorChain getFlatProjectorChain(RowReceiver downstream) {
+            if (task.esGet.limit() > TopN.NO_LIMIT || task.esGet.offset() > 0 || !task.esGet.sortSymbols().isEmpty()) {
+                List<Symbol> orderBySymbols = new ArrayList<>(task.esGet.sortSymbols().size());
+                for (Symbol symbol : task.esGet.sortSymbols()) {
+                    int i = task.esGet.outputs().indexOf(symbol);
+                    if (i < 0) {
+                        orderBySymbols.add(new InputColumn(task.esGet.outputs().size() + orderBySymbols.size()));
+                    } else {
+                        orderBySymbols.add(new InputColumn(i));
+                    }
+                }
+                TopNProjection topNProjection = new TopNProjection(
+                    task.esGet.limit(),
+                    task.esGet.offset(),
+                    orderBySymbols,
+                    task.esGet.reverseFlags(),
+                    task.esGet.nullsFirst()
+                );
+                topNProjection.outputs(InputColumn.numInputs(task.esGet.outputs().size()));
+                return FlatProjectorChain.withAttachedDownstream(
+                    task.projectorFactory,
+                    null,
+                    ImmutableList.<Projection>of(topNProjection),
+                    downstream,
+                    task.jobId()
+                );
+            } else {
+                return FlatProjectorChain.withReceivers(ImmutableList.of(downstream));
+            }
+        }
+
+        @Override
+        public String name() {
+            return "MultiGet";
+        }
+
+        @Override
+        public void onResponse(MultiGetResponse responses) {
+            FieldExtractorRow<GetResponse> row = new FieldExtractorRow<>(task.extractors);
+            try {
+                loop:
+                for (MultiGetItemResponse response : responses) {
+                    if (response.isFailed() || !response.getResponse().isExists()) {
+                        continue;
+                    }
+                    row.setCurrent(response.getResponse());
+                    RowReceiver.Result result = downstream.setNextRow(row);
+                    switch (result) {
+                        case CONTINUE:
+                            continue;
+                        case PAUSE:
+                            throw new UnsupportedOperationException("ESGetTask doesn't support pause");
+                        case STOP:
+                            break loop;
+                    }
+                    throw new AssertionError("Unrecognized setNextRow result: " + result);
+                }
+                downstream.finish(RepeatHandle.UNSUPPORTED);
+                close();
+            } catch (Exception e) {
+                downstream.fail(e);
+                close(e);
+            }
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            downstream.fail(e);
+            close(e);
+        }
+
+        @Override
+        protected MultiGetRequest prepareRequest(ESGet node, FetchSourceContext fsc) {
+            MultiGetRequest multiGetRequest = new MultiGetRequest();
+            for (DocKeys.DocKey key : node.docKeys()) {
+                MultiGetRequest.Item item = new MultiGetRequest.Item(
+                    indexName(node.tableInfo(), key.partitionValues().orNull()), Constants.DEFAULT_MAPPING_TYPE, key.id());
+                item.fetchSourceContext(fsc);
+                item.routing(key.routing());
+                multiGetRequest.add(item);
+            }
+            multiGetRequest.realtime(true);
+            return multiGetRequest;
+        }
+    }
+
+    private static class SingleGetJobContext extends JobContext<TransportGetAction, GetRequest, GetResponse> {
+
+        private final FieldExtractorRow<GetResponse> row;
+
+        SingleGetJobContext(ESGetTask task,
+                            TransportGetAction transportAction,
+                            RowReceiver downstream) {
+            super(task, transportAction, downstream);
+            assert task.esGet.docKeys().size() == 1;
+            this.row = new FieldExtractorRow<>(task.extractors);
+        }
+
+        @Override
+        public String name() {
+            return "SingleGet";
+        }
+
+        @Override
+        protected GetRequest prepareRequest(ESGet node, FetchSourceContext fsc) {
+            DocKeys.DocKey docKey = node.docKeys().getOnlyKey();
+            GetRequest getRequest = new GetRequest(indexName(node.tableInfo(), docKey.partitionValues().orNull()),
+                Constants.DEFAULT_MAPPING_TYPE, docKey.id());
+            getRequest.fetchSourceContext(fsc);
+            getRequest.realtime(true);
+            getRequest.routing(docKey.routing());
+            return getRequest;
+        }
+
+        @Override
+        public void onResponse(GetResponse response) {
+            if (response.isExists()) {
+                row.setCurrent(response);
+                downstream.setNextRow(row);
+            }
+            downstream.finish(RepeatHandle.UNSUPPORTED);
+            close();
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            if (task.esGet.tableInfo().isPartitioned() && e instanceof IndexNotFoundException) {
+                // this means we have no matching document
+                downstream.finish(RepeatHandle.UNSUPPORTED);
+                close();
+            } else{
+                downstream.fail(e);
+                close(e);
+            }
+        }
+    }
+
 
     public ESGetTask(Functions functions,
                      ProjectorFactory projectorFactory,
-                     TransportMultiGetAction multiGetAction,
-                     TransportGetAction getAction,
+                     TransportActionProvider transportActionProvider,
                      ESGet esGet,
                      JobContextService jobContextService) {
-        super(esGet.jobId(), esGet.executionPhaseId(), 1, jobContextService);
+        super(esGet.jobId());
+        this.projectorFactory = projectorFactory;
+        this.transportActionProvider = transportActionProvider;
+        this.esGet = esGet;
+        this.jobContextService = jobContextService;
 
-        assert multiGetAction != null;
-        assert getAction != null;
         assert esGet.docKeys().size() > 0;
         assert esGet.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
 
-        ActionListener listener;
-        ActionRequest request;
-        TransportAction transportAction;
-        FlatProjectorChain projectorChain = null;
-
-        SettableFuture<TaskResult> result = SettableFuture.create();
-        results.add(result);
-
         GetResponseContext ctx = new GetResponseContext(functions, esGet);
-        List<Function<GetResponse, Object>> extractors = getFieldExtractors(esGet, ctx);
-        FetchSourceContext fsc = getFetchSourceContext(ctx.references());
-        if (esGet.docKeys().size() > 1) {
-            request = prepareMultiGetRequest(esGet, fsc);
-            transportAction = multiGetAction;
-            QueryResultRowDownstream queryResultRowDownstream = new QueryResultRowDownstream(result);
-            projectorChain = getFlatProjectorChain(projectorFactory, esGet, queryResultRowDownstream);
-            RowReceiver rowReceiver = projectorChain.firstProjector();
-            listener = new MultiGetResponseListener(extractors, rowReceiver);
-        } else {
-            request = prepareGetRequest(esGet, fsc);
-            transportAction = getAction;
-            listener = new GetResponseListener(result, extractors, esGet.tableInfo().isPartitioned());
-        }
+        extractors = getFieldExtractors(esGet, ctx);
+        fsc = getFetchSourceContext(ctx.references());
+    }
 
-        createContextBuilder("lookup by primary key", ImmutableList.of(request), ImmutableList.of(listener),
-                transportAction, projectorChain);
+    @Override
+    public void execute(RowReceiver rowReceiver) {
+        JobContext jobContext;
+        if (esGet.docKeys().size() == 1) {
+            jobContext = new SingleGetJobContext(this, transportActionProvider.transportGetAction(), rowReceiver);
+        } else {
+            jobContext = new MultiGetJobContext(this, transportActionProvider.transportMultiGetAction(), rowReceiver);
+        }
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
+        builder.addSubContext(jobContext);
+
+        try {
+            JobExecutionContext ctx = jobContextService.createContext(builder);
+            ctx.start();
+        } catch (Throwable throwable) {
+            rowReceiver.fail(throwable);
+        }
     }
 
     private static FetchSourceContext getFetchSourceContext(List<Reference> references) {
@@ -132,149 +322,12 @@ public class ESGetTask extends EsJobContextTask {
         return extractors;
     }
 
-    public static String indexName(DocTableInfo tableInfo, Optional<List<BytesRef>> values) {
+    public static String indexName(DocTableInfo tableInfo, @Nullable List<BytesRef> values) {
         if (tableInfo.isPartitioned()) {
-            return new PartitionName(tableInfo.ident(), values.get()).asIndexName();
+            assert values != null;
+            return new PartitionName(tableInfo.ident(), values).asIndexName();
         } else {
             return tableInfo.ident().indexName();
-        }
-    }
-
-    private GetRequest prepareGetRequest(ESGet node, FetchSourceContext fsc) {
-        DocKeys.DocKey docKey = node.docKeys().getOnlyKey();
-        GetRequest getRequest = new GetRequest(indexName(node.tableInfo(), docKey.partitionValues()),
-                Constants.DEFAULT_MAPPING_TYPE, docKey.id());
-        getRequest.fetchSourceContext(fsc);
-        getRequest.realtime(true);
-        getRequest.routing(docKey.routing());
-        return getRequest;
-    }
-
-    private MultiGetRequest prepareMultiGetRequest(ESGet node, FetchSourceContext fsc) {
-        MultiGetRequest multiGetRequest = new MultiGetRequest();
-        for (DocKeys.DocKey key : node.docKeys()) {
-            MultiGetRequest.Item item = new MultiGetRequest.Item(
-                    indexName(node.tableInfo(), key.partitionValues()), Constants.DEFAULT_MAPPING_TYPE, key.id());
-            item.fetchSourceContext(fsc);
-            item.routing(key.routing());
-            multiGetRequest.add(item);
-        }
-        multiGetRequest.realtime(true);
-        return multiGetRequest;
-    }
-
-    private FlatProjectorChain getFlatProjectorChain(ProjectorFactory projectorFactory,
-                                                     ESGet node,
-                                                     QueryResultRowDownstream queryResultRowDownstream) {
-        if (node.limit() > TopN.NO_LIMIT || node.offset() > 0 || !node.sortSymbols().isEmpty()) {
-            List<Symbol> orderBySymbols = new ArrayList<>(node.sortSymbols().size());
-            for (Symbol symbol : node.sortSymbols()) {
-                int i = node.outputs().indexOf(symbol);
-                if (i < 0) {
-                    orderBySymbols.add(new InputColumn(node.outputs().size() + orderBySymbols.size()));
-                } else {
-                    orderBySymbols.add(new InputColumn(i));
-                }
-            }
-            TopNProjection topNProjection = new TopNProjection(
-                    node.limit(),
-                    node.offset(),
-                    orderBySymbols,
-                    node.reverseFlags(),
-                    node.nullsFirst()
-            );
-            topNProjection.outputs(InputColumn.numInputs(node.outputs().size()));
-            return FlatProjectorChain.withAttachedDownstream(
-                    projectorFactory,
-                    null,
-                    ImmutableList.<Projection>of(topNProjection),
-                    queryResultRowDownstream,
-                    jobId()
-            );
-        } else {
-            return FlatProjectorChain.withReceivers(ImmutableList.of(queryResultRowDownstream));
-        }
-    }
-
-
-    private static class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
-
-        private final List<Function<GetResponse, Object>> fieldExtractors;
-        private final RowReceiver downstream;
-
-        MultiGetResponseListener(List<Function<GetResponse, Object>> extractors,
-                                 RowReceiver rowDownstreamHandle) {
-            downstream = rowDownstreamHandle;
-            this.fieldExtractors = extractors;
-        }
-
-
-        @Override
-        public void onResponse(MultiGetResponse responses) {
-            FieldExtractorRow<GetResponse> row = new FieldExtractorRow<>(fieldExtractors);
-            try {
-                loop:
-                for (MultiGetItemResponse response : responses) {
-                    if (response.isFailed() || !response.getResponse().isExists()) {
-                        continue;
-                    }
-                    row.setCurrent(response.getResponse());
-                    RowReceiver.Result result = downstream.setNextRow(row);
-                    switch (result) {
-                        case CONTINUE:
-                            continue;
-                        case PAUSE:
-                            throw new UnsupportedOperationException("ESGetTask doesn't support pause");
-                        case STOP:
-                            break loop;
-                    }
-                    throw new AssertionError("Unrecognized setNextRow result: " + result);
-                }
-                downstream.finish(RepeatHandle.UNSUPPORTED);
-            } catch (Exception e) {
-                downstream.fail(e);
-            }
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            downstream.fail(e);
-        }
-    }
-
-    private static class GetResponseListener implements ActionListener<GetResponse> {
-
-        private final Bucket bucket;
-        private final FieldExtractorRow<GetResponse> row;
-        private final SettableFuture<TaskResult> result;
-        private final boolean isPartitionedTable;
-
-        GetResponseListener(SettableFuture<TaskResult> result,
-                            List<Function<GetResponse, Object>> extractors,
-                            boolean isPartitionedTable) {
-            this.result = result;
-            this.isPartitionedTable = isPartitionedTable;
-            row = new FieldExtractorRow<>(extractors);
-            bucket = Buckets.of(row);
-        }
-
-        @Override
-        public void onResponse(GetResponse response) {
-            if (!response.isExists()) {
-                result.set(TaskResult.EMPTY_RESULT);
-                return;
-            }
-            row.setCurrent(response);
-            result.set(new QueryResult(bucket));
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            if (isPartitionedTable && e instanceof IndexNotFoundException) {
-                result.set(TaskResult.EMPTY_RESULT);
-                return;
-            }
-            result.setException(e);
         }
     }
 

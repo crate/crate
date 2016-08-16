@@ -25,7 +25,6 @@ package io.crate.executor.task;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Row1;
 import io.crate.executor.Task;
-import io.crate.executor.TaskResult;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.PlanPrinter;
@@ -54,7 +53,7 @@ public class ExplainTask implements Task {
     }
 
     @Override
-    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
+    public ListenableFuture<List<Long>> executeBulk() {
         throw new UnsupportedOperationException("ExplainTask cannot be executed as bulk operation");
     }
 }

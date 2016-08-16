@@ -64,6 +64,10 @@ public class CollectingRowReceiver implements RowReceiver {
     public void prepare() {
     }
 
+    public SettableFuture<Bucket> resultFuture() {
+        return resultFuture;
+    }
+
     @Override
     public Set<Requirement> requirements() {
         return Requirements.NO_REQUIREMENTS;

@@ -21,13 +21,13 @@
 
 package io.crate.executor.transport.task;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
-import io.crate.executor.TaskResult;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.ddl.DropTablePlan;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -43,11 +43,10 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 
-import java.util.List;
-
 public class DropTableTask extends JobTask {
 
-    private static final TaskResult SUCCESS_RESULT = TaskResult.ONE_ROW;
+    private static final Row ROW_ZERO = new Row1(0L);
+    private static final Row ROW_ONE = new Row1(1L);
 
     private static final ESLogger logger = Loggers.getLogger(DropTableTask.class);
 
@@ -55,7 +54,6 @@ public class DropTableTask extends JobTask {
     private final TransportDeleteIndexTemplateAction deleteTemplateAction;
     private final TransportDeleteIndexAction deleteIndexAction;
     private final boolean ifExists;
-    private final SettableFuture<TaskResult> result;
 
     public DropTableTask(DropTablePlan plan,
                          TransportDeleteIndexTemplateAction deleteTemplateAction,
@@ -65,12 +63,10 @@ public class DropTableTask extends JobTask {
         this.tableInfo = plan.tableInfo();
         this.deleteTemplateAction = deleteTemplateAction;
         this.deleteIndexAction = deleteIndexAction;
-        this.result = SettableFuture.create();
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver) {
-        JobTask.resultToRowReceiver(result, rowReceiver);
+    public void execute(final RowReceiver rowReceiver) {
         if (tableInfo.isPartitioned()) {
             String templateName = PartitionName.templateName(tableInfo.ident().schema(), tableInfo.ident().name());
             deleteTemplateAction.execute(new DeleteIndexTemplateRequest(templateName), new ActionListener<DeleteIndexTemplateResponse>() {
@@ -80,9 +76,9 @@ public class DropTableTask extends JobTask {
                         warnNotAcknowledged();
                     }
                     if (!tableInfo.partitions().isEmpty()) {
-                        deleteESIndex(tableInfo.ident().indexName());
+                        deleteESIndex(tableInfo.ident().indexName(), rowReceiver);
                     } else {
-                        result.set(SUCCESS_RESULT);
+                        RowReceivers.sendOneRow(rowReceiver, ROW_ONE);
                     }
                 }
 
@@ -91,23 +87,18 @@ public class DropTableTask extends JobTask {
                     e = ExceptionsHelper.unwrapCause(e);
                     if (e instanceof IndexTemplateMissingException && !tableInfo.partitions().isEmpty()) {
                         logger.warn(e.getMessage());
-                        deleteESIndex(tableInfo.ident().indexName());
+                        deleteESIndex(tableInfo.ident().indexName(), rowReceiver);
                     } else {
-                        result.setException(e);
+                        rowReceiver.fail(e);
                     }
                 }
             });
         } else {
-            deleteESIndex(tableInfo.ident().indexName());
+            deleteESIndex(tableInfo.ident().indexName(), rowReceiver);
         }
     }
 
-    @Override
-    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
-        throw new UnsupportedOperationException("drop table task cannot be executed as bulk operation");
-    }
-
-    private void deleteESIndex(String indexOrAlias) {
+    private void deleteESIndex(String indexOrAlias, final RowReceiver rowReceiver) {
         DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(indexOrAlias);
         if (tableInfo.isPartitioned()) {
             deleteIndexRequest.indicesOptions(IndicesOptions.lenientExpandOpen());
@@ -118,7 +109,7 @@ public class DropTableTask extends JobTask {
                 if (!response.isAcknowledged()) {
                     warnNotAcknowledged();
                 }
-                result.set(SUCCESS_RESULT);
+                RowReceivers.sendOneRow(rowReceiver, ROW_ONE);
             }
 
             @Override
@@ -129,9 +120,9 @@ public class DropTableTask extends JobTask {
                                 "but are not accessible.", e, tableInfo.ident().fqn());
                 }
                 if (ifExists && e instanceof IndexNotFoundException) {
-                    result.set(TaskResult.ZERO);
+                    RowReceivers.sendOneRow(rowReceiver, ROW_ZERO);
                 } else {
-                    result.setException(e);
+                    rowReceiver.fail(e);
                 }
             }
         });

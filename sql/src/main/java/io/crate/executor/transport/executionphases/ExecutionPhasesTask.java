@@ -33,7 +33,6 @@ import io.crate.action.job.SharedShardContexts;
 import io.crate.action.job.TransportJobAction;
 import io.crate.core.collections.Bucket;
 import io.crate.executor.JobTask;
-import io.crate.executor.TaskResult;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.*;
 import io.crate.operation.NodeOperation;
@@ -115,7 +114,7 @@ public class ExecutionPhasesTask extends JobTask {
     }
 
     @Override
-    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
+    public ListenableFuture<List<Long>> executeBulk() {
         FluentIterable<NodeOperation> nodeOperations = FluentIterable.from(nodeOperationTrees)
             .transformAndConcat(new Function<NodeOperationTree, Iterable<? extends NodeOperation>>() {
                 @Nullable
@@ -128,9 +127,9 @@ public class ExecutionPhasesTask extends JobTask {
         InitializationTracker initializationTracker = new InitializationTracker(operationByServer.size());
 
         List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases = new ArrayList<>(nodeOperationTrees.size());
-        List<SettableFuture<TaskResult>> results = new ArrayList<>(nodeOperationTrees.size());
+        List<SettableFuture<Long>> results = new ArrayList<>(nodeOperationTrees.size());
         for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
-            SettableFuture<TaskResult> result = SettableFuture.create();
+            SettableFuture<Long> result = SettableFuture.create();
             results.add(result);
             RowReceiver receiver = new InterceptingRowReceiver(
                 jobId(),
@@ -143,11 +142,9 @@ public class ExecutionPhasesTask extends JobTask {
         try {
             setupContext(operationByServer, handlerPhases, initializationTracker);
         } catch (Throwable throwable) {
-            for (SettableFuture<TaskResult> result : results) {
-                result.setException(throwable);
-            }
+            return Futures.immediateFailedFuture(throwable);
         }
-        return results;
+        return Futures.successfulAsList(results);
     }
 
     private void setupContext(Map<String, Collection<NodeOperation>> operationByServer,

@@ -23,7 +23,6 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.executor.TaskResult;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
@@ -52,7 +51,7 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         execute("optimize table test");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows(), is(TaskResult.EMPTY_OBJS));
+        assertThat(response.rows().length, is(0));
 
         execute("select count(*) from test");
         assertThat((Long) response.rows()[0][0], is(2L));
@@ -70,7 +69,7 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         execute("optimize table test with (max_num_segments=1, only_expunge_deletes=true)");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows(), is(TaskResult.EMPTY_OBJS));
+        assertThat(response.rows().length, is(0));
 
         execute("select count(*) from test");
         assertThat((Long) response.rows()[0][0], is(2L));
@@ -107,7 +106,7 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         execute("optimize table parted");
         assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows(), is(TaskResult.EMPTY_OBJS));
+        assertThat(response.rows().length, is(0));
 
         // assert that all data is available after optimize
         execute("select count(*) from parted");
@@ -137,7 +136,7 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         execute("optimize table parted PARTITION (date='1970-01-01')");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows(), is(TaskResult.EMPTY_OBJS));
+        assertThat(response.rows().length, is(0));
 
         // assert all partition rows are available after optimize
         execute("select * from parted where date='1970-01-01'");
@@ -179,7 +178,7 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
         execute("optimize table t1 partition (age=50, date='1970-01-07')," +
                 "               t1 partition (age=90, date='1970-01-01')");
         assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows(), is(TaskResult.EMPTY_OBJS));
+        assertThat(response.rows().length, is(0));
 
         execute("select * from t1");
         assertThat(response.rowCount(), is(2L));

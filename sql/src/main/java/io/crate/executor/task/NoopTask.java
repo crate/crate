@@ -21,24 +21,19 @@
 
 package io.crate.executor.task;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Task;
-import io.crate.executor.TaskResult;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 
+import java.util.Collections;
 import java.util.List;
 
 public class NoopTask implements Task {
 
-    private static final List<ListenableFuture<TaskResult>> EMPTY_RESULT =
-        ImmutableList.of(
-            Futures.immediateFuture((TaskResult) TaskResult.EMPTY_RESULT)
-        );
-
     public static final NoopTask INSTANCE = new NoopTask();
+    private static final ListenableFuture<List<Long>> EMPTY_RESULT = Futures.immediateFuture(Collections.<Long>emptyList());
 
     private NoopTask() {
     }
@@ -49,7 +44,7 @@ public class NoopTask implements Task {
     }
 
     @Override
-    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
+    public ListenableFuture<List<Long>> executeBulk() {
         return EMPTY_RESULT;
     }
 }

@@ -78,7 +78,7 @@ public class RemoteCollectorIntegrationTest extends SQLTransportIntegrationTest 
             .setWaitForRelocatingShards(0)
             .setTimeout(TimeValue.timeValueSeconds(5)).execute().actionGet();
 
-        execute(plan).get(1, TimeUnit.SECONDS);
+        execute(plan).resultFuture().get(1, TimeUnit.SECONDS);
 
         execute("refresh table t");
         assertThat(TestingHelpers.printedTable(execute("select * from t order by id").rows()),

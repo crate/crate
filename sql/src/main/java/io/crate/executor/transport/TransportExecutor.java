@@ -25,12 +25,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.sql.DDLStatementDispatcher;
-import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.executor.Executor;
 import io.crate.executor.Task;
-import io.crate.executor.TaskResult;
 import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.ExplainTask;
 import io.crate.executor.task.NoopTask;
@@ -149,7 +147,7 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public List<? extends ListenableFuture<TaskResult>> executeBulk(Plan plan) {
+    public ListenableFuture<List<Long>> executeBulk(Plan plan) {
         Task task = plan2TaskVisitor.process(plan, null);
         return task.executeBulk();
     }
@@ -197,8 +195,7 @@ public class TransportExecutor implements Executor {
             return new ESGetTask(
                 functions,
                 globalProjectionToProjectionVisitor,
-                transportActionProvider.transportMultiGetAction(),
-                transportActionProvider.transportGetAction(),
+                transportActionProvider,
                 plan,
                 jobContextService);
         }

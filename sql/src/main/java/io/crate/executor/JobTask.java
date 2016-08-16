@@ -21,15 +21,9 @@
 
 package io.crate.executor;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.Row;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.util.List;
 import java.util.UUID;
 
 public abstract class JobTask implements Task {
@@ -44,23 +38,9 @@ public abstract class JobTask implements Task {
         return this.jobId;
     }
 
-
-    public static void resultToRowReceiver(final ListenableFuture<? extends TaskResult> resultFuture, final RowReceiver rowReceiver) {
-        Futures.addCallback(resultFuture, new FutureCallback<TaskResult>() {
-            @Override
-            public void onSuccess(@Nullable TaskResult result) {
-                if (result != null) {
-                    for (Row row : result.rows()) {
-                        rowReceiver.setNextRow(row);
-                    }
-                }
-                rowReceiver.finish(RepeatHandle.UNSUPPORTED);
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                rowReceiver.fail(t);
-            }
-        });
+    @Override
+    public ListenableFuture<List<Long>> executeBulk() {
+        throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be executed as bulk operation");
     }
+
 }

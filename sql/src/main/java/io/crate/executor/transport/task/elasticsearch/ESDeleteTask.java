@@ -21,40 +21,63 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.where.DocKeys;
+import io.crate.core.collections.Row1;
 import io.crate.exceptions.Exceptions;
-import io.crate.executor.TaskResult;
+import io.crate.executor.JobTask;
+import io.crate.jobs.ESJobContext;
 import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
+import io.crate.operation.projectors.FlatProjectorChain;
+import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dml.ESDelete;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.delete.TransportDeleteAction;
+import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ESDeleteTask extends EsJobContextTask {
+public class ESDeleteTask extends JobTask {
+
+    protected final List<SettableFuture<Long>> results;
+    private final ESDelete esDelete;
+    private final JobContextService jobContextService;
+    protected JobExecutionContext.Builder builder;
 
     public ESDeleteTask(ESDelete esDelete,
                         TransportDeleteAction transport,
                         JobContextService jobContextService) {
-        super(esDelete.jobId(), esDelete.executionPhaseId(), esDelete.docKeys().size(), jobContextService);
+        super(esDelete.jobId());
+        this.esDelete = esDelete;
+        this.jobContextService = jobContextService;
+        results = new ArrayList<>(esDelete.docKeys().size());
+
         List<DeleteRequest> requests = new ArrayList<>(esDelete.docKeys().size());
         List<ActionListener> listeners = new ArrayList<>(esDelete.docKeys().size());
         for (DocKeys.DocKey docKey : esDelete.docKeys()) {
             DeleteRequest request = new DeleteRequest(
-                    ESGetTask.indexName(esDelete.tableInfo(), docKey.partitionValues()),
+                    ESGetTask.indexName(esDelete.tableInfo(), docKey.partitionValues().orNull()),
                     Constants.DEFAULT_MAPPING_TYPE, docKey.id());
             request.routing(docKey.routing());
             if (docKey.version().isPresent()) {
+                //noinspection OptionalGetWithoutIsPresent
                 request.version(docKey.version().get());
             }
             requests.add(request);
-            SettableFuture<TaskResult> result = SettableFuture.create();
+            SettableFuture<Long> result = SettableFuture.create();
             results.add(result);
             listeners.add(new DeleteResponseListener(result));
         }
@@ -62,20 +85,60 @@ public class ESDeleteTask extends EsJobContextTask {
         createContextBuilder("delete", requests, listeners, transport, null);
     }
 
+    private void createContextBuilder(String operationName,
+                                      List<? extends ActionRequest> requests,
+                                      List<? extends ActionListener> listeners,
+                                      TransportAction transportAction,
+                                      @Nullable FlatProjectorChain projectorChain) {
+        ESJobContext esJobContext = new ESJobContext(esDelete.executionPhaseId(), operationName,
+            requests, listeners, results, transportAction, projectorChain);
+        builder = jobContextService.newBuilder(jobId());
+        builder.addSubContext(esJobContext);
+    }
+
+    private void startContext() throws Throwable {
+        assert builder != null : "Context must be created first";
+        JobExecutionContext ctx = jobContextService.createContext(builder);
+        ctx.start();
+    }
+
+    @Override
+    public void execute(final RowReceiver rowReceiver) {
+        SettableFuture<Long> result = results.get(0);
+        try {
+            startContext();
+        } catch (Throwable throwable) {
+            rowReceiver.fail(throwable);
+            return;
+        }
+        Futures.addCallback(result, new FutureCallback<Long>() {
+            @Override
+            public void onSuccess(@Nullable Long result) {
+                RowReceivers.sendOneRow(rowReceiver, new Row1(result));
+            }
+
+            @Override
+            public void onFailure(@Nonnull Throwable t) {
+                rowReceiver.fail(t);
+            }
+        });
+    }
+
+
     private static class DeleteResponseListener implements ActionListener<DeleteResponse> {
 
-        private final SettableFuture<TaskResult> result;
+        private final SettableFuture<Long> result;
 
-        DeleteResponseListener(SettableFuture<TaskResult> result) {
+        DeleteResponseListener(SettableFuture<Long> result) {
             this.result = result;
         }
 
         @Override
         public void onResponse(DeleteResponse response) {
             if (!response.isFound()) {
-                result.set(TaskResult.ZERO);
+                result.set(0L);
             } else {
-                result.set(TaskResult.ONE_ROW);
+                result.set(1L);
             }
         }
 
@@ -84,10 +147,22 @@ public class ESDeleteTask extends EsJobContextTask {
             e = Exceptions.unwrap(e); // unwrap to get rid of RemoteTransportException
             if (e instanceof VersionConflictEngineException) {
                 // treat version conflict as rows affected = 0
-                result.set(TaskResult.ZERO);
+                result.set(0L);
             } else {
                 result.setException(e);
             }
         }
     }
+
+    @Override
+    public final ListenableFuture<List<Long>> executeBulk() {
+        try {
+            startContext();
+        } catch (Throwable throwable) {
+            return Futures.immediateFailedFuture(throwable);
+        }
+        return Futures.successfulAsList(results);
+    }
+
+
 }

@@ -22,6 +22,8 @@
 package io.crate.executor;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;
 
@@ -29,7 +31,10 @@ import java.util.List;
 
 public interface Executor {
 
+    long ROWCOUNT_ERROR = -2L;
+    long ROWCOUNT_UNKNOWN = -1L;
+
     void execute(Plan plan, RowReceiver rowReceiver);
 
-    List<? extends ListenableFuture<TaskResult>> executeBulk(Plan plan);
+    ListenableFuture<List<Long>> executeBulk(Plan plan);
 }

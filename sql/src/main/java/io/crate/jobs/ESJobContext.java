@@ -22,7 +22,6 @@
 package io.crate.jobs;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.TaskResult;
 import io.crate.operation.projectors.FlatProjectorChain;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
@@ -33,7 +32,6 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.concurrent.Future;
 
 public class ESJobContext extends AbstractExecutionSubContext {
 
@@ -42,9 +40,8 @@ public class ESJobContext extends AbstractExecutionSubContext {
     private final List<? extends ActionListener> listeners;
     private String operationName;
     private final List<? extends ActionRequest> requests;
-    private final List<SettableFuture<TaskResult>> resultFutures;
+    private final List<SettableFuture<Long>> resultFutures;
     private final TransportAction transportAction;
-
 
     @Nullable
     private final FlatProjectorChain projectorChain;
@@ -53,7 +50,7 @@ public class ESJobContext extends AbstractExecutionSubContext {
                         String operationName,
                         List<? extends ActionRequest> requests,
                         List<? extends ActionListener> listeners,
-                        List<SettableFuture<TaskResult>> resultFutures,
+                        List<SettableFuture<Long>> resultFutures,
                         TransportAction transportAction,
                         @Nullable FlatProjectorChain projectorChain) {
         super(id, LOGGER);
@@ -81,7 +78,7 @@ public class ESJobContext extends AbstractExecutionSubContext {
 
     @Override
     protected void innerKill(@Nonnull Throwable t) {
-        for (Future<?> resultFuture : resultFutures) {
+        for (SettableFuture<Long> resultFuture : resultFutures) {
             resultFuture.cancel(true);
         }
     }
@@ -89,7 +86,7 @@ public class ESJobContext extends AbstractExecutionSubContext {
     @Override
     protected void innerClose(@Nullable Throwable t) {
         if (t != null) {
-            for (SettableFuture<TaskResult> resultFuture : resultFutures) {
+            for (SettableFuture<Long> resultFuture : resultFutures) {
                 if (!resultFuture.isDone()) {
                     resultFuture.setException(t);
                 }
@@ -106,13 +103,14 @@ public class ESJobContext extends AbstractExecutionSubContext {
         private final ActionListener listener;
         private final ESJobContext context;
 
-        public InternalActionListener(ActionListener listener, ESJobContext context) {
+        InternalActionListener(ActionListener listener, ESJobContext context) {
             this.listener = listener;
             this.context = context;
         }
 
         @Override
         public void onResponse(Object o) {
+            //noinspection unchecked
             listener.onResponse(o);
             context.close(null);
         }

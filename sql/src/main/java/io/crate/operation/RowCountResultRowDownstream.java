@@ -23,8 +23,6 @@ package io.crate.operation;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Row;
-import io.crate.executor.RowCountResult;
-import io.crate.executor.TaskResult;
 import io.crate.operation.projectors.*;
 
 import javax.annotation.Nonnull;
@@ -38,11 +36,11 @@ import java.util.Set;
  */
 public class RowCountResultRowDownstream implements RowReceiver {
 
-    private final SettableFuture<TaskResult> result;
+    private final SettableFuture<Long> result;
     private final List<Object[]> rows = new ArrayList<>();
     private RowReceiver.Result nextRowResult = Result.CONTINUE;
 
-    public RowCountResultRowDownstream(SettableFuture<TaskResult> result) {
+    public RowCountResultRowDownstream(SettableFuture<Long> result) {
         this.result = result;
     }
 
@@ -58,7 +56,7 @@ public class RowCountResultRowDownstream implements RowReceiver {
 
     @Override
     public void finish(RepeatHandle repeatHandle) {
-        result.set(new RowCountResult(((long) rows.iterator().next()[0])));
+        result.set((long) rows.iterator().next()[0]);
     }
 
     @Override

@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.SQLResponse;
-import io.crate.executor.TaskResult;
+import io.crate.core.collections.Bucket;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
@@ -171,35 +171,34 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         relocatingThread.join();
     }
 
-    private TaskResult deletePartitionsAndExecutePlan(String stmt) throws Exception {
+    private Bucket deletePartitionsAndExecutePlan(String stmt) throws Exception {
         execute("create table t (name string, p string) partitioned by (p)");
         execute("insert into t (name, p) values ('Arthur', 'a'), ('Trillian', 't')");
         ensureYellow();
 
         PlanForNode plan = plan(stmt);
         execute("delete from t");
-        ListenableFuture<TaskResult> future = execute(plan);
-        return future.get(500, TimeUnit.MILLISECONDS);
+        return execute(plan).resultFuture().get(500, TimeUnit.MILLISECONDS);
     }
 
     @Test
     public void testTableUnknownExceptionIsNotRaisedIfPartitionsAreDeletedAfterPlan() throws Exception {
-        TaskResult taskResult = deletePartitionsAndExecutePlan("select * from t");
-        assertThat(taskResult.rows().size(), is(0));
+        Bucket bucket = deletePartitionsAndExecutePlan("select * from t");
+        assertThat(bucket.size(), is(0));
     }
 
     @Test
     public void testTableUnknownExceptionIsNotRaisedIfPartitionsAreDeletedAfterPlanSingleNode() throws Exception {
         // with a sinlge node, this test leads to empty shard collectors
         internalCluster().ensureAtMostNumDataNodes(1);
-        TaskResult taskResult = deletePartitionsAndExecutePlan("select * from t");
-        assertThat(taskResult.rows().size(), is(0));
+        Bucket bucket = deletePartitionsAndExecutePlan("select * from t");
+        assertThat(bucket.size(), is(0));
     }
 
     @Test
     public void testTableUnknownExceptionNotRaisedIfPartitionsDeletedAfterCountPlan() throws Exception {
-        TaskResult taskResult = deletePartitionsAndExecutePlan("select count(*) from t");
-        assertThat((Long) taskResult.rows().iterator().next().get(0), is(0L));
+        Bucket bucket = deletePartitionsAndExecutePlan("select count(*) from t");
+        assertThat((Long) bucket.iterator().next().get(0), is(0L));
     }
 
     @Test
@@ -211,7 +210,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         PlanForNode plan = plan("refresh table t"); // create a plan in which the partitions exist
         execute("delete from t");
 
-        ListenableFuture<TaskResult> future = execute(plan); // execute now that the partitions are gone
+        ListenableFuture<Bucket> future = execute(plan).resultFuture(); // execute now that the partitions are gone
         // shouldn't throw an exception:
         future.get(500, TimeUnit.MILLISECONDS);
     }
@@ -225,7 +224,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         PlanForNode plan = plan("optimize table t"); // create a plan in which the partitions exist
         execute("delete from t");
 
-        ListenableFuture<TaskResult> future = execute(plan); // execute now that the partitions are gone
+        ListenableFuture<Bucket> future = execute(plan).resultFuture(); // execute now that the partitions are gone
         // shouldn't throw an exception:
         future.get(500, TimeUnit.MILLISECONDS);
     }

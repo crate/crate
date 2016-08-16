@@ -22,7 +22,6 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Function;
@@ -30,8 +29,6 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
-import io.crate.executor.RowCountResult;
-import io.crate.executor.TaskResult;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
@@ -59,7 +56,6 @@ import java.util.*;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
 public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
@@ -337,14 +333,11 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         childNodes.add(new CollectAndMerge(collectPhase2, mergeNode2));
 
         Upsert plan = new Upsert(childNodes, plannerContext.jobId());
-        List<? extends ListenableFuture<TaskResult>> results = executor.executeBulk(plan);
+        List<Long> results = executor.executeBulk(plan).get();
         assertThat(results.size(), is(2));
 
-        for (ListenableFuture<TaskResult> result1 : results) {
-            TaskResult result = result1.get();
-            assertThat(result, instanceOf(RowCountResult.class));
-            // each of the bulk request hits 2 records
-            assertThat(((RowCountResult) result).rowCount(), is(2L));
+        for (Long result : results) {
+            assertThat(result, is(2L));
         }
     }
 }

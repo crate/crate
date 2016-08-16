@@ -23,12 +23,9 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.action.sql.ResultReceiver;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
-import io.crate.executor.TaskResult;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ddl.ESDeletePartition;
@@ -36,8 +33,6 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.support.IndicesOptions;
-
-import java.util.List;
 
 public class ESDeletePartitionTask extends JobTask {
 
@@ -50,11 +45,6 @@ public class ESDeletePartitionTask extends JobTask {
     public void execute(RowReceiver rowReceiver) {
         OneRowActionListener<DeleteIndexResponse> actionListener = new OneRowActionListener<>(rowReceiver, TO_UNKNOWN_COUNT_ROW);
         transport.execute(request, actionListener);
-    }
-
-    @Override
-    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
-        throw new UnsupportedOperationException("delete partition task cannot be executed as bulk operation");
     }
 
     public ESDeletePartitionTask(ESDeletePartition esDeletePartition, TransportDeleteIndexAction transport) {

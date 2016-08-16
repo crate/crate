@@ -22,15 +22,12 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.executor.TaskResult;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.StmtCtx;
 import io.crate.metadata.TableIdent;
-import io.crate.operation.QueryResultRowDownstream;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.node.management.KillPlan;
@@ -86,11 +83,10 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
 
     @Test
     public void testKillTask() throws Exception {
-        SettableFuture<TaskResult> future = SettableFuture.create();
-        QueryResultRowDownstream rowDownstream = new QueryResultRowDownstream(future);
+        CollectingRowReceiver downstream = new CollectingRowReceiver();
         KillPlan plan = new KillPlan(UUID.randomUUID());
-        executor.execute(plan, rowDownstream);
-        future.get(5, TimeUnit.SECONDS);
+        executor.execute(plan, downstream);
+        downstream.resultFuture().get(5, TimeUnit.SECONDS);
     }
 
     protected Planner.Context newPlannerContext() {

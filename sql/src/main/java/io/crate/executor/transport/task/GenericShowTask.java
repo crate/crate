@@ -26,7 +26,6 @@ import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.AbstractShowAnalyzedStatement;
 import io.crate.core.collections.Row1;
 import io.crate.executor.Task;
-import io.crate.executor.TaskResult;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 
@@ -56,7 +55,7 @@ public class GenericShowTask implements Task {
     }
 
     @Override
-    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
+    public ListenableFuture<List<Long>> executeBulk() {
         throw new UnsupportedOperationException("show task cannot be executed as bulk operation");
     }
 }

@@ -1,8 +1,6 @@
 package io.crate.jobs;
 
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.concurrent.ContextCompletionListener;
-import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.planner.node.dml.UpsertById;
@@ -30,7 +28,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         super.setUp();
         ShardUpsertRequest request = mock(ShardUpsertRequest.class);
         UpsertById.Item item = mock(UpsertById.Item.class);
-        context = new UpsertByIdContext(1, request, item, SettableFuture.<TaskResult>create(), delegate);
+        context = new UpsertByIdContext(1, request, item, delegate);
         completionListener = new ContextCompletionListener();
         context.addListener(completionListener);
     }

@@ -24,25 +24,23 @@ package io.crate.protocols.postgres;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.concurrent.CompletionListener;
 import io.crate.core.collections.Row;
+import io.crate.core.collections.RowN;
 import io.crate.core.collections.Rows;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.executor.Executor;
-import io.crate.executor.TaskResult;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
@@ -136,16 +134,19 @@ class BulkPortal extends AbstractPortal {
 
     private void executeBulk(Executor executor, Plan plan, final UUID jobId,
                              final StatsTables statsTables, final CompletionListener listener) {
-        List<? extends ListenableFuture<TaskResult>> futures = executor.executeBulk(plan);
-        Futures.addCallback(Futures.allAsList(futures), new FutureCallback<List<TaskResult>>() {
+
+        Futures.addCallback(executor.executeBulk(plan), new FutureCallback<List<Long>>() {
             @Override
-            public void onSuccess(@Nullable List<TaskResult> result) {
+            public void onSuccess(@Nullable List<Long> result) {
                 assert result != null && result.size() == resultReceivers.size()
                     : "number of result must match number of rowReceivers";
 
+                Long[] cells = new Long[1];
+                RowN row = new RowN(cells);
                 for (int i = 0; i < result.size(); i++) {
+                    cells[0] = result.get(i);
                     ResultReceiver resultReceiver = resultReceivers.get(i);
-                    resultReceiver.setNextRow(result.get(i).rows().iterator().next());
+                    resultReceiver.setNextRow(row);
                     resultReceiver.allFinished();
                 }
                 listener.onSuccess(null);
@@ -153,12 +154,13 @@ class BulkPortal extends AbstractPortal {
             }
 
             @Override
-            public void onFailure(@Nonnull Throwable t) {
+            public void onFailure(Throwable t) {
                 for (ResultReceiver resultReceiver : resultReceivers) {
                     resultReceiver.fail(t);
                 }
                 listener.onFailure(t);
                 statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
+
             }
         });
     }

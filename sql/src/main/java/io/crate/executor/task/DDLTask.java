@@ -29,12 +29,10 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
-import io.crate.executor.TaskResult;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.UUID;
 
 public class DDLTask extends JobTask {
@@ -60,8 +58,4 @@ public class DDLTask extends JobTask {
         }));
     }
 
-    @Override
-    public List<? extends ListenableFuture<TaskResult>> executeBulk() {
-        throw new UnsupportedOperationException("DDL task cannot be executed as bulk operation");
-    }
 }

@@ -24,15 +24,12 @@ package io.crate.integrationtests;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Multimap;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.*;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.core.collections.Row;
-import io.crate.executor.TaskResult;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.executor.transport.TransportShardAction;
 import io.crate.executor.transport.TransportShardDeleteAction;
@@ -45,7 +42,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Paging;
-import io.crate.operation.QueryResultRowDownstream;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.plugin.BlobPlugin;
@@ -53,6 +49,7 @@ import io.crate.plugin.SQLPlugin;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.GroovyTestSanitizer;
+import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -312,11 +309,11 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return new PlanForNode(plan, nodeName);
     }
 
-    public ListenableFuture<TaskResult> execute(PlanForNode planForNode) {
+    public CollectingRowReceiver execute(PlanForNode planForNode) {
         TransportExecutor transportExecutor = internalCluster().getInstance(TransportExecutor.class, planForNode.nodeName);
-        SettableFuture<TaskResult> future = SettableFuture.create();
-        transportExecutor.execute(planForNode.plan, new QueryResultRowDownstream(future));
-        return future;
+        CollectingRowReceiver downstream = new CollectingRowReceiver();
+        transportExecutor.execute(planForNode.plan, downstream);
+        return downstream;
     }
 
     /**

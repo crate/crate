@@ -22,7 +22,6 @@
 package io.crate.jobs;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.TaskResult;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.PartitionName;
@@ -45,19 +44,21 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
 
     private final ShardUpsertRequest request;
     private final UpsertById.Item item;
-    private final SettableFuture<TaskResult> futureResult;
+    private final SettableFuture<Long> resultFuture = SettableFuture.create();
     private final BulkRequestExecutor transportShardUpsertActionDelegate;
 
     public UpsertByIdContext(int id,
                              ShardUpsertRequest request,
                              UpsertById.Item item,
-                             SettableFuture<TaskResult> futureResult,
                              BulkRequestExecutor transportShardUpsertActionDelegate) {
         super(id, LOGGER);
         this.request = request;
         this.item = item;
-        this.futureResult = futureResult;
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
+    }
+
+    public SettableFuture<Long> resultFuture() {
+        return resultFuture;
     }
 
     @Override
@@ -75,7 +76,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
 
                 ShardResponse.Failure failure = updateResponse.failures().get(location);
                 if (failure == null) {
-                    futureResult.set(TaskResult.ONE_ROW);
+                    resultFuture.set(1L);
                 } else {
                     if (logger.isDebugEnabled()) {
                         if (failure.versionConflict()) {
@@ -84,7 +85,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                             logger.debug("Upsert of document with id {} failed {}", failure.id(), failure.message());
                         }
                     }
-                    futureResult.set(TaskResult.ZERO);
+                    resultFuture.set(0L);
                 }
                 close(null);
             }
@@ -99,13 +100,13 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                         && (e instanceof DocumentMissingException
                         || e instanceof VersionConflictEngineException)) {
                     // on updates, set affected row to 0 if document is not found or version conflicted
-                    futureResult.set(TaskResult.ZERO);
+                    resultFuture.set(0L);
                 } else if (PartitionName.isPartition(request.index())
                            && e instanceof IndexNotFoundException) {
                     // index missing exception on a partition should never bubble, set affected row to 0
-                    futureResult.set(TaskResult.ZERO);
+                    resultFuture.set(0L);
                 } else {
-                    futureResult.setException(e);
+                    resultFuture.setException(e);
                 }
                 close(e);
             }
@@ -115,16 +116,16 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
 
     @Override
     public void innerKill(@Nonnull Throwable throwable) {
-        futureResult.cancel(true);
+        resultFuture.cancel(false);
     }
 
     @Override
     protected void innerClose(@Nullable Throwable t) {
-        if (!futureResult.isDone()) {
+        if (!resultFuture.isDone()) {
             if (t == null) {
-                futureResult.set(TaskResult.EMPTY_RESULT);
+                resultFuture.cancel(false);
             } else {
-                futureResult.setException(t);
+                resultFuture.setException(t);
             }
         }
     }
