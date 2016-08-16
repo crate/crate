@@ -139,7 +139,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 "quote string index using fulltext) with (number_of_replicas=0)");
         ensureYellow();
 
-        execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "/*.json"});
+        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes from ? with (shared=true)", new Object[]{uriPath});
         assertEquals(3L, response.rowCount());
         refresh();
 
@@ -153,7 +154,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 "quote string index using fulltext) with (number_of_replicas=0)");
         ensureYellow();
 
-        String uriPath = Joiner.on("/").join(copyFilePath, "*.json");
+        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
         execute("copy quotes from ?", new Object[]{uriPath});
         assertEquals(3L, response.rowCount());
         refresh();
@@ -271,6 +272,22 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("select gen_quote from quotes limit 1");
         assertThat((String) response.rows()[0][0], endsWith("Partitioned by awesomeness!"));
+    }
+
+    @Test
+    public void testCopyFromToPartitionedTableWithNullValue() throws Exception {
+        execute("CREATE TABLE times (" +
+                " time timestamp" +
+                ") partitioned by (time)");
+        ensureYellow();
+
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from_null_value.json");
+        execute("copy times from ? with (shared=true)", new Object[]{filePath});
+        refresh();
+
+        execute("select time from times");
+        assertThat(response.rowCount(), is(1L));
+        assertNull(response.rows()[0][0]);
     }
 
     @Test

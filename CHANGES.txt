@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: `COPY FROM` statements fail if null values are inserted into partitioned
+   tables.
+
  - Fix: prevent creating `char filters` with missing properties
 
  - Optimized sys.nodes queries

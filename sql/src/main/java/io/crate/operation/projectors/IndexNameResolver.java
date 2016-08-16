@@ -28,7 +28,6 @@ import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
@@ -38,6 +37,7 @@ import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -77,10 +77,14 @@ public class IndexNameResolver {
                     }
                 });
         return new Supplier<String>() {
+
             @Override
             public String get() {
                 // copy because transform returns a view and the values of the inputs are mutable
-                List<BytesRef> partitions = ImmutableList.copyOf(Lists.transform(partitionedByInputs, Inputs.TO_BYTES_REF));
+                List<BytesRef> partitions =  Collections.unmodifiableList(
+                        Lists.newArrayList(Lists.transform(
+                                partitionedByInputs,
+                                Inputs.TO_BYTES_REF)));
                 try {
                     return cache.get(partitions);
                 } catch (ExecutionException e) {
