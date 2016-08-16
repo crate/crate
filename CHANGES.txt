@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/08/16 0.55.4
+=================
+
  - Fixed a NPE in ordered select statements.
 
  - Fix: Inserting a duplicate primary key lead to an update on
