@@ -25,6 +25,7 @@ import com.google.common.base.Optional;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.sql.tree.*;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -215,6 +216,7 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "Non-existing built-in char-filter '%s'", name));
                 }
+                validateCharFilterProperties(name, properties.orNull());
                 // build
                 context.statement.addCharFilter(name, Settings.EMPTY);
             } else {
@@ -225,6 +227,7 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
                         "Non-existing built-in char-filter" +
                         " type '%s'", type));
                 }
+                validateCharFilterProperties(type, properties.get());
 
                 // build
                 // transform name as char-filter is not publicly available
@@ -256,6 +259,13 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
         }
 
         return ExpressionToStringVisitor.convert(expression, parameterContext.parameters());
+    }
+
+    private static void validateCharFilterProperties(String type, @Nullable GenericProperties properties) {
+        if (properties == null && !type.equals("html_strip")) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "CHAR_FILTER of type '%s' needs additional parameters", type));
+        }
     }
 
 }

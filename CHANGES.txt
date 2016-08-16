@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: prevent creating `char filters` with missing properties
+
  - Optimized sys.nodes queries
 
  - Queries on the `sys.nodes` table will now short circuit in case some nodes

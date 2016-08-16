@@ -662,10 +662,21 @@ Here is a simple Example::
     ...     kstem
     ...   ),
     ...   CHAR_FILTERS (
-    ...     mapping
+    ...     html_strip
     ...   )
     ... );
     CREATE OK, 1 row affected (... sec)
+
+
+.. hide:
+
+    cr> create table hidden_test_table(
+    ...     fc string index using fulltext with(analyzer=myanalyzer)
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+    cr> drop table hidden_test_table;
+    DROP OK, 1 row affected  (... sec)
 
 This creates a custom analyzer called ``myanalyzer``. It uses the built-in
 :ref:`whitespace-tokenizer` tokenizer and two built-in token filters.
