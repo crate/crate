@@ -7,8 +7,9 @@ Unreleased
 
  - Fixed a NPE in ordered select statements.
 
- - Fix: Prevent writing a row to the replica when an error happened on the
-   primary shard.
+ - Fix: Inserting a duplicate primary key lead to an update on
+   replicas even though it resulted in a DuplikateKeyException
+   (introduced with version 0.55.0).
 
  - Fix: Querying a partitioned table by a single primary key raised an
    exception instead of responding whith a zero row count.
