@@ -110,16 +110,20 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         public Limits getLimits(boolean isRootRelation, QuerySpec querySpec) {
             Optional<Integer> optLimit = querySpec.limit();
-            if (!isRootRelation && optLimit.isPresent()) {
+            if (!isRootRelation) {
                 /**
                  * Don't apply softLimit or maxRows on child-relations,
                  * The parent-relations might need more data to produce the correct result.
                  * If the limit is present on the query it means the parent relation wanted it there, so keep it.
                  */
 
-                //noinspection OptionalGetWithoutIsPresent it's present!
-                Integer limit = optLimit.get();
-                return new Limits(limit, querySpec.offset());
+                if (optLimit.isPresent()) {
+                    //noinspection OptionalGetWithoutIsPresent it's present!
+                    Integer limit = optLimit.get();
+                    return new Limits(limit, querySpec.offset());
+                } else {
+                    return new Limits(TopN.NO_LIMIT, TopN.NO_OFFSET);
+                }
             }
             int finalLimit = finalLimit(optLimit.orNull(), softLimit);
             return new Limits(finalLimit, querySpec.offset());

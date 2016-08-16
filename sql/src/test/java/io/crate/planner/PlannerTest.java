@@ -4,6 +4,7 @@ import com.carrotsearch.hppc.IntSet;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.*;
@@ -1744,5 +1745,13 @@ public class PlannerTest extends AbstractPlannerTest {
              "  select i + i as ii, xx from (" +
              "    select i, sum(x) as xx from t1 group by i) as t) as tt " +
              "where (ii * 2) > 4 and (xx * 2) > 120");
+    }
+
+    @Test
+    public void testNoSoftLimitOnUnlimitedChildRelation() throws Exception {
+        int softLimit = 10_000;
+        Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, new StmtCtx(), softLimit, 0);
+        Planner.Context.Limits limits = plannerContext.getLimits(false, new QuerySpec());
+        assertThat(limits.finalLimit(), is(TopN.NO_LIMIT));
     }
 }
