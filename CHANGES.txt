@@ -5,17 +5,6 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fixed a NPE in ordered select statements.
-
- - Fix: Inserting a duplicate primary key lead to an update on
-   replicas even though it resulted in a DuplikateKeyException
-   (introduced with version 0.55.0).
-
- - Fix: Querying a partitioned table by a single primary key raised an
-   exception instead of responding whith a zero row count.
-
- - Improved the performance of sorted join queries
-
  - Optimized sys.nodes queries
 
  - Queries on the `sys.nodes` table will now short circuit in case some nodes
@@ -88,6 +77,21 @@ Unreleased
    that conflicts with multiple shards.
 
  - Optimize count aggregations by using custom data type to avoid boxing of primitives into Objects.
+
+
+2016/08/16 0.55.4
+=================
+
+ - Fixed a NPE in ordered select statements.
+
+ - Fix: Inserting a duplicate primary key lead to an update on
+   replicas even though it resulted in a DuplikateKeyException
+   (introduced with version 0.55.0).
+
+ - Fix: Querying a partitioned table by a single primary key raised an
+   exception instead of responding whith a zero row count.
+
+ - Improved the performance of sorted join queries
 
 2016/08/05 0.55.3
 =================
