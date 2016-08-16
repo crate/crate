@@ -204,7 +204,7 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
 
     @Test(expected = UnsupportedOperationException.class)
     public void createAnalyzerWithoutTokenizer() throws Exception {
-        CreateAnalyzerAnalyzedStatement analysis = (CreateAnalyzerAnalyzedStatement)analyze(
+        CreateAnalyzerAnalyzedStatement analysis = analyze(
                 "CREATE ANALYZER a6 (" +
                 "  char_filters (" +
                 "    \"html_strip\"" +
@@ -232,4 +232,19 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
                 "  tokenizer standard" +
                 ")");
     }
+
+    @Test
+    public void missingParameterInCharFilter() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("CHAR_FILTER of type 'mapping' needs additional parameters");
+        CreateAnalyzerAnalyzedStatement analysis = analyze(
+            "CREATE ANALYZER my_mapping_analyzer (" +
+            "  char_filters (" +
+            "    \"mapping\"" +
+            "  )," +
+            "  TOKENIZER whitespace" +
+            ")");
+        analysis.buildSettings();
+    }
+
 }
