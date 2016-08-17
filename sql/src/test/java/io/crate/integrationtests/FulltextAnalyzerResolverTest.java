@@ -200,6 +200,26 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void resolveAnalyzerBuiltinTokenFilter() throws Exception {
+        execute("CREATE ANALYZER builtin_filter (" +
+                "   tokenizer whitespace," +
+                "   token_filters (" +
+                "       ngram WITH (" +
+                "           min_gram=1" +
+                "       )" +
+                "   )" +
+                ")");
+        Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("builtin_filter");
+        assertThat(
+            fullAnalyzerSettings.getAsMap(),
+            allOf(
+                hasEntry("index.analysis.filter.builtin_filter_ngram.type", "ngram"),
+                hasEntry("index.analysis.filter.builtin_filter_ngram.min_gram", "1")
+            )
+        );
+    }
+
+    @Test
     public void resolveAnalyzerExtendingCustom() throws Exception {
         execute("CREATE ANALYZER a5 (" +
                 "   tokenizer whitespace," +

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: type was not set correctly when creating a token filter
+   with default name and no type
+
  - Fix: prevent creating `char filters` with missing properties
 
 2016/08/16 0.55.4

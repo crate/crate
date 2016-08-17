@@ -167,26 +167,28 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
                 context.statement.addTokenFilter(name, Settings.EMPTY);
             } else {
                 // validate
+                GenericProperties filterProperties = properties.get();
                 if (!context.statement.analyzerService().hasBuiltInTokenFilter(name)) {
                     // type mandatory when name is not a builtin filter
-                    String evaluatedType = extractType(properties.get(), context.analysis.parameterContext());
+                    String evaluatedType = extractType(filterProperties, context.analysis.parameterContext());
                     if (!context.statement.analyzerService().hasBuiltInTokenFilter(evaluatedType)) {
                         // only builtin token-filters can be extended, for now
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                             "Non-existing built-in token-filter type '%s'", evaluatedType));
                     }
                 } else {
-                    if (properties.get().get("type") != null) {
+                    if (filterProperties.get("type") != null) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                             "token-filter name '%s' is reserved, 'type' property forbidden here", name));
                     }
+                    filterProperties.add(new GenericProperty("type", new StringLiteral(name)));
                 }
 
                 // build
                 // transform name as token-filter is not publicly available
                 name = String.format(Locale.ENGLISH, "%s_%s", context.statement.ident(), name);
                 Settings.Builder builder = Settings.builder();
-                for (Map.Entry<String, Expression> tokenFilterProperty : properties.get().properties().entrySet()) {
+                for (Map.Entry<String, Expression> tokenFilterProperty : filterProperties.properties().entrySet()) {
                     GenericPropertiesConverter.genericPropertyToSetting(builder,
                         context.statement.getSettingsKey("index.analysis.filter.%s.%s", name, tokenFilterProperty.getKey()),
                         tokenFilterProperty.getValue(),
