@@ -29,7 +29,6 @@ import io.crate.action.sql.SQLResponse;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -198,6 +197,26 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
         assertThat(
                 fullAnalyzerSettings.getAsArray("index.analysis.analyzer.a4e.stop_words"),
                 arrayContainingInAnyOrder("der", "die", "das", "wer", "wie", "was")
+        );
+    }
+
+    @Test
+    public void resolveAnalyzerBuiltinTokenFilter() throws Exception {
+        execute("CREATE ANALYZER builtin_filter (" +
+                "   tokenizer whitespace," +
+                "   token_filters (" +
+                "       ngram WITH (" +
+                "           min_gram=1" +
+                "       )" +
+                "   )" +
+                ")");
+        Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("builtin_filter");
+        assertThat(
+            fullAnalyzerSettings.getAsMap(),
+            allOf(
+                hasEntry("index.analysis.filter.builtin_filter_ngram.type", "ngram"),
+                hasEntry("index.analysis.filter.builtin_filter_ngram.min_gram", "1")
+            )
         );
     }
 

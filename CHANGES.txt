@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: type was not set correctly when creating a token filter
+   with default name and no type
+
  - Fix: `COPY FROM` statements fail if null values are inserted into partitioned
    tables.
 
