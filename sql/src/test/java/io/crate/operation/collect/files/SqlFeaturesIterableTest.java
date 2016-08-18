@@ -22,6 +22,7 @@
 
 package io.crate.operation.collect.files;
 
+import com.google.common.collect.Iterators;
 import org.junit.Test;
 
 import java.util.Iterator;
@@ -32,7 +33,7 @@ public class SqlFeaturesIterableTest {
 
     @Test
     public void testIterator() throws Exception {
-        SqlFeaturesIterable featuresIterable = new SqlFeaturesIterable();
+        SqlFeaturesIterable featuresIterable = SqlFeaturesIterable.getInstance();
         Iterator iterator = featuresIterable.iterator();
         assertTrue(iterator.hasNext());
         SqlFeatureContext context = (SqlFeatureContext) iterator.next();
@@ -43,12 +44,7 @@ public class SqlFeaturesIterableTest {
         assertEquals(false, context.isSupported);
         assertNull(context.isVerifiedBy);
         assertNull(context.comments);
-        int count = 1;
-        while (iterator.hasNext()) {
-            iterator.next();
-            count++;
-        }
-        assertEquals(672, count);
+        assertEquals(671L, Iterators.size(iterator));
         assertFalse(iterator.hasNext());
     }
 }

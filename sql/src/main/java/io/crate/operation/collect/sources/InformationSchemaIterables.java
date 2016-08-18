@@ -51,8 +51,7 @@ public class InformationSchemaIterables {
     @Inject
     public InformationSchemaIterables(final Schemas schemas,
                                       FulltextAnalyzerResolver ftResolver,
-                                      ClusterService clusterService,
-                                      SqlFeaturesIterable featuresIterable) {
+                                      ClusterService clusterService) {
         this.schemas = Suppliers.<Iterable<?>>ofInstance(schemas);
         FluentIterable<TableInfo> tablesIterable = FluentIterable.from(schemas)
                 .transformAndConcat(new Function<SchemaInfo, Iterable<TableInfo>>() {
@@ -97,8 +96,7 @@ public class InformationSchemaIterables {
                         return input != null;
                     }
                 }));
-
-        featuresGetter = Suppliers.<Iterable<?>>ofInstance(featuresIterable);
+        featuresGetter = Suppliers.<Iterable<?>>ofInstance(SqlFeaturesIterable.getInstance());
     }
 
     public Supplier<Iterable<?>> schemas() {

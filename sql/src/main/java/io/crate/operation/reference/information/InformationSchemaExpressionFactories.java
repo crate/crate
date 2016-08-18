@@ -406,7 +406,7 @@ public class InformationSchemaExpressionFactories {
                         return new RowContextCollectorExpression<SqlFeatureContext, BytesRef>() {
                             @Override
                             public BytesRef value() {
-                                return BytesRefs.toBytesRef(row.featureName);
+                                return BytesRefs.toBytesRef(row.subFeatureId);
                             }
                         };
                     }
@@ -417,7 +417,7 @@ public class InformationSchemaExpressionFactories {
                         return new RowContextCollectorExpression<SqlFeatureContext, BytesRef>() {
                             @Override
                             public BytesRef value() {
-                                return BytesRefs.toBytesRef(row.featureName);
+                                return BytesRefs.toBytesRef(row.subFeatureName);
                             }
                         };
                     }
