@@ -353,7 +353,18 @@ SQL Features
 The ``sql_features`` table outlines supported and unsupported SQL features of
 Crate based to the current SQL standard (see :ref:`sql_supported_features`)::
 
-    cr> select * from information_schema.sql_features;
+    cr> select feature_name, is_supported, sub_feature_id, sub_feature_name
+    ... from information_schema.sql_features
+    ... where feature_id='F501';
+    +--------------------------------+--------------+----------------+--------------------+
+    | feature_name                   | is_supported | sub_feature_id | sub_feature_name   |
+    +--------------------------------+--------------+----------------+--------------------+
+    | Features and conformance views | FALSE        |                |                    |
+    | Features and conformance views | TRUE         | 1              | SQL_FEATURES view  |
+    | Features and conformance views | FALSE        | 2              | SQL_SIZING view    |
+    | Features and conformance views | FALSE        | 3              | SQL_LANGUAGES view |
+    +--------------------------------+--------------+----------------+--------------------+
+    SELECT 4 rows in set (... sec)
 
 +------------------+-----------+----------+
 | Name             | Data Type | Nullable |
@@ -372,7 +383,6 @@ Crate based to the current SQL standard (see :ref:`sql_supported_features`)::
 +------------------+-----------+----------+
 | comments         | String    | YES      |
 +------------------+-----------+----------+
-
 
 :feature_id:
     Identifier of the feature
