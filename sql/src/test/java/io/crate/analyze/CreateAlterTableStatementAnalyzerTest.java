@@ -90,6 +90,17 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testCreateTableInSystemSchemas() throws Exception {
+        for (String schema : CreateTableStatementAnalyzer.READ_ONLY_SCHEMAS) {
+            try {
+                analyze(String.format("CREATE TABLE %s.%s (ordinal INTEGER, name STRING)", schema, "my_table"));
+            } catch (IllegalArgumentException e) {
+                assertThat(e.getLocalizedMessage(), startsWith("Cannot create table in read-only schema"));
+            }
+        }
+    }
+
+    @Test
     public void testCreateTableWithAlternativePrimaryKeySyntax() throws Exception {
         CreateTableAnalyzedStatement analysis = analyze(
                 "create table foo (id integer, name string, primary key (id, name))"

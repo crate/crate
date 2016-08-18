@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: do not allow to create tables in read-only system schemas
+
  - Fix: type was not set correctly when creating a token filter
    with default name and no type
 

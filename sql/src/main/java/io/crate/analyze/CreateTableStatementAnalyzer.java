@@ -20,16 +20,21 @@
  */
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pg_catalog.PgCatalogSchemaInfo;
+import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import java.util.Collection;
 import java.util.Locale;
 
 @Singleton
@@ -42,6 +47,12 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private final AnalysisMetaData analysisMetaData;
     private final NumberOfShards numberOfShards;
+
+    static final Collection<String> READ_ONLY_SCHEMAS = ImmutableList.of(
+        SysSchemaInfo.NAME,
+        InformationSchemaInfo.NAME,
+        PgCatalogSchemaInfo.NAME
+    );
 
     static class Context {
         Analysis analysis;
@@ -114,6 +125,11 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
 
     private void setTableIdent(CreateTable node, Context context) {
         TableIdent tableIdent = TableIdent.of(node.name(), context.analysis.parameterContext().defaultSchema());
+        if (READ_ONLY_SCHEMAS.contains(tableIdent.schema())) {
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "Cannot create table in read-only schema '%s'", tableIdent.schema())
+            );
+        }
         context.statement.table(tableIdent, node.ifNotExists(), schemas);
     }
 
