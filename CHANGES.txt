@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: do not allow to create tables in read-only system schemas
+
  - Fix: `COPY FROM` statements fail if null values are inserted into partitioned
    tables.
 
