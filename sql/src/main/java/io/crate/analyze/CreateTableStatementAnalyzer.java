@@ -27,7 +27,6 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.metadata.pg_catalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -50,8 +49,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
 
     static final Collection<String> READ_ONLY_SCHEMAS = ImmutableList.of(
         SysSchemaInfo.NAME,
-        InformationSchemaInfo.NAME,
-        PgCatalogSchemaInfo.NAME
+        InformationSchemaInfo.NAME
     );
 
     static class Context {
