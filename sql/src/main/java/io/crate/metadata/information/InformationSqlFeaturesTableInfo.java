@@ -46,16 +46,16 @@ public class InformationSqlFeaturesTableInfo extends InformationTableInfo {
     }
 
     public static class References {
-        public static final Reference FEATURE_ID = info(Columns.FEATURE_ID, DataTypes.STRING);
-        public static final Reference FEATURE_NAME = info(Columns.FEATURE_NAME, DataTypes.STRING);
-        public static final Reference SUB_FEATURE_ID = info(Columns.SUB_FEATURE_ID, DataTypes.STRING);
-        public static final Reference SUB_FEATURE_NAME = info(Columns.SUB_FEATURE_NAME, DataTypes.STRING);
-        public static final Reference IS_SUPPORTED = info(Columns.IS_SUPPORTED, DataTypes.BOOLEAN);
-        public static final Reference IS_VERIFIED_BY = info(Columns.IS_VERIFIED_BY, DataTypes.STRING);
-        public static final Reference COMMENTS = info(Columns.COMMENTS, DataTypes.STRING);
+        public static final Reference FEATURE_ID = createRef(Columns.FEATURE_ID, DataTypes.STRING);
+        public static final Reference FEATURE_NAME = createRef(Columns.FEATURE_NAME, DataTypes.STRING);
+        public static final Reference SUB_FEATURE_ID = createRef(Columns.SUB_FEATURE_ID, DataTypes.STRING);
+        public static final Reference SUB_FEATURE_NAME = createRef(Columns.SUB_FEATURE_NAME, DataTypes.STRING);
+        public static final Reference IS_SUPPORTED = createRef(Columns.IS_SUPPORTED, DataTypes.BOOLEAN);
+        public static final Reference IS_VERIFIED_BY = createRef(Columns.IS_VERIFIED_BY, DataTypes.STRING);
+        public static final Reference COMMENTS = createRef(Columns.COMMENTS, DataTypes.STRING);
     }
 
-    private static Reference info(ColumnIdent columnIdent, DataType dataType) {
+    private static Reference createRef(ColumnIdent columnIdent, DataType dataType) {
         return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 

@@ -57,15 +57,13 @@ public class SqlFeaturesIterable implements Iterable<SqlFeatureContext> {
             String next;
             while ((next = reader.readLine()) != null) {
                 List<String> parts = TAB_SPLITTER.splitToList(next);
-                ctx = SqlFeatureContext.builder()
-                        .featureId(parts.get(0))
-                        .featureName(parts.get(1))
-                        .subFeatureId(parts.get(2))
-                        .subFeatureName(parts.get(3))
-                        .isSupported(parts.get(4).equals("YES"))
-                        .isVerifiedBy(parts.get(5).isEmpty() ? null : parts.get(5))
-                        .comments(parts.get(6).isEmpty() ? null : parts.get(6))
-                        .build();
+                ctx = new SqlFeatureContext(parts.get(0),
+                        parts.get(1),
+                        parts.get(2),
+                        parts.get(3),
+                        parts.get(4).equals("YES"),
+                        parts.get(5).isEmpty() ? null : parts.get(5),
+                        parts.get(6).isEmpty() ? null : parts.get(6));
                 featuresList.add(ctx);
             }
         } catch (IOException e) {

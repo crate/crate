@@ -38,7 +38,7 @@ E011	Numeric data types	3	DECIMAL and NUMERIC data types	NO
 E011	Numeric data types	4	Arithmetic operators	YES		
 E011	Numeric data types	5	Numeric comparison	YES		
 E011	Numeric data types	6	Implicit casting among the numeric data types	YES		
-E021	Character data types			YES		Type "string"
+E021	Character data types			YES		Type 'string'
 E021	Character string types	1	CHARACTER data type	NO		
 E021	Character string types	2	CHARACTER VARYING data type	NO		
 E021	Character string types	3	Character literals	YES		Only simple ' quoting
