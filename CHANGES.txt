@@ -5,6 +5,13 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to ``0.19.0`` which contains following changes:
+
+   - Display failing node checks on overview page and allow to dismiss them.
+
+   - Added German translation.
+     This change also enables the possibility for further i18n.
+
  - Added plugin for unicast host discovery on Azure (ARM mode)
 
  - Fix: do not allow to create tables in read-only system schemas
