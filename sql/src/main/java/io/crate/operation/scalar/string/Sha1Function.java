@@ -35,6 +35,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class Sha1Function extends Scalar<BytesRef, BytesRef>{
@@ -45,7 +46,7 @@ public class Sha1Function extends Scalar<BytesRef, BytesRef>{
 
 	public static void register(ScalarFunctionModule module) {
         module.register(new Sha1Function(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.of(DataTypes.STRING)),
+                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.STRING)),
                 DataTypes.STRING)
         ));
     }
