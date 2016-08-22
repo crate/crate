@@ -673,7 +673,7 @@ Here is a simple Example::
     cr> create table hidden_test_table(
     ...     fc string index using fulltext with(analyzer=myanalyzer)
     ... );
-    CREATE OK, 1 row affected (... sec)
+    CREATE OK...
 
     cr> drop table hidden_test_table;
     DROP OK, 1 row affected  (... sec)
