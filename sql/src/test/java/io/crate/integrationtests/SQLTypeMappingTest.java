@@ -491,4 +491,21 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         assertThat((Integer)((Object[])((Object[])((Object[]) columns[0])[0])[0])[0], is(10));
         assertThat((Integer)((Object[])((Object[])((Object[]) columns[0])[0])[0])[1], is(20));
     }
+
+    @Test
+    public void testTwoLevelNestedObjectInArray() throws Exception {
+        execute("create table assets (\n" +
+                "    categories array(object (dynamic) as (\n" +
+                "       subcategories object (dynamic) as (\n" +
+                "          id int))))");
+        execute("insert into assets(categories) values ([{subcategories={id=10}}, {subcategories={id=20}}])");
+        ensureYellow();
+        execute("refresh table assets");
+
+        refresh();
+        waitNoPendingTasksOnAll();
+        SQLResponse response = execute("select categories[1]['subcategories']['id'] from assets");
+        assertEquals(response.rowCount(), 1L);
+        assertThat((Integer) response.rows()[0][0], is(10));
+    }
 }

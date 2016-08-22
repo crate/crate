@@ -33,6 +33,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -86,17 +87,19 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
                 // TODO: remove this limitation with next type refactoring
                 throw new UnsupportedOperationException("cannot query for arrays inside object arrays explicitly");
             }
+
             // for child fields of object arrays
             // return references of primitive types as array
             if (dataType == null) {
                 dataType = new ArrayType(reference.valueType());
+                if (hasNestedObjectReference(tmpRI)) break;
             } else {
                 dataType = new ArrayType(dataType);
             }
             tmpCI = tmpCI.getParent();
             tmpRI = tableInfo.getReference(tmpCI);
-
         }
+
         if (dataType != null) {
             return new Reference(
                 reference.ident(),
@@ -155,6 +158,16 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         return false;
     }
 
+    private boolean hasNestedObjectReference(Reference info) {
+        ColumnIdent parent = info.ident().columnIdent().getParent();
+        if (parent != null) {
+            Reference parentRef = tableInfo.getReference(parent);
+            if (parentRef.valueType().id() == ObjectType.ID) {
+                return hasMatchingParent(parentRef, IS_OBJECT_ARRAY);
+            }
+        }
+        return false;
+    }
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this).add("table", tableInfo.ident()).toString();
