@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added outer join support.
+
  - Remove limitation that prevented usage of columns from multiple tables
    in the same order by expression.
    eg: FROM t1, t2, t3 ORDER BY t1.x - t2.y + t3.z
