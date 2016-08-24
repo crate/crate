@@ -21,12 +21,14 @@
 
 package io.crate.analyze.relations;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -52,7 +54,11 @@ public class RelationSplitterTest extends CrateUnitTest {
     private static final SqlExpressions expressions = new SqlExpressions(sources);
 
     private RelationSplitter split(QuerySpec querySpec) {
-        RelationSplitter splitter = new RelationSplitter(querySpec, T3.RELATIONS);
+        return split(querySpec, ImmutableList.<JoinPair>of());
+    }
+
+    private RelationSplitter split(QuerySpec querySpec, List<JoinPair> joinPairs) {
+        RelationSplitter splitter = new RelationSplitter(querySpec, T3.RELATIONS, joinPairs);
         splitter.process();
         return splitter;
     }
@@ -266,5 +272,16 @@ public class RelationSplitterTest extends CrateUnitTest {
         ));
         RelationSplitter splitter = split(querySpec);
         assertThat(splitter.canBeFetched(), containsInAnyOrder(asSymbol("a")));
+    }
+
+    @Test
+    public void testNoSplitOnOuterJoinRelation() throws Exception {
+        QuerySpec querySpec = fromQuery("t2.y < 10");
+        JoinPair joinPair = new JoinPair(T3.T1, T3.T2, JoinType.LEFT, asSymbol("t1.a = t2.b"));
+        RelationSplitter splitter = split(querySpec, Arrays.asList(joinPair));
+
+        assertThat(querySpec, isSQL("SELECT true WHERE (doc.t2.y < 10)"));
+        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a"));
+        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y, doc.t2.b"));
     }
 }

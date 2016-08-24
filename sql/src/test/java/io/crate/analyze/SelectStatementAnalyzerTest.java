@@ -792,9 +792,11 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testInnerJoinSyntaxExtendsWhereClause() throws Exception {
+    public void testInnerJoinSyntaxDoesNotExtendsWhereClause() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select * from users inner join users_multi_pk on users.id = users_multi_pk.id");
-        assertThat(analysis.relation().querySpec().where().query(),
+        MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
+        assertThat(relation.querySpec().where().query(), isSQL("null"));
+        assertThat(relation.joinPairs().get(0).condition(),
                 isSQL("(doc.users.id = doc.users_multi_pk.id)"));
     }
 
@@ -803,8 +805,13 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analysis = analyze("select * from users u1 " +
                                                    "join users_multi_pk u2 on u1.id = u2.id " +
                                                    "join users_clustered_by_only u3 on u2.id = u3.id ");
-        assertThat(analysis.relation().querySpec().where().query(),
-                isSQL("((doc.users.id = doc.users_multi_pk.id) AND (doc.users_multi_pk.id = doc.users_clustered_by_only.id))"));
+        MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
+        assertThat(relation.querySpec().where().query(), isSQL("null"));
+
+        assertThat(relation.joinPairs().get(0).condition(),
+                isSQL("(doc.users.id = doc.users_multi_pk.id)"));
+        assertThat(relation.joinPairs().get(1).condition(),
+                isSQL("(doc.users_multi_pk.id = doc.users_clustered_by_only.id)"));
     }
 
     @Test
@@ -830,10 +837,13 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analysis = analyze(
                 "select * from users join users_multi_pk on users.id = users_multi_pk.id " +
                 "where users.name = 'Arthur'");
-        assertThat(analysis.relation().querySpec().where().query(),
-                isSQL("(true AND (doc.users.id = doc.users_multi_pk.id))"));
+
+        MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
+        assertThat(relation.joinPairs().get(0).condition(),
+                isSQL("(doc.users.id = doc.users_multi_pk.id)"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
+        assertThat(relation.querySpec().where().query(), isSQL("null"));
         MultiSourceSelect.Source users =
                 ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("doc", "users"));
         assertThat(users.querySpec().where().query(), isSQL("(doc.users.name = 'Arthur')"));

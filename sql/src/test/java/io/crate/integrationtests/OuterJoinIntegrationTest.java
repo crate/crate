@@ -35,12 +35,12 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
     @Before
     public void setupTestData() {
         execute("create table employees (id integer, name string, office_id integer, profession_id integer)");
-        execute("create table offices (id integer, name string)");
+        execute("create table offices (id integer, name string, size integer)");
         execute("create table professions (id integer, name string)");
         ensureYellow();
         execute("insert into employees (id, name, office_id, profession_id) values" +
                 " (1, 'Trillian', 2, 3), (2, 'Ford Perfect', 4, 2), (3, 'Douglas Adams', 3, 1)");
-        execute("insert into offices (id, name) values (1, 'Hobbit House'), (2, 'Entresol'), (3, 'Chief Office')");
+        execute("insert into offices (id, name, size) values (1, 'Hobbit House', 10), (2, 'Entresol', 70), (3, 'Chief Office', 150)");
         execute("insert into professions (id, name) values (1, 'Writer'), (2, 'Traveler'), (3, 'Commander'), (4, 'Janitor')");
         execute("refresh table employees, offices, professions");
     }
@@ -124,5 +124,24 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
                                                      "Trillian| Entresol\n" +
                                                      "Douglas Adams| Chief Office\n" +
                                                      "Ford Perfect| NULL\n"));
+    }
+
+    @Test
+    public void testLeftJoinWithFilterOnInner() throws Exception {
+        execute("select employees.name, offices.name from" +
+                " employees left join offices on office_id = offices.id" +
+                " where employees.id < 3" +
+                " order by offices.id");
+        assertThat(printedTable(response.rows()), is("Trillian| Entresol\n" +
+                                                     "Ford Perfect| NULL\n"));
+    }
+
+    @Test
+    public void testLeftJoinWithFilterOnOuter() throws Exception {
+        execute("select employees.name, offices.name from" +
+                " employees left join offices on office_id = offices.id" +
+                " where offices.size > 100" +
+                " order by offices.id");
+        assertThat(printedTable(response.rows()), is("Douglas Adams| Chief Office\n"));
     }
 }
