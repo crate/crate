@@ -37,6 +37,7 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import static org.mockito.Mockito.mock;
@@ -77,9 +78,9 @@ public class T3 {
         }
     };
 
-    public static final QualifiedName T1 = new QualifiedName("t1");
-    public static final QualifiedName T2 = new QualifiedName("t2");
-    public static final QualifiedName T3 = new QualifiedName("t3");
+    public static final QualifiedName T1 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t1"));
+    public static final QualifiedName T2 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t2"));
+    public static final QualifiedName T3 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t3"));
 
     public static final ImmutableList<AnalyzedRelation> RELATIONS = ImmutableList.<AnalyzedRelation>of(TR_1, TR_2, TR_3);
     public static final Map<QualifiedName, AnalyzedRelation> SOURCES = ImmutableMap.<QualifiedName, AnalyzedRelation>of(

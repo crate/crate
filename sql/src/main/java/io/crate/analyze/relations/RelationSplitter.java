@@ -44,6 +44,8 @@ public final class RelationSplitter {
     private final QuerySpec querySpec;
     private final Set<Symbol> requiredForQuery = new HashSet<>();
     private final Map<AnalyzedRelation, QuerySpec> specs;
+    private final List<JoinPair> joinPairs;
+    private final List<Symbol> joinConditions;
     private Set<Field> canBeFetched;
     private RemainingOrderBy remainingOrderBy;
 
@@ -54,11 +56,20 @@ public final class RelationSplitter {
         }
     };
 
-    public RelationSplitter(QuerySpec querySpec, Collection<? extends AnalyzedRelation> relations) {
+    public RelationSplitter(QuerySpec querySpec,
+                            Collection<? extends AnalyzedRelation> relations,
+                            List<JoinPair> joinPairs) {
         this.querySpec = querySpec;
         specs = new IdentityHashMap<>(relations.size());
         for (AnalyzedRelation relation : relations) {
             specs.put(relation, new QuerySpec());
+        }
+        this.joinPairs = joinPairs;
+        joinConditions = new ArrayList<>(joinPairs.size());
+        for (JoinPair joinPair : joinPairs) {
+            if (joinPair.condition() != null) {
+                joinConditions.add(joinPair.condition());
+            }
         }
     }
 
@@ -99,6 +110,9 @@ public final class RelationSplitter {
             FieldCollectingVisitor.INSTANCE.process(querySpec.where().query(), context);
         }
 
+        // collect all fields from all join conditions
+        FieldCollectingVisitor.INSTANCE.process(joinConditions, context);
+
         // set the limit and offset where possible
         if (querySpec.limit().isPresent()) {
             for (AnalyzedRelation rel : Sets.difference(specs.keySet(), context.fields.keySet())) {
@@ -136,7 +150,7 @@ public final class RelationSplitter {
         }
         Symbol query = querySpec.where().query();
         assert query != null;
-        QuerySplittingVisitor.Context context = QuerySplittingVisitor.INSTANCE.process(querySpec.where().query());
+        QuerySplittingVisitor.Context context = QuerySplittingVisitor.INSTANCE.process(querySpec.where().query(), joinPairs);
         querySpec.where(new WhereClause(context.query()));
         for (Map.Entry<AnalyzedRelation, Collection<Symbol>> entry : context.queries().asMap().entrySet()) {
             getSpec(entry.getKey()).where(new WhereClause(AndOperator.join(entry.getValue())));
