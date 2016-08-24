@@ -102,13 +102,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         process(node.getRight(), statementContext);
 
         RelationAnalysisContext relationContext = statementContext.currentRelationContext();
-        relationContext.addJoinType(JoinType.values()[node.getType().ordinal()]);
-
         Optional<JoinCriteria> optCriteria = node.getCriteria();
+        Symbol joinCondition = null;
         if (optCriteria.isPresent()) {
             JoinCriteria joinCriteria = optCriteria.get();
             if (joinCriteria instanceof JoinOn) {
-                Symbol joinCondition;
                 try {
                     joinCondition = relationContext.expressionAnalyzer().convert(
                         ((JoinOn) joinCriteria).getExpression(), relationContext.expressionAnalysisContext());
@@ -116,12 +114,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     throw new ValidationException(String.format(Locale.ENGLISH,
                         "missing FROM-clause entry for relation '%s'", e.qualifiedName()));
                 }
-                relationContext.addJoinCondition(joinCondition);
             } else {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
                         joinCriteria.getClass().getSimpleName()));
             }
         }
+
+        relationContext.addJoinType(JoinType.values()[node.getType().ordinal()], joinCondition);
         return null;
     }
 

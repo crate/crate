@@ -93,7 +93,7 @@ public class RelationAnalysisContext {
         joinPairs.add(joinType);
     }
 
-    void addJoinType(JoinType joinType) {
+    void addJoinType(JoinType joinType, @Nullable Symbol joinCondition) {
         int size = sources.size();
         assert size >= 2 : "sources must be added first, cannot add join type for only 1 source";
         Iterator<QualifiedName> it = sources.keySet().iterator();
@@ -109,7 +109,7 @@ public class RelationAnalysisContext {
             }
             idx++;
         }
-        addJoinPair(new JoinPair(left, right, joinType));
+        addJoinPair(new JoinPair(left, right, joinType, joinCondition));
     }
 
     List<JoinPair> joinPairs() {

@@ -23,6 +23,7 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.repositories.RepositorySettingsModule;
@@ -45,6 +46,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Set;
 
 import static io.crate.testing.TestingHelpers.isSQL;
 import static io.crate.testing.TestingHelpers.newMockedThreadPool;
@@ -90,8 +92,8 @@ public class ManyTableConsumerTest {
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
         TwoTableJoin t1AndT2 = ((TwoTableJoin) root.left().relation());
 
-        assertThat(t1AndT2.querySpec().where().query(), isSQL("(RELCOL(doc.t1, 0) = RELCOL(doc.t2, 0))"));
-        assertThat(root.querySpec().where().query(), isSQL("(RELCOL(join.doc.t1.doc.t2, 3) = RELCOL(doc.t3, 0))"));
+        assertThat(t1AndT2.joinPair().condition(), isSQL("(RELCOL(doc.t1, 0) = RELCOL(doc.t2, 0))"));
+        assertThat(root.joinPair().condition(), isSQL("(RELCOL(join.doc.t1.doc.t2, 3) = RELCOL(doc.t3, 0))"));
     }
 
     @Test
@@ -116,7 +118,7 @@ public class ManyTableConsumerTest {
 
         assertThat(t3AndT1.querySpec().where().query(), isSQL("null"));
 
-        assertThat(root.querySpec().where().query(), Matchers.anyOf(
+        assertThat(root.joinPair().condition(), Matchers.anyOf(
                 // order of the AND clauses is not deterministic, but both are okay as they're semantically the same
                 isSQL("((RELCOL(doc.t2, 0) = RELCOL(join.doc.t3.doc.t1, 0)) " +
                       "AND (RELCOL(join.doc.t3.doc.t1, 2) = RELCOL(doc.t2, 0)))"),
@@ -140,9 +142,10 @@ public class ManyTableConsumerTest {
         JoinPair pair2 = new JoinPair(T3.T2, T3.T3, JoinType.CROSS);
         @SuppressWarnings("unchecked")
         Collection<QualifiedName> qualifiedNames = ManyTableConsumer.orderByJoinConditions(
-                Arrays.asList(T3.T1, T3.T2, T3.T3),
-                ImmutableList.of(pair1, pair2),
-                ImmutableList.<QualifiedName>of());
+            Arrays.asList(T3.T1, T3.T2, T3.T3),
+            ImmutableSet.<Set<QualifiedName>>of(),
+            ImmutableList.of(pair1, pair2),
+            ImmutableList.<QualifiedName>of());
 
         assertThat(qualifiedNames, Matchers.contains(T3.T1, T3.T2, T3.T3));
     }
@@ -150,9 +153,10 @@ public class ManyTableConsumerTest {
     @Test
     public void testOptimizeJoinWithoutJoinConditionsAndPreSort() throws Exception {
         Collection<QualifiedName> qualifiedNames = ManyTableConsumer.orderByJoinConditions(
-                Arrays.asList(T3.T1, T3.T2, T3.T3),
-                ImmutableList.<JoinPair>of(),
-                ImmutableList.of(T3.T2));
+            Arrays.asList(T3.T1, T3.T2, T3.T3),
+            ImmutableSet.<Set<QualifiedName>>of(),
+            ImmutableList.<JoinPair>of(),
+            ImmutableList.of(T3.T2));
 
         assertThat(qualifiedNames, Matchers.contains(T3.T2, T3.T1, T3.T3));
     }
@@ -164,6 +168,7 @@ public class ManyTableConsumerTest {
         @SuppressWarnings("unchecked")
         Collection<QualifiedName> qualifiedNames = ManyTableConsumer.orderByJoinConditions(
             Arrays.asList(T3.T1, T3.T2, T3.T3),
+            ImmutableSet.<Set<QualifiedName>>of(),
             ImmutableList.of(pair1, pair2),
             ImmutableList.of(T3.T3, T3.T2));
 

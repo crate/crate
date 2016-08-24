@@ -129,6 +129,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
     private final int phaseId;
     private final RowReceiver downstream;
     private final Predicate<Row> rowFilterPredicate;
+    private final Predicate<Row> joinPredicate;
     private final JoinType joinType;
 
     private volatile Throwable upstreamFailure;
@@ -145,12 +146,14 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
     public NestedLoopOperation(int phaseId,
                                RowReceiver rowReceiver,
                                Predicate<Row> rowFilterPredicate,
+                               Predicate<Row> joinPredicate,
                                JoinType joinType,
                                int leftNumOutputs,
                                int rightNumOutputs) {
         this.phaseId = phaseId;
         this.downstream = rowReceiver;
         this.rowFilterPredicate = rowFilterPredicate;
+        this.joinPredicate = joinPredicate;
         this.joinType = joinType;
         left = new LeftRowReceiver();
         if (JoinType.RIGHT == joinType || JoinType.FULL == joinType) {
@@ -406,7 +409,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         Row lastRow = null;
         private boolean suspendThread = false;
-        boolean matched = false;
+        boolean matchedJoinPredicate = false;
 
         RightRowReceiver(int leftNumOutputs, int rightNumOutputs) {
             requirements = Requirements.add(downstream.requirements(), Requirement.REPEAT);
@@ -452,11 +455,17 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             combinedRow.outerRow = left.lastRow;
             combinedRow.innerRow = row;
 
-            // Check for matching rows
+            // Check where clause filter
             if (!rowFilterPredicate.apply(combinedRow)) {
+                // if the filter does not match, null rows must not be emitted, so set as matched
+                matchedJoinPredicate = true;
                 return Result.CONTINUE;
             }
-            matched = true;
+            // Check join condition
+            if (!joinPredicate.apply(combinedRow)) {
+                return Result.CONTINUE;
+            }
+            matchedJoinPredicate = true;
             return emitRowAndTrace(combinedRow);
         }
 
@@ -471,14 +480,14 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         @Override
         public void finish(final RepeatHandle repeatHandle) {
             if ((JoinType.LEFT == joinType || JoinType.FULL == joinType) &&
-                !matched && left.lastRow != null && !emitRightJoin) {
+                !matchedJoinPredicate && left.lastRow != null && !emitRightJoin) {
                 // emit row with right one nulled
                 combinedRow.outerRow = left.lastRow;
                 combinedRow.innerRow = combinedRow.innerNullRow;
                 emitRowAndTrace(combinedRow);
             }
             // reset matched
-            matched = false;
+            matchedJoinPredicate = false;
 
             LOGGER.trace("phase={} side=right method=finish firstCall={}", phaseId, firstCall);
 
@@ -556,7 +565,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
     private class RightJoinRightRowReceiver extends RightRowReceiver {
 
-        private final LuceneLongBitSetWrapper matchedRows = new LuceneLongBitSetWrapper();
+        private final LuceneLongBitSetWrapper matchedJoinRows = new LuceneLongBitSetWrapper();
         private long rowPosition = -1;
 
         RightJoinRightRowReceiver(int leftNumOutputs, int rightNumOutputs) {
@@ -573,7 +582,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         protected Result emitRow(Row row) {
             if (emitRightJoin) {
-                if (!matchedRows.get(rowPosition)) {
+                if (!matchedJoinRows.get(rowPosition)) {
                     combinedRow.outerRow = combinedRow.outerNullRow;
                     combinedRow.innerRow = row;
                     return emitRowAndTrace(combinedRow);
@@ -583,12 +592,19 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                 combinedRow.outerRow = left.lastRow;
                 combinedRow.innerRow = row;
 
-                // Check if left & right rows match
+                // Check where clause filter
                 if (!rowFilterPredicate.apply(combinedRow)) {
+                    // if the filter does not match, null rows must not be emitted, so set as matched
+                    matchedJoinPredicate = true;
+                    matchedJoinRows.set(rowPosition);
                     return Result.CONTINUE;
                 }
-                matched = true;
-                matchedRows.set(rowPosition);
+                // Check join condition
+                if (!joinPredicate.apply(combinedRow)) {
+                    return Result.CONTINUE;
+                }
+                matchedJoinPredicate = true;
+                matchedJoinRows.set(rowPosition);
                 return emitRowAndTrace(combinedRow);
             }
         }
