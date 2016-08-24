@@ -50,6 +50,7 @@ import java.util.Set;
 
 import static io.crate.testing.TestingHelpers.isSQL;
 import static io.crate.testing.TestingHelpers.newMockedThreadPool;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 public class ManyTableConsumerTest {
@@ -173,5 +174,32 @@ public class ManyTableConsumerTest {
             ImmutableList.of(T3.T3, T3.T2));
 
         assertThat(qualifiedNames, Matchers.contains(T3.T1, T3.T2, T3.T3));
+    }
+
+    @Test
+    public void testSortOnOuterJoinOuterRelation() throws Exception {
+        MultiSourceSelect mss = analyze("select * from t1 " +
+                                        "left join t2 on t1.a = t2.b " +
+                                        "order by t2.b");
+        TwoTableJoin root = ManyTableConsumer.twoTableJoin(mss);
+
+        assertThat(root.right().querySpec().orderBy().isPresent(), is(false));
+        assertThat(root.querySpec().orderBy().get(), isSQL("RELCOL(doc.t2, 0)"));
+    }
+
+    @Test
+    public void test3TableSortOnOuterJoinOuterRelation() throws Exception {
+        MultiSourceSelect mss = analyze("select * from t1 " +
+                                        "left join t2 on t1.a = t2.b " +
+                                        "left join t3 on t2.b = t3.c " +
+                                        "order by t2.b, t3.c");
+        TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
+        TwoTableJoin t1AndT2 = ((TwoTableJoin) root.left().relation());
+
+        assertThat(t1AndT2.right().querySpec().orderBy().isPresent(), is(false));
+        assertThat(t1AndT2.querySpec().orderBy().get(), isSQL("RELCOL(doc.t2, 0)"));
+
+        assertThat(root.right().querySpec().orderBy().isPresent(), is(false));
+        assertThat(root.querySpec().orderBy().get(), isSQL("RELCOL(join.doc.t1.doc.t2, 3), RELCOL(doc.t3, 0)"));
     }
 }

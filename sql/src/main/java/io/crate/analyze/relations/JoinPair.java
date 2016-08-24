@@ -197,15 +197,22 @@ public class JoinPair {
      */
     static boolean isOuterRelation(QualifiedName name, List<JoinPair> joinPairs) {
         for (JoinPair joinPair : joinPairs) {
-            if (joinPair.joinType().isOuter()) {
-                if (joinPair.left.equals(name) &&
-                    (joinPair.joinType() == JoinType.RIGHT || joinPair.joinType() == JoinType.FULL)) {
-                    return true;
-                }
-                if (joinPair.right.equals(name) &&
-                    (joinPair.joinType() == JoinType.LEFT || joinPair.joinType() == JoinType.FULL)) {
-                    return true;
-                }
+            if (isOuterRelation(name, joinPair)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean isOuterRelation(QualifiedName name, JoinPair joinPair) {
+        if (joinPair.joinType().isOuter()) {
+            if (joinPair.left.equals(name) &&
+                (joinPair.joinType() == JoinType.RIGHT || joinPair.joinType() == JoinType.FULL)) {
+                return true;
+            }
+            if (joinPair.right.equals(name) &&
+                (joinPair.joinType() == JoinType.LEFT || joinPair.joinType() == JoinType.FULL)) {
+                return true;
             }
         }
         return false;
