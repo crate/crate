@@ -58,7 +58,8 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
                 ImmutableList.<Projection>of(),
                 DistributionInfo.DEFAULT_BROADCAST);
         SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES, T3.TR_1);
-        Symbol filterCondition = sqlExpressions.normalize(sqlExpressions.asSymbol("a = 'foo'"));
+        Symbol joinCondition = sqlExpressions.normalize(sqlExpressions.asSymbol("t1.x = t1.i"));
+        Symbol filterSymbol = sqlExpressions.normalize(sqlExpressions.asSymbol("a = 'foo'"));
         NestedLoopPhase node = new NestedLoopPhase(
             jobId,
             1,
@@ -68,7 +69,8 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
             mp2,
             Sets.newHashSet("node1", "node2"),
             JoinType.INNER,
-            filterCondition,
+            joinCondition,
+            filterSymbol,
             1,
             1
             );
