@@ -31,6 +31,7 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.MockedClusterServiceModule;
+import io.crate.testing.T3;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
@@ -198,6 +199,42 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testSubSelectOnOuterJoins() throws Exception {
+        QueriedRelation relation = normalize(
+            "select ab " +
+            "from (select (ii + y) as iiy, concat(a, b) as ab " +
+            "  from (select t1.a, t2.b, t2.y, (t1.i + t2.i) as ii " +
+            "    from t1 left join t2 on t1.a = t2.b) as t) as tt " +
+            "order by iiy");
+        assertThat(relation, instanceOf(MultiSourceSelect.class));
+        assertThat(relation.querySpec(), isSQL(
+            "SELECT concat(doc.t1.a, doc.t2.b) ORDER BY add(add(doc.t1.i, doc.t2.i), doc.t2.y)"));
+        assertThat(((MultiSourceSelect)relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
+
+        relation = normalize(
+            "select ab " +
+            "from (select (ii + y) as iiy, concat(a, b) as ab " +
+            "  from (select t1.a, t2.b, t2.y, (t1.i + t2.i) as ii " +
+            "    from t1 right join t2 on t1.a = t2.b) as t) as tt " +
+            "order by iiy");
+        assertThat(relation, instanceOf(MultiSourceSelect.class));
+        assertThat(relation.querySpec(), isSQL(
+            "SELECT concat(doc.t1.a, doc.t2.b) ORDER BY add(add(doc.t1.i, doc.t2.i), doc.t2.y)"));
+        assertThat(((MultiSourceSelect)relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
+
+        relation = normalize(
+            "select ab " +
+            "from (select (ii + y) as iiy, concat(a, b) as ab " +
+            "  from (select t1.a, t2.b, t2.y, (t1.i + t2.i) as ii " +
+            "    from t1 full join t2 on t1.a = t2.b) as t) as tt " +
+            "order by iiy");
+        assertThat(relation, instanceOf(MultiSourceSelect.class));
+        assertThat(relation.querySpec(), isSQL(
+            "SELECT concat(doc.t1.a, doc.t2.b) ORDER BY add(add(doc.t1.i, doc.t2.i), doc.t2.y)"));
+        assertThat(((MultiSourceSelect)relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
+    }
+
+    @Test
     public void testSubSelectOnJoinsWithFilter() throws Exception {
         QueriedRelation relation = normalize(
             "select col1, col2 from ( " +
@@ -213,6 +250,62 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
         assertThat(t1.querySpec().where().query(), isSQL("(true AND (doc.t1.a = 'a'))"));
         MultiSourceSelect.Source t2 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "t2"));
         assertThat(t2.querySpec().where().query(), isSQL("(doc.t2.y > 60)"));
+    }
+
+    @Test
+    public void testSubSelectOnLeftJoinWithFilter() throws Exception {
+        QueriedRelation relation = normalize(
+            "select col1, col2 from ( " +
+            "  select t1.a as col1, t2.i as col2, t2.y as col3 " +
+            "  from t1 left join t2 on t1.a = t2.b where t2.y > 60) as t " +
+            "where col1 = 'a' order by col3");
+        assertThat(relation, instanceOf(MultiSourceSelect.class));
+        assertThat(relation.querySpec(), isSQL(
+            "SELECT doc.t1.a, doc.t2.i WHERE ((doc.t2.y > 60) AND true) ORDER BY doc.t2.y"));
+        assertThat(((MultiSourceSelect) relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
+
+        // make sure that where clause was pushed down and didn't disappear somehow
+        MultiSourceSelect.Source t1 = ((MultiSourceSelect) relation).sources().get(T3.T1);
+        assertThat(t1.querySpec().where().query(), isSQL("(doc.t1.a = 'a')"));
+        MultiSourceSelect.Source t2 = ((MultiSourceSelect) relation).sources().get(T3.T2);
+        assertThat(t2.querySpec().where().query(), isSQL("null"));
+    }
+
+    @Test
+    public void testSubSelectOnRightJoinWithFilter() throws Exception {
+        QueriedRelation relation = normalize(
+            "select col1, col2 from ( " +
+            "  select t1.a as col1, t2.i as col2, t2.y as col3 " +
+            "  from t1 right join t2 on t1.a = t2.b where t1.x > 60) as t " +
+            "where col2 = 10 order by col3");
+        assertThat(relation, instanceOf(MultiSourceSelect.class));
+        assertThat(relation.querySpec(), isSQL(
+            "SELECT doc.t1.a, doc.t2.i WHERE ((doc.t1.x > 60) AND true) ORDER BY doc.t2.y"));
+        assertThat(((MultiSourceSelect)relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
+
+        // make sure that where clause was pushed down and didn't disappear somehow
+        MultiSourceSelect.Source t1 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "t1"));
+        assertThat(t1.querySpec().where().query(), isSQL("null"));
+        MultiSourceSelect.Source t2 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "t2"));
+        assertThat(t2.querySpec().where().query(), isSQL("(doc.t2.i = 10)"));
+    }
+
+    @Test
+    public void testSubSelectOnFullJoinWithFilter() throws Exception {
+        QueriedRelation relation = normalize(
+            "select col1, col2 from ( " +
+            "  select t1.a as col1, t2.i as col2, t2.y as col3 " +
+            "  from t1 full join t2 on t1.a = t2.b where t2.y > 60) as t " +
+            "where col1 = 'a' order by col3");
+        assertThat(relation, instanceOf(MultiSourceSelect.class));
+        assertThat(relation.querySpec(), isSQL(
+            "SELECT doc.t1.a, doc.t2.i WHERE ((doc.t2.y > 60) AND (doc.t1.a = 'a')) ORDER BY doc.t2.y"));
+
+        // make sure that where clause wasn't pushed down since but be applied after the FULL join
+        MultiSourceSelect.Source t1 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "t1"));
+        assertThat(t1.querySpec().where().query(), isSQL("null"));
+        MultiSourceSelect.Source t2 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "t2"));
+        assertThat(t2.querySpec().where().query(), isSQL("null"));
     }
 
     @Test
