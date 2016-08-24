@@ -192,4 +192,44 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
                "caa| 62\n" +
                "daa| 66\n"));
     }
+
+    @Test
+    public void testNestedSubSelectWithOuterJoins() throws Exception {
+        execute("create table t1 (a string, i integer, x integer)");
+        execute("create table t2 (a string, i integer, y integer)");
+        ensureYellow();
+
+        execute("insert into t1 (a, i, x) values ('a', 2, 3),('b', 3, 5),('c', 5, 7),('d', 7, 11)");
+        execute("insert into t2 (a, i, y) values ('a', 22, 33),('bb', 33, 55),('cc', 55, 77),('dd', 77, 111)");
+        refresh();
+
+        execute("select aa, xyi from (" +
+                "  select (xy + i) as xyi, aa from (" +
+                "    select concat(t1.a, t2.a) as aa, t2.i, (t1.x + t2.y) as xy " +
+                "    from t1 left join t2 on t1.a = t2.a where t1.a='a') as t) as tt " +
+                "order by aa, xyi");
+
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("aa| 58\n"));
+
+        execute("select aa, xyi from (" +
+                "  select (xy + i) as xyi, aa from (" +
+                "    select concat(t1.a, t2.a) as aa, t2.i, (t1.x + t2.y) as xy " +
+                "    from t1 right join t2 on t1.a = t2.a where t1.a='a' or t2.a in ('aa', 'bb')) as t) as tt " +
+                "order by aa, xyi");
+
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("aa| 58\n" +
+               "bb| NULL\n"));
+
+        execute("select aa, xyi from (" +
+                "  select (xy + i) as xyi, aa from (" +
+                "    select concat(t1.a, t2.a) as aa, t2.i, (t1.x + t2.y) as xy " +
+                "    from t1 full join t2 on t1.a = t2.a where t1.a='a' or t2.a in ('aa', 'bb')) as t) as tt " +
+                "order by aa, xyi");
+
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("aa| 58\n" +
+               "bb| NULL\n"));
+    }
 }
