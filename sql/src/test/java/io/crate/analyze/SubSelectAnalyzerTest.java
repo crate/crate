@@ -27,7 +27,6 @@ import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
