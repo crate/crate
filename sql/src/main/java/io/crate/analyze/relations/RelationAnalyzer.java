@@ -42,7 +42,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.operation.operator.AndOperator;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.*;
@@ -92,25 +91,29 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
-    protected AnalyzedRelation visitJoin(Join node, StatementAnalysisContext context) {
+    protected AnalyzedRelation visitJoin(Join node, StatementAnalysisContext statementContext) {
         if (!ALLOWED_JOIN_TYPES.contains(node.getType())) {
             throw new UnsupportedOperationException("Explicit " + node.getType().name() + " join syntax is not supported");
         }
-        process(node.getLeft(), context);
-        process(node.getRight(), context);
+        process(node.getLeft(), statementContext);
+        process(node.getRight(), statementContext);
 
-        context.currentRelationContext().addJoinType(JoinType.values()[node.getType().ordinal()]);
-
+        Symbol joinCondition = null;
+        RelationAnalysisContext context = statementContext.currentRelationContext();
         Optional<JoinCriteria> optCriteria = node.getCriteria();
         if (optCriteria.isPresent()) {
             JoinCriteria joinCriteria = optCriteria.get();
             if (joinCriteria instanceof JoinOn) {
-                context.currentRelationContext().addJoinExpression(((JoinOn) joinCriteria).getExpression());
+                joinCondition = context.expressionAnalyzer().convert(
+                    ((JoinOn) joinCriteria).getExpression(),
+                    context.expressionAnalysisContext());
             } else {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
                         joinCriteria.getClass().getSimpleName()));
             }
         }
+
+        context.addJoinType(JoinType.values()[node.getType().ordinal()], joinCondition);
         return null;
     }
 
@@ -317,12 +320,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             query = context.expressionAnalyzer().convert(where.get(), context.expressionAnalysisContext());
         } else {
             query = Literal.BOOLEAN_TRUE;
-        }
-        if (!joinExpressions.isEmpty()) {
-            for (Expression joinExpression : joinExpressions) {
-                Symbol joinCondition = context.expressionAnalyzer().convert(joinExpression, context.expressionAnalysisContext());
-                query = new Function(AndOperator.INFO, Arrays.asList(query, joinCondition));
-            }
         }
         query = context.expressionAnalyzer().normalize(query, context.expressionAnalysisContext().statementContext());
         return new WhereClause(query);

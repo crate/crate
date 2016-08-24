@@ -24,13 +24,13 @@ package io.crate.analyze;
 
 import com.google.common.base.Optional;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
-import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.ArrayList;
@@ -46,23 +46,21 @@ public class TwoTableJoin implements QueriedRelation {
     private final Optional<OrderBy> remainingOrderBy;
     private final List<Field> fields;
     private final QualifiedName name;
-    private final JoinType joinType;
+    private final JoinPair joinPair;
 
     public TwoTableJoin(QuerySpec querySpec,
-                        QualifiedName leftName,
                         MultiSourceSelect.Source left,
-                        QualifiedName rightName,
                         MultiSourceSelect.Source right,
                         Optional<OrderBy> remainingOrderBy,
-                        JoinType joinType) {
+                        JoinPair joinPair) {
         this.querySpec = querySpec;
-        this.leftName = leftName;
+        this.leftName = joinPair.left();
         this.left = left;
-        this.rightName = rightName;
+        this.rightName = joinPair.right();
         this.right = right;
         this.name = QualifiedName.of("join", leftName.toString(), rightName.toString());
         this.remainingOrderBy = remainingOrderBy;
-        this.joinType = joinType;
+        this.joinPair = joinPair;
         fields = new ArrayList<>(querySpec.outputs().size());
         for (int i = 0; i < querySpec.outputs().size(); i++) {
             fields.add(new Field(this, new ColumnIndex(i), querySpec.outputs().get(i).valueType()));
@@ -86,8 +84,8 @@ public class TwoTableJoin implements QueriedRelation {
         return querySpec;
     }
 
-    public JoinType joinType() {
-        return joinType;
+    public JoinPair joinPair() {
+        return joinPair;
     }
 
     @Override
