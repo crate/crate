@@ -237,7 +237,8 @@ public class ManyTableConsumer implements Consumer {
             JoinPair joinPair = JoinPair.ofRelationsWithMergedConditions(leftName, rightName, joinPairs);
             mss.joinPairs().remove(joinPair);
 
-            // TODO: remove orderBy from left or right QuerySpec for outer join if orderBy is on outer table
+            removeOrderByOnOuterRelation(leftName, rightName, leftQuerySpec, rightSource.querySpec(), joinPair);
+
             // NestedLoop will add NULL rows - so order by needs to be applied after the NestedLoop
             TwoTableJoin join = new TwoTableJoin(
                 newQuerySpec,
@@ -319,13 +320,33 @@ public class ManyTableConsumer implements Consumer {
         }
     }
 
+    /**
+     * Removes order by on the outer relation of an outer join because it must be applied after the join anyway
+     */
+    private static void removeOrderByOnOuterRelation(QualifiedName left,
+                                                     QualifiedName right,
+                                                     QuerySpec leftQuerySpec,
+                                                     QuerySpec rightQuerySpec,
+                                                     JoinPair joinPair) {
+        if (JoinPair.isOuterRelation(left, joinPair)) {
+            leftQuerySpec.orderBy(null);
+        }
+        if (JoinPair.isOuterRelation(right, joinPair)) {
+            rightQuerySpec.orderBy(null);
+        }
+    }
 
-    private static TwoTableJoin twoTableJoin(MultiSourceSelect mss) {
+
+    static TwoTableJoin twoTableJoin(MultiSourceSelect mss) {
         assert mss.sources().size() == 2;
         Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
         QualifiedName left = it.next();
         QualifiedName right = it.next();
         JoinPair joinPair = JoinPair.ofRelationsWithMergedConditions(left, right, mss.joinPairs());
+        MultiSourceSelect.Source leftSource = mss.sources().get(left);
+        MultiSourceSelect.Source rightSource = mss.sources().get(right);
+
+        removeOrderByOnOuterRelation(left, right, leftSource.querySpec(), rightSource.querySpec(), joinPair);
 
         // TODO: enable optimization for all join types after RIGHT OUTER JOIN is implemented
         if (joinPair.joinType().ordinal() < JoinType.INNER.ordinal()) {
@@ -341,8 +362,8 @@ public class ManyTableConsumer implements Consumer {
 
         return new TwoTableJoin(
             mss.querySpec(),
-            mss.sources().get(left),
-            mss.sources().get(right),
+            leftSource,
+            rightSource,
             remainingOrderByToApply,
             joinPair
         );
