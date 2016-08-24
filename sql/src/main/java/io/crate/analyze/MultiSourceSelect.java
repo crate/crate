@@ -27,7 +27,6 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
-import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.*;
@@ -46,7 +45,7 @@ public class MultiSourceSelect implements QueriedRelation {
                              QuerySpec querySpec,
                              List<JoinPair> joinPairs) {
         assert sources.size() > 1 : "MultiSourceSelect requires at least 2 relations";
-        this.splitter = new RelationSplitter(querySpec, sources.values());
+        this.splitter = new RelationSplitter(querySpec, sources.values(), joinPairs);
         this.sources = initializeSources(sources);
         this.querySpec = querySpec;
         this.joinPairs = joinPairs;
@@ -72,33 +71,6 @@ public class MultiSourceSelect implements QueriedRelation {
 
     public List<JoinPair> joinPairs() {
         return joinPairs;
-    }
-
-    public JoinType joinTypeForRelations(QualifiedName left, QualifiedName right) {
-        JoinType joinType = JoinPair.joinTypeForRelations(left, right, joinPairs);
-        if (joinType == null) {
-            // default to cross join (or inner, doesn't matter)
-            return JoinType.CROSS;
-        }
-        return joinType;
-    }
-
-    public void rewriteNamesOfJoinPairs(QualifiedName left, QualifiedName right, QualifiedName newName) {
-        for (JoinPair joinPair : joinPairs) {
-            joinPair.replaceNames(left, right, newName);
-        }
-    }
-
-    public void addImplicitInnerJoinPairs(Set<Set<QualifiedName>> innerJoinPairs) {
-        for (Set<QualifiedName> relationPairs : innerJoinPairs) {
-            assert relationPairs.size() == 2 : "relation pair is not a valid pair (size is not 2)";
-            Iterator<QualifiedName> it = relationPairs.iterator();
-            QualifiedName left = it.next();
-            QualifiedName right = it.next();
-            if (JoinPair.joinTypeForRelations(left, right, joinPairs) == null) {
-                joinPairs.add(new JoinPair(left, right, JoinType.INNER));
-            }
-        }
     }
 
     @Override

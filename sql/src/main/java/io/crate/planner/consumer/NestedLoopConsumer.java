@@ -104,7 +104,7 @@ public class NestedLoopConsumer implements Consumer {
             }
 
             List<RelationColumn> nlOutputs = new ArrayList<>();
-            Map<Symbol, Symbol> symbolMap = new HashMap<>();
+            final Map<Symbol, Symbol> symbolMap = new HashMap<>();
             QueriedRelation left;
             QueriedRelation right;
             try {
@@ -127,20 +127,27 @@ public class NestedLoopConsumer implements Consumer {
                 MappingSymbolVisitor.inPlace().processInplace(statement.remainingOrderBy().get().orderBySymbols(), symbolMap);
             }
 
-            JoinType joinType = statement.joinType();
+            JoinPair joinPair = statement.joinPair();
+            JoinType joinType = joinPair.joinType();
+            Symbol joinCondition = joinPair.condition();
+            if (joinCondition != null) {
+                // replace all fields of the join condition
+                MappingSymbolVisitor.inPlace().process(joinCondition, symbolMap);
+            }
+
             WhereClause where = querySpec.where();
             boolean filterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
             boolean hasDocTables = left instanceof QueriedDocTable || right instanceof QueriedDocTable;
             boolean isDistributed = hasDocTables && filterNeeded && !joinType.isOuter();
 
-            if (filterNeeded || statement.remainingOrderBy().isPresent()) {
+            if (filterNeeded || joinCondition != null || statement.remainingOrderBy().isPresent()) {
                 left.querySpec().limit(null);
                 right.querySpec().limit(null);
                 left.querySpec().offset(TopN.NO_OFFSET);
                 right.querySpec().offset(TopN.NO_OFFSET);
             }
 
-            if (!filterNeeded && querySpec.limit().isPresent()) {
+            if (!filterNeeded && joinCondition == null && querySpec.limit().isPresent()) {
                 context.requiredPageSize(querySpec.limit().get() + querySpec.offset());
             }
 
@@ -225,6 +232,12 @@ public class NestedLoopConsumer implements Consumer {
                 filterSymbol = InputCreatingVisitor.INSTANCE.process(where.query(), inputVisitorContext);
                 assert filterSymbol instanceof Function : "Only function symbols are allowed for filtering";
             }
+            if (joinCondition != null) {
+                InputCreatingVisitor.Context inputVisitorContext = new InputCreatingVisitor.Context(nlOutputs);
+                joinCondition = InputCreatingVisitor.INSTANCE.process(joinCondition, inputVisitorContext);
+                assert joinCondition instanceof Function : "Only function symbols are valid join conditions";
+            }
+
             List<Symbol> postNLOutputs = Lists.newArrayList(querySpec.outputs());
             if (orderByBeforeSplit != null && isDistributed) {
                 for (Symbol symbol : orderByBeforeSplit.orderBySymbols()) {
@@ -257,6 +270,7 @@ public class NestedLoopConsumer implements Consumer {
                 rightMerge,
                 nlExecutionNodes,
                 joinType,
+                joinCondition,
                 filterSymbol,
                 left.querySpec().outputs().size(),
                 right.querySpec().outputs().size()
