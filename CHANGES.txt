@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added outer join support.
+
  - Fixed an issue that could cause joins on 3+ tables to produce the wrong
    result.
 
