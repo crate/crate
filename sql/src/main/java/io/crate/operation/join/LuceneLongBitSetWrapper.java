@@ -30,9 +30,9 @@ import org.apache.lucene.util.LongBitSet;
  * Each bit true if the rows in the respective position are matched and therefore we need
  * a structure capable of holding <pre>long</pre> size of bits so java.util.BitSet cannot be used.
  *
- * We chose to use {@link LongBitSet} from Lucence and add another layer of segments on top in
- * order to further optimize performance by growing the capacity of the backing array by double
- * each time size is reached.
+ * We chose to use {@link LongBitSet} from Lucence and add another layer on top in
+ * order to further optimize performance by growing the capacity of the backing array
+ * by double each time size is reached.
  */
 class LuceneLongBitSetWrapper {
     private long size = 1024;
