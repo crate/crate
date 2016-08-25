@@ -156,7 +156,7 @@ class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor
                     "expecting relation is instance of AbstractTableRelation";
                 TableIdent tableIdent = ((AbstractTableRelation) context.seenRelation).tableInfo().ident();
                 QualifiedName name = new QualifiedName(Arrays.asList(tableIdent.schema(), tableIdent.name()));
-                if (JoinPair.isOuterRelation(name, context.joinPairs)) {
+                if (JoinPairs.isOuterRelation(name, context.joinPairs)) {
                     // don't split by marking as multi relation
                     context.multiRelation = true;
                 }

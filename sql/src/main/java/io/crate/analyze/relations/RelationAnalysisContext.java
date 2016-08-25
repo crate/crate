@@ -30,7 +30,6 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.StmtCtx;
 import io.crate.planner.node.dql.join.JoinType;
-import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
@@ -48,8 +47,6 @@ public class RelationAnalysisContext {
 
     private ExpressionAnalyzer expressionAnalyzer;
     private FieldProvider fieldProvider;
-    @Nullable
-    private List<Expression> joinExpressions;
     @Nullable
     private List<JoinPair> joinPairs;
 
@@ -69,20 +66,6 @@ public class RelationAnalysisContext {
 
     public Map<QualifiedName, AnalyzedRelation> sources() {
         return sources;
-    }
-
-    List<Expression> joinExpressions() {
-        if (joinExpressions == null) {
-            return ImmutableList.of();
-        }
-        return joinExpressions;
-    }
-
-    void addJoinExpression(Expression expression) {
-        if (joinExpressions == null) {
-            joinExpressions = new ArrayList<>();
-        }
-        joinExpressions.add(expression);
     }
 
     private void addJoinPair(JoinPair joinType) {
@@ -113,7 +96,7 @@ public class RelationAnalysisContext {
 
     List<JoinPair> joinPairs() {
         if (joinPairs == null) {
-            return new ArrayList<>();
+            return ImmutableList.of();
         }
         return joinPairs;
     }
