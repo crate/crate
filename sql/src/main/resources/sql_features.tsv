@@ -162,10 +162,10 @@ F034	Extended REVOKE statement	3	REVOKE statement to revoke a privilege that the
 F041	Basic joined table			NO		
 F041	Basic joined table	1	Inner join (but not necessarily the INNER keyword)	YES		
 F041	Basic joined table	2	INNER keyword	YES		
-F041	Basic joined table	3	LEFT OUTER JOIN	NO		
-F041	Basic joined table	4	RIGHT OUTER JOIN	NO		
-F041	Basic joined table	5	Outer joins can be nested	NO		
-F041	Basic joined table	7	The inner table in a left or right outer join can also be used in an inner join	NO		
+F041	Basic joined table	3	LEFT OUTER JOIN	YES		
+F041	Basic joined table	4	RIGHT OUTER JOIN	YES		
+F041	Basic joined table	5	Outer joins can be nested	YES		
+F041	Basic joined table	7	The inner table in a left or right outer join can also be used in an inner join	YES		
 F041	Basic joined table	8	All comparison operators are supported (rather than just =)	YES		
 F051	Basic date and time			NO		only timestamp type
 F051	Basic date and time	1	DATE data type (including support of DATE literal)	NO		
@@ -251,7 +251,7 @@ F393	Unicode escapes in literals			NO
 F394	Optional normal form specification			NO		
 F401	Extended joined table			NO		
 F401	Extended joined table	1	NATURAL JOIN	NO		
-F401	Extended joined table	2	FULL OUTER JOIN	NO		
+F401	Extended joined table	2	FULL OUTER JOIN	YES		
 F401	Extended joined table	4	CROSS JOIN	YES		
 F402	Named column joins for LOBs, arrays, and multisets			NO		
 F403	Partitioned joined tables			NO		
