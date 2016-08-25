@@ -24,6 +24,7 @@ package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.where.DocKeys;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.NoopPlan;
@@ -40,8 +41,13 @@ public class ESGetStatementPlanner {
                 || !table.querySpec().where().docKeys().isPresent());
 
         DocTableInfo tableInfo = table.tableRelation().tableInfo();
-        if(table.querySpec().where().docKeys().get().withVersions()){
+        DocKeys docKeys = table.querySpec().where().docKeys().get();
+        if (docKeys.withVersions()){
             throw new VersionInvalidException();
+        }
+        if (docKeys.size() == 1 && docKeys.iterator().next().id() == null) {
+            // handle: where id in (null)
+            return new NoopPlan(context.jobId());
         }
         Optional<Integer> limit = table.querySpec().limit();
         if (limit.isPresent() && limit.get() == 0){

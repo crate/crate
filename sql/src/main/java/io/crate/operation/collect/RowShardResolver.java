@@ -59,7 +59,7 @@ public class RowShardResolver {
                             @Nullable ColumnIdent clusteredByColumn,
                             @Nullable Symbol routingSymbol) {
         Visitor visitor = new Visitor(functions);
-        idFunction = Id.compile(pkColumns, clusteredByColumn);
+        idFunction = Id.compileWithNullValidation(pkColumns, clusteredByColumn);
         visitorContext = new ImplementationSymbolVisitor.Context();
         routingInput = routingSymbol == null ? null : visitor.process(routingSymbol, visitorContext);
         primaryKeyInputs = new ArrayList<>(primaryKeySymbols.size());

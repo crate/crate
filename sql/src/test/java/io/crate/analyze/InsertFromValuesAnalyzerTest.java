@@ -496,7 +496,7 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
     }
 
     private String generateId(List<ColumnIdent> pkColumns, List<BytesRef> pkValues, ColumnIdent clusteredBy) {
-        return Id.compile(pkColumns, clusteredBy).apply(pkValues);
+        return Id.compileWithNullValidation(pkColumns, clusteredBy).apply(pkValues);
     }
 
     @Test

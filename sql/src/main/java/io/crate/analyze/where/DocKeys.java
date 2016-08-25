@@ -49,7 +49,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
         private final List<Symbol> key;
         private String id;
 
-        public DocKey(int pos) {
+        private DocKey(int pos) {
             key = docKeys.get(pos);
         }
 
@@ -150,5 +150,4 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             }
         };
     }
-
 }

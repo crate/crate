@@ -104,7 +104,6 @@ public class ESGetTask extends JobTask {
 
     private static class MultiGetJobContext extends JobContext<TransportMultiGetAction, MultiGetRequest, MultiGetResponse> {
 
-
         MultiGetJobContext(ESGetTask task,
                            TransportMultiGetAction transportAction,
                            RowReceiver downstream) {
@@ -195,11 +194,13 @@ public class ESGetTask extends JobTask {
         protected MultiGetRequest prepareRequest(ESGet node, FetchSourceContext fsc) {
             MultiGetRequest multiGetRequest = new MultiGetRequest();
             for (DocKeys.DocKey key : node.docKeys()) {
-                MultiGetRequest.Item item = new MultiGetRequest.Item(
-                    indexName(node.tableInfo(), key.partitionValues().orNull()), Constants.DEFAULT_MAPPING_TYPE, key.id());
-                item.fetchSourceContext(fsc);
-                item.routing(key.routing());
-                multiGetRequest.add(item);
+                if (key.id() != null) {
+                    MultiGetRequest.Item item = new MultiGetRequest.Item(
+                        indexName(node.tableInfo(), key.partitionValues().orNull()), Constants.DEFAULT_MAPPING_TYPE, key.id());
+                    item.fetchSourceContext(fsc);
+                    item.routing(key.routing());
+                    multiGetRequest.add(item);
+                }
             }
             multiGetRequest.realtime(true);
             return multiGetRequest;
@@ -256,7 +257,6 @@ public class ESGetTask extends JobTask {
             }
         }
     }
-
 
     public ESGetTask(Functions functions,
                      ProjectorFactory projectorFactory,

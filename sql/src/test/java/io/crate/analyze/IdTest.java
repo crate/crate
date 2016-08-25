@@ -50,7 +50,7 @@ public class IdTest extends CrateUnitTest {
     }
 
     private static String generateId(List<ColumnIdent> pkColumns, List<BytesRef> values, ColumnIdent clusteredBy) {
-        return Id.compile(pkColumns, clusteredBy).apply(values);
+        return Id.compileWithNullValidation(pkColumns, clusteredBy).apply(values);
     }
 
     @Test
