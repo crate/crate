@@ -311,8 +311,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     private WhereClause analyzeWhere(Optional<Expression> where, RelationAnalysisContext context) {
-        List<Expression> joinExpressions = context.joinExpressions();
-        if (!where.isPresent() && joinExpressions.isEmpty()) {
+        if (!where.isPresent()) {
             return WhereClause.MATCH_ALL;
         }
         Symbol query;
