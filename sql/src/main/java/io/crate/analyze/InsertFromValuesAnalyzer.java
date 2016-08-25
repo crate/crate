@@ -182,7 +182,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         try {
             DocTableInfo tableInfo = statement.tableInfo();
             int numPks = tableInfo.primaryKey().size();
-            Function<List<BytesRef>, String> idFunction = Id.compile(tableInfo.primaryKey(), tableInfo.clusteredBy());
+            Function<List<BytesRef>, String> idFunction = Id.compileWithNullValidation(tableInfo.primaryKey(), tableInfo.clusteredBy());
             if (parameterContext.bulkParameters.length > 0) {
                 for (int i = 0; i < parameterContext.bulkParameters.length; i++) {
                     parameterContext.setBulkIdx(i);

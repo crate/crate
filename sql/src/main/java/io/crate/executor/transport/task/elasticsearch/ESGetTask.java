@@ -158,11 +158,13 @@ public class ESGetTask extends EsJobContextTask implements RowUpstream {
     private MultiGetRequest prepareMultiGetRequest(ESGetNode node, FetchSourceContext fsc) {
         MultiGetRequest multiGetRequest = new MultiGetRequest();
         for (DocKeys.DocKey key : node.docKeys()) {
-            MultiGetRequest.Item item = new MultiGetRequest.Item(
+            if (key.id() != null) {
+                MultiGetRequest.Item item = new MultiGetRequest.Item(
                     indexName(node.tableInfo(), key.partitionValues()), Constants.DEFAULT_MAPPING_TYPE, key.id());
-            item.fetchSourceContext(fsc);
-            item.routing(key.routing());
-            multiGetRequest.add(item);
+                item.fetchSourceContext(fsc);
+                item.routing(key.routing());
+                multiGetRequest.add(item);
+            }
         }
         multiGetRequest.realtime(true);
         return multiGetRequest;

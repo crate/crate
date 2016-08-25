@@ -47,7 +47,7 @@ public class Id {
         }
     };
 
-    private final static Function<List<BytesRef>, String> ONLY_ITEM = new Function<List<BytesRef>, String>() {
+    private final static Function<List<BytesRef>, String> ONLY_ITEM_NULL_VALIDATION = new Function<List<BytesRef>, String>() {
         @Nullable
         @Override
         public String apply(@Nullable List<BytesRef> input) {
@@ -56,17 +56,31 @@ public class Id {
         }
     };
 
+    private final static Function<List<BytesRef>, String> ONLY_ITEM = new Function<List<BytesRef>, String>() {
+        @Nullable
+        @Override
+        public String apply(@Nullable List<BytesRef> input) {
+            assert input != null : "input must not be null";
+            BytesRef element = getOnlyElement(input);
+            if (element == null) {
+                return null;
+            }
+            return element.utf8ToString();
+        }
+    };
+
     /**
-     * generates a function which can be used to generate an id.
+     * generates a function which can be used to generate an id and apply null validation.
      *
      * This variant doesn't handle the pk = _id case. Use {@link #compile(List, ColumnIdent)} if it should be handled
      */
-    public static Function<List<BytesRef>, String> compile(final int numPks, final int clusteredByPosition) {
+    private static Function<List<BytesRef>, String> compileWithNullValidation(final int numPks,
+                                                                              final int clusteredByPosition) {
         switch (numPks) {
             case 0:
                 return RANDOM_ID;
             case 1:
-                return ONLY_ITEM;
+                return ONLY_ITEM_NULL_VALIDATION;
             default:
                 return new Function<List<BytesRef>, String>() {
                     @Nullable
@@ -83,7 +97,30 @@ public class Id {
     }
 
     /**
-     * returns a function which can be used to generate an id
+     * generates a function which can be used to generate an id.
+     *
+     * This variant doesn't handle the pk = _id case. Use {@link #compile(List, ColumnIdent)} if it should be handled
+     */
+    public static Function<List<BytesRef>, String> compile(final int numPks, final int clusteredByPosition) {
+        if (numPks == 1) {
+            return ONLY_ITEM;
+        }
+        return compileWithNullValidation(numPks, clusteredByPosition);
+    }
+
+    /**
+     * returns a function which can be used to generate an id with null validation.
+     */
+    public static Function<List<BytesRef>, String> compileWithNullValidation(final List<ColumnIdent> pkColumns, final ColumnIdent clusteredBy) {
+        final int numPks = pkColumns.size();
+        if (numPks == 1 && getOnlyElement(pkColumns).equals(DocSysColumns.ID)) {
+            return RANDOM_ID;
+        }
+        return compileWithNullValidation(numPks, pkColumns.indexOf(clusteredBy));
+    }
+
+    /**
+     * returns a function which can be used to generate an id.
      */
     public static Function<List<BytesRef>, String> compile(final List<ColumnIdent> pkColumns, final ColumnIdent clusteredBy) {
         final int numPks = pkColumns.size();

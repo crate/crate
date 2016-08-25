@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Return 0 rows instead of an error when executing select queries
+   that try to match null for primary key columns.
+   eg: select * from t where pk in (null);
+
  - Fix: Allow select statements on columns of multiple nested object array
 
  - Fix: do not allow to create tables in read-only system schemas

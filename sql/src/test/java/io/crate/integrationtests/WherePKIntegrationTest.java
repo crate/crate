@@ -107,6 +107,42 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testWherePkIsNull() throws Exception {
+        execute("create table t (s string primary key) with (number_of_replicas = 0)");
+        ensureYellow();
+
+        execute("select * from t where s in (null)");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select * from t where s in ('foo', null, 'bar')");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select * from t where s is null");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void testWhereComplexPkIsNull() throws Exception {
+        execute("create table t (i integer, s string, primary key (i, s)) with (number_of_replicas = 0)");
+        ensureYellow();
+
+        execute("select * from t where s in (null)");
+        assertThat(response.rowCount(), is(0L));
+        execute("select * from t where i in (null)");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select * from t where s in ('foo', null, 'bar')");
+        assertThat(response.rowCount(), is(0L));
+        execute("select * from t where i in (1, null, 2)");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select * from t where s is null");
+        assertThat(response.rowCount(), is(0L));
+        execute("select * from t where i is null");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
     public void testSelectNestedObjectWherePk() throws Exception {
         execute("create table items (id string primary key, details object as (tags array(string)) )" +
             "clustered into 3 shards with (number_of_replicas = '0-1')");
