@@ -27,11 +27,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.*;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.JoinPair;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.QuerySplitter;
-import io.crate.analyze.relations.RemainingOrderBy;
+import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.RelationColumn;
@@ -91,7 +87,7 @@ public class ManyTableConsumer implements Consumer {
         // Create a Copy to ensure equals works correctly for the subList check below.
         preSorted = ImmutableList.copyOf(preSorted);
         Set<QualifiedName> pair = new HashSet<>(2);
-        Set<QualifiedName> outerJoinRelations = JoinPair.outerJoinRelations(joinPairs);
+        Set<QualifiedName> outerJoinRelations = JoinPairs.outerJoinRelations(joinPairs);
         Collection<QualifiedName> bestOrder = null;
         int best = -1;
         outerloop:
@@ -104,7 +100,7 @@ public class ManyTableConsumer implements Consumer {
                 QualifiedName a = permutation.get(i);
                 QualifiedName b = permutation.get(i + 1);
 
-                JoinPair joinPair = JoinPair.ofRelations(a, b, joinPairs, false);
+                JoinPair joinPair = JoinPairs.ofRelations(a, b, joinPairs, false);
                 if (joinPair == null) {
                     // relations are not directly joined, lets check if they are part of an outer join
                     if (outerJoinRelations.contains(a) || outerJoinRelations.contains(b)) {
@@ -234,10 +230,9 @@ public class ManyTableConsumer implements Consumer {
             }
 
             // get explicit join definition
-            JoinPair joinPair = JoinPair.ofRelationsWithMergedConditions(leftName, rightName, joinPairs);
-            mss.joinPairs().remove(joinPair);
+            JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(leftName, rightName, joinPairs);
 
-            removeOrderByOnOuterRelation(leftName, rightName, leftQuerySpec, rightSource.querySpec(), joinPair);
+            JoinPairs.removeOrderByOnOuterRelation(leftName, rightName, leftQuerySpec, rightSource.querySpec(), joinPair);
 
             // NestedLoop will add NULL rows - so order by needs to be applied after the NestedLoop
             TwoTableJoin join = new TwoTableJoin(
@@ -267,7 +262,7 @@ public class ManyTableConsumer implements Consumer {
              * are replaced with a RelationColumn with QualifiedName of {@link RelationColumnReWriteCtx#newName}
              */
             splitQuery = rewriteSplitQueryNames(splitQuery, leftName, rightName, join.name(), replaceFunction);
-            JoinPair.rewriteNames(leftName, rightName, join.name(), replaceFunction, joinPairs);
+            JoinPairs.rewriteNames(leftName, rightName, join.name(), replaceFunction, joinPairs);
             rewriteOrderByNames(remainingOrderBy, leftName, rightName, join.name(), replaceFunction);
             rootQuerySpec = rootQuerySpec.copyAndReplace(replaceFunction);
             leftQuerySpec = newQuerySpec.copyAndReplace(replaceFunction);
@@ -320,33 +315,16 @@ public class ManyTableConsumer implements Consumer {
         }
     }
 
-    /**
-     * Removes order by on the outer relation of an outer join because it must be applied after the join anyway
-     */
-    private static void removeOrderByOnOuterRelation(QualifiedName left,
-                                                     QualifiedName right,
-                                                     QuerySpec leftQuerySpec,
-                                                     QuerySpec rightQuerySpec,
-                                                     JoinPair joinPair) {
-        if (JoinPair.isOuterRelation(left, joinPair)) {
-            leftQuerySpec.orderBy(null);
-        }
-        if (JoinPair.isOuterRelation(right, joinPair)) {
-            rightQuerySpec.orderBy(null);
-        }
-    }
-
-
     static TwoTableJoin twoTableJoin(MultiSourceSelect mss) {
         assert mss.sources().size() == 2;
         Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
         QualifiedName left = it.next();
         QualifiedName right = it.next();
-        JoinPair joinPair = JoinPair.ofRelationsWithMergedConditions(left, right, mss.joinPairs());
+        JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(left, right, mss.joinPairs());
         MultiSourceSelect.Source leftSource = mss.sources().get(left);
         MultiSourceSelect.Source rightSource = mss.sources().get(right);
 
-        removeOrderByOnOuterRelation(left, right, leftSource.querySpec(), rightSource.querySpec(), joinPair);
+        JoinPairs.removeOrderByOnOuterRelation(left, right, leftSource.querySpec(), rightSource.querySpec(), joinPair);
 
         // TODO: enable optimization for all join types after RIGHT OUTER JOIN is implemented
         if (joinPair.joinType().ordinal() < JoinType.INNER.ordinal()) {
