@@ -5,7 +5,7 @@ Changes for Crate
 Unreleased
 ==========
 
- - Added outer join support.
+ - Added support for outer joins: LEFT, RIGHT and FULL.
 
  - Fix: JAR conflict if HDFS plugin with Hadoop 2.x is used.
 
