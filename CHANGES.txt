@@ -5,7 +5,7 @@ Changes for Crate
 Unreleased
 ==========
 
- - Added outer join support.
+ - Added support for outer joins: LEFT, RIGHT and FULL.
 
  - Fix: Dropping a partition while inserting by primary key into same
    partition should not raise an exception but returns a 0 row count instead.

@@ -64,6 +64,7 @@ public class ManyTableConsumer implements Consumer {
      *
      *
      * @param relations all relations, e.g. [t1, t2, t3, t3]
+     * @param implicitJoinedRelations contains all relations that have a join condition e.g. {{t1, t2}, {t2, t3}}
      * @param joinPairs contains a list of {@link JoinPair}.
      * @param preSorted a ordered subset of the relations. The result will start with those relations.
      *                  E.g. [t3] - This would cause the result to start with [t3]
