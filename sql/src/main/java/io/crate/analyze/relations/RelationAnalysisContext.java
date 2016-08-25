@@ -86,6 +86,7 @@ public class RelationAnalysisContext {
         joinConditions.add(symbol);
     }
 
+
     private void addJoinPair(JoinPair joinType) {
         if (joinPairs == null) {
             joinPairs = new ArrayList<>();
@@ -114,7 +115,7 @@ public class RelationAnalysisContext {
 
     List<JoinPair> joinPairs() {
         if (joinPairs == null) {
-            return new ArrayList<>();
+            return ImmutableList.of();
         }
         return joinPairs;
     }
