@@ -29,7 +29,7 @@ before_install:
 script:
   - ./gradlew -PtestForks=2 -s test
   - ./gradlew -s itest
-  - ./blackbox/bin/sphinx-build -n -W -c docs/ -b html -E docs/ docs/out/html
+  - ./blackbox/bin/sphinx-build -n -W -c docs/ -b html -E blackbox/docs/ docs/out/html
 
 after_success:
   - ./gradlew jacocoReport
