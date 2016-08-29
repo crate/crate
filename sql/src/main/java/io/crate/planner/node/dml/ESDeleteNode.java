@@ -27,19 +27,26 @@ import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 
 import java.util.List;
+import java.util.Map;
 
 public class ESDeleteNode implements PlanNode {
 
     private final int executionPhaseId;
     private final DocTableInfo tableInfo;
     private final List<DocKeys.DocKey> docKeys;
+    private final Map<Integer, Integer> itemToBulkIdx;
+    private final int bulkSize;
 
     public ESDeleteNode(int executionPhaseId,
                         DocTableInfo tableInfo,
-                        List<DocKeys.DocKey> docKeys) {
+                        List<DocKeys.DocKey> docKeys,
+                        Map<Integer, Integer> itemToBulkIdx,
+                        int bulkSize) {
         this.executionPhaseId = executionPhaseId;
         this.tableInfo = tableInfo;
         this.docKeys = docKeys;
+        this.itemToBulkIdx = itemToBulkIdx;
+        this.bulkSize = bulkSize;
     }
 
     public int executionPhaseId() {
@@ -52,6 +59,14 @@ public class ESDeleteNode implements PlanNode {
 
     public List<DocKeys.DocKey> docKeys() {
         return docKeys;
+    }
+
+    public Map<Integer, Integer> getItemToBulkIdx() {
+        return itemToBulkIdx;
+    }
+
+    public int getBulkSize() {
+        return bulkSize;
     }
 
     @Override

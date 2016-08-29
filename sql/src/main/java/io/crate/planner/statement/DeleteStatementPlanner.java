@@ -55,7 +55,9 @@ import org.elasticsearch.cluster.routing.Preference;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Singleton
 public class DeleteStatementPlanner {
@@ -64,20 +66,32 @@ public class DeleteStatementPlanner {
         DocTableRelation tableRelation = analyzedStatement.analyzedRelation();
         List<WhereClause> whereClauses = new ArrayList<>(analyzedStatement.whereClauses().size());
         List<DocKeys.DocKey> docKeys = new ArrayList<>(analyzedStatement.whereClauses().size());
+
+        Map<Integer, Integer> itemToBulkIdx = new HashMap<>();
+        int bulkIdx = -1;
+        int itemIdx = 0;
         for (WhereClause whereClause : analyzedStatement.whereClauses()) {
+            bulkIdx++;
             if (whereClause.noMatch()) {
                 continue;
             }
             if (whereClause.docKeys().isPresent() && whereClause.docKeys().get().size() == 1) {
                 docKeys.add(whereClause.docKeys().get().getOnlyKey());
+                itemToBulkIdx.put(itemIdx, bulkIdx);
+                itemIdx++;
             } else if (!whereClause.noMatch()) {
                 whereClauses.add(whereClause);
             }
         }
+
         if (!docKeys.isEmpty()) {
             return new IterablePlan(
                     context.jobId(),
-                    new ESDeleteNode(context.nextExecutionPhaseId(), tableRelation.tableInfo(), docKeys));
+                    new ESDeleteNode(context.nextExecutionPhaseId(),
+                                     tableRelation.tableInfo(),
+                                     docKeys,
+                                     itemToBulkIdx,
+                                     analyzedStatement.whereClauses().size()));
         } else if (!whereClauses.isEmpty()) {
             return deleteByQuery(tableRelation.tableInfo(), whereClauses, context);
         }
