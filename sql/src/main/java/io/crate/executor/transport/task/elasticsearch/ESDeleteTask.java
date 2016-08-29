@@ -63,10 +63,16 @@ public class ESDeleteTask extends JobTask {
         super(esDelete.jobId());
         this.esDelete = esDelete;
         this.jobContextService = jobContextService;
-        results = new ArrayList<>(esDelete.docKeys().size());
+
+        results = new ArrayList<>(esDelete.getBulkSize());
+        for (int i = 0; i < esDelete.getBulkSize(); i++) {
+            SettableFuture<Long> result = SettableFuture.create();
+            results.add(result);
+        }
 
         List<DeleteRequest> requests = new ArrayList<>(esDelete.docKeys().size());
         List<ActionListener> listeners = new ArrayList<>(esDelete.docKeys().size());
+        int resultIdx = 0;
         for (DocKeys.DocKey docKey : esDelete.docKeys()) {
             DeleteRequest request = new DeleteRequest(
                     ESGetTask.indexName(esDelete.tableInfo(), docKey.partitionValues().orNull()),
@@ -77,11 +83,16 @@ public class ESDeleteTask extends JobTask {
                 request.version(docKey.version().get());
             }
             requests.add(request);
-            SettableFuture<Long> result = SettableFuture.create();
-            results.add(result);
+            SettableFuture<Long> result = results.get(esDelete.getItemToBulkIdx().get(resultIdx));
             listeners.add(new DeleteResponseListener(result));
+            resultIdx++;
         }
 
+        for (int i = 0; i < results.size(); i++) {
+            if (!esDelete.getItemToBulkIdx().values().contains(i)) {
+                results.get(i).set(0L);
+            }
+        }
         createContextBuilder("delete", requests, listeners, transport, null);
     }
 

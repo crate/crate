@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Error was thrown in case of primary key bulk delete statement
+   with null bulk arguments.
+
  - Fix: Return 0 rows instead of an error when executing select queries
    that try to match null for primary key columns.
    eg: select * from t where pk in (null);

@@ -22,10 +22,10 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLBulkResponse;
 import io.crate.testing.UseJdbc;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.core.Is.is;
 
 @UseJdbc
@@ -176,5 +176,28 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
         execute("SELECT pk_col FROM test");
         assertThat(response.rowCount(), is(1L));
         assertEquals(response.rows()[0][0], "3");
+    }
+
+    @Test
+    public void testBulkDeleteNullAndSingleKey() throws Exception {
+        this.setup.createTestTableWithPrimaryKey();
+        execute("insert into test(pk_col) values (1), (2), (3)");
+        execute("refresh table test");
+
+        SQLBulkResponse.Result[] r = execute("delete from test where pk_col=?",
+            new Object[][] {{2}, {null}, {3}}).results();
+        assertThat(r.length, is(3));
+        assertThat(r[0].rowCount(), is(1L));
+        assertThat(r[1].rowCount(), is(0L));
+        assertThat(r[2].rowCount(), is(1L));
+
+        r = execute("delete from test where pk_col=?", new Object[][] {{null}}).results();
+        assertThat(r.length, is(1));
+        assertThat(r[0].rowCount(), is(0L));
+
+        execute("refresh table test");
+        execute("select pk_col FROM test");
+        assertThat(response.rowCount(), is(1L));
+        assertEquals(response.rows()[0][0], "1");
     }
 }

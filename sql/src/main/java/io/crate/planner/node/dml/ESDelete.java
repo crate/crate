@@ -27,6 +27,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class ESDelete implements Plan {
@@ -35,15 +36,21 @@ public class ESDelete implements Plan {
     private final int executionPhaseId;
     private final DocTableInfo tableInfo;
     private final List<DocKeys.DocKey> docKeys;
+    private final Map<Integer, Integer> itemToBulkIdx;
+    private final int bulkSize;
 
     public ESDelete(UUID jobId,
                     int executionPhaseId,
                     DocTableInfo tableInfo,
-                    List<DocKeys.DocKey> docKeys) {
+                    List<DocKeys.DocKey> docKeys,
+                    Map<Integer, Integer> itemToBulkIdx,
+                    int bulkSize) {
         this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
         this.tableInfo = tableInfo;
         this.docKeys = docKeys;
+        this.itemToBulkIdx = itemToBulkIdx;
+        this.bulkSize = bulkSize;
     }
 
     public int executionPhaseId() {
@@ -56,6 +63,14 @@ public class ESDelete implements Plan {
 
     public List<DocKeys.DocKey> docKeys() {
         return docKeys;
+    }
+
+    public Map<Integer, Integer> getItemToBulkIdx() {
+        return itemToBulkIdx;
+    }
+
+    public int getBulkSize() {
+        return bulkSize;
     }
 
     @Override
