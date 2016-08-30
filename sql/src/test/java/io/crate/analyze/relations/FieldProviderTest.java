@@ -25,17 +25,16 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Path;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.types.DataTypes;
+import io.crate.testing.DummyRelation;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
@@ -216,38 +215,4 @@ public class FieldProviderTest extends CrateUnitTest {
         FieldProvider<Field>resolver = new FullQualifedNameFieldProvider(ImmutableMap.of(newQN("doc.t"), relation));
         resolver.resolveField(new QualifiedName(Arrays.asList("unknown")), false);
     }
-
-    private static class DummyRelation implements AnalyzedRelation {
-
-        private final Set<String> supportedReference = new HashSet<>();
-
-        public DummyRelation( String referenceName) {
-            supportedReference.add(referenceName);
-        }
-
-        @Override
-        public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-            return null;
-        }
-
-        @Override
-        public Field getField(Path path) {
-            ColumnIdent columnIdent = (ColumnIdent) path;
-            if (supportedReference.contains(columnIdent.name())) {
-                return new Field(this, columnIdent, DataTypes.STRING);
-            }
-            return null;
-        }
-
-        @Override
-        public Field getWritableField(Path path) throws UnsupportedOperationException {
-            return getField(path);
-        }
-
-        @Override
-        public List<Field> fields() {
-            return null;
-        }
-    }
-
 }

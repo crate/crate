@@ -67,6 +67,7 @@ public class MultiSourceSelect implements QueriedRelation {
     private final HashMap<QualifiedName, Source> sources;
     private final List<Field> fields;
     private final QuerySpec querySpec;
+    private QualifiedName qualifiedName;
 
     public MultiSourceSelect(
             Map<QualifiedName, AnalyzedRelation> sources,
@@ -117,6 +118,16 @@ public class MultiSourceSelect implements QueriedRelation {
     @Override
     public List<Field> fields() {
         return fields;
+    }
+
+    @Override
+    public QualifiedName getQualifiedName() {
+        return qualifiedName;
+    }
+
+    @Override
+    public void setQualifiedName(QualifiedName qualifiedName) {
+        this.qualifiedName = qualifiedName;
     }
 
     public QuerySpec querySpec() {

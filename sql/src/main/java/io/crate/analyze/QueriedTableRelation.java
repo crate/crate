@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
 import io.crate.metadata.StmtCtx;
+import io.crate.sql.tree.QualifiedName;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -87,5 +88,13 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
         return fields;
     }
 
+    @Override
+    public QualifiedName getQualifiedName() {
+        return tableRelation.getQualifiedName();
+    }
 
+    @Override
+    public void setQualifiedName(QualifiedName qualifiedName) {
+        tableRelation.setQualifiedName(qualifiedName);
+    }
 }

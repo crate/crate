@@ -34,6 +34,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
 import io.crate.planner.projection.WriterProjection;
+import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -132,5 +133,15 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement imple
     @Override
     public boolean isWriteOperation() {
         return false;
+    }
+
+    @Override
+    public QualifiedName getQualifiedName() {
+        throw new UnsupportedOperationException("method not supported");
+    }
+
+    @Override
+    public void setQualifiedName(QualifiedName qualifiedName) {
+        throw new UnsupportedOperationException("method not supported");
     }
 }

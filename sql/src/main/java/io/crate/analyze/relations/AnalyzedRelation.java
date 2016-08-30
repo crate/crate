@@ -24,7 +24,9 @@ package io.crate.analyze.relations;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
+import io.crate.sql.tree.QualifiedName;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
@@ -38,4 +40,8 @@ public interface AnalyzedRelation {
     public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException;
 
     public List<Field> fields();
+
+    QualifiedName getQualifiedName();
+
+    void setQualifiedName(@Nonnull QualifiedName qualifiedName);
 }

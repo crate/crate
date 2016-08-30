@@ -33,6 +33,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.scalar.SubscriptObjectFunction;
 import io.crate.planner.projection.builder.InputCreatingVisitor;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -190,6 +191,16 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
     @Override
     public List<Field> fields() {
         return ImmutableList.of();
+    }
+
+    @Override
+    public QualifiedName getQualifiedName() {
+        throw new UnsupportedOperationException("method not supported");
+    }
+
+    @Override
+    public void setQualifiedName(QualifiedName qualifiedName) {
+        throw new UnsupportedOperationException("method not supported");
     }
 
     @Nullable

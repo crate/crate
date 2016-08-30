@@ -23,21 +23,16 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.Path;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.DummyRelation;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.List;
-
 import static io.crate.testing.TestingHelpers.isLiteral;
-
 
 public class ReferenceToTrueVisitorTest extends CrateUnitTest {
 
@@ -47,39 +42,18 @@ public class ReferenceToTrueVisitorTest extends CrateUnitTest {
     @Before
     public void prepare() throws Exception {
         visitor = new ReferenceToTrueVisitor();
+        DummyRelation dummyRelation = new DummyRelation("clustered_by",
+                                                        "number_of_shards",
+                                                        "table_name",
+                                                        "number_of_replicas",
+                                                        "schema_name");
         ImmutableMap<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-                new QualifiedName("dummy"), new DummyRelation());
+                new QualifiedName("dummy"), dummyRelation);
         expressions = new SqlExpressions(sources);
     }
 
     private Symbol convert(Symbol symbol) {
         return expressions.normalize(visitor.process(symbol, null));
-    }
-
-    /**
-     * relation that will return a Reference with Doc granularity / String type for all columns
-     */
-    private static class DummyRelation implements AnalyzedRelation {
-
-        @Override
-        public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-            return null;
-        }
-
-        @Override
-        public Field getField(Path path) {
-            return new Field(this, path, DataTypes.STRING);
-        }
-
-        @Override
-        public Field getWritableField(Path path) throws UnsupportedOperationException {
-            return null;
-        }
-
-        @Override
-        public List<Field> fields() {
-            return null;
-        }
     }
 
     private Symbol fromSQL(String expression) {

@@ -29,6 +29,7 @@ import io.crate.analyze.symbol.Reference;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
+import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -109,5 +110,15 @@ public class UpdateAnalyzedStatement implements AnalyzedRelation, AnalyzedStatem
     @Override
     public boolean isWriteOperation() {
         return true;
+    }
+
+    @Override
+    public QualifiedName getQualifiedName() {
+        throw new UnsupportedOperationException("method not supported");
+    }
+
+    @Override
+    public void setQualifiedName(QualifiedName qualifiedName) {
+        throw new UnsupportedOperationException("method not supported");
     }
 }

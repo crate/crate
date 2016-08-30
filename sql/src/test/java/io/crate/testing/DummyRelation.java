@@ -20,64 +20,58 @@
  * agreement.
  */
 
-package io.crate.analyze;
+package io.crate.testing;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.OutputName;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRelation {
+/**
+ * relation that will return a Reference with Doc granularity / String type for all columns
+ */
+public class DummyRelation implements AnalyzedRelation {
 
-    final AnalyzedStatement statement;
-    private final List<Field> fields;
+    private final Set<ColumnIdent> columnReferences = new HashSet<>();
 
-    public ExplainAnalyzedStatement(String columnName, AnalyzedStatement statement) {
-        this.statement = statement;
-        this.fields = Collections.singletonList(new Field(this, new OutputName(columnName), DataTypes.OBJECT));
-    }
+    public DummyRelation() {}
 
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitExplainStatement(this, context);
-    }
-
-    public AnalyzedStatement statement() {
-        return statement;
+    public DummyRelation(String... referenceNames) {
+        for (String referenceName : referenceNames) {
+            columnReferences.add(ColumnIdent.fromPath(referenceName));
+        }
     }
 
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return visitor.visitExplain(this, context);
+        return null;
     }
 
-    @Nullable
     @Override
-    public Field getField(Path path) {
-        throw new UnsupportedOperationException("getField is not supported");
+    public Field getField(Path path) throws UnsupportedOperationException {
+        if (columnReferences.contains(path)) {
+            return new Field(this, path, DataTypes.STRING);
+        }
+        return null;
     }
 
     @Override
     public Field getWritableField(Path path) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField is not supported");
+        return getField(path);
     }
 
     @Override
     public List<Field> fields() {
-        return fields;
-    }
-
-    @Override
-    public boolean isWriteOperation() {
-        return false;
+        return null;
     }
 
     @Override

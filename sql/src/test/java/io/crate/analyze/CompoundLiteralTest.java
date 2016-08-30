@@ -25,9 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.FullQualifedNameFieldProvider;
-import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
@@ -38,6 +36,7 @@ import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.DummyRelation;
 import io.crate.types.*;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
@@ -55,10 +54,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -113,30 +110,6 @@ public class CompoundLiteralTest extends CrateUnitTest {
 
     private Symbol analyzeExpression(String expression) {
         return analyzeExpression(expression, new Object[0]);
-    }
-
-    private static class DummyRelation implements AnalyzedRelation {
-
-        @Override
-        public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-            return null;
-        }
-
-        @Nullable
-        @Override
-        public Field getField(Path path) {
-            return null;
-        }
-
-        @Override
-        public Field getWritableField(Path path) throws UnsupportedOperationException {
-            return null;
-        }
-
-        @Override
-        public List<Field> fields() {
-            return null;
-        }
     }
 
     private Symbol analyzeExpression(String expression, Object[] params) {

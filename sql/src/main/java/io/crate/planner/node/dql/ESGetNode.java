@@ -39,9 +39,11 @@ import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanNodeVisitor;
 import io.crate.planner.projection.Projection;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataType;
 import org.elasticsearch.common.Nullable;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.UUID;
 
@@ -186,5 +188,15 @@ public class ESGetNode implements PlanNode, PlannedAnalyzedRelation {
     @Override
     public List<Field> fields() {
         throw new UnsupportedOperationException("fields() not implemented on ESGetNode");
+    }
+
+    @Override
+    public QualifiedName getQualifiedName() {
+        throw new UnsupportedOperationException("method not supported");
+    }
+
+    @Override
+    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
+        throw new UnsupportedOperationException("method not supported");
     }
 }
