@@ -79,6 +79,20 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testDeleteWithNullArg() throws Exception {
+        this.setup.createTestTableWithPrimaryKey();
+        execute("insert into test(pk_col) values (1), (2), (3)");
+        execute("refresh table test");
+
+        execute("delete from test where pk_col=?", new Object[] {null});
+        assertThat(response.rowCount(), is(0L));
+
+        execute("refresh table test");
+        execute("select pk_col FROM test");
+        assertThat(response.rowCount(), is(3L));
+    }
+
+    @Test
     public void testDeleteByIdWithMultiplePrimaryKey() throws Exception {
         execute("create table quotes (id integer primary key, author string primary key, " +
                 "quote string) with (number_of_replicas=0)");
