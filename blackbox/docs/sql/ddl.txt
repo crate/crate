@@ -653,10 +653,10 @@ Here is a simple Example::
     cr> create table hidden_test_table(
     ...     fc string index using fulltext with(analyzer=myanalyzer)
     ... );
-    CREATE OK...
+    CREATE OK (... sec)
 
     cr> drop table hidden_test_table;
-    DROP OK, 1 row affected  (... sec)
+    DROP OK (... sec)
 
 This creates a custom analyzer called ``myanalyzer``. It uses the built-in
 :ref:`whitespace-tokenizer` tokenizer and two built-in token filters.
