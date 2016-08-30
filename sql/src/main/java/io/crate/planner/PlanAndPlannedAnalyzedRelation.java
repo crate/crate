@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
+import io.crate.sql.tree.QualifiedName;
 
 import java.util.List;
 
@@ -50,5 +51,15 @@ public abstract class PlanAndPlannedAnalyzedRelation implements PlannedAnalyzedR
     @Override
     public List<Field> fields() {
         throw new UnsupportedOperationException("fields is not supported");
+    }
+
+    @Override
+    public QualifiedName getQualifiedName() {
+        throw new UnsupportedOperationException("method not supported");
+    }
+
+    @Override
+    public void setQualifiedName(QualifiedName qualifiedName) {
+        throw new UnsupportedOperationException("method not supported");
     }
 }

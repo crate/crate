@@ -30,16 +30,14 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public abstract class AbstractTableRelation<T extends TableInfo> implements AnalyzedRelation, FieldResolver {
 
@@ -55,9 +53,11 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
     protected T tableInfo;
     private List<Field> outputs;
     private Map<Path, Reference> allocatedFields = new HashMap<>();
+    private QualifiedName qualifiedName;
 
     public AbstractTableRelation(T tableInfo) {
         this.tableInfo = tableInfo;
+        qualifiedName = new QualifiedName(Arrays.asList(tableInfo.ident().schema(), tableInfo.ident().name()));
     }
 
     public T tableInfo() {
@@ -139,6 +139,16 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
             }
         }
         return outputs;
+    }
+
+    @Override
+    public QualifiedName getQualifiedName() {
+        return qualifiedName;
+    }
+
+    @Override
+    public void setQualifiedName(QualifiedName qualifiedName) {
+        this.qualifiedName = qualifiedName;
     }
 
     /**

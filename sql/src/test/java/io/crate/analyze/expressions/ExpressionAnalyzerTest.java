@@ -27,7 +27,6 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.FullQualifedNameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Field;
@@ -36,11 +35,11 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
 import io.crate.metadata.*;
-import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.DummyRelation;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataType;
@@ -48,7 +47,10 @@ import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isField;
@@ -72,7 +74,8 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     public void prepare() throws Exception {
         mockedAnalysisMetaData = mock(AnalysisMetaData.class);
         emptyParameterContext = ParameterContext.EMPTY;
-        dummySources = ImmutableMap.of(new QualifiedName("foo"), (AnalyzedRelation) new DummyRelation());
+        DummyRelation dummyRelation = new DummyRelation("obj.x", "myObj.x", "myObj.x.AbC");
+        dummySources = ImmutableMap.of(new QualifiedName("foo"), (AnalyzedRelation) dummyRelation);
         context = new ExpressionAnalysisContext(new StmtCtx());
 
         analysisMetaData = new AnalysisMetaData(
@@ -149,6 +152,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         TableInfo tableInfo = mock(TableInfo.class);
         when(tableInfo.getReference(new ColumnIdent("id"))).thenReturn(
                 new Reference(new ReferenceIdent(new TableIdent("doc", "t"), "id"), RowGranularity.DOC, DataTypes.INTEGER));
+        when(tableInfo.ident()).thenReturn(new TableIdent("doc", "t"));
         TableRelation tr1 = new TableRelation(tableInfo);
         TableRelation tr2 = new TableRelation(tableInfo);
 
@@ -198,35 +202,5 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         // but equal
         assertThat(fn1, is(equalTo(fn2)));
         assertThat(fn1, is(not(equalTo(fn3))));
-    }
-
-    private static class DummyRelation implements AnalyzedRelation {
-
-        public final Set<ColumnIdent> supportedReference = new HashSet<>();
-
-        public DummyRelation() {
-            supportedReference.add(ColumnIdent.fromPath("obj.x"));
-            supportedReference.add(ColumnIdent.fromPath("myObj.x"));
-            supportedReference.add(ColumnIdent.fromPath("myObj.x.AbC"));
-        }
-
-        @Override
-        public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-            return null;
-        }
-
-        @Override
-        public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
-            ColumnIdent columnIdent = (ColumnIdent) path;
-            if (supportedReference.contains(columnIdent)) {
-                return new Field(this, columnIdent, DataTypes.STRING);
-            }
-            return null;
-        }
-
-        @Override
-        public List<Field> fields() {
-            return null;
-        }
     }
 }

@@ -399,6 +399,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         context.startRelation(true);
         AnalyzedRelation childRelation = process(node.getRelation(), context);
         context.endRelation();
+        childRelation.setQualifiedName(new QualifiedName(node.getAlias()));
         context.currentRelationContext().addSourceRelation(node.getAlias(), childRelation);
         return childRelation;
     }

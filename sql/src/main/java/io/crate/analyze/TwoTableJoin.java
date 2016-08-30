@@ -97,6 +97,16 @@ public class TwoTableJoin implements QueriedRelation {
         return fields;
     }
 
+    @Override
+    public QualifiedName getQualifiedName() {
+        throw new UnsupportedOperationException("method not supported");
+    }
+
+    @Override
+    public void setQualifiedName(QualifiedName qualifiedName) {
+        throw new UnsupportedOperationException("method not supported");
+    }
+
     public QualifiedName leftName() {
         return leftName;
     }

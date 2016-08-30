@@ -32,6 +32,7 @@ import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
+import io.crate.sql.tree.QualifiedName;
 
 import java.util.List;
 import java.util.UUID;
@@ -79,6 +80,16 @@ public class NoopPlannedAnalyzedRelation implements PlannedAnalyzedRelation {
     @Override
     public UpstreamPhase resultPhase() {
         throw new UnsupportedOperationException("resultPhase is not supported");
+    }
+
+    @Override
+    public QualifiedName getQualifiedName() {
+        throw new UnsupportedOperationException("method not supported");
+    }
+
+    @Override
+    public void setQualifiedName(QualifiedName qualifiedName) {
+        throw new UnsupportedOperationException("method not supported");
     }
 
 }

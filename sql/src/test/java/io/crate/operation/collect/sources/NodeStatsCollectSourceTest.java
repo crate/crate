@@ -60,6 +60,7 @@ public class NodeStatsCollectSourceTest extends CrateUnitTest {
     private List<DiscoveryNode>filterNodes(String where) throws NoSuchFieldException, IllegalAccessException {
         // build where clause with id = ?
         SysNodesTableInfo tableInfo = mock(SysNodesTableInfo.class);
+        when(tableInfo.ident()).thenReturn(new TableIdent("sys", "nodes"));
         when(tableInfo.getReference(new ColumnIdent("id"))).thenReturn(
             new Reference(new ReferenceIdent(new TableIdent("sys", "nodes"), "id"), RowGranularity.DOC, DataTypes.STRING));
         when(tableInfo.getReference(SysNodesTableInfo.Columns.NAME)).thenReturn(

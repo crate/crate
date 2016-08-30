@@ -29,6 +29,7 @@ import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
 import io.crate.metadata.StmtCtx;
 import io.crate.metadata.table.Operation;
+import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -86,5 +87,15 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
     @Override
     public List<Field> fields() {
         return fields.asList();
+    }
+
+    @Override
+    public QualifiedName getQualifiedName() {
+        return tableRelation.getQualifiedName();
+    }
+
+    @Override
+    public void setQualifiedName(QualifiedName qualifiedName) {
+        tableRelation.setQualifiedName(qualifiedName);
     }
 }

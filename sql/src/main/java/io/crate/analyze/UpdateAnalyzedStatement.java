@@ -30,6 +30,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.Operation;
+import io.crate.sql.tree.QualifiedName;
 
 import java.util.HashMap;
 import java.util.List;
@@ -103,5 +104,15 @@ public class UpdateAnalyzedStatement implements AnalyzedRelation, AnalyzedStatem
     @Override
     public boolean isWriteOperation() {
         return true;
+    }
+
+    @Override
+    public QualifiedName getQualifiedName() {
+        throw new UnsupportedOperationException("method not supported");
+    }
+
+    @Override
+    public void setQualifiedName(QualifiedName qualifiedName) {
+        throw new UnsupportedOperationException("method not supported");
     }
 }

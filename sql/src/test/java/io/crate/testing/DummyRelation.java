@@ -20,73 +20,61 @@
  * agreement.
  */
 
-package io.crate.analyze;
+package io.crate.testing;
 
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-public class QueriedSelectRelation implements QueriedRelation {
+/**
+ * relation that will return a Reference with Doc granularity / String type for all columns
+ */
+public class DummyRelation implements AnalyzedRelation {
 
-    private final QueriedRelation relation;
-    private final QuerySpec querySpec;
-    private final Fields fields;
+    private final Set<ColumnIdent> columnReferences = new HashSet<>();
 
-    public QueriedSelectRelation(QueriedRelation relation, Collection<? extends Path> outputNames, QuerySpec querySpec) {
-        this.relation = relation;
-        this.querySpec = querySpec;
-        this.fields = new Fields(outputNames.size());
-        Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
-        for (Path path : outputNames) {
-            fields.add(path, new Field(this, path, outputsIterator.next().valueType()));
+    public DummyRelation() {}
+
+    public DummyRelation(String... referenceNames) {
+        for (String referenceName : referenceNames) {
+            columnReferences.add(ColumnIdent.fromPath(referenceName));
         }
-    }
-
-    public QueriedRelation relation() {
-        return relation;
-    }
-
-    @Override
-    public QuerySpec querySpec() {
-        return querySpec;
     }
 
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return visitor.visitQueriedSelectRelation(this, context);
+        return null;
     }
 
-    @Nullable
     @Override
-    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        if (operation != Operation.READ) {
-            throw new UnsupportedOperationException("getField on QueriedSelectRelation is only supported for READ operations");
+    public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
+        if (columnReferences.contains(path)) {
+            return new Field(this, path, DataTypes.STRING);
         }
-        return fields.get(path);
+        return null;
     }
 
     @Override
     public List<Field> fields() {
-        return fields.asList();
+        return null;
     }
 
     @Override
     public QualifiedName getQualifiedName() {
-        return relation.getQualifiedName();
+        throw new UnsupportedOperationException("method not supported");
     }
 
     @Override
     public void setQualifiedName(QualifiedName qualifiedName) {
-        relation.setQualifiedName(qualifiedName);
+        throw new UnsupportedOperationException("method not supported");
     }
 }
