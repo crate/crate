@@ -760,6 +760,33 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testBulkInsertWithNullValue() throws Exception {
+        execute("create table t (x int)");
+        ensureYellow();
+
+        Object[][] bulkArgs = new Object[][] {new Object[]{null}};
+        SQLBulkResponse bulkResponse = execute("insert into t values (?)", bulkArgs);
+        assertThat(bulkResponse.results().length, is(1));
+        assertThat(bulkResponse.results()[0].rowCount(), is(1L));
+
+
+        bulkArgs = new Object[][] {
+            new Object[]{10},
+            new Object[]{null},
+            new Object[]{20}
+        };
+        bulkResponse = execute("insert into t values (?)", bulkArgs);
+        assertThat(bulkResponse.results().length, is(3));
+        for (SQLBulkResponse.Result result : bulkResponse.results()) {
+            assertThat(result.rowCount(), is(1L));
+        }
+
+        refresh();
+        execute("select * from t");
+        assertThat(response.rowCount(), is(4L));
+    }
+
+    @Test
     public void testBulkInsertWithMultiValue() throws Exception {
         execute("create table t (x int)");
         ensureYellow();

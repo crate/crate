@@ -180,7 +180,13 @@ public class TransportExecutor implements Executor {
 
         @Override
         public List<Task> visitNoopPlan(NoopPlan plan, UUID jobId) {
-            return ImmutableList.<Task>of(NoopTask.INSTANCE);
+            switch (plan.getType()) {
+                case ZERO_ROWS:
+                    return ImmutableList.<Task>of(NoopTask.INSTANCE_ZERO_ROWS);
+                case EMPTY_RESULT:
+                default:
+                    return ImmutableList.<Task>of(NoopTask.INSTANCE_EMPTY_RESULT);
+            }
         }
 
         @Override
