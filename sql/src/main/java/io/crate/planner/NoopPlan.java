@@ -28,10 +28,22 @@ import java.util.UUID;
  */
 public class NoopPlan implements Plan {
 
+    public enum Type {
+        QUERY_RESULT,
+        ROW_COUNT,
+    }
+
     private final UUID id;
+    private final Type type;
 
     public NoopPlan(UUID id) {
         this.id = id;
+        this.type = Type.QUERY_RESULT;
+    }
+
+    public NoopPlan(UUID id, Type type) {
+        this.id = id;
+        this.type = type;
     }
 
     @Override
@@ -42,5 +54,9 @@ public class NoopPlan implements Plan {
     @Override
     public UUID jobId() {
         return id;
+    }
+
+    public Type getType() {
+        return type;
     }
 }

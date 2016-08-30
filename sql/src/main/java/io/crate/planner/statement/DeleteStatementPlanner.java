@@ -82,7 +82,7 @@ public class DeleteStatementPlanner {
             return deleteByQuery(tableRelation.tableInfo(), whereClauses, context);
         }
 
-        return new NoopPlan(context.jobId());
+        return new NoopPlan(context.jobId(), NoopPlan.Type.ROW_COUNT);
     }
 
     private Plan deleteByQuery(DocTableInfo tableInfo,
@@ -106,7 +106,7 @@ public class DeleteStatementPlanner {
         }
 
         if (planNodes.isEmpty()) {
-            return new NoopPlan(context.jobId());
+            return new NoopPlan(context.jobId(), NoopPlan.Type.ROW_COUNT);
         }
 
         return new Delete(planNodes, context.jobId());
