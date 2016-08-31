@@ -262,7 +262,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         private volatile Row lastRow = null; // TODO: volatile is only required for first access
         private boolean firstCall = true;
         private RepeatHandle repeatHandle;
-        private boolean wakeupRequired = true;
+        private AtomicBoolean wakeupRequired = new AtomicBoolean(true);
 
         @Override
         public Result setNextRow(Row row) {
@@ -280,14 +280,24 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                     return Result.PAUSE;
                 }
             }
-            LOGGER.trace("phase={} side=left method=setNextRow switchOnPause=true", phaseId);
-            wakeupRequired = false;
-            switchTo(right.resumeable);
-            if (right.upstreamFinished) {
-                return Result.CONTINUE;
+
+            // check if right side was already be started concurrently and ran into a pause
+            if (!right.pauseFromDownstream) {
+
+                // prevent right side from switching to left
+                wakeupRequired.set(false);
+
+                LOGGER.trace("phase={} side=left method=setNextRow switching to right resumable", phaseId);
+                switchTo(right.resumeable);
+
+                if (right.upstreamFinished) {
+                    return Result.CONTINUE;
+                }
+
+                wakeupRequired.set(true);
             }
 
-            wakeupRequired = true;
+            LOGGER.trace("phase={} side=left method=setNextRow pause=true", phaseId);
             return Result.PAUSE;
         }
 
@@ -325,6 +335,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             }
 
             if (!tryFinish()) {
+                LOGGER.trace("phase={} side=left method=doFinish right not finished or must be repeated, so switch to right resumable", phaseId);
                 switchTo(right.resumeable);
             }
         }
@@ -363,7 +374,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             }
         }
         atomicResumeable.set(ResumeHandle.INVALID);
-        LOGGER.trace("phase={} method=switchTo resumeable={}", phaseId, resumeHandle);
+        LOGGER.trace("phase={} method=switchTo resumable={}", phaseId, resumeHandle);
         resumeHandle.resume(false);
     }
 
@@ -374,7 +385,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         Row lastRow = null;
         boolean firstCall = true;
-        boolean pauseFromDownstream = false;
+        volatile boolean pauseFromDownstream = false;
         boolean matchedJoinPredicate = false;
 
         RightRowReceiver(int leftNumOutputs, int rightNumOutputs) {
@@ -412,6 +423,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                     return Result.STOP;
                 }
             }
+            LOGGER.trace("phase={} side=right method=setNextRow", phaseId);
             return emitRow(rightRow);
         }
 
@@ -436,7 +448,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         RowReceiver.Result emitRowAndTrace(Row row) {
             RowReceiver.Result result = downstream.setNextRow(row);
             if (LOGGER.isTraceEnabled() && result != Result.CONTINUE) {
-                LOGGER.trace("phase={} side=right method=emitRow result={}", phaseId, result);
+                LOGGER.trace("phase={} side=right method=emitRowAndTrace result={} row={}", phaseId, result, row);
             }
             if (result == Result.PAUSE) {
                 pauseFromDownstream = true;
@@ -446,16 +458,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         @Override
         public void finish(final RepeatHandle repeatHandle) {
-            if ((JoinType.LEFT == joinType || JoinType.FULL == joinType) &&
-                !matchedJoinPredicate && left.lastRow != null && !emitRightJoin) {
-                // emit row with right one nulled
-                combinedRow.outerRow = left.lastRow;
-                combinedRow.innerRow = combinedRow.innerNullRow;
-                emitRowAndTrace(combinedRow);
-            }
-            // reset matched
-            matchedJoinPredicate = false;
-
             LOGGER.trace("phase={} side=right method=finish firstCall={}", phaseId, firstCall);
 
             upstreamFinished = true;
@@ -468,9 +470,22 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                     return;
                 }
             }
+
+            if ((JoinType.LEFT == joinType || JoinType.FULL == joinType) &&
+                !matchedJoinPredicate && left.lastRow != null && !emitRightJoin) {
+                LOGGER.trace("phase={} side=right method=finish emitting null row", phaseId);
+                // emit row with right one nulled
+                combinedRow.outerRow = left.lastRow;
+                combinedRow.innerRow = combinedRow.innerNullRow;
+                emitRowAndTrace(combinedRow);
+            }
+            // reset matched
+            matchedJoinPredicate = false;
+
             if (tryFinish()) {
                 return;
             }
+
             this.resumeable.set(new ResumeHandle() {
                 @Override
                 public void resume(boolean async) {
@@ -478,8 +493,14 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                     repeatHandle.repeat();
                 }
             });
-            if (left.wakeupRequired) {
-                left.wakeupRequired = false;
+
+            if (pauseFromDownstream) {
+                downstream.pauseProcessed(resumeable.get());
+                return;
+            }
+
+            if (left.wakeupRequired.compareAndSet(true, false)) {
+                LOGGER.trace("phase={} side=right method=finish wakeUp left by switching to left resumable", phaseId);
                 switchTo(left.resumeable);
             }
         }
@@ -502,8 +523,8 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             if (tryFinish()) {
                 return;
             }
-            if (left.wakeupRequired) {
-                left.wakeupRequired = false;
+            if (left.wakeupRequired.compareAndSet(true, false)) {
+                LOGGER.trace("phase={} side=right method=faile wakeUp left by switching to left resumable", phaseId);
                 switchTo(left.resumeable);
             }
         }
@@ -532,6 +553,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                     delegate.resume(async);
                     return;
                 }
+                LOGGER.trace("phase={}, resuming right, lastRow={}", phaseId, lastRow);
 
                 assert lastRow != null : "lastRow should be present";
                 Result result = emitRow(lastRow);
@@ -568,6 +590,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             return super.setNextRow(rightRow);
         }
 
+        @Override
         protected Result emitRow(Row row) {
             if (emitRightJoin) {
                 if (!matchedJoinRows.get(rowPosition)) {
