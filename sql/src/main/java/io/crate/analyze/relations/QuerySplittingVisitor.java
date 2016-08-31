@@ -27,12 +27,13 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.ReplacingSymbolVisitor;
-import io.crate.metadata.TableIdent;
 import io.crate.operation.operator.AndOperator;
-import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Set;
 
 class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor.Context> {
 
@@ -152,11 +153,7 @@ class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor
             context.multiRelation = context.seenRelations.size() > 1;
             if (context.seenRelations.size() == 1) {
                 context.seenRelation = Iterables.getOnlyElement(context.seenRelations);
-                assert context.seenRelation instanceof  AbstractTableRelation :
-                    "expecting relation is instance of AbstractTableRelation";
-                TableIdent tableIdent = ((AbstractTableRelation) context.seenRelation).tableInfo().ident();
-                QualifiedName name = new QualifiedName(Arrays.asList(tableIdent.schema(), tableIdent.name()));
-                if (JoinPairs.isOuterRelation(name, context.joinPairs)) {
+                if (JoinPairs.isOuterRelation(context.seenRelation.getQualifiedName(), context.joinPairs)) {
                     // don't split by marking as multi relation
                     context.multiRelation = true;
                 }
