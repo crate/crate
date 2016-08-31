@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Replaced the existing list of random node names with the list of mountains
+   in the Alps.
+
  - Fix: Join conditions were not properly validated and an expression
    with a not yet defined relation could be used.
 
