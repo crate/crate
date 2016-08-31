@@ -27,12 +27,13 @@ import org.junit.Test;
 
 import java.util.Iterator;
 
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
-public class SqlFeaturesIterableTest {
+public class FilesIterablesTest {
 
     @Test
-    public void testIterator() throws Exception {
+    public void testSqlFeatureIterable() throws Exception {
         SqlFeaturesIterable featuresIterable = new SqlFeaturesIterable();
         Iterator iterator = featuresIterable.iterator();
         assertTrue(iterator.hasNext());
@@ -45,6 +46,15 @@ public class SqlFeaturesIterableTest {
         assertNull(context.isVerifiedBy);
         assertNull(context.comments);
         assertEquals(671L, Iterators.size(iterator));
+        assertFalse(iterator.hasNext());
+    }
+
+    @Test
+    public void testSummitsIterable() throws Exception {
+        SummitsIterable summitsIterable = new SummitsIterable();
+        Iterator iterator = summitsIterable.get().iterator();
+        assertTrue(iterator.hasNext());
+        assertThat(Iterators.size(iterator), is(1605));
         assertFalse(iterator.hasNext());
     }
 }

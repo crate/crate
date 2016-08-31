@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added the sys.summits table. The table contains the information about
+   mountains in the Alps higher than 2000 meters, which are used as node names.
+
  - Replaced the existing list of random node names with the list of mountains
    in the Alps.
 

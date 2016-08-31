@@ -31,6 +31,7 @@ import io.crate.metadata.information.*;
 import io.crate.metadata.pg_catalog.PgCatalogTables;
 import io.crate.metadata.pg_catalog.PgTypeTable;
 import io.crate.metadata.sys.*;
+import io.crate.operation.collect.files.SummitsContext;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.information.InformationSchemaExpressionFactories;
 import io.crate.operation.reference.sys.check.SysCheck;
@@ -70,6 +71,7 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
         tableFactories.put(SysNodeChecksTableInfo.IDENT, getSysNodeChecksExpressions());
         tableFactories.put(SysRepositoriesTableInfo.IDENT, getSysRepositoriesExpressions());
         tableFactories.put(SysSnapshotsTableInfo.IDENT, getSysSnapshotsExpressions());
+        tableFactories.put(SysSummitsTableInfo.IDENT,getSummitsExpressions());
 
         tableFactories.put(InformationSchemataTableInfo.IDENT, InformationSchemaExpressionFactories.schemataFactories());
         tableFactories.put(InformationRoutinesTableInfo.IDENT, InformationSchemaExpressionFactories.routineFactories());
@@ -591,14 +593,117 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
                 .build();
     }
 
+    private static Map<ColumnIdent, RowCollectExpressionFactory> getSummitsExpressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
+            .put(SysSummitsTableInfo.Columns.MOUNTAIN, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<SummitsContext, BytesRef>() {
+                        @Override
+                        public BytesRef value() {
+                            return BytesRefs.toBytesRef(row.mountain);
+                        }
+                    };
+                }
+            })
+            .put(SysSummitsTableInfo.Columns.HEIGHT, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<SummitsContext, Integer>() {
+                        @Override
+                        public Integer value() {
+                            return row.height;
+                        }
+                    };
+                }
+            })
+            .put(SysSummitsTableInfo.Columns.PROMINENCE, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<SummitsContext, Integer>() {
+                        @Override
+                        public Integer value() {
+                            return row.prominence;
+                        }
+                    };
+                }
+            })
+            .put(SysSummitsTableInfo.Columns.COORDINATES, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<SummitsContext, Double[]>() {
+                        @Override
+                        public Double[] value() {
+                            return row.coordinates;
+                        }
+                    };
+                }
+            })
+            .put(SysSummitsTableInfo.Columns.RANGE, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<SummitsContext, BytesRef>() {
+                        @Override
+                        public BytesRef value() {
+                            return BytesRefs.toBytesRef(row.range);
+                        }
+                    };
+                }
+            })
+            .put(SysSummitsTableInfo.Columns.CLASSIFICATION, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<SummitsContext, BytesRef>() {
+                        @Override
+                        public BytesRef value() {
+                            return BytesRefs.toBytesRef(row.classification);
+                        }
+                    };
+                }
+            })
+            .put(SysSummitsTableInfo.Columns.REGION, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<SummitsContext, BytesRef>() {
+                        @Override
+                        public BytesRef value() {
+                            return BytesRefs.toBytesRef(row.region);
+                        }
+                    };
+                }
+            })
+            .put(SysSummitsTableInfo.Columns.COUNTRY, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<SummitsContext, BytesRef>() {
+                        @Override
+                        public BytesRef value() {
+                            return BytesRefs.toBytesRef(row.country);
+                        }
+                    };
+                }
+            })
+            .put(SysSummitsTableInfo.Columns.FIRST_ASCENT, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<SummitsContext, Integer>() {
+                        @Override
+                        public Integer value() {
+                            return row.firstAscent;
+                        }
+                    };
+                }
+            }).build();
+    }
+
     @Override
     public RowCollectExpression<?, ?> getImplementation(Reference refInfo) {
         return rowCollectExpressionFromFactoryMap(tableFactories, refInfo);
     }
 
-    public static RowCollectExpression<?, ?> rowCollectExpressionFromFactoryMap(
-            Map<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> factoryMap,
-            Reference info) {
+    private static RowCollectExpression<?, ?> rowCollectExpressionFromFactoryMap(
+        Map<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> factoryMap,
+        Reference info) {
 
         Map<ColumnIdent, RowCollectExpressionFactory> innerFactories = factoryMap.get(info.ident().tableIdent());
         if (innerFactories == null) {

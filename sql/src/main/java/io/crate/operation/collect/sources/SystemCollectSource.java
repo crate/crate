@@ -33,6 +33,7 @@ import io.crate.metadata.pg_catalog.PgCatalogTables;
 import io.crate.metadata.pg_catalog.PgTypeTable;
 import io.crate.metadata.sys.*;
 import io.crate.operation.collect.*;
+import io.crate.operation.collect.files.SummitsIterable;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
@@ -91,6 +92,7 @@ public class SystemCollectSource implements CollectSource {
             .put(SysNodeChecksTableInfo.IDENT.fqn(), new SysChecker(sysNodeChecks))
             .put(SysRepositoriesTableInfo.IDENT.fqn(), sysRepositories)
             .put(SysSnapshotsTableInfo.IDENT.fqn(), sysSnapshots)
+            .put(SysSummitsTableInfo.IDENT.fqn(), new SummitsIterable())
             .put(PgTypeTable.IDENT.fqn(), pgCatalogTables.pgTypes())
             .build();
         this.discoveryService = discoveryService;

@@ -48,8 +48,9 @@ settings like the ``number of shards`` or ``number of replicas``::
     | sys                | repositories      |                1 |                  0 |
     | sys                | shards            |                1 |                  0 |
     | sys                | snapshots         |                1 |                  0 |
+    | sys                | summits           |                1 |                  0 |
     +--------------------+-------------------+------------------+--------------------+
-    SELECT 24 rows in set (... sec)
+    SELECT 25 rows in set (... sec)
 
 The table also contains additional information such as specified routing
 (:ref:`sql_ddl_sharding`) and partitioned by (:ref:`sql_ddl_partitioned_by`)

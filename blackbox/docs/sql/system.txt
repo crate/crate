@@ -20,6 +20,7 @@ real-time information about the cluster, its nodes and their shards:
  * :ref:`sys.repositories <sys-repositories>`
  * :ref:`sys.shards <sys-shards>`
  * :ref:`sys.snapshots <sys-snapshots>`
+ * :ref:`sys.summits <sys-summits>`
 
 
 .. _sys-cluster:
@@ -1255,5 +1256,15 @@ The mapping follows the following pattern:
 
     cr> DROP REPOSITORY "my_repo";
     DROP OK, 1 row affected (... sec)
+
+
+.. _sys-summits:
+
+Summits
+=======
+The ``sys.summits`` table contains the information about the mountains in the
+Alps higher than 2000m. The mountain names from the table are also used to
+generate random nodes names.
+
 
 .. _configuration: ../configuration.html
