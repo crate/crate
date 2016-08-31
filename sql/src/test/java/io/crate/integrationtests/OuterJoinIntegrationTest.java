@@ -127,6 +127,17 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testOuterJoinWithFunctionsInOrderBy() throws Exception {
+        execute("select coalesce(persons.name, ''), coalesce(offices.name, '') from" +
+                " offices full join employees as persons on office_id = offices.id" +
+                " order by 1, 2");
+        assertThat(printedTable(response.rows()), is("| Hobbit House\n" +
+                                                     "Douglas Adams| Chief Office\n" +
+                                                     "Ford Perfect| \n" +
+                                                     "Trillian| Entresol\n"));
+    }
+
+    @Test
     public void testLeftJoinWithFilterOnInner() throws Exception {
         execute("select employees.name, offices.name from" +
                 " employees left join offices on office_id = offices.id" +
