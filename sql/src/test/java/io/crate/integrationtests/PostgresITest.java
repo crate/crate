@@ -44,9 +44,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     private static final String JDBC_POSTGRESQL_URL = "jdbc:postgresql://127.0.0.1:4242/";
     private static final String JDBC_POSTGRESQL_URL_READ_ONLY = "jdbc:postgresql://127.0.0.1:4243/";
 
-    @Rule
-    public Timeout globalTimeout = new Timeout(120000); // 2 minutes timeout
-
     private Properties properties = new Properties();
 
     @Override
