@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Setting of a default schema was not possible by using the HTTP REST
+   endpoint.
+
  - Fix: Error was thrown in case of primary key bulk delete statement
    with null bulk arguments.
 
