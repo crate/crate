@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.SnapshotsInProgress;
@@ -88,7 +89,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
                 "  date timestamp " + (partitioned ? "primary key," : ",") +
                 "  ft string index using fulltext with (analyzer='german')" +
                 ") " + (partitioned ? "partitioned by (date) " : "") +
-                "with (number_of_replicas=0)");
+                "clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("INSERT INTO " + tableName + " (id, name, date, ft) VALUES (?, ?, ?, ?)", new Object[][]{
                 {1L, "foo", "1970-01-01", "The quick brown fox jumps over the lazy dog."},
@@ -292,6 +293,32 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         execute("select date from my_parted_table");
         assertThat(TestingHelpers.printedTable(response.rows()), is("0\n"));
+    }
+
+    @Test
+    public void testSnapshotRestoreSnapshotSinglePartitionWithDroppedPartition() throws Exception {
+        createTable("parted_table", true);
+        execute("CREATE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date=0) WITH (wait_for_completion=true)");
+        execute("delete from parted_table where date=0");
+        waitNoPendingTasksOnAll();
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date=0) with (" +
+                "ignore_unavailable=false, " +
+                "wait_for_completion=true)");
+        execute("select date from parted_table order by id");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("0\n1445941740000\n626572800000\n"));
+    }
+
+    @Test
+    public void testSnapshotRestoreSnapshotSinglePartitionWithDroppedTable() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Cannot restore snapshot of single partition [.partitioned.parted_table.04130] into non-existent table.");
+        createTable("parted_table", true);
+        execute("CREATE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date=0) WITH (wait_for_completion=true)");
+        execute("drop table parted_table");
+        waitNoPendingTasksOnAll();
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date=0) with (" +
+                "ignore_unavailable=false, " +
+                "wait_for_completion=true)");
     }
 
     @Test
