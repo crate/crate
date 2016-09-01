@@ -41,6 +41,7 @@ import java.util.Locale;
 public class RestSQLAction extends BaseRestHandler {
 
     private static final String REQUEST_HEADER_USER = "User";
+    private static final String REQUEST_HEADER_SCHEMA = "Default-Schema";
 
     @Inject
     public RestSQLAction(Settings settings, Client client, RestController controller) {
@@ -108,6 +109,7 @@ public class RestSQLAction extends BaseRestHandler {
         requestBuilder.args(context.args());
         requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
         addFlags(requestBuilder, request);
+        requestBuilder.setSchema(request.header(REQUEST_HEADER_SCHEMA));
         requestBuilder.execute(RestSQLAction.<SQLResponse>newListener(request, channel));
     }
 
@@ -117,6 +119,7 @@ public class RestSQLAction extends BaseRestHandler {
         requestBuilder.bulkArgs(context.bulkArgs());
         requestBuilder.includeTypesOnResponse(request.paramAsBoolean("types", false));
         addFlags(requestBuilder, request);
+        requestBuilder.setSchema(request.header(REQUEST_HEADER_SCHEMA));
         requestBuilder.execute(RestSQLAction.<SQLBulkResponse>newListener(request, channel));
     }
 
