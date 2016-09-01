@@ -176,7 +176,7 @@ public class ManyTableConsumer implements Consumer {
         MultiSourceSelect.Source leftSource = mss.sources().get(leftName);
         AnalyzedRelation leftRelation = leftSource.relation();
         QuerySpec leftQuerySpec = leftSource.querySpec();
-        Optional<OrderBy> remainingOrderBy = mss.remainingOrderBy();
+        Map<Set<QualifiedName>, OrderBy> remainingOrderBy = mss.remainingOrderBy();
 
         QualifiedName rightName;
         MultiSourceSelect.Source rightSource;
@@ -198,7 +198,7 @@ public class ManyTableConsumer implements Consumer {
                     new MultiSourceSelect.Source(leftRelation, leftQuerySpec),
                     rightName,
                     rightSource,
-                    remainingOrderBy
+                    Optional.fromNullable(remainingOrderBy.remove(names))
             );
 
             assert leftQuerySpec != null;
@@ -211,13 +211,14 @@ public class ManyTableConsumer implements Consumer {
                 }
             };
 
-            splitQuery = rewriteSplitQueryNames(splitQuery, leftName, rightName, join.name(), replaceFunction);
-
             /**
-             * create a new query spec where all RelationColumn symbols with a QualifiedName
-             * of {@link RelationColumnReWriteCtx#left} or {@link RelationColumnReWriteCtx#right}
+             * Rewrite where and order by clauses and create a new query spec, where all RelationColumn symbols
+             * with a QualifiedName of {@link RelationColumnReWriteCtx#left} or {@link RelationColumnReWriteCtx#right}
              * are replaced with a RelationColumn with QualifiedName of {@link RelationColumnReWriteCtx#newName}
              */
+            splitQuery = rewriteSplitQueryNames(splitQuery, leftName, rightName, join.name(), replaceFunction);
+            remainingOrderBy = rewriteOrderByNames(remainingOrderBy, leftName, rightName, join.name(), replaceFunction);
+
             rootQuerySpec = rootQuerySpec.copyAndReplace(replaceFunction);
             leftQuerySpec = newQuerySpec.copyAndReplace(replaceFunction);
             leftRelation = join;
@@ -231,10 +232,10 @@ public class ManyTableConsumer implements Consumer {
     }
 
     private static Map<Set<QualifiedName>, Symbol> rewriteSplitQueryNames(Map<Set<QualifiedName>, Symbol> splitQuery,
-                                                                          QualifiedName leftName,
-                                                                          QualifiedName rightName,
-                                                                          QualifiedName newName,
-                                                                          Function<? super Symbol, Symbol> replaceFunction) {
+                                                                    QualifiedName leftName,
+                                                                    QualifiedName rightName,
+                                                                    QualifiedName newName,
+                                                                    Function<? super Symbol, Symbol> replaceFunction) {
         Map<Set<QualifiedName>, Symbol> newMap = new HashMap<>(splitQuery.size());
         for (Map.Entry<Set<QualifiedName>, Symbol> entry : splitQuery.entrySet()) {
             Set<QualifiedName> key = entry.getKey();
@@ -244,6 +245,26 @@ public class ManyTableConsumer implements Consumer {
                 newMap.put(key, AndOperator.join(Arrays.asList(newMap.get(key), replaceFunction.apply(entry.getValue()))));
             } else {
                 newMap.put(key, replaceFunction.apply(entry.getValue()));
+            }
+        }
+        return newMap;
+    }
+
+    private static Map<Set<QualifiedName>, OrderBy> rewriteOrderByNames(Map<Set<QualifiedName>, OrderBy> remainingOrderBy,
+                                                                        QualifiedName leftName,
+                                                                        QualifiedName rightName,
+                                                                        QualifiedName newName,
+                                                                        Function<? super Symbol, Symbol> replaceFunction) {
+        Map<Set<QualifiedName>, OrderBy> newMap = new HashMap<>(remainingOrderBy.size());
+        for (Map.Entry<Set<QualifiedName>, OrderBy> entry : remainingOrderBy.entrySet()) {
+            Set<QualifiedName> key = entry.getKey();
+            replace(leftName, newName, key);
+            replace(rightName, newName, key);
+            entry.getValue().replace(replaceFunction);
+            if (newMap.containsKey(key)) {
+                newMap.put(key, newMap.get(key).merge(entry.getValue()));
+            } else {
+                newMap.put(key, entry.getValue());
             }
         }
         return newMap;
@@ -262,6 +283,8 @@ public class ManyTableConsumer implements Consumer {
         Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
         QualifiedName left = it.next();
         QualifiedName right = it.next();
+        Optional<OrderBy> remainingOrderBy =
+            Optional.fromNullable(mss.remainingOrderBy().get(Sets.newHashSet(left, right)));
 
         return new TwoTableJoin(
                 mss.querySpec(),
@@ -269,7 +292,7 @@ public class ManyTableConsumer implements Consumer {
                 mss.sources().get(left),
                 right,
                 mss.sources().get(right),
-                mss.remainingOrderBy()
+                remainingOrderBy
         );
     }
 
@@ -284,16 +307,10 @@ public class ManyTableConsumer implements Consumer {
         @Override
         public PlannedAnalyzedRelation visitMultiSourceSelect(MultiSourceSelect mss, ConsumerContext context) {
             if (isUnsupportedStatement(mss, context)) return null;
+            replaceFieldsWithRelationColumns(mss);
             if (mss.sources().size() == 2) {
-                replaceFieldsWithRelationColumns(mss);
                 return planSubRelation(context, twoTableJoin(mss));
             }
-            if (mss.remainingOrderBy().isPresent()) {
-                context.validationException(new ValidationException(
-                        "One Order by expression must not contain symbols from more than one table"));
-                return null;
-            }
-            replaceFieldsWithRelationColumns(mss);
             return planSubRelation(context, buildTwoTableJoinTree(mss));
         }
 
@@ -322,13 +339,18 @@ public class ManyTableConsumer implements Consumer {
 
     static void replaceFieldsWithRelationColumns(MultiSourceSelect mss) {
         final FieldToRelationColumnCtx ctx = new FieldToRelationColumnCtx(mss);
-        mss.querySpec().replace(new Function<Symbol, Symbol>() {
+        Function<Symbol, Symbol> replaceFunction = new Function<Symbol, Symbol>() {
             @Nullable
             @Override
             public Symbol apply(@Nullable Symbol input) {
                 return FieldToRelationColumnVisitor.INSTANCE.process(input, ctx);
             }
-        });
+        };
+
+        for (OrderBy orderBy : mss.remainingOrderBy().values()) {
+            orderBy.replace(replaceFunction);
+        }
+        mss.querySpec().replace(replaceFunction);
     }
 
     private static class SubSetOfQualifiedNamesPredicate implements Predicate<Symbol> {

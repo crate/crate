@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Optional;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedRelation;
@@ -32,8 +31,6 @@ import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.*;
 
 public class MultiSourceSelect implements QueriedRelation {
@@ -121,12 +118,7 @@ public class MultiSourceSelect implements QueriedRelation {
         }
     }
 
-    /**
-     * Returns an orderBy containing only orderings which are not already pushed down to sources. The optional is only
-     * present if there are orderBySymbols left. The existing orderBy is returned if it
-     * there are no changes.
-     */
-    public Optional<OrderBy> remainingOrderBy() {
+    public Map<Set<QualifiedName>, OrderBy> remainingOrderBy() {
         return splitter.remainingOrderBy();
     }
 

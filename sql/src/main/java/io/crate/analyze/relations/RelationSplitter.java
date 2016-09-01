@@ -22,7 +22,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -36,6 +35,7 @@ import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.operation.operator.AndOperator;
+import io.crate.sql.tree.QualifiedName;
 
 import java.util.*;
 
@@ -43,7 +43,9 @@ public final class RelationSplitter {
 
     private final QuerySpec querySpec;
     private final Set<Symbol> requiredForQuery = new HashSet<>();
+    private final Map<AnalyzedRelation, QuerySpec> specs;
     private Set<Field> canBeFetched;
+    private Map<Set<QualifiedName>, OrderBy> remainingOrderBy = new HashMap<>();
 
     private static final Supplier<Set<Integer>> INT_SET_SUPPLIER = new Supplier<Set<Integer>>() {
         @Override
@@ -51,9 +53,6 @@ public final class RelationSplitter {
             return new HashSet<>();
         }
     };
-
-    private Optional<OrderBy> remainingOrderBy = Optional.absent();
-    private final Map<AnalyzedRelation, QuerySpec> specs;
 
     public RelationSplitter(QuerySpec querySpec, Collection<? extends AnalyzedRelation> relations) {
         this.querySpec = querySpec;
@@ -63,7 +62,7 @@ public final class RelationSplitter {
         }
     }
 
-    public Optional<OrderBy> remainingOrderBy() {
+    public  Map<Set<QualifiedName>, OrderBy> remainingOrderBy() {
         return remainingOrderBy;
     }
 
@@ -89,10 +88,10 @@ public final class RelationSplitter {
         FieldCollectingVisitor.Context context = new FieldCollectingVisitor.Context(specs.size());
 
         // declare all symbols from the remaining order by as required for query
-        if (remainingOrderBy.isPresent()) {
-            requiredForQuery.addAll(remainingOrderBy.get().orderBySymbols());
+        for (OrderBy orderBy : remainingOrderBy.values()) {
+            requiredForQuery.addAll(orderBy.orderBySymbols());
             // we need to add also the used symbols for query phase
-            FieldCollectingVisitor.INSTANCE.process(remainingOrderBy.get().orderBySymbols(), context);
+            FieldCollectingVisitor.INSTANCE.process(orderBy.orderBySymbols(), context);
         }
 
         if (querySpec.where().hasQuery()) {
@@ -161,15 +160,22 @@ public final class RelationSplitter {
             } else {
                 // not pushed down
                 splits.put(null, idx);
+                // Create remainingOrderBy for the expressions that are not pushed down
+                OrderBy newOrderBy = orderBy.subset(Arrays.asList(idx));
+                Set<QualifiedName> qualifiedNames = new HashSet<>(relations.size());
+                for (AnalyzedRelation rel : relations) {
+                    qualifiedNames.add(rel.getQualifiedName());
+                }
+                OrderBy existingOrderBy = remainingOrderBy.get(qualifiedNames);
+                remainingOrderBy.put(qualifiedNames, newOrderBy.merge(existingOrderBy));
             }
             idx++;
         }
+
         for (Map.Entry<AnalyzedRelation, Collection<Integer>> entry : splits.asMap().entrySet()) {
-            OrderBy newOrderBy = orderBy.subset(entry.getValue());
             AnalyzedRelation relation = entry.getKey();
-            if (relation == null) {
-                remainingOrderBy = Optional.of(newOrderBy);
-            } else {
+            if (relation != null) {
+                OrderBy newOrderBy = orderBy.subset(entry.getValue());
                 QuerySpec spec = getSpec(relation);
                 assert !spec.orderBy().isPresent();
                 spec.orderBy(newOrderBy);

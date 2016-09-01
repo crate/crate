@@ -41,6 +41,7 @@ import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.core.Is.is;
 
 public class RelationSplitterTest extends CrateUnitTest {
 
@@ -159,7 +160,8 @@ public class RelationSplitterTest extends CrateUnitTest {
 
         RelationSplitter splitter = split(querySpec);
         assertThat(querySpec, isSQL("SELECT true ORDER BY doc.t1.a DESC, add(doc.t1.x, doc.t2.y)"));
-        assertThat(splitter.remainingOrderBy().get(), isSQL("add(doc.t1.x, doc.t2.y)"));
+        assertThat(splitter.remainingOrderBy().values().size(), is(1));
+        assertThat(splitter.remainingOrderBy().values().iterator().next(), isSQL("add(doc.t1.x, doc.t2.y)"));
         assertThat(splitter.requiredForQuery(), isSQL("doc.t1.a, doc.t1.x, doc.t2.y, add(doc.t1.x, doc.t2.y)"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x, doc.t1.a ORDER BY doc.t1.a DESC"));
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y"));
@@ -177,13 +179,34 @@ public class RelationSplitterTest extends CrateUnitTest {
         RelationSplitter splitter = split(querySpec);
 
         assertThat(querySpec, isSQL("SELECT doc.t1.x, doc.t2.y ORDER BY doc.t1.x, doc.t2.y, doc.t3.z LIMIT 20"));
-        assertFalse(splitter.remainingOrderBy().isPresent());
+        assertThat(splitter.remainingOrderBy().isEmpty(), is(true));
 
 
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x WHERE (doc.t1.x = 1) ORDER BY doc.t1.x LIMIT 20"));
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y WHERE (true AND (doc.t2.y = 2)) ORDER BY doc.t2.y LIMIT 20"));
         assertThat(splitter.getSpec(T3.TR_3), isSQL("SELECT doc.t3.z WHERE (true AND (doc.t3.z = 3)) ORDER BY doc.t3.z LIMIT 20"));
     }
+
+    @Test
+    public void testSplitOrderByCombiningColumnsFrom3Relations() throws Exception {
+        // select a, b from t1, t2, t3 order by x - y + z
+        QuerySpec querySpec = new QuerySpec().outputs(Arrays.asList(asSymbol("a"), asSymbol("b")));
+        List<Symbol> orderBySymbols = Arrays.asList(asSymbol("x - y + z"));
+        OrderBy orderBy = new OrderBy(orderBySymbols, new boolean[]{false}, new Boolean[]{null});
+        querySpec.orderBy(orderBy);
+
+        RelationSplitter splitter = split(querySpec);
+
+        assertThat(querySpec, isSQL("SELECT doc.t1.a, doc.t2.b ORDER BY add(subtract(doc.t1.x, doc.t2.y), doc.t3.z)"));
+        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x, doc.t1.a"));
+        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y, doc.t2.b"));
+        assertThat(splitter.getSpec(T3.TR_3), isSQL("SELECT doc.t3.z"));
+
+        assertThat(splitter.remainingOrderBy().size(), is(1));
+        assertThat(splitter.remainingOrderBy().values().iterator().next().orderBySymbols(),
+            isSQL("add(subtract(doc.t1.x, doc.t2.y), doc.t3.z)"));
+    }
+
 
     @Test
     public void testSplitNotMultiRelation() throws Exception {

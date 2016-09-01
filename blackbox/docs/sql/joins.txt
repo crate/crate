@@ -112,10 +112,6 @@ Limitations
  - Joining more than 2 tables can result in execution plans which perform
    poorly as there is no query optimizer in place yet.
 
- - The ORDER BY clause must not contain expressions which involve multiple
-   relations. ``ORDER BY t1.x + t2.x`` won't work, but ``ORDER BY t1.x, t2.x``
-   is allowed.
-
 
 .. _`nightly builds`: https://cdn.crate.io/downloads/releases/nightly/
 .. _`Cartesian Product`: https://en.wikipedia.org/wiki/Cartesian_product
