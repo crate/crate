@@ -126,18 +126,6 @@ public class MultiSourceFetchPushDown {
             }
         }
 
-        // replace the remaining order by symbols
-        if (statement.remainingOrderBy().isPresent()) {
-            for (Symbol symbol : statement.remainingOrderBy().get().orderBySymbols()) {
-                if (!mssOutputMap.containsKey(symbol)) {
-                    assert !mssOutputs.contains(symbol);
-                    mssOutputs.add(symbol);
-                    InputColumn inputColumn = new InputColumn(mssOutputs.size() - 1, symbol.valueType());
-                    topLevelOutputMap.put(symbol, inputColumn);
-                }
-            }
-        }
-
         statement.querySpec().outputs(mssOutputs);
         MappingSymbolVisitor.inPlace().processInplace(remainingOutputs, topLevelOutputMap);
         if (statement.querySpec().orderBy().isPresent()) {

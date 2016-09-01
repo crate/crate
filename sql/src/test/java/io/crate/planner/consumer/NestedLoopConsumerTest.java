@@ -305,7 +305,9 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         NestedLoop nl = plan("select u1.name || u2.name from users u1, users u2 order by u1.name, u1.name || u2.name");
         List<Symbol> orderBy = ((TopNProjection) nl.nestedLoopPhase().projections().get(0)).orderBy();
         assertThat(orderBy, notNullValue());
-        assertThat(orderBy, Matchers.contains(isFunction("concat")));
+        assertThat(orderBy.size(), is(2));
+        assertThat(orderBy.get(0), isInputColumn(0));
+        assertThat(orderBy.get(1), isFunction("concat"));
     }
 
     @Test

@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Remove limitation that prevented usage of columns from multiple tables
+   in the same order by expression.
+   eg: FROM t1, t2, t3 ORDER BY t1.x - t2.y + t3.z
+
  - Fix: Setting of a default schema was not possible by using the HTTP REST
    endpoint.
 

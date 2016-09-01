@@ -24,8 +24,10 @@ package io.crate.analyze;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
+import com.google.common.primitives.Booleans;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.exceptions.AmbiguousOrderByException;
 import io.crate.metadata.StmtCtx;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -33,10 +35,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.*;
 
 public class OrderBy implements Streamable {
 
@@ -159,5 +158,35 @@ public class OrderBy implements Streamable {
         while (listIt.hasNext()) {
             listIt.set(replaceFunction.apply(listIt.next()));
         }
+    }
+
+    public OrderBy merge(@Nullable OrderBy otherOrderBy) {
+        if (otherOrderBy != null) {
+            List<Symbol> newOrderBySymbols = otherOrderBy.orderBySymbols();
+            List<Boolean> newReverseFlags = new ArrayList<>(Booleans.asList(otherOrderBy.reverseFlags()));
+            List<Boolean> newNullsFirst = new ArrayList<>(Arrays.asList(otherOrderBy.nullsFirst()));
+
+            for (int i = 0; i < orderBySymbols.size(); i++) {
+                Symbol orderBySymbol = orderBySymbols.get(i);
+                int idx = newOrderBySymbols.indexOf(orderBySymbol);
+                if (idx == -1) {
+                    newOrderBySymbols.add(orderBySymbol);
+                    newReverseFlags.add(reverseFlags[i]);
+                    newNullsFirst.add(nullsFirst[i]);
+                } else {
+                    if (newReverseFlags.get(idx) != reverseFlags[i]) {
+                        throw new AmbiguousOrderByException(orderBySymbol);
+                    }
+                    if (newNullsFirst.get(idx) != nullsFirst[i]) {
+                        throw new AmbiguousOrderByException(orderBySymbol);
+                    }
+                }
+            }
+
+            this.orderBySymbols = newOrderBySymbols;
+            this.reverseFlags = Booleans.toArray(newReverseFlags);
+            this.nullsFirst = newNullsFirst.toArray(new Boolean[0]);
+        }
+        return this;
     }
 }

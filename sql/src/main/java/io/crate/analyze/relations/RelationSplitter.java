@@ -43,7 +43,9 @@ public final class RelationSplitter {
 
     private final QuerySpec querySpec;
     private final Set<Symbol> requiredForQuery = new HashSet<>();
+    private final Map<AnalyzedRelation, QuerySpec> specs;
     private Set<Field> canBeFetched;
+    private RemainingOrderBy remainingOrderBy;
 
     private static final Supplier<Set<Integer>> INT_SET_SUPPLIER = new Supplier<Set<Integer>>() {
         @Override
@@ -51,9 +53,6 @@ public final class RelationSplitter {
             return new HashSet<>();
         }
     };
-
-    private Optional<OrderBy> remainingOrderBy = Optional.absent();
-    private final Map<AnalyzedRelation, QuerySpec> specs;
 
     public RelationSplitter(QuerySpec querySpec, Collection<? extends AnalyzedRelation> relations) {
         this.querySpec = querySpec;
@@ -63,8 +62,8 @@ public final class RelationSplitter {
         }
     }
 
-    public Optional<OrderBy> remainingOrderBy() {
-        return remainingOrderBy;
+    public Optional<RemainingOrderBy> remainingOrderBy() {
+        return Optional.fromNullable(remainingOrderBy);
     }
 
     public Set<Symbol> requiredForQuery() {
@@ -89,10 +88,11 @@ public final class RelationSplitter {
         FieldCollectingVisitor.Context context = new FieldCollectingVisitor.Context(specs.size());
 
         // declare all symbols from the remaining order by as required for query
-        if (remainingOrderBy.isPresent()) {
-            requiredForQuery.addAll(remainingOrderBy.get().orderBySymbols());
+        if (remainingOrderBy != null) {
+            OrderBy orderBy = remainingOrderBy.orderBy();
+            requiredForQuery.addAll(orderBy.orderBySymbols());
             // we need to add also the used symbols for query phase
-            FieldCollectingVisitor.INSTANCE.process(remainingOrderBy.get().orderBySymbols(), context);
+            FieldCollectingVisitor.INSTANCE.process(orderBy.orderBySymbols(), context);
         }
 
         if (querySpec.where().hasQuery()) {
@@ -152,29 +152,48 @@ public final class RelationSplitter {
         Multimap<AnalyzedRelation, Integer> splits = Multimaps.newSetMultimap(
                 new IdentityHashMap<AnalyzedRelation, Collection<Integer>>(specs.size()),
                 INT_SET_SUPPLIER);
+
+        // Detect remaining orderBy before any push down happens,
+        // since if remaining orderBy is detected we need to
+        // process again all pushed down orderBys and merge them
+        // to the remaining OrderBy in the correct order.
+        for (Symbol symbol : orderBy.orderBySymbols()) {
+            relations.clear();
+            RelationCounter.INSTANCE.process(symbol, relations);
+            if (relations.size() > 1) {
+                remainingOrderBy = new RemainingOrderBy();
+                break;
+            }
+        }
+
         Integer idx = 0;
         for (Symbol symbol : orderBy.orderBySymbols()) {
             relations.clear();
             RelationCounter.INSTANCE.process(symbol, relations);
-            if (relations.size() == 1) {
+
+            // If remainingOrderBy detected then don't push down anything but
+            // merge it with remainingOrderBy since we need to re-apply this
+            // sort again at the place where remainingOrderBy is applied.
+            if (remainingOrderBy != null) {
+                OrderBy newOrderBy = orderBy.subset(Collections.singletonList(idx));
+                for (AnalyzedRelation rel : relations) {
+                    remainingOrderBy.addRelation(rel.getQualifiedName());
+                }
+                remainingOrderBy.addOrderBy(newOrderBy);
+            } else { // push down
                 splits.put(Iterables.getOnlyElement(relations), idx);
-            } else {
-                // not pushed down
-                splits.put(null, idx);
             }
             idx++;
         }
+
+        // Process pushed down order by
         for (Map.Entry<AnalyzedRelation, Collection<Integer>> entry : splits.asMap().entrySet()) {
-            OrderBy newOrderBy = orderBy.subset(entry.getValue());
             AnalyzedRelation relation = entry.getKey();
-            if (relation == null) {
-                remainingOrderBy = Optional.of(newOrderBy);
-            } else {
-                QuerySpec spec = getSpec(relation);
-                assert !spec.orderBy().isPresent();
-                spec.orderBy(newOrderBy);
-                requiredForQuery.addAll(newOrderBy.orderBySymbols());
-            }
+            OrderBy newOrderBy = orderBy.subset(entry.getValue());
+            QuerySpec spec = getSpec(relation);
+            assert !spec.orderBy().isPresent();
+            spec.orderBy(newOrderBy);
+            requiredForQuery.addAll(newOrderBy.orderBySymbols());
         }
     }
 
