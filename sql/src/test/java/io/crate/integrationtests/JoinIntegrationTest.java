@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.exceptions.Exceptions;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
@@ -526,20 +527,9 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t2 (y integer)");
         execute("create table t3 (z integer)");
         ensureYellow();
-        execute("insert into t1 (x) values (3), (1)");
-        execute("insert into t2 (y) values (4), (2)");
-        execute("insert into t3 (z) values (5), (6)");
-        execute("refresh table t1, t2, t3");
-        execute("select x,y,z from t1,t2,t3 order by x-y+z, x+y");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("1| 4| 5\n" +
-               "1| 4| 6\n" +
-               "1| 2| 5\n" +
-               "3| 4| 5\n" +
-               "1| 2| 6\n" +
-               "3| 4| 6\n" +
-               "3| 2| 5\n" +
-               "3| 2| 6\n"));
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("One Order by expression must not contain symbols from more than one table");
+        execute("select x,y,z from t1,t2,t3 order by x+y");
     }
 
     @Test

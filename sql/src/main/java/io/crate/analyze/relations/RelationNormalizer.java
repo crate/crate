@@ -26,11 +26,13 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
+import com.google.common.primitives.Booleans;
 import io.crate.analyze.*;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.exceptions.AmbiguousOrderByException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Path;
 import io.crate.metadata.ReplacingSymbolVisitor;
@@ -39,9 +41,7 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * The RelationNormalizer tries to merge the tree of relations in a QueriedSelectRelation into a single QueriedRelation.
@@ -160,7 +160,32 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         if (!o1.isPresent() || !o2.isPresent()) {
             return o1.or(o2).orNull();
         }
-        return o1.get().merge(o2.get());
+
+        OrderBy orderBy1 = o1.get();
+        OrderBy orderBy2 = o2.get();
+
+        List<Symbol> orderBySymbols = orderBy2.orderBySymbols();
+        List<Boolean> reverseFlags = new ArrayList<>(Booleans.asList(orderBy2.reverseFlags()));
+        List<Boolean> nullsFirst = new ArrayList<>(Arrays.asList(orderBy2.nullsFirst()));
+
+        for (int i = 0; i < orderBy1.orderBySymbols().size(); i++) {
+            Symbol orderBySymbol = orderBy1.orderBySymbols().get(i);
+            int idx = orderBySymbols.indexOf(orderBySymbol);
+            if (idx == -1) {
+                orderBySymbols.add(orderBySymbol);
+                reverseFlags.add(orderBy1.reverseFlags()[i]);
+                nullsFirst.add(orderBy1.nullsFirst()[i]);
+            } else {
+                if (reverseFlags.get(idx) != orderBy1.reverseFlags()[i]) {
+                    throw new AmbiguousOrderByException(orderBySymbol);
+                }
+                if (nullsFirst.get(idx) != orderBy1.nullsFirst()[i]) {
+                    throw new AmbiguousOrderByException(orderBySymbol);
+                }
+            }
+        }
+
+        return new OrderBy(orderBySymbols, Booleans.toArray(reverseFlags), nullsFirst.toArray(new Boolean[0]));
     }
 
     @Nullable

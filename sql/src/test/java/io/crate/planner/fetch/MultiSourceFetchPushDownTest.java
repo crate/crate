@@ -88,4 +88,13 @@ public class MultiSourceFetchPushDownTest extends BaseAnalyzerTest {
         assertThat(srcSpec("t2"), isSQL("SELECT doc.t2.b ORDER BY doc.t2.b"));
     }
 
+    @Test
+    public void testPushDownWithMultiRelationOrder() throws Exception {
+        pushDown("select a, b from t1, t2 order by x - y");
+        assertThat(srcSpec("t1"), isSQL("SELECT doc.t1._docid, doc.t1.x"));
+        assertThat(srcSpec("t2"), isSQL("SELECT doc.t2._docid, doc.t2.y"));
+        assertThat(mss.querySpec(), isSQL("SELECT RELCOL(doc.t1, 0), RELCOL(doc.t1, 1), RELCOL(doc.t2, 0), RELCOL(doc.t2, 1), subtract(RELCOL(doc.t1, 1), RELCOL(doc.t2, 1)) ORDER BY subtract(RELCOL(doc.t1, 1), RELCOL(doc.t2, 1))"));
+        assertThat(pd.remainingOutputs(), isSQL("FETCH(INPUT(0), doc.t1._doc['a']), FETCH(INPUT(2), doc.t2._doc['b'])"));
+        assertThat(mss.remainingOrderBy().get().orderBySymbols(), isSQL("subtract(RELCOL(doc.t1, 1), RELCOL(doc.t2, 1))"));
+    }
 }
