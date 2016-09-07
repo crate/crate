@@ -327,13 +327,6 @@ public class ManyTableConsumer implements Consumer {
 
         JoinPairs.removeOrderByOnOuterRelation(left, right, leftSource.querySpec(), rightSource.querySpec(), joinPair);
 
-        // TODO: enable optimization for all join types after RIGHT OUTER JOIN is implemented
-        if (joinPair.joinType().ordinal() < JoinType.INNER.ordinal()) {
-            it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
-            left = it.next();
-            right = it.next();
-        }
-
         Optional<OrderBy> remainingOrderByToApply = Optional.absent();
         if (mss.remainingOrderBy().isPresent() && mss.remainingOrderBy().get().validForRelations(Sets.newHashSet(left, right))) {
             remainingOrderByToApply = Optional.of(mss.remainingOrderBy().get().orderBy());
