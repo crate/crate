@@ -31,5 +31,10 @@ public interface RepeatHandle {
         }
     };
 
+    /**
+     * Tell the upstream to send all rows again.
+     *
+     * It is required for an upstream to send the rows in the same order as it did before.
+     */
     void repeat();
 }

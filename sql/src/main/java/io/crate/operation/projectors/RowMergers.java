@@ -66,7 +66,6 @@ public class RowMergers {
 
         final RowReceiver delegate;
         private final List<ResumeHandle> resumeHandles = Collections.synchronizedList(new ArrayList<ResumeHandle>());
-        private final List<RepeatHandle> repeatHandles = Collections.synchronizedList(new ArrayList<RepeatHandle>());
         private final AtomicInteger activeUpstreams = new AtomicInteger(0);
         private final AtomicBoolean prepared = new AtomicBoolean(false);
         private final AtomicBoolean pauseTriggered = new AtomicBoolean(false);
@@ -156,7 +155,6 @@ public class RowMergers {
 
         @Override
         public final void finish(RepeatHandle repeatHandle) {
-            repeatHandles.add(repeatHandle);
             countdown();
         }
 
@@ -172,20 +170,28 @@ public class RowMergers {
         void onFinish() {
             assert !paused : "must not receive a finish call if upstream should be paused";
             assert pauseFifo.isEmpty() : "pauseFifo should be clear already";
-            final ImmutableList<RepeatHandle> repeatHandles = ImmutableList.copyOf(this.repeatHandles);
-            this.repeatHandles.clear();
-            delegate.finish(new RepeatHandle() {
-                @Override
-                public void repeat() {
-                    if (activeUpstreams.compareAndSet(0, repeatHandles.size())) {
-                        for (RepeatHandle repeatHandle : repeatHandles) {
-                            repeatHandle.repeat();
-                        }
-                    } else {
-                        throw new IllegalStateException("Repeat call on RowMerger but activeUpstreams were in an invalid state");
-                    }
-                }
-            });
+
+            /*
+             * Repeat wouldn't emit the rows in the same order because the upstreams run multi-threaded
+             * E.g. 2 shards with 2 rows each:
+             *
+             *  S1        S2
+             *  1          3
+             *  2          4
+             *
+             *  The first run could emit
+             *
+             *  3 - 1 - 2 - 4
+             *
+             *  and a second run could emit
+             *
+             *  1 - 2 - 3 - 4
+             *
+             *  and a third:
+             *
+             *  3 - 4 - 1 - 2
+             */
+            delegate.finish(RepeatHandle.UNSUPPORTED);
         }
 
         /**

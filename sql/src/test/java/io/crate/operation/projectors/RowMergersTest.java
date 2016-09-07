@@ -52,7 +52,7 @@ public class RowMergersTest extends CrateUnitTest {
     }
 
     @Test
-    public void testRowMergerPauseResumeAndRepeat() throws Exception {
+    public void testRowMergerPauseResume() throws Exception {
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(3);
         RowDownstream rowDownstream = RowMergers.passThroughRowMerger(rowReceiver);
         final RowSender r1 = new RowSender(RowSender.rowRange(0, 20), rowDownstream.newRowReceiver(), executorService);
@@ -75,13 +75,10 @@ public class RowMergersTest extends CrateUnitTest {
 
         rowReceiver.resumeUpstream(true);
         assertThat(rowReceiver.result().size(), is(60));
-
-        rowReceiver.repeatUpstream();
-        assertThat(rowReceiver.result().size(), is(120));
     }
 
     @Test
-    public void testPauseResumeRepeatWithOneEmptyUpstream() throws Exception {
+    public void testPauseResumeWithOneEmptyUpstream() throws Exception {
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(3);
         RowDownstream rowDownstream = RowMergers.passThroughRowMerger(rowReceiver);
         final RowSender r1 = new RowSender(RowSender.rowRange(0, 20), rowDownstream.newRowReceiver(), executorService);
@@ -102,27 +99,5 @@ public class RowMergersTest extends CrateUnitTest {
         assertThat(rowReceiver.rows.size(), is(3));
         rowReceiver.resumeUpstream(true);
         assertThat(rowReceiver.result().size(), is(40));
-
-        rowReceiver.repeatUpstream();
-        assertThat(rowReceiver.result().size(), is(80));
-    }
-
-    @Test
-    public void testMultipleRepeatsWork() throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        RowDownstream rowDownstream = RowMergers.passThroughRowMerger(rowReceiver);
-        final RowSender r1 = new RowSender(RowSender.rowRange(0, 20), rowDownstream.newRowReceiver(), executorService);
-        final RowSender r2 = new RowSender(RowSender.rowRange(0, 20), rowDownstream.newRowReceiver(), executorService);
-
-        r1.run();
-        r2.run();
-        assertThat(rowReceiver.result().size(), is(40));
-
-        rowReceiver.repeatUpstream();
-        assertThat(rowReceiver.result().size(), is(80));
-        rowReceiver.repeatUpstream();
-        assertThat(rowReceiver.result().size(), is(120));
-        rowReceiver.repeatUpstream();
-        assertThat(rowReceiver.result().size(), is(160));
     }
 }
