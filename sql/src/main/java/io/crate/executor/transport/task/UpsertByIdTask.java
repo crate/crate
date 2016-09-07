@@ -156,7 +156,7 @@ public class UpsertByIdTask extends JobTask {
     public ListenableFuture<List<Long>> executeBulk() {
         try {
             List<SettableFuture<Long>> resultList = executeBulkShardProcessor();
-            return Futures.successfulAsList(resultList);
+            return Futures.allAsList(resultList);
         } catch (Throwable throwable) {
             return Futures.immediateFailedFuture(throwable);
         }

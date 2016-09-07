@@ -26,25 +26,20 @@ import io.crate.operation.projectors.RowReceiver;
 
 import java.util.List;
 
-/**
- * A task gets executed as part of or in the context of a
- * {@linkplain io.crate.executor.Job} and returns a result asynchronously
- * as a list of futures.
- * <p>
- * create a task, call {@linkplain #execute(RowReceiver)} or {@linkplain #executeBulk()}
- * and wait for the futures returned to fetch the result or raise an exception.
- *
- * @see io.crate.executor.Job
- */
 public interface Task {
 
     /**
-     * execute the task
+     * execute the task if it represents a single operation.
+     *
+     * The result will be fed into the RowReceiver.
      */
     void execute(RowReceiver rowReceiver);
 
     /**
-     * execute the bulk operation
+     * execute the task if it represents a bulk operation.
+     *
+     * The result will be a List containing the row-counts per operation.
+     * Elements of the list cannot be null, but will be -1 if unknown and -2 if an error occurred.
      *
      * @throws UnsupportedOperationException if the task doesn't support bulk operations
      */
