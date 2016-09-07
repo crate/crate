@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.Function;
+import io.crate.exceptions.RelationUnknownException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.RowGranularity;
@@ -40,7 +41,6 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.isField;
 import static io.crate.testing.TestingHelpers.isLiteral;
 import static io.crate.testing.TestingHelpers.isReference;
 import static org.hamcrest.Matchers.equalTo;
@@ -108,7 +108,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDeleteWhereSysColumn() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(RelationUnknownException.class);
         expectedException.expectMessage("Cannot resolve relation 'sys.nodes'");
         analyze("delete from users where sys.nodes.id = 'node_1'");
     }

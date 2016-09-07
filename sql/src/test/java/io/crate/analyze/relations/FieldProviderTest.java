@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.RelationUnknownException;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
@@ -64,7 +65,7 @@ public class FieldProviderTest extends CrateUnitTest {
 
     @Test
     public void testUnknownSchema() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(RelationUnknownException.class);
         expectedException.expectMessage("Cannot resolve relation 'invalid.table'");
         FieldProvider<Field>resolver = new FullQualifedNameFieldProvider(dummySources);
         resolver.resolveField(newQN("invalid.table.name"), Operation.READ);
@@ -72,15 +73,15 @@ public class FieldProviderTest extends CrateUnitTest {
 
     @Test
     public void testUnknownTable() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot resolve relation 'invalid'");
+        expectedException.expect(RelationUnknownException.class);
+        expectedException.expectMessage("Cannot resolve relation 'dummy.invalid'");
         FieldProvider<Field>resolver = new FullQualifedNameFieldProvider(dummySources);
         resolver.resolveField(newQN("dummy.invalid.name"), Operation.READ);
     }
 
     @Test
     public void testSysColumnWithoutSourceRelation() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(RelationUnknownException.class);
         expectedException.expectMessage("Cannot resolve relation 'sys.nodes'");
         FieldProvider<Field>resolver = new FullQualifedNameFieldProvider(dummySources);
 

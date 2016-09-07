@@ -26,10 +26,7 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
-import io.crate.exceptions.AmbiguousColumnAliasException;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.ConversionException;
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.*;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -774,7 +771,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testOrderByQualifiedName() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(RelationUnknownException.class);
         expectedException.expectMessage("Cannot resolve relation 'friends'");
         analyze("select * from users order by friends.id");
     }
@@ -985,7 +982,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testTableAliasWrongUse() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(RelationUnknownException.class);
         // caused by where users.awesome, would have to use where u.awesome = true instead
         expectedException.expectMessage("Cannot resolve relation 'users'");
         analyze("select * from users as u where users.awesome = true");
@@ -993,9 +990,9 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testTableAliasFullQualifiedName() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(RelationUnknownException.class);
         // caused by where users.awesome, would have to use where u.awesome = true instead
-        expectedException.expectMessage("Cannot resolve relation 'users'");
+        expectedException.expectMessage("Cannot resolve relation 'doc.users'");
         analyze("select * from users as u where doc.users.awesome = true");
     }
 

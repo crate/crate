@@ -24,6 +24,7 @@ package io.crate.analyze.relations;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.RelationUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
@@ -111,12 +112,8 @@ public class FullQualifedNameFieldProvider implements FieldProvider<Field> {
             }
         }
         if (lastField == null) {
-            if (!schemaMatched) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "Cannot resolve relation '%s.%s'", columnSchema, columnTableName));
-            }
-            if (!tableNameMatched) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Cannot resolve relation '%s'", columnTableName));
+            if (!schemaMatched || !tableNameMatched) {
+                throw RelationUnknownException.of(columnSchema, columnTableName);
             }
             throw new ColumnUnknownException(columnIdent.sqlFqn());
         }

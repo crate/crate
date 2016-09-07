@@ -27,8 +27,8 @@ import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.StmtCtx;
-import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
@@ -47,7 +47,7 @@ public class RelationAnalysisContext {
     private ExpressionAnalyzer expressionAnalyzer;
     private FieldProvider fieldProvider;
     @Nullable
-    private List<Expression> joinExpressions;
+    private List<Symbol> joinConditions;
 
     RelationAnalysisContext(ParameterContext parameterContext,
                             StmtCtx stmtCtx,
@@ -67,18 +67,18 @@ public class RelationAnalysisContext {
         return sources;
     }
 
-    List<Expression> joinExpressions() {
-        if (joinExpressions == null) {
+    List<Symbol> joinConditions() {
+        if (joinConditions == null) {
             return ImmutableList.of();
         }
-        return joinExpressions;
+        return joinConditions;
     }
 
-    void addJoinExpression(Expression expression) {
-        if (joinExpressions == null) {
-            joinExpressions = new ArrayList<>();
+    void addJoinCondition(Symbol symbol) {
+        if (joinConditions == null) {
+            joinConditions = new ArrayList<>();
         }
-        joinExpressions.add(expression);
+        joinConditions.add(symbol);
     }
 
     private void addSourceRelation(QualifiedName qualifiedName, AnalyzedRelation relation) {

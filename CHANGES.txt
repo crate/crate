@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Join conditions were not properly validated and an expression
+   with a not yet defined relation could be used.
+
  - Remove limitation that prevented usage of columns from multiple tables
    in the same order by expression.
    eg: FROM t1, t2, t3 ORDER BY t1.x - t2.y + t3.z
