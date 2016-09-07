@@ -285,7 +285,7 @@ public class SysShardsTest extends ClassLifecycleIntegrationTest {
     @Test
     public void testSelectShardIdFromSysNodes() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot resolve relation 'shards'");
+        expectedException.expectMessage("Cannot resolve relation 'sys.shards'");
         transportExecutor.exec("select sys.shards.id from sys.nodes");
     }
 

@@ -36,6 +36,8 @@ import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.exceptions.RelationUnknownException;
+import io.crate.exceptions.ValidationException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
@@ -100,7 +102,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (optCriteria.isPresent()) {
             JoinCriteria joinCriteria = optCriteria.get();
             if (joinCriteria instanceof JoinOn) {
-                context.addJoinExpression(((JoinOn) joinCriteria).getExpression());
+                Symbol joinCondition;
+                try {
+                    joinCondition = context.expressionAnalyzer().convert(
+                        ((JoinOn) joinCriteria).getExpression(), context.expressionAnalysisContext());
+                } catch (RelationUnknownException e) {
+                    throw new ValidationException(String.format(Locale.ENGLISH,
+                        "missing FROM-clause entry for relation '%s'", e.qualifiedName()));
+                }
+                context.addJoinCondition(joinCondition);
             } else {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
                         joinCriteria.getClass().getSimpleName()));
@@ -291,8 +301,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     private WhereClause analyzeWhere(Optional<Expression> where, RelationAnalysisContext context) {
-        List<Expression> joinExpressions = context.joinExpressions();
-        if (!where.isPresent() && joinExpressions.isEmpty()) {
+        List<Symbol> joinConditions = context.joinConditions();
+        if (!where.isPresent() && joinConditions.isEmpty()) {
             return WhereClause.MATCH_ALL;
         }
         Symbol query;
@@ -301,9 +311,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         } else {
             query = Literal.BOOLEAN_TRUE;
         }
-        if (!joinExpressions.isEmpty()) {
-            for (Expression joinExpression : joinExpressions) {
-                Symbol joinCondition = context.expressionAnalyzer().convert(joinExpression, context.expressionAnalysisContext());
+        if (!joinConditions.isEmpty()) {
+            for (Symbol joinCondition : joinConditions) {
                 query = new Function(AndOperator.INFO, Arrays.asList(query, joinCondition));
             }
         }

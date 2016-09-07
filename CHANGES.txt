@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Join conditions were not properly validated and an expression
+   with a not yet defined relation could be used.
+
  - Fix: Setting of a default schema was not possible by using the HTTP REST
    endpoint.
 
