@@ -92,7 +92,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
                 return null;
             }
             GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy().get());
-            return nonDistributedGroupBy(table, context);
+            return nonDistributedGroupBy(table, context, RowGranularity.SHARD);
         }
 
         @Override
@@ -100,7 +100,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
             if (!table.querySpec().groupBy().isPresent()) {
                 return null;
             }
-            return nonDistributedGroupBy(table, context);
+            return nonDistributedGroupBy(table, context, RowGranularity.CLUSTER);
         }
 
         /**
@@ -114,7 +114,9 @@ public class NonDistributedGroupByConsumer implements Consumer {
          * LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], TopN )
          *
          */
-        private PlannedAnalyzedRelation nonDistributedGroupBy(QueriedTableRelation table, ConsumerContext context) {
+        private PlannedAnalyzedRelation nonDistributedGroupBy(QueriedTableRelation table,
+                                                              ConsumerContext context,
+                                                              RowGranularity groupProjectionGranularity) {
             List<Symbol> groupBy = table.querySpec().groupBy().get();
 
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());
@@ -127,7 +129,7 @@ public class NonDistributedGroupByConsumer implements Consumer {
                     splitPoints.aggregates(),
                     Aggregation.Step.ITER,
                     Aggregation.Step.PARTIAL);
-            groupProjection.setRequiredGranularity(RowGranularity.SHARD);
+            groupProjection.setRequiredGranularity(groupProjectionGranularity);
 
             RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
                     context.plannerContext(),

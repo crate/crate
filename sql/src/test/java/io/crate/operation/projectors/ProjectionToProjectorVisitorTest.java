@@ -34,7 +34,10 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.EqOperator;
-import io.crate.planner.projection.*;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.RowSender;
@@ -157,11 +160,10 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
 
     @Test
     public void testAggregationProjector() throws Exception {
-        AggregationProjection projection = new AggregationProjection();
-        projection.aggregations(Arrays.asList(
+        AggregationProjection projection = new AggregationProjection(Arrays.asList(
                 Aggregation.finalAggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER),
                 Aggregation.finalAggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER)
-        ));
+        ), RowGranularity.SHARD);
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
 
         CollectingRowReceiver collectingProjector = new CollectingRowReceiver();

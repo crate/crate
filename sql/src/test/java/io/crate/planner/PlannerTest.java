@@ -1665,8 +1665,8 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testDistributedGroupByProjectionHasShardLevelGranularity() throws Exception {
-        CollectAndMerge nonDistributedGroup = plan("select count(*) from sys.cluster group by name");
-        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) nonDistributedGroup.collectPhase());
+        DistributedGroupBy distributedGroupBy = plan("select count(*) from users group by name");
+        RoutedCollectPhase collectPhase = distributedGroupBy.collectNode();
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));

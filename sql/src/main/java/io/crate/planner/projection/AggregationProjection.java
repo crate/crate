@@ -38,7 +38,8 @@ import java.util.List;
  */
 public class AggregationProjection extends Projection {
 
-    List<Aggregation> aggregations = ImmutableList.of();
+    private RowGranularity contextGranularity;
+    private List<Aggregation> aggregations = ImmutableList.of();
 
     public static final ProjectionFactory<AggregationProjection> FACTORY = new ProjectionFactory<AggregationProjection>() {
         @Override
@@ -47,26 +48,22 @@ public class AggregationProjection extends Projection {
         }
     };
 
-    public AggregationProjection() {
+    private AggregationProjection() {
     }
 
-    public AggregationProjection(List<Aggregation> aggregations) {
+    public AggregationProjection(List<Aggregation> aggregations, RowGranularity contextGranularity) {
+        this.contextGranularity = contextGranularity;
         assert aggregations != null;
         this.aggregations = aggregations;
     }
 
     @Override
     public RowGranularity requiredGranularity() {
-        return RowGranularity.SHARD;
+        return contextGranularity;
     }
 
     public List<Aggregation> aggregations() {
         return aggregations;
-    }
-
-    public void aggregations(List<Aggregation> aggregations) {
-        assert aggregations != null;
-        this.aggregations = aggregations;
     }
 
     @Override
@@ -91,11 +88,13 @@ public class AggregationProjection extends Projection {
         for (int i = 0; i < size; i++) {
             aggregations.add((Aggregation) Symbols.fromStream(in));
         }
+        contextGranularity = RowGranularity.fromStream(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         Symbols.toStream(aggregations, out);
+        RowGranularity.toStream(contextGranularity, out);
     }
 
     @Override

@@ -30,6 +30,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RowGranularity;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.planner.projection.*;
 
@@ -60,15 +61,14 @@ public class ProjectionBuilder {
     }
 
 
-    public AggregationProjection aggregationProjection(
-            Collection<? extends Symbol> inputs,
-            Collection<Function> aggregates,
-            Aggregation.Step fromStep,
-            Aggregation.Step toStep){
+    public AggregationProjection aggregationProjection(Collection<? extends Symbol> inputs,
+                                                       Collection<Function> aggregates,
+                                                       Aggregation.Step fromStep,
+                                                       Aggregation.Step toStep,
+                                                       RowGranularity granularity) {
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
-        ArrayList<Aggregation> aggregations = getAggregations(aggregates, fromStep,
-                toStep, context);
-        return new AggregationProjection(aggregations);
+        ArrayList<Aggregation> aggregations = getAggregations(aggregates, fromStep, toStep, context);
+        return new AggregationProjection(aggregations, granularity);
     }
 
     public GroupProjection groupProjection(
@@ -76,7 +76,7 @@ public class ProjectionBuilder {
             Collection<Symbol> keys,
             Collection<Function> values,
             Aggregation.Step fromStep,
-            Aggregation.Step toStep){
+            Aggregation.Step toStep) {
 
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
         ArrayList<Aggregation> aggregations = getAggregations(values, fromStep, toStep, context);

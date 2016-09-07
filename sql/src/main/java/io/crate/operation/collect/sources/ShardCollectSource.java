@@ -68,6 +68,35 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 
+/**
+ * Factory to create collectors which collect data from shards.
+ *
+ *
+ * There are different patterns on how shards are collected:
+ *
+ * - Multiple Collectors with shard level projectors (only unordered):
+ *
+ *      C/S1   C/S2
+ *       |      |
+ *       P      P  < i/o & computation should happen here to benefit from threading
+ *       \     /
+ *        \   /
+ *        Merger
+ *          |
+ *      RowReceiver
+ *
+ *
+ * - Ordered with one Collector that has 1+ child shard collectors
+ *   This single collector is switching between the child-collectors to provide a correct sorted result
+ *
+ *     +---------------------+
+ *     | MultiShardCollector |
+ *     |   S1   S2           |
+ *     +---------------------+
+ *             |
+ *          RowReceiver
+ *
+ */
 @Singleton
 public class ShardCollectSource implements CollectSource {
 
@@ -131,22 +160,31 @@ public class ShardCollectSource implements CollectSource {
                 implementationSymbolVisitor,
                 nodeNormalizer
         );
-
         String localNodeId = clusterService.localNode().id();
+
+        if (normalizedPhase.maxRowGranularity() == RowGranularity.SHARD) {
+            // it's possible to use FlatProjectorChain instead of ShardProjectorChain as a shortcut because
+            // the rows are "pre-created" on a shard level.
+            // The getShardsCollector method always only uses a single RowReceiver and not one per shard)
+            FlatProjectorChain flatProjectorChain = FlatProjectorChain.withAttachedDownstream(
+                projectorFactory,
+                jobCollectContext.queryPhaseRamAccountingContext(),
+                normalizedPhase.projections(),
+                downstream,
+                collectPhase.jobId());
+            return Collections.singletonList(
+                getShardsCollector(collectPhase, normalizedPhase, localNodeId, flatProjectorChain));
+        }
+
         OrderBy orderBy = normalizedPhase.orderBy();
         if (normalizedPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
-            FlatProjectorChain flatProjectorChain;
-            if (normalizedPhase.hasProjections()) {
-                flatProjectorChain = FlatProjectorChain.withAttachedDownstream(
-                        projectorFactory,
-                        jobCollectContext.queryPhaseRamAccountingContext(),
-                        normalizedPhase.projections(),
-                        downstream,
-                        collectPhase.jobId()
-                );
-            } else {
-                flatProjectorChain = FlatProjectorChain.withReceivers(ImmutableList.of(downstream));
-            }
+            FlatProjectorChain flatProjectorChain = FlatProjectorChain.withAttachedDownstream(
+                projectorFactory,
+                jobCollectContext.queryPhaseRamAccountingContext(),
+                normalizedPhase.projections(),
+                downstream,
+                collectPhase.jobId()
+            );
             return ImmutableList.of(createMultiShardScoreDocCollector(
                     normalizedPhase,
                     flatProjectorChain,
@@ -158,7 +196,6 @@ public class ShardCollectSource implements CollectSource {
 
         // actual shards might be less if table is partitioned and a partition has been deleted meanwhile
         int maxNumShards = normalizedPhase.routing().numShards(localNodeId);
-
         ShardProjectorChain projectorChain = ShardProjectorChain.passThroughMerge(
                 normalizedPhase.jobId(),
                 maxNumShards,
@@ -170,15 +207,10 @@ public class ShardCollectSource implements CollectSource {
         Map<String, Map<String, List<Integer>>> locations = normalizedPhase.routing().locations();
         final List<CrateCollector> shardCollectors = new ArrayList<>(maxNumShards);
 
-        if (normalizedPhase.maxRowGranularity() == RowGranularity.SHARD) {
-            shardCollectors.add(
-                    getShardsCollector(collectPhase, normalizedPhase, projectorFactory, localNodeId, projectorChain));
-        } else {
-            Map<String, List<Integer>> indexShards = locations.get(localNodeId);
-            if (indexShards != null) {
-                shardCollectors.addAll(
-                        getDocCollectors(jobCollectContext, normalizedPhase, projectorChain, indexShards));
-            }
+        Map<String, List<Integer>> indexShards = locations.get(localNodeId);
+        if (indexShards != null) {
+            shardCollectors.addAll(
+                    getDocCollectors(jobCollectContext, normalizedPhase, projectorChain, indexShards));
         }
         projectorChain.prepare();
         return shardCollectors;
@@ -279,9 +311,8 @@ public class ShardCollectSource implements CollectSource {
 
     private CrateCollector getShardsCollector(RoutedCollectPhase collectPhase,
                                               RoutedCollectPhase normalizedPhase,
-                                              ProjectorFactory projectorFactory,
                                               String localNodeId,
-                                              ShardProjectorChain projectorChain) {
+                                              FlatProjectorChain flatProjectorChain) {
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         List<UnassignedShard> unassignedShards = new ArrayList<>();
         List<Object[]> rows = new ArrayList<>();
@@ -313,7 +344,6 @@ public class ShardCollectSource implements CollectSource {
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     unassignedShards.add(toUnassignedShard(new ShardId(indexName, shard)));
                 } catch (Throwable t) {
-                    projectorChain.fail(t);
                     throw new UnhandledServerException(t);
                 }
             }
@@ -331,8 +361,8 @@ public class ShardCollectSource implements CollectSource {
             Collections.sort(rows, OrderingByPosition.arrayOrdering(collectPhase).reverse());
         }
         return new RowsCollector(
-                projectorChain.newShardDownstreamProjector(projectorFactory),
-                Iterables.transform(rows, Buckets.arrayToRowFunction()));
+            flatProjectorChain.firstProjector(),
+            Iterables.transform(rows, Buckets.arrayToRowFunction()));
     }
 
     private UnassignedShard toUnassignedShard(ShardId shardId) {

@@ -36,6 +36,7 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
 import io.crate.planner.Planner;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectAndMerge;
@@ -84,20 +85,21 @@ public class GlobalAggregateConsumer implements Consumer {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            return globalAggregates(functions, table, context);
+            return globalAggregates(functions, table, context, RowGranularity.SHARD);
 
         }
 
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
-            return globalAggregates(functions, table, context);
+            return globalAggregates(functions, table, context, RowGranularity.CLUSTER);
         }
 
     }
 
     private static PlannedAnalyzedRelation globalAggregates(Functions functions,
                                                             QueriedTableRelation table,
-                                                            ConsumerContext context) {
+                                                            ConsumerContext context,
+                                                            RowGranularity projectionGranularity) {
         if (table.querySpec().groupBy().isPresent() || !table.querySpec().hasAggregates()) {
             return null;
         }
@@ -114,10 +116,12 @@ public class GlobalAggregateConsumer implements Consumer {
         SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
         AggregationProjection ap = projectionBuilder.aggregationProjection(
-                splitPoints.leaves(),
-                splitPoints.aggregates(),
-                Aggregation.Step.ITER,
-                Aggregation.Step.PARTIAL);
+            splitPoints.leaves(),
+            splitPoints.aggregates(),
+            Aggregation.Step.ITER,
+            Aggregation.Step.PARTIAL,
+            projectionGranularity
+        );
 
 
         RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
@@ -130,10 +134,11 @@ public class GlobalAggregateConsumer implements Consumer {
         //// the handler stuff
         List<Projection> projections = new ArrayList<>();
         projections.add(projectionBuilder.aggregationProjection(
-                splitPoints.aggregates(),
-                splitPoints.aggregates(),
-                Aggregation.Step.PARTIAL,
-                Aggregation.Step.FINAL));
+            splitPoints.aggregates(),
+            splitPoints.aggregates(),
+            Aggregation.Step.PARTIAL,
+            Aggregation.Step.FINAL,
+            RowGranularity.CLUSTER));
 
         Optional<HavingClause> havingClause = table.querySpec().having();
         if(havingClause.isPresent()){
