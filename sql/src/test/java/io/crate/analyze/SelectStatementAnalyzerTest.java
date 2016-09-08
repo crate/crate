@@ -897,14 +897,12 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
         FunctionInfo anyInfo = ((Function) analysis.relation().querySpec().where().query()).info();
         assertThat(anyInfo.ident().name(), is("any_="));
-        //assertThat(anyInfo.ident().argumentTypes(), contains(DataTypes.LONG_ARRAY, DataType.LONG));
 
         analysis = analyze("select * from users where 0 = ANY (counters)");
         assertThat(analysis.relation().querySpec().where().hasQuery(), is(true));
 
         anyInfo = ((Function) analysis.relation().querySpec().where().query()).info();
         assertThat(anyInfo.ident().name(), is("any_="));
-        //assertThat(anyInfo.ident().argumentTypes(), contains(DataTypes.LONG_ARRAY, DataType.LONG));
     }
 
     @Test
@@ -915,7 +913,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
         FunctionInfo anyInfo = ((Function) analysis.relation().querySpec().where().query()).info();
         assertThat(anyInfo.ident().name(), is("any_<>"));
-        //assertThat(anyInfo.ident().argumentTypes(), contains(DataTypes.LONG_ARRAY, DataType.LONG));
 
     }
 
@@ -947,38 +944,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testAnyOnArrayInObjectArray() throws Exception {
         analyze("select * from users where 'vogon lyric lovers' = ANY (friends['groups'])");
     }
-
-    /*
-
-    @Test
-    public void testTableAlias() throws Exception {
-        SelectAnalyzedStatement expectedAnalysis =  analyze("select * " +
-                "from users where awesome = true");
-
-        SelectAnalyzedStatement actualAnalysis =  analyze("select * " +
-                "from users as u where u.awesome = true");
-        SelectAnalyzedStatement actualAnalysisColAliased =  analyze("select awesome as a " +
-                "from users as u where u.awesome = true");
-        SelectAnalyzedStatement actualAnalysisOptionalAs =  analyze("select awesome a " +
-                "from users u where u.awesome = true");
-
-        assertEquals("u", actualAnalysis.tableAlias());
-        assertEquals("u", actualAnalysisColAliased.tableAlias());
-        assertEquals("u", actualAnalysisOptionalAs.tableAlias());
-        assertEquals(
-                ((Function)expectedanalysis.rootRelation().querySpec().where().query()).arguments().get(0),
-                ((Function)actualanalysis.rootRelation().querySpec().where().query()).arguments().get(0)
-        );
-        assertEquals(
-                ((Function)expectedanalysis.rootRelation().querySpec().where().query()).arguments().get(0),
-                ((Function)actualAnalysisColAliased.whereClause().query()).arguments().get(0)
-        );
-        assertEquals(
-                ((Function) expectedanalysis.rootRelation().querySpec().where().query()).arguments().get(0),
-                ((Function) actualAnalysisOptionalAs.whereClause().query()).arguments().get(0)
-        );
-    }
-    */
 
     @Test
     public void testTableAliasWrongUse() throws Exception {
