@@ -158,7 +158,6 @@ public class JobExecutionContext implements CompletionListenable {
     }
 
     public void start() throws Throwable {
-        assert failure == null;
         for (Integer id : orderedContextIds) {
             ExecutionSubContext subContext = subContexts.get(id);
             if (subContext == null || closed.get()) {
