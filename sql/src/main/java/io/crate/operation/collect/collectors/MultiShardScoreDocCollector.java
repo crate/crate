@@ -143,15 +143,15 @@ public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle
     private void processIterator() {
         try {
             switch (emitRows()) {
-                case PAUSED:
+                case PAUSE:
                     return;
-                case FINISHED:
+                case STOP:
                     finish();
                     return;
-                case EXHAUSTED:
+                case CONTINUE:
                     if (allExhausted()) {
                         pagingIterator.finish();
-                        if (emitRows() == Result.PAUSED) {
+                        if (emitRows() == RowReceiver.Result.PAUSE) {
                             return;
                         }
                         finish();
@@ -171,7 +171,7 @@ public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle
         }
     }
 
-    private Result emitRows() {
+    private RowReceiver.Result emitRows() {
         while (pagingIterator.hasNext()) {
             Row row = pagingIterator.next();
             RowReceiver.Result result = rowReceiver.setNextRow(row);
@@ -180,13 +180,13 @@ public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle
                     continue;
                 case PAUSE:
                     rowReceiver.pauseProcessed(this);
-                    return Result.PAUSED;
+                    return result;
                 case STOP:
-                    return Result.FINISHED;
+                    return result;
             }
             throw new AssertionError("Unrecognized setNextRow result: " + result);
         }
-        return Result.EXHAUSTED;
+        return RowReceiver.Result.CONTINUE;
     }
 
     private boolean allExhausted() {

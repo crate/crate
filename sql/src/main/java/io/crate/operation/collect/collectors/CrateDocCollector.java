@@ -147,10 +147,10 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
     private void innerCollect(SimpleCollector collector, Weight weight, Iterator<LeafReaderContext> leavesIt,
                               @Nullable BulkScorer scorer, @Nullable LeafReaderContext leaf) {
         try {
-            if (collectLeaves(collector, weight, leavesIt, scorer, leaf) == Result.FINISHED) {
-                finishCollect();
-            } else {
+            if (collectLeaves(collector, weight, leavesIt, scorer, leaf) == RowReceiver.Result.PAUSE) {
                 traceLog("paused collect");
+            } else {
+                finishCollect();
             }
         } catch (CollectionFinishedEarlyException e) {
             finishCollect();
@@ -176,14 +176,14 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
         rowReceiver.finish(this);
     }
 
-    private Result collectLeaves(SimpleCollector collector,
-                                 Weight weight,
-                                 Iterator<LeafReaderContext> leaves,
-                                 @Nullable BulkScorer bulkScorer,
-                                 @Nullable LeafReaderContext leaf) throws IOException {
+    private RowReceiver.Result collectLeaves(SimpleCollector collector,
+                                             Weight weight,
+                                             Iterator<LeafReaderContext> leaves,
+                                             @Nullable BulkScorer bulkScorer,
+                                             @Nullable LeafReaderContext leaf) throws IOException {
         if (bulkScorer != null) {
             assert leaf != null : "leaf must not be null if bulkScorer isn't null";
-            if (processScorer(collector, leaf, bulkScorer)) return Result.PAUSED;
+            if (processScorer(collector, leaf, bulkScorer)) return RowReceiver.Result.PAUSE;
         }
         try {
             while (leaves.hasNext()) {
@@ -194,12 +194,12 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
                     continue;
                 }
                 bulkScorer = new DefaultBulkScorer(scorer);
-                if (processScorer(leafCollector, leaf, bulkScorer)) return Result.PAUSED;
+                if (processScorer(leafCollector, leaf, bulkScorer)) return RowReceiver.Result.PAUSE;
             }
         } finally {
             searchContext.clearReleasables(SearchContext.Lifetime.COLLECTION);
         }
-        return Result.FINISHED;
+        return RowReceiver.Result.CONTINUE;
     }
 
     private boolean processScorer(LeafCollector leafCollector, LeafReaderContext leaf, BulkScorer scorer) throws IOException {
