@@ -134,8 +134,8 @@ public class ShardProjectorChainTest extends CrateUnitTest {
     }
 
     private static void assertRowReceiver(RowReceiver rowReceiver, Class<?> expectedClass) {
-        if (rowReceiver instanceof RowMergers.MultiUpstreamRowReceiver) {
-            assertThat(((RowMergers.MultiUpstreamRowReceiver) rowReceiver).delegate, instanceOf(expectedClass));
+        if (rowReceiver instanceof MultiUpstreamRowReceiver) {
+            assertThat(((MultiUpstreamRowReceiver) rowReceiver).delegate, instanceOf(expectedClass));
         } else {
             assertThat(rowReceiver, instanceOf(expectedClass));
         }
