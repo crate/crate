@@ -41,26 +41,26 @@ import java.util.Collections;
 import java.util.UUID;
 
 @Singleton
-public class InternalRowDownstreamFactory extends AbstractComponent implements RowDownstreamFactory {
+public class DistributingDownstreamFactory extends AbstractComponent {
 
     private final ClusterService clusterService;
     private final TransportDistributedResultAction transportDistributedResultAction;
     private final ESLogger distributingDownstreamLogger;
 
     @Inject
-    public InternalRowDownstreamFactory(Settings settings,
-                                        ClusterService clusterService,
-                                        TransportDistributedResultAction transportDistributedResultAction) {
+    public DistributingDownstreamFactory(Settings settings,
+                                         ClusterService clusterService,
+                                         TransportDistributedResultAction transportDistributedResultAction) {
         super(settings);
         this.clusterService = clusterService;
         this.transportDistributedResultAction = transportDistributedResultAction;
         distributingDownstreamLogger = Loggers.getLogger(DistributingDownstream.class, settings);
     }
 
-    public RowReceiver createDownstream(NodeOperation nodeOperation,
-                                        DistributionInfo distributionInfo,
-                                        UUID jobId,
-                                        int pageSize) {
+    public RowReceiver create(NodeOperation nodeOperation,
+                              DistributionInfo distributionInfo,
+                              UUID jobId,
+                              int pageSize) {
         Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
         assert !ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())
                 : "trying to build a DistributingDownstream but nodeOperation has a directResponse downstream";

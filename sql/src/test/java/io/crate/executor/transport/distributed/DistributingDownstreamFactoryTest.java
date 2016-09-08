@@ -30,7 +30,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.Paging;
-import io.crate.operation.projectors.InternalRowDownstreamFactory;
+import io.crate.operation.projectors.DistributingDownstreamFactory;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.MergePhase;
@@ -49,13 +49,13 @@ import java.util.*;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;
 
-public class InternalRowDownstreamFactoryTest extends CrateUnitTest {
+public class DistributingDownstreamFactoryTest extends CrateUnitTest {
 
-    private InternalRowDownstreamFactory rowDownstreamFactory;
+    private DistributingDownstreamFactory rowDownstreamFactory;
 
     @Before
     public void before() {
-        rowDownstreamFactory = new InternalRowDownstreamFactory(
+        rowDownstreamFactory = new DistributingDownstreamFactory(
                 Settings.EMPTY,
                 new NoopClusterService(),
                 mock(TransportDistributedResultAction.class)
@@ -85,7 +85,7 @@ public class InternalRowDownstreamFactoryTest extends CrateUnitTest {
                 DistributionInfo.DEFAULT_BROADCAST);
         mergePhase.executionNodes(downstreamExecutionNodes);
         NodeOperation nodeOperation = NodeOperation.withDownstream(collectPhase, mergePhase, (byte) 0, "nodeName");
-        return rowDownstreamFactory.createDownstream(nodeOperation, collectPhase.distributionInfo(), jobId, Paging.PAGE_SIZE);
+        return rowDownstreamFactory.create(nodeOperation, collectPhase.distributionInfo(), jobId, Paging.PAGE_SIZE);
     }
 
     @Test

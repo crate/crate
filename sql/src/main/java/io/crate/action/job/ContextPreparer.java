@@ -42,8 +42,8 @@ import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.fetch.FetchContext;
 import io.crate.operation.join.NestedLoopOperation;
+import io.crate.operation.projectors.DistributingDownstreamFactory;
 import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.operation.projectors.RowDownstreamFactory;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -80,12 +80,12 @@ public class ContextPreparer extends AbstractComponent {
     private final MapSideDataCollectOperation collectOperation;
     private final ESLogger pageDownstreamContextLogger;
     private final ESLogger nlContextLogger;
-    private ClusterService clusterService;
-    private CountOperation countOperation;
+    private final ClusterService clusterService;
+    private final CountOperation countOperation;
     private final ThreadPool threadPool;
     private final CircuitBreaker circuitBreaker;
     private final PageDownstreamFactory pageDownstreamFactory;
-    private final RowDownstreamFactory rowDownstreamFactory;
+    private final DistributingDownstreamFactory distributingDownstreamFactory;
     private final InnerPreparer innerPreparer;
     private final ImplementationSymbolVisitor symbolVisitor;
 
@@ -98,7 +98,7 @@ public class ContextPreparer extends AbstractComponent {
                            CountOperation countOperation,
                            ThreadPool threadPool,
                            PageDownstreamFactory pageDownstreamFactory,
-                           RowDownstreamFactory rowDownstreamFactory,
+                           DistributingDownstreamFactory distributingDownstreamFactory,
                            Functions functions) {
         super(settings);
         nlContextLogger = Loggers.getLogger(NestedLoopContext.class, settings);
@@ -109,7 +109,7 @@ public class ContextPreparer extends AbstractComponent {
         this.threadPool = threadPool;
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         this.pageDownstreamFactory = pageDownstreamFactory;
-        this.rowDownstreamFactory = rowDownstreamFactory;
+        this.distributingDownstreamFactory = distributingDownstreamFactory;
         innerPreparer = new InnerPreparer();
         symbolVisitor = new ImplementationSymbolVisitor(functions);
     }
@@ -166,7 +166,7 @@ public class ContextPreparer extends AbstractComponent {
                                         JobExecutionContext.Builder contextBuilder,
                                         @Nullable SharedShardContexts sharedShardContexts) {
         ContextPreparer.PreparerContext preparerContext = new PreparerContext(
-                contextBuilder, logger, rowDownstreamFactory, nodeOperations, sharedShardContexts);
+                contextBuilder, logger, distributingDownstreamFactory, nodeOperations, sharedShardContexts);
 
         for (NodeOperation nodeOperation : nodeOperations) {
             // context for nodeOperations without dependencies can be built immediately (e.g. FetchPhase)
@@ -300,7 +300,7 @@ public class ContextPreparer extends AbstractComponent {
 
     private static class PreparerContext {
 
-        private final RowDownstreamFactory rowDownstreamFactory;
+        private final DistributingDownstreamFactory distributingDownstreamFactory;
 
         /**
          * from toKey(phaseId, inputId) to RowReceiver.
@@ -318,13 +318,13 @@ public class ContextPreparer extends AbstractComponent {
 
         PreparerContext(JobExecutionContext.Builder contextBuilder,
                         ESLogger logger,
-                        RowDownstreamFactory rowDownstreamFactory,
+                        DistributingDownstreamFactory distributingDownstreamFactory,
                         Iterable<? extends NodeOperation> nodeOperations,
                         @Nullable SharedShardContexts sharedShardContexts) {
             this.contextBuilder = contextBuilder;
             this.logger = logger;
             this.opCtx = new NodeOperationCtx(nodeOperations);
-            this.rowDownstreamFactory = rowDownstreamFactory;
+            this.distributingDownstreamFactory = distributingDownstreamFactory;
             this.sharedShardContexts = sharedShardContexts;
         }
 
@@ -353,7 +353,7 @@ public class ContextPreparer extends AbstractComponent {
                     return safeReceiver(targetRowReceiver, nodeOperation);
                 case BROADCAST:
                 case MODULO:
-                    RowReceiver downstream = rowDownstreamFactory.createDownstream(
+                    RowReceiver downstream = distributingDownstreamFactory.create(
                             nodeOperation, phase.distributionInfo(), jobId(), pageSize);
                     traceGetRowReceiver(
                             phase, phase.distributionInfo().distributionType().toString(), nodeOperation, downstream);
