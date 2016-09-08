@@ -39,7 +39,9 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.*;
+import io.crate.operation.collect.collectors.CompositeCollector;
 import io.crate.operation.collect.collectors.MultiShardScoreDocCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.*;
@@ -49,6 +51,7 @@ import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.projection.Projection;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -56,6 +59,8 @@ import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -100,6 +105,7 @@ import java.util.concurrent.ExecutorService;
 @Singleton
 public class ShardCollectSource implements CollectSource {
 
+    private static final ESLogger LOGGER = Loggers.getLogger(ShardCollectSource.class);
     private final Settings settings;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final IndicesService indicesService;
@@ -193,16 +199,43 @@ public class ShardCollectSource implements CollectSource {
             );
         }
 
-
         // actual shards might be less if table is partitioned and a partition has been deleted meanwhile
-        int maxNumShards = normalizedPhase.routing().numShards(localNodeId);
-        ShardProjectorChain projectorChain = ShardProjectorChain.passThroughMerge(
-                normalizedPhase.jobId(),
-                maxNumShards,
-                normalizedPhase.projections(),
-                downstream,
-                projectorFactory,
-                jobCollectContext.queryPhaseRamAccountingContext());
+        final int maxNumShards = normalizedPhase.routing().numShards(localNodeId);
+        RowDownstream.Factory rowDownstreamFactory;
+        CompositeCollector.Builder builder = null;
+        boolean hasAnyShardProjections = false;
+        for (Projection projection : normalizedPhase.projections()) {
+            if (projection.requiredGranularity().ordinal() >= RowGranularity.SHARD.ordinal()) {
+                hasAnyShardProjections = true;
+                break;
+            }
+        }
+        if (hasAnyShardProjections) {
+            rowDownstreamFactory = new RowDownstream.Factory() {
+                @Override
+                public RowDownstream create(RowReceiver rowReceiver) {
+                    if (maxNumShards == 1) {
+                        LOGGER.debug(
+                            "Getting RowDownstream for 1 upstream, repeat support: " + rowReceiver.requirements());
+                        return new SingleUpstreamRowDownstream(rowReceiver);
+                    }
+                    LOGGER.debug("Getting RowDownstream for multiple upstreams; unsorted; repeat support: "
+                                 + rowReceiver.requirements());
+                    return RowMergers.passThroughRowMerger(rowReceiver);
+                }
+            };
+        } else {
+            builder = new CompositeCollector.Builder();
+            rowDownstreamFactory = builder.rowDownstreamFactory();
+        }
+
+        ShardProjectorChain projectorChain = new ShardProjectorChain(
+            normalizedPhase.jobId(),
+            normalizedPhase.projections(),
+            rowDownstreamFactory,
+            downstream,
+            projectorFactory,
+            jobCollectContext.queryPhaseRamAccountingContext());
 
         Map<String, Map<String, List<Integer>>> locations = normalizedPhase.routing().locations();
         final List<CrateCollector> shardCollectors = new ArrayList<>(maxNumShards);
@@ -213,7 +246,16 @@ public class ShardCollectSource implements CollectSource {
                     getDocCollectors(jobCollectContext, normalizedPhase, projectorChain, indexShards));
         }
         projectorChain.prepare();
-        return shardCollectors;
+        if (builder == null) {
+            return shardCollectors;
+        }
+        CrateCollector collector;
+        if (shardCollectors.isEmpty()) {
+            collector = RowsCollector.empty(projectorChain.newShardDownstreamProjector(projectorFactory));
+        } else {
+            collector = builder.build(shardCollectors);
+        }
+        return Collections.singletonList(collector);
     }
 
     private CrateCollector createMultiShardScoreDocCollector(RoutedCollectPhase collectPhase,

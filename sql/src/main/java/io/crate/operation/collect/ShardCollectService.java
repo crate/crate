@@ -178,19 +178,17 @@ public class ShardCollectService {
                                           JobCollectContext jobCollectContext) throws Exception {
         assert collectPhase.orderBy() == null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
         RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, null);
+        RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
         if (normalizedCollectNode.whereClause().noMatch()) {
-            RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
             return RowsCollector.empty(downstream);
         }
-
         assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
         if (isBlobShard) {
-            RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
             return new RowsCollector(downstream,
                 getBlobRows(collectPhase, downstream.requirements().contains(Requirement.REPEAT)));
         } else {
-            return getLuceneIndexCollector(threadPool, normalizedCollectNode, projectorChain, jobCollectContext);
+            return getLuceneIndexCollector(threadPool, normalizedCollectNode, downstream, jobCollectContext);
         }
     }
 
@@ -206,7 +204,7 @@ public class ShardCollectService {
 
     private CrateCollector getLuceneIndexCollector(ThreadPool threadPool,
                                                    final RoutedCollectPhase collectPhase,
-                                                   final ShardProjectorChain projectorChain,
+                                                   RowReceiver rowReceiver,
                                                    final JobCollectContext jobCollectContext) throws Exception {
         SharedShardContext sharedShardContext = jobCollectContext.sharedShardContexts().getOrCreateContext(shardId);
         Engine.Searcher searcher = sharedShardContext.searcher();
@@ -224,13 +222,13 @@ public class ShardCollectService {
             Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
 
             return new CrateDocCollector(
-                    searchContext,
-                    executor,
-                    Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
-                    jobCollectContext.queryPhaseRamAccountingContext(),
-                    projectorChain.newShardDownstreamProjector(projectorVisitor),
-                    docCtx.topLevelInputs(),
-                    docCtx.docLevelExpressions()
+                searchContext,
+                executor,
+                Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
+                jobCollectContext.queryPhaseRamAccountingContext(),
+                rowReceiver,
+                docCtx.topLevelInputs(),
+                docCtx.docLevelExpressions()
             );
         } catch (Throwable t) {
             if (searchContext == null) {

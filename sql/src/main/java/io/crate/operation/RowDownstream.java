@@ -28,6 +28,10 @@ import io.crate.operation.projectors.RowReceiver;
  */
 public interface RowDownstream {
 
+    interface Factory {
+        RowDownstream create(RowReceiver rowReceiver);
+    }
+
     /**
      * Register an upstream at this downstream.
      * The upstream is required to call the hooks on the returned handle.
