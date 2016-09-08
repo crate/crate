@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
+import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.common.settings.Settings;
@@ -64,7 +65,7 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
 
         for (ActionFuture<SQLResponse> future : futures) {
             try {
-                future.get(500, TimeUnit.MILLISECONDS);
+                future.get(SQLTransportExecutor.REQUEST_TIMEOUT.getMillis(), TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
                 fail("query run into a timeout");
             } catch (Exception e) {
