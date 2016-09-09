@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.metadata.SnapshotId;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.snapshots.SnapshotInfo;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -63,13 +62,6 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("CREATE REPOSITORY " + REPOSITORY_NAME + " TYPE \"fs\" with (location=?, compress=True)",
                 new Object[]{TEMPORARY_FOLDER.newFolder().getAbsolutePath()});
         assertThat(response.rowCount(), is(1L));
-        waitNoPendingTasksOnAll();
-    }
-
-    @After
-    public void resetSettings() throws Exception {
-        execute("reset GLOBAL cluster.routing.allocation.enable");
-        waitNoPendingTasksOnAll();
     }
 
     private void createTableAndSnapshot(String tableName, String snapshotName) {
@@ -216,15 +208,19 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
     @Test
     public void testCreateNotPartialSnapshotFails() throws Exception {
-        execute("set global cluster.routing.allocation.enable=none");
-        execute("CREATE TABLE backmeup (" +
-                "  id long primary key, " +
-                "  name string" +
-                ") with (number_of_replicas=0)");
+        try {
+            execute("set global cluster.routing.allocation.enable=none");
+            execute("CREATE TABLE backmeup (" +
+                    "  id long primary key, " +
+                    "  name string" +
+                    ") with (number_of_replicas=0)");
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Error creating snapshot 'my_repo.my_snapshot': Tables don't have primary shards [backmeup]");
-        execute("CREATE SNAPSHOT " + snapshotName() + " TABLE backmeup WITH (wait_for_completion=true)");
+            expectedException.expect(SQLActionException.class);
+            expectedException.expectMessage("Error creating snapshot 'my_repo.my_snapshot': Tables don't have primary shards [backmeup]");
+            execute("CREATE SNAPSHOT " + snapshotName() + " TABLE backmeup WITH (wait_for_completion=true)");
+        } finally {
+            execute("reset GLOBAL cluster.routing.allocation.enable");
+        }
     }
 
     @Test
