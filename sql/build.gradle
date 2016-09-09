@@ -21,15 +21,7 @@ dependencies {
     testCompile 'org.skyscreamer:jsonassert:1.2.0'
     testCompile 'org.hamcrest:hamcrest-all:1.3'
 
-    // Need the following patches which are not yet released to prevent
-    // queries from the client which we couldn't handle:
-    //  - https://github.com/pgjdbc/pgjdbc/commit/ba14509182e8e4399ad24658ea00daa16c24dcfa
-    //  - https://github.com/pgjdbc/pgjdbc/commit/4ad2df328d1202cb9516b8a8e382e4fef4db6441
-
-    // pgjdbc-jre7 has a pom for jre7 builds and a submodule to the real pgjdbc repo
-    // the fork updates the submodule to point to pgjdbc master which includes these patches.
-    // Jitpack would create a jre8 only build of pgjdbc:pgjdbc:master-SNAPSHOT was used
-    testCompile ('com.github.mfussenegger:pgjdbc-jre7:dev-SNAPSHOT') {
+    testCompile ('org.postgresql:postgresql:9.4.1210.jre7') {
         exclude group: 'org.openjdk.jmh', module: 'jmh-core'
     }
     benchmarksCompile 'com.carrotsearch:junit-benchmarks:0.7.2'
