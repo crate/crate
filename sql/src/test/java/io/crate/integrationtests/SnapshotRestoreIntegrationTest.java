@@ -296,7 +296,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     }
 
     @Test
-    public void testSnapshotRestoreSnapshotSinglePartitionWithDroppedPartition() throws Exception {
+    public void testRestoreSinglePartitionSnapshotIntoDroppedPartition() throws Exception {
         createTable("parted_table", true);
         execute("CREATE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date=0) WITH (wait_for_completion=true)");
         execute("delete from parted_table where date=0");
@@ -309,7 +309,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     }
 
     @Test
-    public void testSnapshotRestoreSnapshotSinglePartitionWithDroppedTable() throws Exception {
+    public void testRestoreSinglePartitionSnapshotIntoDroppedTable() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Cannot restore snapshot of single partition [.partitioned.parted_table.04130] into non-existent table.");
         createTable("parted_table", true);
@@ -322,7 +322,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     }
 
     @Test
-    public void testRestoreSnapshotSinglePartitionWithDroppedTable() throws Exception {
+    public void testRestoreFullPartedTableSnapshotSinglePartitionIntoDroppedTable() throws Exception {
         createTableAndSnapshot("my_parted_table", SNAPSHOT_NAME, true);
 
         execute("drop table my_parted_table");
