@@ -140,9 +140,7 @@ public class SQLTransportExecutor {
     private SQLResponse executeWithPg(SQLRequest request, String pgUrl, Random random) {
         try {
             Properties properties = new Properties();
-            if (random.nextBoolean()) {
-                properties.setProperty("prepareThreshold", "-1"); // force binary transfer
-            }
+            properties.setProperty("prepareThreshold", "0"); // disable prepared statements
             try (Connection conn = DriverManager.getConnection(pgUrl, properties)) {
                 conn.setAutoCommit(true);
                 PreparedStatement preparedStatement = conn.prepareStatement(request.stmt());
@@ -295,8 +293,8 @@ public class SQLTransportExecutor {
                 break;
             case "_json":
                 List<Object> jsonObjects = new ArrayList<>();
-                for (String json : (String[]) resultSet.getArray(i + 1).getArray()) {
-                    jsonObjects.add(jsonToObject(json));
+                for (Object json : (Object[]) resultSet.getArray(i + 1).getArray()) {
+                    jsonObjects.add(jsonToObject(((PGobject) json).getValue()));
                 }
                 value = jsonObjects.toArray();
                 break;

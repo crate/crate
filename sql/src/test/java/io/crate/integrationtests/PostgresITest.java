@@ -27,9 +27,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.Timeout;
+import org.postgresql.PGProperty;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -64,9 +64,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Before
     public void initProperties() throws Exception {
-        if (randomBoolean()) {
-            properties.setProperty("prepareThreshold", "-1"); // force binary transfer
-        }
+        properties.setProperty("prepareThreshold", "0"); // disable prepared statements
     }
 
     @Test
@@ -104,11 +102,36 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSimpleQuery() throws Exception {
+        properties.setProperty(PGProperty.PREFER_QUERY_MODE.getName(), PreferQueryMode.SIMPLE.value());
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            conn.setAutoCommit(true);
+            conn.createStatement().executeUpdate("create table t (x int) with (number_of_replicas = 0)");
+            conn.createStatement().executeUpdate("insert into t (x) values (1), (2)");
+            conn.createStatement().executeUpdate("refresh table t");
+
+            ResultSet resultSet = conn.createStatement().executeQuery("select * from t order by x");
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getInt(1), is(1));
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getInt(1), is(2));
+        }
+    }
+
+    @Test
     public void testPreparedStatementHandling() throws Exception {
         Properties properties = new Properties();
         properties.setProperty("prepareThreshold", "-1");
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             PreparedStatement p1 = conn.prepareStatement("select 1 from sys.cluster");
+
+            /*
+             * {@link io.crate.action.sql.SQLOperations.Session#describe(char, String)} returned "NoData"
+             * because analyzer doesn't work without parameters (= without prior bind call)
+             *
+             * This fails because client expects data due to the Describe request but receives a result
+             */
+            expectedException.expect(IllegalStateException.class);
             ResultSet resultSet = p1.executeQuery();
             assertThat(resultSet.next(), is(true));
             assertThat(resultSet.getInt(1), is(1));
@@ -131,6 +154,13 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             PreparedStatement p1 = conn.prepareStatement("select ? from sys.cluster");
             p1.setInt(1, 20);
+            /*
+             * {@link io.crate.action.sql.SQLOperations.Session#describe(char, String)} returned "NoData"
+             * because analyzer doesn't work without parameters (= without prior bind call)
+             *
+             * This fails because client expects data due to the Describe request but receives a result
+             */
+            expectedException.expect(IllegalStateException.class);
             ResultSet resultSet = p1.executeQuery();
             /*
              * This execute results in the following messages:

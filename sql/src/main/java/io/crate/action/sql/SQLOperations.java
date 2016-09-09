@@ -257,9 +257,11 @@ public class SQLOperations {
                      *
                      *      sync
                      *
-                     * We can't analyze a statement without params which is why null is returned here.
-                     * This isn't the correct thing to do. It results in a "NoData" msg sent to the client.
-                     * But at least the JDBC client can handle that and just follows up with bind/describe again.
+                     * Returning null (= "NoData") is correct for insert statements but will cause errors
+                     * in JDBC since 9.4.1210
+                     *
+                     * To prevent describe calls without prior bind calls
+                     * it's necessary to set prepareThreshold to 0 in the Connection properties.
                      */
                     return null;
             }

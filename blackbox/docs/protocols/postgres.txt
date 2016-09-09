@@ -154,6 +154,12 @@ JDBC
 The `pgjdbc`_ JDBC driver starting with version ``9.4.1209`` can be used with
 Crate.
 
+Starting with version ``9.4.1210`` server-side prepared statements are not
+supported. It is necessary to initialize the connection with the following
+properties to prevent the client from using them::
+
+    Properties properties = new Properties();
+    properties.setProperty("prepareThreshold", "0");
 
 Limitations
 ~~~~~~~~~~~
@@ -163,8 +169,8 @@ Limitations
   As a workaround it is possible to query the standard ``information_schema``
   tables manually using ``SELECT`` statements.
 
-- ``OBJECT`` and ``GEO_SHAPE`` can be streamed as ``JSON`` but require a
-  unreleased version of `pgjdbc`_.
+- ``OBJECT`` and ``GEO_SHAPE`` can be streamed as ``JSON`` but require at least
+  version ``9.4.1210`` of `pgjdbc`_.
 
 - The behaviour of ``PreparedStatement.executeBatch`` in error cases depends on
   in which stage an error occurs.
