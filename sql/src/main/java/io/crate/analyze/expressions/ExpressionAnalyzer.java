@@ -161,9 +161,9 @@ public class ExpressionAnalyzer {
     }
 
     protected Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
-        List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
-        List<DataType> argumentTypes = new ArrayList<>(node.getArguments().size());
-        for (Expression expression : node.getArguments()) {
+        List<Symbol> arguments = new ArrayList<>(node.arguments().size());
+        List<DataType> argumentTypes = new ArrayList<>(node.arguments().size());
+        for (Expression expression : node.arguments()) {
             Symbol argSymbol = expression.accept(innerAnalyzer, context);
 
             argumentTypes.add(argSymbol.valueType());
@@ -181,7 +181,7 @@ public class ExpressionAnalyzer {
             Symbol innerFunction = context.allocateFunction(innerInfo, arguments);
 
             // define the outer function which contains the inner function as argument.
-            String nodeName = "collection_" + node.getName().toString();
+            String nodeName = "collection_" + node.name().toString();
             List<Symbol> outerArguments = Arrays.<Symbol>asList(innerFunction);
             ImmutableList<DataType> outerArgumentTypes =
                     ImmutableList.<DataType>of(new SetType(argumentTypes.get(0)));
@@ -190,7 +190,7 @@ public class ExpressionAnalyzer {
             functionInfo = getFunctionInfo(ident);
             arguments = outerArguments;
         } else {
-            FunctionIdent ident = new FunctionIdent(node.getName().toString(), argumentTypes);
+            FunctionIdent ident = new FunctionIdent(node.name().toString(), argumentTypes);
             functionInfo = getFunctionInfo(ident);
         }
         return context.allocateFunction(functionInfo, arguments);

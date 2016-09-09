@@ -447,7 +447,14 @@ decimal returns [String value]
     ;
 
 functionCall returns [FunctionCall value]
-    : ^(FUNCTION_CALL n=qname w=window? d=distinct[false] a=exprList) { $value = new FunctionCall($n.value, $w.value, $d.value, $a.value); }
+    : ^(FUNCTION_CALL n=qname wg=withinGroup? w=window? d=distinct[false] a=exprList)
+        {
+            $value = new FunctionCall($n.value, $wg.value,  $w.value, $d.value, $a.value);
+        }
+    ;
+
+withinGroup returns [WithinGroup value]
+    : ^(WITHIN_GROUP sortItem?) { $value = new WithinGroup($sortItem.value); }
     ;
 
 window returns [Window value]

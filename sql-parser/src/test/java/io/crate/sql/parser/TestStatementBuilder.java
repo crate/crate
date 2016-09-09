@@ -27,7 +27,9 @@ import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.*;
 import org.antlr.runtime.tree.CommonTree;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,6 +43,9 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.*;
 
 public class TestStatementBuilder {
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Test
     public void testBegin() throws Exception {
@@ -261,6 +266,18 @@ public class TestStatementBuilder {
         printStatement("show tables in schema_name like '*'");
         printStatement("show tables from schema_name where table_name = 'foo'");
         printStatement("show tables in schema_name where table_name = 'foo'");
+    }
+
+    @Test
+    public void tesWrongNumArgsOrderByInWithinGroup() {
+        thrown.expect(ParsingException.class);
+        thrown.expectMessage("mismatched input ',' expecting ')'");
+        printStatement("select percentile_cont(0.25) within group (order by bar, bar) from foo");
+    }
+
+    @Test
+    public void testWithinGroup() {
+        printStatement("select percentile_cont(0.25) within group (order by bar) from foo");
     }
 
     @Test
@@ -534,7 +551,7 @@ public class TestStatementBuilder {
         assertThat(nameRef.getName().getSuffix(), is("firstname"));
 
         expression = SqlParser.createExpression("ABS(1)");
-        QualifiedName functionName = ((FunctionCall)expression).getName();
+        QualifiedName functionName = ((FunctionCall)expression).name();
         assertThat(functionName.getSuffix(), is("abs"));
     }
 
