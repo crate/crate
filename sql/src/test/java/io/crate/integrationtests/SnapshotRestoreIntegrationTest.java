@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.SnapshotsInProgress;
@@ -69,7 +68,8 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
     @After
     public void resetSettings() throws Exception {
-        execute("reset GLOBAL cluster.routing.allocation.enable");
+        execute("DROP REPOSITORY " + REPOSITORY_NAME);
+        execute("RESET GLOBAL cluster.routing.allocation.enable");
         waitNoPendingTasksOnAll();
     }
 
