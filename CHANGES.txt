@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: do not allow restoring a snapshot of a single partition if the table
+   does not exists. Previously this caused an orphaned partition.
+
  - Fix: Join conditions were not properly validated and an expression
    with a not yet defined relation could be used.
 

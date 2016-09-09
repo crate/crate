@@ -157,10 +157,8 @@ table the partition belongs to.
     RESTORE OK, 1 row affected (... sec)
 
 
-Or if no matching partition table exists, it will be implicitly
-created during restore.
-
-::
+A single snapshotted partition can only be restored to an existing table.
+If the table does not exist, restoring the single partition will fail::
 
     cr> DROP TABLE parted_table;
     DROP OK, 1 row affected (... sec)
@@ -168,7 +166,7 @@ created during restore.
     cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot3 TABLE
     ...    parted_table PARTITION (date=0)
     ... WITH (wait_for_completion=true);
-    RESTORE OK, 1 row affected (... sec)
+    SQLActionException[UnsupportedFeatureException: Cannot restore snapshot of single partition [.partitioned.parted_table.04130] into non-existent table.]
 
 
 Cleanup
@@ -207,8 +205,6 @@ repository in the cluster state, so it's not accessible any more.
 
 .. Hidden: cleanup
 
-    cr> DROP TABLE parted_table;
-    DROP OK, 1 row affected (... sec)
     cr> DROP SNAPSHOT where_my_snapshots_go.snapshot1;
     DROP OK, 1 row affected (... sec)
     cr> DROP SNAPSHOT where_my_snapshots_go.snapshot2;

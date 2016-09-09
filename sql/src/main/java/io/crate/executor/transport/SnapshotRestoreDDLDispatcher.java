@@ -22,14 +22,13 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.base.Functions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.action.FutureActionListener;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.exceptions.CreateSnapshotException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
@@ -42,6 +41,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.indices.IndexTemplateMissingException;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
 
@@ -139,16 +139,34 @@ public class SnapshotRestoreDDLDispatcher {
 
         // ignore_unavailable as set by statement
         IndicesOptions indicesOptions = IndicesOptions.fromOptions(ignoreUnavailable, true, true, false, IndicesOptions.lenientExpandOpen());
-
-        RestoreSnapshotRequest request = new RestoreSnapshotRequest(analysis.repositoryName(), analysis.snapshotName())
+        final RestoreSnapshotRequest request = new RestoreSnapshotRequest(analysis.repositoryName(), analysis.snapshotName())
                 .indices(analysis.indices())
                 .indicesOptions(indicesOptions)
                 .settings(analysis.settings())
                 .waitForCompletion(waitForCompletion)
                 .includeGlobalState(false)
-                .includeAliases(true);
-        FutureActionListener<RestoreSnapshotResponse, Long> listener = new FutureActionListener<>(Functions.constant(1L));
-        transportActionProvider.transportRestoreSnapshotAction().execute(request, listener);
+                .includeAliases(true)
+                .checkForTemplates(true);
+
+        final SettableFuture<Long> listener = SettableFuture.create();
+        transportActionProvider.transportRestoreSnapshotAction().execute(request, new ActionListener<RestoreSnapshotResponse>() {
+            @Override
+            public void onResponse(RestoreSnapshotResponse restoreSnapshotResponse) {
+                listener.set((long) restoreSnapshotResponse.getRestoreInfo().indices().size());
+            }
+
+            @Override
+            public void onFailure(Throwable e) {
+                if (e instanceof IndexTemplateMissingException) {
+                    listener.setException(
+                        new UnsupportedFeatureException("Cannot restore snapshot of single partition [" + ((IndexTemplateMissingException) e).name() + "] into non-existent table.")
+                    );
+                } else {
+                    listener.setException(e);
+                }
+            }
+
+        });
         return listener;
     }
 }
