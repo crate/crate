@@ -50,10 +50,10 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
         // which employee works in which office?
         execute("select persons.name, offices.name from" +
                 " employees as persons left join offices on office_id = offices.id" +
-                " order by offices.id");
+                " order by persons.id");
         assertThat(printedTable(response.rows()), is("Trillian| Entresol\n" +
-                                                     "Douglas Adams| Chief Office\n" +
-                                                     "Ford Perfect| NULL\n"));
+                                                     "Ford Perfect| NULL\n" +
+                                                     "Douglas Adams| Chief Office\n"));
     }
 
     public void testLeftOuterJoinOrderOnOuterTable() throws Exception {
