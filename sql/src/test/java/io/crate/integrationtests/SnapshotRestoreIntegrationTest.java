@@ -80,7 +80,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
                 "  date timestamp " + (partitioned ? "primary key," : ",") +
                 "  ft string index using fulltext with (analyzer='german')" +
                 ") " + (partitioned ? "partitioned by (date) " : "") +
-                "with (number_of_replicas=0)");
+                "clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("INSERT INTO " + tableName + " (id, name, date, ft) VALUES (?, ?, ?, ?)", new Object[][]{
                 {1L, "foo", "1970-01-01", "The quick brown fox jumps over the lazy dog."},
@@ -291,7 +291,33 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     }
 
     @Test
-    public void testRestoreSnapshotSinglePartitionWithDroppedTable() throws Exception {
+    public void testRestoreSinglePartitionSnapshotIntoDroppedPartition() throws Exception {
+        createTable("parted_table", true);
+        execute("CREATE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date=0) WITH (wait_for_completion=true)");
+        execute("delete from parted_table where date=0");
+        waitNoPendingTasksOnAll();
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date=0) with (" +
+                "ignore_unavailable=false, " +
+                "wait_for_completion=true)");
+        execute("select date from parted_table order by id");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("0\n1445941740000\n626572800000\n"));
+    }
+
+    @Test
+    public void testRestoreSinglePartitionSnapshotIntoDroppedTable() throws Exception {
+        createTable("parted_table", true);
+        execute("CREATE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date=0) WITH (wait_for_completion=true)");
+        execute("drop table parted_table");
+        waitNoPendingTasksOnAll();
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date=0) with (" +
+                "ignore_unavailable=false, " +
+                "wait_for_completion=true)");
+        execute("select date from parted_table order by id");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("0\n"));
+    }
+
+    @Test
+    public void testRestoreFullPartedTableSnapshotSinglePartitionIntoDroppedTable() throws Exception {
         createTableAndSnapshot("my_parted_table", SNAPSHOT_NAME, true);
 
         execute("drop table my_parted_table");

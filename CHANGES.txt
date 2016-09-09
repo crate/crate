@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Now it is also possible to restore a snapshot of a single partition
+   of a partitioned table in a non-existent table.
+   This requires that the snapshot has been created with version ``0.55.5``
+   or greater!
+
  - Added the sys.summits table. The table contains the information about
    mountains in the Alps higher than 2000 meters, which are used as node names.
 

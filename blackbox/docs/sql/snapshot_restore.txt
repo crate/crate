@@ -160,6 +160,14 @@ table the partition belongs to.
 Or if no matching partition table exists, it will be implicitly
 created during restore.
 
+.. note::
+
+    This is only possible with Crate version 0.55.5 or greater!
+    Snapshots of single partitions that have been created with earlier versions
+    of Crate may be restored, but lead to orphaned partitions!
+    When using Crate prior to 0.55.5 you will have to create the table schema
+    first before restoring.
+
 ::
 
     cr> DROP TABLE parted_table;

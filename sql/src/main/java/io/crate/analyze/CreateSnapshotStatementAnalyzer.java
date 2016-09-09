@@ -96,7 +96,6 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
         if (node.tableList().isPresent()) {
             List<Table> tableList = node.tableList().get();
             Set<String> snapshotIndices = new HashSet<>(tableList.size());
-            boolean includeMetadata = false;
             for (Table table : tableList) {
                 TableInfo tableInfo;
                 try {
@@ -116,9 +115,6 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
                 Operation.blockedRaiseException(tableInfo, Operation.READ);
                 DocTableInfo docTableInfo = (DocTableInfo)tableInfo;
                 if (table.partitionProperties().isEmpty()) {
-                    if (docTableInfo.isPartitioned()) {
-                        includeMetadata = true;
-                    }
                     snapshotIndices.addAll(Arrays.asList(docTableInfo.concreteIndices()));
                 } else {
                     PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
@@ -133,14 +129,21 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
                             LOGGER.info("ignoring unknown partition of table '{}' with ident '{}'", partitionName.tableIdent(), partitionName.ident());
                         }
                     } else {
-                        // we don't include metadata when snapshotting partitions
-                        // thus, they cant be recreated without a partitioned table or
-                        // turned into a partitioned table with itself as single partition again
                         snapshotIndices.add(partitionName.asIndexName());
                     }
                 }
             }
-            return CreateSnapshotAnalyzedStatement.forTables(snapshotId, settings, ImmutableList.copyOf(snapshotIndices), includeMetadata);
+            /**
+             * For now, we always (in case there are indices to restore) include the globalMetaData,
+             * not only if one of the tables in the table list is partitioned.
+             * Previously we only included it in snapshots of full partitioned tables.
+             * However, to make restoring of shapshots of single partitions work
+             * we also need to include the global metadata (index templates).
+             */
+            return CreateSnapshotAnalyzedStatement.forTables(snapshotId,
+                settings,
+                ImmutableList.copyOf(snapshotIndices),
+                !snapshotIndices.isEmpty());
         } else {
             for (SchemaInfo schemaInfo : schemas) {
                 for (TableInfo tableInfo : schemaInfo) {
