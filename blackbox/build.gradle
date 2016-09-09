@@ -70,15 +70,15 @@ sigarTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 itest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 gtest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 
-task clean << {
+task cleanDocs << {
     FileCollection toDelete = files(crateDist,
         "$projectDir/docs/out/text",
         "$projectDir/docs/out/html",
         "$projectDir/docs/clients/out/text",
-        "$projectDir/docs/clients/out/html",
-        "$projectDir/parts")
+        "$projectDir/docs/clients/out/html"
+    )
     toDelete.each {File file ->
         delete file
     }
 }
-clean.dependsOn(cleanBootstrap)
+clean.dependsOn([cleanDocs, cleanBootstrap])
