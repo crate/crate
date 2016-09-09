@@ -177,9 +177,9 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testCreateSnapshotDontIncludeMetadataWithPartitionOnly() throws Exception {
+    public void testCreateSnapshotIncludeMetadataWithPartitionOnly() throws Exception {
         CreateSnapshotAnalyzedStatement statement = (CreateSnapshotAnalyzedStatement) analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE parted PARTITION (date=null)");
-        assertThat(statement.includeMetadata(), is(false));
+        assertThat(statement.includeMetadata(), is(true));
     }
 
     @Test
@@ -188,7 +188,7 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
         assertThat(statement.indices(), containsInAnyOrder("users", "locations"));
         assertThat(statement.isAllSnapshot(), is(false));
         assertThat(statement.snapshotId(), is(new SnapshotId("my_repo", "my_snapshot")));
-        assertThat(statement.includeMetadata(), is(false));
+        assertThat(statement.includeMetadata(), is(true));
         assertThat(statement.snapshotSettings().getAsMap().size(), is(2));
         assertThat(statement.snapshotSettings().getAsMap(),
                 allOf(

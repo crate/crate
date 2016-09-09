@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Now it is also possible to restore a snapshot of a single partition
+   of a partitioned table in a non-existent table.
+   This requires that the snapshot has been created with version ``0.55.5``
+   or greater!
+
  - Fix: Join conditions were not properly validated and an expression
    with a not yet defined relation could be used.
 
