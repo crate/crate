@@ -16,6 +16,7 @@ Synopsis
       [ FROM relation ]
       [ WHERE condition ]
       [ GROUP BY expression [, ...] [HAVING condition] ]
+      [ UNION ALL select ]
       [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
       [ LIMIT num_results ]
       [ OFFSET start ]
@@ -238,6 +239,35 @@ values whitin a resulting row of a group by clause.
 
   Grouping can only be applied on indexed fields. For more information,
   please refer to :ref:`sql_ddl_index_off`.
+
+.. _sql_reference_union:
+
+UNION ALL Clause
+................
+
+The UNION ALL operator computes the set union of the rows returned by
+the involved SELECT statements. The two SELECT statements that represent
+the direct operands of the UNION ALL must produce the same number
+of columns, and corresponding columns must be of compatible data types.
+The result of UNION ALL may contain duplicate rows.
+
+::
+
+    UNION ALL select
+
+:select: can be any SELECT statement.
+
+
+.. note::
+
+    ORDER BY, LIMIT and OFFSET can be attached only to the last select statement
+    of the UNION ALL and will apply to the whole result of the UNION. Column names
+    used in ORDER BY must refer to the columns of the 1st SELECT statement.
+
+.. note::
+
+    Ordering of the outcome is not guaranteed unless ORDER BY is used.
+
 
 .. _sql_reference_order_by:
 
