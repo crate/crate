@@ -394,7 +394,6 @@ def tearDownEmpDeptAndColourArticlesAndGeo(test):
     tearDownColorsAndArticles(test)
     tearDownPhotosAndCountries(test)
 
-
 def setUpTutorials(test):
     setUp(test)
     import_dir = '/tmp/best_practice_data'
@@ -475,6 +474,18 @@ def test_suite():
                                  tearDown=tearDownEmpDeptAndColourArticlesAndGeo,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS,
+                                 encoding='utf-8')
+        s.layer = crate_layer
+        docs_suite.addTest(s)
+
+    for fn in ('sql/union.txt',):
+        path = os.path.join('..', '..', fn)
+        s = doctest.DocFileSuite(path,
+                                 parser=crash_parser,
+                                 setUp=setUpPhotosAndCountries,
+                                 tearDown=tearDownPhotosAndCountries,
+                                 optionflags=doctest.NORMALIZE_WHITESPACE |
+                                             doctest.ELLIPSIS,
                                  encoding='utf-8')
         s.layer = crate_layer
         docs_suite.addTest(s)
