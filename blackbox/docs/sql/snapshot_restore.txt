@@ -307,7 +307,6 @@ into the ``$CRATE_HOME/plugins/hdfs/libs`` folder::
  - jackson-mapper-asl-1.9.13.jar
  - jline-0.9.94.jar
  - jsp-api-2.1.jar
- - jsr305-3.0.0.jar
  - leveldbjni-all-1.8.jar
  - protobuf-java-2.5.0.jar
  - paranamer-2.3.jar
