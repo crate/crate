@@ -26,7 +26,6 @@ import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.sql.tree.Insert;
 
 import java.util.ArrayList;
@@ -63,7 +62,7 @@ public abstract class AbstractInsertAnalyzer {
                 if (i >= maxInsertValues) {
                     break;
                 }
-                addColumn(columnInfo.ident().columnIdent().name(), context, i);
+                addColumn(columnInfo.ident().columnIdent(), context, i);
                 i++;
             }
 
@@ -74,7 +73,7 @@ public abstract class AbstractInsertAnalyzer {
             }
             context.columns(new ArrayList<Reference>(numColumns));
             for (int i = 0; i < node.columns().size(); i++) {
-                addColumn(node.columns().get(i), context, i);
+                addColumn(new ColumnIdent(node.columns().get(i)), context, i);
             }
         }
 
@@ -120,46 +119,34 @@ public abstract class AbstractInsertAnalyzer {
      *
      * the created column reference is returned
      */
-    protected Reference addColumn(String column, AbstractInsertAnalyzedStatement context, int i) {
-        assert context.tableInfo() != null;
-        return addColumn(new ReferenceIdent(context.tableInfo().ident(), column), context, i);
-    }
-
-    /**
-     * validates the column and sets primary key / partitioned by / routing information as well as a
-     * column Reference to the context.
-     *
-     * the created column reference is returned
-     */
-    protected Reference addColumn(ReferenceIdent ident, AbstractInsertAnalyzedStatement context, int i) {
-        final ColumnIdent columnIdent = ident.columnIdent();
-        Preconditions.checkArgument(!columnIdent.name().startsWith("_"), "Inserting system columns is not allowed");
-        if (ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply(columnIdent.name())) {
-            throw new InvalidColumnNameException(columnIdent.name());
+    private Reference addColumn(ColumnIdent column, AbstractInsertAnalyzedStatement context, int i) {
+        Preconditions.checkArgument(!column.name().startsWith("_"), "Inserting system columns is not allowed");
+        if (ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply(column.name())) {
+            throw new InvalidColumnNameException(column.name());
         }
 
         // set primary key column if found
         for (ColumnIdent pkIdent : context.tableInfo().primaryKey()) {
-            if (pkIdent.getRoot().equals(columnIdent)) {
+            if (pkIdent.getRoot().equals(column)) {
                 context.addPrimaryKeyColumnIdx(i);
             }
         }
 
         // set partitioned column if found
         for (ColumnIdent partitionIdent : context.tableInfo().partitionedBy()) {
-            if (partitionIdent.getRoot().equals(columnIdent)) {
+            if (partitionIdent.getRoot().equals(column)) {
                 context.addPartitionedByIndex(i);
             }
         }
 
         // set routing if found
         ColumnIdent routing = context.tableInfo().clusteredBy();
-        if (routing != null && (routing.equals(columnIdent) || routing.isChildOf(columnIdent))) {
+        if (routing != null && (routing.equals(column) || routing.isChildOf(column))) {
             context.routingColumnIndex(i);
         }
 
         // ensure that every column is only listed once
-        Reference columnReference = context.allocateUniqueReference(ident);
+        Reference columnReference = context.allocateUniqueReference(column);
         context.columns().add(columnReference);
         return columnReference;
     }

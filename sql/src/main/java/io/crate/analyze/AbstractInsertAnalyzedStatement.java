@@ -27,7 +27,6 @@ import io.crate.analyze.symbol.DynamicReference;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.doc.DocTableInfo;
 
 import java.util.HashSet;
@@ -89,8 +88,7 @@ public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStateme
         this.tableInfo = tableInfo;
     }
 
-    public Reference allocateUniqueReference(ReferenceIdent ident) {
-        ColumnIdent column = ident.columnIdent();
+    Reference allocateUniqueReference(ColumnIdent column) {
         Reference ref = tableInfo.getReference(column);
         if (ref == null) {
             ref = tableInfo.indexColumn(column);
@@ -100,13 +98,13 @@ public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStateme
                     throw new ColumnUnknownException(column.sqlFqn());
                 }
                 if (!allocatedReferences.add(reference)) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", ident.columnIdent().sqlFqn()));
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", column.sqlFqn()));
                 }
                 return reference;
             }
         }
         if (!allocatedReferences.add(ref)) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", ident.columnIdent().sqlFqn()));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", column.sqlFqn()));
         }
         return ref;
     }
