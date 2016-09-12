@@ -25,8 +25,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.Bucket;
@@ -34,7 +32,6 @@ import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Sorted;
 import io.crate.metadata.*;
-import io.crate.metadata.table.Operation;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
@@ -42,7 +39,6 @@ import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.sql.Identifiers;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -561,11 +557,11 @@ public class TestingHelpers {
         return result;
     }
 
-    public static <T, K extends Comparable> Matcher<Iterable<T>> isSortedBy(final com.google.common.base.Function<T,K> extractSortingKeyFunction) {
+    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(final com.google.common.base.Function<T,K> extractSortingKeyFunction) {
         return isSortedBy(extractSortingKeyFunction, false, null);
     }
 
-    public static <T, K extends Comparable> Matcher<Iterable<T>> isSortedBy(final com.google.common.base.Function<T,K> extractSortingKeyFunction,
+    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(final com.google.common.base.Function<T,K> extractSortingKeyFunction,
                                                                             final boolean descending,
                                                                             @Nullable final Boolean nullsFirst) {
         Ordering<K> ordering = Ordering.natural();
@@ -579,9 +575,9 @@ public class TestingHelpers {
         }
         final Ordering<K> ord = ordering;
 
-        return new TypeSafeDiagnosingMatcher<Iterable<T>>() {
+        return new TypeSafeDiagnosingMatcher<Iterable<? extends T>>() {
             @Override
-            protected boolean matchesSafely(Iterable<T> item, Description mismatchDescription) {
+            protected boolean matchesSafely(Iterable<? extends T> item, Description mismatchDescription) {
                 K previous = null;
                 int i = 0;
                 for (T elem : item) {
@@ -616,8 +612,8 @@ public class TestingHelpers {
         };
     }
 
-    public static Matcher<Iterable<Row>> hasSortedRows(final int sortingPos, final boolean reverse, @Nullable final Boolean nullsFirst) {
-        return TestingHelpers.<Row, Comparable>isSortedBy(new com.google.common.base.Function<Row, Comparable>() {
+    public static Matcher<Iterable<? extends Row>> hasSortedRows(final int sortingPos, final boolean reverse, @Nullable final Boolean nullsFirst) {
+        return TestingHelpers.isSortedBy(new com.google.common.base.Function<Row, Comparable>() {
             @Nullable
             @Override
             public Comparable apply(@Nullable Row input) {

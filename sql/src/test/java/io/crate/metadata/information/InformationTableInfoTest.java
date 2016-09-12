@@ -22,7 +22,6 @@
 
 package io.crate.metadata.information;
 
-import com.google.common.base.Function;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateUnitTest;
@@ -34,20 +33,9 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
 import java.util.Locale;
 
 public class InformationTableInfoTest extends CrateUnitTest {
-
-    private static final Function<Reference, Comparable> EXTRACT_COLUMN_IDENT = new Function<Reference, Comparable>() {
-
-        @Nullable
-        @Override
-        public Comparable apply(@Nullable Reference input) {
-            assert input != null;
-            return input.ident().columnIdent().fqn();
-        }
-    };
 
     private InformationSchemaInfo informationSchemaInfo;
 
@@ -68,7 +56,13 @@ public class InformationTableInfoTest extends CrateUnitTest {
     }
 
     private void assertSortedColumns(TableInfo tableInfo) {
-        assertThat(String.format(Locale.ENGLISH, "columns from iterator of table %s not in alphabetical order", tableInfo.ident().fqn()), tableInfo, TestingHelpers.isSortedBy(EXTRACT_COLUMN_IDENT));
-        assertThat(String.format(Locale.ENGLISH, "columns of table %s not in alphabetical order", tableInfo.ident().fqn()), tableInfo.columns(), TestingHelpers.isSortedBy(EXTRACT_COLUMN_IDENT));
+        assertThat(
+            String.format(Locale.ENGLISH, "columns from iterator of table %s not in alphabetical order", tableInfo.ident().fqn()),
+            tableInfo,
+            TestingHelpers.isSortedBy(Reference.TO_COLUMN_IDENT));
+        assertThat(
+            String.format(Locale.ENGLISH, "columns of table %s not in alphabetical order", tableInfo.ident().fqn()),
+            tableInfo.columns(),
+            TestingHelpers.isSortedBy(Reference.TO_COLUMN_IDENT));
     }
 }
