@@ -54,7 +54,7 @@ public class RowMergersTest extends CrateUnitTest {
     @Test
     public void testRowMergerPauseResume() throws Exception {
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(3);
-        RowDownstream rowDownstream = RowMergers.passThroughRowMerger(rowReceiver);
+        RowDownstream rowDownstream = new MultiUpstreamRowReceiver(rowReceiver);
         final RowSender r1 = new RowSender(RowSender.rowRange(0, 20), rowDownstream.newRowReceiver(), executorService);
         final RowSender r2 = new RowSender(RowSender.rowRange(0, 20), rowDownstream.newRowReceiver(), executorService);
         final RowSender r3 = new RowSender(RowSender.rowRange(0, 20), rowDownstream.newRowReceiver(), executorService);
@@ -80,7 +80,7 @@ public class RowMergersTest extends CrateUnitTest {
     @Test
     public void testPauseResumeWithOneEmptyUpstream() throws Exception {
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(3);
-        RowDownstream rowDownstream = RowMergers.passThroughRowMerger(rowReceiver);
+        RowDownstream rowDownstream = new MultiUpstreamRowReceiver(rowReceiver);
         final RowSender r1 = new RowSender(RowSender.rowRange(0, 20), rowDownstream.newRowReceiver(), executorService);
         final RowSender r2 = new RowSender(RowSender.rowRange(0, 0), rowDownstream.newRowReceiver(), executorService);
         final RowSender r3 = new RowSender(RowSender.rowRange(0, 20), rowDownstream.newRowReceiver(), executorService);

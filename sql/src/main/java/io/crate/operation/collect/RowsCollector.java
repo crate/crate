@@ -53,4 +53,22 @@ public class RowsCollector implements CrateCollector {
     public void kill(@Nullable Throwable throwable) {
         emitter.kill(throwable);
     }
+
+    public static Builder emptyBuilder() {
+        return new CrateCollector.Builder() {
+            @Override
+            public CrateCollector build(RowReceiver rowReceiver) {
+                return RowsCollector.empty(rowReceiver);
+            }
+        };
+    }
+
+    public static Builder builder(final Iterable<Row> rows) {
+        return new CrateCollector.Builder() {
+            @Override
+            public CrateCollector build(RowReceiver rowReceiver) {
+                return new RowsCollector(rowReceiver, rows);
+            }
+        };
+    }
 }

@@ -39,10 +39,7 @@ import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -81,25 +78,20 @@ import java.util.concurrent.atomic.AtomicInteger;
  *              CC-RR.finish()
  *              all finished -> RR.finish
  *
- * To create an instance use {@link Builder} - note that {@link Builder#rowDownstreamFactory()}
- * must be used to create a RowDownstream and then this RowDownstream must be used to create RowReceiver.
- *
- * This is necessary because this CompositeCollector needs to know if one subCollector is finished
- * and {@link CrateCollector#doCollect()} returning DOES NOT imply that it is finished (due to pause & resume)
- *
- * So this CompositeCollector contains a RowDownstream/RowReceiver implementation which notifies it about collectors being finished.
  */
 public class CompositeCollector implements CrateCollector {
 
     private static final ESLogger LOGGER = Loggers.getLogger(CompositeCollector.class);
 
-    private final Iterable<? extends CrateCollector> collectors;
     private final Iterator<? extends CrateCollector> collectorsIt;
 
-    private CompositeCollector(Iterable<? extends CrateCollector> collectors, CompletionListenable listenable) {
-        this.collectors = collectors;
-        this.collectorsIt = collectors.iterator();
-        listenable.addListener(new CompletionListener() {
+    public CompositeCollector(Collection<? extends Builder> builders, RowReceiver rowReceiver) {
+        MultiRowReceiver multiRowReceiver = new MultiRowReceiver(rowReceiver);
+        List<CrateCollector> collectors = new ArrayList<>(builders.size());
+        for (Builder builder : builders) {
+            collectors.add(builder.build(multiRowReceiver.newRowReceiver()));
+        }
+        multiRowReceiver.addListener(new CompletionListener() {
             @Override
             public void onSuccess(@Nullable CompletionState result) {
                 doCollect();
@@ -110,7 +102,7 @@ public class CompositeCollector implements CrateCollector {
                 kill(t);
             }
         });
-
+        collectorsIt = collectors.iterator();
         // without at least one collector there is no way to inform someone about anything - this would just be a useless no-op class
         assert this.collectorsIt.hasNext() : "need at least one collector";
     }
@@ -224,32 +216,6 @@ public class CompositeCollector implements CrateCollector {
         @Override
         public void addListener(CompletionListener listener) {
             this.listener = CompletionMultiListener.merge(this.listener, listener);
-        }
-    }
-
-    public static class Builder {
-        private final RowDownstream.Factory factory;
-        private MultiRowReceiver multiRowReceiver = null;
-
-        public Builder() {
-            factory = new RowDownstream.Factory() {
-                @Override
-                public RowDownstream create(RowReceiver rowReceiver) {
-                    MultiRowReceiver multiRowReceiver = new MultiRowReceiver(rowReceiver);
-                    Builder.this.multiRowReceiver = multiRowReceiver;
-                    return multiRowReceiver;
-                }
-            };
-        };
-
-        public RowDownstream.Factory rowDownstreamFactory() {
-            return factory;
-        }
-
-        public CompositeCollector build(Iterable<? extends CrateCollector> collectors) {
-            assert multiRowReceiver != null :
-                "create() of the rowDownstreamFactory must be called to be able to create a CompositeDocCollector";
-            return new CompositeCollector(collectors, multiRowReceiver);
         }
     }
 }

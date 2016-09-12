@@ -56,11 +56,11 @@ import java.util.concurrent.atomic.AtomicReference;
  *          +-------------+
  */
 @ThreadSafe
-class MultiUpstreamRowReceiver implements RowReceiver, RowDownstream {
+public class MultiUpstreamRowReceiver implements RowReceiver, RowDownstream {
 
     private static final ESLogger LOGGER = Loggers.getLogger(MultiUpstreamRowReceiver.class);
 
-    final RowReceiver delegate;
+    private final RowReceiver delegate;
     private final List<ResumeHandle> resumeHandles = Collections.synchronizedList(new ArrayList<ResumeHandle>());
     private final AtomicInteger activeUpstreams = new AtomicInteger(0);
     private final AtomicBoolean prepared = new AtomicBoolean(false);
@@ -74,7 +74,7 @@ class MultiUpstreamRowReceiver implements RowReceiver, RowDownstream {
     private boolean downstreamFinished = false;
     private boolean paused = false;
 
-    MultiUpstreamRowReceiver(RowReceiver delegate) {
+    public MultiUpstreamRowReceiver(RowReceiver delegate) {
         this.delegate = delegate;
     }
 

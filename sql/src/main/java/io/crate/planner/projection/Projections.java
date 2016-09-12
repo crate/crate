@@ -20,16 +20,29 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.planner.projection;
 
-import io.crate.operation.RowDownstream;
+import com.google.common.collect.Collections2;
+import io.crate.metadata.RowGranularity;
 
-public class RowMergers {
+import java.util.Collection;
 
-    private RowMergers() {}
+public class Projections {
 
-    public static RowDownstream passThroughRowMerger(RowReceiver delegate) {
-        return new MultiUpstreamRowReceiver(delegate);
+    public static Collection<? extends Projection> shardProjections(Collection<? extends Projection> projections) {
+        return Collections2.filter(projections, Projection.IS_SHARD_PROJECTION);
     }
 
+    public static Collection<? extends Projection> nodeProjections(Collection<? extends Projection> projections) {
+        return Collections2.filter(projections, Projection.IS_NODE_PROJECTION);
+    }
+
+    public static boolean hasAnyShardProjections(Iterable<? extends Projection> projections) {
+        for (Projection projection : projections) {
+            if (projection.requiredGranularity() == RowGranularity.SHARD) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

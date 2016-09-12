@@ -42,12 +42,14 @@ import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.collectors.*;
+import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.projectors.ShardProjectorChain;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.Projections;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -65,7 +67,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 @Singleton
@@ -81,7 +85,7 @@ public class ShardCollectService {
     private final IndexShard indexShard;
     private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
     private final EvaluatingNormalizer shardNormalizer;
-    private final ProjectionToProjectorVisitor projectorVisitor;
+    private final ProjectionToProjectorVisitor projectorFactory;
     private final boolean isBlobShard;
     private final BlobIndices blobIndices;
     private final MapperService mapperService;
@@ -127,7 +131,7 @@ public class ShardCollectService {
                 RowGranularity.SHARD,
                 shardResolver
         );
-        this.projectorVisitor = new ProjectionToProjectorVisitor(
+        this.projectorFactory = new ProjectionToProjectorVisitor(
                 clusterService,
                 functions,
                 indexNameExpressionResolver,
@@ -166,29 +170,50 @@ public class ShardCollectService {
     }
 
     /**
-     * get a collector
+     * Create a CrateCollector.Builder to collect rows from a shard.
      *
-     * @param collectPhase describes the collectOperation
-     * @param projectorChain the shard projector chain to get the downstream from
-     * @return collector wrapping different collect implementations, call {@link io.crate.operation.collect.CrateCollector#doCollect()} )} to start
-     * collecting with this collector
+     * This also creates all shard-level projectors.
+     * The RowReceiver that is used for {@link CrateCollector.Builder#build(RowReceiver)}
+     * should be the first node-level projector.
      */
-    public CrateCollector getDocCollector(RoutedCollectPhase collectPhase,
-                                          ShardProjectorChain projectorChain,
-                                          JobCollectContext jobCollectContext) throws Exception {
+    public CrateCollector.Builder getCollectorBuilder(RoutedCollectPhase collectPhase,
+                                                      Set<Requirement> downstreamRequirements,
+                                                      JobCollectContext jobCollectContext) throws Exception {
         assert collectPhase.orderBy() == null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
         RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, null);
-        RowReceiver downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
+
+        final CrateCollector.Builder builder;
         if (normalizedCollectNode.whereClause().noMatch()) {
-            return RowsCollector.empty(downstream);
-        }
-        assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
-        if (isBlobShard) {
-            return new RowsCollector(downstream,
-                getBlobRows(collectPhase, downstream.requirements().contains(Requirement.REPEAT)));
+            builder = RowsCollector.emptyBuilder();
         } else {
-            return getLuceneIndexCollector(threadPool, normalizedCollectNode, downstream, jobCollectContext);
+            assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
+            if (isBlobShard) {
+                builder = RowsCollector.builder(
+                    getBlobRows(collectPhase, downstreamRequirements.contains(Requirement.REPEAT)));
+            } else {
+                builder = getLuceneIndexCollector(threadPool, normalizedCollectNode, jobCollectContext);
+            }
+        }
+
+        Collection<? extends Projection> shardProjections = Projections.shardProjections(collectPhase.projections());
+        if (shardProjections.isEmpty()) {
+            return builder;
+        } else {
+            final FlatProjectorChain.Builder chainBuilder = new FlatProjectorChain.Builder(
+                normalizedCollectNode.jobId(),
+                jobCollectContext.queryPhaseRamAccountingContext(),
+                projectorFactory,
+                shardProjections
+            );
+            return new CrateCollector.Builder() {
+                @Override
+                public CrateCollector build(RowReceiver rowReceiver) {
+                    FlatProjectorChain chain = chainBuilder.build(rowReceiver);
+                    chain.prepare();
+                    return builder.build(chain.firstProjector());
+                }
+            };
         }
     }
 
@@ -202,10 +227,9 @@ public class ShardCollectService {
         return rows;
     }
 
-    private CrateCollector getLuceneIndexCollector(ThreadPool threadPool,
-                                                   final RoutedCollectPhase collectPhase,
-                                                   RowReceiver rowReceiver,
-                                                   final JobCollectContext jobCollectContext) throws Exception {
+    private CrateCollector.Builder getLuceneIndexCollector(ThreadPool threadPool,
+                                                           final RoutedCollectPhase collectPhase,
+                                                           final JobCollectContext jobCollectContext) throws Exception {
         SharedShardContext sharedShardContext = jobCollectContext.sharedShardContexts().getOrCreateContext(shardId);
         Engine.Searcher searcher = sharedShardContext.searcher();
         IndexShard indexShard = sharedShardContext.indexShard();
@@ -221,12 +245,11 @@ public class ShardCollectService {
             CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectPhase);
             Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
 
-            return new CrateDocCollector(
+            return new CrateDocCollector.Builder(
                 searchContext,
                 executor,
                 Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
                 jobCollectContext.queryPhaseRamAccountingContext(),
-                rowReceiver,
                 docCtx.topLevelInputs(),
                 docCtx.docLevelExpressions()
             );

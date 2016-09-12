@@ -21,16 +21,27 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
 public abstract class Projection implements Streamable {
+
+    public static final Predicate<Projection> IS_SHARD_PROJECTION = new Predicate<Projection>() {
+        @Override
+        public boolean apply(@Nullable Projection projection) {
+            return projection != null && projection.requiredGranularity() == RowGranularity.SHARD;
+        }
+    };
+    public static final Predicate<Projection> IS_NODE_PROJECTION = Predicates.not(IS_SHARD_PROJECTION);
 
     /**
      * The granularity required to run this projection

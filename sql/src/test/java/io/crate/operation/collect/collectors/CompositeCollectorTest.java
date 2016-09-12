@@ -25,7 +25,7 @@ package io.crate.operation.collect.collectors;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
-import io.crate.operation.RowDownstream;
+import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.RowsCollector;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.RowSender;
@@ -34,26 +34,22 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 
 public class CompositeCollectorTest {
 
     @Test
     public void testRepeatEmitsRowsInTheSameOrder() throws Exception {
-        CompositeCollector.Builder builder = new CompositeCollector.Builder();
-        RowDownstream.Factory factory = builder.rowDownstreamFactory();
-
         CollectingRowReceiver rr = new CollectingRowReceiver();
-        RowDownstream rowDownstream = factory.create(rr);
 
         Iterable<Row> leftRows = RowSender.rowRange(0, 15);
         Iterable<Row> rightRows = RowSender.rowRange(10, 30);
 
-        RowsCollector c1 = new RowsCollector(rowDownstream.newRowReceiver(), leftRows);
-        RowsCollector c2 = new RowsCollector(rowDownstream.newRowReceiver(), rightRows);
+        CrateCollector.Builder c1 = RowsCollector.builder(leftRows);
+        CrateCollector.Builder c2 = RowsCollector.builder(rightRows);
 
-        CompositeCollector collector = builder.build(Arrays.asList(c1, c2));
+        CompositeCollector collector = new CompositeCollector(Arrays.asList(c1, c2), rr);
         collector.doCollect();
 
         Bucket result = rr.result();

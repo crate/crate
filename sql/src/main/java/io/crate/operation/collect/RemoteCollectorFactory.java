@@ -33,12 +33,14 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.collectors.RemoteCollector;
+import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
-import io.crate.operation.projectors.ShardProjectorChain;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.Projections;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -50,10 +52,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Used to create RemoteCollectors
@@ -103,45 +102,67 @@ public class RemoteCollectorFactory {
      *
      * This should only be used if a shard is not available on the current node due to a relocation
      */
-    public CrateCollector createCollector(String index,
-                                          Integer shardId,
-                                          RoutedCollectPhase collectPhase,
-                                          ShardProjectorChain projectorChain,
-                                          RamAccountingContext ramAccountingContext) {
-        UUID childJobId = UUID.randomUUID(); // new job because subContexts can't be merged into an existing job
+    public CrateCollector.Builder createCollector(String index,
+                                                  Integer shardId,
+                                                  RoutedCollectPhase collectPhase,
+                                                  final RamAccountingContext ramAccountingContext) {
+        final UUID childJobId = UUID.randomUUID(); // new job because subContexts can't be merged into an existing job
 
         IndexShardRoutingTable shardRoutings = clusterService.state().routingTable().shardRoutingTable(index, shardId);
         // for update operations primaryShards must be used
         // (for others that wouldn't be the case, but at this point it is not easily visible which is the case)
         ShardRouting shardRouting = shardRoutings.primaryShard();
 
-        String remoteNodeId = shardRouting.currentNodeId();
+        final String remoteNodeId = shardRouting.currentNodeId();
         assert remoteNodeId != null : "primaryShard not assigned :(";
-        String localNodeId = clusterService.localNode().id();
-        RoutedCollectPhase newCollectPhase = createNewCollectPhase(childJobId, collectPhase, index, shardId, remoteNodeId);
+        final String localNodeId = clusterService.localNode().id();
+        final RoutedCollectPhase newCollectPhase = createNewCollectPhase(childJobId, collectPhase, index, shardId, remoteNodeId);
 
-        ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
-            clusterService,
-            functions,
-            indexNameExpressionResolver,
-            threadPool,
-            settings,
-            transportActionProvider,
-            bulkRetryCoordinatorPool,
-            implementationVisitor,
-            normalizer,
-            new ShardId(index, shardId));
+        Collection<? extends Projection> shardProjections = Projections.shardProjections(collectPhase.projections());
+        final FlatProjectorChain.Builder chainBuilder;
+        if (shardProjections.isEmpty()) {
+            chainBuilder = null;
+        } else {
+            ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
+                clusterService,
+                functions,
+                indexNameExpressionResolver,
+                threadPool,
+                settings,
+                transportActionProvider,
+                bulkRetryCoordinatorPool,
+                implementationVisitor,
+                normalizer,
+                new ShardId(index, shardId));
 
-        return new RemoteCollector(
-            childJobId,
-            localNodeId,
-            remoteNodeId,
-            transportActionProvider.transportJobInitAction(),
-            transportActionProvider.transportKillJobsNodeAction(),
-            jobContextService,
-            ramAccountingContext,
-            projectorChain.newShardDownstreamProjector(projectorFactory),
-            newCollectPhase);
+            chainBuilder = new FlatProjectorChain.Builder(
+                collectPhase.jobId(),
+                ramAccountingContext,
+                projectorFactory,
+                shardProjections
+            );
+        }
+
+        return new CrateCollector.Builder() {
+            @Override
+            public CrateCollector build(RowReceiver rowReceiver) {
+                if (chainBuilder != null) {
+                    FlatProjectorChain chain = chainBuilder.build(rowReceiver);
+                    chain.prepare();
+                    rowReceiver = chain.firstProjector();
+                }
+                return new RemoteCollector(
+                    childJobId,
+                    localNodeId,
+                    remoteNodeId,
+                    transportActionProvider.transportJobInitAction(),
+                    transportActionProvider.transportKillJobsNodeAction(),
+                    jobContextService,
+                    ramAccountingContext,
+                    rowReceiver,
+                    newCollectPhase);
+            }
+        };
     }
 
     private RoutedCollectPhase createNewCollectPhase(

@@ -39,7 +39,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.*;
 import io.crate.operation.collect.collectors.CompositeCollector;
 import io.crate.operation.collect.collectors.MultiShardScoreDocCollector;
@@ -51,7 +50,7 @@ import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.Projections;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -146,7 +145,9 @@ public class ShardCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase phase,
+                                                    RowReceiver lastRR,
+                                                    JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         NodeSysReferenceResolver referenceResolver = new NodeSysReferenceResolver(nodeSysExpression);
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
@@ -168,32 +169,25 @@ public class ShardCollectSource implements CollectSource {
         );
         String localNodeId = clusterService.localNode().id();
 
+        FlatProjectorChain chain = FlatProjectorChain.withAttachedDownstream(
+            projectorFactory,
+            jobCollectContext.queryPhaseRamAccountingContext(),
+            Projections.nodeProjections(normalizedPhase.projections()),
+            lastRR,
+            collectPhase.jobId());
+
         if (normalizedPhase.maxRowGranularity() == RowGranularity.SHARD) {
             // it's possible to use FlatProjectorChain instead of ShardProjectorChain as a shortcut because
             // the rows are "pre-created" on a shard level.
             // The getShardsCollector method always only uses a single RowReceiver and not one per shard)
-            FlatProjectorChain flatProjectorChain = FlatProjectorChain.withAttachedDownstream(
-                projectorFactory,
-                jobCollectContext.queryPhaseRamAccountingContext(),
-                normalizedPhase.projections(),
-                downstream,
-                collectPhase.jobId());
             return Collections.singletonList(
-                getShardsCollector(collectPhase, normalizedPhase, localNodeId, flatProjectorChain));
+                getShardsCollector(collectPhase, normalizedPhase, localNodeId, chain));
         }
-
         OrderBy orderBy = normalizedPhase.orderBy();
         if (normalizedPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
-            FlatProjectorChain flatProjectorChain = FlatProjectorChain.withAttachedDownstream(
-                projectorFactory,
-                jobCollectContext.queryPhaseRamAccountingContext(),
-                normalizedPhase.projections(),
-                downstream,
-                collectPhase.jobId()
-            );
             return ImmutableList.of(createMultiShardScoreDocCollector(
                     normalizedPhase,
-                    flatProjectorChain,
+                    chain,
                     jobCollectContext,
                     localNodeId)
             );
@@ -201,61 +195,39 @@ public class ShardCollectSource implements CollectSource {
 
         // actual shards might be less if table is partitioned and a partition has been deleted meanwhile
         final int maxNumShards = normalizedPhase.routing().numShards(localNodeId);
-        RowDownstream.Factory rowDownstreamFactory;
-        CompositeCollector.Builder builder = null;
-        boolean hasAnyShardProjections = false;
-        for (Projection projection : normalizedPhase.projections()) {
-            if (projection.requiredGranularity().ordinal() >= RowGranularity.SHARD.ordinal()) {
-                hasAnyShardProjections = true;
-                break;
-            }
-        }
-        if (hasAnyShardProjections) {
-            rowDownstreamFactory = new RowDownstream.Factory() {
-                @Override
-                public RowDownstream create(RowReceiver rowReceiver) {
-                    if (maxNumShards == 1) {
-                        LOGGER.debug(
-                            "Getting RowDownstream for 1 upstream, repeat support: " + rowReceiver.requirements());
-                        return new SingleUpstreamRowDownstream(rowReceiver);
-                    }
-                    LOGGER.debug("Getting RowDownstream for multiple upstreams; unsorted; repeat support: "
-                                 + rowReceiver.requirements());
-                    return RowMergers.passThroughRowMerger(rowReceiver);
-                }
-            };
-        } else {
-            builder = new CompositeCollector.Builder();
-            rowDownstreamFactory = builder.rowDownstreamFactory();
-        }
-
-        ShardProjectorChain projectorChain = new ShardProjectorChain(
-            normalizedPhase.jobId(),
-            normalizedPhase.projections(),
-            rowDownstreamFactory,
-            downstream,
-            projectorFactory,
-            jobCollectContext.queryPhaseRamAccountingContext());
-
+        boolean hasShardProjections = Projections.hasAnyShardProjections(normalizedPhase.projections());
         Map<String, Map<String, List<Integer>>> locations = normalizedPhase.routing().locations();
-        final List<CrateCollector> shardCollectors = new ArrayList<>(maxNumShards);
+        final List<CrateCollector.Builder> builders = new ArrayList<>(maxNumShards);
 
         Map<String, List<Integer>> indexShards = locations.get(localNodeId);
         if (indexShards != null) {
-            shardCollectors.addAll(
-                    getDocCollectors(jobCollectContext, normalizedPhase, projectorChain, indexShards));
+            builders.addAll(
+                    getDocCollectors(jobCollectContext, normalizedPhase, lastRR.requirements(), indexShards));
         }
-        projectorChain.prepare();
-        if (builder == null) {
-            return shardCollectors;
+
+        RowReceiver firstNodeRR = chain.firstProjector();
+        switch (builders.size()) {
+            case 0:
+                return Collections.<CrateCollector>singletonList(RowsCollector.empty(firstNodeRR));
+            case 1:
+                return Collections.singletonList(builders.iterator().next().build(firstNodeRR));
+            default:
+                if (hasShardProjections) {
+                    // 1 Collector per shard to benefit from concurrency (each collector is run in a thread)
+                    // MultiUpstreamRowReceiver does synchronization (any projector after that doesn't really benefit from concurrency)
+                    // It also doesn't support repeat.
+                    MultiUpstreamRowReceiver multiUpstreamRowReceiver = new MultiUpstreamRowReceiver(firstNodeRR);
+                    List<CrateCollector> collectors = new ArrayList<>(builders.size());
+                    for (CrateCollector.Builder builder : builders) {
+                        collectors.add(builder.build(multiUpstreamRowReceiver.newRowReceiver()));
+                    }
+                    return collectors;
+                } else {
+                    // If there are no shard-projections there is no real benefit from concurrency gained by using multiple collectors.
+                    // CompositeCollector to collects single-threaded sequentially.
+                    return Collections.<CrateCollector>singletonList(new CompositeCollector(builders, firstNodeRR));
+                }
         }
-        CrateCollector collector;
-        if (shardCollectors.isEmpty()) {
-            collector = RowsCollector.empty(projectorChain.newShardDownstreamProjector(projectorFactory));
-        } else {
-            collector = builder.build(shardCollectors);
-        }
-        return Collections.singletonList(collector);
     }
 
     private CrateCollector createMultiShardScoreDocCollector(RoutedCollectPhase collectPhase,
@@ -307,12 +279,12 @@ public class ShardCollectSource implements CollectSource {
         );
     }
 
-    private Collection<CrateCollector> getDocCollectors(JobCollectContext jobCollectContext,
-                                                        RoutedCollectPhase collectPhase,
-                                                        ShardProjectorChain projectorChain,
-                                                        Map<String, List<Integer>> indexShards) {
+    private Collection<CrateCollector.Builder> getDocCollectors(JobCollectContext jobCollectContext,
+                                                                RoutedCollectPhase collectPhase,
+                                                                Set<Requirement> downstreamRequirements,
+                                                                Map<String, List<Integer>> indexShards) {
 
-        List<CrateCollector> crateCollectors = new ArrayList<>();
+        List<CrateCollector.Builder> crateCollectors = new ArrayList<>();
         for (Map.Entry<String, List<Integer>> entry : indexShards.entrySet()) {
             String indexName = entry.getKey();
             IndexService indexService;
@@ -330,20 +302,18 @@ public class ShardCollectSource implements CollectSource {
                 try {
                     shardInjector = indexService.shardInjectorSafe(shardId);
                     ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
-                    CrateCollector collector = shardCollectService.getDocCollector(
+                    CrateCollector.Builder collector = shardCollectService.getCollectorBuilder(
                         collectPhase,
-                        projectorChain,
+                        downstreamRequirements,
                         jobCollectContext
                     );
                     crateCollectors.add(collector);
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     crateCollectors.add(remoteCollectorFactory.createCollector(
-                        indexName, shardId, collectPhase, projectorChain, jobCollectContext.queryPhaseRamAccountingContext()));
+                        indexName, shardId, collectPhase, jobCollectContext.queryPhaseRamAccountingContext()));
                 } catch (InterruptedException e) {
-                    projectorChain.fail(e);
                     throw Throwables.propagate(e);
                 } catch (Throwable t) {
-                    projectorChain.fail(t);
                     throw new UnhandledServerException(t);
                 }
             }

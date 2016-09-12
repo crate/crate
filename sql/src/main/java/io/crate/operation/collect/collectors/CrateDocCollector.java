@@ -66,6 +66,43 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
     private final ExecutorResumeHandle resumeable;
     private final boolean doScores;
 
+    public static class Builder implements CrateCollector.Builder {
+
+        private final CrateSearchContext searchContext;
+        private final Executor executor;
+        private final boolean doScores;
+        private final RamAccountingContext ramAccountingContext;
+        private final List<Input<?>> inputs;
+        private final Collection<? extends LuceneCollectorExpression<?>> expressions;
+
+        public Builder(CrateSearchContext searchContext,
+                       Executor executor,
+                       boolean doScores,
+                       RamAccountingContext ramAccountingContext,
+                       List<Input<?>> inputs,
+                       Collection<? extends LuceneCollectorExpression<?>> expressions) {
+            this.searchContext = searchContext;
+            this.executor = executor;
+            this.doScores = doScores;
+            this.ramAccountingContext = ramAccountingContext;
+            this.inputs = inputs;
+            this.expressions = expressions;
+        }
+
+        @Override
+        public CrateCollector build(RowReceiver rowReceiver) {
+            return new CrateDocCollector(
+                searchContext,
+                executor,
+                doScores,
+                ramAccountingContext,
+                rowReceiver,
+                inputs,
+                expressions
+            );
+        }
+    }
+
     public CrateDocCollector(final CrateSearchContext searchContext,
                              Executor executor,
                              boolean doScores,
