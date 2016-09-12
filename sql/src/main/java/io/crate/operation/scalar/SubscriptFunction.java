@@ -23,9 +23,9 @@ package io.crate.operation.scalar;
 
 import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
+import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -87,7 +87,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> implements Dynam
     @Override
     public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
         Preconditions.checkArgument(dataTypes.size() == 2
-                && DataTypes.isCollectionType(dataTypes.get(0))
+                && dataTypes.get(0).id() == ArrayType.ID
                 && dataTypes.get(1) == DataTypes.INTEGER);
         DataType returnType = ((CollectionType)dataTypes.get(0)).innerType();
         return new SubscriptFunction(createInfo(dataTypes, returnType));
