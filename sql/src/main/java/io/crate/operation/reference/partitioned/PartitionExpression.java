@@ -27,21 +27,21 @@ import io.crate.metadata.RowContextCollectorExpression;
 
 public class PartitionExpression extends RowContextCollectorExpression<PartitionName, Object> {
 
-    private final Reference info;
+    private final Reference ref;
     private final int valuesIndex;
 
-    public PartitionExpression(Reference info, int valuesIndex) {
-        this.info = info;
+    public PartitionExpression(Reference ref, int valuesIndex) {
+        this.ref = ref;
         this.valuesIndex = valuesIndex;
     }
 
     @Override
     public Object value() {
         assert row != null : "row shouldn't be null for PartitionExpression";
-        return info.valueType().value(row.values().get(valuesIndex));
+        return ref.valueType().value(row.values().get(valuesIndex));
     }
 
-    public Reference info() {
-        return info;
+    public Reference reference() {
+        return ref;
     }
 }
