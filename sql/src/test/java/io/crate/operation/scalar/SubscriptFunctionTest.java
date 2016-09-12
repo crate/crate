@@ -23,11 +23,16 @@ package io.crate.operation.scalar;
 
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.StmtCtx;
 import io.crate.operation.Input;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
+
+import java.util.Arrays;
 
 import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.instanceOf;
@@ -73,5 +78,13 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
 
         Symbol result = subscriptFunction.normalizeSymbol(function, stmtCtx);
         assertThat(result, isLiteral(null, DataTypes.STRING));
+    }
+
+    @Test
+    public void testNotRegisteredForSets() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        FunctionIdent functionIdent = new FunctionIdent(SubscriptFunction.NAME,
+            Arrays.<DataType>asList(new SetType(DataTypes.INTEGER), DataTypes.INTEGER));
+        functions.get(functionIdent);
     }
 }
