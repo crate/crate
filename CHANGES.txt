@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: JAR conflict if HDFS plugin with Hadoop 2.x is used.
+
  - Fix: Now it is also possible to restore a snapshot of a single partition
    of a partitioned table in a non-existent table.
    This requires that the snapshot has been created with version ``0.55.5``
