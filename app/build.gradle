@@ -94,7 +94,7 @@ task writeBuildInfo (dependsOn: [':core:getVersion']) << {
 processResources.dependsOn writeBuildInfo
 
 task dist {
-    dependsOn ':docs:itest', distTar, distZip
+    dependsOn ':blackbox:itest', distTar, distZip
 }
 
 task myJavadocs(type: Javadoc, dependsOn: processResources) {
