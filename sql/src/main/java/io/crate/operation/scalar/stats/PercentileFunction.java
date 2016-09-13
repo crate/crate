@@ -38,9 +38,20 @@ import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import java.util.Set;
 
 /**
- * @see io.crate.operation.scalar.stats.PercentileFunction function estimates percentiles based on sample data.
- * For the percentiles calculation, we use Percentile from (Commons Math 3.0 API).
- * @see org.apache.commons.math3.stat.descriptive.rank.Percentile
+ * @see io.crate.operation.scalar.stats.PercentileFunction function estimates percentiles based on sample data, using
+ * @see org.apache.commons.math3.stat.descriptive.rank.Percentile from (Apache Commons Math 3.0 API).
+ *
+ *  The function calculates a single percentile or multiple percntiles:
+ *
+ *   percentile_cont(fractions, values) -> double[]
+ *      returns an array of estimated percentile values, the size of output
+ *      the array equals of the size of the `fractions` array.
+ *
+ *   percentile_cont(fraction, values) -> double
+ *   returns a percentile value corresponding to the specified `fraction` parameter.
+ *
+ *  The percentile function ignore null values in their sorted input.
+ *  The fraction value must be a double precision value between 0 and 1.
  */
 public abstract class PercentileFunction<R, T> extends Scalar<R, T> {
 
@@ -97,7 +108,7 @@ public abstract class PercentileFunction<R, T> extends Scalar<R, T> {
 
         @Override
         public Double[] evaluate(Input<Number[]>[] args) {
-            assert args.length == 2;
+            assert args.length == 2 : "percentile_cont: requires two arguments" ;
             Object arrayValue = args[1].value();
             Object fractionsValue = args[0].value();
 
@@ -137,16 +148,16 @@ public abstract class PercentileFunction<R, T> extends Scalar<R, T> {
 
         @Override
         public Double evaluate(Input<Number[]>[] args) {
-            assert args.length == 2;
+            assert args.length == 2 : "percentile_cont: requires two arguments" ;
             Object arrayValue = args[1].value();
-            Object fractionValue = args[0].value();
+            Object fraction = args[0].value();
 
-            if (nullOrEmptyArgs(arrayValue, fractionValue)) {
+            if (nullOrEmptyArgs(arrayValue, fraction)) {
                 return null;
             }
 
             final Percentile percentile = new Percentile();
-            return percentile.evaluate(toDoubleArray((Object[]) arrayValue), DataTypes.DOUBLE.value(fractionValue) * 100);
+            return percentile.evaluate(toDoubleArray((Object[]) arrayValue), DataTypes.DOUBLE.value(fraction) * 100);
         }
     }
 }
