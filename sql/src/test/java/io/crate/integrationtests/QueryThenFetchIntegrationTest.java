@@ -119,43 +119,4 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
             is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n"));
         assertThat(response.rowCount(), is((long) docCount));
     }
-
-    @Test
-    @UseJdbc(false) // byte/short are returned as 0 instead of NULL
-    public void testOrderBySortTypes() throws Exception {
-        execute("create table xxx (" +
-                "  b byte," +
-                "  s short," +
-                "  i integer," +
-                "  l long," +
-                "  f float," +
-                "  d double," +
-                "  st string," +
-                "  boo boolean," +
-                "  t timestamp," +
-                "  ipp ip" +
-                ")");
-        ensureYellow();
-        execute("insert into xxx (b, s, i, l, f, d, st, boo, t, ipp) values (?, ?, ?, ?, ?, ?, ? ,?, ?, ?)", new Object[][]{
-            {1, 2, 3, 4L, 1.5f, -0.5d, "hallo", true, "1970-01-01", "127.0.0.1"},
-            {null, null, null, null, null, null, null, null, null, null},
-            {2, 4, 6, 8L, 3.1f, -4.5d, "goodbye", false, "2088-01-01", "10.0.0.1"},
-        });
-        execute("refresh table xxx");
-        execute("select b, s, i, l, f, d, st, boo, t, ipp " +
-                "from xxx " +
-                "order by b, s, i, l, f, d, st, boo, t, ipp");
-        assertThat(TestingHelpers.printedTable(response.rows()), Is.is(
-            "1| 2| 3| 4| 1.5| -0.5| hallo| true| 0| 127.0.0.1\n" +
-            "2| 4| 6| 8| 3.1| -4.5| goodbye| false| 3723753600000| 10.0.0.1\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL\n"));
-
-        execute("select b, s, i, l, f, d, st, boo, t, ipp " +
-                "from xxx " +
-                "order by b desc nulls first, s, i, l, f, d, st, boo, t, ipp");
-        assertThat(TestingHelpers.printedTable(response.rows()), Is.is(
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL\n" +
-            "2| 4| 6| 8| 3.1| -4.5| goodbye| false| 3723753600000| 10.0.0.1\n" +
-            "1| 2| 3| 4| 1.5| -0.5| hallo| true| 0| 127.0.0.1\n"));
-    }
 }
