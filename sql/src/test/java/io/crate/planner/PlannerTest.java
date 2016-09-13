@@ -1764,7 +1764,8 @@ public class PlannerTest extends AbstractPlannerTest {
         NestedLoop outerNl = (NestedLoop) qtf.subPlan();
         NestedLoop innerNl = (NestedLoop) outerNl.left();
 
-        assertThat(innerNl.nestedLoopPhase().filterSymbol(), isSQL("((INPUT(2) = INPUT(0)) AND (INPUT(3) = INPUT(1)))"));
+        assertThat(((FilterProjection) innerNl.nestedLoopPhase().projections().get(0)).query(),
+            isSQL("((INPUT(2) = INPUT(0)) AND (INPUT(3) = INPUT(1)))"));
     }
 
     @Test

@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.repositories.RepositorySettingsModule;
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.*;
@@ -48,6 +47,7 @@ import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
@@ -191,12 +191,9 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
         NestedLoop nestedLoop = (NestedLoop) plan.subPlan();
         assertThat(nestedLoop.nestedLoopPhase().projections(),
-                Matchers.contains(instanceOf(TopNProjection.class)));
-        Symbol filterSymbol = nestedLoop.nestedLoopPhase().filterSymbol();
+                Matchers.contains(instanceOf(FilterProjection.class), instanceOf(TopNProjection.class)));
 
-        assertThat(((Function)filterSymbol).arguments().size(), is(2));
-
-        TopNProjection topN = ((TopNProjection) nestedLoop.nestedLoopPhase().projections().get(0));
+        TopNProjection topN = ((TopNProjection) nestedLoop.nestedLoopPhase().projections().get(1));
         assertThat(topN.limit(), is(TopN.NO_LIMIT));
         assertThat(topN.offset(), is(0));
         assertThat(topN.outputs().size(), is(3));
@@ -313,7 +310,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testLimitIncludesOffsetOnNestedLoopTopNProjection() throws Exception {
         NestedLoop nl = plan("select u1.name, u2.name from users u1, users u2 where u1.id = u2.id order by u1.name, u2.name limit 15 offset 10");
-        TopNProjection distTopN = (TopNProjection) nl.nestedLoopPhase().projections().get(0);
+        TopNProjection distTopN = (TopNProjection) nl.nestedLoopPhase().projections().get(1);
 
         assertThat(distTopN.limit(), is(25));
         assertThat(distTopN.offset(), is(0));

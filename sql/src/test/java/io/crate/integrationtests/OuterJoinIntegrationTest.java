@@ -155,4 +155,16 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
                 " order by offices.id");
         assertThat(printedTable(response.rows()), is("Douglas Adams| Chief Office\n"));
     }
+
+    @Test
+    public void testLeftJoinWithCoalesceOnOuter() throws Exception {
+         // coalesce causes a NULL row which is emitted from the join to become a match
+        execute("select employees.name, offices.name from" +
+                " employees left join offices on office_id = offices.id" +
+                " where coalesce(offices.size, cast(110 as integer)) > 100" +
+                " order by offices.id");
+        assertThat(printedTable(response.rows()),
+            is("Douglas Adams| Chief Office\n" +
+               "Ford Perfect| NULL\n"));
+    }
 }
