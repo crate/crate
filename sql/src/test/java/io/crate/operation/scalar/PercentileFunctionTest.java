@@ -45,7 +45,6 @@ public class PercentileFunctionTest extends AbstractScalarFunctionsTest {
         assertNormalize("percentile_cont(0.5, [1.0, 2.2, 3.12, 4.3, 5.0, 6.9, 7.0, 8.2, 9.1, 10.5])", isLiteral(5.95));
         assertNormalize("percentile_cont(0.25, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])", isLiteral(2.75));
         assertNormalize("percentile_cont([0.25, 0.5], [1.2, 2.6, 3.6, 5.4, 6.1])", isLiteral(new Double[]{1.9, 3.6}));
-        assertNormalize("percentile_cont([0.25, 0.95], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])", isLiteral(new Double[]{2.75, 10.0}));
     }
 
     @Test
@@ -59,16 +58,12 @@ public class PercentileFunctionTest extends AbstractScalarFunctionsTest {
             Literal.newLiteral(0.25),
             Literal.newLiteral(new Double[]{1.2, 2.6, 3.6, 5.4, 6.1}, DOUBLE_ARRAY)
         );
-        assertEvaluate("percentile_cont(double_array, double_array)", new Double[]{1.915, 3.65},
-            Literal.newLiteral(new Double[]{0.25, 0.5}, DOUBLE_ARRAY),
-            Literal.newLiteral(new Double[]{1.21, 2.62, 3.65, 5.443, 6.15}, DOUBLE_ARRAY)
-        );
         assertEvaluate("percentile_cont(double_array, double_array)", new Double[]{2.75, 5.5},
             Literal.newLiteral(new Double[]{0.25, 0.5}, DOUBLE_ARRAY),
             Literal.newLiteral(new Long[]{1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L}, new ArrayType(DataTypes.LONG))
         );
     }
-    
+
     @Test
     public void testEvaluateWithNullValuesInInputArray() {
         assertEvaluate("percentile_cont(double_array, double_array)", new Object[]{2.4, 8.1},

@@ -22,9 +22,9 @@
 
 package io.crate.operation.scalar.stats;
 
+import com.carrotsearch.hppc.DoubleArrayList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.primitives.Doubles;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -35,11 +35,14 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
-public abstract class PercentileFunction<R> extends Scalar<R, Object> {
+/**
+ * @see io.crate.operation.scalar.stats.PercentileFunction function estimates percentiles based on sample data.
+ * For the percentiles calculation, we use Percentile from (Commons Math 3.0 API).
+ * @see org.apache.commons.math3.stat.descriptive.rank.Percentile
+ */
+public abstract class PercentileFunction<R, T> extends Scalar<R, T> {
 
     private static final String NAME = "percentile_cont";
     private static final DataType DOUBLE_ARRAY_TYPE = new ArrayType(DataTypes.DOUBLE);
@@ -54,45 +57,32 @@ public abstract class PercentileFunction<R> extends Scalar<R, Object> {
     }
 
     private final FunctionInfo info;
-    private final Percentile percentile;
 
     private PercentileFunction(FunctionInfo info) {
         this.info = info;
-        this.percentile = new Percentile();
     }
-
-    @Override
-    public R evaluate(Input[] args) {
-        assert args.length == 2;
-        if (hasNullInputs(args)) {
-            return null;
-        }
-        Object[] inputArray = (Object[]) args[1].value();
-        if (inputArray.length == 0) {
-            return null;
-        }
-        List<Double> values = new ArrayList<>();
-        for (Object value : inputArray) {
-            if (value != null) {
-                values.add(DataTypes.DOUBLE.value(value));
-            }
-        }
-        percentile.setData(Doubles.toArray(values));
-        return eval(args[0].value());
-    }
-
-    protected abstract R eval(Object percentile);
 
     @Override
     public FunctionInfo info() {
         return info;
     }
 
-    protected Percentile percentile() {
-        return percentile;
+
+    protected static double[] toDoubleArray(Object[] array) {
+        DoubleArrayList values = new DoubleArrayList(array.length);
+        for (Object value : array) {
+            if (value != null) {
+                values.add(DataTypes.DOUBLE.value(value));
+            }
+        }
+        return values.toArray();
     }
 
-    private static class PercentileContArray extends PercentileFunction<Double[]> {
+    protected static boolean nullOrEmptyArgs(Object arrayValue, Object fractionValue) {
+        return arrayValue == null || fractionValue == null || ((Object[]) arrayValue).length == 0;
+    }
+
+    private static class PercentileContArray extends PercentileFunction<Double[], Number[]> {
 
         public static void register(ScalarFunctionModule module) {
             for (DataType dataType : ALLOWED_TYPES) {
@@ -106,17 +96,32 @@ public abstract class PercentileFunction<R> extends Scalar<R, Object> {
         }
 
         @Override
-        protected Double[] eval(Object fractionsArg) {
-            Object[] fractions = (Object[]) fractionsArg;
+        public Double[] evaluate(Input<Number[]>[] args) {
+            assert args.length == 2;
+            Object arrayValue = args[1].value();
+            Object fractionsValue = args[0].value();
+
+            if (nullOrEmptyArgs(arrayValue, fractionsValue)) {
+                return null;
+            }
+
+            return evaluatePercentiles((Object[]) arrayValue, (Object[]) fractionsValue);
+        }
+
+        private Double[] evaluatePercentiles(Object[] values, Object[] fractions) {
+            final Percentile percentile = new Percentile();
+            percentile.setData(toDoubleArray((values)));
+
             Double[] result = new Double[fractions.length];
             for (int idx = 0; idx < fractions.length; idx++) {
-                result[idx] = percentile().evaluate(DataTypes.DOUBLE.value(fractions[idx]) * 100.0);
+                result[idx] = percentile.evaluate(DataTypes.DOUBLE.value(fractions[idx]) * 100.0);
             }
             return result;
         }
     }
 
-    private static class PercentileCont extends PercentileFunction<Double> {
+
+    private static class PercentileCont extends PercentileFunction<Double, Number[]> {
 
         public static void register(ScalarFunctionModule module) {
             for (DataType dataType : ALLOWED_TYPES) {
@@ -131,8 +136,17 @@ public abstract class PercentileFunction<R> extends Scalar<R, Object> {
         }
 
         @Override
-        protected Double eval(Object fraction) {
-            return percentile().evaluate(DataTypes.DOUBLE.value(fraction) * 100);
+        public Double evaluate(Input<Number[]>[] args) {
+            assert args.length == 2;
+            Object arrayValue = args[1].value();
+            Object fractionValue = args[0].value();
+
+            if (nullOrEmptyArgs(arrayValue, fractionValue)) {
+                return null;
+            }
+
+            final Percentile percentile = new Percentile();
+            return percentile.evaluate(toDoubleArray((Object[]) arrayValue), DataTypes.DOUBLE.value(fractionValue) * 100);
         }
     }
 }
