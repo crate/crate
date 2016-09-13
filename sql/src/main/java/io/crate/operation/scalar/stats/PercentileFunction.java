@@ -44,11 +44,12 @@ import java.util.Set;
  *  The function calculates a single percentile or multiple percntiles:
  *
  *   percentile_cont(fractions, values) -> double[]
- *      returns an array of estimated percentile values, the size of output
- *      the array equals of the size of the `fractions` array.
+ *      returns an array of estimated percentile values, the size of
+ *      output the array equals of the size of the `fractions` array.
  *
  *   percentile_cont(fraction, values) -> double
- *   returns a percentile value corresponding to the specified `fraction` parameter.
+ *      returns a percentile value corresponding to the specified
+ *      `fraction` parameter.
  *
  *  The percentile function ignore null values in their sorted input.
  *  The fraction value must be a double precision value between 0 and 1.
@@ -77,7 +78,6 @@ public abstract class PercentileFunction<R, T> extends Scalar<R, T> {
     public FunctionInfo info() {
         return info;
     }
-
 
     protected static double[] toDoubleArray(Object[] array) {
         DoubleArrayList values = new DoubleArrayList(array.length);
@@ -130,7 +130,6 @@ public abstract class PercentileFunction<R, T> extends Scalar<R, T> {
             return result;
         }
     }
-
 
     private static class PercentileCont extends PercentileFunction<Double, Object> {
 
