@@ -565,14 +565,11 @@ public class ContextPreparer extends AbstractComponent {
             } else {
                 flatProjectorChain = FlatProjectorChain.withReceivers(Collections.singletonList(downstreamRowReceiver));
             }
-
-            Predicate<Row> rowFilter = RowFilter.create(symbolVisitor, phase.filterSymbol());
             Predicate<Row> joinCondition = RowFilter.create(symbolVisitor, phase.joinCondition());
 
             NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(
                 phase.executionPhaseId(),
                 flatProjectorChain.firstProjector(),
-                rowFilter,
                 joinCondition,
                 phase.joinType(),
                 phase.numLeftOutputs(),

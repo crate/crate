@@ -128,7 +128,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
     private final int phaseId;
     private final RowReceiver downstream;
-    private final Predicate<Row> rowFilterPredicate;
     private final Predicate<Row> joinPredicate;
     private final JoinType joinType;
 
@@ -145,14 +144,12 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
     public NestedLoopOperation(int phaseId,
                                RowReceiver rowReceiver,
-                               Predicate<Row> rowFilterPredicate,
                                Predicate<Row> joinPredicate,
                                JoinType joinType,
                                int leftNumOutputs,
                                int rightNumOutputs) {
         this.phaseId = phaseId;
         this.downstream = rowReceiver;
-        this.rowFilterPredicate = rowFilterPredicate;
         this.joinPredicate = joinPredicate;
         this.joinType = joinType;
         left = new LeftRowReceiver();
@@ -454,12 +451,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             combinedRow.outerRow = left.lastRow;
             combinedRow.innerRow = row;
 
-            // Check where clause filter
-            if (!rowFilterPredicate.apply(combinedRow)) {
-                // if the filter does not match, null rows must not be emitted, so set as matched
-                matchedJoinPredicate = true;
-                return Result.CONTINUE;
-            }
             // Check join condition
             if (!joinPredicate.apply(combinedRow)) {
                 return Result.CONTINUE;
@@ -589,13 +580,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                 combinedRow.outerRow = left.lastRow;
                 combinedRow.innerRow = row;
 
-                // Check where clause filter
-                if (!rowFilterPredicate.apply(combinedRow)) {
-                    // if the filter does not match, null rows must not be emitted, so set as matched
-                    matchedJoinPredicate = true;
-                    matchedJoinRows.set(rowPosition);
-                    return Result.CONTINUE;
-                }
                 // Check join condition
                 if (!joinPredicate.apply(combinedRow)) {
                     return Result.CONTINUE;

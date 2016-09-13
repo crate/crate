@@ -56,8 +56,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
     private MergePhase rightMergePhase;
     private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
     private JoinType joinType;
-    @Nullable
-    private Symbol filterSymbol;
+
     @Nullable
     private Symbol joinCondition;
     private int numLeftOutputs;
@@ -74,7 +73,6 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
                            Collection<String> executionNodes,
                            JoinType joinType,
                            @Nullable Symbol joinCondition,
-                           @Nullable Symbol filterSymbol,
                            int numLeftOutputs,
                            int numRightOutputs) {
         super(jobId, executionNodeId, name, projections);
@@ -86,7 +84,6 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
         this.executionNodes = executionNodes;
         this.joinType = joinType;
         this.joinCondition = joinCondition;
-        this.filterSymbol = filterSymbol;
         this.numLeftOutputs = numLeftOutputs;
         this.numRightOutputs = numRightOutputs;
     }
@@ -113,11 +110,6 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
     @Nullable
     public MergePhase rightMergePhase() {
         return rightMergePhase;
-    }
-
-    @Nullable
-    public Symbol filterSymbol() {
-        return filterSymbol;
     }
 
     @Nullable
@@ -167,9 +159,6 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
         if (in.readBoolean()) {
             joinCondition = Symbols.fromStream(in);
         }
-        if (in.readBoolean()) {
-            filterSymbol = Symbols.fromStream(in);
-        }
         joinType = JoinType.values()[in.readVInt()];
         numLeftOutputs = in.readVInt();
         numRightOutputs = in.readVInt();
@@ -209,12 +198,6 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
             out.writeBoolean(true);
             Symbols.toStream(joinCondition, out);
         }
-        if (filterSymbol == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            Symbols.toStream(filterSymbol, out);
-        }
 
         out.writeVInt(joinType.ordinal());
         out.writeVInt(numLeftOutputs);
@@ -230,8 +213,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
                 .add("joinCondition", joinCondition)
                 .add("outputTypes", outputTypes)
                 .add("jobId", jobId())
-                .add("executionNodes", executionNodes)
-                .add("filterSymbol", filterSymbol);
+                .add("executionNodes", executionNodes);
         return helper.toString();
     }
 
