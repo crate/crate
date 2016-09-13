@@ -38,8 +38,6 @@ import io.crate.core.collections.RowN;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.executor.Executor;
-import io.crate.executor.transport.kill.KillJobsRequest;
-import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.ResumeHandle;
@@ -47,7 +45,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -271,33 +268,18 @@ public class SimplePortal extends AbstractPortal {
         public void fail(@Nonnull Throwable t) {
             if (attempt <= Constants.MAX_SHARD_MISSING_RETRIES && Exceptions.isShardFailure(t)) {
                 attempt += 1;
-                killAndRetry();
+                retry();
             } else {
                 delegate.fail(t);
             }
         }
 
-        private void killAndRetry() {
-            transportKillJobsNodeAction.executeKillOnAllNodes(
-                new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<KillResponse>() {
-                    @Override
-                    public void onResponse(KillResponse killResponse) {
-                        LOGGER.debug("Killed {} jobs before Retry", killResponse.numKilled());
-
-                        Analysis analysis = analyzer.analyze(portal.statement,
-                            new ParameterContext(new RowN(portal.params.toArray()), Collections.<Row>emptyList(), defaultSchema, options));
-                        Plan plan = planner.plan(analysis, jobId, 0, portal.maxRows);
-                        executor.execute(plan, portal.rowReceiver);
-                    }
-
-                    @Override
-                    public void onFailure(Throwable e) {
-                        LOGGER.warn("Failed to kill job before Retry", e);
-                        delegate.fail(e);
-                    }
-                }
-            );
-
+        private void retry() {
+            LOGGER.debug("Retrying statement due to a shard failure, attempt={}, jobId={}", attempt, jobId);
+            Analysis analysis = analyzer.analyze(portal.statement,
+                new ParameterContext(new RowN(portal.params.toArray()), Collections.<Row>emptyList(), defaultSchema, options));
+            Plan plan = planner.plan(analysis, jobId, 0, portal.maxRows);
+            executor.execute(plan, portal.rowReceiver);
         }
 
         @Override

@@ -31,6 +31,8 @@ import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.operation.projectors.*;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -41,6 +43,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
+
+    private final static ESLogger LOGGER = Loggers.getLogger(InterceptingRowReceiver.class);
 
     private final AtomicInteger upstreams = new AtomicInteger(2);
     private final UUID jobId;
@@ -119,11 +123,13 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
                 new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<KillResponse>() {
                     @Override
                     public void onResponse(KillResponse killResponse) {
+                        LOGGER.debug("Killed {} jobs before forwarding the failure", killResponse.numKilled());
                         rowReceiver.fail(failure);
                     }
 
                     @Override
                     public void onFailure(Throwable e) {
+                        LOGGER.warn("Failed to kill job, forwarding failure anyway..", e);
                         rowReceiver.fail(failure);
                     }
                 });
