@@ -70,19 +70,18 @@ public class NestedLoopOperationTest extends CrateUnitTest {
 
     private Bucket executeNestedLoop(List<Row> leftRows, List<Row> rightRows) throws Exception {
         return executeNestedLoop(
-            leftRows, rightRows, Predicates.<Row>alwaysTrue(), Predicates.<Row>alwaysTrue(), JoinType.CROSS, 0, 0);
+            leftRows, rightRows, Predicates.<Row>alwaysTrue(), JoinType.CROSS, 0, 0);
     }
 
     private Bucket executeNestedLoop(List<Row> leftRows,
                                      List<Row> rightRows,
-                                     Predicate<Row> filterPredicate,
                                      Predicate<Row> joinPredicate,
                                      JoinType joinType,
                                      int leftRowSize,
                                      int rightRowSize) throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         final NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(
-            0, rowReceiver, filterPredicate, joinPredicate, joinType, leftRowSize, rightRowSize);
+            0, rowReceiver, joinPredicate, joinType, leftRowSize, rightRowSize);
 
         PageDownstream leftPageDownstream = pageDownstream(nestedLoopOperation.leftRowReceiver());
         PageDownstream rightPageDownstream = pageDownstream(nestedLoopOperation.rightRowReceiver());
@@ -96,7 +95,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
 
     private static NestedLoopOperation unfilteredNestedLoopOperation(int phaseId, RowReceiver rowReceiver) {
         return new NestedLoopOperation(
-            phaseId, rowReceiver, Predicates.<Row>alwaysTrue(), Predicates.<Row>alwaysTrue(), JoinType.CROSS, 0, 0);
+            phaseId, rowReceiver, Predicates.<Row>alwaysTrue(), JoinType.CROSS, 0, 0);
     }
 
     private PageDownstream pageDownstream(RowReceiver rowReceiver) {
@@ -341,7 +340,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         List<Row> leftRows = asRows(1, 2, 3, 4, 5);
         List<Row> rightRows = asRows(3, 5);
         Bucket rows = executeNestedLoop(
-            leftRows, rightRows, Predicates.<Row>alwaysTrue(), JOIN_CONDITION_PREDICATE, JoinType.LEFT, 1, 1);
+            leftRows, rightRows, JOIN_CONDITION_PREDICATE, JoinType.LEFT, 1, 1);
         assertThat(TestingHelpers.printedTable(rows), is("1| NULL\n" +
                                                          "2| NULL\n" +
                                                          "3| 3\n" +
@@ -354,7 +353,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         List<Row> leftRows = asRows(3, 5);
         List<Row> rightRows = asRows(1, 2, 3, 4, 5);
         Bucket rows = executeNestedLoop(
-            leftRows, rightRows, Predicates.<Row>alwaysTrue(), JOIN_CONDITION_PREDICATE, JoinType.RIGHT, 1, 1);
+            leftRows, rightRows, JOIN_CONDITION_PREDICATE, JoinType.RIGHT, 1, 1);
         assertThat(TestingHelpers.printedTable(rows), is("3| 3\n" +
                                                          "5| 5\n" +
                                                          "NULL| 1\n" +
@@ -367,7 +366,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         List<Row> leftRows = asRows(3, 5, 6, 7);
         List<Row> rightRows = asRows(1, 2, 3, 4, 5);
         Bucket rows = executeNestedLoop(
-            leftRows, rightRows, Predicates.<Row>alwaysTrue(), JOIN_CONDITION_PREDICATE, JoinType.FULL, 1, 1);
+            leftRows, rightRows, JOIN_CONDITION_PREDICATE, JoinType.FULL, 1, 1);
         assertThat(TestingHelpers.printedTable(rows), is("3| 3\n" +
                                                          "5| 5\n" +
                                                          "6| NULL\n" +
