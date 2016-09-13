@@ -123,13 +123,13 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
                 new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<KillResponse>() {
                     @Override
                     public void onResponse(KillResponse killResponse) {
-                        LOGGER.debug("Killed {} jobs before forwarding the failure", killResponse.numKilled());
+                        LOGGER.trace("Killed {} jobs before forwarding the failure", killResponse.numKilled());
                         rowReceiver.fail(failure);
                     }
 
                     @Override
                     public void onFailure(Throwable e) {
-                        LOGGER.warn("Failed to kill job, forwarding failure anyway..", e);
+                        LOGGER.trace("Failed to kill job, forwarding failure anyway...", e);
                         rowReceiver.fail(failure);
                     }
                 });
