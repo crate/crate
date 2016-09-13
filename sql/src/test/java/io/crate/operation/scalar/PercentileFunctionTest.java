@@ -95,4 +95,11 @@ public class PercentileFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("percentile_cont(0.25, tags)", null,
             Literal.newLiteral(new String[]{"a", "b", "c"}, new ArrayType(DataTypes.STRING)));
     }
+
+    @Test
+    public void testEvaluateWithNotAllowedTypeOfFraction() {
+        thrown.expect(UnsupportedOperationException.class);
+        assertEvaluate("percentile_cont(1, tags)", null,
+            Literal.newLiteral(new String[]{"a", "b", "c"}, new ArrayType(DataTypes.STRING)));
+    }
 }

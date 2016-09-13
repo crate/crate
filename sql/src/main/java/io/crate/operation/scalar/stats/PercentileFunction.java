@@ -132,7 +132,7 @@ public abstract class PercentileFunction<R, T> extends Scalar<R, T> {
     }
 
 
-    private static class PercentileCont extends PercentileFunction<Double, Number[]> {
+    private static class PercentileCont extends PercentileFunction<Double, Object> {
 
         public static void register(ScalarFunctionModule module) {
             for (DataType dataType : ALLOWED_TYPES) {
@@ -147,10 +147,10 @@ public abstract class PercentileFunction<R, T> extends Scalar<R, T> {
         }
 
         @Override
-        public Double evaluate(Input<Number[]>[] args) {
+        public Double evaluate(Input<Object>[] args) {
             assert args.length == 2 : "percentile_cont: requires two arguments" ;
             Object arrayValue = args[1].value();
-            Object fraction = args[0].value();
+            Double fraction = (Double) args[0].value();
 
             if (nullOrEmptyArgs(arrayValue, fraction)) {
                 return null;
