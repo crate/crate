@@ -66,6 +66,8 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             .add("timezone", DataTypes.STRING)
             .add("time_format", DataTypes.STRING)
             .add("long_array", new ArrayType(DataTypes.LONG))
+            .add("double_array", new ArrayType(DataTypes.DOUBLE))
+            .add("double_type", DataTypes.DOUBLE)
             .add("regex_pattern", DataTypes.STRING)
             .add("geoshape", DataTypes.GEO_SHAPE)
             .add("geopoint", DataTypes.GEO_POINT)
