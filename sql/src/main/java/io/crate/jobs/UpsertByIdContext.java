@@ -100,14 +100,16 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                         || e instanceof VersionConflictEngineException)) {
                     // on updates, set affected row to 0 if document is not found or version conflicted
                     futureResult.set(TaskResult.ZERO);
+                    close(null);
                 } else if (PartitionName.isPartition(request.index())
                            && e instanceof IndexNotFoundException) {
                     // index missing exception on a partition should never bubble, set affected row to 0
                     futureResult.set(TaskResult.ZERO);
+                    close(null);
                 } else {
                     futureResult.setException(e);
+                    close(e);
                 }
-                close(e);
             }
         });
     }
