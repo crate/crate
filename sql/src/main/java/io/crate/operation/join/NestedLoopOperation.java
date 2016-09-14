@@ -141,7 +141,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *              [... same as before ...]
  * </pre>
  */
-public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
+public class NestedLoopOperation implements CompletionListenable {
 
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopOperation.class);
     private final SettableFuture<CompletionState> completionFuture = SettableFuture.create();
@@ -189,13 +189,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
     public ListenableRowReceiver rightRowReceiver() {
         return right;
-    }
-
-    @Override
-    public void repeat() {
-        RepeatHandle repeatHandle = left.repeatHandle;
-        left.repeatHandle = UNSUPPORTED;
-        repeatHandle.repeat();
     }
 
     private static class CombinedRow implements Row {
@@ -263,7 +256,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                 return false;
             }
             if (upstreamFailure == null) {
-                downstream.finish(NestedLoopOperation.this);
+                downstream.finish(RepeatHandle.UNSUPPORTED);
                 completionFuture.set(null);
                 left.finished.set(null);
                 right.finished.set(null);
@@ -326,7 +319,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
     private class LeftRowReceiver extends AbstractRowReceiver {
 
         private volatile Row lastRow = null; // TODO: volatile is only required for first access
-        private RepeatHandle repeatHandle;
         private boolean isPaused = true;
 
         @Override
@@ -366,7 +358,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         @Override
         public void finish(RepeatHandle repeatHandle) {
             LOGGER.trace("phase={} side=left method=finish", phaseId);
-            this.repeatHandle = repeatHandle;
             doFinish();
         }
 
