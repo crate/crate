@@ -67,6 +67,7 @@ tokens {
     TABLE_FUNCTION;
     IDENT_EXPR;
     WINDOW;
+    WITHIN_GROUP;
     PARTITION_BY;
     UNBOUNDED_PRECEDING;
     UNBOUNDED_FOLLOWING;
@@ -544,10 +545,11 @@ parameterOrSimpleLiteral
     | STRING
     ;
 
+
 qnameOrFunction
     : (qname -> qname)
-      ( ('(' '*' ')' over?                          -> ^(FUNCTION_CALL $qnameOrFunction over?))
-      | ('(' setQuant? expr? (',' expr)* ')' over?  -> ^(FUNCTION_CALL $qnameOrFunction over? setQuant? expr*))
+      ( ('(' '*' ')' withinGroup?  over?                         -> ^(FUNCTION_CALL $qnameOrFunction withinGroup? over?))
+      | ('(' setQuant? expr? (',' expr)* ')' withinGroup? over?  -> ^(FUNCTION_CALL $qnameOrFunction withinGroup? over? setQuant? expr*))
       )?
     ;
 
@@ -629,6 +631,10 @@ elseClause
 
 over
     : OVER '(' window ')' -> window
+    ;
+
+withinGroup
+    : WITHIN GROUP '(' ORDER BY sortItem ')' ->  ^(WITHIN_GROUP sortItem)
     ;
 
 window
@@ -1124,7 +1130,7 @@ nonReserved
     | COLUMNS | COPY | CURRENT | DATE | DAY | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
     | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LOGICAL | MATERIALIZED | MINUTE
-    | MONTH | OFF | ONLY | OVER | OPTIMIZE | PARTITION | PARTITIONED | PARTITIONS | PLAIN
+    | MONTH | OFF | ONLY | OVER | WITHIN | OPTIMIZE | PARTITION | PARTITIONED | PARTITIONS | PLAIN
     | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND | SESSION
     | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
@@ -1196,6 +1202,7 @@ NATURAL: 'NATURAL';
 USING: 'USING';
 ON: 'ON';
 OVER: 'OVER';
+WITHIN: 'WITHIN';
 PARTITION: 'PARTITION';
 RANGE: 'RANGE';
 ROWS: 'ROWS';

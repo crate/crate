@@ -78,9 +78,9 @@ public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
 
     @Override
     protected Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
-        List<String> parts = node.getName().getParts();
+        List<String> parts = node.name().getParts();
         if (parts.get(0).equals("values")) {
-            Expression expression = node.getArguments().get(0);
+            Expression expression = node.arguments().get(0);
             Symbol argumentColumn = super.convert(expression, context);
             if (argumentColumn.valueType().equals(DataTypes.UNDEFINED)) {
                 throw new IllegalArgumentException(

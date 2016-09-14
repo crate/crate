@@ -136,14 +136,17 @@ public abstract class DefaultTraversalVisitor<R, C>
     }
 
     @Override
-    protected R visitFunctionCall(FunctionCall node, C context)
-    {
-        for (Expression argument : node.getArguments()) {
+    protected R visitFunctionCall(FunctionCall node, C context) {
+        for (Expression argument : node.arguments()) {
             process(argument, context);
         }
 
-        if (node.getWindow().isPresent()) {
-            process(node.getWindow().get(), context);
+        if (node.window().isPresent()) {
+            process(node.window().get(), context);
+        }
+
+        if (node.withinGroup().isPresent()) {
+            process(node.withinGroup().get(), context);
         }
 
         return null;

@@ -236,26 +236,33 @@ public final class ExpressionFormatter {
         }
 
         @Override
-        protected String visitFunctionCall(FunctionCall node, Void context)
-        {
+        protected String visitFunctionCall(FunctionCall node, Void context) {
             StringBuilder builder = new StringBuilder();
 
-            String arguments = joinExpressions(node.getArguments());
-            if (node.getArguments().isEmpty() && "count".equalsIgnoreCase(node.getName().getSuffix())) {
+            String arguments = joinExpressions(node.arguments());
+            if (node.arguments().isEmpty() && "count".equalsIgnoreCase(node.name().getSuffix())) {
                 arguments = "*";
             }
             if (node.isDistinct()) {
                 arguments = "DISTINCT " + arguments;
             }
 
-            builder.append(node.getName())
-                    .append('(').append(arguments).append(')');
+            builder.append(node.name()).append('(').append(arguments).append(")");
 
-            if (node.getWindow().isPresent()) {
-                builder.append(" OVER ").append(visitWindow(node.getWindow().get(), null));
+            if (node.window().isPresent()) {
+                builder.append(" OVER ").append(visitWindow(node.window().get(), null));
+            }
+
+            if (node.withinGroup().isPresent()) {
+                builder.append(" WITHIN GROUP ").append(visitWithinGroup(node.withinGroup().get(), null));
             }
 
             return builder.toString();
+        }
+
+        @Override
+        public String visitWithinGroup(WithinGroup node, Void context) {
+            return "(ORDER BY " + orderByFormatterFunction().apply(node.orderBy()) + ")";
         }
 
         @Override

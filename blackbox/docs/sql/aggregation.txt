@@ -373,6 +373,59 @@ strings.  The advantage is that the ``arbitrary`` function does very little
 to no computation as for example ``max`` aggregation function would
 do.
 
+
+percentile_cont
+===============
+
+The ``percentile_cont`` aggregation function computes a `Percentile`_ based on
+a *continuous distribution* of a specified ordered column, which interpolates between
+adjacent items if required. The function takes as input either a single fraction
+or an array of fractions. When supplied a single fraction, the function will 
+return a single value corresponding to the percentile of the specified fraction.
+When supplied an array of fractions, the function will return an array of values
+corresponding to the percentile of each fraction specified.
+
+within group
+------------
+
+The ``within group`` clause produces an ordered set for use in ordered-set
+aggregate functions like ``percentile_cont``. The ordering used in the input
+can either be ascending or descending.
+
+Example::
+
+    cr> select percentile_cont(0.25) within group (order by position)
+    ... from locations;
+    +-----------------------+
+    | percentile_cont(0.25) |
+    +-----------------------+
+    | 1.3                   |
+    +-----------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select percentile_cont([0.2, 0.5]) within group (order by position)
+    ... from locations;
+    +-----------------------------+
+    | percentile_cont([0.2, 0.5]) |
+    +-----------------------------+
+    | [1.3, 3.4]                  |
+    +-----------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select percentile_cont(0.25) within group (order by position desc)
+    ... from locations;
+    +-----------------------+
+    | percentile_cont(0.25) |
+    +-----------------------+
+    | 5.1                   |
+    +-----------------------+
+
+    
 .. _Geometric Mean: https://en.wikipedia.org/wiki/Mean#Geometric_mean_.28GM.29
 .. _Variance: https://en.wikipedia.org/wiki/Variance
 .. _Standard Deviation: https://en.wikipedia.org/wiki/Standard_deviation
+.. _Percentile: https://en.wikipedia.org/wiki/Percentile
