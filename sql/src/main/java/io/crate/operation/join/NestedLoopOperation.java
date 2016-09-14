@@ -179,8 +179,8 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         volatile Row outerRow;
         volatile Row innerRow;
-        Row outerNullRow;
-        Row innerNullRow;
+        final Row outerNullRow;
+        final Row innerNullRow;
 
         CombinedRow(int outerOutputSize, int innerOutputSize) {
             outerNullRow = new RowNull(outerOutputSize);
@@ -367,6 +367,12 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
     }
 
     private void switchTo(AtomicReference<ResumeHandle> atomicResumeable) {
+        ResumeHandle resumeHandle = busyGet(atomicResumeable);
+        LOGGER.trace("phase={} method=switchTo resumeable={}", phaseId, resumeHandle);
+        resumeHandle.resume(false);
+    }
+
+    private ResumeHandle busyGet(AtomicReference<ResumeHandle> atomicResumeable) {
         ResumeHandle resumeHandle;
         int sleep = 10;
         /*
@@ -394,8 +400,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             }
         }
         atomicResumeable.set(ResumeHandle.INVALID);
-        LOGGER.trace("phase={} method=switchTo resumeable={}", phaseId, resumeHandle);
-        resumeHandle.resume(false);
+        return resumeHandle;
     }
 
     private class RightRowReceiver extends AbstractRowReceiver {
@@ -414,9 +419,10 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         @Override
         public void pauseProcessed(final ResumeHandle resumeHandle) {
-            LOGGER.trace("phase={} side=right method=pauseProcessed", phaseId);
+            LOGGER.trace("phase={} side=right method=pauseProcessed suspendThread={}", phaseId, suspendThread);
 
             if (suspendThread) {
+                suspendThread = false;
                 // right side started before left side did and so the thread is suspended.
                 if (!this.resumeable.compareAndSet(ResumeHandle.INVALID, new RightResumeHandle(resumeHandle))) {
                     throw new IllegalStateException("Right resumable wasn't null. It should be set to null after use");
@@ -469,31 +475,53 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         @Override
         public void finish(final RepeatHandle repeatHandle) {
+            LOGGER.trace("phase={} side=right method=finish firstCall={}", phaseId, firstCall);
+
+            this.resumeable.set(new ResumeHandle() {
+                @Override
+                public void resume(boolean async) {
+                    RightRowReceiver.this.matchedJoinPredicate = false;
+                    RightRowReceiver.this.upstreamFinished = false;
+                    repeatHandle.repeat();
+                }
+            });
+
             if ((JoinType.LEFT == joinType || JoinType.FULL == joinType) &&
                 !matchedJoinPredicate && left.lastRow != null && !emitRightJoin) {
                 // emit row with right one nulled
                 combinedRow.outerRow = left.lastRow;
                 combinedRow.innerRow = combinedRow.innerNullRow;
-                emitRowAndTrace(combinedRow);
+                Result result = emitRowAndTrace(combinedRow);
+                LOGGER.trace("phase={} side=right method=finish firstCall={} emitNullRow result={}", phaseId, firstCall, result);
+                switch (result) {
+                    case CONTINUE:
+                        break;
+                    case PAUSE:
+                        downstream.pauseProcessed(new ResumeHandle() {
+                            @Override
+                            public void resume(boolean async) {
+                                if (tryFinish()) {
+                                    return;
+                                }
+                                switchTo(left.resumeable);
+                            }
+                        });
+                        // return without setting upstreamFinished=true to ensure left-side get's paused (if it isn't already)
+                        // this way the resumeHandle call can un-pause it
+                        return;
+                    case STOP:
+                        stop = true;
+                        break;
+                }
             }
-            // reset matched
-            matchedJoinPredicate = false;
-
-            LOGGER.trace("phase={} side=right method=finish firstCall={}", phaseId, firstCall);
-
             if (tryFinish()) {
                 return;
             }
-            this.resumeable.set(new ResumeHandle() {
-                @Override
-                public void resume(boolean async) {
-                    RightRowReceiver.this.upstreamFinished = false;
-                    repeatHandle.repeat();
-                }
-            });
             if (left.isPaused) {
                 switchTo(left.resumeable);
             }
+            // else: right-side iteration is within the left#setNextRow stack, returning here will
+            // continue on the left side
         }
 
         @Override
