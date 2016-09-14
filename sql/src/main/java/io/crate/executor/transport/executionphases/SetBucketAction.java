@@ -22,66 +22,41 @@
 
 package io.crate.executor.transport.executionphases;
 
-import com.google.common.util.concurrent.FutureCallback;
-import io.crate.action.job.JobResponse;
 import io.crate.core.collections.Bucket;
 import io.crate.jobs.PageBucketReceiver;
-import org.elasticsearch.action.ActionListener;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 
-class SetBucketAction implements FutureCallback<List<Bucket>>, ActionListener<JobResponse> {
+abstract class SetBucketAction {
+
     private final List<PageBucketReceiver> pageBucketReceivers;
     private final int bucketIdx;
     private final InitializationTracker initializationTracker;
     private final BucketResultListener bucketResultListener;
 
     SetBucketAction(List<PageBucketReceiver> pageBucketReceivers, int bucketIdx, InitializationTracker initializationTracker) {
+        assert !pageBucketReceivers.isEmpty(): "pageBucketReceivers must not be empty";
         this.pageBucketReceivers = pageBucketReceivers;
         this.bucketIdx = bucketIdx;
         this.initializationTracker = initializationTracker;
         bucketResultListener = new BucketResultListener(bucketIdx);
     }
 
-    @Override
-    public void onSuccess(@Nullable List<Bucket> result) {
-        initializationTracker.jobInitialized();
-        if (result == null) {
-            onFailure(new NullPointerException("result is null"));
-            return;
-        }
-
-        for (int i = 0; i < pageBucketReceivers.size(); i++) {
-            PageBucketReceiver pageBucketReceiver = pageBucketReceivers.get(i);
-            setBucket(pageBucketReceiver, result.get(i));
-        }
-    }
-
-    @Override
-    public void onResponse(JobResponse jobResponse) {
+    protected void setBuckets(List<Bucket> result) {
         initializationTracker.jobInitialized();
         for (int i = 0; i < pageBucketReceivers.size(); i++) {
             PageBucketReceiver pageBucketReceiver = pageBucketReceivers.get(i);
-            jobResponse.streamers(pageBucketReceiver.streamer());
-            setBucket(pageBucketReceiver, jobResponse.directResponse().get(i));
+            Bucket bucket = result.get(i);
+            assert bucket != null : "expected directResponse but didn't get one idx=" + i;
+            pageBucketReceiver.setBucket(bucketIdx, bucket, true, bucketResultListener);
         }
     }
 
-    @Override
-    public void onFailure(@Nonnull Throwable t) {
+    protected void failed(@Nonnull Throwable t) {
         initializationTracker.jobInitializationFailed(t);
         for (PageBucketReceiver pageBucketReceiver : pageBucketReceivers) {
             pageBucketReceiver.failure(bucketIdx, t);
         }
-    }
-
-    private void setBucket(PageBucketReceiver pageBucketReceiver, Bucket bucket) {
-        if (bucket == null) {
-            pageBucketReceiver.failure(bucketIdx, new IllegalStateException("expected directResponse but didn't get one"));
-            return;
-        }
-        pageBucketReceiver.setBucket(bucketIdx, bucket, true, bucketResultListener);
     }
 }

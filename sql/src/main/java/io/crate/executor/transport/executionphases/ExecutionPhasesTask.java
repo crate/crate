@@ -170,14 +170,13 @@ public class ExecutionPhasesTask extends JobTask {
                 initializationTracker.jobInitialized();
             } else {
                 Futures.addCallback(Futures.allAsList(directResponseFutures),
-                    new SetBucketAction(pageBucketReceivers, bucketIdx, initializationTracker));
+                    new SetBucketCallback(pageBucketReceivers, bucketIdx, initializationTracker));
                 bucketIdx++;
             }
         }
         localJobContext.start();
         sendJobRequests(localNodeId, operationByServer, pageBucketReceivers, handlerPhases, bucketIdx, initializationTracker);
     }
-
 
     private void sendJobRequests(String localNodeId,
                                  Map<String, Collection<NodeOperation>> operationByServer,
@@ -190,7 +189,7 @@ public class ExecutionPhasesTask extends JobTask {
             JobRequest request = new JobRequest(jobId(), localNodeId, entry.getValue());
             if (hasDirectResponse) {
                 transportJobAction.execute(serverNodeId, request,
-                    new SetBucketAction(pageBucketReceivers, bucketIdx, initializationTracker));
+                    new SetBucketActionListener(pageBucketReceivers, bucketIdx, initializationTracker));
             } else {
                 transportJobAction.execute(serverNodeId, request, new FailureOnlyResponseListener(handlerPhases, initializationTracker));
             }
