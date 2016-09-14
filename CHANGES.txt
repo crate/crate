@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Dropping a partition while inserting by primary key into same
+   partition should not raise an exception but returns a 0 row count instead.
+
  - Fix: JAR conflict if HDFS plugin with Hadoop 2.x is used.
 
  - Fix: Now it is also possible to restore a snapshot of a single partition
