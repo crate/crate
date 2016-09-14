@@ -55,6 +55,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
         this.request = request;
         this.item = item;
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
+        assert request.continueOnError() == false : "continueOnError flag is expected to be set to false for upsertById";
     }
 
     public SettableFuture<Long> resultFuture() {
@@ -71,22 +72,9 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                 }
                 if (updateResponse.failure() != null) {
                     onFailure(updateResponse.failure());
+                    return;
                 }
-                int location = updateResponse.itemIndices().get(0);
-
-                ShardResponse.Failure failure = updateResponse.failures().get(location);
-                if (failure == null) {
-                    resultFuture.set(1L);
-                } else {
-                    if (logger.isDebugEnabled()) {
-                        if (failure.versionConflict()) {
-                            logger.debug("Upsert of document with id {} failed because of a version conflict", failure.id());
-                        } else {
-                            logger.debug("Upsert of document with id {} failed {}", failure.id(), failure.message());
-                        }
-                    }
-                    resultFuture.set(0L);
-                }
+                resultFuture.set(1L);
                 close(null);
             }
 
