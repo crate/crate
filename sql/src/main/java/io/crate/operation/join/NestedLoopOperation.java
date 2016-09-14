@@ -188,7 +188,49 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         final SettableFuture<Void> finished = SettableFuture.create();
         final AtomicReference<ResumeHandle> resumeable = new AtomicReference<>(ResumeHandle.INVALID);
         boolean upstreamFinished = false;
+        boolean firstCall = true;
 
+        private boolean finishDownstreamIfBothSidesFinished() {
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("phase={} method=tryFinish side={} leftFinished={} rightFinished={}",
+                    phaseId, getClass().getSimpleName(), left.upstreamFinished, right.upstreamFinished);
+            }
+            if (!left.upstreamFinished || !right.upstreamFinished) {
+                return false;
+            }
+            if (upstreamFailure == null) {
+                downstream.finish(NestedLoopOperation.this);
+                completionFuture.set(null);
+                left.finished.set(null);
+                right.finished.set(null);
+            } else {
+                downstream.fail(upstreamFailure);
+                completionFuture.setException(upstreamFailure);
+                left.finished.setException(upstreamFailure);
+                right.finished.setException(upstreamFailure);
+            }
+            return true;
+        }
+
+        private boolean exitIfFirstCallAndLead() {
+            upstreamFinished = true;
+            if (firstCall) {
+                firstCall = false;
+                stop = true;
+                if (leadAcquired.compareAndSet(false, true)) {
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("phase={} side={} method=exitIfFirstCallAndLead leadAcquired",
+                            phaseId, getClass().getSimpleName());
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        boolean tryFinish() {
+            return exitIfFirstCallAndLead() || finishDownstreamIfBothSidesFinished();
+        }
 
         @Override
         public ListenableFuture<Void> finishFuture() {
@@ -220,7 +262,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
     private class LeftRowReceiver extends AbstractRowReceiver {
 
         private volatile Row lastRow = null; // TODO: volatile is only required for first access
-        private boolean firstCall = true;
         private RepeatHandle repeatHandle;
         private boolean wakeupRequired = true;
 
@@ -274,16 +315,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         }
 
         private void doFinish() {
-            upstreamFinished = true;
-            if (firstCall) {
-                firstCall = false;
-                stop = true;
-                if (leadAcquired.compareAndSet(false, true)) {
-                    LOGGER.trace("phase={} side=left method=doFinish leadAcquired", phaseId);
-                    return;
-                }
-            }
-
             if (!tryFinish()) {
                 switchTo(right.resumeable);
             }
@@ -333,7 +364,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         private final Set<Requirement> requirements;
 
         Row lastRow = null;
-        boolean firstCall = true;
         private boolean suspendThread = false;
 
 
@@ -396,14 +426,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         public void finish(final RepeatHandle repeatHandle) {
             LOGGER.trace("phase={} side=right method=finish firstCall={}", phaseId, firstCall);
 
-            upstreamFinished = true;
-            if (firstCall) {
-                stop = true; // if any side has no rows there is an empty result - so indicate left to stop.
-                firstCall = false;
-                if (leadAcquired.compareAndSet(false, true)) {
-                    return;
-                }
-            }
             if (tryFinish()) {
                 return;
             }
@@ -423,17 +445,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         @Override
         public void fail(Throwable throwable) {
             LOGGER.trace("phase={} side=right method=fail error={}", phaseId, throwable);
-
             upstreamFailure = throwable;
-            upstreamFinished = true;
-            stop = true;
-
-            if (firstCall) {
-                firstCall = false;
-                if (leadAcquired.compareAndSet(false, true)) {
-                    return;
-                }
-            }
             if (tryFinish()) {
                 return;
             }
@@ -484,24 +496,5 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                 delegate.resume(async);
             }
         }
-    }
-
-    private boolean tryFinish() {
-        LOGGER.trace("phase={} method=tryFinish leftFinished={} rightFinished={}", phaseId, left.upstreamFinished, right.upstreamFinished);
-        if (left.upstreamFinished && right.upstreamFinished) {
-            if (upstreamFailure == null) {
-                downstream.finish(this);
-                completionFuture.set(null);
-                left.finished.set(null);
-                right.finished.set(null);
-            } else {
-                downstream.fail(upstreamFailure);
-                completionFuture.setException(upstreamFailure);
-                left.finished.setException(upstreamFailure);
-                right.finished.setException(upstreamFailure);
-            }
-            return true;
-        }
-        return false;
     }
 }
