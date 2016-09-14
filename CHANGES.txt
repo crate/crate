@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added `percentile` aggregate function.
+
  - Fix: JAR conflict if HDFS plugin with Hadoop 2.x is used.
 
  - Fix: Now it is also possible to restore a snapshot of a single partition

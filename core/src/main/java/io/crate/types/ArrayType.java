@@ -168,4 +168,14 @@ public class ArrayType extends DataType implements CollectionType, Streamer<Obje
         result = 31 * result + innerType.hashCode();
         return result;
     }
+
+    public static double[] toDoubleArray(Object[] array) {
+        Object value;
+        double[] values = new double[array.length];
+        for (int i=0; i < array.length; i++) {
+            value = array[i];
+            values[i] = DataTypes.DOUBLE.value(value);
+        }
+        return values;
+    }
 }

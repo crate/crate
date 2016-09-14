@@ -34,6 +34,8 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Before;
 
+import java.util.List;
+
 import static io.crate.testing.TestingHelpers.getFunctions;
 
 public abstract class AggregationTest extends CrateUnitTest {
@@ -49,12 +51,22 @@ public abstract class AggregationTest extends CrateUnitTest {
     }
 
     public Object[][] executeAggregation(String name, DataType dataType, Object[][] data) throws Exception {
+        if (dataType == null) {
+            return executeAggregation(name, dataType, data, ImmutableList.<DataType>of());
+        } else {
+            return executeAggregation(name, dataType, data, ImmutableList.of(dataType));
+        }
+    }
 
+    public Object[][] executeAggregation(String name, DataType dataType, Object[][] data, List<DataType> argumentTypes) throws Exception {
         FunctionIdent fi;
         InputCollectExpression[] inputs;
         if (dataType != null) {
-            fi = new FunctionIdent(name, ImmutableList.of(dataType));
-            inputs = new InputCollectExpression[]{new InputCollectExpression(0)};
+            fi = new FunctionIdent(name, argumentTypes);
+            inputs = new InputCollectExpression[argumentTypes.size()];
+            for (int i = 0; i < argumentTypes.size(); i++) {
+                inputs[i] = new InputCollectExpression(i);
+            }
         } else {
             fi = new FunctionIdent(name, ImmutableList.<DataType>of());
             inputs = new InputCollectExpression[0];
