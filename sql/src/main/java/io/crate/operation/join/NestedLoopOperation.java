@@ -334,7 +334,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         Row lastRow = null;
         boolean firstCall = true;
-        private boolean pauseFromDownstream = false;
+        private boolean suspendThread = false;
 
 
         RightRowReceiver() {
@@ -345,13 +345,14 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         public void pauseProcessed(final ResumeHandle resumeHandle) {
             LOGGER.trace("phase={} side=right method=pauseProcessed", phaseId);
 
-            if (pauseFromDownstream) {
+            if (suspendThread) {
+                // right side started before left side did and so the thread is suspended.
+                if (!this.resumeable.compareAndSet(ResumeHandle.INVALID, new RightResumeHandle(resumeHandle))) {
+                    throw new IllegalStateException("Right resumable wasn't null. It should be set to null after use");
+                }
+            } else {
+                // pause request came from the downstream, so let it handle the resume.
                 downstream.pauseProcessed(resumeHandle);
-                return;
-            }
-
-            if (!this.resumeable.compareAndSet(ResumeHandle.INVALID, new RightResumeHandle(resumeHandle))) {
-                throw new IllegalStateException("Right resumable wasn't null. It should be set to null after use");
             }
         }
 
@@ -365,6 +366,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                 if (leadAcquired.compareAndSet(false, true)) {
                     lastRow = new RowN(rightRow.materialize());
                     LOGGER.trace("phase={} side=right method=setNextRow action=leadAcquired->pause", phaseId);
+                    suspendThread = true;
                     return Result.PAUSE;
                 } else if (left.lastRow == null) {
                     assert left.upstreamFinished : "If left acquired lead it should either set a lastRow or be finished";
@@ -387,9 +389,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             if (LOGGER.isTraceEnabled() && result != Result.CONTINUE) {
                 LOGGER.trace("phase={} side=right method=emitRow result={}", phaseId, result);
             }
-            if (result == Result.PAUSE) {
-                pauseFromDownstream = true;
-            }
             return result;
         }
 
@@ -398,8 +397,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             LOGGER.trace("phase={} side=right method=finish firstCall={}", phaseId, firstCall);
 
             upstreamFinished = true;
-            pauseFromDownstream = false;
-
             if (firstCall) {
                 stop = true; // if any side has no rows there is an empty result - so indicate left to stop.
                 firstCall = false;
@@ -429,7 +426,6 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
             upstreamFailure = throwable;
             upstreamFinished = true;
-            pauseFromDownstream = false;
             stop = true;
 
             if (firstCall) {
