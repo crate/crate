@@ -58,6 +58,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
         this.item = item;
         this.futureResult = futureResult;
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
+        assert request.continueOnError() == false : "continueOnError flag is expected to be set to false for upsertById";
     }
 
     @Override
@@ -70,22 +71,9 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                 }
                 if (updateResponse.failure() != null) {
                     onFailure(updateResponse.failure());
+                    return;
                 }
-                int location = updateResponse.itemIndices().get(0);
-
-                ShardResponse.Failure failure = updateResponse.failures().get(location);
-                if (failure == null) {
-                    futureResult.set(TaskResult.ONE_ROW);
-                } else {
-                    if (logger.isDebugEnabled()) {
-                        if (failure.versionConflict()) {
-                            logger.debug("Upsert of document with id {} failed because of a version conflict", failure.id());
-                        } else {
-                            logger.debug("Upsert of document with id {} failed {}", failure.id(), failure.message());
-                        }
-                    }
-                    futureResult.set(TaskResult.ZERO);
-                }
+                futureResult.set(TaskResult.ONE_ROW);
                 close(null);
             }
 
