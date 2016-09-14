@@ -330,6 +330,56 @@ Example::
     Due to java double precision arithmetic it is possible that any two executions
     of the aggregation function on the same data produce slightly differing results.
 
+percentile
+==========
+
+The ``percentile`` aggregation function computes a `Percentile`_ over numeric
+non-null values in a column.
+
+Percentiles show the point at which a certain percentage of observed values occur. 
+For example, the 98th percentile is the value which is greater than 98% of the observed values.
+
+The function expects a single fraction or an array of fractions and a column name.
+If the value at the specified column is ``null`` the row is ignored.
+Fractions must be double precision values between 0 and 1.
+When supplied a single fraction, the function will return a single value corresponding
+to the percentile of the specified fraction::
+
+    cr> select percentile(position, 0.95), kind from locations
+    ... group by kind order by kind;
+    +----------------------------+-------------+
+    | percentile(position, 0.95) | kind        |
+    +----------------------------+-------------+
+    | 1.920286436967152          | Galaxy      |
+    | 1.4142135623730951         | Planet      |
+    | 1.118033988749895          | Star System |
+    +----------------------------+-------------+
+    SELECT 3 rows in set (... sec)
+
+
+When supplied an array of fractions, the function will return an array of values
+corresponding to the percentile of each fraction specified::
+
+    cr> select percentile(position, [0.0013, 0.9987]) as perc from locations;
+    +----------------+
+    | perc           |
+    +----------------+
+    | [0.0012, 1.92] |
+    +----------------+
+    SELECT 1 rows in set (... sec)
+
+
+To be able to calculate percentiles over a huge amount of data and to scale out crate calculates
+approximate instead of accurate percentiles. The algorithm used by the percentile metric is called
+`TDigest`_,
+there are a few guidelines to keep in mind:
+
+    - Extreme percentiles (e.g. 99%) are more accurate
+    - For small sets percentiles are highly accurate
+    - It's difficult to generalize the exact level of accuracy, as it
+      depends on your data distribution and volume of data being aggregated
+
+
 arbitrary
 =========
 
@@ -376,3 +426,5 @@ do.
 .. _Geometric Mean: https://en.wikipedia.org/wiki/Mean#Geometric_mean_.28GM.29
 .. _Variance: https://en.wikipedia.org/wiki/Variance
 .. _Standard Deviation: https://en.wikipedia.org/wiki/Standard_deviation
+.. _Percentile: https://en.wikipedia.org/wiki/Percentile
+.. _TDigest: https://github.com/tdunning/t-digest/blob/master/docs/t-digest-paper/histo.pdf
