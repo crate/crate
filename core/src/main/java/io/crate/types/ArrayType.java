@@ -168,4 +168,5 @@ public class ArrayType extends DataType implements CollectionType, Streamer<Obje
         result = 31 * result + innerType.hashCode();
         return result;
     }
+
 }

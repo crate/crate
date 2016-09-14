@@ -67,6 +67,8 @@ public class DataTypes {
     public final static GeoPointType GEO_POINT = GeoPointType.INSTANCE;
     public final static GeoShapeType GEO_SHAPE = GeoShapeType.INSTANCE;
 
+    public final static DataType DOUBLE_ARRAY = new ArrayType(DataTypes.DOUBLE);
+
     public final static ImmutableList<DataType> PRIMITIVE_TYPES = ImmutableList.<DataType>of(
             BYTE,
             BOOLEAN,

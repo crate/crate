@@ -5,11 +5,13 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added `percentile` aggregate function.
+
  - Fixed an issue that could cause joins on 3+ tables to produce the wrong
    result.
 
  - Fix: Inserting in tables which have a generated column with
-  `current_timestamp` failed.
+   `current_timestamp` failed.
 
  - Added the sys.summits table. The table contains the information about
    mountains in the Alps higher than 2000 meters, which are used as node names.
