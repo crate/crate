@@ -176,7 +176,7 @@ public class ContextPreparer extends AbstractComponent {
                 }
             }
             if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
-                Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
+                Streamer<?>[] streamers = StreamerVisitor.streamersFromOutputs(nodeOperation.executionPhase());
                 SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers);
                 preparerContext.directResponseFutures.add(bucketBuilder.result());
                 preparerContext.registerRowReceiver(nodeOperation.downstreamExecutionPhaseId(), bucketBuilder);
@@ -477,7 +477,7 @@ public class ContextPreparer extends AbstractComponent {
                     phase.executionPhaseId(),
                     phase.name(),
                     pageDownstreamProjectorChain.v1(),
-                    DataTypes.getStreamer(phase.inputTypes()),
+                    DataTypes.getStreamers(phase.inputTypes()),
                     ramAccountingContext,
                     phase.numUpstreams(),
                     pageDownstreamProjectorChain.v2()));
@@ -628,7 +628,7 @@ public class ContextPreparer extends AbstractComponent {
                     mergePhase.executionPhaseId(),
                     mergePhase.name(),
                     pageDownstreamWithChain.v1(),
-                    StreamerVisitor.streamerFromOutputs(mergePhase),
+                    StreamerVisitor.streamersFromOutputs(mergePhase),
                     ramAccountingContext,
                     mergePhase.numUpstreams(),
                     pageDownstreamWithChain.v2()

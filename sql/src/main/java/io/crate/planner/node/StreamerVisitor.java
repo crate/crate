@@ -37,7 +37,7 @@ public class StreamerVisitor {
 
     private StreamerVisitor() {}
 
-    public static Streamer<?>[] streamerFromOutputs(ExecutionPhase executionPhase) {
+    public static Streamer<?>[] streamersFromOutputs(ExecutionPhase executionPhase) {
         return EXECUTION_PHASE_STREAMER_VISITOR.process(executionPhase, null);
     }
 
@@ -47,12 +47,12 @@ public class StreamerVisitor {
 
         @Override
         public Streamer<?>[] visitMergePhase(MergePhase phase, Void context) {
-            return DataTypes.getStreamer(phase.outputTypes());
+            return DataTypes.getStreamers(phase.outputTypes());
         }
 
         @Override
         public Streamer<?>[] visitRoutedCollectPhase(RoutedCollectPhase phase, Void context) {
-            return DataTypes.getStreamer(phase.outputTypes());
+            return DataTypes.getStreamers(phase.outputTypes());
         }
 
         @Override
@@ -62,12 +62,12 @@ public class StreamerVisitor {
 
         @Override
         public Streamer<?>[] visitNestedLoopPhase(NestedLoopPhase phase, Void context) {
-            return DataTypes.getStreamer(phase.outputTypes());
+            return DataTypes.getStreamers(phase.outputTypes());
         }
 
         @Override
         public Streamer<?>[] visitFileUriCollectPhase(FileUriCollectPhase phase, Void context) {
-            return DataTypes.getStreamer(phase.outputTypes());
+            return DataTypes.getStreamers(phase.outputTypes());
         }
 
         @Override

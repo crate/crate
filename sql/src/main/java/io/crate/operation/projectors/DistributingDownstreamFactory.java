@@ -61,7 +61,7 @@ public class DistributingDownstreamFactory extends AbstractComponent {
                               DistributionInfo distributionInfo,
                               UUID jobId,
                               int pageSize) {
-        Streamer<?>[] streamers = StreamerVisitor.streamerFromOutputs(nodeOperation.executionPhase());
+        Streamer<?>[] streamers = StreamerVisitor.streamersFromOutputs(nodeOperation.executionPhase());
         assert !ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())
                 : "trying to build a DistributingDownstream but nodeOperation has a directResponse downstream";
         assert nodeOperation.downstreamNodes().size() > 0 : "must have at least one downstream";

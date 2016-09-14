@@ -45,7 +45,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final String nodeName;
     private String name;
     private final PageDownstream pageDownstream;
-    private final Streamer<?>[] streamer;
+    private final Streamer<?>[] streamers;
     private final RamAccountingContext ramAccountingContext;
     private final int numBuckets;
     private final ArrayList<SettableFuture<Bucket>> bucketFutures;
@@ -61,7 +61,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
                                  int id,
                                  String name,
                                  PageDownstream pageDownstream,
-                                 Streamer<?>[] streamer,
+                                 Streamer<?>[] streamers,
                                  RamAccountingContext ramAccountingContext,
                                  int numBuckets,
                                  @Nullable FlatProjectorChain projectorChain) {
@@ -69,7 +69,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         this.nodeName = nodeName;
         this.name = name;
         this.pageDownstream = pageDownstream;
-        this.streamer = streamer;
+        this.streamers = streamers;
         this.ramAccountingContext = ramAccountingContext;
         this.numBuckets = numBuckets;
         this.projectorChain = projectorChain;
@@ -187,8 +187,8 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     }
 
     @Override
-    public Streamer<?>[] streamer() {
-        return streamer;
+    public Streamer<?>[] streamers() {
+        return streamers;
     }
 
     @Override

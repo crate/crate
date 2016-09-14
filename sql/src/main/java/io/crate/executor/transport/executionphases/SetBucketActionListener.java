@@ -36,7 +36,7 @@ class SetBucketActionListener extends SetBucketAction implements ActionListener<
 
     SetBucketActionListener(List<PageBucketReceiver> pageBucketReceivers, int bucketIdx, InitializationTracker initializationTracker) {
         super(pageBucketReceivers, bucketIdx, initializationTracker);
-        streamers = pageBucketReceivers.get(0).streamer();
+        streamers = pageBucketReceivers.get(0).streamers();
     }
 
     @Override
