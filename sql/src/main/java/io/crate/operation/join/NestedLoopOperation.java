@@ -307,7 +307,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         private volatile Row lastRow = null; // TODO: volatile is only required for first access
         private RepeatHandle repeatHandle;
-        private boolean wakeupRequired = true;
+        private boolean isPaused = true;
 
         @Override
         public Result setNextRow(Row row) {
@@ -326,18 +326,17 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                 }
             }
             LOGGER.trace("phase={} side=left method=setNextRow switchOnPause=true", phaseId);
-            wakeupRequired = false;
+            isPaused = false;
             switchTo(right.resumeable);
             if (right.upstreamFinished) {
                 return Result.CONTINUE;
             }
-
-            wakeupRequired = true;
             return Result.PAUSE;
         }
 
         @Override
         public void pauseProcessed(ResumeHandle resumeable) {
+            isPaused = true;
             if (!this.resumeable.compareAndSet(ResumeHandle.INVALID, resumeable)) {
                 throw new AssertionError("resumeable was already set");
             }
@@ -501,8 +500,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
                     repeatHandle.repeat();
                 }
             });
-            if (left.wakeupRequired) {
-                left.wakeupRequired = false;
+            if (left.isPaused) {
                 switchTo(left.resumeable);
             }
         }
@@ -514,8 +512,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             if (tryFinish()) {
                 return;
             }
-            if (left.wakeupRequired) {
-                left.wakeupRequired = false;
+            if (left.isPaused) {
                 switchTo(left.resumeable);
             }
         }
