@@ -43,13 +43,14 @@ import java.util.concurrent.atomic.AtomicReference;
 
 
 /**
- * Push based Nested Loop implementation:
+ * Push based nested-loop-like implementation:
  *
- * Basically it is:
+ * <h2>cross join or inner join</h2>
  * <pre>
  *     for (leftRow in left) {
  *         for (rightRow in right) {
- *             emit(left + right)
+ *             if matched
+ *                  emit(left + right)
  *         }
  *     }
  * </pre>
@@ -68,9 +69,24 @@ import java.util.concurrent.atomic.AtomicReference;
  *             RowReceiver
  * </pre>
  *
- * In case of Right & Full (Outer) Join once the whole left-right loop is finished a last loop
- * on the right is executed in order to emit rows from the right that weren't matched with rows
- * from left:
+ * <h2>left join</h2>:
+ * <pre>
+ *     for (leftRow in left) {
+ *         for (rightRow in right) {
+ *             matched?
+ *                  emit
+ *         }
+ *         if (noRightRowMatched) {
+ *             emitWithRightAsNull
+ *         }
+ *     }
+ *
+ * </pre>
+ *
+ *
+ * <h2>right join</h2>
+ *
+ * Adds an additional loop over rightRows after the nested-loop to emit any rows that didn't have any matches:
  * <pre>
  *      for (leftRow in left) {
  *          for (rightRow in right) {
@@ -91,7 +107,12 @@ import java.util.concurrent.atomic.AtomicReference;
  * doesn't match the order of the rows as received from the upstreams.
  *
  *
- * Implementation details:
+ * <h2>Full join</h2>
+ *
+ * is a combination of left-join and right-join.
+ *
+ *
+ * <h2>Implementation details:</h2>
  *
  * Both upstreams start concurrently. {@link #leadAcquired} is used to pause the first upstream and at then point
  * it is single threaded.
