@@ -27,7 +27,6 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
 import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
@@ -39,10 +38,10 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static io.crate.testing.RowGenerator.singleColRows;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -57,9 +56,9 @@ public class MultiShardScoreDocCollectorTest {
                 OrderingByPosition.rowOrdering(new int[]{0}, new boolean[]{false}, new Boolean[]{null});
 
         List<OrderedDocCollector> collectors = new ArrayList<>();
-        collectors.add(mockedCollector(new ShardId("p1", 0), 0, Arrays.<Row>asList(new Row1(1), new Row1(1))));
-        collectors.add(mockedCollector(new ShardId("p2", 0), 2, Arrays.<Row>asList(new Row1(2), new Row1(2), new Row1(2))));
-        collectors.add(mockedCollector(new ShardId("p1", 1), 10, Arrays.<Row>asList(new Row1(3), new Row1(3))));
+        collectors.add(mockedCollector(new ShardId("p1", 0), 0, singleColRows(1, 1)));
+        collectors.add(mockedCollector(new ShardId("p2", 0), 2, singleColRows(2, 2, 2)));
+        collectors.add(mockedCollector(new ShardId("p1", 1), 10, singleColRows(3, 3)));
 
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withLimit(6);
         FlatProjectorChain projectorChain = FlatProjectorChain.withReceivers(Collections.singletonList(rowReceiver));

@@ -23,13 +23,11 @@ package io.crate.testing;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
 import io.crate.operation.projectors.ExecutorResumeHandle;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.concurrent.Executor;
 
 public class RowSender implements Runnable, RepeatHandle {
@@ -90,48 +88,6 @@ public class RowSender implements Runnable, RepeatHandle {
     }
 
 
-    /**
-     * Generate a range of rows.
-     * Both increasing (e.g. 0 -> 10) and decreasing ranges (10 -> 0) are supported.
-     *
-     * @param from start (inclusive)
-     * @param to end (exclusive)
-     */
-    public static Iterable<Row> rowRange(final long from, final long to) {
-        return new Iterable<Row>() {
-
-            @Override
-            public Iterator<Row> iterator() {
-                return new Iterator<Row>() {
-
-                    private Object[] columns = new Object[1];
-                    private RowN sharedRow = new RowN(columns);
-                    private long i = from;
-                    private long step = from < to ? 1 : -1;
-
-                    @Override
-                    public boolean hasNext() {
-                        return step >= 0 ? i < to : i > to;
-                    }
-
-                    @Override
-                    public Row next() {
-                        if (!hasNext()) {
-                            throw new NoSuchElementException("Iterator exhausted");
-                        }
-                        columns[0] = i;
-                        i += step;
-                        return sharedRow;
-                    }
-
-                    @Override
-                    public void remove() {
-                        throw new UnsupportedOperationException("Remove not supported");
-                    }
-                };
-            }
-        };
-    }
 
     /**
      * Generates N rows where each row will just have 1 integer column, the current range iteration value.
@@ -143,7 +99,7 @@ public class RowSender implements Runnable, RepeatHandle {
      * @return              the last emitted integer value
      */
     public static long generateRowsInRangeAndEmit(int start, int end, RowReceiver rowReceiver) {
-        RowSender rowSender = new RowSender(rowRange(start, end), rowReceiver, MoreExecutors.directExecutor());
+        RowSender rowSender = new RowSender(RowGenerator.range(start, end), rowReceiver, MoreExecutors.directExecutor());
         rowSender.run();
         if (rowSender.iterator.hasNext()) {
             long nextValue = (long) rowSender.iterator.next().get(0);

@@ -52,6 +52,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.RowGenerator.singleColRows;
 import static org.hamcrest.Matchers.isA;
 import static org.hamcrest.core.Is.is;
 
@@ -77,14 +78,6 @@ public class NestedLoopOperationTest extends CrateUnitTest {
                     PassThroughPagingIterator.<Void, Row>repeatable(),
                     Optional.<Executor>absent()
         );
-    }
-
-    private List<Row> asRows(Object ...rows) {
-        List<Row> result = new ArrayList<>(rows.length);
-        for (Object row : rows) {
-            result.add(new Row1(row));
-        }
-        return result;
     }
 
     @Test
@@ -119,13 +112,13 @@ public class NestedLoopOperationTest extends CrateUnitTest {
 
     @Test
     public void testLeftSideEmpty() throws Exception {
-        Bucket rows = executeNestedLoop(Collections.<Row>emptyList(), asRows("small", "medium"));
+        Bucket rows = executeNestedLoop(Collections.<Row>emptyList(), singleColRows("small", "medium"));
         assertThat(rows.size(), is(0));
     }
 
     @Test
     public void testRightSideIsEmpty() throws Exception {
-        Bucket rows = executeNestedLoop(asRows("small", "medium"), Collections.<Row>emptyList());
+        Bucket rows = executeNestedLoop(singleColRows("small", "medium"), Collections.<Row>emptyList());
         assertThat(rows.size(), is(0));
     }
 
@@ -134,8 +127,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(1);
         NestedLoopOperation nl = new NestedLoopOperation(0, rowReceiver);
 
-        RowSender leftSender = new RowSender(asRows(1, 2, 3), nl.leftRowReceiver(), MoreExecutors.directExecutor());
-        RowSender rightSender = new RowSender(asRows(10, 20), nl.rightRowReceiver(), MoreExecutors.directExecutor());
+        RowSender leftSender = new RowSender(singleColRows(1, 2, 3), nl.leftRowReceiver(), MoreExecutors.directExecutor());
+        RowSender rightSender = new RowSender(singleColRows(10, 20), nl.rightRowReceiver(), MoreExecutors.directExecutor());
 
         rightSender.run();
         assertThat(rightSender.numPauses(), is(1));
@@ -166,13 +159,13 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         NestedLoopOperation parentNl = new NestedLoopOperation(0, childNl.leftRowReceiver());
 
         RowSender rsA = new RowSender(
-                asRows(1, 2), parentNl.leftRowReceiver(), MoreExecutors.directExecutor());
+                singleColRows(1, 2), parentNl.leftRowReceiver(), MoreExecutors.directExecutor());
 
         RowSender rsB = new RowSender(
-                asRows(10, 20), parentNl.rightRowReceiver(), MoreExecutors.directExecutor());
+                singleColRows(10, 20), parentNl.rightRowReceiver(), MoreExecutors.directExecutor());
 
         RowSender rsC = new RowSender(
-                asRows(100, 200), childNl.rightRowReceiver(), MoreExecutors.directExecutor());
+                singleColRows(100, 200), childNl.rightRowReceiver(), MoreExecutors.directExecutor());
 
         ArrayList<Thread> threads = new ArrayList<>();
 
@@ -197,8 +190,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
     @Test
     @Repeat(iterations = 5)
     public void testNestedLoopOperation() throws Exception {
-        List<Row> leftRows = asRows("green", "blue", "red");
-        List<Row> rightRows = asRows("small", "medium");
+        List<Row> leftRows = singleColRows("green", "blue", "red");
+        List<Row> rightRows = singleColRows("small", "medium");
 
         Bucket rows = executeNestedLoop(leftRows, rightRows);
         assertThat(TestingHelpers.printedTable(rows), is("" +
@@ -227,8 +220,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
 
         PageDownstream leftBucketMerger = pageDownstream(nestedLoopOperation.leftRowReceiver());
         PageDownstream rightBucketMerger = pageDownstream(nestedLoopOperation.rightRowReceiver());
-        Thread leftT = sendRowsThreaded("left", leftBucketMerger, asRows("green", "blue", "red"));
-        Thread rightT = sendRowsThreaded("right", rightBucketMerger, asRows("small", "medium"));
+        Thread leftT = sendRowsThreaded("left", leftBucketMerger, singleColRows("green", "blue", "red"));
+        Thread rightT = sendRowsThreaded("right", rightBucketMerger, singleColRows("small", "medium"));
 
         Bucket rows = rowReceiver.result();
         assertThat(TestingHelpers.printedTable(rows), is("" +

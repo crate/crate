@@ -25,6 +25,7 @@ package io.crate.operation.projectors;
 import io.crate.operation.RowDownstream;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.RowGenerator;
 import io.crate.testing.RowSender;
 import org.junit.After;
 import org.junit.Before;
@@ -55,9 +56,9 @@ public class RowMergersTest extends CrateUnitTest {
     public void testRowMergerPauseResume() throws Exception {
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(3);
         RowDownstream rowDownstream = new MultiUpstreamRowReceiver(rowReceiver);
-        final RowSender r1 = new RowSender(RowSender.rowRange(0, 20), rowDownstream.newRowReceiver(), executorService);
-        final RowSender r2 = new RowSender(RowSender.rowRange(0, 20), rowDownstream.newRowReceiver(), executorService);
-        final RowSender r3 = new RowSender(RowSender.rowRange(0, 20), rowDownstream.newRowReceiver(), executorService);
+        final RowSender r1 = new RowSender(RowGenerator.range(0, 20), rowDownstream.newRowReceiver(), executorService);
+        final RowSender r2 = new RowSender(RowGenerator.range(0, 20), rowDownstream.newRowReceiver(), executorService);
+        final RowSender r3 = new RowSender(RowGenerator.range(0, 20), rowDownstream.newRowReceiver(), executorService);
 
         r1.run();
         r2.run();
@@ -81,9 +82,9 @@ public class RowMergersTest extends CrateUnitTest {
     public void testPauseResumeWithOneEmptyUpstream() throws Exception {
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(3);
         RowDownstream rowDownstream = new MultiUpstreamRowReceiver(rowReceiver);
-        final RowSender r1 = new RowSender(RowSender.rowRange(0, 20), rowDownstream.newRowReceiver(), executorService);
-        final RowSender r2 = new RowSender(RowSender.rowRange(0, 0), rowDownstream.newRowReceiver(), executorService);
-        final RowSender r3 = new RowSender(RowSender.rowRange(0, 20), rowDownstream.newRowReceiver(), executorService);
+        final RowSender r1 = new RowSender(RowGenerator.range(0, 20), rowDownstream.newRowReceiver(), executorService);
+        final RowSender r2 = new RowSender(RowGenerator.range(0, 0), rowDownstream.newRowReceiver(), executorService);
+        final RowSender r3 = new RowSender(RowGenerator.range(0, 20), rowDownstream.newRowReceiver(), executorService);
         r1.run();
         r2.run();
         r3.run();

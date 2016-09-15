@@ -42,6 +42,7 @@ import io.crate.operation.projectors.fetch.FetchProjectorContext;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.RowGenerator;
 import io.crate.testing.RowSender;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.LongType;
@@ -81,7 +82,7 @@ public class FetchProjectorTest extends CrateUnitTest {
         final CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(2);
         int fetchSize = random().nextInt(20);
         FetchProjector fetchProjector = prepareFetchProjector(fetchSize, rowReceiver, fetchOperation);
-        final RowSender rowSender = new RowSender(RowSender.rowRange(0, 10), fetchProjector, MoreExecutors.directExecutor());
+        final RowSender rowSender = new RowSender(RowGenerator.range(0, 10), fetchProjector, MoreExecutors.directExecutor());
         rowSender.run();
 
         assertBusy(new Runnable() {
@@ -102,7 +103,7 @@ public class FetchProjectorTest extends CrateUnitTest {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         int fetchSize = 3;
         FetchProjector fetchProjector = prepareFetchProjector(fetchSize, rowReceiver, fetchOperation);
-        final RowSender rowSender = new RowSender(RowSender.rowRange(0, 10), fetchProjector, MoreExecutors.directExecutor());
+        final RowSender rowSender = new RowSender(RowGenerator.range(0, 10), fetchProjector, MoreExecutors.directExecutor());
         rowSender.run();
 
         assertBusy(new Runnable() {

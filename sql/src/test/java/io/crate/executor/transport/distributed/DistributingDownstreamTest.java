@@ -31,6 +31,7 @@ import io.crate.executor.transport.Transports;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.RowGenerator;
 import io.crate.testing.RowSender;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -180,15 +181,9 @@ public class DistributingDownstreamTest extends CrateUnitTest {
         dd.prepare();
 
         RowSender rowSender = new RowSender(
-                Arrays.<Row>asList(
-                        new Row1(1),
-                        new Row1(2),
-                        new Row1(3),
-                        new Row1(4),
-                        new Row1(5)
-                ),
-                dd,
-                MoreExecutors.directExecutor()
+            RowGenerator.range(1, 6),
+            dd,
+            MoreExecutors.directExecutor()
         );
         rowSender.run();
         assertThat(requestsReceived.get(), is(3));

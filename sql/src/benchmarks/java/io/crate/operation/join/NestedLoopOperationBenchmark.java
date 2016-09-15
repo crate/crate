@@ -32,6 +32,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.testing.RowCountRowReceiver;
+import io.crate.testing.RowGenerator;
 import io.crate.testing.RowSender;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
@@ -118,8 +119,8 @@ public class NestedLoopOperationBenchmark {
     }
 
     private Bucket executeNestedLoop(int leftSize, int rightSize) throws Exception {
-        Iterable<Row> left = RowSender.rowRange(0, leftSize);
-        Iterable<Row> right = RowSender.rowRange(0, rightSize);
+        Iterable<Row> left = RowGenerator.range(0, leftSize);
+        Iterable<Row> right = RowGenerator.range(0, rightSize);
 
         RowCountRowReceiver receiver = new RowCountRowReceiver();
         NestedLoopOperation operation = new NestedLoopOperation(0, receiver);

@@ -28,6 +28,7 @@ import io.crate.core.collections.Row;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.RowsCollector;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.RowGenerator;
 import io.crate.testing.RowSender;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
@@ -43,8 +44,8 @@ public class CompositeCollectorTest {
     public void testRepeatEmitsRowsInTheSameOrder() throws Exception {
         CollectingRowReceiver rr = new CollectingRowReceiver();
 
-        Iterable<Row> leftRows = RowSender.rowRange(0, 15);
-        Iterable<Row> rightRows = RowSender.rowRange(10, 30);
+        Iterable<Row> leftRows = RowGenerator.range(0, 15);
+        Iterable<Row> rightRows = RowGenerator.range(10, 30);
 
         CrateCollector.Builder c1 = RowsCollector.builder(leftRows);
         CrateCollector.Builder c2 = RowsCollector.builder(rightRows);
