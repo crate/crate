@@ -25,9 +25,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.exceptions.ConversionException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Reference;
+import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -167,5 +165,26 @@ public class Symbols {
         public Boolean visitReference(Reference symbol, ColumnIdent context) {
             return context.equals(symbol.ident().columnIdent());
         }
+    }
+
+    private static class RCReplaceVisitor
+        extends ReplacingSymbolVisitor<com.google.common.base.Function<? super RelationColumn, ? extends Symbol>> {
+
+        public final static RCReplaceVisitor INSTANCE = new RCReplaceVisitor();
+
+        private RCReplaceVisitor() {
+            super(ReplaceMode.COPY);
+        }
+
+        @Override
+        public Symbol visitRelationColumn(RelationColumn relationColumn,
+                                          com.google.common.base.Function<? super RelationColumn, ? extends Symbol> replaceFunction) {
+            return replaceFunction.apply(relationColumn);
+        }
+    }
+
+    public static Symbol replaceRelationColumn(Symbol symbol,
+                                               com.google.common.base.Function<? super RelationColumn, ? extends Symbol> replaceFunction) {
+        return RCReplaceVisitor.INSTANCE.process(symbol, replaceFunction);
     }
 }

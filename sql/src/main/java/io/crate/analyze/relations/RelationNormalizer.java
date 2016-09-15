@@ -103,7 +103,8 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         if (context.querySpec != null) {
             QuerySpec querySpec = mergeAndReplaceFields(multiSourceSelect, context.querySpec);
             // must create a new MultiSourceSelect because paths and query spec changed
-            relation = new MultiSourceSelect(mapSourceRelations(multiSourceSelect), context.paths(), querySpec,
+            relation = new MultiSourceSelect(mapSourceRelations(multiSourceSelect),
+                relation.outputSymbols(), context.paths(), querySpec,
                 multiSourceSelect.joinPairs());
         }
         relation.pushDownQuerySpecs();

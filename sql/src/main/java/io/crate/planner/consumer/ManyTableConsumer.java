@@ -36,7 +36,6 @@ import io.crate.exceptions.ValidationException;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
-import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -50,8 +49,8 @@ public class ManyTableConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    ManyTableConsumer(ConsumingPlanner consumingPlanner) {
-        this.visitor = new Visitor(consumingPlanner);
+    ManyTableConsumer(ConsumingPlanner consumingPlanner, Rewriter rewriter) {
+        this.visitor = new Visitor(consumingPlanner, rewriter);
     }
 
     @Override
@@ -317,7 +316,7 @@ public class ManyTableConsumer implements Consumer {
         }
     }
 
-    static TwoTableJoin twoTableJoin(MultiSourceSelect mss) {
+    static TwoTableJoin twoTableJoin(Rewriter rewriter, MultiSourceSelect mss) {
         assert mss.sources().size() == 2;
         Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
         QualifiedName left = it.next();
@@ -326,6 +325,8 @@ public class ManyTableConsumer implements Consumer {
         MultiSourceSelect.Source leftSource = mss.sources().get(left);
         MultiSourceSelect.Source rightSource = mss.sources().get(right);
 
+        rewriter.tryRewriteOuterToInnerJoin(
+            joinPair, mss.outputSymbols(), mss.querySpec(), left, right, leftSource.querySpec(), rightSource.querySpec());
         JoinPairs.removeOrderByOnOuterRelation(left, right, leftSource.querySpec(), rightSource.querySpec(), joinPair);
 
         Optional<OrderBy> remainingOrderByToApply = Optional.absent();
@@ -345,9 +346,11 @@ public class ManyTableConsumer implements Consumer {
     private static class Visitor extends RelationPlanningVisitor {
 
         private final ConsumingPlanner consumingPlanner;
+        private final Rewriter rewriter;
 
-        public Visitor(ConsumingPlanner consumingPlanner) {
+        public Visitor(ConsumingPlanner consumingPlanner, Rewriter rewriter) {
             this.consumingPlanner = consumingPlanner;
+            this.rewriter = rewriter;
         }
 
         @Override
@@ -355,7 +358,7 @@ public class ManyTableConsumer implements Consumer {
             if (isUnsupportedStatement(mss, context)) return null;
             replaceFieldsWithRelationColumns(mss);
             if (mss.sources().size() == 2) {
-                return planSubRelation(context, twoTableJoin(mss));
+                return planSubRelation(context, twoTableJoin(rewriter, mss));
             }
             return planSubRelation(context, buildTwoTableJoinTree(mss));
         }

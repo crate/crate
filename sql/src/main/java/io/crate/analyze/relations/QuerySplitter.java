@@ -93,7 +93,7 @@ public class QuerySplitter {
                 ManyTableConsumer.QualifiedNameCounter.INSTANCE.process(function, qualifiedNames);
                 Symbol prevQuery = splits.put(qualifiedNames, function);
                 if (prevQuery != null) {
-                    splits.put(qualifiedNames, AndOperator.join(Arrays.asList(prevQuery, function)));
+                    splits.put(qualifiedNames, AndOperator.of(prevQuery, function));
                 }
                 return null;
             }
