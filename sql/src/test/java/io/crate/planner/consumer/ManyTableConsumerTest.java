@@ -27,6 +27,9 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.repositories.RepositorySettingsModule;
+import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
@@ -48,8 +51,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
 
-import static io.crate.testing.TestingHelpers.isSQL;
-import static io.crate.testing.TestingHelpers.newMockedThreadPool;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -181,7 +183,12 @@ public class ManyTableConsumerTest {
         MultiSourceSelect mss = analyze("select * from t1 " +
                                         "left join t2 on t1.a = t2.b " +
                                         "order by t2.b");
-        TwoTableJoin root = ManyTableConsumer.twoTableJoin(mss);
+        TwoTableJoin root = ManyTableConsumer.twoTableJoin(new Rewriter(getFunctions(), new NestedReferenceResolver() {
+            @Override
+            public ReferenceImplementation<?> getImplementation(Reference refInfo) {
+                return null;
+            }
+        }), mss);
 
         assertThat(root.right().querySpec().orderBy().isPresent(), is(false));
         assertThat(root.querySpec().orderBy().get(), isSQL("RELCOL(doc.t2, 0)"));

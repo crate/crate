@@ -25,9 +25,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.exceptions.ConversionException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Reference;
+import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -167,5 +165,39 @@ public class Symbols {
         public Boolean visitReference(Reference symbol, ColumnIdent context) {
             return context.equals(symbol.ident().columnIdent());
         }
+    }
+
+    private static class RCReplaceCtx {
+        private final Predicate<? super RelationColumn> predicate;
+        private final com.google.common.base.Function<? super RelationColumn, ? extends Symbol> replaceFunction;
+
+        RCReplaceCtx(Predicate<? super RelationColumn> predicate,
+                     com.google.common.base.Function<? super RelationColumn, ? extends Symbol> replaceFunction) {
+            this.predicate = predicate;
+            this.replaceFunction = replaceFunction;
+        }
+    }
+
+    private static class RCReplaceVisitor extends ReplacingSymbolVisitor<RCReplaceCtx> {
+
+        public final static RCReplaceVisitor INSTANCE = new RCReplaceVisitor();
+
+        private RCReplaceVisitor() {
+            super(ReplaceMode.COPY);
+        }
+
+        @Override
+        public Symbol visitRelationColumn(RelationColumn relationColumn, RCReplaceCtx ctx) {
+            if (ctx.predicate.apply(relationColumn)) {
+                return ctx.replaceFunction.apply(relationColumn);
+            }
+            return relationColumn;
+        }
+    }
+
+    public static Symbol replaceRC(Symbol symbol,
+                                   Predicate<? super RelationColumn> predicate,
+                                   com.google.common.base.Function<? super RelationColumn, ? extends Symbol> replaceFunction) {
+        return RCReplaceVisitor.INSTANCE.process(symbol, new RCReplaceCtx(predicate, replaceFunction));
     }
 }

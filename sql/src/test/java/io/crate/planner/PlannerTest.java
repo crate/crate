@@ -23,6 +23,7 @@ import io.crate.planner.node.ddl.ESDeletePartition;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.KillPlan;
@@ -1766,6 +1767,15 @@ public class PlannerTest extends AbstractPlannerTest {
 
         assertThat(((FilterProjection) innerNl.nestedLoopPhase().projections().get(0)).query(),
             isSQL("((INPUT(2) = INPUT(0)) AND (INPUT(3) = INPUT(1)))"));
+    }
+
+    @Test
+    public void testOuterJoinToInnerJoinRewrite() throws Exception {
+        QueryThenFetch qtf = plan("select * from users u1 left join users u2 on u1.id = u2.id where u2.name = 'Arthur'");
+        NestedLoop nl = (NestedLoop) qtf.subPlan();
+        assertThat(nl.nestedLoopPhase().joinType(), is(JoinType.INNER));
+        CollectAndMerge rightCM = (CollectAndMerge) nl.right().plan();
+        assertThat(((RoutedCollectPhase) rightCM.collectPhase()).whereClause().query(), isSQL("(doc.users.name = 'Arthur')"));
     }
 
     @Test

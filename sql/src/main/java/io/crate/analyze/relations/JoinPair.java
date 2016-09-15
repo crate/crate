@@ -32,7 +32,7 @@ import javax.annotation.Nullable;
 
 public class JoinPair {
 
-    private final JoinType joinType;
+    private JoinType joinType;
 
     private QualifiedName left;
     private QualifiedName right;
@@ -114,5 +114,9 @@ public class JoinPair {
             }
         }
         return false;
+    }
+
+    public void joinType(JoinType joinType) {
+        this.joinType = joinType;
     }
 }

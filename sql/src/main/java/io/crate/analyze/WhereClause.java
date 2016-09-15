@@ -30,6 +30,7 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.StmtCtx;
+import io.crate.operation.operator.AndOperator;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -200,5 +201,24 @@ public class WhereClause extends QueryClause implements Streamable {
 
     public boolean hasVersions() {
         return docKeys.isPresent() && docKeys.get().withVersions();
+    }
+
+
+    /**
+     * Adds another query to this WhereClause.
+     *
+     * The result is either a new WhereClause or the same (but modified) instance.
+     */
+    public WhereClause add(Symbol otherQuery) {
+        assert !docKeys.isPresent() : "Cannot add otherQuery if there are docKeys in the WhereClause";
+        if (this == MATCH_ALL) {
+            return new WhereClause(otherQuery);
+        }
+        if (this == NO_MATCH) {
+            // NO_MATCH & anything is still NO_MATCH
+            return NO_MATCH;
+        }
+        this.query = AndOperator.of(this.query, otherQuery);
+        return this;
     }
 }

@@ -21,6 +21,7 @@
 
 package io.crate.planner.consumer;
 
+import io.crate.analyze.Rewriter;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ValidationException;
@@ -44,7 +45,8 @@ public class ConsumingPlanner {
                             DistributedGroupByConsumer distributedGroupByConsumer,
                             GlobalAggregateConsumer globalAggregateConsumer,
                             NestedLoopConsumer nestedLoopConsumer,
-                            QueryAndFetchConsumer queryAndFetchConsumer) {
+                            QueryAndFetchConsumer queryAndFetchConsumer,
+                            Rewriter rewriter) {
         consumers.add(nonDistributedGroupByConsumer);
         consumers.add(reduceOnCollectorGroupByConsumer);
         consumers.add(distributedGroupByConsumer);
@@ -52,7 +54,7 @@ public class ConsumingPlanner {
         consumers.add(globalAggregateConsumer);
         consumers.add(new InsertFromSubQueryConsumer());
         consumers.add(queryAndFetchConsumer);
-        consumers.add(new ManyTableConsumer(this));
+        consumers.add(new ManyTableConsumer(this, rewriter));
         consumers.add(nestedLoopConsumer);
     }
 
