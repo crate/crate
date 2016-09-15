@@ -416,8 +416,8 @@ public class BulkShardProcessor<Request extends ShardRequest> {
             int location = response.itemIndices().get(i);
             ShardResponse.Failure failure = response.failures().get(i);
             boolean succeeded = failure == null;
-            if (LOGGER.isWarnEnabled() && !succeeded) {
-                LOGGER.warn("ShardUpsert Item {} failed: {}", location, failure);
+            if (LOGGER.isDebugEnabled() && !succeeded) {
+                LOGGER.debug("ShardUpsert Item {} failed: {}", location, failure);
             }
             synchronized (responsesLock) {
                 responses.set(location, succeeded);

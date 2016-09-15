@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Decrease log level of failing bulk shard upsert requests to avoid
+   flodding the logs with DocumentAlreadyExists Exceptions
+
  - Fix: Dropping a partition while inserting by primary key into same
    partition should not raise an exception but returns a 0 row count instead.
 
