@@ -935,6 +935,17 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertOnCurrentTimestampGeneratedColumn() {
+        execute("create table t (id int, created timestamp generated always as current_timestamp)");
+        ensureYellow();
+        execute("insert into t (id) values(1)");
+        execute("refresh table t");
+        execute("select id, created from t");
+        assertThat((int) response.rows()[0][0], is(1));
+        assertThat(response.rows()[0][1], notNullValue());
+    }
+
+    @Test
     public void testInsertNullSourceForNotNullGeneratedColumn() {
         execute("create table generated_column (" +
                 " id int primary key," +

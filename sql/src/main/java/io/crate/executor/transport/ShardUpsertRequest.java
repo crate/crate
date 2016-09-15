@@ -30,6 +30,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -71,7 +72,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     public ShardUpsertRequest() {
     }
 
-    public ShardUpsertRequest(ShardId shardId,
+    private ShardUpsertRequest(ShardId shardId,
                               @Nullable String[] updateColumns,
                               @Nullable Reference[] insertColumns,
                               @Nullable String routing,
@@ -414,6 +415,16 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                        @Nullable Reference[] missingAssignmentsColumns,
                        UUID jobId) {
             this(timeout, overwriteDuplicates, continueOnError, assignmentsColumns, missingAssignmentsColumns, jobId, true);
+        }
+
+        public Builder(boolean overwriteDuplicates,
+                       boolean continueOnError,
+                       @Nullable String[] assignmentsColumns,
+                       @Nullable Reference[] missingAssignmentsColumns,
+                       UUID jobId,
+                       boolean validateGeneratedColumns) {
+            this(ReplicationRequest.DEFAULT_TIMEOUT, overwriteDuplicates, continueOnError,
+                assignmentsColumns, missingAssignmentsColumns, jobId, validateGeneratedColumns);
         }
 
         public Builder(TimeValue timeout,

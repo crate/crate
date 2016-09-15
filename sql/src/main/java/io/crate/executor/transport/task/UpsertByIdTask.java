@@ -196,9 +196,15 @@ public class UpsertByIdTask extends JobTask {
             }
         }
 
-        ShardUpsertRequest upsertRequest = new ShardUpsertRequest(
-            shardId, upsertById.updateColumns(), upsertById.insertColumns(), item.routing(), jobId());
-        upsertRequest.continueOnError(false);
+        ShardUpsertRequest upsertRequest = new ShardUpsertRequest.Builder(
+            false,
+            false,
+            upsertById.updateColumns(),
+            upsertById.insertColumns(),
+            jobId(),
+            false
+        ).newRequest(shardId, item.routing());
+
         ShardUpsertRequest.Item requestItem = new ShardUpsertRequest.Item(
             item.id(), item.updateAssignments(), item.insertValues(), item.version());
         upsertRequest.add(0, requestItem);

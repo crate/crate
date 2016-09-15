@@ -153,8 +153,14 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
     @Test
     public void testExceptionWhileProcessingItemsNotContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexName(), 0);
-        final ShardUpsertRequest request = new ShardUpsertRequest(
-                shardId, null, new Reference[]{ID_REF}, null, UUID.randomUUID());
+        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            false,
+            false,
+            null,
+            new Reference[]{ID_REF},
+            UUID.randomUUID(),
+            false
+        ).newRequest(shardId, null);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
         ShardResponse shardResponse = transportShardUpsertAction.processRequestItems(
@@ -166,10 +172,15 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
     @Test
     public void testExceptionWhileProcessingItemsContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexName(), 0);
-        final ShardUpsertRequest request = new ShardUpsertRequest(
-                shardId, null, new Reference[]{ID_REF}, null, UUID.randomUUID());
+        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            false,
+            true,
+            null,
+            new Reference[]{ID_REF},
+            UUID.randomUUID(),
+            false
+        ).newRequest(shardId, null);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
-        request.continueOnError(true);
 
         ShardResponse response = transportShardUpsertAction.processRequestItems(
                 shardId, request, new AtomicBoolean(false));
@@ -370,8 +381,14 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
     @Test
     public void testKilledSetWhileProcessingItemsDoesNotThrowException() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexName(), 0);
-        final ShardUpsertRequest request = new ShardUpsertRequest(
-            shardId, null, new Reference[]{ID_REF}, null, UUID.randomUUID());
+        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            false,
+            false,
+            null,
+            new Reference[]{ID_REF},
+            UUID.randomUUID(),
+            false
+        ).newRequest(shardId, null);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
         ShardResponse shardResponse = transportShardUpsertAction.processRequestItems(
@@ -383,8 +400,14 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
     @Test
     public void testItemsWithoutSourceAreSkippedOnReplicaOperation() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexName(), 0);
-        final ShardUpsertRequest request = new ShardUpsertRequest(
-            shardId, null, new Reference[]{ID_REF}, null, UUID.randomUUID());
+        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            false,
+            false,
+            null,
+            new Reference[]{ID_REF},
+            UUID.randomUUID(),
+            false
+        ).newRequest(shardId, null);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
         reset(indexShard);

@@ -298,7 +298,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
         }
 
-        processGeneratedColumns(tableInfo, pathsToUpdate, updatedGeneratedColumns, request.validateConstraints(), getResult);
+        // For updates we always have to enforce the validation of constraints on shards.
+        // Currently the validation is done only for generated columns.
+        processGeneratedColumns(tableInfo, pathsToUpdate, updatedGeneratedColumns, true, getResult);
 
         updateSourceByPaths(updatedSourceAsMap, pathsToUpdate);
 
@@ -323,6 +325,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         } else {
             XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
+            // For direct inserts it is enough to have constraints validation on a handler.
+            // validateConstraints() of ShardUpsertRequest should result in false in this case.
             if (request.validateConstraints()) {
                 ConstraintsValidator.validateConstraintsForNotUsedColumns(notUsedNonGeneratedColumns, tableInfo);
             }
