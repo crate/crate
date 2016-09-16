@@ -591,7 +591,7 @@
 #
 #discovery.type: azure
 
-# You should provide resource group name of your instances 
+# You should provide resource group name of your instances
 
 #cloud.azure.management.resourcegroup.name: myrg
 
@@ -858,3 +858,14 @@
 # "file" urls must be prefixed with an entry configured in ``path.repo``
 #
 #repositories.url.allowed_urls: ["http://example.org/root/*", "https://*.mydomain.com/*?*#*"]
+
+################### POSTGRES WIRE PROTOCOL SUPPORT ###################
+
+# Crate contains experimental support for the PostgreSQL wire protocol v3
+# and emulates a PostgreSQL server v9.5. For further information read our
+# documentation: https://crate.io/docs/reference/en/latest/protocols/postgres.html
+#
+# This allows you to connect to Crate using one of the many Postgres tools and libraries
+
+#psql.enabled: false
+#psql.port: 5432

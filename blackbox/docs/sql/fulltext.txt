@@ -5,10 +5,11 @@
 Fulltext Search
 ===============
 
-In order to use fulltext searches on columns, one must create a
-:ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>` on the related column
-upfront on table creation, see :ref:`fulltext-indices` for details.
-
+In order to use fulltext search on one or more columns, a
+:ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>` has to be
+defined while creating the column: either with ``CREATE TABLE`` or
+``ALTER TABLE ADD COLUMN``. For more information
+see :ref:`fulltext-indices`.
 
 .. _predicates_match:
 
@@ -26,26 +27,25 @@ Synopsis
     )  [ using match_type [ with ( match_parameter [= value] [, ... ] ) ] ]
 
 
-The MATCH predicate performs a fulltext search on one or multiple indexed columns or indices
+The MATCH predicate performs a fulltext search on one or more indexed columns or indices
 and supports different matching techniques. It can also be used to perform :ref:`geographical
 searches <sql_dql_geo_search>` on :ref:`geo_shape_data_type` indices.
 
-The actual usage of the predicate depends on the type of the queried index.
-More exactly the available ``match_type`` and ``match_parameters``
-depend on the index type used. This section only covers the usage of the
+The actual applicability of the MATCH predicate depends on the index's type.
+In fact, the availability of certain ``match_types`` and ``match_parameters``
+depend on the index. This section however, only covers the usage of the
 MATCH predicate on ``fulltext`` indices on string columns.
-For usage on :ref:`geo_shape_data_type` indices, see :ref:`sql_dql_geo_search`.
-
-Furthermore it is not possible to query
-multiple index columns with different index types with one match predicate.
+To use MATCH on :ref:`geo_shape_data_type` indices, see :ref:`sql_dql_geo_search`.
 
 In order to use fulltext searches on a column, a :ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>`
-must be created on the related column. See :ref:`fulltext-indices` for details.
+must be created for this column. See :ref:`fulltext-indices` for details. There
+are different types of :ref:`fulltext-indices` with different goals, however
+it's not possible to query multiple index columns with different index types
+within the same MATCH predicate.
 
-To get the relevance of a matching row, an internal system column
-:ref:`_score <sql_ddl_system_column_score>` can be selected.
-It is a numeric value which is not absolute but relative to the other rows.
-The higher the score value, the more relevant the row::
+To get the relevance of a matching row, a specific system column
+:ref:`_score <sql_ddl_system_column_score>` can be selected. It contains a
+numeric score *relative to the other rows*: The higher, the more relevant the row::
 
     cr> select name, _score from locations where match(name_description_ft, 'time') order by _score desc;
     +-----------+------------+
@@ -57,42 +57,41 @@ The higher the score value, the more relevant the row::
     SELECT 2 rows in set (... sec)
 
 The MATCH predicate in its simplest form performs a fulltext search against a single column.
-It takes the ``query_term`` and analyzes it with the same analyzer configured on ``column_ident``
-if no ``analyzer`` is given in the match parameters.
-The resulting tokens are matched against the already indexed tokens at ``column_ident``.
-If any of the ``query_term`` tokens is contained in the ``column_ident`` tokens,
+It takes the ``query_term`` and, if no ``analyzer`` was provided, analyzes the term
+with the analyzer configured on ``column_ident``. The resulting tokens are then
+matched against the index at ``column_ident`` and if one of them matches,
 MATCH returns ``TRUE``.
 
 The MATCH predicate can be also used to perform a fulltext search on multiple
-columns with a single ``query_term``. Using this variant, it is possible to manipulate the relevance of a
-column by referencing it using its ``column_ident`` and the ``boost`` argument.
+columns with a single ``query_term`` and to add weight to specific columns
+it's possible to add a ``boost`` argument to each ``column_ident``.
 Matches on columns with a higher boost result in a higher :ref:`_score <sql_ddl_system_column_score>` value
 for that document.
 
-How the single ``query_term`` is applied to the variable number of columns
-and how the resulting :ref:`_score <sql_ddl_system_column_score>` is computed
-is determined by the ``match_type`` argument. See :ref:`predicates_match_types`.
+The ``match_type`` argument determines how a single ``query_term`` is applied and
+and how the resulting :ref:`_score <sql_ddl_system_column_score>` is computed.
+For more information see :ref:`predicates_match_types`.
 
-Without explicit ordering using ``ORDER BY`` the results are sorted by relevance.
+Results are ordered by :ref:`_score <sql_ddl_system_column_score>` by default,
+but can be overridden by adding an ``ORDER BY`` clause.
 
 Arguments
 .........
 
-:column_ident: A reference to an index column or an existing column that is of type ``string`` and is indexed.
-               By default every column is indexed but only the raw data is stored.
-               So matching against a ``string`` column without a fulltext index is equivalent to using the ``=`` operator.
-               To perform real fulltext searches using a :ref:`sql_ddl_index_fulltext` is mandatory.
+:column_ident: A reference to an index column or an existing column that is indexed and of type ``string``.
+               By default every column is indexed but only the raw data is stored,
+               so matching against a ``string`` column without a fulltext index is equivalent to using the ``=`` operator.
+               To perform real fulltext searches use a :ref:`sql_ddl_index_fulltext`.
 
-:boost: a column ident can have a boost attached. That is a factor that increases
+:boost: a column ident can have a boost attached. That is a weight factor that increases
         the relevance of a column in respect to the other columns. The default boost
         is 1.
 
 :query_term: This string is analyzed (using the explicitly given ``analyzer``
              or the analyzer of the columns to perform the search on)
-             and the resulting tokens are compared to the already indexed ones.
-             The tokens used for search are combined using the ``OR`` operator
-             if not stated otherwise using the ``operator`` option, so only
-             one of the resulting tokens has to match to include a row.
+             and the resulting tokens are compared to the index.
+             The tokens used for search are combined using the boolean ``OR`` operator
+             unless stated otherwise using the ``operator`` option.
 
 :match_type: Optional. Defaults to ``best_fields`` for fulltext indices. For details see :ref:`predicates_match_types`.
 
@@ -103,28 +102,28 @@ Match Types
 ...........
 
 The match type determines how the ``query_term`` is applied and the :ref:`_score <sql_ddl_system_column_score>`
-is created, thus it influences which documents are considered more relevant.
+is created, thereby influencing which documents are considered more relevant.
 The default ``match_type`` for fulltext indices is ``best_fields``.
 
 :best_fields: Use the :ref:`_score <sql_ddl_system_column_score>` of the column that matched best.
               For example if a column contains all the tokens of the ``query_term``
-              it is considered more relevant than another column only containing one of them.
+              it's considered more relevant than other columns containing only one.
 
               This type is the default, if omitted.
 
 :most_fields: This match type takes the :ref:`_score <sql_ddl_system_column_score>` of every matching column
-              and combines their scores to one by calculating a simple mean.
+              and averages their scores.
 
-:cross_fields: This match type analyzes the ``query_term`` into tokens and searches all the tokens
-               of all given columns at once as if they were one big column (given they have the same analyzer).
-               All tokens have to be present in at least one column.
-               So querying for ``foo bar`` should have the tokens ``foo`` in one column and ``bar`` in the same or any other.
+:cross_fields: This match type analyzes the ``query_term`` into tokens and searches all tokens
+               in all given columns at once as if they were one big column (given they have the same analyzer).
+               All tokens have to be present in at least one column, so querying for ``foo bar``
+               should have the tokens ``foo`` in one column and ``bar`` in the same or any other.
 
 :phrase: This match type differs from ``best_fields`` in that it constructs a phrase query from the ``query_term``.
-         A phrase query will only match if the tokens in the columns are in the same order than the
+         A phrase query will only match if the tokens in the columns are *exactly* in the same order as the
          analyzed columns from the ``query_term``.
          So, querying for ``foo bar`` (analyzed tokens: ``foo`` and ``bar``) will only match
-         if one of the columns contains those two token in order.
+         if one of the columns contains those two token in that order - without any other tokens in between.
 
 :phrase_prefix: This match type is roughly the same than ``phrase`` but it allows to match by prefix
                 on the last token of the ``query_term``. For example if your query for ``foo ba``,
@@ -184,11 +183,11 @@ Not all options are applicable to all match types. See the options below for det
           can be used together with the ``boost`` option to set a constant :ref:`_score <sql_ddl_system_column_score>`
           for rows with a matching prefix or fuzzy match.
 
-:slop: When matching for phrases this option controls how exact the phrase match should be.
+:slop: When matching for phrases this option controls how exact the phrase match should be (proximity search).
        If set to ``0`` (the default), the terms must be in the exact order.
        If two transposed terms should match, a minimum ``slop`` of ``2`` has to be set.
-       Only applicable to ``phrase`` and ``phrase_prefix`` queries.
-
+       Only applicable to ``phrase`` and ``phrase_prefix`` queries. As an example with ``slop`` 2, querying for
+       ``foo bar`` will not only match ``foo bar`` but also ``foo what a bar``.
 
 :tie_breaker: When using ``best_fields``, ``phrase`` or ``phrase_prefix``
               the :ref:`_score <sql_ddl_system_column_score>` of every other column
@@ -233,13 +232,8 @@ the :ref:`_score <sql_ddl_system_column_score>` can be selected::
 
 .. note::
 
-    The `_score` is a relative and not an absolute value. It just sets
+    The `_score` is not an absolute value. It just sets
     a row in relation to the other ones.
-
-.. note::
-
-   By default, results are not ordered. Ordering by `_score` must be
-   defined explicitly if needed.
 
 
 Searching On Multiple Columns
@@ -251,16 +245,16 @@ There are two possibilities if a search should span the contents of multiple col
 
 * use the :ref:`predicates_match` predicate on multiple columns.
 
-When querying multiple columns, there are many ways how the resulting match relevance a.k.a.
-:ref:`_score <sql_ddl_system_column_score>` can be computed, that means which documents match and
-in which order. These different techniques are called :ref:`predicates_match_types`.
+When querying multiple columns, there are many ways how the relevance a.k.a.
+:ref:`_score <sql_ddl_system_column_score>` can be computed. These different
+techniques are called :ref:`predicates_match_types`.
 
-To increase the relevance of rows where one columns matches extremely
+To increase the relevance of rows where one column matches extremely
 well, use ``best_fields`` (the default).
-If rows with good matches spread over all searched columns should be more relevant,
-use ``most_fields`` . If searching multiple columns as if they were one,
-use the ``cross_fields`` type.
-For searching of matching phrases (tokens are in the same order)
+If rows with good matches spread over all included columns should be more relevant,
+use ``most_fields``. If searching multiple columns as if they were one,
+use ``cross_fields``.
+For searching of matching phrases (tokens are in the exact same order)
 use ``phrase`` or ``phrase_prefix``::
 
     cr> select name, _score from locations
@@ -326,10 +320,11 @@ Filter By :ref:`_score <sql_ddl_system_column_score>`
 =====================================================
 
 It is possible to filter results by the :ref:`_score <sql_ddl_system_column_score>` column
-but as it's value is a ratio related to the highest score of all result and thus never
-absolute and directly comparable across searches its use-case is very limited if any.
-It is only possible to filter by the greater-than-or-equals('>=') operator on the
-:ref:`_score <sql_ddl_system_column_score>` column.
+but as its value is a computed value relative to the highest score of all results and consequently never
+absolute or comparable across searches the usefulness outside of sorting is very limited.
+Although possible, filtering by the greater-than-or-equals('>=') operator on the
+:ref:`_score <sql_ddl_system_column_score>` column would not make much sense and
+can lead to unpredictable result sets.
 
 Anyway let's do it here for demonstration purpose::
 
@@ -344,13 +339,12 @@ Anyway let's do it here for demonstration purpose::
     +-----------+------------+
     SELECT 2 rows in set (... sec)
 
-As you maybe noticed, the :ref:`_score <sql_ddl_system_column_score>` value has changed for the
-same query text and document because it's a ratio related to all results,
-and if we limit it by filtering on :ref:`_score <sql_ddl_system_column_score>`,
-we'll have fewer or different results.
+As you might have noticed, the :ref:`_score <sql_ddl_system_column_score>` value has changed for the
+same query text and document because it's a ratio relative to all results,
+and by filtering on :ref:`_score <sql_ddl_system_column_score>`,
+'all results' has already changed.
 
 .. warning::
 
-  As noted above :ref:`_score <sql_ddl_system_column_score>` is a ratio and not comparable
-  across search so use it only for filtering if you know what you're doing and on your own risk.
-
+  As noted above :ref:`_score <sql_ddl_system_column_score>` is a relative number and not comparable
+  across searches. Filtering is therefore greatly discouraged.
