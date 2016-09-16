@@ -36,6 +36,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.RelationColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ValidationException;
+import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
 import io.crate.sql.tree.QualifiedName;
@@ -359,7 +360,7 @@ public class ManyTableConsumer implements Consumer {
         private final Set<QualifiedName> qualifiedNames;
         private final HashSet<QualifiedName> foundNames;
 
-        public SubSetOfQualifiedNamesPredicate(Set<QualifiedName> qualifiedNames) {
+        SubSetOfQualifiedNamesPredicate(Set<QualifiedName> qualifiedNames) {
             this.qualifiedNames = qualifiedNames;
             foundNames = new HashSet<>();
         }
@@ -391,11 +392,11 @@ public class ManyTableConsumer implements Consumer {
         private final QualifiedName right;
         private final int rightOffset;
 
-        public RelationColumnReWriteCtx(TwoTableJoin join) {
+        RelationColumnReWriteCtx(TwoTableJoin join) {
             this(join.name(), join.leftName(), join.rightName(), join.left().querySpec().outputs().size());
         }
 
-        public RelationColumnReWriteCtx(QualifiedName newName, QualifiedName left, QualifiedName right, int rightOffset) {
+        RelationColumnReWriteCtx(QualifiedName newName, QualifiedName left, QualifiedName right, int rightOffset) {
             this.newName = newName;
             this.left = left;
             this.right = right;
@@ -405,10 +406,10 @@ public class ManyTableConsumer implements Consumer {
 
     private static class RelationColumnReWriter extends ReplacingSymbolVisitor<RelationColumnReWriteCtx> {
 
-        private static final RelationColumnReWriter INSTANCE = new RelationColumnReWriter(false);
+        private static final RelationColumnReWriter INSTANCE = new RelationColumnReWriter(ReplaceMode.COPY);
 
-        public RelationColumnReWriter(boolean inPlace) {
-            super(inPlace);
+        RelationColumnReWriter(ReplaceMode mode) {
+            super(mode);
         }
 
         @Override
@@ -427,7 +428,7 @@ public class ManyTableConsumer implements Consumer {
         private final Map<AnalyzedRelation, QualifiedName> relationToName;
         private final MultiSourceSelect mss;
 
-        public FieldToRelationColumnCtx(MultiSourceSelect mss) {
+        FieldToRelationColumnCtx(MultiSourceSelect mss) {
             relationToName = new IdentityHashMap<>(mss.sources().size());
             for (Map.Entry<QualifiedName, MultiSourceSelect.Source> entry : mss.sources().entrySet()) {
                 relationToName.put(entry.getValue().relation(), entry.getKey());
@@ -438,10 +439,10 @@ public class ManyTableConsumer implements Consumer {
 
     private static class FieldToRelationColumnVisitor extends ReplacingSymbolVisitor<FieldToRelationColumnCtx> {
 
-        private static final FieldToRelationColumnVisitor INSTANCE = new FieldToRelationColumnVisitor(false);
+        private static final FieldToRelationColumnVisitor INSTANCE = new FieldToRelationColumnVisitor(ReplaceMode.COPY);
 
-        public FieldToRelationColumnVisitor(boolean inPlace) {
-            super(inPlace);
+        FieldToRelationColumnVisitor(ReplaceMode mode) {
+            super(mode);
         }
 
         @Override

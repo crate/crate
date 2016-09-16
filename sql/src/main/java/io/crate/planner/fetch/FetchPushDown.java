@@ -30,6 +30,7 @@ import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.Reference;
+import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataTypes;
@@ -154,7 +155,7 @@ public class FetchPushDown {
     private class ToFetchReferenceVisitor extends MappingSymbolVisitor {
 
         private ToFetchReferenceVisitor() {
-            super(false);
+            super(ReplaceMode.COPY);
         }
 
         @Override

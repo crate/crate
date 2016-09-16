@@ -66,7 +66,7 @@ public class GeneratedColumnComparisonReplacer {
 
         private final static ReferenceReplacer REFERENCE_REPLACER = new ReferenceReplacer();
 
-        public static class Context {
+        static class Context {
             private final Multimap<Reference, GeneratedReference> referencedRefsToGeneratedColumn;
 
             public Context(Multimap<Reference, GeneratedReference> referencedRefsToGeneratedColumn) {
@@ -74,11 +74,11 @@ public class GeneratedColumnComparisonReplacer {
             }
         }
 
-        public ComparisonReplaceVisitor() {
-            super(false);
+        ComparisonReplaceVisitor() {
+            super(ReplaceMode.COPY);
         }
 
-        public Symbol addComparisons(Symbol symbol, DocTableInfo tableInfo) {
+        Symbol addComparisons(Symbol symbol, DocTableInfo tableInfo) {
             Multimap<Reference, GeneratedReference> referencedSingleReferences = extractGeneratedReferences(tableInfo);
             if (referencedSingleReferences.isEmpty()) {
                 return symbol;
@@ -176,7 +176,7 @@ public class GeneratedColumnComparisonReplacer {
 
     private static class ReferenceReplacer extends ReplacingSymbolVisitor<ReferenceReplacer.Context> {
 
-        public static class Context {
+        static class Context {
 
             private final Symbol replaceWith;
             private final Reference toReplace;
@@ -187,8 +187,8 @@ public class GeneratedColumnComparisonReplacer {
             }
         }
 
-        public ReferenceReplacer() {
-            super(false);
+        ReferenceReplacer() {
+            super(ReplaceMode.COPY);
         }
 
         @Override

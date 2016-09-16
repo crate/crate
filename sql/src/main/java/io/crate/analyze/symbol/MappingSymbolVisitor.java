@@ -22,6 +22,7 @@
 
 package io.crate.analyze.symbol;
 
+import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
 
 import java.util.Map;
@@ -31,19 +32,19 @@ import java.util.Map;
  */
 public class MappingSymbolVisitor extends ReplacingSymbolVisitor<Map<? extends Symbol, ? extends Symbol>> {
 
-    private static final MappingSymbolVisitor IN_PLACE = new MappingSymbolVisitor(true);
-    private static final MappingSymbolVisitor COPYING = new MappingSymbolVisitor(false);
+    private static final MappingSymbolVisitor REPLACING = new MappingSymbolVisitor(ReplaceMode.MUTATE);
+    private static final MappingSymbolVisitor COPYING = new MappingSymbolVisitor(ReplaceMode.COPY);
 
     public static MappingSymbolVisitor inPlace(){
-        return IN_PLACE;
+        return REPLACING;
     }
 
     public static MappingSymbolVisitor copying(){
         return COPYING;
     }
 
-    protected MappingSymbolVisitor(boolean inPlace) {
-        super(inPlace);
+    protected MappingSymbolVisitor(ReplaceMode mode) {
+        super(mode);
     }
 
     @Override

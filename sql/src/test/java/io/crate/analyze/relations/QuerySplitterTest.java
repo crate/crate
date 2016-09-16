@@ -27,6 +27,7 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.RelationColumn;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.SqlExpressions;
@@ -101,10 +102,10 @@ public class QuerySplitterTest {
 
     private static class ToRelationColumn extends ReplacingSymbolVisitor<Map<AnalyzedRelation, QualifiedName>> {
 
-        private final static ToRelationColumn INSTANCE = new ToRelationColumn(true);
+        private final static ToRelationColumn INSTANCE = new ToRelationColumn(ReplaceMode.MUTATE);
 
-        public ToRelationColumn(boolean inPlace) {
-            super(inPlace);
+        private ToRelationColumn(ReplaceMode mode) {
+            super(mode);
         }
 
         @Override

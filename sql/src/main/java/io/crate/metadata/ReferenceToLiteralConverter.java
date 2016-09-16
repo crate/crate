@@ -90,7 +90,7 @@ public class ReferenceToLiteralConverter extends ReplacingSymbolVisitor<Referenc
     }
 
     public ReferenceToLiteralConverter() {
-        super(false);
+        super(ReplaceMode.COPY);
     }
 
     @Override

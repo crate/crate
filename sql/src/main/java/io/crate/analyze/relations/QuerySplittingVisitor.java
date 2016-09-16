@@ -26,6 +26,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.symbol.*;
+import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
 
@@ -39,7 +40,7 @@ public class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplitting
     public static final QuerySplittingVisitor INSTANCE = new QuerySplittingVisitor();
 
     private QuerySplittingVisitor() {
-        super(true);
+        super(ReplaceMode.MUTATE);
     }
 
     public static class Context {

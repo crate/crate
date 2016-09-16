@@ -31,15 +31,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+
 public class ReplacingSymbolVisitor<C> extends SymbolVisitor<C, Symbol> {
 
-    protected final boolean inPlace;
+    private final ReplaceMode mode;
 
-    public ReplacingSymbolVisitor(boolean inPlace) {
-        this.inPlace = inPlace;
+    public ReplacingSymbolVisitor(ReplaceMode mode) {
+        this.mode = mode;
     }
 
-    protected Symbol copyFunction(Function function, C context) {
+    private Symbol copyFunction(Function function, C context) {
         List<Symbol> newArgs = process(function.arguments(), context);
         if (newArgs != function.arguments()) {
             function = new Function(function.info(), newArgs);
@@ -49,7 +50,7 @@ public class ReplacingSymbolVisitor<C> extends SymbolVisitor<C, Symbol> {
 
     @Override
     public Symbol visitFunction(Function symbol, C context) {
-        if (inPlace){
+        if (mode == ReplaceMode.MUTATE){
             processInplace(symbol.arguments(), context);
             return symbol;
         }

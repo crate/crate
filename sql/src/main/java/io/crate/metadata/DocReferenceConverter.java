@@ -69,7 +69,7 @@ public class DocReferenceConverter {
     private static class Visitor extends ReplacingSymbolVisitor<Predicate<Reference>> {
 
         public Visitor() {
-            super(false);
+            super(ReplaceMode.COPY);
         }
 
         @Override

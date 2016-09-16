@@ -31,10 +31,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Path;
-import io.crate.metadata.ReplacingSymbolVisitor;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
 import io.crate.sql.tree.QualifiedName;
 
@@ -243,11 +240,11 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
      */
     private static class FieldReferenceResolver extends ReplacingSymbolVisitor<Void> {
 
-        public static final FieldReferenceResolver INSTANCE = new FieldReferenceResolver(true);
+        public static final FieldReferenceResolver INSTANCE = new FieldReferenceResolver(ReplaceMode.MUTATE);
         private static final FieldRelationVisitor<Symbol> FIELD_RELATION_VISITOR = new FieldRelationVisitor<>(INSTANCE);
 
-        private FieldReferenceResolver(boolean inPlace) {
-            super(inPlace);
+        private FieldReferenceResolver(ReplaceMode mode) {
+            super(mode);
         }
 
         @Override
