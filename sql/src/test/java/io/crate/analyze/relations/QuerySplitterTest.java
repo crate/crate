@@ -38,6 +38,7 @@ import org.junit.Test;
 import java.util.Map;
 import java.util.Set;
 
+import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -45,11 +46,11 @@ import static org.junit.Assert.assertThat;
 public class QuerySplitterTest {
 
     private SqlExpressions expressions;
-    QualifiedName tr1 = new QualifiedName("tr1");
-    QualifiedName tr2 = new QualifiedName("tr2");
-    QualifiedName tr3 = new QualifiedName("tr3");
+    private QualifiedName tr1 = new QualifiedName("tr1");
+    private QualifiedName tr2 = new QualifiedName("tr2");
+    private QualifiedName tr3 = new QualifiedName("tr3");
 
-    Map<AnalyzedRelation, QualifiedName> relationToName = ImmutableMap.<AnalyzedRelation, QualifiedName>of(
+    private Map<AnalyzedRelation, QualifiedName> relationToName = ImmutableMap.<AnalyzedRelation, QualifiedName>of(
             T3.TR_1, tr1,
             T3.TR_2, tr2,
             T3.TR_3, tr3);
@@ -61,6 +62,24 @@ public class QuerySplitterTest {
 
     private Symbol asSymbol(String expression) {
         return ToRelationColumn.INSTANCE.process(expressions.asSymbol(expression), relationToName);
+    }
+
+    @Test
+    public void testSplitDownTo1Relation() throws Exception {
+        Symbol symbol = asSymbol("t1.a = 10 and (t2.b = 30 or t2.b = 20)");
+        Map<Set<QualifiedName>, Symbol> split = QuerySplitter.split(symbol);
+        assertThat(split.size(), is(2));
+        assertThat(split.get(Sets.newHashSet(tr1)), isSQL("(RELCOL(tr1, 0) = '10')"));
+        assertThat(split.get(Sets.newHashSet(tr2)), isSQL("((RELCOL(tr2, 0) = '30') OR (RELCOL(tr2, 0) = '20'))"));
+    }
+
+    @Test
+    public void testMixedSplit() throws Exception {
+        Symbol symbol = asSymbol("t1.a = 10 and (t2.b = t3.c)");
+        Map<Set<QualifiedName>, Symbol> split = QuerySplitter.split(symbol);
+        assertThat(split.size(), is(2));
+        assertThat(split.get(Sets.newHashSet(tr1)), isSQL("(RELCOL(tr1, 0) = '10')"));
+        assertThat(split.get(Sets.newHashSet(tr2, tr3)), isSQL("(RELCOL(tr2, 0) = RELCOL(tr3, 0))"));
     }
 
     @Test
