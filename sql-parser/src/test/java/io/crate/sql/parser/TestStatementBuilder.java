@@ -848,6 +848,46 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testUnion() throws Exception {
+        printStatement("select * from foo union select * from bar");
+        printStatement("select * from foo union all select * from bar");
+        printStatement("select * from foo union distinct select * from bar");
+
+        printStatement("select * from foo union " +
+                       "select * from bar union all " +
+                       "select * from foo union " +
+                       "select * from bar " +
+                       "order by 1 limit 10 offset 5");
+    }
+
+    @Test
+    public void testUnionWithOrderByOnLeftRelation() throws Exception {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("no viable alternative at input 'union'");
+        SqlParser.createStatement("select * from foo order by 1 " +
+                                  "union " +
+                                  "select * from bar");
+    }
+
+    @Test
+    public void testUnionWithLimitOnLeftRelation() throws Exception {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("mismatched input 'union' expecting EOF");
+        SqlParser.createStatement("select * from foo limit 10 " +
+                                  "union " +
+                                  "select * from bar");
+    }
+
+    @Test
+    public void testUnionWithOffsetOnLeftRelation() throws Exception {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("mismatched input 'union' expecting EOF");
+        SqlParser.createStatement("select * from foo offset 10 " +
+                                  "union " +
+                                  "select * from bar");
+    }
+
+    @Test
     public void testConditionals() throws Exception {
         printStatement("SELECT a," +
                        "       CASE WHEN a=1 THEN 'one'" +
