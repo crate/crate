@@ -22,6 +22,7 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.*;
+import io.crate.planner.RelationsUnion;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
@@ -78,6 +79,10 @@ public abstract class AnalyzedRelationVisitor<C, R> {
 
     public R visitTwoRelationsUnion(TwoRelationsUnion twoRelationsUnion, C context) {
         return visitAnalyzedRelation(twoRelationsUnion, context);
+    }
+
+    public R visitRelationsUnion(RelationsUnion relationsUnion, C context) {
+        return visitAnalyzedRelation(relationsUnion, context);
     }
 
     public R visitExplain(ExplainAnalyzedStatement explainAnalyzedStatement, C context) {

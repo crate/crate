@@ -22,12 +22,14 @@
 package io.crate.planner.node.dql;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -135,6 +137,47 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
         mergeNode.reverseFlags = orderBy.reverseFlags();
         mergeNode.nullsFirst = orderBy.nullsFirst();
         return mergeNode;
+    }
+
+    // TODO: this is a duplicate, it coexists in QueryThenFetchConsumer
+    @Nullable
+    public static MergePhase mergePhase(ConsumerContext context,
+                                        Collection<String> executionNodes,
+                                        UpstreamPhase upstreamPhase,
+                                        @Nullable OrderBy orderBy,
+                                        List<Symbol> previousOutputs,
+                                        boolean isDistributed) {
+        assert !upstreamPhase.executionNodes().isEmpty() : "upstreamPhase must be executed somewhere";
+        if (!isDistributed && upstreamPhase.executionNodes().equals(executionNodes)) {
+            // if the nested loop is on the same node we don't need a mergePhase to receive requests
+            // but can access the RowReceiver of the nestedLoop directly
+            return null;
+        }
+
+        MergePhase mergePhase;
+        if (orderBy != null) {
+            mergePhase = MergePhase.sortedMerge(
+                context.plannerContext().jobId(),
+                context.plannerContext().nextExecutionPhaseId(),
+                orderBy,
+                previousOutputs,
+                orderBy.orderBySymbols(),
+                ImmutableList.<Projection>of(),
+                upstreamPhase.executionNodes().size(),
+                Symbols.extractTypes(previousOutputs)
+            );
+        } else {
+            // no sorting needed
+            mergePhase = MergePhase.localMerge(
+                context.plannerContext().jobId(),
+                context.plannerContext().nextExecutionPhaseId(),
+                ImmutableList.<Projection>of(),
+                upstreamPhase.executionNodes().size(),
+                Symbols.extractTypes(previousOutputs)
+            );
+        }
+        mergePhase.executionNodes(executionNodes);
+        return mergePhase;
     }
 
     @Override

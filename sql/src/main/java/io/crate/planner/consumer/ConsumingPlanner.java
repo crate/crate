@@ -46,6 +46,7 @@ public class ConsumingPlanner {
                             GlobalAggregateConsumer globalAggregateConsumer,
                             NestedLoopConsumer nestedLoopConsumer,
                             QueryAndFetchConsumer queryAndFetchConsumer,
+                            UnionConsumer unionConsumer,
                             Rewriter rewriter) {
         consumers.add(nonDistributedGroupByConsumer);
         consumers.add(reduceOnCollectorGroupByConsumer);
@@ -56,6 +57,7 @@ public class ConsumingPlanner {
         consumers.add(queryAndFetchConsumer);
         consumers.add(new ManyTableConsumer(this, rewriter));
         consumers.add(nestedLoopConsumer);
+        consumers.add(unionConsumer);
     }
 
     @Nullable

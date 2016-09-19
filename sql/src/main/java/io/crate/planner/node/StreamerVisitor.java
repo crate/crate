@@ -67,6 +67,11 @@ public class StreamerVisitor {
         }
 
         @Override
+        public Streamer<?>[] visitUnionPhase(UnionPhase phase, Void context) {
+            return DataTypes.getStreamers(phase.outputTypes());
+        }
+
+        @Override
         public Streamer<?>[] visitFileUriCollectPhase(FileUriCollectPhase phase, Void context) {
             return DataTypes.getStreamers(phase.outputTypes());
         }
