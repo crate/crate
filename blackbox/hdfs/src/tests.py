@@ -103,7 +103,7 @@ class HadoopLayer(object):
         cmd = ['bash',
                self.hadoop_bin, 'jar',
                self.hadoop_mapreduce_client, 'minicluster',
-               '-nnport', NN_PORT, '-nomr', '-D', 'dfs.replication=0']
+               '-nnport', NN_PORT, '-nomr', '-D', 'dfs.replication=0', 'dfs.client.use.datanode.hostname=true']
 
         JAVA_HOME = os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-8-openjdk/')
         self.p = subprocess.Popen(
