@@ -155,6 +155,11 @@ public class PlanPrinter {
             ImmutableMap.Builder<String, Object> b = upstreamPhase(phase, visitExecutionPhase(phase, context));
             return dqlPlanNode(phase, b);
         }
+
+        @Override
+        public ImmutableMap.Builder<String, Object> visitUnionPhase(UnionPhase phase, Void context) {
+            return dqlPlanNode(phase, visitExecutionPhase(phase, context));
+        }
     }
 
 
