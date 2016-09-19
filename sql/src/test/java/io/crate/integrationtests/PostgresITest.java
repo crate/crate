@@ -27,9 +27,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.Timeout;
+import org.postgresql.PGProperty;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -64,9 +64,9 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Before
     public void initProperties() throws Exception {
-        if (randomBoolean()) {
+//        if (randomBoolean()) {
             properties.setProperty("prepareThreshold", "-1"); // force binary transfer
-        }
+//        }
     }
 
     @Test
@@ -100,6 +100,23 @@ public class PostgresITest extends SQLTransportIntegrationTest {
                 // can't use expectedException.expectMessage because error messages are localized and locale is randomized
                 assertThat(e.getSQLState(), is(PSQLState.NO_DATA.getState()));
             }
+        }
+    }
+
+    @Test
+    public void testSimpleQuery() throws Exception {
+        properties.setProperty(PGProperty.PREFER_QUERY_MODE.getName(), PreferQueryMode.SIMPLE.value());
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            conn.setAutoCommit(true);
+            conn.createStatement().executeUpdate("create table t (x int) with (number_of_replicas = 0)");
+            conn.createStatement().executeUpdate("insert into t (x) values (1), (2)");
+            conn.createStatement().executeUpdate("refresh table t");
+
+            ResultSet resultSet = conn.createStatement().executeQuery("select * from t order by x");
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getInt(1), is(1));
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getInt(1), is(2));
         }
     }
 
@@ -333,7 +350,11 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             preparedStatement.setInt(2, 10);
             preparedStatement.addBatch();
 
-            assertThat(preparedStatement.executeBatch(), is(new int[] { 1, 1}));
+            try {
+                assertThat(preparedStatement.executeBatch(), is(new int[]{1, 1}));
+            } catch (BatchUpdateException e) {
+                throw e.getNextException();
+            }
             conn.createStatement().executeUpdate("refresh table t");
 
             preparedStatement = conn.prepareStatement("update t set x = log(x) where id = ?");

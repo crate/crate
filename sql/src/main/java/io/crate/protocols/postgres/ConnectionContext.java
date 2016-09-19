@@ -31,6 +31,7 @@ import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionState;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -444,7 +445,19 @@ class ConnectionContext {
         if (fields == null) {
             Messages.sendNoData(channel);
         } else {
-            Messages.sendRowDescription(channel, fields, session.getResultFormatCodes(portalOrStatement));
+            FormatCodes.FormatCode[] formatCodes = session.getResultFormatCodes(portalOrStatement);
+
+            // Force text streaming for ArrayType
+            // TODO: implement ArrayType binary streaming and remove this
+            int idx = 0;
+            for (Field field : fields) {
+                if (field.valueType().id() == ArrayType.ID) {
+                    formatCodes[idx] = FormatCodes.FormatCode.TEXT;
+                }
+                idx++;
+            }
+
+            Messages.sendRowDescription(channel, fields, formatCodes);
         }
     }
 

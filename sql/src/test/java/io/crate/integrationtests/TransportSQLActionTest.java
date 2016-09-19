@@ -47,6 +47,7 @@ import org.junit.rules.TemporaryFolder;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.sql.BatchUpdateException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 

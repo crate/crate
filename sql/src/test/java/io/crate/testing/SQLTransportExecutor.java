@@ -101,7 +101,7 @@ public class SQLTransportExecutor {
     public SQLResponse exec(SQLRequest request, TimeValue timeout) {
         String pgUrl = clientProvider.pgUrl();
         Random random = RandomizedContext.current().getRandom();
-        if (pgUrl != null && random.nextBoolean() && isJdbcCompatible()) {
+        if (pgUrl != null && isJdbcCompatible()) {
             return executeWithPg(request, pgUrl, random);
         }
         try {
@@ -140,9 +140,9 @@ public class SQLTransportExecutor {
     private SQLResponse executeWithPg(SQLRequest request, String pgUrl, Random random) {
         try {
             Properties properties = new Properties();
-            if (random.nextBoolean()) {
+//            if (random.nextBoolean()) {
                 properties.setProperty("prepareThreshold", "-1"); // force binary transfer
-            }
+//            }
             try (Connection conn = DriverManager.getConnection(pgUrl, properties)) {
                 conn.setAutoCommit(true);
                 PreparedStatement preparedStatement = conn.prepareStatement(request.stmt());
@@ -153,7 +153,7 @@ public class SQLTransportExecutor {
                 return executeAndConvertResult(preparedStatement);
             }
         } catch (SQLException e) {
-            throw new SQLActionException(e.getMessage(), 0, RestStatus.BAD_REQUEST);
+            throw new SQLActionException(e.getMessage(), 0, RestStatus.BAD_REQUEST, e.getStackTrace());
         }
     }
 

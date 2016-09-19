@@ -24,6 +24,8 @@ package io.crate.protocols.postgres.types;
 
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -36,6 +38,35 @@ import static org.junit.Assert.assertThat;
 public class PGArrayTest {
 
     private PGArray pgArray = PGArray.INT4_ARRAY;
+
+    @Test
+    public void testWriteAsBinary() throws Exception {
+        ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+
+        Object[] array1dim = new Object[] { 10, 20, 30 };
+        int bytesWritten = pgArray.writeAsBinary(buffer, array1dim);
+        buffer.readerIndex(0);
+        Object o = pgArray.readBinaryValue(buffer, bytesWritten);
+        assertThat((Object[])o, is(array1dim));
+
+        buffer = ChannelBuffers.dynamicBuffer();
+        Object[] array2dim = new Object[][] {{1, null, 3}, null, {null, 6, 7, null}, {9, 10}, {11}};
+        bytesWritten = pgArray.writeAsBinary(buffer, array2dim);
+        buffer.readerIndex(0);
+        o = pgArray.readBinaryValue(buffer, bytesWritten);
+        assertThat((Object[])o, is(array2dim));
+
+
+//        buffer = ChannelBuffers.dynamicBuffer();
+//        Object[] array3dim = new Object[][][] {null,
+//                                               {{1, null, 3}, null, {5, 6, null}, {9, 10}},
+//                                               null,
+//                                               {{1, null}, {3}, {null, 4, 5}}};
+//        bytesWritten = pgArray.writeAsBinary(buffer, array3dim);
+//        buffer.readerIndex(0);
+//        o = pgArray.readBinaryValue(buffer, bytesWritten);
+//        assertThat((Object[])o, is(array3dim));
+    }
 
     @Test
     public void testEncodeUTF8Text() throws Exception {

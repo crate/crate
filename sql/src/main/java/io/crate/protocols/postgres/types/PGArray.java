@@ -58,12 +58,53 @@ class PGArray extends PGType {
 
     @Override
     public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
-        throw new UnsupportedOperationException("Binary array streaming not supported");
+        int dimensions = 0;
+        Object array = value;
+        do {
+            dimensions++;
+            for (Object o : (Object[]) array) {
+                if (o != null) {
+                    array = o;
+                    break;
+                }
+            }
+        } while (array.getClass().isArray());
+
+
+        List<Integer> dimensionsList = new ArrayList<>();
+        buildDimensions((Object[]) value, dimensionsList, dimensions, 1);
+
+        int bytesWritten = 4 + 4 + 4;
+        buffer.writeInt(dimensions);
+        buffer.writeInt(1); // flags bit 0: 0=no-nulls, 1=has-nulls
+        buffer.writeInt(typElem());
+
+        for (Integer dim : dimensionsList) {
+            buffer.writeInt(dim); // upper bound
+            buffer.writeInt(dim); // lower bound
+            bytesWritten += 8;
+        }
+        return bytesWritten + writeArrayAsBinary(buffer, (Object[]) value, dimensionsList, 1);
     }
 
     @Override
     public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
-        throw new UnsupportedOperationException("Binary array streaming not supported");
+        int dimensions = buffer.readInt();
+        buffer.readInt(); // flags bit 0: 0=no-nulls, 1=has-nulls
+        buffer.readInt(); // element oid
+        int[] dims = new int[dimensions];
+        for (int d = 0; d < dimensions; ++d) {
+            dims[d] = buffer.readInt();
+            buffer.readInt(); // lowerBound ignored
+        }
+
+        if (dimensions == 0) {
+            return java.lang.reflect.Array.newInstance(Object.class, 0);
+        }
+        Object[] array = new Object[dims[0]];
+
+        readArrayAsBinary(buffer, array, dims, 0);
+        return array;
     }
 
     @Override
@@ -203,6 +244,88 @@ class PGArray extends PGType {
                 objects.add(innerType.decodeUTF8Text(Bytes.toArray(innerBytes)));
             } else if (firstValueByte == 'N') {
                 objects.add(null);
+            }
+        }
+    }
+
+    private int buildDimensions(Object[] array, List<Integer> dimensionsList, int maxDimensions, int currentDimension) {
+        if (array == null) {
+            return 1;
+        }
+        // While elements of array are also arrays
+        if (currentDimension < maxDimensions) {
+            int max = 0;
+            for (Object o : array) {
+                max = Math.max(max, buildDimensions((Object[]) o, dimensionsList, maxDimensions, currentDimension + 1));
+            }
+
+            if (currentDimension == maxDimensions - 1) {
+                dimensionsList.add(max);
+            } else {
+                Integer current = dimensionsList.get(0);
+                dimensionsList.set(0, Math.max(current, max));
+            }
+        }
+        // Add the dimensions of 1st dimension
+        if (currentDimension == 1) {
+            dimensionsList.add(0, array.length);
+        }
+        return array.length;
+    }
+
+    private int writeArrayAsBinary(ChannelBuffer buffer, Object[] array, List<Integer> dimensionsList, int currentDimension) {
+        int bytesWritten = 0;
+
+        if (array == null) {
+            for (int i = 0; i < dimensionsList.get(currentDimension - 1); i++) {
+                buffer.writeInt(-1);
+                bytesWritten += 4;
+            }
+            return bytesWritten;
+        }
+
+        // 2nd to last level
+        if (currentDimension == dimensionsList.size()) {
+            int i = 0;
+            for (Object o : array) {
+                if (o == null) {
+                    buffer.writeInt(-1);
+                    bytesWritten += 4;
+                } else {
+                    bytesWritten += innerType.writeAsBinary(buffer, o);
+                }
+                i++;
+            }
+            // Fill in with -1 for up to max dimensions
+            for (; i < dimensionsList.get(currentDimension - 1); i++) {
+                buffer.writeInt(-1);
+                bytesWritten += 4;
+            }
+        } else {
+            for (Object o : array) {
+                bytesWritten += writeArrayAsBinary(buffer, (Object[]) o, dimensionsList, currentDimension + 1);
+            }
+        }
+        return bytesWritten;
+    }
+
+    private void readArrayAsBinary(ChannelBuffer buffer,
+                                   final Object[] array,
+                                   final int[] dims,
+                                   final int thisDimension) {
+        if (thisDimension == dims.length - 1) {
+            for (int i = 0; i < dims[thisDimension]; ++i) {
+                int len = buffer.readInt();
+                if (len == -1) {
+                    continue;
+
+                }
+                array[i] = innerType.readBinaryValue(buffer, len);
+            }
+        } else {
+            for (int i = 0; i < dims[thisDimension]; ++i) {
+                array[i] = new Object[dims[thisDimension + 1]];
+                readArrayAsBinary(buffer, (Object[]) array[i], dims, thisDimension + 1);
             }
         }
     }
