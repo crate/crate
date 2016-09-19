@@ -493,6 +493,20 @@ public final class SqlFormatter {
         }
 
         @Override
+        protected Void visitUnion(Union node, Integer context) {
+            for (int i = 0; i < node.getRelations().size(); i++) {
+                process(node.getRelations().get(i), context);
+                if (i < node.getRelations().size() - 1) {
+                    builder.append("UNION ");
+                    if (!node.isDistinct()) {
+                        builder.append("ALL ");
+                    }
+                }
+            }
+            return null;
+        }
+
+        @Override
         protected Void visitAliasedRelation(AliasedRelation node, Integer indent) {
             process(node.getRelation(), indent);
 
