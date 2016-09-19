@@ -42,19 +42,15 @@ import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.fetch.FetchContext;
 import io.crate.operation.join.NestedLoopOperation;
-import io.crate.operation.projectors.DistributingDownstreamFactory;
-import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.*;
+import io.crate.operation.union.PrependInputIdRowReceiver;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.StreamerVisitor;
-import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.node.dql.CountPhase;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.types.DataTypes;
@@ -617,6 +613,67 @@ public class ContextPreparer extends AbstractComponent {
                 left,
                 right
             ));
+            return true;
+        }
+
+        @Override
+        public Boolean visitUnionPhase(UnionPhase phase, PreparerContext context) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+            ListenableRowReceiver downstreamRowReceiver = RowReceivers.listenableRowReceiver(
+                context.getRowReceiver(phase, Paging.PAGE_SIZE));
+
+            FlatProjectorChain flatProjectorChain;
+            if (!phase.projections().isEmpty()) {
+                flatProjectorChain = FlatProjectorChain.withAttachedDownstream(
+                    pageDownstreamFactory.projectorFactory(),
+                    ramAccountingContext,
+                    phase.projections(),
+                    downstreamRowReceiver,
+                    phase.jobId()
+                );
+            } else {
+                flatProjectorChain = FlatProjectorChain.withReceivers(Collections.singletonList(downstreamRowReceiver));
+            }
+
+            MultiUpstreamRowReceiver multiUpstreamRowReceiver =
+                new MultiUpstreamRowReceiver(flatProjectorChain.firstProjector());
+
+            Map<Byte, PageDownstreamContext> downstreamContexts = new HashMap<>(phase.mergePhases().size());
+            short inputId = 0;
+
+            for (MergePhase mergePhase : phase.mergePhases()) {
+                RowReceiver rowReceiver = new PrependInputIdRowReceiver(multiUpstreamRowReceiver.newRowReceiver(), (byte) inputId);
+                if (mergePhase == null) {
+                    context.phaseIdToRowReceivers.put(toKey(phase.phaseId(), (byte) inputId), rowReceiver);
+                } else {
+                    Tuple<PageDownstream, FlatProjectorChain> pageDownstreamWithChain =
+                        pageDownstreamFactory.createMergeNodePageDownstream(
+                            mergePhase,
+                            rowReceiver,
+                            false,
+                            ramAccountingContext,
+                            Optional.<Executor>absent());
+                    PageDownstreamContext pageDownstreamContext = new PageDownstreamContext(
+                        pageDownstreamContextLogger,
+                        nodeName(),
+                        mergePhase.phaseId(),
+                        mergePhase.name(),
+                        pageDownstreamWithChain.v1(),
+                        StreamerVisitor.streamersFromOutputs(mergePhase),
+                        ramAccountingContext,
+                        mergePhase.numUpstreams(),
+                        pageDownstreamWithChain.v2());
+                    downstreamContexts.put((byte) inputId, pageDownstreamContext);
+                    context.registerSubContext(pageDownstreamContext);
+                }
+                inputId++;
+            }
+
+            context.registerSubContext(new UnionContext(
+                nlContextLogger,
+                phase,
+                downstreamContexts,
+                downstreamRowReceiver));
             return true;
         }
 

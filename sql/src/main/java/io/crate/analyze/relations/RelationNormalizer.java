@@ -61,12 +61,7 @@ final class RelationNormalizer {
     }
 
     private static Map<QualifiedName, AnalyzedRelation> mapSourceRelations(MultiSourceSelect multiSourceSelect) {
-        return Maps.transformValues(multiSourceSelect.sources(), new com.google.common.base.Function<RelationSource, AnalyzedRelation>() {
-            @Override
-            public AnalyzedRelation apply(RelationSource input) {
-                return input.relation();
-            }
-        });
+        return Maps.transformValues(multiSourceSelect.sources(), RelationSource::relation);
     }
 
     private static QuerySpec mergeQuerySpec(QuerySpec childQSpec, @Nullable QuerySpec parentQSpec) {
@@ -400,6 +395,20 @@ final class RelationNormalizer {
         public AnalyzedRelation visitTwoRelationsUnion(TwoRelationsUnion twoTableUnion, Context context) {
             process(twoTableUnion.first(), context);
             process(twoTableUnion.second(), context);
+
+            // PushDown limit to the relations of the union since as the union tree is built
+            // by the parser the limit exists only in the top level TwoRelationsUnion
+            Optional<Symbol> pushDownLimit = Limits.add(twoTableUnion.querySpec().limit(),
+                twoTableUnion.querySpec().offset());
+
+            assert !twoTableUnion.first().querySpec().limit().isPresent() :
+                "Limit on the individual relations of the union should be empty";
+            twoTableUnion.first().querySpec().limit(pushDownLimit);
+            assert !twoTableUnion.second().querySpec().limit().isPresent() :
+                "Limit on the individual relations of the union should be empty";
+            twoTableUnion.second().querySpec().limit(pushDownLimit);
+
+            // TODO: push down order by
             return twoTableUnion;
         }
     }
@@ -453,8 +462,8 @@ final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitTwoRelationsUnion(TwoRelationsUnion twoTableUnion, Context context) {
-            twoTableUnion.first(process(twoTableUnion.first(), context));
-            twoTableUnion.second(process(twoTableUnion.second(), context));
+            twoTableUnion.first((QueriedRelation) process(twoTableUnion.first(), context));
+            twoTableUnion.second((QueriedRelation) process(twoTableUnion.second(), context));
             return twoTableUnion;
         }
     }

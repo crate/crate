@@ -547,6 +547,21 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
+        public Void visitUnion(UnionPlan plan, NodeOperationTreeContext context) {
+            context.addPhase(plan.unionPhase());
+
+            short inputId = 0;
+            for (Plan subPlan : plan.relations()) {
+                context.branch((byte) inputId);
+                process(subPlan, context);
+                context.leaveBranch();
+                inputId++;
+            }
+
+            return null;
+        }
+
+        @Override
         protected Void visitPlan(Plan plan, NodeOperationTreeContext context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't create NodeOperationTree from plan %s", plan));
         }

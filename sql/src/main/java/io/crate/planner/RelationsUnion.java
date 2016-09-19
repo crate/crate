@@ -20,8 +20,9 @@
  * agreement.
  */
 
-package io.crate.analyze;
+package io.crate.planner;
 
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
@@ -33,59 +34,44 @@ import io.crate.sql.tree.QualifiedName;
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public class TwoRelationsUnion implements QueriedRelation {
+public class RelationsUnion implements QueriedRelation {
 
-    private final QualifiedName name;
-    private final boolean distinct;
-    private final QuerySpec querySpec = new QuerySpec();
-    private QueriedRelation first;
-    private QueriedRelation second;
+    private final List<Plan> relations;
+    private final List<QuerySpec> querySpecs;
+    private final QuerySpec rootQuerySpec;
 
-    public TwoRelationsUnion(QueriedRelation first, QueriedRelation second, boolean distinct) {
-        this.first = first;
-        this.second = second;
-        this.distinct = distinct;
-        this.name = QualifiedName.of("union", first.getQualifiedName().toString(), second.getQualifiedName().toString());
+    RelationsUnion(List<Plan> relations, List<QuerySpec> querySpecs, QuerySpec rootQuerySpec) {
+        this.relations = relations;
+        this.querySpecs = querySpecs;
+        this.rootQuerySpec = rootQuerySpec;
     }
 
-    public boolean isDistinct() {
-        return distinct;
+    public List<Plan> relations() {
+        return relations;
     }
 
-    public QueriedRelation first() {
-        return first;
-    }
-
-    public QueriedRelation second() {
-        return second;
-    }
-
-    public void first(QueriedRelation first) {
-        this.first = first;
-    }
-
-    public void second(QueriedRelation second) {
-        this.second = second;
+    public List<QuerySpec> querySpecs() {
+        return querySpecs;
     }
 
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return visitor.visitTwoRelationsUnion(this, context);
+        return visitor.visitRelationsUnion(this, context);
     }
 
     @Override
     public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        return first.getField(path, operation);
+        throw new UnsupportedOperationException("method not supported");
     }
 
     @Override
     public List<Field> fields() {
-        return first.fields();
+        throw new UnsupportedOperationException("method not supported");
     }
 
     @Override
     public QualifiedName getQualifiedName() {
-        return name;
+        throw new UnsupportedOperationException("method not supported");
     }
 
     @Override
@@ -95,6 +81,6 @@ public class TwoRelationsUnion implements QueriedRelation {
 
     @Override
     public QuerySpec querySpec() {
-        return querySpec;
+        return rootQuerySpec;
     }
 }
