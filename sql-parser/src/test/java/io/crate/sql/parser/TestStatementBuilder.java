@@ -822,6 +822,19 @@ public class TestStatementBuilder {
         printStatement("select * from foo full join bar on foo.id = bar.id");
     }
 
+    @Test
+    public void testUnion() throws Exception {
+        printStatement("select * from foo union select * from bar");
+        printStatement("select * from foo union all select * from bar");
+        printStatement("select * from foo union distinct select * from bar");
+
+        printStatement("select * from foo union " +
+                       "select * from bar union all " +
+                       "select * from foo union " +
+                       "select * from bar " +
+                       "order by 1 limit 10 offset 5");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
