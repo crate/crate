@@ -120,6 +120,20 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
     public AnalyzedRelation visitTwoRelationsUnion(TwoRelationsUnion twoTableUnion, Context context) {
         process(twoTableUnion.first(), context);
         process(twoTableUnion.second(), context);
+
+        // PushDown limit to the relations of the union since as the union tree is built
+        // by the parser the limit exists only in the top level TwoRelationsUnion
+        Optional<Symbol> pushDownLimit = Limits.add(twoTableUnion.querySpec().limit(),
+                                                    twoTableUnion.querySpec().offset());
+
+        assert !twoTableUnion.first().querySpec().limit().isPresent() :
+            "Limit on the individual relations of the union should be empty";
+        twoTableUnion.first().querySpec().limit(pushDownLimit);
+        assert !twoTableUnion.second().querySpec().limit().isPresent() :
+            "Limit on the individual relations of the union should be empty";
+        twoTableUnion.second().querySpec().limit(pushDownLimit);
+
+        // TODO: push down order by
         return twoTableUnion;
     }
 

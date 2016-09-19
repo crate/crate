@@ -59,6 +59,10 @@ public class ExecutionPhaseVisitor<C, R> {
         return visitExecutionPhase(phase, context);
     }
 
+    public R visitUnionPhase(UnionPhase phase, C context) {
+        return visitExecutionPhase(phase, context);
+    }
+
     public R visitFileUriCollectPhase(FileUriCollectPhase phase, C context) {
         return visitCollectPhase(phase, context);
     }

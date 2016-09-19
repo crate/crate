@@ -24,10 +24,7 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QuerySpec;
-import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -55,6 +52,7 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 class SelectStatementPlanner {
@@ -222,6 +220,18 @@ class SelectStatementPlanner {
         }
 
         @Override
+        public Plan visitTwoRelationsUnion(TwoRelationsUnion twoRelationsUnion, Planner.Context context) {
+            // Currently we only support UNION ALL so it's ok to flatten the union pairs
+            UnionFlatteningVisitorContext visitorContext = new UnionFlatteningVisitorContext();
+            UnionFlatteningVisitor unionFlatteningVisitor = new UnionFlatteningVisitor(context);
+            unionFlatteningVisitor.process(twoRelationsUnion, visitorContext);
+            RelationsUnion relationsUnion = new RelationsUnion(visitorContext.relations,
+                                                               visitorContext.querySpecs,
+                                                               twoRelationsUnion.querySpec());
+            return consumingPlanner.plan(relationsUnion, context);
+        }
+
+        @Override
         public Plan visitQueriedSelectRelation(QueriedSelectRelation relation, Planner.Context context) {
             throw new UnsupportedOperationException("complex sub selects are not supported");
         }
@@ -246,5 +256,36 @@ class SelectStatementPlanner {
             readerAllocations.nodeReaders(),
             readerAllocations.indices(),
             readerAllocations.indicesToIdents());
+    }
+
+    private static class UnionFlatteningVisitor extends AnalyzedRelationVisitor<UnionFlatteningVisitorContext, Boolean> {
+
+        private final Planner.Context plannerContext;
+
+        private UnionFlatteningVisitor(Planner.Context plannerContext) {
+            this.plannerContext = plannerContext;
+        }
+
+        @Override
+        public Boolean visitAnalyzedRelation(AnalyzedRelation relation, UnionFlatteningVisitorContext context) {
+            context.relations.add(0, subPlan(relation, plannerContext));
+            return true;
+        }
+
+        @Override
+        public Boolean visitTwoRelationsUnion(TwoRelationsUnion twoRelationsUnion, UnionFlatteningVisitorContext context) {
+            if (process(twoRelationsUnion.second(), context)) {
+                context.querySpecs.add(0, twoRelationsUnion.second().querySpec());
+            }
+            if (process(twoRelationsUnion.first(), context)) {
+                context.querySpecs.add(0, twoRelationsUnion.first().querySpec());
+            }
+            return false;
+        }
+    }
+
+    private static class UnionFlatteningVisitorContext {
+        private final List<PlannedAnalyzedRelation> relations = new ArrayList<>();
+        private final List<QuerySpec> querySpecs = new ArrayList<>();
     }
 }

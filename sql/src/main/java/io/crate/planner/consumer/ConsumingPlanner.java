@@ -51,6 +51,7 @@ public class ConsumingPlanner {
         consumers.add(new QueryAndFetchConsumer());
         consumers.add(new ManyTableConsumer(this, new Rewriter(functions)));
         consumers.add(new NestedLoopConsumer(clusterService, functions, tableStatsService));
+        consumers.add(new UnionConsumer(clusterService));
     }
 
     @Nullable
