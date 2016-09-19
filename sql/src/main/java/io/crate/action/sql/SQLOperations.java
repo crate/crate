@@ -37,7 +37,7 @@ import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.Portal;
 import io.crate.protocols.postgres.SimplePortal;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.Query;
+import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.elasticsearch.cluster.ClusterService;
@@ -266,7 +266,7 @@ public class SQLOperations {
                         return null;
                     }
                      // analysis would fail for insert statements with NullParameters because primary keys may not be null
-                    if (preparedStmt.statement() instanceof Query) {
+                    if (!(preparedStmt.statement() instanceof Insert)) {
                         Analysis analysis = analyzer.analyze(preparedStmt.statement(),
                             new ParameterContext(NullRow.INSTANCE, Collections.<Row>emptyList(), defaultSchema, options));
                         if (analysis.rootRelation() == null) {
