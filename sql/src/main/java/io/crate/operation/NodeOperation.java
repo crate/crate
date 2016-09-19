@@ -77,7 +77,8 @@ public class NodeOperation implements Streamable {
             if (executionPhase instanceof UpstreamPhase && executionPhase.executionNodes().size() == 1
                 && executionPhase.executionNodes().contains(localNodeId)) {
                 ((UpstreamPhase) executionPhase).distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
-                LOGGER.trace("Phase uses SAME_NODE downstream, reason: ON HANDLER, executionNodes: {}, phase: {}", executionPhase.executionNodes(), executionPhase);
+                LOGGER.trace("Phase uses SAME_NODE downstream, reason: ON HANDLER, executionNodes: {}, phase: {}",
+                    executionPhase.executionNodes(), executionPhase);
                 return new NodeOperation(
                     executionPhase,
                     ImmutableList.<String>of(),
@@ -95,7 +96,8 @@ public class NodeOperation implements Streamable {
                 if (executionPhase.executionNodes().size() == 1
                     && executionPhase.executionNodes().equals(downstreamExecutionPhase.executionNodes())) {
                     upstreamPhase.distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
-                    LOGGER.trace("Phase uses SAME_NODE downstream, reason: ON DOWNSTRREAM NODE, executionNodes: {}, phase: {}", executionPhase.executionNodes(), executionPhase);
+                    LOGGER.trace("Phase uses SAME_NODE downstream, reason: ON DOWNSTREAM NODE, executionNodes: {}, phase: {}",
+                        executionPhase.executionNodes(), executionPhase);
                 }
             }
 

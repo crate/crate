@@ -901,6 +901,9 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(tableUnion.second(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion.querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
                                                  "ORDER BY doc.users.id LIMIT 10 OFFSET 20"));
+        assertThat(tableUnion.first().querySpec(), isSQL("SELECT doc.users.id, doc.users.text LIMIT add(10, 20)"));
+        assertThat(tableUnion.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id, " +
+                                                          "doc.users_multi_pk.name LIMIT add(10, 20)"));
     }
 
     @Test
