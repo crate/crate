@@ -112,7 +112,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             conn.createStatement().executeUpdate("insert into t (x) values (1), (2)");
             conn.createStatement().executeUpdate("refresh table t");
 
-            ResultSet resultSet = conn.createStatement().executeQuery("select * from t");
+            ResultSet resultSet = conn.createStatement().executeQuery("select * from t order by x");
             assertThat(resultSet.next(), is(true));
             assertThat(resultSet.getInt(1), is(1));
             assertThat(resultSet.next(), is(true));
