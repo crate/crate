@@ -24,10 +24,10 @@ package io.crate.analyze.relations;
 
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.RelationSource;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.analyze.*;
 import io.crate.testing.T3;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
