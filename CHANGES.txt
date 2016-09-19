@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/09/19 0.55.5
+=================
+
  - Fix: Dropping a partition while inserting by primary key into same
    partition should not raise an exception but returns a 0 row count instead.
 
