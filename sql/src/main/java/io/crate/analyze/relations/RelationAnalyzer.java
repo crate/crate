@@ -187,6 +187,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             // once this is used .normalize should for this class needs to be handled here too
             relation = new MultiSourceSelect(
                 context.sources(),
+                selectAnalysis.outputSymbols(),
                 selectAnalysis.outputNames(),
                 querySpec,
                 context.joinPairs()

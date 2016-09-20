@@ -24,23 +24,24 @@ package io.crate.analyze;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QuerySplitter;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.RelationColumn;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -91,8 +92,9 @@ public class Rewriter {
      *          t2.x > 10   # if t2.x is NULL this is always FALSE
      * </pre>
      */
-    public void tryRewriteOuterToInnerJoin(JoinPair joinPair,
-                                           QuerySpec multiSourceQuerySpec,
+    public void tryRewriteOuterToInnerJoin(final JoinPair joinPair,
+                                           final List<Symbol> mssOutputSymbols,
+                                           final QuerySpec multiSourceQuerySpec,
                                            QualifiedName left,
                                            QualifiedName right,
                                            QuerySpec leftQuerySpec,
@@ -134,7 +136,25 @@ public class Rewriter {
             return; // can't rewrite
         }
 
+        applyOuterToInnerJoinRewrite(
+            joinPair,
+            mssOutputSymbols,
+            multiSourceQuerySpec,
+            outerSpec,
+            splitQueries,
+            outerRelationQuery,
+            relationColumnPredicate);
+    }
+
+    private void applyOuterToInnerJoinRewrite(final JoinPair joinPair,
+                                              final List<Symbol> mssOutputSymbols,
+                                              QuerySpec multiSourceQuerySpec,
+                                              final QuerySpec outerSpec,
+                                              Map<Set<QualifiedName>, Symbol> splitQueries,
+                                              Symbol outerRelationQuery,
+                                              RelationColumnPredicate relationColumnPredicate) {
         joinPair.joinType(JoinType.INNER);
+        final Set<Tuple<RelationColumn, Symbol>> symbolsToNotCollect = new HashSet<>();
         outerSpec.where(outerSpec.where().add(Symbols.replaceRC(
             outerRelationQuery,
             relationColumnPredicate,
@@ -145,15 +165,49 @@ public class Rewriter {
                     if (input == null) {
                         return null;
                     }
-                    // TODO: gather those inputs and figure out if they can be removed from the outputs?
-                    // maybe mss.fields() can be used to do so?
-                    return outerSpec.outputs().get(input.index());
+                    Symbol symbol = outerSpec.outputs().get(input.index());
+
+                    // if the column was only added to the outerSpec outputs because of the whereClause
+                    // it's possible to not collect it as long is it isn't used somewhere else
+                    if (!mssOutputSymbols.contains(symbol) && !SymbolVisitors.any(Predicates.<Symbol>equalTo(input), joinPair.condition())) {
+                        symbolsToNotCollect.add(new Tuple<>(input, symbol));
+                    }
+                    return symbol;
                 }
             })));
         if (splitQueries.isEmpty()) {
             multiSourceQuerySpec.where(WhereClause.MATCH_ALL);
         } else {
             multiSourceQuerySpec.where(new WhereClause(AndOperator.join(splitQueries.values())));
+        }
+        for (Tuple<RelationColumn, Symbol> symbolToRemove : symbolsToNotCollect) {
+            final RelationColumn removedRC = symbolToRemove.v1();
+            outerSpec.outputs().remove(symbolToRemove.v2());
+            multiSourceQuerySpec.outputs().remove(removedRC);
+
+            // shift other relationColumns
+            // e.g. if the outerSpec had outputs: [o1, o2, o3]
+            // and o2 got removed
+            // a RelationColumn(o, 2) would now point to nothing instead of o3
+            // so all indices needs to be decreased
+            multiSourceQuerySpec.replace(new Function<Symbol, Symbol>() {
+                @Nullable
+                @Override
+                public Symbol apply(@Nullable Symbol input) {
+                    if (input instanceof RelationColumn) {
+                        RelationColumn relationColumn = (RelationColumn) input;
+                        if (relationColumn.relationName().equals(removedRC.relationName())
+                            && relationColumn.index() > removedRC.index()) {
+
+                            return new RelationColumn(
+                                relationColumn.relationName(),
+                                relationColumn.index() - 1,
+                                relationColumn.valueType());
+                        }
+                    }
+                    return input;
+                }
+            });
         }
     }
 

@@ -326,7 +326,7 @@ public class ManyTableConsumer implements Consumer {
         MultiSourceSelect.Source rightSource = mss.sources().get(right);
 
         rewriter.tryRewriteOuterToInnerJoin(
-            joinPair, mss.querySpec(), left, right, leftSource.querySpec(), rightSource.querySpec());
+            joinPair, mss.outputSymbols(), mss.querySpec(), left, right, leftSource.querySpec(), rightSource.querySpec());
         JoinPairs.removeOrderByOnOuterRelation(left, right, leftSource.querySpec(), rightSource.querySpec(), joinPair);
 
         Optional<OrderBy> remainingOrderByToApply = Optional.absent();

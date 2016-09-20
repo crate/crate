@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
@@ -38,12 +39,15 @@ public class MultiSourceSelect implements QueriedRelation {
     private final QuerySpec querySpec;
     private final Fields fields;
     private final List<JoinPair> joinPairs;
+    private final List<Symbol> outputSymbols;
     private QualifiedName qualifiedName;
 
     public MultiSourceSelect(Map<QualifiedName, AnalyzedRelation> sources,
+                             List<Symbol> outputSymbols,
                              Collection<? extends Path> outputNames,
                              QuerySpec querySpec,
                              List<JoinPair> joinPairs) {
+        this.outputSymbols = ImmutableList.copyOf(outputSymbols);
         assert sources.size() > 1 : "MultiSourceSelect requires at least 2 relations";
         this.splitter = new RelationSplitter(querySpec, sources.values(), joinPairs);
         this.sources = initializeSources(sources);
@@ -124,6 +128,10 @@ public class MultiSourceSelect implements QueriedRelation {
 
     public Optional<RemainingOrderBy> remainingOrderBy() {
         return splitter.remainingOrderBy();
+    }
+
+    public List<Symbol> outputSymbols() {
+        return outputSymbols;
     }
 
     public static class Source {

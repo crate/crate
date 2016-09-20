@@ -1771,11 +1771,19 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testOuterJoinToInnerJoinRewrite() throws Exception {
-        QueryThenFetch qtf = plan("select * from users u1 left join users u2 on u1.id = u2.id where u2.name = 'Arthur'");
+        QueryThenFetch qtf = plan("select u1.text, u2.text " +
+                                  "from users u1 left join users u2 on u1.id = u2.id " +
+                                  "where u2.name = 'Arthur'" +
+                                  "and u2.id > 1 ");
         NestedLoop nl = (NestedLoop) qtf.subPlan();
         assertThat(nl.nestedLoopPhase().joinType(), is(JoinType.INNER));
         CollectAndMerge rightCM = (CollectAndMerge) nl.right().plan();
-        assertThat(((RoutedCollectPhase) rightCM.collectPhase()).whereClause().query(), isSQL("(doc.users.name = 'Arthur')"));
+        assertThat(((RoutedCollectPhase) rightCM.collectPhase()).whereClause().query(),
+            isSQL("((doc.users.name = 'Arthur') AND (doc.users.id > 1))"));
+
+        // doesn't contain "name" because whereClause is pushed down,
+        // but still contains "id" because it is in the joinCondition
+        assertThat(rightCM.collectPhase().toCollect(), contains(isReference("_docid"), isReference("id")));
     }
 
     @Test
