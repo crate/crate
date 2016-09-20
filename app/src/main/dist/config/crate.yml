@@ -21,7 +21,7 @@
 #bootstrap.mlockall: true
 
 # Name of the Node, e.g. '$(hostname -s)'
-#node.name: "Franz Kafka"
+#node.name: "Piz Buin"
 
 # Crate can utilize multiple volumes in parallel,
 # make sure to set the owner to 'crate:crate'
@@ -98,7 +98,7 @@
 # Node names are generated dynamically on startup, so you're relieved
 # from configuring them manually. You can tie this node to a specific name:
 #
-#node.name: "Franz Kafka"
+#node.name: "Piz Buin"
 
 # Every node can be configured to allow or deny being eligible as the master,
 # and to allow or deny to store the data.

@@ -17,7 +17,7 @@ in it along with the according default value.
 The location of the config file can be specified upon startup like
 this::
 
-    sh$ ./bin/crate -Des.path.home=/path/to/config/directory
+    sh$ ./bin/crate -Des.path.config=/path/to/config/directory
 
 Any option can be configured either by the config file or as system
 property. If using system properties the required prefix 'es.' will be
