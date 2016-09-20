@@ -30,10 +30,7 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.planner.consumer.ManyTableConsumer;
 import io.crate.sql.tree.QualifiedName;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class QuerySplitter {
 
@@ -68,7 +65,10 @@ public class QuerySplitter {
             if (!function.info().equals(AndOperator.INFO)) {
                 HashSet<QualifiedName> qualifiedNames = new HashSet<>();
                 ManyTableConsumer.QualifiedNameCounter.INSTANCE.process(function, qualifiedNames);
-                splits.put(qualifiedNames, function);
+                Symbol prevQuery = splits.put(qualifiedNames, function);
+                if (prevQuery != null) {
+                    splits.put(qualifiedNames, AndOperator.join(Arrays.asList(prevQuery, function)));
+                }
                 return null;
             }
 

@@ -37,6 +37,7 @@ import org.junit.Test;
 import java.util.Map;
 import java.util.Set;
 
+import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -60,6 +61,15 @@ public class QuerySplitterTest {
 
     private Symbol asSymbol(String expression) {
         return ToRelationColumn.INSTANCE.process(expressions.asSymbol(expression), relationToName);
+    }
+
+    @Test
+    public void testSplitWithQueryMerge() throws Exception {
+        Symbol symbol = asSymbol("t1.a = 10 and (t2.b = 30 or t2.b = 20) and t1.x = 1");
+        Map<Set<QualifiedName>, Symbol> split = QuerySplitter.split(symbol);
+        assertThat(split.size(), is(2));
+        assertThat(split.get(Sets.newHashSet(tr1)), isSQL("((RELCOL(tr1, 0) = '10') AND (RELCOL(tr1, 1) = 1))"));
+        assertThat(split.get(Sets.newHashSet(tr2)), isSQL("((RELCOL(tr2, 0) = '30') OR (RELCOL(tr2, 0) = '20'))"));
     }
 
     @Test

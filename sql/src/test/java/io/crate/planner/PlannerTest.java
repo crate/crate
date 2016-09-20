@@ -1824,4 +1824,25 @@ public class PlannerTest extends AbstractPlannerTest {
         assertNotNull(plan);
         assertThat(plan.collectPhase().toCollect(), contains(isReference("col1"), isReference("col2")));
     }
+
+    @Test
+    public void test3TableJoinQuerySplitting() throws Exception {
+        QueryThenFetch qtf = plan("select" +
+                         "  u1.id as u1, " +
+                         "  u2.id as u2, " +
+                         "  u3.id as u3 " +
+                         "from " +
+                         "  users u1," +
+                         "  users u2," +
+                         "  users u3 " +
+                         "where " +
+                         "  u1.name = 'Arthur'" +
+                         "  and u2.id = u1.id" +
+                         "  and u2.name = u1.name");
+        NestedLoop outerNl = (NestedLoop) qtf.subPlan();
+        NestedLoop innerNl = (NestedLoop) outerNl.left();
+
+        Symbol query = ((FilterProjection) innerNl.nestedLoopPhase().projections().get(0)).query();
+        assertThat(query, isSQL("((INPUT(2) = INPUT(0)) AND (INPUT(3) = INPUT(1)))"));
+    }
 }
