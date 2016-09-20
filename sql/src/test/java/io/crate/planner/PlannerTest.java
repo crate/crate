@@ -1748,6 +1748,26 @@ public class PlannerTest extends AbstractPlannerTest {
     }
 
     @Test
+    public void test3TableJoinQuerySplitting() throws Exception {
+        QueryThenFetch qtf = plan("select" +
+                         "  u1.id as u1, " +
+                         "  u2.id as u2, " +
+                         "  u3.id as u3 " +
+                         "from " +
+                         "  users u1," +
+                         "  users u2," +
+                         "  users u3 " +
+                         "where " +
+                         "  u1.name = 'Arthur'" +
+                         "  and u2.id = u1.id" +
+                         "  and u2.name = u1.name");
+        NestedLoop outerNl = (NestedLoop) qtf.subPlan();
+        NestedLoop innerNl = (NestedLoop) outerNl.left();
+
+        assertThat(innerNl.nestedLoopPhase().filterSymbol(), isSQL("((INPUT(2) = INPUT(0)) AND (INPUT(3) = INPUT(1)))"));
+    }
+
+    @Test
     public void testNoSoftLimitOnUnlimitedChildRelation() throws Exception {
         int softLimit = 10_000;
         Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, new StmtCtx(), softLimit, 0);
