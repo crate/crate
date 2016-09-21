@@ -115,6 +115,13 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         return relation;
     }
 
+    @Override
+    public AnalyzedRelation visitTwoRelationsUnion(TwoRelationsUnion twoTableUnion, Context context) {
+        process(twoTableUnion.left(), context);
+        process(twoTableUnion.right(), context);
+        return twoTableUnion;
+    }
+
     private Map<QualifiedName, AnalyzedRelation> mapSourceRelations(MultiSourceSelect multiSourceSelect) {
         return Maps.transformValues(multiSourceSelect.sources(), new com.google.common.base.Function<SourceRelation, AnalyzedRelation>() {
             @Override
