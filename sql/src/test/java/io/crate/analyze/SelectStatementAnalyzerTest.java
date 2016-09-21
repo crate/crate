@@ -842,8 +842,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
         // make sure that where clause was pushed down and didn't disappear somehow
         assertThat(relation.querySpec().where().query(), isSQL("null"));
-        SourceRelation users =
-            ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("doc", "users"));
+        RelationSource users =
+                ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("doc", "users"));
         assertThat(users.querySpec().where().query(), isSQL("(doc.users.name = 'Arthur')"));
     }
 
@@ -854,8 +854,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.relation().querySpec().where(), is(WhereClause.MATCH_ALL));
         assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
 
-        SourceRelation source1 = ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("t1"));
-        SourceRelation source2 = ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("t2"));
+        RelationSource source1 = ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("t1"));
+        RelationSource source2 = ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("t2"));
 
         assertThat(source1.querySpec().where().query(), isSQL("(doc.users.name = 'foo')"));
         assertThat(source2.querySpec().where().query(), isSQL("(true AND (doc.users.name = 'bar'))"));
@@ -897,15 +897,10 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                                                    "limit 10 offset 20");
         assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
         TwoRelationsUnion tableUnion = (TwoRelationsUnion) analysis.relation();
-        assertThat(tableUnion.left(), instanceOf(QueriedDocTable.class));
-        assertThat(tableUnion.right(), instanceOf(QueriedDocTable.class));
-
-        assertThat(tableUnion.querySpec().limit().isPresent(), is(true));
-        assertThat(tableUnion.querySpec().limit().get(), isLiteral(10));
-        assertThat(tableUnion.querySpec().offset().get(), isLiteral(20));
-        assertThat(tableUnion.querySpec().orderBy().isPresent(), is(true));
-        assertThat(tableUnion.querySpec().orderBy().get().orderBySymbols().size(), is(1));
-        assertThat(tableUnion.querySpec().orderBy().get().orderBySymbols().get(0), isField("id"));
+        assertThat(tableUnion.first(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.second(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
+                                                 "ORDER BY doc.users.id LIMIT 10 OFFSET 20"));
     }
 
     @Test
@@ -919,18 +914,14 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                                                    "limit 10 offset 20");
         assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
         TwoRelationsUnion tableUnion1 = (TwoRelationsUnion) analysis.relation();
-        assertThat(tableUnion1.left(), instanceOf(TwoRelationsUnion.class));
-        assertThat(tableUnion1.right(), instanceOf(QueriedDocTable.class));
-        assertThat(tableUnion1.querySpec().limit().isPresent(), Matchers.is(true));
-        assertThat(tableUnion1.querySpec().limit().get(), isLiteral(10));
-        assertThat(tableUnion1.querySpec().offset().get(), isLiteral(20));
-        assertThat(tableUnion1.querySpec().orderBy().isPresent(), Matchers.is(true));
-        assertThat(tableUnion1.querySpec().orderBy().get().orderBySymbols().size(), Matchers.is(1));
-        assertThat(tableUnion1.querySpec().orderBy().get().orderBySymbols().get(0), isField("text"));
+        assertThat(tableUnion1.first(), instanceOf(TwoRelationsUnion.class));
+        assertThat(tableUnion1.second(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion1.querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
+                                                  "ORDER BY doc.users.text LIMIT 10 OFFSET 20"));
 
-        TwoRelationsUnion tableUnion2 = (TwoRelationsUnion) tableUnion1.left();
-        assertThat(tableUnion2.left(), instanceOf(QueriedDocTable.class));
-        assertThat(tableUnion2.right(), instanceOf(QueriedDocTable.class));
+        TwoRelationsUnion tableUnion2 = (TwoRelationsUnion) tableUnion1.first();
+        assertThat(tableUnion2.first(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion2.second(), instanceOf(QueriedDocTable.class));
     }
 
     @Test
