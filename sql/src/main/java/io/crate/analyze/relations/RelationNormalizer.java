@@ -395,6 +395,13 @@ final class RelationNormalizer {
                 querySpec,
                 multiSourceSelect.joinPairs());
         }
+
+        @Override
+        public AnalyzedRelation visitTwoRelationsUnion(TwoRelationsUnion twoTableUnion, Context context) {
+            process(twoTableUnion.left(), context);
+            process(twoTableUnion.right(), context);
+            return twoTableUnion;
+        }
     }
 
     private static class NormalizerVisitor extends AnalyzedRelationVisitor<RelationNormalizer.Context, AnalyzedRelation> {
@@ -442,6 +449,13 @@ final class RelationNormalizer {
                 multiSourceSelect.joinPairs());
             multiSourceSelect.pushDownQuerySpecs();
             return multiSourceSelect;
+        }
+
+        @Override
+        public AnalyzedRelation visitTwoRelationsUnion(TwoRelationsUnion twoTableUnion, Context context) {
+            twoTableUnion.left(process(twoTableUnion.left(), context));
+            twoTableUnion.right(process(twoTableUnion.right(), context));
+            return twoTableUnion;
         }
     }
 }
