@@ -31,10 +31,8 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.relations.select.SelectAnalyzer;
-import io.crate.analyze.symbol.Aggregations;
+import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.analyze.validator.GroupBySymbolValidator;
@@ -126,6 +124,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             RelationAnalysisContext analysisContext = context.currentRelationContext();
             analysisContext.addSourceRelation(twoRelationsUnion.first().getQualifiedName().toString(), twoRelationsUnion.first());
             SelectAnalysis selectAnalysis = new SelectAnalysis(analysisContext);
+            for (Field field : twoRelationsUnion.fields()) {
+                selectAnalysis.add(field.path(), field);
+            }
             context.endRelation();
 
             QuerySpec querySpec = twoRelationsUnion.querySpec();
