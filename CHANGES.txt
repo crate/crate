@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Inserting in tables which have a generated column with
+   `current_timestamp` failed.
+
  - Fixed an issue that could cause joins on 3+ tables to produce the wrong
    result.
 

@@ -28,7 +28,6 @@ import com.google.common.base.Throwables;
 import io.crate.Constants;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Reference;
-import io.crate.exceptions.JobKilledException;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
 import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.jobs.JobContextService;
@@ -288,7 +287,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
         }
 
-        processGeneratedColumns(tableInfo, pathsToUpdate, updatedGeneratedColumns, request.validateGeneratedColumns(), getResult);
+        // For updates we always have to enforce the validation of constraints on shards.
+        // Currently the validation is done only for generated columns.
+        processGeneratedColumns(tableInfo, pathsToUpdate, updatedGeneratedColumns, true, getResult);
 
         updateSourceByPaths(updatedSourceAsMap, pathsToUpdate);
 
