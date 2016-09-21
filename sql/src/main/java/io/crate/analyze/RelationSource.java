@@ -25,17 +25,17 @@ package io.crate.analyze;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.sql.tree.QualifiedName;
 
-public class SourceRelation {
+public class RelationSource {
 
     private final QualifiedName qualifiedName;
     private final AnalyzedRelation relation;
     private QuerySpec querySpec;
 
-    public SourceRelation(QualifiedName qualifiedName, AnalyzedRelation relation) {
+    public RelationSource(QualifiedName qualifiedName, AnalyzedRelation relation) {
         this(qualifiedName, relation, null);
     }
 
-    public SourceRelation(QualifiedName qualifiedName, AnalyzedRelation relation, QuerySpec querySpec) {
+    public RelationSource(QualifiedName qualifiedName, AnalyzedRelation relation, QuerySpec querySpec) {
         this.qualifiedName = qualifiedName;
         this.relation = relation;
         this.querySpec = querySpec;
