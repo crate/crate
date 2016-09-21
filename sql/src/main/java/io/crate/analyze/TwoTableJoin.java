@@ -39,16 +39,16 @@ import java.util.List;
 public class TwoTableJoin implements QueriedRelation {
 
     private final QuerySpec querySpec;
-    private final SourceRelation left;
-    private final SourceRelation right;
+    private final RelationSource left;
+    private final RelationSource right;
     private final Optional<OrderBy> remainingOrderBy;
     private final List<Field> fields;
     private final QualifiedName name;
     private final JoinPair joinPair;
 
     public TwoTableJoin(QuerySpec querySpec,
-                        SourceRelation left,
-                        SourceRelation right,
+                        RelationSource left,
+                        RelationSource right,
                         Optional<OrderBy> remainingOrderBy,
                         JoinPair joinPair) {
         this.querySpec = querySpec;
@@ -67,11 +67,11 @@ public class TwoTableJoin implements QueriedRelation {
         return remainingOrderBy;
     }
 
-    public SourceRelation left() {
+    public RelationSource left() {
         return left;
     }
 
-    public SourceRelation right() {
+    public RelationSource right() {
         return right;
     }
 
