@@ -241,7 +241,6 @@ public class QuerySpec {
         }
     }
 
-
     public QuerySpec copyAndReplace(com.google.common.base.Function<? super Symbol, Symbol> replaceFunction) {
         QuerySpec newSpec = new QuerySpec()
             .limit(limit)
@@ -288,17 +287,13 @@ public class QuerySpec {
      * </p>
      */
     public void visitSymbols(Consumer<Symbol> consumer) {
-        for (Symbol output : outputs) {
-            consumer.accept(output);
-        }
+        outputs.forEach(consumer::accept);
         if (where.hasQuery()) {
             consumer.accept(where.query());
         }
         if (groupBy.isPresent()) {
             List<Symbol> groupBySymbols = groupBy.get();
-            for (Symbol groupBySymbol : groupBySymbols) {
-                consumer.accept(groupBySymbol);
-            }
+            groupBySymbols.forEach(consumer::accept);
         }
         if (having.isPresent()) {
             HavingClause havingClause = having.get();
@@ -308,9 +303,7 @@ public class QuerySpec {
         }
         if (orderBy.isPresent()) {
             OrderBy orderBy = this.orderBy.get();
-            for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
-                consumer.accept(orderBySymbol);
-            }
+            orderBy.orderBySymbols().forEach(consumer::accept);
         }
         if (limit.isPresent()) {
             consumer.accept(limit.get());

@@ -72,6 +72,10 @@ public abstract class AnalyzedRelationVisitor<C, R> {
         return visitAnalyzedRelation(twoTableJoin, context);
     }
 
+    public R visitTwoRelationsUnion(TwoRelationsUnion twoRelationsUnion, C context) {
+        return visitAnalyzedRelation(twoRelationsUnion, context);
+    }
+
     public R visitExplain(ExplainAnalyzedStatement explainAnalyzedStatement, C context) {
         return visitAnalyzedRelation(explainAnalyzedStatement, context);
     }

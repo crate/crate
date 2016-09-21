@@ -150,7 +150,12 @@ public class OrderBy implements Streamable {
         }
     }
 
-    public OrderBy copyAndReplace(Function<? super Symbol, Symbol> replaceFunction) {
+    /**
+     * Create a new "copy" of the OrderBy by replacing the orderBy symbols and it's up
+     * to the replaceFunction to "decide" if original symbols are affected or not.
+     * reverseFlags & nullsFirst are not copied.
+     */
+    OrderBy copyAndReplace(Function<? super Symbol, Symbol> replaceFunction) {
         return new OrderBy(Lists.newArrayList(Lists.transform(orderBySymbols, replaceFunction)), reverseFlags, nullsFirst);
     }
 
@@ -163,7 +168,7 @@ public class OrderBy implements Streamable {
 
     public OrderBy merge(@Nullable OrderBy otherOrderBy) {
         if (otherOrderBy != null) {
-            List<Symbol> newOrderBySymbols = otherOrderBy.orderBySymbols();
+            List<Symbol> newOrderBySymbols = new ArrayList<>(otherOrderBy.orderBySymbols());
             List<Boolean> newReverseFlags = new ArrayList<>(Booleans.asList(otherOrderBy.reverseFlags()));
             List<Boolean> newNullsFirst = new ArrayList<>(Arrays.asList(otherOrderBy.nullsFirst()));
 
