@@ -835,6 +835,33 @@ public class TestStatementBuilder {
                        "order by 1 limit 10 offset 5");
     }
 
+    @Test
+    public void testUnionWithOrderByOnLeftRelation() throws Exception {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("no viable alternative at input 'union'");
+        SqlParser.createStatement("select * from foo order by 1 " +
+                                  "union " +
+                                  "select * from bar");
+    }
+
+    @Test
+    public void testUnionWithLimitOnLeftRelation() throws Exception {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("mismatched input 'union' expecting EOF");
+        SqlParser.createStatement("select * from foo limit 10 " +
+                                  "union " +
+                                  "select * from bar");
+    }
+
+    @Test
+    public void testUnionWithOffsetOnLeftRelation() throws Exception {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("mismatched input 'union' expecting EOF");
+        SqlParser.createStatement("select * from foo offset 10 " +
+                                  "union " +
+                                  "select * from bar");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
