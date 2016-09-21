@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -29,9 +30,10 @@ import org.junit.Test;
 import java.util.Arrays;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
-@UseJdbc(false)
+@UseJdbc
 public class UnionIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
@@ -62,6 +64,20 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
                                                                       new Object[]{"green"},
                                                                       new Object[]{"small"},
                                                                       new Object[]{"large"}));
+    }
+
+    @Test
+    public void testUnionAllWithOrderBy() throws Exception {
+        createColorsAndSizes();
+        execute("select * from colors " +
+                "union all " +
+                "select * from sizes " +
+                "order by 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("blue\n" +
+                                                                    "green\n" +
+                                                                    "large\n" +
+                                                                    "red\n" +
+                                                                    "small\n"));
     }
 
     private void createColorsAndSizes() {
