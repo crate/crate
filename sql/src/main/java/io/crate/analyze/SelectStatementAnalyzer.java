@@ -40,7 +40,7 @@ public class SelectStatementAnalyzer extends DefaultTraversalVisitor<SelectAnaly
 
     @Override
     protected SelectAnalyzedStatement visitQuery(Query node, Analysis analysis) {
-        QueriedRelation relation = (QueriedRelation) relationAnalyzer.analyze(node.getQueryBody(), analysis);
+        QueriedRelation relation = (QueriedRelation) relationAnalyzer.analyze(node, analysis);
         analysis.rootRelation(relation);
         return new SelectAnalyzedStatement(relation);
     }

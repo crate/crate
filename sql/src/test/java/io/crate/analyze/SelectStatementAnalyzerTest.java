@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.*;
@@ -846,7 +847,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                 isSQL("(true AND (doc.users.id = doc.users_multi_pk.id))"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
-        MultiSourceSelect.Source users =
+        SourceRelation users =
                 ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("doc", "users"));
         assertThat(users.querySpec().where().query(), isSQL("(doc.users.name = 'Arthur')"));
     }
@@ -871,10 +872,84 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                 "doc.users_multi_pk.id, doc.users_multi_pk.name, doc.users.name, concat(doc.users.name, doc.users_multi_pk.name)"));
     }
 
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testUnion() throws Exception {
+    @Test
+    public void testUnionDistinct() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("UNION [DISTINCT] is not supported");
         analyze("select * from users union select * from users_multi_pk");
+    }
+
+    @Test
+    public void testUnion2Tables() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select id, text from users " +
+                                                   "union all " +
+                                                   "select id, name from users_multi_pk " +
+                                                   "order by id " +
+                                                   "limit 10 offset 20");
+        assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
+        TwoRelationsUnion tableUnion = (TwoRelationsUnion) analysis.relation();
+        assertThat(tableUnion.left(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.right(), instanceOf(QueriedDocTable.class));
+
+        assertThat(tableUnion.querySpec().limit().isPresent(), is(true));
+        assertThat(tableUnion.querySpec().limit().get(), is(10));
+        assertThat(tableUnion.querySpec().offset(), is(20));
+        assertThat(tableUnion.querySpec().orderBy().isPresent(), is(true));
+        assertThat(tableUnion.querySpec().orderBy().get().orderBySymbols().size(), is(1));
+        assertThat(tableUnion.querySpec().orderBy().get().orderBySymbols().get(0), isField("id"));
+    }
+
+    @Test
+    public void testUnion3Tables() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select id, text from users u1 " +
+                                                   "union all " +
+                                                   "select id, name from users_multi_pk " +
+                                                   "union all " +
+                                                   "select id, name from users " +
+                                                   "order by text " +
+                                                   "limit 10 offset 20");
+        assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
+        TwoRelationsUnion tableUnion1 = (TwoRelationsUnion) analysis.relation();
+        assertThat(tableUnion1.left(), instanceOf(TwoRelationsUnion.class));
+        assertThat(tableUnion1.right(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion1.querySpec().limit().isPresent(), Matchers.is(true));
+        assertThat(tableUnion1.querySpec().limit().get(), Matchers.is(10));
+        assertThat(tableUnion1.querySpec().offset(), Matchers.is(20));
+        assertThat(tableUnion1.querySpec().orderBy().isPresent(), Matchers.is(true));
+        assertThat(tableUnion1.querySpec().orderBy().get().orderBySymbols().size(), Matchers.is(1));
+        assertThat(tableUnion1.querySpec().orderBy().get().orderBySymbols().get(0), isField("text"));
+
+        TwoRelationsUnion tableUnion2 = (TwoRelationsUnion) tableUnion1.left();
+        assertThat(tableUnion2.left(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion2.right(), instanceOf(QueriedDocTable.class));
+    }
+
+    @Test
+    public void testUnionDifferentNumberOfOutputs() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Number of output columns must be the same for all parts of a UNION");
+        analyze("select 1, 2 from users " +
+                "union all " +
+                "select 3 from users_multi_pk");
+    }
+
+    @Test
+    public void testUnionDifferentTypesOfOutputs() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Corresponding output columns must be compatible for all parts of a UNION");
+        analyze("select 1, 2 from users " +
+                "union all " +
+                "select 3, friends from users_multi_pk");
+    }
+
+    @Test
+    public void testUnionWrongOrderBy() throws Exception {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column name unknown");
+        SelectAnalyzedStatement analysis = analyze("select id, text from users " +
+                                                   "union all " +
+                                                   "select id, name from users_multi_pk " +
+                                                   "order by name");
     }
 
     @Test(expected = IllegalArgumentException.class)
