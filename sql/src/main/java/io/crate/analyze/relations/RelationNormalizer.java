@@ -58,9 +58,9 @@ final class RelationNormalizer {
     }
 
     private static Map<QualifiedName, AnalyzedRelation> mapSourceRelations(MultiSourceSelect multiSourceSelect) {
-        return Maps.transformValues(multiSourceSelect.sources(), new com.google.common.base.Function<MultiSourceSelect.Source, AnalyzedRelation>() {
+        return Maps.transformValues(multiSourceSelect.sources(), new com.google.common.base.Function<RelationSource, AnalyzedRelation>() {
             @Override
-            public AnalyzedRelation apply(MultiSourceSelect.Source input) {
+            public AnalyzedRelation apply(RelationSource input) {
                 return input.relation();
             }
         });

@@ -795,7 +795,7 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
 
         // make sure that where clause was pushed down and didn't disappear somehow
         assertThat(relation.querySpec().where().query(), isSQL("null"));
-        MultiSourceSelect.Source users =
+        RelationSource users =
             ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("doc", "users"));
         assertThat(users.querySpec().where().query(), isSQL("(doc.users.name = 'Arthur')"));
     }
@@ -807,10 +807,8 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
         assertThat(analysis.relation().querySpec().where(), is(WhereClause.MATCH_ALL));
         assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
 
-        MultiSourceSelect.Source source1 = ((MultiSourceSelect) analysis.relation()).sources()
-                                                                                    .get(QualifiedName.of("t1"));
-        MultiSourceSelect.Source source2 = ((MultiSourceSelect) analysis.relation()).sources()
-                                                                                    .get(QualifiedName.of("t2"));
+        RelationSource source1 = ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("t1"));
+        RelationSource source2 = ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("t2"));
 
         assertThat(source1.querySpec().where().query(), isSQL("(doc.users.name = 'foo')"));
         assertThat(source2.querySpec().where().query(), isSQL("(true AND (doc.users.name = 'bar'))"));

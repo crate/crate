@@ -35,7 +35,7 @@ import java.util.*;
 public class MultiSourceSelect implements QueriedRelation {
 
     private final RelationSplitter splitter;
-    private final HashMap<QualifiedName, Source> sources;
+    private final HashMap<QualifiedName, RelationSource> sources;
     private final QuerySpec querySpec;
     private final Fields fields;
     private final List<JoinPair> joinPairs;
@@ -69,7 +69,7 @@ public class MultiSourceSelect implements QueriedRelation {
         return splitter.canBeFetched();
     }
 
-    public Map<QualifiedName, Source> sources() {
+    public Map<QualifiedName, RelationSource> sources() {
         return sources;
     }
 
@@ -109,10 +109,10 @@ public class MultiSourceSelect implements QueriedRelation {
         return querySpec;
     }
 
-    private static HashMap<QualifiedName, Source> initializeSources(Map<QualifiedName, AnalyzedRelation> originalSources) {
-        HashMap<QualifiedName, Source> sources = new LinkedHashMap<>(originalSources.size());
+    private static HashMap<QualifiedName, RelationSource> initializeSources(Map<QualifiedName, AnalyzedRelation> originalSources) {
+        HashMap<QualifiedName, RelationSource> sources = new LinkedHashMap<>(originalSources.size());
         for (Map.Entry<QualifiedName, AnalyzedRelation> entry : originalSources.entrySet()) {
-            Source source = new Source(entry.getValue());
+            RelationSource source = new RelationSource(entry.getKey(), entry.getValue());
             sources.put(entry.getKey(), source);
         }
         return sources;
@@ -120,7 +120,7 @@ public class MultiSourceSelect implements QueriedRelation {
 
     public void pushDownQuerySpecs() {
         splitter.process();
-        for (Source source : sources.values()) {
+        for (RelationSource source : sources.values()) {
             QuerySpec spec = splitter.getSpec(source.relation());
             source.querySpec(spec);
         }
