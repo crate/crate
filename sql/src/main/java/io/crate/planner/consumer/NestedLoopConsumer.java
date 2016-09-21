@@ -373,35 +373,33 @@ public class NestedLoopConsumer implements Consumer {
         }
     }
 
-    private static class SubRelationConverter extends AnalyzedRelationVisitor<MultiSourceSelect.Source, QueriedRelation> {
+    private static class SubRelationConverter extends AnalyzedRelationVisitor<SourceRelation, QueriedRelation> {
 
         static final SubRelationConverter INSTANCE = new SubRelationConverter();
 
         @Override
-        public QueriedRelation visitTableRelation(TableRelation tableRelation,
-                                                  MultiSourceSelect.Source source) {
+        public QueriedRelation visitTableRelation(TableRelation tableRelation, SourceRelation source) {
             return new QueriedTable(tableRelation, source.querySpec());
         }
 
         @Override
-        public QueriedRelation visitDocTableRelation(DocTableRelation tableRelation,
-                                                     MultiSourceSelect.Source source) {
+        public QueriedRelation visitDocTableRelation(DocTableRelation tableRelation, SourceRelation source) {
             return new QueriedDocTable(tableRelation, source.querySpec());
         }
 
         @Override
-        public QueriedRelation visitTwoTableJoin(TwoTableJoin twoTableJoin, MultiSourceSelect.Source context) {
+        public QueriedRelation visitTwoTableJoin(TwoTableJoin twoTableJoin, SourceRelation context) {
             return twoTableJoin;
         }
 
         @Override
-        public QueriedRelation visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation, MultiSourceSelect.Source context) {
+        public QueriedRelation visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation,
+                                                          SourceRelation context) {
             return new QueriedTable(tableFunctionRelation, context.querySpec());
         }
 
         @Override
-        protected QueriedTableRelation visitAnalyzedRelation(AnalyzedRelation relation,
-                                                             MultiSourceSelect.Source source) {
+        protected QueriedTableRelation visitAnalyzedRelation(AnalyzedRelation relation, SourceRelation source) {
             throw new ValidationException("JOIN with sub queries is not supported");
         }
     }

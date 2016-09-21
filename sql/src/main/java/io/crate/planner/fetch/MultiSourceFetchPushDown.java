@@ -23,6 +23,7 @@
 package io.crate.planner.fetch;
 
 import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.SourceRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.DocReferenceConverter;
@@ -73,8 +74,8 @@ public class MultiSourceFetchPushDown {
         ArrayList<Symbol> mssOutputs = new ArrayList<>(
             statement.sources().size() + statement.requiredForQuery().size());
 
-        for (Map.Entry<QualifiedName, MultiSourceSelect.Source> entry : statement.sources().entrySet()) {
-            MultiSourceSelect.Source source = entry.getValue();
+        for (Map.Entry<QualifiedName, SourceRelation> entry : statement.sources().entrySet()) {
+            SourceRelation source = entry.getValue();
             if (!(source.relation() instanceof DocTableRelation)) {
                 int index = 0;
                 for (Symbol output : source.querySpec().outputs()) {
