@@ -27,6 +27,7 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.analyze.*;
 import io.crate.testing.T3;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
@@ -233,9 +234,9 @@ public class RelationNormalizerTest extends CrateUnitTest {
             "SELECT doc.t1.a, doc.t2.i ORDER BY doc.t2.y"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
-        MultiSourceSelect.Source t1 = ((MultiSourceSelect) relation).sources().get(T3.T1);
+        SourceRelation t1 = ((MultiSourceSelect) relation).sources().get(T3.T1);
         assertThat(t1.querySpec().where().query(), isSQL("(true AND (doc.t1.a = 'a'))"));
-        MultiSourceSelect.Source t2 = ((MultiSourceSelect) relation).sources().get(T3.T2);
+        SourceRelation t2 = ((MultiSourceSelect) relation).sources().get(T3.T2);
         assertThat(t2.querySpec().where().query(), isSQL("(doc.t2.y > 60)"));
     }
 
@@ -252,9 +253,9 @@ public class RelationNormalizerTest extends CrateUnitTest {
         assertThat(((MultiSourceSelect) relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
-        MultiSourceSelect.Source t1 = ((MultiSourceSelect) relation).sources().get(T3.T1);
+        SourceRelation t1 = ((MultiSourceSelect) relation).sources().get(T3.T1);
         assertThat(t1.querySpec().where().query(), isSQL("(doc.t1.a = 'a')"));
-        MultiSourceSelect.Source t2 = ((MultiSourceSelect) relation).sources().get(T3.T2);
+        SourceRelation t2 = ((MultiSourceSelect) relation).sources().get(T3.T2);
         assertThat(t2.querySpec().where().query(), isSQL("null"));
     }
 
@@ -271,9 +272,9 @@ public class RelationNormalizerTest extends CrateUnitTest {
         assertThat(((MultiSourceSelect) relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
-        MultiSourceSelect.Source t1 = ((MultiSourceSelect) relation).sources().get(T3.T1);
+        SourceRelation t1 = ((MultiSourceSelect) relation).sources().get(T3.T1);
         assertThat(t1.querySpec().where().query(), isSQL("null"));
-        MultiSourceSelect.Source t2 = ((MultiSourceSelect) relation).sources().get(T3.T2);
+        SourceRelation t2 = ((MultiSourceSelect) relation).sources().get(T3.T2);
         assertThat(t2.querySpec().where().query(), isSQL("(doc.t2.i = 10)"));
     }
 
@@ -289,9 +290,9 @@ public class RelationNormalizerTest extends CrateUnitTest {
             "SELECT doc.t1.a, doc.t2.i WHERE ((doc.t2.y > 60) AND (doc.t1.a = 'a')) ORDER BY doc.t2.y"));
 
         // make sure that where clause wasn't pushed down since but be applied after the FULL join
-        MultiSourceSelect.Source t1 = ((MultiSourceSelect) relation).sources().get(T3.T1);
+        SourceRelation t1 = ((MultiSourceSelect) relation).sources().get(T3.T1);
         assertThat(t1.querySpec().where().query(), isSQL("null"));
-        MultiSourceSelect.Source t2 = ((MultiSourceSelect) relation).sources().get(T3.T2);
+        SourceRelation t2 = ((MultiSourceSelect) relation).sources().get(T3.T2);
         assertThat(t2.querySpec().where().query(), isSQL("null"));
     }
 
