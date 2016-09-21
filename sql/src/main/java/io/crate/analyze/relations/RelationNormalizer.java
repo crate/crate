@@ -117,9 +117,9 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
     }
 
     private Map<QualifiedName, AnalyzedRelation> mapSourceRelations(MultiSourceSelect multiSourceSelect) {
-        return Maps.transformValues(multiSourceSelect.sources(), new com.google.common.base.Function<MultiSourceSelect.Source, AnalyzedRelation>() {
+        return Maps.transformValues(multiSourceSelect.sources(), new com.google.common.base.Function<SourceRelation, AnalyzedRelation>() {
             @Override
-            public AnalyzedRelation apply(MultiSourceSelect.Source input) {
+            public AnalyzedRelation apply(SourceRelation input) {
                 return input.relation();
             }
         });
