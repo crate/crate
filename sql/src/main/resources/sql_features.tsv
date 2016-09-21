@@ -80,7 +80,7 @@ E061	Basic predicates and search conditions	13	Correlated subqueries	NO
 E061	Basic predicates and search conditions	14	Search condition	YES		
 E071	Basic query expressions			NO		
 E071	Basic query expressions	1	UNION DISTINCT table operator	NO		
-E071	Basic query expressions	2	UNION ALL table operator	NO		
+E071	Basic query expressions	2	UNION ALL table operator	YES		
 E071	Basic query expressions	3	EXCEPT DISTINCT table operator	NO		
 E071	Basic query expressions	5	Columns combined via table operators need not have exactly the same data type	NO		
 E071	Basic query expressions	6	Table operators in subqueries	NO		
