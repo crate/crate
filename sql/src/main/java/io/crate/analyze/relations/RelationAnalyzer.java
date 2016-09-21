@@ -55,6 +55,7 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.*;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -116,12 +117,62 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitQuery(Query node, StatementAnalysisContext context) {
+        // In case of Set Operation
+        if (!node.getOrderBy().isEmpty() || node.getLimit().isPresent() || node.getOffset().isPresent()) {
+            // In the Future this can be a TwoRelationsSetOperation
+            TwoRelationsUnion twoRelationsUnion = (TwoRelationsUnion) process(node.getQueryBody(), context);
+
+            // Use left relation to process expression of the "root" Query node
+            context.startRelation();
+            RelationAnalysisContext analysisContext = context.currentRelationContext();
+            analysisContext.addSourceRelation(twoRelationsUnion.left().getQualifiedName().toString(), twoRelationsUnion.left());
+            SelectAnalysis selectAnalysis = new SelectAnalysis(analysisContext);
+            context.endRelation();
+
+            QuerySpec querySpec = twoRelationsUnion.querySpec();
+            if (node.getLimit().isPresent()) {
+                querySpec.limit(Optional.fromNullable(analysisContext.expressionAnalyzer().convert(
+                    node.getLimit().get(),
+                    analysisContext.expressionAnalysisContext())));
+            }
+            if (node.getOffset().isPresent()) {
+                querySpec.offset(Optional.fromNullable(analysisContext.expressionAnalyzer().convert(
+                    node.getOffset().get(),
+                    analysisContext.expressionAnalysisContext())));
+            }
+            querySpec.orderBy(analyzeOrderBy(selectAnalysis, node.getOrderBy(), analysisContext, false, false));
+
+            return twoRelationsUnion;
+        }
         return process(node.getQueryBody(), context);
     }
 
     @Override
     protected AnalyzedRelation visitUnion(Union node, StatementAnalysisContext context) {
-        throw new UnsupportedOperationException("UNION is not supported");
+        if (node.isDistinct()) {
+            throw new UnsupportedOperationException("UNION [DISTINCT] is not supported");
+        } else {
+            assert node.getRelations().size() == 2 : "Each Union can have only two relations";
+            QueriedRelation left = (QueriedRelation) process(node.getRelations().get(0), context);
+            QueriedRelation right = (QueriedRelation) process(node.getRelations().get(1), context);
+            TwoRelationsUnion twoRelationsUnion = new TwoRelationsUnion(left, right, node.isDistinct());
+
+            // Check number of outputs
+            if (left.querySpec().outputs().size() != right.querySpec().outputs().size()) {
+                throw new UnsupportedOperationException("Number of output columns must be the same for all parts of a UNION");
+            }
+            // Try to cast outputs
+            List<DataType> dataTypesFromLeft = new ArrayList<>();
+            for (Symbol outputSymbol : left.querySpec().outputs()) {
+                dataTypesFromLeft.add(outputSymbol.valueType());
+            }
+            if (right.querySpec().castOutputs(dataTypesFromLeft.iterator()) >= 0) {
+                throw new UnsupportedOperationException("Corresponding output columns must be compatible for all parts of a UNION");
+            }
+            twoRelationsUnion.querySpec().outputs(left.querySpec().outputs());
+
+            return twoRelationsUnion;
+        }
     }
 
     @Override
