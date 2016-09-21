@@ -60,6 +60,12 @@ public class MultiSourceSelect implements QueriedRelation {
         for (Path path : outputNames) {
             fields.add(path, new Field(this, path, outputsIterator.next().valueType()));
         }
+
+        List<String> qNames = new ArrayList<String>() {{add("join");}};
+        for (QualifiedName qName : sources.keySet()) {
+            qNames.add(qName.toString());
+        }
+        this.qualifiedName = QualifiedName.of(qNames);
     }
 
     public Set<Symbol> requiredForQuery() {
