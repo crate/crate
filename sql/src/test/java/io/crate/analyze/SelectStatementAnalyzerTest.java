@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.AmbiguousColumnAliasException;
@@ -834,10 +835,168 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
             "doc.users_multi_pk.id, doc.users_multi_pk.name, doc.users.name, concat(doc.users.name, doc.users_multi_pk.name)"));
     }
 
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testUnion() throws Exception {
+    @Test
+    public void testUnionDistinct() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("UNION [DISTINCT] is not supported");
         analyze("select * from users union select * from users_multi_pk");
+    }
+
+    @Test
+    public void testUnion2Tables() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select id, text from users " +
+                                                   "union all " +
+                                                   "select id, name from users_multi_pk " +
+                                                   "order by id, 2 " +
+                                                   "limit 10 offset 20");
+        assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
+        TwoRelationsUnion tableUnion = (TwoRelationsUnion) analysis.relation();
+        assertThat(tableUnion.first(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.second(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
+                                                 "ORDER BY INPUT(0), INPUT(1) " +
+                                                 "LIMIT 10 OFFSET 20"));
+        assertThat(tableUnion.first().querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
+                                                         "ORDER BY doc.users.id, doc.users.text " +
+                                                         "LIMIT add(10, 20)"));
+        assertThat(tableUnion.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id, doc.users_multi_pk.name " +
+                                                          "ORDER BY doc.users_multi_pk.id, doc.users_multi_pk.name " +
+                                                          "LIMIT add(10, 20)"));
+    }
+
+    @Test
+    public void testUnion3Tables() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select id, text from users u1 " +
+                                                   "union all " +
+                                                   "select id, name from users_multi_pk " +
+                                                   "union all " +
+                                                   "select id, name from users " +
+                                                   "order by text " +
+                                                   "limit 10 offset 20");
+        assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
+        TwoRelationsUnion tableUnion1 = (TwoRelationsUnion) analysis.relation();
+        assertThat(tableUnion1.first(), instanceOf(TwoRelationsUnion.class));
+        assertThat(tableUnion1.second(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion1.querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
+                                                  "ORDER BY INPUT(1) LIMIT 10 OFFSET 20"));
+        assertThat(tableUnion1.second().querySpec(), isSQL("SELECT doc.users.id, doc.users.name " +
+                                                           "ORDER BY doc.users.name LIMIT add(10, 20)"));
+
+        TwoRelationsUnion tableUnion2 = (TwoRelationsUnion) tableUnion1.first();
+        assertThat(tableUnion2.first(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion2.second(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion2.first().querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
+                                                          "ORDER BY doc.users.text LIMIT add(10, 20)"));
+        assertThat(tableUnion2.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id, doc.users_multi_pk.name " +
+                                                           "ORDER BY doc.users_multi_pk.name LIMIT add(10, 20)"));
+    }
+
+    @Test
+    public void testUnionWithJoin() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select u1.id, u2.name from users u1, users_multi_pk u2 where u1.id = u2.id " +
+                                                   "union all " +
+                                                   "select id, name from users " +
+                                                   "order by id, 2 " +
+                                                   "limit 10 offset 20");
+        assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
+        TwoRelationsUnion tableUnion = (TwoRelationsUnion) analysis.relation();
+        assertThat(tableUnion.first(), instanceOf(MultiSourceSelect.class));
+        assertThat(tableUnion.second(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.querySpec(), isSQL("SELECT doc.users.id, doc.users_multi_pk.name " +
+                                                 "ORDER BY INPUT(0), INPUT(1) " +
+                                                 "LIMIT 10 OFFSET 20"));
+        assertThat(tableUnion.first().querySpec(), isSQL("SELECT doc.users.id, doc.users_multi_pk.name " +
+                                                         "WHERE (doc.users.id = doc.users_multi_pk.id) " +
+                                                         "LIMIT add(10, 20)"));
+        assertThat(tableUnion.second().querySpec(), isSQL("SELECT doc.users.id, doc.users.name " +
+                                                          "ORDER BY doc.users.id, doc.users.name " +
+                                                          "LIMIT add(10, 20)"));
+    }
+
+    @Test
+    public void testUnionWithSubSelectRewritten() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select id from (select id, name from users order by name) a " +
+                                                   "union all " +
+                                                   "select id from (select id, name from users_multi_pk order by id) b " +
+                                                   "order by id " +
+                                                   "limit 10 offset 20");
+        assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
+        TwoRelationsUnion tableUnion = (TwoRelationsUnion) analysis.relation();
+        assertThat(tableUnion.first(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.second(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.querySpec(), isSQL("SELECT doc.users.id " +
+                                                 "ORDER BY INPUT(0) " +
+                                                 "LIMIT 10 OFFSET 20"));
+        assertThat(tableUnion.first().querySpec(), isSQL("SELECT doc.users.id " +
+                                                         "ORDER BY doc.users.id " +
+                                                         "LIMIT add(10, 20)"));
+        assertThat(tableUnion.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id " +
+                                                          "ORDER BY doc.users_multi_pk.id " +
+                                                          "LIMIT add(10, 20)"));
+    }
+
+    //TODO: Fix
+    @Test
+    public void testUnionWithSubSelectNotRewritten() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select id from (select id, name from users order by name limit 5) a " +
+                                                   "union all " +
+                                                   "select id from (select id, name from users_multi_pk order by id) b " +
+                                                   "order by id " +
+                                                   "limit 10 offset 20");
+        assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
+        TwoRelationsUnion tableUnion = (TwoRelationsUnion) analysis.relation();
+        assertThat(tableUnion.first(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.second(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.querySpec(), isSQL("SELECT doc.users.id " +
+                                                 "ORDER BY INPUT(0) " +
+                                                 "LIMIT 10 OFFSET 20"));
+        assertThat(tableUnion.first().querySpec(), isSQL("SELECT doc.users.id " +
+                                                         "ORDER BY doc.users.id " +
+                                                         "LIMIT least(5, add(10, 20))"));
+        assertThat(tableUnion.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id " +
+                                                          "ORDER BY doc.users_multi_pk.id " +
+                                                          "LIMIT add(10, 20)"));
+    }
+
+    @Test
+    public void testUnionAsSubSelect() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("UNION as a sub query is not supported");
+        analyze("select id, name from (" +
+                    "select id, name, text from users " +
+                    "union all " +
+                    "select id, name, name from users_multi_pk " +
+                    "order by id " +
+                    "limit 10 offset 20) a " +
+                "order by 2 limit 5") ;
+    }
+
+    @Test
+    public void testUnionDifferentNumberOfOutputs() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Number of output columns must be the same for all parts of a UNION");
+        analyze("select 1, 2 from users " +
+                "union all " +
+                "select 3 from users_multi_pk");
+    }
+
+    @Test
+    public void testUnionDifferentTypesOfOutputs() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Corresponding output columns must be compatible for all parts of a UNION");
+        analyze("select 1, 2 from users " +
+                "union all " +
+                "select 3, friends from users_multi_pk");
+    }
+
+    @Test
+    public void testUnionWrongOrderBy() throws Exception {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column name unknown");
+        analyze("select id, text from users " +
+                "union all " +
+                "select id, name from users_multi_pk " +
+                "order by name");
     }
 
     @Test(expected = IllegalArgumentException.class)
