@@ -202,14 +202,14 @@ public class ManyTableConsumer implements Consumer {
 
         QualifiedName leftName = it.next();
         QuerySpec rootQuerySpec = mss.querySpec();
-        SourceRelation leftSource = mss.sources().get(leftName);
+        RelationSource leftSource = mss.sources().get(leftName);
         AnalyzedRelation leftRelation = leftSource.relation();
         QuerySpec leftQuerySpec = leftSource.querySpec();
         Optional<RemainingOrderBy> remainingOrderBy = mss.remainingOrderBy();
         List<JoinPair> joinPairs = mss.joinPairs();
 
         QualifiedName rightName;
-        SourceRelation rightSource;
+        RelationSource rightSource;
         while (it.hasNext()) {
             rightName = it.next();
             rightSource = mss.sources().get(rightName);
@@ -237,7 +237,7 @@ public class ManyTableConsumer implements Consumer {
             // NestedLoop will add NULL rows - so order by needs to be applied after the NestedLoop
             TwoTableJoin join = new TwoTableJoin(
                 newQuerySpec,
-                new SourceRelation(leftName, leftRelation, leftQuerySpec),
+                new RelationSource(leftName, leftRelation, leftQuerySpec),
                 rightSource,
                 remainingOrderByToApply,
                 joinPair
@@ -321,8 +321,8 @@ public class ManyTableConsumer implements Consumer {
         QualifiedName left = it.next();
         QualifiedName right = it.next();
         JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(left, right, mss.joinPairs());
-        SourceRelation leftSource = mss.sources().get(left);
-        SourceRelation rightSource = mss.sources().get(right);
+        RelationSource leftSource = mss.sources().get(left);
+        RelationSource rightSource = mss.sources().get(right);
 
         rewriter.tryRewriteOuterToInnerJoin(
             joinPair, mss.outputSymbols(), mss.querySpec(), left, right, leftSource.querySpec(), rightSource.querySpec());
@@ -483,7 +483,7 @@ public class ManyTableConsumer implements Consumer {
 
         FieldToRelationColumnCtx(MultiSourceSelect mss) {
             relationToName = new IdentityHashMap<>(mss.sources().size());
-            for (Map.Entry<QualifiedName, SourceRelation> entry : mss.sources().entrySet()) {
+            for (Map.Entry<QualifiedName, RelationSource> entry : mss.sources().entrySet()) {
                 relationToName.put(entry.getValue().relation(), entry.getKey());
             }
             this.mss = mss;
