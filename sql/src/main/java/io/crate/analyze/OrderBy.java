@@ -163,7 +163,7 @@ public class OrderBy implements Streamable {
 
     public OrderBy merge(@Nullable OrderBy otherOrderBy) {
         if (otherOrderBy != null) {
-            List<Symbol> newOrderBySymbols = otherOrderBy.orderBySymbols();
+            List<Symbol> newOrderBySymbols = new ArrayList<>(otherOrderBy.orderBySymbols());
             List<Boolean> newReverseFlags = new ArrayList<>(Booleans.asList(otherOrderBy.reverseFlags()));
             List<Boolean> newNullsFirst = new ArrayList<>(Arrays.asList(otherOrderBy.nullsFirst()));
 
