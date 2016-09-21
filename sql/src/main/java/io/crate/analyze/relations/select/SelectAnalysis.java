@@ -79,7 +79,7 @@ public class SelectAnalysis {
         return outputMultiMap;
     }
 
-    void add(Path path, Symbol symbol) {
+    public void add(Path path, Symbol symbol) {
         outputNames.add(path);
         outputSymbols.add(symbol);
         outputMultiMap.put(path.outputName(), symbol);
