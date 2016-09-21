@@ -38,26 +38,20 @@ import java.util.List;
 public class TwoTableJoin implements QueriedRelation {
 
     private final QuerySpec querySpec;
-    private final QualifiedName leftName;
-    private final MultiSourceSelect.Source left;
-    private final QualifiedName rightName;
-    private final MultiSourceSelect.Source right;
+    private final SourceRelation left;
+    private final SourceRelation right;
     private final Optional<OrderBy> remainingOrderBy;
     private final List<Field> fields;
     private final QualifiedName name;
 
     public TwoTableJoin(QuerySpec querySpec,
-                        QualifiedName leftName,
-                        MultiSourceSelect.Source left,
-                        QualifiedName rightName,
-                        MultiSourceSelect.Source right,
+                        SourceRelation left,
+                        SourceRelation right,
                         Optional<OrderBy> remainingOrderBy) {
         this.querySpec = querySpec;
-        this.leftName = leftName;
         this.left = left;
-        this.rightName = rightName;
         this.right = right;
-        this.name = QualifiedName.of("join", leftName.toString(), rightName.toString());
+        this.name = QualifiedName.of("join", left.qualifiedName().toString(), right.qualifiedName().toString());
         this.remainingOrderBy = remainingOrderBy;
         fields = new ArrayList<>(querySpec.outputs().size());
         for (int i = 0; i < querySpec.outputs().size(); i++) {
@@ -69,11 +63,11 @@ public class TwoTableJoin implements QueriedRelation {
         return remainingOrderBy;
     }
 
-    public MultiSourceSelect.Source left() {
+    public SourceRelation left() {
         return left;
     }
 
-    public MultiSourceSelect.Source right() {
+    public SourceRelation right() {
         return right;
     }
 
@@ -108,11 +102,11 @@ public class TwoTableJoin implements QueriedRelation {
     }
 
     public QualifiedName leftName() {
-        return leftName;
+        return left.qualifiedName();
     }
 
     public QualifiedName rightName() {
-        return rightName;
+        return right.qualifiedName();
     }
 
     public QualifiedName name() {

@@ -175,13 +175,13 @@ public class ManyTableConsumer implements Consumer {
 
         QualifiedName leftName = it.next();
         QuerySpec rootQuerySpec = mss.querySpec();
-        MultiSourceSelect.Source leftSource = mss.sources().get(leftName);
+        SourceRelation leftSource = mss.sources().get(leftName);
         AnalyzedRelation leftRelation = leftSource.relation();
         QuerySpec leftQuerySpec = leftSource.querySpec();
         Optional<RemainingOrderBy> remainingOrderBy = mss.remainingOrderBy();
 
         QualifiedName rightName;
-        MultiSourceSelect.Source rightSource;
+        SourceRelation rightSource;
         while (it.hasNext()) {
             rightName = it.next();
             rightSource = mss.sources().get(rightName);
@@ -202,9 +202,7 @@ public class ManyTableConsumer implements Consumer {
             }
             TwoTableJoin join = new TwoTableJoin(
                     newQuerySpec,
-                    leftName,
-                    new MultiSourceSelect.Source(leftRelation, leftQuerySpec),
-                    rightName,
+                    new SourceRelation(leftName, leftRelation, leftQuerySpec),
                     rightSource,
                     remainingOrderByToApply
             );
@@ -291,9 +289,7 @@ public class ManyTableConsumer implements Consumer {
 
         return new TwoTableJoin(
                 mss.querySpec(),
-                left,
                 mss.sources().get(left),
-                right,
                 mss.sources().get(right),
                 remainingOrderByToApply
         );
@@ -430,7 +426,7 @@ public class ManyTableConsumer implements Consumer {
 
         FieldToRelationColumnCtx(MultiSourceSelect mss) {
             relationToName = new IdentityHashMap<>(mss.sources().size());
-            for (Map.Entry<QualifiedName, MultiSourceSelect.Source> entry : mss.sources().entrySet()) {
+            for (Map.Entry<QualifiedName, SourceRelation> entry : mss.sources().entrySet()) {
                 relationToName.put(entry.getValue().relation(), entry.getKey());
             }
             this.mss = mss;

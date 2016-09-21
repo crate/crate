@@ -22,10 +22,7 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.BaseAnalyzerTest;
-import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.*;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -209,9 +206,9 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
             "SELECT doc.t1.a, doc.t2.i ORDER BY doc.t2.y"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
-        MultiSourceSelect.Source t1 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "t1"));
+        SourceRelation t1 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "t1"));
         assertThat(t1.querySpec().where().query(), isSQL("(true AND (doc.t1.a = 'a'))"));
-        MultiSourceSelect.Source t2 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "t2"));
+        SourceRelation t2 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "t2"));
         assertThat(t2.querySpec().where().query(), isSQL("(doc.t2.y > 60)"));
     }
 
