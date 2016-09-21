@@ -21,21 +21,15 @@
 
 package io.crate.analyze.relations.select;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import io.crate.analyze.OutputNameFormatter;
-import io.crate.analyze.expressions.ExpressionAnalysisContext;
-import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalysisContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.validator.SelectSymbolValidator;
 import io.crate.metadata.OutputName;
-import io.crate.metadata.Path;
 import io.crate.sql.tree.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
