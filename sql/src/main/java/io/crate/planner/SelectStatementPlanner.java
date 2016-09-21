@@ -192,7 +192,7 @@ class SelectStatementPlanner {
             }
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
             Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(querySpec);
-            for (Map.Entry<QualifiedName, SourceRelation> entry : mss.sources().entrySet()) {
+            for (Map.Entry<QualifiedName, RelationSource> entry : mss.sources().entrySet()) {
                 subQueries.putAll(subqueryPlanner.planSubQueries(entry.getValue().querySpec()));
             }
             if (mss.canBeFetched().isEmpty()) {

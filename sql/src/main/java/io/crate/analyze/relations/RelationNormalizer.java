@@ -61,9 +61,9 @@ final class RelationNormalizer {
     }
 
     private static Map<QualifiedName, AnalyzedRelation> mapSourceRelations(MultiSourceSelect multiSourceSelect) {
-        return Maps.transformValues(multiSourceSelect.sources(), new com.google.common.base.Function<SourceRelation, AnalyzedRelation>() {
+        return Maps.transformValues(multiSourceSelect.sources(), new com.google.common.base.Function<RelationSource, AnalyzedRelation>() {
             @Override
-            public AnalyzedRelation apply(SourceRelation input) {
+            public AnalyzedRelation apply(RelationSource input) {
                 return input.relation();
             }
         });
@@ -398,8 +398,8 @@ final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitTwoRelationsUnion(TwoRelationsUnion twoTableUnion, Context context) {
-            process(twoTableUnion.left(), context);
-            process(twoTableUnion.right(), context);
+            process(twoTableUnion.first(), context);
+            process(twoTableUnion.second(), context);
             return twoTableUnion;
         }
     }
@@ -453,8 +453,8 @@ final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitTwoRelationsUnion(TwoRelationsUnion twoTableUnion, Context context) {
-            twoTableUnion.left(process(twoTableUnion.left(), context));
-            twoTableUnion.right(process(twoTableUnion.right(), context));
+            twoTableUnion.first(process(twoTableUnion.first(), context));
+            twoTableUnion.second(process(twoTableUnion.second(), context));
             return twoTableUnion;
         }
     }

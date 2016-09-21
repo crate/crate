@@ -39,34 +39,34 @@ public class TwoRelationsUnion implements QueriedRelation {
     private final QualifiedName name;
     private final boolean distinct;
     private final QuerySpec querySpec = new QuerySpec();
-    private AnalyzedRelation left;
-    private AnalyzedRelation right;
+    private AnalyzedRelation first;
+    private AnalyzedRelation second;
 
-    public TwoRelationsUnion(AnalyzedRelation left, AnalyzedRelation right, boolean distinct) {
-        this.left = left;
-        this.right = right;
+    public TwoRelationsUnion(AnalyzedRelation first, AnalyzedRelation second, boolean distinct) {
+        this.first = first;
+        this.second = second;
         this.distinct = distinct;
-        this.name = QualifiedName.of("union", left.getQualifiedName().toString(), right.getQualifiedName().toString());
+        this.name = QualifiedName.of("union", first.getQualifiedName().toString(), second.getQualifiedName().toString());
     }
 
     public boolean isDistinct() {
         return distinct;
     }
 
-    public AnalyzedRelation left() {
-        return left;
+    public AnalyzedRelation first() {
+        return first;
     }
 
-    public AnalyzedRelation right() {
-        return right;
+    public AnalyzedRelation second() {
+        return second;
     }
 
-    public void left(AnalyzedRelation left) {
-        this.left = left;
+    public void first(AnalyzedRelation first) {
+        this.first = first;
     }
 
-    public void right(AnalyzedRelation right) {
-        this.right = right;
+    public void second(AnalyzedRelation second) {
+        this.second = second;
     }
 
     @Override
@@ -76,12 +76,12 @@ public class TwoRelationsUnion implements QueriedRelation {
 
     @Override
     public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        return left.getField(path, operation);
+        return first.getField(path, operation);
     }
 
     @Override
     public List<Field> fields() {
-        return left.fields();
+        return first.fields();
     }
 
     @Override

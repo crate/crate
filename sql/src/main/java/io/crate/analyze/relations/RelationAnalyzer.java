@@ -110,12 +110,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             // In the Future this can be a TwoRelationsSetOperation
             TwoRelationsUnion twoRelationsUnion = (TwoRelationsUnion) process(node.getQueryBody(), statementContext);
 
-            // Use left relation to process expression of the "root" Query node
+            // Use first relation of the top level Union to process expressions of the "root" Query node
             statementContext.startRelation();
             RelationAnalysisContext relationAnalysisContext = statementContext.currentRelationContext();
             relationAnalysisContext.addSourceRelation(
-                twoRelationsUnion.left().getQualifiedName().toString(),
-                twoRelationsUnion.left());
+                twoRelationsUnion.first().getQualifiedName().toString(),
+                twoRelationsUnion.first());
             ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 functions,
                 statementContext.sessionContext(),
@@ -157,6 +157,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (node.isDistinct()) {
             throw new UnsupportedOperationException("UNION [DISTINCT] is not supported");
         } else {
+            // Parser builds a tree of union pairs so every pair has always 2 relations
             assert node.getRelations().size() == 2 : "Each Union can have only two relations";
             QueriedRelation left = (QueriedRelation) process(node.getRelations().get(0), context);
             QueriedRelation right = (QueriedRelation) process(node.getRelations().get(1), context);
