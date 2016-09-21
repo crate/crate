@@ -32,10 +32,8 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.relations.select.SelectAnalyzer;
-import io.crate.analyze.symbol.Aggregations;
+import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.analyze.validator.GroupBySymbolValidator;
@@ -127,6 +125,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 relationAnalysisContext,
                 expressionAnalyzer,
                 expressionAnalysisContext);
+            for (Field field : twoRelationsUnion.fields()) {
+                selectAnalysis.add(field.path(), field);
+            }
             statementContext.endRelation();
 
             QuerySpec querySpec = twoRelationsUnion.querySpec();
@@ -159,23 +160,23 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         } else {
             // Parser builds a tree of union pairs so every pair has always 2 relations
             assert node.getRelations().size() == 2 : "Each Union can have only two relations";
-            QueriedRelation left = (QueriedRelation) process(node.getRelations().get(0), context);
-            QueriedRelation right = (QueriedRelation) process(node.getRelations().get(1), context);
-            TwoRelationsUnion twoRelationsUnion = new TwoRelationsUnion(left, right, node.isDistinct());
+            QueriedRelation first = (QueriedRelation) process(node.getRelations().get(0), context);
+            QueriedRelation second = (QueriedRelation) process(node.getRelations().get(1), context);
+            TwoRelationsUnion twoRelationsUnion = new TwoRelationsUnion(first, second, node.isDistinct());
 
             // Check number of outputs
-            if (left.querySpec().outputs().size() != right.querySpec().outputs().size()) {
+            if (first.querySpec().outputs().size() != second.querySpec().outputs().size()) {
                 throw new UnsupportedOperationException("Number of output columns must be the same for all parts of a UNION");
             }
             // Try to cast outputs
             List<DataType> dataTypesFromLeft = new ArrayList<>();
-            for (Symbol outputSymbol : left.querySpec().outputs()) {
+            for (Symbol outputSymbol : first.querySpec().outputs()) {
                 dataTypesFromLeft.add(outputSymbol.valueType());
             }
-            if (right.querySpec().castOutputs(dataTypesFromLeft.iterator()) >= 0) {
+            if (second.querySpec().castOutputs(dataTypesFromLeft.iterator()) >= 0) {
                 throw new UnsupportedOperationException("Corresponding output columns must be compatible for all parts of a UNION");
             }
-            twoRelationsUnion.querySpec().outputs(left.querySpec().outputs());
+            twoRelationsUnion.querySpec().outputs(first.querySpec().outputs());
 
             return twoRelationsUnion;
         }

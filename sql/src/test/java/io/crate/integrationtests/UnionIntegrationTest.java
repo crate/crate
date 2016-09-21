@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -29,13 +30,14 @@ import org.junit.Test;
 import java.util.Arrays;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 @UseJdbc
 public class UnionIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
-    public void testUnionAll2Tables() throws Exception {
+    public void testUnionAll2Tables() {
         createColorsAndSizes();
         execute("select * from colors " +
                 "union all " +
@@ -48,7 +50,7 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testUnionAll3Tables() throws Exception {
+    public void testUnionAll3Tables() {
         createColorsAndSizes();
         execute("select * from sizes " +
                 "union all " +
@@ -62,6 +64,31 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
                                                                       new Object[]{"green"},
                                                                       new Object[]{"small"},
                                                                       new Object[]{"large"}));
+    }
+
+    @Test
+    public void testUnionAllWithOrderBy() {
+        createColorsAndSizes();
+        execute("select * from colors " +
+                "union all " +
+                "select * from sizes " +
+                "order by 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("blue\n" +
+                                                                    "green\n" +
+                                                                    "large\n" +
+                                                                    "red\n" +
+                                                                    "small\n"));
+    }
+
+    @Test
+    public void testUnionAllWithSubSelect() {
+        createColorsAndSizes();
+        execute("select * from (select name from sizes order by name limit 2) a " +
+                "union all " +
+                "select * from (select name from sizes order by name limit 1) b " +
+                "order by 1 " +
+                "limit 10 offset 2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("small\n"));
     }
 
     private void createColorsAndSizes() {

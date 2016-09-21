@@ -22,8 +22,10 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Literal;
@@ -96,15 +98,20 @@ class UnionConsumer implements Consumer {
             List<Symbol> outputsWithPrependedInputId = new ArrayList<>(relationsUnion.querySpec().outputs());
             outputsWithPrependedInputId.add(0, Literal.ZERO);
 
-            List<Projection> projections = new ArrayList<>(1);
-            TopNProjection topN = ProjectionBuilder.topNProjection(
-                outputsWithPrependedInputId,
-                relationsUnion.querySpec().orderBy().orNull(),
-                limits.offset(),
-                limits.finalLimit(),
-                relationsUnion.querySpec().outputs()
-            );
-            projections.add(topN);
+            final List<Symbol> outputs = relationsUnion.querySpec().outputs();
+            Optional<OrderBy> rootOrderBy = relationsUnion.querySpec().orderBy();
+            List<Projection> projections = ImmutableList.of();
+            if (limits.hasLimit() || rootOrderBy.isPresent()) {
+                projections = new ArrayList<>(1);
+                TopNProjection topN = ProjectionBuilder.topNProjection(
+                    outputs,
+                    rootOrderBy.orNull(),
+                    limits.offset(),
+                    limits.finalLimit(),
+                    outputs
+                );
+                projections.add(topN);
+            }
 
             UnionPhase unionPhase = new UnionPhase(context.plannerContext().jobId(),
                 context.plannerContext().nextExecutionPhaseId(),

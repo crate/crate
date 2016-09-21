@@ -60,12 +60,20 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     /**
      * generate a list of inputColumn where each inputColumn points to some symbol that is part of sourceList
      */
-    public static List<InputColumn> fromSymbols(Collection<? extends Symbol> symbols, List<? extends Symbol> sourceList) {
+    public static List<InputColumn> fromSymbols(Collection<? extends Symbol> symbols,
+                                                List<? extends Symbol> sourceList) {
         List<InputColumn> inputColumns = new ArrayList<>(symbols.size());
         for (Symbol symbol : symbols) {
-            inputColumns.add(new InputColumn(sourceList.indexOf(symbol), symbol.valueType()));
+            inputColumns.add(fromSymbol(symbol, sourceList));
         }
         return inputColumns;
+    }
+
+    /**
+     * generate an inputColumn which points to some symbol that is part of sourceList
+     */
+    public static InputColumn fromSymbol(Symbol symbol, List<? extends Symbol> sourceList) {
+        return new InputColumn(sourceList.indexOf(symbol), symbol.valueType());
     }
 
     public InputColumn(int index, @Nullable DataType dataType) {

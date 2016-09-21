@@ -35,11 +35,11 @@ import java.util.List;
 
 public class TwoRelationsUnion implements QueriedRelation {
 
-    private final QualifiedName name;
     private final boolean distinct;
     private final QuerySpec querySpec = new QuerySpec();
     private QueriedRelation first;
     private QueriedRelation second;
+    private QualifiedName name;
 
     public TwoRelationsUnion(QueriedRelation first, QueriedRelation second, boolean distinct) {
         this.first = first;
@@ -90,7 +90,7 @@ public class TwoRelationsUnion implements QueriedRelation {
 
     @Override
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
-        throw new UnsupportedOperationException("method not supported");
+        name = qualifiedName;
     }
 
     @Override

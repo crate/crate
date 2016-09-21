@@ -124,7 +124,7 @@ public final class RelationSplitter {
         // set the limit and offset where possible
         Optional<Symbol> limit = querySpec.limit();
         if (limit.isPresent()) {
-            Optional<Symbol> limitAndOffset = Limits.add(limit, querySpec.offset());
+            Optional<Symbol> limitAndOffset = Limits.mergeAdd(limit, querySpec.offset());
             for (AnalyzedRelation rel : Sets.difference(specs.keySet(), context.fields.keySet())) {
                 QuerySpec spec = specs.get(rel);
                 spec.limit(limitAndOffset);

@@ -152,7 +152,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t2 (price, name) values (28.3, 'foobar'), (40.1, 'bar')");
         execute("refresh table t1, t2");
 
-        execute("select t2.price, t1.price, name from t1, t2 order by t2.price, t1.price, t2.name");
+        execute("select t2.price, t1.price, name from t1, t2 order by t2.price + t1.price, t2.name");
         assertThat(printedTable(response.rows()), is("" +
                                                      "28.3| 15.0| foobar\n" +
                                                      "28.3| 20.3| foobar\n" +

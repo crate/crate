@@ -23,9 +23,13 @@
 package io.crate.planner;
 
 import com.google.common.base.Optional;
+import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.arithmetic.AddFunction;
+import io.crate.operation.scalar.conditional.LeastFunction;
+
+import java.util.Arrays;
 
 public class Limits {
 
@@ -59,13 +63,24 @@ public class Limits {
         return offset;
     }
 
-    public static Optional<Symbol> add(Optional<Symbol> s1, Optional<Symbol> s2) {
+    public static Optional<Symbol> mergeAdd(Optional<Symbol> s1, Optional<Symbol> s2) {
         if (s1.isPresent()) {
             if (s2.isPresent()) {
-                return Optional.of((Symbol) AddFunction.of(s1.get(), s2.get()));
+                return Optional.of(AddFunction.of(s1.get(), s2.get()));
             }
             return s1;
         }
         return s2;
+    }
+
+    public static Optional<Symbol> mergeMin(Optional<Symbol> limit1, Optional<Symbol> limit2) {
+        if (limit1.isPresent()) {
+            if (limit2.isPresent()) {
+                return Optional.of(new Function(LeastFunction.TWO_LONG_INFO,
+                    Arrays.asList(limit1.get(), limit2.get())));
+            }
+            return limit1;
+        }
+        return limit2;
     }
 }

@@ -27,10 +27,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import io.crate.analyze.*;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.scalar.conditional.LeastFunction;
@@ -73,7 +70,7 @@ final class RelationNormalizer {
             .outputs(parentQSpec.outputs())
             .where(mergeWhere(childQSpec.where(), parentQSpec.where()))
             .orderBy(tryReplace(childQSpec.orderBy(), parentQSpec.orderBy()))
-            .offset(Limits.add(childQSpec.offset(), parentQSpec.offset()))
+            .offset(Limits.mergeAdd(childQSpec.offset(), parentQSpec.offset()))
             .limit(mergeLimit(childQSpec.limit(), parentQSpec.limit()))
             .groupBy(pushGroupBy(childQSpec.groupBy(), parentQSpec.groupBy()))
             .having(pushHaving(childQSpec.having(), parentQSpec.having()))
@@ -123,7 +120,7 @@ final class RelationNormalizer {
     private static Optional<Symbol> mergeLimit(Optional<Symbol> limit1, Optional<Symbol> limit2) {
         if (limit1.isPresent()) {
             if (limit2.isPresent()) {
-                return Optional.of((Symbol) new Function(LeastFunction.TWO_LONG_INFO,
+                return Optional.of(new Function(LeastFunction.TWO_LONG_INFO,
                     Arrays.asList(limit1.get(), limit2.get())));
             }
             return limit1;
@@ -393,23 +390,127 @@ final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitTwoRelationsUnion(TwoRelationsUnion twoTableUnion, Context context) {
-            process(twoTableUnion.first(), context);
-            process(twoTableUnion.second(), context);
+            QuerySpec querySpec = twoTableUnion.querySpec();
+            replaceFieldReferences(querySpec);
 
-            // PushDown limit to the relations of the union since as the union tree is built
+            // Build PushDown limit to the relations of the union since as the union tree is built
             // by the parser the limit exists only in the top level TwoRelationsUnion
-            Optional<Symbol> pushDownLimit = Limits.add(twoTableUnion.querySpec().limit(),
-                twoTableUnion.querySpec().offset());
+            Optional<Symbol> pushDownLimit = Limits.mergeAdd(querySpec.limit(), querySpec.offset());
 
-            assert !twoTableUnion.first().querySpec().limit().isPresent() :
-                "Limit on the individual relations of the union should be empty";
-            twoTableUnion.first().querySpec().limit(pushDownLimit);
-            assert !twoTableUnion.second().querySpec().limit().isPresent() :
-                "Limit on the individual relations of the union should be empty";
-            twoTableUnion.second().querySpec().limit(pushDownLimit);
+            // Build PushDown orderBy to the relations of the union for performance optimization
+            Optional<OrderBy> pushDownOrderBy = querySpec.orderBy();
+            // Convert orderBy symbols referring to the 1st relation of the union to InputColumns
+            // as rootOrderBy must apply to corresponding columns of all relations
+            if (pushDownOrderBy.isPresent()) {
+                final List<Symbol> outputs = querySpec.outputs();
+                pushDownOrderBy.get().replace(new com.google.common.base.Function<Symbol, Symbol>() {
+                    @Nullable
+                    @Override
+                    public Symbol apply(@Nullable Symbol symbol) {
+                        return InputColumn.fromSymbol(symbol, outputs);
+                    }
+                });
+            }
 
-            // TODO: push down order by
+            // Push Down orderBy and limit
+            UnionPushDownContext unionPushDownContext = new UnionPushDownContext(pushDownLimit, pushDownOrderBy);
+            UnionPushDownVisitor.INSTANCE.process(twoTableUnion.first(), unionPushDownContext);
+            UnionPushDownVisitor.INSTANCE.process(twoTableUnion.second(), unionPushDownContext);
+
+            twoTableUnion.first((QueriedRelation) process(twoTableUnion.first(), context));
+            context.currentParentQSpec = null; // Reset the querySpec of the context to avoid mixing it with the second relation
+            twoTableUnion.second((QueriedRelation) process(twoTableUnion.second(), context));
             return twoTableUnion;
+        }
+
+        private static class UnionPushDownContext {
+
+            private Optional<Symbol> limit;
+            private Optional<OrderBy> orderBy;
+
+            private UnionPushDownContext(Optional<Symbol> limit, Optional<OrderBy> orderBy) {
+                this.limit = limit;
+                this.orderBy = orderBy;
+            }
+        }
+
+        private static class UnionPushDownVisitor extends AnalyzedRelationVisitor<UnionPushDownContext, Void> {
+
+            private static final UnionPushDownVisitor INSTANCE = new UnionPushDownVisitor();
+
+            private UnionPushDownVisitor() {
+            }
+
+            @Override
+            protected Void visitAnalyzedRelation(AnalyzedRelation relation, UnionPushDownContext context) {
+                return null;
+            }
+
+            @Override
+            public Void visitQueriedSelectRelation(QueriedSelectRelation relation, UnionPushDownContext context) {
+                return process(relation.subRelation(), context);
+            }
+
+            @Override
+            public Void visitQueriedTable(QueriedTable table, UnionPushDownContext context) {
+                QuerySpec querySpec = table.querySpec();
+                pushDownLimit(querySpec, context.limit);
+                pushDownOrderBy(querySpec, context.orderBy);
+                // The pushedDown OrderBy is passed InputColumn and must
+                // be rewritten to their output symbol counterparts
+                rewritePushedDownOrderBy(querySpec);
+                return null;
+            }
+
+            @Override
+            public Void visitQueriedDocTable(QueriedDocTable table, UnionPushDownContext context) {
+                QuerySpec querySpec = table.querySpec();
+                pushDownLimit(querySpec, context.limit);
+                pushDownOrderBy(querySpec, context.orderBy);
+                // The pushedDown OrderBy is passed InputColumn and must
+                // be rewritten to their output symbol counterparts
+                rewritePushedDownOrderBy(querySpec);
+                return null;
+            }
+
+            @Override
+            public Void visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, UnionPushDownContext context) {
+                // Doesn't make sense to push down the orderBy to joins
+                pushDownLimit(multiSourceSelect.querySpec(), context.limit);
+                return null;
+            }
+
+            @Override
+            public Void visitTwoRelationsUnion(TwoRelationsUnion twoRelationsUnion, UnionPushDownContext context) {
+                process(twoRelationsUnion.first(), context);
+                process(twoRelationsUnion.second(), context);
+                return null;
+            }
+
+            private void pushDownOrderBy(QuerySpec querySpec, Optional<OrderBy> orderBy) {
+                querySpec.orderBy(tryReplace(querySpec.orderBy(), orderBy));
+            }
+
+            private void pushDownLimit(QuerySpec querySpec, Optional<Symbol> limit) {
+                querySpec.limit(Limits.mergeMin(querySpec.limit(), limit));
+            }
+
+            private static void rewritePushedDownOrderBy(final QuerySpec querySpec) {
+                Optional<OrderBy> orderBy = querySpec.orderBy();
+                if (orderBy.isPresent()) {
+                    querySpec.orderBy(orderBy.get().copyAndReplace(new com.google.common.base.Function<Symbol, Symbol>() {
+                        @Nullable
+                        @Override
+                        public Symbol apply(@Nullable Symbol symbol) {
+                            if (symbol instanceof InputColumn) {
+                                InputColumn inputColumn = (InputColumn) symbol;
+                                return querySpec.outputs().get(inputColumn.index());
+                            }
+                            return symbol;
+                        }
+                    }));
+                }
+            }
         }
     }
 

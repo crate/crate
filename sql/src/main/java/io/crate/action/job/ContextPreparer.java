@@ -617,19 +617,19 @@ public class ContextPreparer extends AbstractComponent {
         }
 
         @Override
-        public Boolean visitUnionPhase(UnionPhase phase, PreparerContext context) {
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+        public Boolean visitUnionPhase(UnionPhase unionPhase, PreparerContext context) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, unionPhase);
             ListenableRowReceiver downstreamRowReceiver = RowReceivers.listenableRowReceiver(
-                context.getRowReceiver(phase, Paging.PAGE_SIZE));
+                context.getRowReceiver(unionPhase, Paging.PAGE_SIZE));
 
             FlatProjectorChain flatProjectorChain;
-            if (!phase.projections().isEmpty()) {
+            if (!unionPhase.projections().isEmpty()) {
                 flatProjectorChain = FlatProjectorChain.withAttachedDownstream(
                     pageDownstreamFactory.projectorFactory(),
                     ramAccountingContext,
-                    phase.projections(),
+                    unionPhase.projections(),
                     downstreamRowReceiver,
-                    phase.jobId()
+                    unionPhase.jobId()
                 );
             } else {
                 flatProjectorChain = FlatProjectorChain.withReceivers(Collections.singletonList(downstreamRowReceiver));
@@ -638,13 +638,17 @@ public class ContextPreparer extends AbstractComponent {
             MultiUpstreamRowReceiver multiUpstreamRowReceiver =
                 new MultiUpstreamRowReceiver(flatProjectorChain.firstProjector());
 
-            Map<Byte, PageDownstreamContext> downstreamContexts = new HashMap<>(phase.mergePhases().size());
+            Map<Byte, PageDownstreamContext> downstreamContexts = new HashMap<>(unionPhase.mergePhases().size());
             short inputId = 0;
 
-            for (MergePhase mergePhase : phase.mergePhases()) {
-                RowReceiver rowReceiver = new PrependInputIdRowReceiver(multiUpstreamRowReceiver.newRowReceiver(), (byte) inputId);
+            for (MergePhase mergePhase : unionPhase.mergePhases()) {
+                RowReceiver rowReceiver = multiUpstreamRowReceiver.newRowReceiver();
+                if (unionPhase.isFetchRequired()) {
+                    rowReceiver = new PrependInputIdRowReceiver(rowReceiver, (byte) inputId);
+                }
+
                 if (mergePhase == null) {
-                    context.phaseIdToRowReceivers.put(toKey(phase.phaseId(), (byte) inputId), rowReceiver);
+                    context.phaseIdToRowReceivers.put(toKey(unionPhase.phaseId(), (byte) inputId), rowReceiver);
                 } else {
                     Tuple<PageDownstream, FlatProjectorChain> pageDownstreamWithChain =
                         pageDownstreamFactory.createMergeNodePageDownstream(
@@ -671,7 +675,7 @@ public class ContextPreparer extends AbstractComponent {
 
             context.registerSubContext(new UnionContext(
                 nlContextLogger,
-                phase,
+                unionPhase,
                 downstreamContexts,
                 downstreamRowReceiver));
             return true;

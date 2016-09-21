@@ -847,17 +847,21 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
         SelectAnalyzedStatement analysis = analyze("select id, text from users " +
                                                    "union all " +
                                                    "select id, name from users_multi_pk " +
-                                                   "order by id " +
+                                                   "order by id, 2 " +
                                                    "limit 10 offset 20");
         assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
         TwoRelationsUnion tableUnion = (TwoRelationsUnion) analysis.relation();
         assertThat(tableUnion.first(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion.second(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion.querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
-                                                 "ORDER BY doc.users.id LIMIT 10 OFFSET 20"));
-        assertThat(tableUnion.first().querySpec(), isSQL("SELECT doc.users.id, doc.users.text LIMIT add(10, 20)"));
-        assertThat(tableUnion.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id, " +
-                                                          "doc.users_multi_pk.name LIMIT add(10, 20)"));
+                                                 "ORDER BY INPUT(0), INPUT(1) " +
+                                                 "LIMIT 10 OFFSET 20"));
+        assertThat(tableUnion.first().querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
+                                                         "ORDER BY doc.users.id, doc.users.text " +
+                                                         "LIMIT add(10, 20)"));
+        assertThat(tableUnion.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id, doc.users_multi_pk.name " +
+                                                          "ORDER BY doc.users_multi_pk.id, doc.users_multi_pk.name " +
+                                                          "LIMIT add(10, 20)"));
     }
 
     @Test
@@ -874,11 +878,84 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
         assertThat(tableUnion1.first(), instanceOf(TwoRelationsUnion.class));
         assertThat(tableUnion1.second(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion1.querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
-                                                  "ORDER BY doc.users.text LIMIT 10 OFFSET 20"));
+                                                  "ORDER BY INPUT(1) LIMIT 10 OFFSET 20"));
+        assertThat(tableUnion1.second().querySpec(), isSQL("SELECT doc.users.id, doc.users.name " +
+                                                           "ORDER BY doc.users.name LIMIT add(10, 20)"));
 
         TwoRelationsUnion tableUnion2 = (TwoRelationsUnion) tableUnion1.first();
         assertThat(tableUnion2.first(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion2.second(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion2.first().querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
+                                                          "ORDER BY doc.users.text LIMIT add(10, 20)"));
+        assertThat(tableUnion2.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id, doc.users_multi_pk.name " +
+                                                           "ORDER BY doc.users_multi_pk.name LIMIT add(10, 20)"));
+    }
+
+    @Test
+    public void testUnionWithJoin() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select u1.id, u2.name from users u1, users_multi_pk u2 where u1.id = u2.id " +
+                                                   "union all " +
+                                                   "select id, name from users " +
+                                                   "order by id, 2 " +
+                                                   "limit 10 offset 20");
+        assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
+        TwoRelationsUnion tableUnion = (TwoRelationsUnion) analysis.relation();
+        assertThat(tableUnion.first(), instanceOf(MultiSourceSelect.class));
+        assertThat(tableUnion.second(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.querySpec(), isSQL("SELECT doc.users.id, doc.users_multi_pk.name " +
+                                                 "ORDER BY INPUT(0), INPUT(1) " +
+                                                 "LIMIT 10 OFFSET 20"));
+        assertThat(tableUnion.first().querySpec(), isSQL("SELECT doc.users.id, doc.users_multi_pk.name " +
+                                                         "WHERE (doc.users.id = doc.users_multi_pk.id) " +
+                                                         "LIMIT add(10, 20)"));
+        assertThat(tableUnion.second().querySpec(), isSQL("SELECT doc.users.id, doc.users.name " +
+                                                          "ORDER BY doc.users.id, doc.users.name " +
+                                                          "LIMIT add(10, 20)"));
+    }
+
+    @Test
+    public void testUnionWithSubSelectRewritten() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select * from (select id from users order by name) a " +
+                                                   "union all " +
+                                                   "select id from users_multi_pk " +
+                                                   "order by id " +
+                                                   "limit 10 offset 20");
+        assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
+        TwoRelationsUnion tableUnion = (TwoRelationsUnion) analysis.relation();
+        assertThat(tableUnion.first(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.second(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.querySpec(), isSQL("SELECT doc.users.id " +
+                                                 "ORDER BY INPUT(0) " +
+                                                 "LIMIT 10 OFFSET 20"));
+        assertThat(tableUnion.first().querySpec(), isSQL("SELECT doc.users.id " +
+                                                         "ORDER BY doc.users.id " +
+                                                         "LIMIT add(10, 20)"));
+        assertThat(tableUnion.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id " +
+                                                          "ORDER BY doc.users_multi_pk.id " +
+                                                          "LIMIT add(10, 20)"));
+    }
+
+    //TODO: Fix
+    @Test
+    public void testUnionWithSubSelectNotRewritten() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select * from (select id from users order by name limit 5) a " +
+                                                   "union all " +
+                                                   "select id from users_multi_pk " +
+                                                   "order by id " +
+                                                   "limit 10 offset 20");
+        assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
+        TwoRelationsUnion tableUnion = (TwoRelationsUnion) analysis.relation();
+        assertThat(tableUnion.first(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.second(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.querySpec(), isSQL("SELECT doc.users.id " +
+                                                 "ORDER BY INPUT(0) " +
+                                                 "LIMIT 10 OFFSET 20"));
+        assertThat(tableUnion.first().querySpec(), isSQL("SELECT doc.users.id " +
+                                                         "ORDER BY doc.users.id " +
+                                                         "LIMIT least(5, add(10, 20))"));
+        assertThat(tableUnion.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id " +
+                                                          "ORDER BY doc.users_multi_pk.id " +
+                                                          "LIMIT add(10, 20)"));
     }
 
     @Test
@@ -903,10 +980,10 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     public void testUnionWrongOrderBy() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column name unknown");
-        SelectAnalyzedStatement analysis = analyze("select id, text from users " +
-                                                   "union all " +
-                                                   "select id, name from users_multi_pk " +
-                                                   "order by name");
+        analyze("select id, text from users " +
+                "union all " +
+                "select id, name from users_multi_pk " +
+                "order by name");
     }
 
     @Test(expected = IllegalArgumentException.class)
