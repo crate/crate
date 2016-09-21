@@ -175,13 +175,13 @@ public class ManyTableConsumer implements Consumer {
 
         QualifiedName leftName = it.next();
         QuerySpec rootQuerySpec = mss.querySpec();
-        SourceRelation leftSource = mss.sources().get(leftName);
+        RelationSource leftSource = mss.sources().get(leftName);
         AnalyzedRelation leftRelation = leftSource.relation();
         QuerySpec leftQuerySpec = leftSource.querySpec();
         Optional<RemainingOrderBy> remainingOrderBy = mss.remainingOrderBy();
 
         QualifiedName rightName;
-        SourceRelation rightSource;
+        RelationSource rightSource;
         while (it.hasNext()) {
             rightName = it.next();
             rightSource = mss.sources().get(rightName);
@@ -202,7 +202,7 @@ public class ManyTableConsumer implements Consumer {
             }
             TwoTableJoin join = new TwoTableJoin(
                     newQuerySpec,
-                    new SourceRelation(leftName, leftRelation, leftQuerySpec),
+                    new RelationSource(leftName, leftRelation, leftQuerySpec),
                     rightSource,
                     remainingOrderByToApply
             );
@@ -426,7 +426,7 @@ public class ManyTableConsumer implements Consumer {
 
         FieldToRelationColumnCtx(MultiSourceSelect mss) {
             relationToName = new IdentityHashMap<>(mss.sources().size());
-            for (Map.Entry<QualifiedName, SourceRelation> entry : mss.sources().entrySet()) {
+            for (Map.Entry<QualifiedName, RelationSource> entry : mss.sources().entrySet()) {
                 relationToName.put(entry.getValue().relation(), entry.getKey());
             }
             this.mss = mss;

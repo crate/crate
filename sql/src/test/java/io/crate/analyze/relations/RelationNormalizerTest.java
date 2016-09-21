@@ -206,9 +206,9 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
             "SELECT doc.t1.a, doc.t2.i ORDER BY doc.t2.y"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
-        SourceRelation t1 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "t1"));
+        RelationSource t1 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "t1"));
         assertThat(t1.querySpec().where().query(), isSQL("(true AND (doc.t1.a = 'a'))"));
-        SourceRelation t2 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "t2"));
+        RelationSource t2 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("doc", "t2"));
         assertThat(t2.querySpec().where().query(), isSQL("(doc.t2.y > 60)"));
     }
 

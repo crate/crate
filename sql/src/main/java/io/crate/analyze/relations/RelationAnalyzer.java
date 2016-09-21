@@ -22,7 +22,6 @@
 package io.crate.analyze.relations;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.*;
@@ -40,7 +39,6 @@ import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Path;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -88,13 +86,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     protected AnalyzedRelation visitQuery(Query node, StatementAnalysisContext context) {
         // In case of Set Operation
         if (!node.getOrderBy().isEmpty() || node.getLimit().isPresent() || node.getOffset().isPresent()) {
-            // In the Future this can be a TwoRelationsSetOperation
             TwoRelationsUnion twoRelationsUnion = (TwoRelationsUnion) process(node.getQueryBody(), context);
 
-            // Use left relation to process expression of the "root" Query node
+            // Use first relation of the top level Union to process expressions of the "root" Query node
             context.startRelation();
             RelationAnalysisContext analysisContext = context.currentRelationContext();
-            analysisContext.addSourceRelation(twoRelationsUnion.left().getQualifiedName().toString(), twoRelationsUnion.left());
+            analysisContext.addSourceRelation(twoRelationsUnion.first().getQualifiedName().toString(), twoRelationsUnion.first());
             SelectAnalyzer.SelectAnalysis selectAnalysis = new SelectAnalyzer.SelectAnalysis(analysisContext);
             context.endRelation();
 
@@ -113,6 +110,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (node.isDistinct()) {
             throw new UnsupportedOperationException("UNION [DISTINCT] is not supported");
         } else {
+            // Parser builds a tree of union pairs so every pair has always 2 relations
             assert node.getRelations().size() == 2 : "Each Union can have only two relations";
             QueriedRelation left = (QueriedRelation) process(node.getRelations().get(0), context);
             QueriedRelation right = (QueriedRelation) process(node.getRelations().get(1), context);

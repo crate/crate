@@ -26,43 +26,39 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public class TwoRelationsUnion implements QueriedRelation {
 
-    private final AnalyzedRelation left;
-    private final AnalyzedRelation right;
+    private final AnalyzedRelation first;
+    private final AnalyzedRelation second;
     private final QualifiedName name;
     private final boolean distinct;
     private final QuerySpec querySpec = new QuerySpec();
 
-    public TwoRelationsUnion(AnalyzedRelation left, AnalyzedRelation right, boolean distinct) {
-        this.left = left;
-        this.right = right;
+    public TwoRelationsUnion(AnalyzedRelation first, AnalyzedRelation second, boolean distinct) {
+        this.first = first;
+        this.second = second;
         this.distinct = distinct;
-        this.name = QualifiedName.of("union", left.getQualifiedName().toString(), right.getQualifiedName().toString());
+        this.name = QualifiedName.of("union", first.getQualifiedName().toString(), second.getQualifiedName().toString());
     }
 
     public boolean isDistinct() {
         return distinct;
     }
 
-    public AnalyzedRelation left() {
-        return left;
+    public AnalyzedRelation first() {
+        return first;
     }
 
-    public AnalyzedRelation right() {
-        return right;
+    public AnalyzedRelation second() {
+        return second;
     }
 
     @Override
@@ -72,12 +68,12 @@ public class TwoRelationsUnion implements QueriedRelation {
 
     @Override
     public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        return left.getField(path, operation);
+        return first.getField(path, operation);
     }
 
     @Override
     public List<Field> fields() {
-        return left.fields();
+        return first.fields();
     }
 
     @Override

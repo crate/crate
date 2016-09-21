@@ -342,33 +342,33 @@ public class NestedLoopConsumer implements Consumer {
         }
     }
 
-    private static class SubRelationConverter extends AnalyzedRelationVisitor<SourceRelation, QueriedRelation> {
+    private static class SubRelationConverter extends AnalyzedRelationVisitor<RelationSource, QueriedRelation> {
 
         static final SubRelationConverter INSTANCE = new SubRelationConverter();
 
         @Override
-        public QueriedRelation visitTableRelation(TableRelation tableRelation, SourceRelation source) {
+        public QueriedRelation visitTableRelation(TableRelation tableRelation, RelationSource source) {
             return new QueriedTable(tableRelation, source.querySpec());
         }
 
         @Override
-        public QueriedRelation visitDocTableRelation(DocTableRelation tableRelation, SourceRelation source) {
+        public QueriedRelation visitDocTableRelation(DocTableRelation tableRelation, RelationSource source) {
             return new QueriedDocTable(tableRelation, source.querySpec());
         }
 
         @Override
-        public QueriedRelation visitTwoTableJoin(TwoTableJoin twoTableJoin, SourceRelation context) {
+        public QueriedRelation visitTwoTableJoin(TwoTableJoin twoTableJoin, RelationSource context) {
             return twoTableJoin;
         }
 
         @Override
         public QueriedRelation visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation,
-                                                          SourceRelation context) {
+                                                          RelationSource context) {
             return new QueriedTable(tableFunctionRelation, context.querySpec());
         }
 
         @Override
-        protected QueriedTableRelation visitAnalyzedRelation(AnalyzedRelation relation, SourceRelation source) {
+        protected QueriedTableRelation visitAnalyzedRelation(AnalyzedRelation relation, RelationSource source) {
             throw new ValidationException("JOIN with sub queries is not supported");
         }
     }

@@ -847,7 +847,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                 isSQL("(true AND (doc.users.id = doc.users_multi_pk.id))"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
-        SourceRelation users =
+        RelationSource users =
                 ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("doc", "users"));
         assertThat(users.querySpec().where().query(), isSQL("(doc.users.name = 'Arthur')"));
     }
@@ -888,15 +888,11 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                                                    "limit 10 offset 20");
         assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
         TwoRelationsUnion tableUnion = (TwoRelationsUnion) analysis.relation();
-        assertThat(tableUnion.left(), instanceOf(QueriedDocTable.class));
-        assertThat(tableUnion.right(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.first(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.second(), instanceOf(QueriedDocTable.class));
 
-        assertThat(tableUnion.querySpec().limit().isPresent(), is(true));
-        assertThat(tableUnion.querySpec().limit().get(), is(10));
-        assertThat(tableUnion.querySpec().offset(), is(20));
-        assertThat(tableUnion.querySpec().orderBy().isPresent(), is(true));
-        assertThat(tableUnion.querySpec().orderBy().get().orderBySymbols().size(), is(1));
-        assertThat(tableUnion.querySpec().orderBy().get().orderBySymbols().get(0), isField("id"));
+        assertThat(tableUnion.querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
+                                                 "ORDER BY doc.users.id LIMIT 10 OFFSET 20"));
     }
 
     @Test
@@ -910,18 +906,14 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                                                    "limit 10 offset 20");
         assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
         TwoRelationsUnion tableUnion1 = (TwoRelationsUnion) analysis.relation();
-        assertThat(tableUnion1.left(), instanceOf(TwoRelationsUnion.class));
-        assertThat(tableUnion1.right(), instanceOf(QueriedDocTable.class));
-        assertThat(tableUnion1.querySpec().limit().isPresent(), Matchers.is(true));
-        assertThat(tableUnion1.querySpec().limit().get(), Matchers.is(10));
-        assertThat(tableUnion1.querySpec().offset(), Matchers.is(20));
-        assertThat(tableUnion1.querySpec().orderBy().isPresent(), Matchers.is(true));
-        assertThat(tableUnion1.querySpec().orderBy().get().orderBySymbols().size(), Matchers.is(1));
-        assertThat(tableUnion1.querySpec().orderBy().get().orderBySymbols().get(0), isField("text"));
+        assertThat(tableUnion1.first(), instanceOf(TwoRelationsUnion.class));
+        assertThat(tableUnion1.second(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion1.querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
+                                                  "ORDER BY doc.users.text LIMIT 10 OFFSET 20"));
 
-        TwoRelationsUnion tableUnion2 = (TwoRelationsUnion) tableUnion1.left();
-        assertThat(tableUnion2.left(), instanceOf(QueriedDocTable.class));
-        assertThat(tableUnion2.right(), instanceOf(QueriedDocTable.class));
+        TwoRelationsUnion tableUnion2 = (TwoRelationsUnion) tableUnion1.first();
+        assertThat(tableUnion2.first(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion2.second(), instanceOf(QueriedDocTable.class));
     }
 
     @Test

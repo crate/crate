@@ -27,7 +27,9 @@ import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.*;
 import org.antlr.runtime.tree.CommonTree;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,6 +43,9 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.*;
 
 public class TestStatementBuilder {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testBegin() throws Exception {
@@ -768,6 +773,33 @@ public class TestStatementBuilder {
                        "select * from foo union " +
                        "select * from bar " +
                        "order by 1 limit 10 offset 5");
+    }
+
+    @Test
+    public void testUnionWithOrderByOnLeftRelation() throws Exception {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("no viable alternative at input 'union'");
+        SqlParser.createStatement("select * from foo order by 1 " +
+                                  "union " +
+                                  "select * from bar");
+    }
+
+    @Test
+    public void testUnionWithLimitOnLeftRelation() throws Exception {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("mismatched input 'union' expecting EOF");
+        SqlParser.createStatement("select * from foo limit 10 " +
+                                  "union " +
+                                  "select * from bar");
+    }
+
+    @Test
+    public void testUnionWithOffsetOnLeftRelation() throws Exception {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("mismatched input 'union' expecting EOF");
+        SqlParser.createStatement("select * from foo offset 10 " +
+                                  "union " +
+                                  "select * from bar");
     }
 
     private static void printStatement(String sql)
