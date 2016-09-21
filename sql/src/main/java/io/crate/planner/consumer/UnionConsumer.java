@@ -22,11 +22,15 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.Limits;
@@ -40,6 +44,7 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.elasticsearch.cluster.ClusterService;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -66,7 +71,7 @@ class UnionConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitRelationsUnion(RelationsUnion relationsUnion, ConsumerContext context) {
+        public PlannedAnalyzedRelation visitRelationsUnion(final RelationsUnion relationsUnion, ConsumerContext context) {
             Set<String> handlerNodes = ImmutableSet.of(clusterService.localNode().id());
             Limits limits = context.plannerContext().getLimits(true, relationsUnion.querySpec());
             List<MergePhase> mergePhases = new ArrayList<>();
@@ -92,20 +97,28 @@ class UnionConsumer implements Consumer {
                 }
             }
 
+            final List<Symbol> outputs = relationsUnion.querySpec().outputs();
+            Optional<OrderBy> rootOrderBy = relationsUnion.querySpec().orderBy();
             List<Projection> projections = ImmutableList.of();
-            if (limits.hasLimit() || relationsUnion.querySpec().orderBy().isPresent()) {
-                // Add a new symbol as first which acts as a placeholder for the
-                // upstream inputId that is prepended in the union phase
-                List<Symbol> outputsWithPrependedInputId = new ArrayList<>(relationsUnion.querySpec().outputs());
-                outputsWithPrependedInputId.add(0, Literal.ZERO);
-
+            if (limits.hasLimit() || rootOrderBy.isPresent()) {
+                // Convert orderBy symbols referring to the 1st relation of the union to InputColumns
+                // as rootOrderBy must apply to corresponding columns of all relations
+                if (rootOrderBy.isPresent()) {
+                    rootOrderBy.get().replace(new Function<Symbol, Symbol>() {
+                        @Nullable
+                        @Override
+                        public Symbol apply(@Nullable Symbol symbol) {
+                            return InputColumn.fromSymbol(symbol, outputs);
+                        }
+                    });
+                }
                 projections = new ArrayList<>(1);
                 TopNProjection topN = ProjectionBuilder.topNProjection(
-                    outputsWithPrependedInputId,
-                    relationsUnion.querySpec().orderBy().orNull(),
+                    outputs,
+                    rootOrderBy.orNull(),
                     limits.offset(),
                     limits.finalLimit(),
-                    relationsUnion.querySpec().outputs()
+                    outputs
                 );
                 projections.add(topN);
             }
@@ -115,7 +128,7 @@ class UnionConsumer implements Consumer {
                 "union",
                 projections,
                 mergePhases,
-                relationsUnion.querySpec().outputs(),
+                outputs,
                 handlerNodes);
             return new UnionPlan(unionPhase, subPlans);
         }

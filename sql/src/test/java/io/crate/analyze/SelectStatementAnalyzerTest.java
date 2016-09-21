@@ -845,14 +845,14 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
         SelectAnalyzedStatement analysis = analyze("select id, text from users " +
                                                    "union all " +
                                                    "select id, name from users_multi_pk " +
-                                                   "order by id " +
+                                                   "order by id, 2 " +
                                                    "limit 10 offset 20");
         assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
         TwoRelationsUnion tableUnion = (TwoRelationsUnion) analysis.relation();
         assertThat(tableUnion.first(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion.second(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion.querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
-                                                 "ORDER BY doc.users.id LIMIT 10 OFFSET 20"));
+                                                 "ORDER BY doc.users.id, doc.users.text LIMIT 10 OFFSET 20"));
         assertThat(tableUnion.first().querySpec(), isSQL("SELECT doc.users.id, doc.users.text LIMIT add(10, 20)"));
         assertThat(tableUnion.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id, " +
                                                           "doc.users_multi_pk.name LIMIT add(10, 20)"));
@@ -901,7 +901,7 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     public void testUnionWrongOrderBy() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column name unknown");
-        SelectAnalyzedStatement analysis = analyze("select id, text from users " +
+        analyze("select id, text from users " +
                                                    "union all " +
                                                    "select id, name from users_multi_pk " +
                                                    "order by name");

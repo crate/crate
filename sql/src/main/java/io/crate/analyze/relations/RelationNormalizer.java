@@ -134,6 +134,7 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         twoTableUnion.second().querySpec().limit(pushDownLimit);
 
         // TODO: push down order by
+        replaceFieldReferences(twoTableUnion.querySpec());
         return twoTableUnion;
     }
 
