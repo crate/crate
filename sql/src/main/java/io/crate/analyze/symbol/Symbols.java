@@ -167,18 +167,8 @@ public class Symbols {
         }
     }
 
-    private static class RCReplaceCtx {
-        private final Predicate<? super RelationColumn> predicate;
-        private final com.google.common.base.Function<? super RelationColumn, ? extends Symbol> replaceFunction;
-
-        RCReplaceCtx(Predicate<? super RelationColumn> predicate,
-                     com.google.common.base.Function<? super RelationColumn, ? extends Symbol> replaceFunction) {
-            this.predicate = predicate;
-            this.replaceFunction = replaceFunction;
-        }
-    }
-
-    private static class RCReplaceVisitor extends ReplacingSymbolVisitor<RCReplaceCtx> {
+    private static class RCReplaceVisitor
+        extends ReplacingSymbolVisitor<com.google.common.base.Function<? super RelationColumn, ? extends Symbol>> {
 
         public final static RCReplaceVisitor INSTANCE = new RCReplaceVisitor();
 
@@ -187,17 +177,14 @@ public class Symbols {
         }
 
         @Override
-        public Symbol visitRelationColumn(RelationColumn relationColumn, RCReplaceCtx ctx) {
-            if (ctx.predicate.apply(relationColumn)) {
-                return ctx.replaceFunction.apply(relationColumn);
-            }
-            return relationColumn;
+        public Symbol visitRelationColumn(RelationColumn relationColumn,
+                                          com.google.common.base.Function<? super RelationColumn, ? extends Symbol> replaceFunction) {
+            return replaceFunction.apply(relationColumn);
         }
     }
 
     public static Symbol replaceRC(Symbol symbol,
-                                   Predicate<? super RelationColumn> predicate,
                                    com.google.common.base.Function<? super RelationColumn, ? extends Symbol> replaceFunction) {
-        return RCReplaceVisitor.INSTANCE.process(symbol, new RCReplaceCtx(predicate, replaceFunction));
+        return RCReplaceVisitor.INSTANCE.process(symbol, replaceFunction);
     }
 }

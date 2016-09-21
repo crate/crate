@@ -23,7 +23,6 @@
 package io.crate.analyze;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import io.crate.analyze.relations.JoinPair;
@@ -40,10 +39,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Singleton
 public class Rewriter {
@@ -125,11 +121,18 @@ public class Rewriter {
             return;
         }
 
-        RelationColumnPredicate relationColumnPredicate = new RelationColumnPredicate(outerRelation);
         Symbol symbol = Symbols.replaceRC(
             outerRelationQuery,
-            relationColumnPredicate,
-            com.google.common.base.Functions.constant(Literal.NULL)
+            new Function<RelationColumn, Symbol>() {
+                @Nullable
+                @Override
+                public Symbol apply(@Nullable RelationColumn input) {
+                    if (input != null && input.relationName().equals(outerRelation)) {
+                        return Literal.NULL;
+                    }
+                    return input;
+                }
+            }
         );
         Symbol normalized = normalizer.normalize(symbol, null);
         if (WhereClause.canMatch(normalized)) {
@@ -141,46 +144,31 @@ public class Rewriter {
             mssOutputSymbols,
             multiSourceQuerySpec,
             outerSpec,
+            outerRelation,
             splitQueries,
-            outerRelationQuery,
-            relationColumnPredicate);
+            outerRelationQuery
+        );
     }
 
     private void applyOuterToInnerJoinRewrite(final JoinPair joinPair,
                                               final List<Symbol> mssOutputSymbols,
                                               QuerySpec multiSourceQuerySpec,
                                               final QuerySpec outerSpec,
+                                              final QualifiedName outerRelation,
                                               Map<Set<QualifiedName>, Symbol> splitQueries,
-                                              Symbol outerRelationQuery,
-                                              RelationColumnPredicate relationColumnPredicate) {
+                                              Symbol outerRelationQuery) {
         joinPair.joinType(JoinType.INNER);
-        final Set<Tuple<RelationColumn, Symbol>> symbolsToNotCollect = new HashSet<>();
+        DereferenceRelationColumnFunction dereferenceRelationColumnFunction =
+            new DereferenceRelationColumnFunction(outerRelation, outerSpec, mssOutputSymbols, joinPair.condition());
         outerSpec.where(outerSpec.where().add(Symbols.replaceRC(
             outerRelationQuery,
-            relationColumnPredicate,
-            new Function<RelationColumn, Symbol>() {
-                @Nullable
-                @Override
-                public Symbol apply(@Nullable RelationColumn input) {
-                    if (input == null) {
-                        return null;
-                    }
-                    Symbol symbol = outerSpec.outputs().get(input.index());
-
-                    // if the column was only added to the outerSpec outputs because of the whereClause
-                    // it's possible to not collect it as long is it isn't used somewhere else
-                    if (!mssOutputSymbols.contains(symbol) && !SymbolVisitors.any(Predicates.<Symbol>equalTo(input), joinPair.condition())) {
-                        symbolsToNotCollect.add(new Tuple<>(input, symbol));
-                    }
-                    return symbol;
-                }
-            })));
+            dereferenceRelationColumnFunction)));
         if (splitQueries.isEmpty()) {
             multiSourceQuerySpec.where(WhereClause.MATCH_ALL);
         } else {
             multiSourceQuerySpec.where(new WhereClause(AndOperator.join(splitQueries.values())));
         }
-        for (Tuple<RelationColumn, Symbol> symbolToRemove : symbolsToNotCollect) {
+        for (Tuple<RelationColumn, Symbol> symbolToRemove : dereferenceRelationColumnFunction.symbolsToNotCollect()) {
             final RelationColumn removedRC = symbolToRemove.v1();
             outerSpec.outputs().remove(symbolToRemove.v2());
             multiSourceQuerySpec.outputs().remove(removedRC);
@@ -211,16 +199,50 @@ public class Rewriter {
         }
     }
 
-    private static class RelationColumnPredicate implements Predicate<RelationColumn> {
+    /**
+     * Function to replace RelationColumns with the symbol they're pointing to
+     *
+     * Also collects any RelationColumn which are being replaced and no longer required to be collected into {@link #symbolsToNotCollect()}
+     */
+    private class DereferenceRelationColumnFunction implements Function<RelationColumn, Symbol> {
         private final QualifiedName outerRelation;
+        private final QuerySpec outerSpec;
+        private final List<Symbol> mssOutputSymbols;
+        private final Symbol joinCondition;
+        private final Set<Tuple<RelationColumn, Symbol>> symbolsToNotCollect;
 
-        RelationColumnPredicate(QualifiedName outerRelation) {
+        DereferenceRelationColumnFunction(QualifiedName outerRelation,
+                                          QuerySpec outerSpec,
+                                          List<Symbol> mssOutputSymbols,
+                                          Symbol joinCondition) {
             this.outerRelation = outerRelation;
+            this.outerSpec = outerSpec;
+            this.mssOutputSymbols = mssOutputSymbols;
+            this.joinCondition = joinCondition;
+            this.symbolsToNotCollect = new HashSet<>();
         }
 
+        @Nullable
         @Override
-        public boolean apply(@Nullable RelationColumn input) {
-            return input != null && input.relationName().equals(outerRelation);
+        public Symbol apply(@Nullable RelationColumn input) {
+            if (input == null) {
+                return null;
+            }
+            if (!input.relationName().equals(outerRelation)) {
+                return input;
+            }
+            Symbol symbol = outerSpec.outputs().get(input.index());
+
+            // if the column was only added to the outerSpec outputs because of the whereClause
+            // it's possible to not collect it as long is it isn't used somewhere else
+            if (!mssOutputSymbols.contains(symbol) && !SymbolVisitors.any(Predicates.<Symbol>equalTo(input), joinCondition)) {
+                symbolsToNotCollect.add(new Tuple<>(input, symbol));
+            }
+            return symbol;
+        }
+
+        Collection<Tuple<RelationColumn, Symbol>> symbolsToNotCollect() {
+            return symbolsToNotCollect;
         }
     }
 }
