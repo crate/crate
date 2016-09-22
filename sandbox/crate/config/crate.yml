@@ -2,3 +2,4 @@
 cluster.name: dev
 discovery.zen.ping.multicast.enabled: false
 psql.enabled: true
+stats.enabled: true
