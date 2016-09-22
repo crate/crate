@@ -23,3 +23,4 @@ zc.customdoctests==1.0.1
 zope.exceptions==4.0.8
 zope.interface==4.2.0
 zope.testrunner==4.5.0
+tqdm
