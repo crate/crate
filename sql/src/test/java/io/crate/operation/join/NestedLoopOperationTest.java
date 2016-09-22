@@ -32,10 +32,7 @@ import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.merge.IteratorPageDownstream;
 import io.crate.operation.merge.PassThroughPagingIterator;
-import io.crate.operation.projectors.ListenableRowReceiver;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.projectors.SimpleTopNProjector;
+import io.crate.operation.projectors.*;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.RowCollectionBucket;
@@ -201,6 +198,31 @@ public class NestedLoopOperationTest extends CrateUnitTest {
                 "blue| medium\n" +
                 "red| small\n" +
                 "red| medium\n"));
+    }
+
+    @Test
+    public void testNestedDoesStopOnceDownstreamStops() throws Exception {
+        CollectingRowReceiver rowReceiver = CollectingRowReceiver.withLimit(1);
+        final NestedLoopOperation op = new NestedLoopOperation(0, rowReceiver);
+
+        op.leftRowReceiver().prepare();
+        op.rightRowReceiver().prepare();
+
+        // the left RR immediately pauses, since the op changes to right
+        assertThat(op.leftRowReceiver().setNextRow(new Row1(1)), is(RowReceiver.Result.PAUSE));
+        // the downstream stops immediately, therefore the STOP gets propagated
+        assertThat(op.rightRowReceiver().setNextRow(new Row1(1)), is(RowReceiver.Result.STOP));
+
+        op.leftRowReceiver().pauseProcessed(new ResumeHandle() {
+            @Override
+            public void resume(boolean async) {
+                // once the left side gets resumed it must receive a STOP immediately
+                assertThat(op.leftRowReceiver().setNextRow(new Row1(1)), is(RowReceiver.Result.STOP));
+                op.leftRowReceiver().finish(RepeatHandle.UNSUPPORTED);
+            }
+        });
+        op.rightRowReceiver().finish(RepeatHandle.UNSUPPORTED);
+        assertThat(rowReceiver.getNumFailOrFinishCalls(), is(1));
     }
 
     @Test

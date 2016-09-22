@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Push based Nested Loop implementation:
- *
+ * <p>
  * Basically it is:
  * <pre>
  *     for (leftRow in left) {
@@ -53,7 +53,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *         }
  *     }
  * </pre>
- *
+ * <p>
  * But push based:
  * <pre>
  *    +------+          +----+
@@ -67,14 +67,14 @@ import java.util.concurrent.atomic.AtomicReference;
  *                 |
  *             RowReceiver
  * </pre>
- *
+ * <p>
  * Implementation details:
- *
+ * <p>
  * Both upstreams start concurrently. {@link #leadAcquired} is used to pause the first upstream and at then point
  * it is single threaded.
- *
+ * <p>
  * There are a couple of edge cases (like if one side is empty), but the common case looks as follows:
- *
+ * <p>
  * <pre>
  *     lU:                                          rU:
  *                                                  r.setNextRow(row)
@@ -177,9 +177,9 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
         @Override
         public String toString() {
             return "CombinedRow{" +
-                    " outer=" + outerRow +
-                    ", inner=" + innerRow +
-                    '}';
+                   " outer=" + outerRow +
+                   ", inner=" + innerRow +
+                   '}';
         }
     }
 
@@ -419,6 +419,9 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
             if (LOGGER.isTraceEnabled() && result != Result.CONTINUE) {
                 LOGGER.trace("phase={} side=right method=emitRow result={}", phaseId, result);
             }
+            if (result == Result.STOP) {
+                stop = true;
+            }
             return result;
         }
 
@@ -462,7 +465,7 @@ public class NestedLoopOperation implements CompletionListenable, RepeatHandle {
 
         /**
          * This Handle is only used if the right side starts before the left and is paused.
-         *
+         * <p>
          * After that the right side can only be paused by a downstream in which case the upstreams handle is passed through.
          */
         private class RightResumeHandle implements ResumeHandle {
