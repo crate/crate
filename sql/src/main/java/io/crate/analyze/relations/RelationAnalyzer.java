@@ -44,7 +44,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.operation.operator.AndOperator;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.*;
@@ -319,8 +318,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     private WhereClause analyzeWhere(Optional<Expression> where, RelationAnalysisContext context) {
-        List<Symbol> joinConditions = context.joinConditions();
-        if (!where.isPresent() && joinConditions.isEmpty()) {
+        if (!where.isPresent()) {
             return WhereClause.MATCH_ALL;
         }
         Symbol query;
@@ -328,11 +326,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             query = context.expressionAnalyzer().convert(where.get(), context.expressionAnalysisContext());
         } else {
             query = Literal.BOOLEAN_TRUE;
-        }
-        if (!joinConditions.isEmpty()) {
-            for (Symbol joinCondition : joinConditions) {
-                query = new Function(AndOperator.INFO, Arrays.asList(query, joinCondition));
-            }
         }
         query = context.expressionAnalyzer().normalize(query, context.expressionAnalysisContext().statementContext());
         return new WhereClause(query);

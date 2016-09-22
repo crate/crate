@@ -49,9 +49,6 @@ public class RelationAnalysisContext {
     private FieldProvider fieldProvider;
 
     @Nullable
-    private List<Symbol> joinConditions;
-
-    @Nullable
     private List<JoinPair> joinPairs;
 
     RelationAnalysisContext(ParameterContext parameterContext,
@@ -71,21 +68,6 @@ public class RelationAnalysisContext {
     public Map<QualifiedName, AnalyzedRelation> sources() {
         return sources;
     }
-
-    List<Symbol> joinConditions() {
-        if (joinConditions == null) {
-            return ImmutableList.of();
-        }
-        return joinConditions;
-    }
-
-    void addJoinCondition(Symbol symbol) {
-        if (joinConditions == null) {
-            joinConditions = new ArrayList<>();
-        }
-        joinConditions.add(symbol);
-    }
-
 
     private void addJoinPair(JoinPair joinType) {
         if (joinPairs == null) {
