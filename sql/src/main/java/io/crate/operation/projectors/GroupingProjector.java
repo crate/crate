@@ -69,10 +69,10 @@ public class GroupingProjector extends AbstractProjector {
         Aggregator[] aggregators = new Aggregator[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
             aggregators[i] = new Aggregator(
-                    ramAccountingContext,
-                    aggregations[i].symbol(),
-                    aggregations[i].function(),
-                    aggregations[i].inputs()
+                ramAccountingContext,
+                aggregations[i].symbol(),
+                aggregations[i].function(),
+                aggregations[i].inputs()
             );
         }
 
@@ -157,7 +157,9 @@ public class GroupingProjector extends AbstractProjector {
 
     private interface Grouper extends AutoCloseable {
         Result setNextRow(final Row row);
+
         void finish();
+
         void kill(Throwable t);
     }
 
@@ -200,7 +202,7 @@ public class GroupingProjector extends AbstractProjector {
                     states[i] = aggregators[i].processRow(state);
                 }
                 ramAccountingContext.addBytes(
-                        RamAccountingContext.roundUp(sizeEstimator.estimateSize(key)) + 24); // 24 bytes overhead per entry
+                    RamAccountingContext.roundUp(sizeEstimator.estimateSize(key)) + 24); // 24 bytes overhead per entry
                 result.put(key, states);
             } else {
                 for (int i = 0; i < aggregators.length; i++) {
@@ -220,14 +222,14 @@ public class GroupingProjector extends AbstractProjector {
                 ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 + result.size() * 4));
                 // 2nd level
                 ramAccountingContext.addBytes(RamAccountingContext.roundUp(
-                        (1 + aggregators.length) * 4 + 12));
+                    (1 + aggregators.length) * 4 + 12));
             } catch (CircuitBreakingException e) {
                 downstream.fail(e);
                 return;
             }
 
             rowEmitter = new IterableRowEmitter(
-                    downstream, Iterables.transform(result.entrySet(), new Function<Map.Entry<Object, Object[]>, Row>() {
+                downstream, Iterables.transform(result.entrySet(), new Function<Map.Entry<Object, Object[]>, Row>() {
 
                 RowN row = new RowN(1 + aggregators.length); // 1 for key
                 Object[] cells = new Object[row.size()];
@@ -300,7 +302,7 @@ public class GroupingProjector extends AbstractProjector {
                 // 4 bytes overhead per list entry + 4 bytes overhead for later hashCode
                 // calculation while using list.get()
                 ramAccountingContext.addBytes(RamAccountingContext.roundUp(
-                        sizeEstimators.get(keyIdx).estimateSize(keyInputValue) + 4) + 4);
+                    sizeEstimators.get(keyIdx).estimateSize(keyInputValue) + 4) + 4);
                 keyIdx++;
             }
 
@@ -334,14 +336,15 @@ public class GroupingProjector extends AbstractProjector {
                 ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 + result.size() * 4));
                 // 2nd level
                 ramAccountingContext.addBytes(RamAccountingContext.roundUp(12 +
-                        (keyInputs.size() + aggregators.length) * 4));
+                                                                           (keyInputs.size() + aggregators.length) *
+                                                                           4));
             } catch (CircuitBreakingException e) {
                 downstream.fail(e);
                 return;
             }
 
             rowEmitter = new IterableRowEmitter(
-                    downstream, Iterables.transform(result.entrySet(), new Function<Map.Entry<List<Object>, Object[]>, Row>() {
+                downstream, Iterables.transform(result.entrySet(), new Function<Map.Entry<List<Object>, Object[]>, Row>() {
 
                 RowN row = new RowN(keyInputs.size() + aggregators.length);
                 Object[] cells = new Object[row.size()];

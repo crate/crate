@@ -40,7 +40,7 @@ public class SumAggregation extends AggregationFunction<Double, Double> {
     public static void register(AggregationImplModule mod) {
         for (DataType t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             mod.register(new SumAggregation(new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)),
-                            DataTypes.DOUBLE, FunctionInfo.Type.AGGREGATE)));
+                DataTypes.DOUBLE, FunctionInfo.Type.AGGREGATE)));
         }
 
     }

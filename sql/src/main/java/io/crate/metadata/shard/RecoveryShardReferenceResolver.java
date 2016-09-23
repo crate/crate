@@ -22,7 +22,9 @@
 
 package io.crate.metadata.shard;
 
-import io.crate.metadata.*;
+import io.crate.metadata.AbstractReferenceResolver;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.sys.shard.ShardRecoveryExpression;
@@ -33,14 +35,14 @@ public class RecoveryShardReferenceResolver extends AbstractReferenceResolver {
 
     /**
      * <p>
-     *     The RecoveryShardReferenceResolver is necessary to be able to instantiate
-     *     the ShardRecoveryExpression at runtime.
-     *     This is required because the ShardRecoveryExpression needs to push the same recoveryState
-     *     to all of its childImplementations in order to receive the same state
-     *     when having multiple recovery objects in the select list of a query, e.g.
+     * The RecoveryShardReferenceResolver is necessary to be able to instantiate
+     * the ShardRecoveryExpression at runtime.
+     * This is required because the ShardRecoveryExpression needs to push the same recoveryState
+     * to all of its childImplementations in order to receive the same state
+     * when having multiple recovery objects in the select list of a query, e.g.
      * </p>
      * <code>
-     *     SELECT recovery['size'], recovery['files'] FROM sys.nodes;
+     * SELECT recovery['size'], recovery['files'] FROM sys.nodes;
      * </code>
      */
 
@@ -49,7 +51,7 @@ public class RecoveryShardReferenceResolver extends AbstractReferenceResolver {
     public RecoveryShardReferenceResolver(ReferenceResolver<ReferenceImplementation<?>> shardResolver, IndexShard indexShard) {
         staticReferencesResolver = shardResolver;
         implementations.put(SysShardsTableInfo.ReferenceIdents.RECOVERY,
-                new ShardRecoveryExpression(indexShard));
+            new ShardRecoveryExpression(indexShard));
     }
 
     @Override

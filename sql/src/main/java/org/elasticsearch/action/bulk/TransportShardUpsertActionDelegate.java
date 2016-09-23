@@ -21,8 +21,8 @@
 
 package org.elasticsearch.action.bulk;
 
-import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.ShardResponse;
+import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportShardUpsertAction;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;

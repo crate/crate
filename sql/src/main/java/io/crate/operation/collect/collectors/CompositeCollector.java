@@ -44,40 +44,39 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Collector that wraps 1+ other collectors.
- *
+ * <p>
  * This is useful to execute multiple collectors non-concurrent/sequentially.
- *
+ * <p>
  * CC: CompositeCollector
  * C1: CrateCollector Shard 1
  * C2: CrateCollector Shard 1
  * RR: RowReceiver
- *
- *      +----------------------------------+
- *      |               CC                 |
- *      |       C1               C2        |
- *      +----------------------------------+
- *               \              /
- *                \            /
- *                  CC-RowMerger
- *                      |
- *                     RR
- *
- *  Flow is like this:
- *
- *      CC.doCollect()
- *          C1.doCollect()
- *              CC-RR.setNextRow()
- *                  RR.setNextRow()
- *              (...)
- *              CC-RR.finish()
- *              CC.completionListener -> doCollect
- *          C2.doCollect()
- *              CC-RR.setNextRow()
- *                  RR.setNextRow()
- *              (...)
- *              CC-RR.finish()
- *              all finished -> RR.finish
- *
+ * <p>
+ * +----------------------------------+
+ * |               CC                 |
+ * |       C1               C2        |
+ * +----------------------------------+
+ * \              /
+ * \            /
+ * CC-RowMerger
+ * |
+ * RR
+ * <p>
+ * Flow is like this:
+ * <p>
+ * CC.doCollect()
+ * C1.doCollect()
+ * CC-RR.setNextRow()
+ * RR.setNextRow()
+ * (...)
+ * CC-RR.finish()
+ * CC.completionListener -> doCollect
+ * C2.doCollect()
+ * CC-RR.setNextRow()
+ * RR.setNextRow()
+ * (...)
+ * CC-RR.finish()
+ * all finished -> RR.finish
  */
 public class CompositeCollector implements CrateCollector {
 

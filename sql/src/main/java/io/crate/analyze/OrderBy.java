@@ -44,16 +44,17 @@ public class OrderBy implements Streamable {
     private Boolean[] nullsFirst;
 
     public OrderBy(List<Symbol> orderBySymbols, boolean[] reverseFlags, Boolean[] nullsFirst) {
-        assert !orderBySymbols.isEmpty(): "orderBySymbols must not be empty";
+        assert !orderBySymbols.isEmpty() : "orderBySymbols must not be empty";
         assert orderBySymbols.size() == reverseFlags.length && reverseFlags.length == nullsFirst.length :
-                "size of symbols / reverseFlags / nullsFirst must match";
+            "size of symbols / reverseFlags / nullsFirst must match";
 
         this.orderBySymbols = orderBySymbols;
         this.reverseFlags = reverseFlags;
         this.nullsFirst = nullsFirst;
     }
 
-    private OrderBy() {}
+    private OrderBy() {
+    }
 
     public List<Symbol> orderBySymbols() {
         return orderBySymbols;
@@ -72,7 +73,7 @@ public class OrderBy implements Streamable {
     }
 
 
-    public OrderBy subset(Collection<Integer> positions){
+    public OrderBy subset(Collection<Integer> positions) {
         List<Symbol> orderBySymbols = new ArrayList<>(positions.size());
         Boolean[] nullsFirst = new Boolean[positions.size()];
         boolean[] reverseFlags = new boolean[positions.size()];
@@ -120,7 +121,7 @@ public class OrderBy implements Streamable {
         int numOrderBy = in.readVInt();
         reverseFlags = new boolean[numOrderBy];
 
-        for (int i = 0; i <  numOrderBy; i++) {
+        for (int i = 0; i < numOrderBy; i++) {
             reverseFlags[i] = in.readBoolean();
         }
 

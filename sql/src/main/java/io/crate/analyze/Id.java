@@ -71,7 +71,7 @@ public class Id {
 
     /**
      * generates a function which can be used to generate an id and apply null validation.
-     *
+     * <p>
      * This variant doesn't handle the pk = _id case. Use {@link #compile(List, ColumnIdent)} if it should be handled
      */
     private static Function<List<BytesRef>, String> compileWithNullValidation(final int numPks,
@@ -98,7 +98,7 @@ public class Id {
 
     /**
      * generates a function which can be used to generate an id.
-     *
+     * <p>
      * This variant doesn't handle the pk = _id case. Use {@link #compile(List, ColumnIdent)} if it should be handled
      */
     public static Function<List<BytesRef>, String> compile(final int numPks, final int clusteredByPosition) {

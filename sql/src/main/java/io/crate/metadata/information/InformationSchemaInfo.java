@@ -42,14 +42,14 @@ public class InformationSchemaInfo implements SchemaInfo {
     @Inject
     public InformationSchemaInfo(ClusterService clusterService) {
         this.tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
-                .put(InformationTablesTableInfo.NAME, new InformationTablesTableInfo(clusterService))
-                .put(InformationColumnsTableInfo.NAME, new InformationColumnsTableInfo(clusterService))
-                .put(InformationPartitionsTableInfo.NAME, new InformationPartitionsTableInfo(clusterService))
-                .put(InformationTableConstraintsTableInfo.NAME, new InformationTableConstraintsTableInfo(clusterService))
-                .put(InformationRoutinesTableInfo.NAME, new InformationRoutinesTableInfo(clusterService))
-                .put(InformationSchemataTableInfo.NAME, new InformationSchemataTableInfo(clusterService))
-                .put(InformationSqlFeaturesTableInfo.NAME, new InformationSqlFeaturesTableInfo(clusterService))
-        .build();
+            .put(InformationTablesTableInfo.NAME, new InformationTablesTableInfo(clusterService))
+            .put(InformationColumnsTableInfo.NAME, new InformationColumnsTableInfo(clusterService))
+            .put(InformationPartitionsTableInfo.NAME, new InformationPartitionsTableInfo(clusterService))
+            .put(InformationTableConstraintsTableInfo.NAME, new InformationTableConstraintsTableInfo(clusterService))
+            .put(InformationRoutinesTableInfo.NAME, new InformationRoutinesTableInfo(clusterService))
+            .put(InformationSchemataTableInfo.NAME, new InformationSchemataTableInfo(clusterService))
+            .put(InformationSqlFeaturesTableInfo.NAME, new InformationSqlFeaturesTableInfo(clusterService))
+            .build();
     }
 
     @Override

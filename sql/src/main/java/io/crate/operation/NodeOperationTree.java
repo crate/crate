@@ -27,23 +27,23 @@ import java.util.Collection;
 
 /**
  * An execution tree generated from a Plan.
- *
+ * <p>
  * E.g.
- *
- *      Insert
- *         (MergePhase)
- *         |
- *         +-- Query
- *               (CollectPhase)
- *               (MergePhase)
- *
+ * <p>
+ * Insert
+ * (MergePhase)
+ * |
+ * +-- Query
+ * (CollectPhase)
+ * (MergePhase)
+ * <p>
  * Becomes
- *
- *      NodeOperation (CollectPhase with downstreamNodes pointing to MergePhase)
- *          |
- *      NodeOperation (MergePhase with downstreamNodes pointing to finalMergePhase)
- *          |
- *       finalMergePhase (leaf)
+ * <p>
+ * NodeOperation (CollectPhase with downstreamNodes pointing to MergePhase)
+ * |
+ * NodeOperation (MergePhase with downstreamNodes pointing to finalMergePhase)
+ * |
+ * finalMergePhase (leaf)
  */
 public class NodeOperationTree {
 

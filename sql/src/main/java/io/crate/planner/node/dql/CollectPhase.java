@@ -33,8 +33,11 @@ import java.util.UUID;
 
 public interface CollectPhase extends UpstreamPhase {
     UUID jobId();
+
     List<? extends Symbol> toCollect();
+
     List<Projection> projections();
+
     void addProjection(Projection projection);
 
     CollectPhase normalize(EvaluatingNormalizer phase, StmtCtx stmtCtx);

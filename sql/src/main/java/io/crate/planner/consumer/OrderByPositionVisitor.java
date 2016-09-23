@@ -33,12 +33,12 @@ import java.util.List;
 
 /**
  * Extract 0-based integer positions for order by symbols.
- *
+ * <p>
  * This can only be used under the following restriction:
  * <ul>
- *   <li>if an <code>orderBySymbol</code> is no input column with explicit index,
- *    it must be part of <code>sourceSymbols</code>.
- *   </li>
+ * <li>if an <code>orderBySymbol</code> is no input column with explicit index,
+ * it must be part of <code>sourceSymbols</code>.
+ * </li>
  * </ul>
  */
 @Singleton

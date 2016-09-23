@@ -37,7 +37,8 @@ public class DynamicReference extends Reference {
         }
     };
 
-    public DynamicReference() {}
+    public DynamicReference() {
+    }
 
     public DynamicReference(ReferenceIdent ident, RowGranularity granularity) {
         super(ident, granularity, DataTypes.UNDEFINED);

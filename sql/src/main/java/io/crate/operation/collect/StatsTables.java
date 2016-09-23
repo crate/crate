@@ -48,7 +48,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Stats tables that are globally available on each node and contain meta data of the cluster
  * like active jobs
- *
+ * <p>
  * injected via guice instead of using static so that if two nodes run
  * in the same jvm the memoryTables aren't shared between the nodes.
  */
@@ -124,7 +124,7 @@ public class StatsTables {
     /**
      * Track a job. If the job has finished {@link #logExecutionEnd(java.util.UUID, String)}
      * must be called.
-     *
+     * <p>
      * If {@link #isEnabled()} is false this method won't do anything.
      */
     public void logExecutionStart(UUID jobId, String statement) {
@@ -137,7 +137,7 @@ public class StatsTables {
 
     /**
      * mark a job as finished.
-     *
+     * <p>
      * If {@link #isEnabled()} is false this method won't do anything.
      */
     public void logExecutionEnd(UUID jobId, @Nullable String errorMessage) {
@@ -157,7 +157,7 @@ public class StatsTables {
      * Create a entry into `sys.jobs_log`
      * This method can be used instead of {@link #logExecutionEnd(UUID, String)} if there was no {@link #logExecutionStart(UUID, String)}
      * Call because an error happened during parse, analysis or plan.
-     *
+     * <p>
      * {@link #logExecutionStart(UUID, String)} is only called after a Plan has been created and execution starts.
      */
     public void logPreExecutionFailure(UUID jobId, String stmt, String errorMessage) {
@@ -168,8 +168,8 @@ public class StatsTables {
     public void operationStarted(int operationId, UUID jobId, String name) {
         if (isEnabled()) {
             operationsTable.put(
-                    uniqueOperationId(operationId, jobId),
-                    new OperationContext(operationId, jobId, name, System.currentTimeMillis()));
+                uniqueOperationId(operationId, jobId),
+                new OperationContext(operationId, jobId, name, System.currentTimeMillis()));
         }
     }
 

@@ -60,23 +60,23 @@ public class CrateTableSettings {
     public static final IntSetting TOTAL_SHARDS_PER_NODE = new IntSetting(TableParameterInfo.TOTAL_SHARDS_PER_NODE, -1, true);
 
     public static final StringSetting ROUTING_ALLOCATION_ENABLE = new StringSetting(
-            TableParameterInfo.ROUTING_ALLOCATION_ENABLE,
-            ImmutableSet.of( "primaries",
-                    "new_primaries",
-                    "none",
-                    "all"
-            ),
-            true,
-            "all",
-            null
+        TableParameterInfo.ROUTING_ALLOCATION_ENABLE,
+        ImmutableSet.of("primaries",
+            "new_primaries",
+            "none",
+            "all"
+        ),
+        true,
+        "all",
+        null
     );
 
     public static final StringSetting RECOVERY_INITIAL_SHARDS = new StringSetting(
-            TableParameterInfo.RECOVERY_INITIAL_SHARDS, null, true, "quorum", null);
+        TableParameterInfo.RECOVERY_INITIAL_SHARDS, null, true, "quorum", null);
 
 
     public static final ByteSizeSetting FLUSH_THRESHOLD_SIZE = new ByteSizeSetting(
-            TableParameterInfo.FLUSH_THRESHOLD_SIZE, new ByteSizeValue(200, ByteSizeUnit.MB), true);
+        TableParameterInfo.FLUSH_THRESHOLD_SIZE, new ByteSizeValue(200, ByteSizeUnit.MB), true);
 
     public static final IntSetting FLUSH_THRESHOLD_OPS = new IntSetting(TableParameterInfo.FLUSH_THRESHOLD_OPS, Integer.MAX_VALUE, true);
 

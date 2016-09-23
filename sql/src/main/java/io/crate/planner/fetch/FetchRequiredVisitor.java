@@ -41,7 +41,10 @@ public class FetchRequiredVisitor extends SymbolVisitor<FetchRequiredVisitor.Con
 
         private Set<Symbol> querySymbols;
 
-        public Context(){};
+        public Context() {
+        }
+
+        ;
 
         public Context(Set<Symbol> querySymbols) {
             this.querySymbols = querySymbols;

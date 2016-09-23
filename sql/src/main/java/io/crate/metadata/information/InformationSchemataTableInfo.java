@@ -47,10 +47,10 @@ public class InformationSchemataTableInfo extends InformationTableInfo {
 
     protected InformationSchemataTableInfo(ClusterService clusterService) {
         super(clusterService, IDENT,
-                ImmutableList.of(Columns.SCHEMA_NAME),
-                ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder ()
-                        .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME)
-                        .build()
+            ImmutableList.of(Columns.SCHEMA_NAME),
+            ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
+                .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME)
+                .build()
         );
     }
 }

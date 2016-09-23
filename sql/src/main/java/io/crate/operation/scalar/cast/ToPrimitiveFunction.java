@@ -38,7 +38,7 @@ public class ToPrimitiveFunction extends AbstractCastFunction<Object, Object> {
         for (Map.Entry<DataType, String> function : CastFunctionResolver.PRIMITIVE_FUNCTION_MAP.entrySet()) {
             module.register(function.getValue(), new PrimitiveResolver(function.getKey(), function.getValue()));
         }
-      }
+    }
 
     private static class PrimitiveResolver extends AbstractCastFunction.Resolver {
 

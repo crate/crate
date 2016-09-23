@@ -41,6 +41,7 @@ public interface PagingIterator<TKey, TRow> extends Iterator<TRow> {
 
     /**
      * create an iterable to repeat the previous iteration
+     *
      * @return an iterable that will iterate through the already emitted items and emit them again in the same order as before
      */
     Iterable<TRow> repeat();

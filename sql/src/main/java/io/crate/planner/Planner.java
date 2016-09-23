@@ -192,7 +192,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     for (Map.Entry<Integer, String> nodeEntries : entry.getValue().entrySet()) {
                         int readerId = base + nodeEntries.getKey();
                         IntSet readerIds = nodeReaders.get(nodeEntries.getValue());
-                        if (readerIds == null){
+                        if (readerIds == null) {
                             readerIds = new IntHashSet();
                             nodeReaders.put(nodeEntries.getValue(), readerIds);
                         }
@@ -275,7 +275,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         private boolean allocateRoutingNodes(TableIdent tableIdent, Map<String, Map<String, List<Integer>>> locations) {
             boolean success = true;
-            if (tableIndices == null){
+            if (tableIndices == null) {
                 tableIndices = HashMultimap.create();
             }
             if (shardNodes == null) {
@@ -332,7 +332,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 routing = tableInfo.getRouting(where, preference);
                 if (!allocateRoutingNodes(tableInfo.ident(), routing.locations())) {
                     throw new UnsupportedOperationException(
-                            "Nodes of existing routing are not allocated, routing rebuild needed");
+                        "Nodes of existing routing are not allocated, routing rebuild needed");
                 }
             }
             tableRoutings.put(tableInfo.ident(), new TableRouting(where, preference, routing));
@@ -371,13 +371,13 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     /**
      * dispatch plan creation based on analysis type
      *
-     * @param analysis analysis to create plan from
+     * @param analysis  analysis to create plan from
      * @param softLimit A soft limit will be applied if there is no explicit limit within the query.
      *                  0 for unlimited (query limit or maxRows will still apply)
      *                  If the type of query doesn't have a resultSet this has no effect.
      * @param fetchSize Limit the number of rows that should be returned to a client.
-     *                If > 0 this overrides the limit that might be part of a query.
-     *                0 for unlimited (soft limit or query limit may still apply)
+     *                  If > 0 this overrides the limit that might be part of a query.
+     *                  0 for unlimited (soft limit or query limit may still apply)
      * @return plan
      */
     public Plan plan(Analysis analysis, UUID jobId, int softLimit, int fetchSize) {
@@ -490,7 +490,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return new NoopPlan(context.jobId());
         }
         return new ESClusterUpdateSettingsPlan(context.jobId(),
-                resetStatement.settingsToRemove(), resetStatement.settingsToRemove());
+            resetStatement.settingsToRemove(), resetStatement.settingsToRemove());
     }
 
     @Override
@@ -509,8 +509,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     public Plan visitKillAnalyzedStatement(KillAnalyzedStatement analysis, Context context) {
         return analysis.jobId().isPresent() ?
-                new KillPlan(context.jobId(), analysis.jobId().get()) :
-                new KillPlan(context.jobId());
+            new KillPlan(context.jobId(), analysis.jobId().get()) :
+            new KillPlan(context.jobId());
     }
 
     @Override
@@ -541,12 +541,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
                 }
                 upsertById.add(
-                        indices[i],
-                        analysis.ids().get(i),
-                        analysis.routingValues().get(i),
-                        onDuplicateKeyAssignments,
-                        null,
-                        analysis.sourceMaps().get(i));
+                    indices[i],
+                    analysis.ids().get(i),
+                    analysis.routingValues().get(i),
+                    onDuplicateKeyAssignments,
+                    null,
+                    analysis.sourceMaps().get(i));
             }
         } else {
             for (int i = 0; i < analysis.ids().size(); i++) {
@@ -555,12 +555,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
                 }
                 upsertById.add(
-                        analysis.tableInfo().ident().indexName(),
-                        analysis.ids().get(i),
-                        analysis.routingValues().get(i),
-                        onDuplicateKeyAssignments,
-                        null,
-                        analysis.sourceMaps().get(i));
+                    analysis.tableInfo().ident().indexName(),
+                    analysis.ids().get(i),
+                    analysis.routingValues().get(i),
+                    onDuplicateKeyAssignments,
+                    null,
+                    analysis.sourceMaps().get(i));
             }
         }
 

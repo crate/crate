@@ -43,9 +43,9 @@ public class CollectionAverageFunction extends Scalar<Double, Set<Number>> {
     public static void register(ScalarFunctionModule mod) {
         for (DataType t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             mod.register(
-                    new CollectionAverageFunction(
-                            new FunctionInfo(new FunctionIdent(
-                                    NAME, ImmutableList.<DataType>of(new SetType(t))), DataTypes.DOUBLE))
+                new CollectionAverageFunction(
+                    new FunctionInfo(new FunctionIdent(
+                        NAME, ImmutableList.<DataType>of(new SetType(t))), DataTypes.DOUBLE))
             );
         }
     }

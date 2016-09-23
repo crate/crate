@@ -159,7 +159,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
             Object[][] rowsArr = rows.toArray(new Object[0][]);
             BytesRefUtils.ensureStringTypesAreStrings(outputTypes, rowsArr);
-            float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
+            float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
             return new SQLResponse(
                 outputNames,
                 rowsArr,
@@ -202,7 +202,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void allFinished() {
-            float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
+            float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
             SQLResponse sqlResponse = new SQLResponse(
                 EMPTY_NAMES,
                 EMPTY_ROWS,

@@ -30,7 +30,7 @@ public class SnapShotAlreadyExistsExeption extends ConflictException {
 
     public SnapShotAlreadyExistsExeption(SnapshotId snapshotId) {
         super(String.format(Locale.ENGLISH, "Snapshot \"%s\".\"%s\" already exists",
-                snapshotId.getRepository(), snapshotId.getSnapshot()));
+            snapshotId.getRepository(), snapshotId.getSnapshot()));
     }
 
     @Override

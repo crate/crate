@@ -75,7 +75,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
     }
 
     public abstract static class ChildDocCollectorExpression<ReturnType> extends
-            LuceneCollectorExpression<ReturnType> {
+        LuceneCollectorExpression<ReturnType> {
 
         protected SourceLookup sourceLookup;
         private LeafReaderContext context;

@@ -81,7 +81,7 @@ public class GlobalAggregateConsumer implements Consumer {
 
         @Override
         public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
-            if (table.querySpec().where().hasVersions()){
+            if (table.querySpec().where().hasVersions()) {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
@@ -105,7 +105,7 @@ public class GlobalAggregateConsumer implements Consumer {
         }
 
         Planner.Context plannerContext = context.plannerContext();
-        if (table.querySpec().limit().or(1) < 1 || table.querySpec().offset() > 0){
+        if (table.querySpec().limit().or(1) < 1 || table.querySpec().offset() > 0) {
             return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
         }
 
@@ -125,10 +125,10 @@ public class GlobalAggregateConsumer implements Consumer {
 
 
         RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
-                plannerContext,
-                table,
-                splitPoints.leaves(),
-                ImmutableList.<Projection>of(ap)
+            plannerContext,
+            table,
+            splitPoints.leaves(),
+            ImmutableList.<Projection>of(ap)
         );
 
         //// the handler stuff
@@ -141,31 +141,31 @@ public class GlobalAggregateConsumer implements Consumer {
             RowGranularity.CLUSTER));
 
         Optional<HavingClause> havingClause = table.querySpec().having();
-        if(havingClause.isPresent()){
+        if (havingClause.isPresent()) {
             if (havingClause.get().noMatch()) {
                 return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
-            } else if (havingClause.get().hasQuery()){
+            } else if (havingClause.get().hasQuery()) {
                 projections.add(ProjectionBuilder.filterProjection(
-                        splitPoints.aggregates(),
-                        havingClause.get().query()
+                    splitPoints.aggregates(),
+                    havingClause.get().query()
                 ));
             }
         }
 
         TopNProjection topNProjection = ProjectionBuilder.topNProjection(
-                splitPoints.aggregates(),
-                null,
-                0,
-                1,
-                table.querySpec().outputs()
+            splitPoints.aggregates(),
+            null,
+            0,
+            1,
+            table.querySpec().outputs()
         );
         projections.add(topNProjection);
         MergePhase localMergeNode = MergePhase.localMerge(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(),
-                projections,
-                collectPhase.executionNodes().size(),
-                collectPhase.outputTypes());
+            plannerContext.jobId(),
+            plannerContext.nextExecutionPhaseId(),
+            projections,
+            collectPhase.executionNodes().size(),
+            collectPhase.outputTypes());
         return new CollectAndMerge(collectPhase, localMergeNode);
     }
 
@@ -190,7 +190,8 @@ public class GlobalAggregateConsumer implements Consumer {
 
         @Override
         public Void visitFunction(Function symbol, OutputValidatorContext context) {
-            context.insideAggregation = context.insideAggregation || symbol.info().type().equals(FunctionInfo.Type.AGGREGATE);
+            context.insideAggregation =
+                context.insideAggregation || symbol.info().type().equals(FunctionInfo.Type.AGGREGATE);
             for (Symbol argument : symbol.arguments()) {
                 process(argument, context);
             }
@@ -204,10 +205,10 @@ public class GlobalAggregateConsumer implements Consumer {
                 Reference.IndexType indexType = symbol.indexType();
                 if (indexType == Reference.IndexType.ANALYZED) {
                     throw new IllegalArgumentException(SymbolFormatter.format(
-                            "Cannot select analyzed column '%s' within grouping or aggregations", symbol));
+                        "Cannot select analyzed column '%s' within grouping or aggregations", symbol));
                 } else if (indexType == Reference.IndexType.NO) {
                     throw new IllegalArgumentException(SymbolFormatter.format(
-                            "Cannot select non-indexed column '%s' within grouping or aggregations", symbol));
+                        "Cannot select non-indexed column '%s' within grouping or aggregations", symbol));
                 }
             }
             return null;

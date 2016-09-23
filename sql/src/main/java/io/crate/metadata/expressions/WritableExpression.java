@@ -24,6 +24,7 @@ package io.crate.metadata.expressions;
 
 /**
  * WritableExpression that presents a column of a table
+ *
  * @param <TRow>
  * @param <TValue>
  */

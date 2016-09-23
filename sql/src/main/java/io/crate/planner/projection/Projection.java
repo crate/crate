@@ -45,13 +45,13 @@ public abstract class Projection implements Streamable {
 
     /**
      * The granularity required to run this projection
-     *
+     * <p>
      * For example:
-     *
-     *  CLUSTER - projection may run in any context on the cluster and receive any rows.
-     *
-     *  SHARD - projection must be run in a shard-context and it must only receive rows from a
-     *  single shard.
+     * <p>
+     * CLUSTER - projection may run in any context on the cluster and receive any rows.
+     * <p>
+     * SHARD - projection must be run in a shard-context and it must only receive rows from a
+     * single shard.
      */
     public RowGranularity requiredGranularity() {
         return RowGranularity.CLUSTER;

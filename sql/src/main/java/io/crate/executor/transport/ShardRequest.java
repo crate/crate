@@ -40,7 +40,7 @@ import java.util.List;
 import java.util.UUID;
 
 public abstract class ShardRequest<T extends ReplicationRequest<T>, I extends ShardRequest.Item>
-        extends ReplicationRequest<T> implements Iterable<I> {
+    extends ReplicationRequest<T> implements Iterable<I> {
 
     @Nullable
     private String routing;

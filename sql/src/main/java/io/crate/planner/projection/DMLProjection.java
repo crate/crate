@@ -38,7 +38,7 @@ import java.util.List;
 public abstract class DMLProjection extends Projection {
 
     protected final static List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
-            new Value(DataTypes.LONG)  // number of rows updated
+        new Value(DataTypes.LONG)  // number of rows updated
     );
 
     protected Symbol uidSymbol;

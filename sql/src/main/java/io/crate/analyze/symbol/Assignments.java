@@ -32,7 +32,7 @@ public class Assignments {
 
     /**
      * convert assignments into a tuple of fqn column names and the symbols.
-     *
+     * <p>
      * <pre>
      *     {
      *         users.age:  users.age + 1,
@@ -44,6 +44,7 @@ public class Assignments {
      * <pre>
      *     ( [users.age, users.name], [users.age + 1, users.name || 'foo'] )
      * </pre>
+     *
      * @return a tuple or null if the input is null.
      */
     public static Tuple<String[], Symbol[]> convert(@Nonnull Map<Reference, ? extends Symbol> assignments) {

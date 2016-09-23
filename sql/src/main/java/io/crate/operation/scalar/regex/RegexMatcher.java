@@ -65,7 +65,7 @@ public class RegexMatcher {
     public BytesRef[] groups() {
         try {
             if (matcher.groupCount() == 0) {
-                return new BytesRef[]{ new BytesRef(matcher.group()) };
+                return new BytesRef[]{new BytesRef(matcher.group())};
             }
             BytesRef[] groups = new BytesRef[matcher.groupCount()];
             // skip first group (the original string)
@@ -152,14 +152,12 @@ public class RegexMatcher {
     public static final Pattern pcre_pattern = Pattern.compile(escape_sequences_pattern + "|" + embedded_flags_pattern);
 
     /**
-     *
      * Determine whether regex pattern contains PCRE features, e.g.
      * - predefined character classes like \d, \D, \s, \S, \w, \W
      * - boundary matchers like \b, \B, \A, \G, \Z, \z
      * - embedded flag expressions like (?i), (?d), etc.
      *
      * @see java.util.regex.Pattern
-     *
      */
     public static boolean isPcrePattern(String pattern) {
         return pcre_pattern.matcher(pattern).matches();

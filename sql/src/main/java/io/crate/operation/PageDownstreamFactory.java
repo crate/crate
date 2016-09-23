@@ -67,15 +67,15 @@ public class PageDownstreamFactory {
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.DOC, referenceResolver);
         this.projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
-                clusterService,
-                functions,
-                indexNameExpressionResolver,
-                threadPool,
-                settings,
-                transportActionProvider,
-                bulkRetryCoordinatorPool,
-                implementationSymbolVisitor,
-                normalizer
+            clusterService,
+            functions,
+            indexNameExpressionResolver,
+            threadPool,
+            settings,
+            transportActionProvider,
+            bulkRetryCoordinatorPool,
+            implementationSymbolVisitor,
+            normalizer
         );
     }
 
@@ -91,11 +91,11 @@ public class PageDownstreamFactory {
         FlatProjectorChain projectorChain = null;
         if (!mergeNode.projections().isEmpty()) {
             projectorChain = FlatProjectorChain.withAttachedDownstream(
-                    projectionToProjectorVisitor,
-                    ramAccountingContext,
-                    mergeNode.projections(),
-                    downstream,
-                    mergeNode.jobId()
+                projectionToProjectorVisitor,
+                ramAccountingContext,
+                mergeNode.projections(),
+                downstream,
+                mergeNode.jobId()
             );
             downstream = projectorChain.firstProjector();
         }
@@ -103,16 +103,16 @@ public class PageDownstreamFactory {
         PagingIterator<Void, Row> pagingIterator;
         if (mergeNode.sortedInputOutput() && mergeNode.numUpstreams() > 1) {
             pagingIterator = new SortedPagingIterator<>(
-                    OrderingByPosition.rowOrdering(
-                            mergeNode.orderByIndices(),
-                            mergeNode.reverseFlags(),
-                            mergeNode.nullsFirst()
-                    ),
-                    requiresRepeatSupport
+                OrderingByPosition.rowOrdering(
+                    mergeNode.orderByIndices(),
+                    mergeNode.reverseFlags(),
+                    mergeNode.nullsFirst()
+                ),
+                requiresRepeatSupport
             );
         } else {
             pagingIterator = requiresRepeatSupport ?
-                    PassThroughPagingIterator.<Void, Row>repeatable() : PassThroughPagingIterator.<Void, Row>oneShot();
+                PassThroughPagingIterator.<Void, Row>repeatable() : PassThroughPagingIterator.<Void, Row>oneShot();
         }
         PageDownstream pageDownstream = new IteratorPageDownstream(downstream, pagingIterator, executorOptional);
         return new Tuple<>(pageDownstream, projectorChain);

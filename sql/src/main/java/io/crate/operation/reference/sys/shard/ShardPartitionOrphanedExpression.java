@@ -43,8 +43,8 @@ public class ShardPartitionOrphanedExpression extends SimpleObjectExpression<Boo
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(shardId.getIndex());
             aliasName = partitionName.tableIdent().indexName();
             templateName = PartitionName.templateName(
-                    partitionName.tableIdent().schema(),
-                    partitionName.tableIdent().name());
+                partitionName.tableIdent().schema(),
+                partitionName.tableIdent().name());
         } else {
             templateName = null;
             aliasName = null;

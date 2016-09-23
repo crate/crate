@@ -25,8 +25,9 @@ import io.crate.operation.collect.CollectExpression;
 
 /**
  * Base interface for row based expressions.
+ *
  * @param <TReturnValue> The returnType of the expression
  */
 public interface RowCollectExpression<TRow, TReturnValue>
-        extends CollectExpression<TRow, TReturnValue>, ReferenceImplementation<TReturnValue> {
+    extends CollectExpression<TRow, TReturnValue>, ReferenceImplementation<TReturnValue> {
 }

@@ -64,41 +64,41 @@ public class CastFunctionResolver {
     }
 
     static final ImmutableMap<DataType, String> PRIMITIVE_FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
-            .put(DataTypes.STRING, FunctionNames.TO_STRING)
-            .put(DataTypes.INTEGER, FunctionNames.TO_INTEGER)
-            .put(DataTypes.LONG, FunctionNames.TO_LONG)
-            .put(DataTypes.TIMESTAMP, FunctionNames.TO_TIMESTAMP)
-            .put(DataTypes.DOUBLE, FunctionNames.TO_DOUBLE)
-            .put(DataTypes.BOOLEAN, FunctionNames.TO_BOOLEAN)
-            .put(DataTypes.FLOAT, FunctionNames.TO_FLOAT)
-            .put(DataTypes.BYTE, FunctionNames.TO_BYTE)
-            .put(DataTypes.SHORT, FunctionNames.TO_SHORT)
-            .put(DataTypes.IP, FunctionNames.TO_IP)
-            .build();
+        .put(DataTypes.STRING, FunctionNames.TO_STRING)
+        .put(DataTypes.INTEGER, FunctionNames.TO_INTEGER)
+        .put(DataTypes.LONG, FunctionNames.TO_LONG)
+        .put(DataTypes.TIMESTAMP, FunctionNames.TO_TIMESTAMP)
+        .put(DataTypes.DOUBLE, FunctionNames.TO_DOUBLE)
+        .put(DataTypes.BOOLEAN, FunctionNames.TO_BOOLEAN)
+        .put(DataTypes.FLOAT, FunctionNames.TO_FLOAT)
+        .put(DataTypes.BYTE, FunctionNames.TO_BYTE)
+        .put(DataTypes.SHORT, FunctionNames.TO_SHORT)
+        .put(DataTypes.IP, FunctionNames.TO_IP)
+        .build();
 
     static final ImmutableMap<DataType, String> GEO_FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
-            .put(DataTypes.GEO_POINT, FunctionNames.TO_GEO_POINT)
-            .put(DataTypes.GEO_SHAPE, FunctionNames.TO_GEO_SHAPE)
-            .build();
+        .put(DataTypes.GEO_POINT, FunctionNames.TO_GEO_POINT)
+        .put(DataTypes.GEO_SHAPE, FunctionNames.TO_GEO_SHAPE)
+        .build();
 
     static final ImmutableMap<DataType, String> ARRAY_FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
-            .put(new ArrayType(DataTypes.STRING), FunctionNames.TO_STRING_ARRAY)
-            .put(new ArrayType(DataTypes.LONG), FunctionNames.TO_LONG_ARRAY)
-            .put(new ArrayType(DataTypes.INTEGER), FunctionNames.TO_INTEGER_ARRAY)
-            .put(new ArrayType(DataTypes.DOUBLE), FunctionNames.TO_DOUBLE_ARRAY)
-            .put(new ArrayType(DataTypes.BOOLEAN), FunctionNames.TO_BOOLEAN_ARRAY)
-            .put(new ArrayType(DataTypes.BYTE), FunctionNames.TO_BYTE_ARRAY)
-            .put(new ArrayType(DataTypes.FLOAT), FunctionNames.TO_FLOAT_ARRAY)
-            .put(new ArrayType(DataTypes.SHORT), FunctionNames.TO_SHORT_ARRAY)
-            .put(new ArrayType(DataTypes.IP), FunctionNames.TO_IP_ARRAY)
-            .build();
+        .put(new ArrayType(DataTypes.STRING), FunctionNames.TO_STRING_ARRAY)
+        .put(new ArrayType(DataTypes.LONG), FunctionNames.TO_LONG_ARRAY)
+        .put(new ArrayType(DataTypes.INTEGER), FunctionNames.TO_INTEGER_ARRAY)
+        .put(new ArrayType(DataTypes.DOUBLE), FunctionNames.TO_DOUBLE_ARRAY)
+        .put(new ArrayType(DataTypes.BOOLEAN), FunctionNames.TO_BOOLEAN_ARRAY)
+        .put(new ArrayType(DataTypes.BYTE), FunctionNames.TO_BYTE_ARRAY)
+        .put(new ArrayType(DataTypes.FLOAT), FunctionNames.TO_FLOAT_ARRAY)
+        .put(new ArrayType(DataTypes.SHORT), FunctionNames.TO_SHORT_ARRAY)
+        .put(new ArrayType(DataTypes.IP), FunctionNames.TO_IP_ARRAY)
+        .build();
 
     // TODO: register all type conversion functions here
     private static final ImmutableMap<DataType, String> FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
-            .putAll(PRIMITIVE_FUNCTION_MAP)
-            .putAll(GEO_FUNCTION_MAP)
-            .putAll(ARRAY_FUNCTION_MAP)
-            .build();
+        .putAll(PRIMITIVE_FUNCTION_MAP)
+        .putAll(GEO_FUNCTION_MAP)
+        .putAll(ARRAY_FUNCTION_MAP)
+        .build();
 
     /**
      * resolve the needed conversion function info based on the wanted return data type
@@ -107,8 +107,8 @@ public class CastFunctionResolver {
         String functionName = FUNCTION_MAP.get(returnType);
         if (functionName == null) {
             throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "No cast function found for return type %s",
-                            returnType.getName()));
+                String.format(Locale.ENGLISH, "No cast function found for return type %s",
+                    returnType.getName()));
         }
         functionName = tryCast ? TRY_CAST_PREFIX + functionName : functionName;
         return new FunctionInfo(new FunctionIdent(functionName, ImmutableList.of(dataType)), returnType);

@@ -30,7 +30,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
-import org.elasticsearch.index.query.support.QueryParsers;
 import org.elasticsearch.index.search.MatchQuery;
 
 import javax.annotation.Nullable;
@@ -56,10 +55,10 @@ public class OptionParser {
     }
 
     private static final ImmutableSet<String> SUPPORTED_OPTIONS = ImmutableSet.<String>builder().add(
-            OPTIONS.ANALYZER, OPTIONS.BOOST, OPTIONS.OPERATOR, OPTIONS.CUTOFF_FREQUENCY,
-            OPTIONS.MINIMUM_SHOULD_MATCH, OPTIONS.FUZZINESS, OPTIONS.PREFIX_LENGTH,
-            OPTIONS.MAX_EXPANSIONS, OPTIONS.REWRITE, OPTIONS.SLOP, OPTIONS.TIE_BREAKER,
-            OPTIONS.ZERO_TERMS_QUERY, OPTIONS.FUZZY_REWRITE, OPTIONS.FUZZY_TRANSPOSITIONS
+        OPTIONS.ANALYZER, OPTIONS.BOOST, OPTIONS.OPERATOR, OPTIONS.CUTOFF_FREQUENCY,
+        OPTIONS.MINIMUM_SHOULD_MATCH, OPTIONS.FUZZINESS, OPTIONS.PREFIX_LENGTH,
+        OPTIONS.MAX_EXPANSIONS, OPTIONS.REWRITE, OPTIONS.SLOP, OPTIONS.TIE_BREAKER,
+        OPTIONS.ZERO_TERMS_QUERY, OPTIONS.FUZZY_REWRITE, OPTIONS.FUZZY_TRANSPOSITIONS
     ).build();
 
     public static ParsedOptions parse(MultiMatchQueryBuilder.Type matchType,
@@ -71,13 +70,13 @@ public class OptionParser {
             options = new HashMap(options);
         }
         ParsedOptions parsedOptions = new ParsedOptions(
-                floatValue(options, OPTIONS.BOOST, null),
-                analyzer(options.remove(OPTIONS.ANALYZER)),
-                zeroTermsQuery(options.remove(OPTIONS.ZERO_TERMS_QUERY)),
-                intValue(options, OPTIONS.MAX_EXPANSIONS, FuzzyQuery.defaultMaxExpansions),
-                fuzziness(options.remove(OPTIONS.FUZZINESS)),
-                intValue(options, OPTIONS.PREFIX_LENGTH, FuzzyQuery.defaultPrefixLength),
-                transpositions(options.remove(OPTIONS.FUZZY_TRANSPOSITIONS))
+            floatValue(options, OPTIONS.BOOST, null),
+            analyzer(options.remove(OPTIONS.ANALYZER)),
+            zeroTermsQuery(options.remove(OPTIONS.ZERO_TERMS_QUERY)),
+            intValue(options, OPTIONS.MAX_EXPANSIONS, FuzzyQuery.defaultMaxExpansions),
+            fuzziness(options.remove(OPTIONS.FUZZINESS)),
+            intValue(options, OPTIONS.PREFIX_LENGTH, FuzzyQuery.defaultPrefixLength),
+            transpositions(options.remove(OPTIONS.FUZZY_TRANSPOSITIONS))
         );
 
         switch (matchType.matchQueryType()) {
@@ -125,7 +124,7 @@ public class OptionParser {
             return BooleanClause.Occur.MUST;
         }
         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "value for operator must be either \"or\" or \"and\" not \"%s\"", op));
+            "value for operator must be either \"or\" or \"and\" not \"%s\"", op));
     }
 
     private static Float floatValue(Map options, String optionName, Float defaultValue) {
@@ -151,7 +150,7 @@ public class OptionParser {
     }
 
     private static org.apache.lucene.search.MultiTermQuery.RewriteMethod rewrite(
-            @Nullable Object fuzzyRewrite) {
+        @Nullable Object fuzzyRewrite) {
         String rewrite = BytesRefs.toString(fuzzyRewrite);
         // TODO: parseRewriteMethod now requires ParseFieldMatcher
         return null; //QueryParsers.parseRewriteMethod(rewrite, null);
@@ -173,7 +172,7 @@ public class OptionParser {
             return MatchQuery.ZeroTermsQuery.ALL;
         }
         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "Unsupported value for %s option. Valid are \"none\" and \"all\"", OPTIONS.ZERO_TERMS_QUERY));
+            "Unsupported value for %s option. Valid are \"none\" and \"all\"", OPTIONS.ZERO_TERMS_QUERY));
     }
 
     @Nullable
@@ -200,13 +199,13 @@ public class OptionParser {
         }
         if (!unknownOptions.isEmpty()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "match predicate doesn't support any of the given options: %s",
-                    Joiner.on(", ").join(unknownOptions)));
+                "match predicate doesn't support any of the given options: %s",
+                Joiner.on(", ").join(unknownOptions)));
         } else {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "match predicate option(s) \"%s\" cannot be used with matchType \"%s\"",
-                    Joiner.on(", ").join(invalidOptions),
-                    matchType.name().toLowerCase(Locale.ENGLISH)
+                "match predicate option(s) \"%s\" cannot be used with matchType \"%s\"",
+                Joiner.on(", ").join(invalidOptions),
+                matchType.name().toLowerCase(Locale.ENGLISH)
             ));
         }
     }

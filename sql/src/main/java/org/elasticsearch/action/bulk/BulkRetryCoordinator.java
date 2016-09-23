@@ -36,7 +36,7 @@ import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Queue;
-import java.util.concurrent.*;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -61,7 +61,7 @@ public class BulkRetryCoordinator {
         this.retryLock = new ReadWriteLock();
     }
 
-    private void trace(String message, Object ... args) {
+    private void trace(String message, Object... args) {
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("BulkRetryCoordinator{activeOperations='" + activeOperations + "', " +
                          "pendingOperations='" + pendingOperations.size() + "'} {}",
@@ -203,7 +203,7 @@ public class BulkRetryCoordinator {
         public void releaseWriteLock() {
             if (activeWriters.decrementAndGet() == 0) {
                 // unlock all readers
-                readLock.release(waitingReaders.getAndSet(0)+1);
+                readLock.release(waitingReaders.getAndSet(0) + 1);
             }
             writeLock.release();
         }

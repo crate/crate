@@ -61,7 +61,7 @@ public class ReferenceIdent implements Streamable {
         return columnIdent.isColumn();
     }
 
-    public ColumnIdent columnIdent(){
+    public ColumnIdent columnIdent() {
         return columnIdent;
     }
 
@@ -82,7 +82,7 @@ public class ReferenceIdent implements Streamable {
         }
         ReferenceIdent o = (ReferenceIdent) obj;
         return Objects.equal(columnIdent, o.columnIdent) &&
-                Objects.equal(tableIdent, o.tableIdent);
+               Objects.equal(tableIdent, o.tableIdent);
     }
 
     @Override

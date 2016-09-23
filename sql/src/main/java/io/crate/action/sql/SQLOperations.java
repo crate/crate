@@ -93,7 +93,7 @@ public class SQLOperations {
 
     public Session createSession(@Nullable String defaultSchema, Set<Option> options, int defaultLimit) {
         if (disabled) {
-          throw new NodeDisconnectedException(clusterService.localNode(), "sql");
+            throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
 
         return new Session(
@@ -124,10 +124,10 @@ public class SQLOperations {
     /**
      * Stateful Session
      * In the PSQL case there is one session per connection.
-     *
-     *
+     * <p>
+     * <p>
      * Methods are usually called in the following order:
-     *
+     * <p>
      * <pre>
      * parse(...)
      * bind(...)
@@ -135,9 +135,9 @@ public class SQLOperations {
      * execute(...)
      * sync()
      * </pre>
-     *
+     * <p>
      * Or:
-     *
+     * <p>
      * <pre>
      * parse(...)
      * loop:
@@ -145,7 +145,7 @@ public class SQLOperations {
      *      execute(...)
      * sync()
      * </pre>
-     *
+     * <p>
      * (https://www.postgresql.org/docs/9.2/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY)
      */
     public class Session {
@@ -346,6 +346,7 @@ public class SQLOperations {
 
         /**
          * Close a portal or prepared statement
+         *
          * @param type <b>S</b> for prepared statement, <b>P</b> for portal.
          * @param name name of the prepared statement or the portal (depending on type)
          */

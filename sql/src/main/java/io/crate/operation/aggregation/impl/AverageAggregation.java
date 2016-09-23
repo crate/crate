@@ -39,7 +39,7 @@ import java.io.IOException;
 
 public class AverageAggregation extends AggregationFunction<AverageAggregation.AverageState, Double> {
 
-    public static final String[] NAMES = new String[] {"avg", "mean"};
+    public static final String[] NAMES = new String[]{"avg", "mean"};
     public static final String NAME = NAMES[0];
     private final FunctionInfo info;
 
@@ -51,15 +51,15 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
      * register as "avg" and "mean"
      */
     public static void register(AggregationImplModule mod) {
-        for (String name :NAMES) {
+        for (String name : NAMES) {
             for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
                 mod.register(new AverageAggregation(new FunctionInfo(
-                        new FunctionIdent(name, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
-                        FunctionInfo.Type.AGGREGATE)));
+                    new FunctionIdent(name, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
+                    FunctionInfo.Type.AGGREGATE)));
             }
             mod.register(new AverageAggregation(new FunctionInfo(
-                    new FunctionIdent(name, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
-                    FunctionInfo.Type.AGGREGATE)));
+                new FunctionIdent(name, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
+                FunctionInfo.Type.AGGREGATE)));
         }
     }
 
@@ -96,7 +96,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     }
 
     public static class AverageStateType extends DataType<AverageState>
-            implements FixedWidthType, Streamer<AverageState>, DataTypeFactory {
+        implements FixedWidthType, Streamer<AverageState>, DataTypeFactory {
 
         public static final int ID = 1024;
         private static final AverageStateType INSTANCE = new AverageStateType();

@@ -56,7 +56,7 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
         if (arg0Value == null) {
             return null;
         }
-        return ((Integer)(arg0Value.size())).longValue();
+        return ((Integer) (arg0Value.size())).longValue();
     }
 
     @Override
@@ -80,15 +80,15 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
             for (DataType dataType : dataTypes) {
                 if (!isCollectionType(dataType)) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                            "Function \"%s\" got an invalid argument of type \"%s\"",
-                            NAME,
-                            dataType.getName()));
+                        "Function \"%s\" got an invalid argument of type \"%s\"",
+                        NAME,
+                        dataType.getName()));
                 }
             }
 
             return new CollectionCountFunction(new FunctionInfo(
-                    new FunctionIdent(NAME, dataTypes),
-                    DataTypes.LONG
+                new FunctionIdent(NAME, dataTypes),
+                DataTypes.LONG
             ));
         }
     }

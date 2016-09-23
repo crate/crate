@@ -44,7 +44,7 @@ public class TableElementsAnalyzer {
         AnalyzedTableElements analyzedTableElements = new AnalyzedTableElements();
         for (TableElement tableElement : tableElements) {
             ColumnDefinitionContext ctx = new ColumnDefinitionContext(
-                    null, parameterContext, fulltextAnalyzerResolver, analyzedTableElements);
+                null, parameterContext, fulltextAnalyzerResolver, analyzedTableElements);
             ANALYZER.process(tableElement, ctx);
             if (ctx.analyzedColumnDefinition.ident() != null) {
                 analyzedTableElements.add(ctx.analyzedColumnDefinition);
@@ -77,7 +77,7 @@ public class TableElementsAnalyzer {
     }
 
     private static class InnerTableElementsAnalyzer
-            extends DefaultTraversalVisitor<Void, ColumnDefinitionContext> {
+        extends DefaultTraversalVisitor<Void, ColumnDefinitionContext> {
 
         @Override
         public Void visitColumnDefinition(ColumnDefinition node, ColumnDefinitionContext context) {
@@ -156,10 +156,10 @@ public class TableElementsAnalyzer {
 
             for (ColumnDefinition columnDefinition : node.nestedColumns()) {
                 ColumnDefinitionContext childContext = new ColumnDefinitionContext(
-                        context.analyzedColumnDefinition,
-                        context.parameterContext,
-                        context.fulltextAnalyzerResolver,
-                        context.analyzedTableElements
+                    context.analyzedColumnDefinition,
+                    context.parameterContext,
+                    context.fulltextAnalyzerResolver,
+                    context.analyzedTableElements
                 );
                 process(columnDefinition, childContext);
                 context.analyzedColumnDefinition.addChild(childContext.analyzedColumnDefinition);
@@ -196,7 +196,7 @@ public class TableElementsAnalyzer {
         public Void visitPrimaryKeyConstraint(PrimaryKeyConstraint node, ColumnDefinitionContext context) {
             for (Expression expression : node.columns()) {
                 context.analyzedTableElements.addPrimaryKey(
-                        ExpressionToStringVisitor.convert(expression, context.parameterContext.parameters()));
+                    ExpressionToStringVisitor.convert(expression, context.parameterContext.parameters()));
             }
             return null;
         }
@@ -213,7 +213,7 @@ public class TableElementsAnalyzer {
                 setGeoType(node.properties(), context, node.indexMethod());
             } else {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Invalid index method \"%s\"", node.indexMethod()));
+                    String.format(Locale.ENGLISH, "Invalid index method \"%s\"", node.indexMethod()));
             }
             return null;
         }

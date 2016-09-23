@@ -58,15 +58,15 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
     private final Functions functions;
 
     private final LoadingCache<String, BlobTableInfo> cache = CacheBuilder.newBuilder()
-            .maximumSize(10000)
-            .build(
-                    new CacheLoader<String, BlobTableInfo>() {
-                        @Override
-                        public BlobTableInfo load(String key) throws Exception {
-                            return innerGetTableInfo(key);
-                        }
-                    }
-            );
+        .maximumSize(10000)
+        .build(
+            new CacheLoader<String, BlobTableInfo>() {
+                @Override
+                public BlobTableInfo load(String key) throws Exception {
+                    return innerGetTableInfo(key);
+                }
+            }
+        );
 
     private final Function<String, TableInfo> tableInfoFunction;
 
@@ -93,7 +93,7 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     private BlobTableInfo innerGetTableInfo(String name) {
         BlobTableInfoBuilder builder = new BlobTableInfoBuilder(
-                new TableIdent(NAME, name), clusterService, indexNameExpressionResolver, blobEnvironment, environment, functions);
+            new TableIdent(NAME, name), clusterService, indexNameExpressionResolver, blobEnvironment, environment, functions);
         return builder.build();
     }
 
@@ -138,9 +138,9 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
         // TODO: once we support closing/opening tables change this to concreteIndices()
         // and add  state info to the TableInfo.
         return FluentIterable
-                .from(Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices()))
-                .filter(BlobIndices.indicesFilter)
-                .transform(BlobIndices.STRIP_PREFIX);
+            .from(Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices()))
+            .filter(BlobIndices.indicesFilter)
+            .transform(BlobIndices.STRIP_PREFIX);
     }
 
     @Override

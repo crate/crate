@@ -46,27 +46,27 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     private Map<Reference, Symbol> onDuplicateKeyAssignments;
 
     public static final ProjectionFactory<ColumnIndexWriterProjection> FACTORY =
-            new ProjectionFactory<ColumnIndexWriterProjection>() {
-                @Override
-                public ColumnIndexWriterProjection newInstance() {
-                    return new ColumnIndexWriterProjection();
-                }
-            };
+        new ProjectionFactory<ColumnIndexWriterProjection>() {
+            @Override
+            public ColumnIndexWriterProjection newInstance() {
+                return new ColumnIndexWriterProjection();
+            }
+        };
 
-    private ColumnIndexWriterProjection() {}
+    private ColumnIndexWriterProjection() {
+    }
 
     /**
-     *
-     * @param tableIdent identifying the table to write to
-     * @param columns the columnReferences of all the columns to be written in order of appearance
+     * @param tableIdent                identifying the table to write to
+     * @param columns                   the columnReferences of all the columns to be written in order of appearance
      * @param onDuplicateKeyAssignments reference to symbol map used for update on duplicate key
      */
     public ColumnIndexWriterProjection(TableIdent tableIdent,
                                        @Nullable String partitionIdent,
                                        List<ColumnIdent> primaryKeys,
-                                       List<Reference>  columns,
+                                       List<Reference> columns,
                                        @Nullable
-                                       Map<Reference, Symbol> onDuplicateKeyAssignments,
+                                           Map<Reference, Symbol> onDuplicateKeyAssignments,
                                        List<Symbol> primaryKeySymbols,
                                        List<ColumnIdent> partitionedByColumns,
                                        List<Symbol> partitionedBySymbols,
@@ -128,8 +128,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         if (!columnReferences.equals(that.columnReferences)) return false;
         if (!columnSymbols.equals(that.columnSymbols)) return false;
         return !(onDuplicateKeyAssignments != null ?
-                !onDuplicateKeyAssignments.equals(that.onDuplicateKeyAssignments)
-                : that.onDuplicateKeyAssignments != null);
+                     !onDuplicateKeyAssignments.equals(that.onDuplicateKeyAssignments)
+                     : that.onDuplicateKeyAssignments != null);
     }
 
     @Override

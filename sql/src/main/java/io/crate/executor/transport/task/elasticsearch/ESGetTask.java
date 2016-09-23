@@ -62,7 +62,7 @@ import java.util.*;
 public class ESGetTask extends JobTask {
 
     private final static SymbolToFieldExtractor<GetResponse> SYMBOL_TO_FIELD_EXTRACTOR =
-            new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
+        new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
 
     private final static Set<ColumnIdent> FETCH_SOURCE_COLUMNS = ImmutableSet.of(DocSysColumns.DOC, DocSysColumns.RAW);
     private final ProjectorFactory projectorFactory;
@@ -251,7 +251,7 @@ public class ESGetTask extends JobTask {
                 // this means we have no matching document
                 downstream.finish(RepeatHandle.UNSUPPORTED);
                 close();
-            } else{
+            } else {
                 downstream.fail(e);
                 close(e);
             }
@@ -312,7 +312,8 @@ public class ESGetTask extends JobTask {
     }
 
     private static List<Function<GetResponse, Object>> getFieldExtractors(ESGet node, GetResponseContext ctx) {
-        List<Function<GetResponse, Object>> extractors = new ArrayList<>(node.outputs().size() + node.sortSymbols().size());
+        List<Function<GetResponse, Object>> extractors = new ArrayList<>(
+            node.outputs().size() + node.sortSymbols().size());
         for (Symbol symbol : node.outputs()) {
             extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
         }
@@ -388,7 +389,7 @@ public class ESGetTask extends JobTask {
                         };
                 }
             } else if (context.node.tableInfo().isPartitioned()
-                    && context.node.tableInfo().partitionedBy().contains(reference.ident().columnIdent())) {
+                       && context.node.tableInfo().partitionedBy().contains(reference.ident().columnIdent())) {
                 final int pos = context.node.tableInfo().primaryKey().indexOf(reference.ident().columnIdent());
                 if (pos >= 0) {
                     return new Function<GetResponse, Object>() {

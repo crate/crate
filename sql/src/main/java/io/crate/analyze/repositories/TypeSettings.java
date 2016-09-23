@@ -24,18 +24,18 @@ package io.crate.analyze.repositories;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import io.crate.metadata.settings.ByteSizeSetting;
 import io.crate.metadata.settings.SettingsApplier;
 import io.crate.metadata.settings.SettingsAppliers;
-import io.crate.metadata.settings.ByteSizeSetting;
 import io.crate.sql.tree.GenericProperties;
 
 import java.util.Map;
 
 public class TypeSettings {
     private static final Map<String, SettingsApplier> GENERIC = ImmutableMap.<String, SettingsApplier>builder()
-            .put("max_restore_bytes_per_sec", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("max_restore_bytes_per_sec", null, true)))
-            .put("max_snapshot_bytes_per_sec", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("max_snapshot_bytes_per_sec", null, true)))
-            .build();
+        .put("max_restore_bytes_per_sec", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("max_restore_bytes_per_sec", null, true)))
+        .put("max_snapshot_bytes_per_sec", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("max_snapshot_bytes_per_sec", null, true)))
+        .build();
 
     private final Map<String, SettingsApplier> required;
     private final Map<String, SettingsApplier> all;

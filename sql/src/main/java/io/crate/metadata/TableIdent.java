@@ -48,23 +48,23 @@ public class TableIdent implements Streamable {
     public static TableIdent of(Table tableNode, @Nullable String fallbackSchema) {
         List<String> parts = tableNode.getName().getParts();
         Preconditions.checkArgument(parts.size() < 3,
-                "Table with more then 2 QualifiedName parts is not supported. only <schema>.<tableName> works.");
+            "Table with more then 2 QualifiedName parts is not supported. only <schema>.<tableName> works.");
         if (parts.size() == 2) {
             return new TableIdent(parts.get(0), parts.get(1));
         }
         return new TableIdent(fallbackSchema, parts.get(0));
     }
 
-    public static TableIdent fromIndexName(String indexName){
+    public static TableIdent fromIndexName(String indexName) {
         if (PartitionName.isPartition(indexName)) {
             PartitionName pn = PartitionName.fromIndexOrTemplate(indexName);
             return pn.tableIdent();
         }
         int dotPos = indexName.indexOf('.');
-        if (dotPos == -1){
+        if (dotPos == -1) {
             return new TableIdent(null, indexName);
         }
-        return new TableIdent(indexName.substring(0, dotPos), indexName.substring(dotPos+1));
+        return new TableIdent(indexName.substring(0, dotPos), indexName.substring(dotPos + 1));
     }
 
     public static TableIdent fromStream(StreamInput in) throws IOException {
@@ -75,7 +75,7 @@ public class TableIdent implements Streamable {
 
     public TableIdent(@Nullable String schema, String name) {
         assert name != null : "table name must not be null";
-        this.schema = MoreObjects.firstNonNull(schema, Schemas.DEFAULT_SCHEMA_NAME) ;
+        this.schema = MoreObjects.firstNonNull(schema, Schemas.DEFAULT_SCHEMA_NAME);
         this.name = name;
     }
 
@@ -116,7 +116,7 @@ public class TableIdent implements Streamable {
     }
 
     private static boolean isValidTableOrSchemaName(String name) {
-        for (String illegalCharacter: INVALID_TABLE_NAME_CHARACTERS) {
+        for (String illegalCharacter : INVALID_TABLE_NAME_CHARACTERS) {
             if (name.contains(illegalCharacter) || name.length() == 0) {
                 return false;
             }
@@ -134,7 +134,7 @@ public class TableIdent implements Streamable {
         }
         TableIdent o = (TableIdent) obj;
         return Objects.equal(schema, o.schema) &&
-                Objects.equal(name, o.name);
+               Objects.equal(name, o.name);
     }
 
     @Override

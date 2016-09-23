@@ -32,7 +32,7 @@ import java.util.*;
 
 /**
  * Sort rows by ordering criteria and process given offset before emitting.
- *
+ * <p>
  * Compared to {@link SortingTopNProjector} this projector does not support limiting,
  * while the {@link SortingTopNProjector} does not work WITHOUT a limit.
  */

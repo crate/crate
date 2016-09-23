@@ -48,7 +48,7 @@ public class ThreadPools {
         int availableThreads = Math.max(executor.getMaximumPoolSize() - executor.getActiveCount(), 2);
         if (availableThreads < runnableCollection.size()) {
             Iterable<List<Runnable>> partition = Iterables.partition(runnableCollection,
-                    runnableCollection.size() / availableThreads);
+                runnableCollection.size() / availableThreads);
 
             for (final List<Runnable> runnableList : partition) {
                 executor.execute(new Runnable() {
@@ -71,20 +71,20 @@ public class ThreadPools {
      * Similar to {@link #runWithAvailableThreads(ThreadPoolExecutor, Collection)}
      * but this function will return a Future that wraps the futures of each callable
      *
-     * @param executor executor that is used to execute the callableList
-     * @param poolSize the corePoolSize of the given executor
+     * @param executor           executor that is used to execute the callableList
+     * @param poolSize           the corePoolSize of the given executor
      * @param callableCollection a collection of callable that should be executed
-     * @param mergeFunction function that will be applied to merge the results of multiple callable in case that they are
-     *                      executed together if the threadPool is exhausted
-     * @param <T> type of the final result
+     * @param mergeFunction      function that will be applied to merge the results of multiple callable in case that they are
+     *                           executed together if the threadPool is exhausted
+     * @param <T>                type of the final result
      * @return a future that will return a list of the results of the callableList
      * @throws RejectedExecutionException
      */
     public static <T> ListenableFuture<List<T>> runWithAvailableThreads(
-            ThreadPoolExecutor executor,
-            int poolSize,
-            Collection<Callable<T>> callableCollection,
-            final Function<List<T>, T> mergeFunction) throws RejectedExecutionException {
+        ThreadPoolExecutor executor,
+        int poolSize,
+        Collection<Callable<T>> callableCollection,
+        final Function<List<T>, T> mergeFunction) throws RejectedExecutionException {
 
         ListeningExecutorService listeningExecutorService = MoreExecutors.listeningDecorator(executor);
 
@@ -92,7 +92,7 @@ public class ThreadPools {
         int availableThreads = Math.max(poolSize - executor.getActiveCount(), 1);
         if (availableThreads < callableCollection.size()) {
             Iterable<List<Callable<T>>> partition = Iterables.partition(callableCollection,
-                    callableCollection.size() / availableThreads);
+                callableCollection.size() / availableThreads);
 
             futures = new ArrayList<>(availableThreads + 1);
             for (final List<Callable<T>> callableList : partition) {

@@ -66,11 +66,11 @@ public class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyz
 
         if (node.genericProperties().isPresent()) {
             TABLE_PROPERTIES_ANALYZER.analyze(
-                    statement.tableParameter(), tableParameterInfo, node.genericProperties(),
-                    analysis.parameterContext().parameters());
+                statement.tableParameter(), tableParameterInfo, node.genericProperties(),
+                analysis.parameterContext().parameters());
         } else if (!node.resetProperties().isEmpty()) {
             TABLE_PROPERTIES_ANALYZER.analyze(
-                    statement.tableParameter(), tableParameterInfo, node.resetProperties());
+                statement.tableParameter(), tableParameterInfo, node.resetProperties());
         }
 
         // Only check for permission if statement is not changing the metadata blocks, so don't block `re-enabling` these.
@@ -89,9 +89,9 @@ public class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyz
         context.table(TableIdent.of(node, analysis.parameterContext().defaultSchema()));
         if (!node.partitionProperties().isEmpty()) {
             PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                    context.table(),
-                    node.partitionProperties(),
-                    analysis.parameterContext().parameters());
+                context.table(),
+                node.partitionProperties(),
+                analysis.parameterContext().parameters());
             if (!context.table().partitions().contains(partitionName)) {
                 throw new IllegalArgumentException("Referenced partition does not exist.");
             }

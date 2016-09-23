@@ -49,7 +49,6 @@ import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
 
-
 @Singleton
 public class SnapshotRestoreDDLDispatcher {
 
@@ -67,21 +66,21 @@ public class SnapshotRestoreDDLDispatcher {
         final String snapshotName = statement.snapshot();
 
         transportActionProvider.transportDeleteSnapshotAction().execute(
-                new DeleteSnapshotRequest(repositoryName, snapshotName),
-                new ActionListener<DeleteSnapshotResponse>() {
-                    @Override
-                    public void onResponse(DeleteSnapshotResponse response) {
-                        if (!response.isAcknowledged()) {
-                            LOGGER.info("delete snapshot '{}.{}' not acknowledged", repositoryName, snapshotName);
-                        }
-                        future.set(1L);
+            new DeleteSnapshotRequest(repositoryName, snapshotName),
+            new ActionListener<DeleteSnapshotResponse>() {
+                @Override
+                public void onResponse(DeleteSnapshotResponse response) {
+                    if (!response.isAcknowledged()) {
+                        LOGGER.info("delete snapshot '{}.{}' not acknowledged", repositoryName, snapshotName);
                     }
-
-                    @Override
-                    public void onFailure(Throwable e) {
-                        future.setException(e);
-                    }
+                    future.set(1L);
                 }
+
+                @Override
+                public void onFailure(Throwable e) {
+                    future.setException(e);
+                }
+            }
         );
         return future;
 
@@ -97,11 +96,11 @@ public class SnapshotRestoreDDLDispatcher {
         IndicesOptions indicesOptions = IndicesOptions.fromOptions(ignoreUnavailable, true, true, false, IndicesOptions.lenientExpandOpen());
 
         CreateSnapshotRequest request = new CreateSnapshotRequest(statement.snapshotId().getRepository(), statement.snapshotId().getSnapshot())
-                .includeGlobalState(statement.includeMetadata())
-                .waitForCompletion(waitForCompletion)
-                .indices(statement.indices())
-                .indicesOptions(indicesOptions)
-                .settings(statement.snapshotSettings());
+            .includeGlobalState(statement.includeMetadata())
+            .waitForCompletion(waitForCompletion)
+            .indices(statement.indices())
+            .indicesOptions(indicesOptions)
+            .settings(statement.snapshotSettings());
 
         //noinspection ThrowableResultOfMethodCallIgnored
         assert request.validate() == null : "invalid CREATE SNAPSHOT statement";
@@ -115,10 +114,10 @@ public class SnapshotRestoreDDLDispatcher {
                 } else if (snapshotInfo.state() == SnapshotState.FAILED) {
                     // fail request if snapshot creation failed
                     String reason = createSnapshotResponse.getSnapshotInfo().reason()
-                            .replaceAll("Index", "Table")
-                            .replaceAll("Indices", "Tables");
+                        .replaceAll("Index", "Table")
+                        .replaceAll("Indices", "Tables");
                     resultFuture.setException(
-                            new CreateSnapshotException(statement.snapshotId(), reason)
+                        new CreateSnapshotException(statement.snapshotId(), reason)
                     );
                 } else {
                     resultFuture.set(1L);
@@ -141,12 +140,12 @@ public class SnapshotRestoreDDLDispatcher {
         IndicesOptions indicesOptions = IndicesOptions.fromOptions(ignoreUnavailable, true, true, false, IndicesOptions.lenientExpandOpen());
 
         RestoreSnapshotRequest request = new RestoreSnapshotRequest(analysis.repositoryName(), analysis.snapshotName())
-                .indices(analysis.indices())
-                .indicesOptions(indicesOptions)
-                .settings(analysis.settings())
-                .waitForCompletion(waitForCompletion)
-                .includeGlobalState(false)
-                .includeAliases(true);
+            .indices(analysis.indices())
+            .indicesOptions(indicesOptions)
+            .settings(analysis.settings())
+            .waitForCompletion(waitForCompletion)
+            .includeGlobalState(false)
+            .includeAliases(true);
         FutureActionListener<RestoreSnapshotResponse, Long> listener = new FutureActionListener<>(Functions.constant(1L));
         transportActionProvider.transportRestoreSnapshotAction().execute(request, listener);
         return listener;

@@ -69,14 +69,14 @@ public class RepositoryParamValidator {
 
         // convert and validate all settings
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
-                genericProperties, parameterContext, allSettings).build();
+            genericProperties, parameterContext, allSettings).build();
 
         Set<String> names = settings.getAsMap().keySet();
         Sets.SetView<String> missingRequiredSettings = Sets.difference(typeSettings.required().keySet(), names);
         if (!missingRequiredSettings.isEmpty()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "The following required parameters are missing to create a repository of type \"%s\": [%s]",
-                    type, Joiner.on(", ").join(missingRequiredSettings)));
+                "The following required parameters are missing to create a repository of type \"%s\": [%s]",
+                type, Joiner.on(", ").join(missingRequiredSettings)));
         }
 
         return settings;

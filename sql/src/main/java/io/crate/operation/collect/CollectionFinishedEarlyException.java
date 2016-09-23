@@ -38,5 +38,6 @@ public class CollectionFinishedEarlyException extends IOException {
     @SuppressWarnings("ThrowableInstanceNeverThrown")
     public static final CollectionFinishedEarlyException INSTANCE = new CollectionFinishedEarlyException();
 
-    private CollectionFinishedEarlyException() {}
+    private CollectionFinishedEarlyException() {
+    }
 }

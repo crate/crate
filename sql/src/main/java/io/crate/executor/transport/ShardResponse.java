@@ -48,9 +48,9 @@ public class ShardResponse extends ActionWriteResponse {
         }
 
         public Failure(String id, String message, boolean versionConflict) {
-             this.id = id;
-             this.message = message;
-             this.versionConflict = versionConflict;
+            this.id = id;
+            this.message = message;
+            this.versionConflict = versionConflict;
         }
 
         public String id() {
@@ -88,10 +88,10 @@ public class ShardResponse extends ActionWriteResponse {
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(this)
-                    .add("id", id)
-                    .add("message", message)
-                    .add("versionConflict", versionConflict)
-                    .toString();
+                .add("id", id)
+                .add("message", message)
+                .add("versionConflict", versionConflict)
+                .toString();
         }
     }
 

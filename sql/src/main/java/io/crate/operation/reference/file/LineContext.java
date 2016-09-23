@@ -76,7 +76,7 @@ public class LineContext {
                 return null;
             }
             assert o instanceof Map;
-            parentMap = (Map)o;
+            parentMap = (Map) o;
         }
 
         Object o = parentMap.get(path.peekFirst());

@@ -65,7 +65,7 @@ public class MultiSourceSelect implements QueriedRelation {
         return splitter.requiredForQuery();
     }
 
-    public Set<Field> canBeFetched(){
+    public Set<Field> canBeFetched() {
         return splitter.canBeFetched();
     }
 

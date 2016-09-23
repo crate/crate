@@ -30,7 +30,7 @@ public class Function extends Symbol implements Cloneable {
         this.info = info;
 
         assert arguments.isEmpty() || !(arguments instanceof ImmutableList) :
-                "must not be an immutable list - would break setArgument";
+            "must not be an immutable list - would break setArgument";
         this.arguments = arguments;
     }
 

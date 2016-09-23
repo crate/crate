@@ -28,7 +28,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;

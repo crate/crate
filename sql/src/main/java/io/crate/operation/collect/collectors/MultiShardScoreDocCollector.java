@@ -75,8 +75,8 @@ public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle
         boolean needsRepeat = rowReceiver.requirements().contains(Requirement.REPEAT);
         if (singleShard) {
             pagingIterator = needsRepeat ?
-                    PassThroughPagingIterator.<ShardId, Row>repeatable() :
-                    PassThroughPagingIterator.<ShardId, Row>oneShot();
+                PassThroughPagingIterator.<ShardId, Row>repeatable() :
+                PassThroughPagingIterator.<ShardId, Row>oneShot();
             orderedCollectorsMap = null;
             futureCallback = null;
         } else {

@@ -63,22 +63,22 @@ public class FileCollectSource implements CollectSource {
         FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.extractImplementations(collectPhase.toCollect());
 
         String[] readers = fileUriCollectPhase.executionNodes().toArray(
-                new String[fileUriCollectPhase.executionNodes().size()]);
+            new String[fileUriCollectPhase.executionNodes().size()]);
         Arrays.sort(readers);
 
         List<String> fileUris;
         fileUris = targetUriToStringList(fileUriCollectPhase.targetUri());
         return ImmutableList.<CrateCollector>of(new FileReadingCollector(
-                fileUris,
-                context.topLevelInputs(),
-                context.expressions(),
-                downstream,
-                fileUriCollectPhase.fileFormat(),
-                fileUriCollectPhase.compression(),
-                fileInputFactoryMap,
-                fileUriCollectPhase.sharedStorage(),
-                readers.length,
-                Arrays.binarySearch(readers, clusterService.state().nodes().localNodeId())
+            fileUris,
+            context.topLevelInputs(),
+            context.expressions(),
+            downstream,
+            fileUriCollectPhase.fileFormat(),
+            fileUriCollectPhase.compression(),
+            fileInputFactoryMap,
+            fileUriCollectPhase.sharedStorage(),
+            readers.length,
+            Arrays.binarySearch(readers, clusterService.state().nodes().localNodeId())
         ));
     }
 

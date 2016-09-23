@@ -33,7 +33,7 @@ public class SnapshotUnknownException extends ResourceUnknownException {
 
     private static String errorMsg(SnapshotId snapshotId) {
         return String.format(Locale.ENGLISH, "Snapshot '%s.%s' unknown",
-                snapshotId.getRepository(), snapshotId.getSnapshot());
+            snapshotId.getRepository(), snapshotId.getSnapshot());
     }
 
     @Override

@@ -22,19 +22,19 @@ public class DocSysColumns {
     public static final ColumnIdent DOCID = new ColumnIdent("_docid");
 
     public static final ImmutableMap<ColumnIdent, DataType> COLUMN_IDENTS = ImmutableMap.<ColumnIdent, DataType>builder()
-            .put(ID, DataTypes.STRING)
-            .put(VERSION, DataTypes.LONG)
-            .put(SCORE, DataTypes.FLOAT)
-            .put(UID, DataTypes.STRING)
-            .put(DOC, DataTypes.OBJECT)
-            .put(RAW, DataTypes.STRING)
-            .put(DOCID, DataTypes.LONG)
-            .build();
+        .put(ID, DataTypes.STRING)
+        .put(VERSION, DataTypes.LONG)
+        .put(SCORE, DataTypes.FLOAT)
+        .put(UID, DataTypes.STRING)
+        .put(DOC, DataTypes.OBJECT)
+        .put(RAW, DataTypes.STRING)
+        .put(DOCID, DataTypes.LONG)
+        .build();
 
     private static final ImmutableMap<ColumnIdent, String> LUCENE_COLUMN_NAMES = ImmutableMap.<ColumnIdent, String>builder()
-            .put(RAW, "_source")
-            .put(ID, UID.name())
-            .build();
+        .put(RAW, "_source")
+        .put(ID, UID.name())
+        .build();
 
     private static Reference newInfo(TableIdent table, ColumnIdent column, DataType dataType) {
         return new Reference(new ReferenceIdent(table, column), RowGranularity.DOC, dataType);
@@ -48,7 +48,7 @@ public class DocSysColumns {
         return columns;
     }
 
-    public static Reference forTable(TableIdent table, ColumnIdent column){
+    public static Reference forTable(TableIdent table, ColumnIdent column) {
         return newInfo(table, column, COLUMN_IDENTS.get(column));
     }
 

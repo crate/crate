@@ -57,8 +57,8 @@ public class AnyNotLikeOperator extends AbstractAnyLikeOperator {
     @Override
     protected boolean matches(String expression, String pattern) {
         return !Pattern.matches(
-                LikeOperator.patternToRegex(pattern, LikeOperator.DEFAULT_ESCAPE, true),
-                expression
+            LikeOperator.patternToRegex(pattern, LikeOperator.DEFAULT_ESCAPE, true),
+            expression
         );
     }
 }

@@ -43,7 +43,10 @@ import java.util.concurrent.ExecutionException;
 
 public class IndexNameResolver {
 
-    private IndexNameResolver() {};
+    private IndexNameResolver() {
+    }
+
+    ;
 
     public static Supplier<String> create(TableIdent tableIdent,
                                           @Nullable String partitionIdent,
@@ -68,23 +71,23 @@ public class IndexNameResolver {
     public static Supplier<String> forPartition(final TableIdent tableIdent, final List<Input<?>> partitionedByInputs) {
         assert partitionedByInputs.size() > 0 : "must have at least 1 partitionedByInput";
         final LoadingCache<List<BytesRef>, String> cache = CacheBuilder.newBuilder()
-                .initialCapacity(10)
-                .maximumSize(20)
-                .build(new CacheLoader<List<BytesRef>, String>() {
-                    @Override
-                    public String load(@Nonnull List<BytesRef> key) throws Exception {
-                        return PartitionName.indexName(tableIdent, PartitionName.encodeIdent(key));
-                    }
-                });
+            .initialCapacity(10)
+            .maximumSize(20)
+            .build(new CacheLoader<List<BytesRef>, String>() {
+                @Override
+                public String load(@Nonnull List<BytesRef> key) throws Exception {
+                    return PartitionName.indexName(tableIdent, PartitionName.encodeIdent(key));
+                }
+            });
         return new Supplier<String>() {
 
             @Override
             public String get() {
                 // copy because transform returns a view and the values of the inputs are mutable
-                List<BytesRef> partitions =  Collections.unmodifiableList(
-                        Lists.newArrayList(Lists.transform(
-                                partitionedByInputs,
-                                Inputs.TO_BYTES_REF)));
+                List<BytesRef> partitions = Collections.unmodifiableList(
+                    Lists.newArrayList(Lists.transform(
+                        partitionedByInputs,
+                        Inputs.TO_BYTES_REF)));
                 try {
                     return cache.get(partitions);
                 } catch (ExecutionException e) {

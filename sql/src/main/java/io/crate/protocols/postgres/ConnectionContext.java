@@ -51,8 +51,8 @@ import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
 /**
  * ConnectionContext for the Postgres wire protocol.<br />
  * This class handles the message flow and dispatching
- *
- *
+ * <p>
+ * <p>
  * <pre>
  *      Client                              Server
  *
@@ -136,9 +136,9 @@ import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
  *          |  ReadyForQuery                   |
  *          |<---------------------------------|
  * </pre>
- *
+ * <p>
  * Take a look at {@link Messages} to see how the messages are structured.
- *
+ * <p>
  * See https://www.postgresql.org/docs/current/static/protocol-flow.html for a more detailed description of the message flow
  */
 
@@ -298,7 +298,8 @@ class ConnectionContext {
                             channel.close();
                             return;
                         default:
-                            Messages.sendErrorResponse(channel, new UnsupportedOperationException("Unsupported messageType: " + msgType));
+                            Messages.sendErrorResponse(channel, new UnsupportedOperationException(
+                                "Unsupported messageType: " + msgType));
                             return;
                     }
             }
@@ -342,11 +343,11 @@ class ConnectionContext {
      * Parse Message
      * header:
      * | 'P' | int32 len
-     *
+     * <p>
      * body:
      * | string statementName | string query | int16 numParamTypes |
-     *      foreach param:
-     *      | int32 type_oid (zero = unspecified)
+     * foreach param:
+     * | int32 type_oid (zero = unspecified)
      */
     private void handleParseMessage(ChannelBuffer buffer, final Channel channel) {
         String statementName = readCString(buffer);
@@ -370,19 +371,19 @@ class ConnectionContext {
      * Bind Message
      * Header:
      * | 'B' | int32 len
-     *
+     * <p>
      * Body:
      * | string portalName | string statementName
      * | int16 numFormatCodes
-     *      foreach
-     *      | int16 formatCode
+     * foreach
+     * | int16 formatCode
      * | int16 numParams
-     *      foreach
-     *      | int32 valueLength
-     *      | byteN value
+     * foreach
+     * | int32 valueLength
+     * | byteN value
      * | int16 numResultColumnFormatCodes
-     *      foreach
-     *      | int16 formatCode
+     * foreach
+     * | int16 formatCode
      */
     private void handleBindMessage(ChannelBuffer buffer, Channel channel) {
         String portalName = readCString(buffer);
@@ -431,11 +432,11 @@ class ConnectionContext {
     /**
      * Describe Message
      * Header:
-     *  | 'D' | int32 len
-     *
+     * | 'D' | int32 len
+     * <p>
      * Body:
-     *  | 'S' = prepared statement or 'P' = portal
-     *  | string nameOfPortalOrStatement
+     * | 'S' = prepared statement or 'P' = portal
+     * | string nameOfPortalOrStatement
      */
     private void handleDescribeMessage(ChannelBuffer buffer, Channel channel) {
         byte type = buffer.readByte();
@@ -451,19 +452,19 @@ class ConnectionContext {
     /**
      * Execute Message
      * Header:
-     *  | 'E' | int32 len
-     *
+     * | 'E' | int32 len
+     * <p>
      * Body:
-     *  | string portalName
-     *  | int32 maxRows (0 = unlimited)
+     * | string portalName
+     * | int32 maxRows (0 = unlimited)
      */
     private void handleExecute(ChannelBuffer buffer, Channel channel) {
         String portalName = readCString(buffer);
         int maxRows = buffer.readInt();
         String query = session.getQuery(portalName);
         if (query.isEmpty()) {
-             // remove portal so that it doesn't stick around and no attempt to batch it with follow up statement is made
-            session.close((byte)'P', portalName);
+            // remove portal so that it doesn't stick around and no attempt to batch it with follow up statement is made
+            session.close((byte) 'P', portalName);
             Messages.sendEmptyQueryResponse(channel);
             return;
         }
@@ -597,7 +598,7 @@ class ConnectionContext {
 
         /**
          * return null if there aren't enough bytes to read the whole message. Otherwise returns the buffer.
-         *
+         * <p>
          * If null is returned the decoder will be called again, otherwise the MessageHandler will be called next.
          */
         private ChannelBuffer nullOrBuffer(ChannelBuffer buffer, State nextState) {

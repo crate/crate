@@ -39,16 +39,16 @@ public class ConversionException extends RuntimeException {
 
         if (value instanceof Symbol) {
             message = String.format(Locale.ENGLISH, ERROR_MESSAGE,
-                    SymbolPrinter.INSTANCE.printSimple((Symbol)value), type.toString());
+                SymbolPrinter.INSTANCE.printSimple((Symbol) value), type.toString());
         } else if (value instanceof BytesRef) {
             message = String.format(Locale.ENGLISH, ERROR_MESSAGE,
-                    String.format(Locale.ENGLISH, "'%s'", ((BytesRef) value).utf8ToString()), type.toString());
+                String.format(Locale.ENGLISH, "'%s'", ((BytesRef) value).utf8ToString()), type.toString());
         } else if (value instanceof String) {
             message = String.format(Locale.ENGLISH, ERROR_MESSAGE,
-                    String.format(Locale.ENGLISH, "'%s'", value), type.toString());
+                String.format(Locale.ENGLISH, "'%s'", value), type.toString());
         } else {
             message = String.format(Locale.ENGLISH, ERROR_MESSAGE,
-                    value.toString(), type.toString());
+                value.toString(), type.toString());
         }
     }
 

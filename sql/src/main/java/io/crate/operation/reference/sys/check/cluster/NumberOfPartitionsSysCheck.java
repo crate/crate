@@ -36,8 +36,8 @@ public class NumberOfPartitionsSysCheck extends AbstractSysCheck {
 
     private static final int ID = 2;
     private static final String DESCRIPTION =
-            "The total number of partitions of one or more partitioned tables should" +
-            " not be greater than 1000. A large amount of shards can significantly reduce performance.";
+        "The total number of partitions of one or more partitioned tables should" +
+        " not be greater than 1000. A large amount of shards can significantly reduce performance.";
 
     private static final int PARTITIONS_THRESHOLD = 1000;
     private final ReferenceInfos referenceInfos;

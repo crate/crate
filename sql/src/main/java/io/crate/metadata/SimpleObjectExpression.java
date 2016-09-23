@@ -23,6 +23,7 @@ package io.crate.metadata;
 
 /**
  * Base class for expressions. Implementations of expressions should inherit from it.
+ *
  * @param <T> The returnType of the expression
  */
 public abstract class SimpleObjectExpression<T> implements ReferenceImplementation<T> {

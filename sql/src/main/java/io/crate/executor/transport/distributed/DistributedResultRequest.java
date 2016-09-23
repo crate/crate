@@ -23,7 +23,6 @@ package io.crate.executor.transport.distributed;
 
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
-import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.executor.transport.StreamBucket;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -103,8 +102,8 @@ public class DistributedResultRequest extends TransportRequest {
         this.streamers = streamers;
     }
 
-    public boolean rowsCanBeRead(){
-        if (rows instanceof StreamBucket){
+    public boolean rowsCanBeRead() {
+        if (rows instanceof StreamBucket) {
             return streamers != null;
         }
         return true;

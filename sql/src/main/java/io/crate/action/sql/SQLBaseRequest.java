@@ -31,21 +31,21 @@ import java.io.IOException;
 
 /**
  * SQL requests can be made either as bulk operation or as single operation.
- *
+ * <p>
  * The TransportActions TransportSQLAction TransportSQLBulkAction
  * are responsible to execute them.
- *
+ * <p>
  * In order to use the actions either send a
  * {@link io.crate.action.sql.SQLRequest} or
  * {@link SQLBulkRequest}
- *
+ * <p>
  * to them using the SQLAction or SQLBulkAction
- *
- *
+ * <p>
+ * <p>
  * this abstract base class provides the shared components
  * {@link #stmt()} and {@link #includeTypesOnResponse()}
  * which both concrete classes use.
- *
+ * <p>
  * (not using links for TransportSQLAction as they're not included for the client and would case an error under oraclejdk8)
  */
 public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
@@ -60,7 +60,8 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
     private String stmt;
     private boolean includeTypesOnResponse = false;
 
-    public SQLBaseRequest() {}
+    public SQLBaseRequest() {
+    }
 
     public SQLBaseRequest(String stmt) {
         this.stmt = stmt;
@@ -73,7 +74,7 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
         return stmt;
     }
 
-    public SQLBaseRequest stmt(String stmt){
+    public SQLBaseRequest stmt(String stmt) {
         this.stmt = stmt;
         return this;
     }
@@ -81,7 +82,7 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
     /**
      * set to true if the column types should be included in the {@link io.crate.action.sql.SQLResponse}
      * or {@link SQLBulkResponse}
-     *
+     * <p>
      * if set to false (the default) the types won't be included in the response.
      */
     public void includeTypesOnResponse(boolean includeTypesOnResponse) {
@@ -90,6 +91,7 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
 
     /**
      * See also {@link #includeTypesOnResponse(boolean)}
+     *
      * @return true or false indicating if the column dataTypes will be included in the requests response.
      */
     public boolean includeTypesOnResponse() {
@@ -128,7 +130,7 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
     @Override
     public ActionRequestValidationException validate() {
         if (stmt == null) {
-            ActionRequestValidationException e =  new ActionRequestValidationException();
+            ActionRequestValidationException e = new ActionRequestValidationException();
             e.addValidationError("Attribute 'stmt' must not be null");
             return e;
         }

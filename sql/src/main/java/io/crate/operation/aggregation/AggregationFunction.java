@@ -34,8 +34,9 @@ import javax.annotation.Nullable;
 
 /**
  * A special FunctionImplementation that compute a single result from a set of input values
+ *
  * @param <TPartial> the intermediate type of the value used during aggregation
- * @param <TFinal> the final type of the value after the aggregation is finished
+ * @param <TFinal>   the final type of the value after the aggregation is finished
  */
 public abstract class AggregationFunction<TPartial, TFinal> implements FunctionImplementation<Function> {
 
@@ -52,18 +53,18 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
      * the "aggregate" function.
      *
      * @param ramAccountingContext used to account for additional memory usage if the state grows in size
-     * @param state the previous aggregation state
-     * @param args  arguments / input values matching the types of FunctionInfo.argumentTypes.
-     *              These are usually used to increment/modify the previous state
+     * @param state                the previous aggregation state
+     * @param args                 arguments / input values matching the types of FunctionInfo.argumentTypes.
+     *                             These are usually used to increment/modify the previous state
      * @return The new/changed state. This might be either a new instance or the same but mutated instance.
-     *         Users of the AggregationFunction should always use the return value, but must be aware that the input state might have changed too.
+     * Users of the AggregationFunction should always use the return value, but must be aware that the input state might have changed too.
      */
     public abstract TPartial iterate(RamAccountingContext ramAccountingContext, TPartial state, Input... args)
-            throws CircuitBreakingException;
+        throws CircuitBreakingException;
 
     /**
      * This function merges two aggregation states together and returns that merged state.
-     *
+     * <p>
      * This is used in a distributed aggregation workflow where 2 partial aggregations are reduced into 1 partial aggregation
      *
      * @return the reduced state. This might be a new instance or a mutated state1 or state2.

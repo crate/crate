@@ -23,8 +23,6 @@ package io.crate.operation.scalar;
 
 import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.ArrayType;
@@ -41,7 +39,7 @@ public class ArrayCatFunction extends Scalar<Object[], Object> {
 
     public static FunctionInfo createInfo(List<DataType> types) {
         ArrayType arrayType = (ArrayType) types.get(0);
-        if(arrayType.innerType().equals(DataTypes.UNDEFINED)){
+        if (arrayType.innerType().equals(DataTypes.UNDEFINED)) {
             arrayType = (ArrayType) types.get(1);
         }
         return new FunctionInfo(new FunctionIdent(NAME, types), arrayType);
@@ -90,7 +88,7 @@ public class ArrayCatFunction extends Scalar<Object[], Object> {
             }
 
             Object[] arg = (Object[]) arrayValue;
-            for (Object element: arg) {
+            for (Object element : arg) {
                 resultArray[counter++] = innerType.value(element);
             }
         }
@@ -107,20 +105,21 @@ public class ArrayCatFunction extends Scalar<Object[], Object> {
 
             for (int i = 0; i < dataTypes.size(); i++) {
                 Preconditions.checkArgument(dataTypes.get(i) instanceof ArrayType, String.format(Locale.ENGLISH,
-                        "Argument %d of the array_cat function cannot be converted to array", i + 1));
+                    "Argument %d of the array_cat function cannot be converted to array", i + 1));
             }
 
             DataType innerType0 = ((ArrayType) dataTypes.get(0)).innerType();
             DataType innerType1 = ((ArrayType) dataTypes.get(1)).innerType();
 
-            Preconditions.checkArgument(!innerType0.equals(DataTypes.UNDEFINED) || !innerType1.equals(DataTypes.UNDEFINED),
-                    "One of the arguments of the array_cat function can be of undefined inner type, but not both");
+            Preconditions.checkArgument(
+                !innerType0.equals(DataTypes.UNDEFINED) || !innerType1.equals(DataTypes.UNDEFINED),
+                "One of the arguments of the array_cat function can be of undefined inner type, but not both");
 
-            if(!innerType0.equals(DataTypes.UNDEFINED)){
+            if (!innerType0.equals(DataTypes.UNDEFINED)) {
                 Preconditions.checkArgument(innerType1.isConvertableTo(innerType0),
-                        String.format(Locale.ENGLISH,
-                                "Second argument's inner type (%s) of the array_cat function cannot be converted to the first argument's inner type (%s)",
-                                innerType1,innerType0));
+                    String.format(Locale.ENGLISH,
+                        "Second argument's inner type (%s) of the array_cat function cannot be converted to the first argument's inner type (%s)",
+                        innerType1, innerType0));
             }
 
             return new ArrayCatFunction(createInfo(dataTypes));

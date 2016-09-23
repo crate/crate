@@ -113,15 +113,15 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
             return this;
         }
         return new FileUriCollectPhase(
-                jobId(),
-                executionPhaseId(),
-                name(),
-                executionNodes,
-                normalizedTargetUri,
-                normalizedToCollect,
-                projections(),
-                compression(),
-                sharedStorage());
+            jobId(),
+            executionPhaseId(),
+            name(),
+            executionNodes,
+            normalizedTargetUri,
+            normalizedToCollect,
+            projections(),
+            compression(),
+            sharedStorage());
     }
 
     @Nullable
@@ -161,13 +161,13 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("name", name())
-                .add("targetUri", targetUri)
-                .add("projections", projections)
-                .add("outputTypes", outputTypes)
-                .add("compression", compression)
-                .add("sharedStorageDefault", sharedStorage)
-                .toString();
+            .add("name", name())
+            .add("targetUri", targetUri)
+            .add("projections", projections)
+            .add("outputTypes", outputTypes)
+            .add("compression", compression)
+            .add("sharedStorageDefault", sharedStorage)
+            .toString();
     }
 
     @Nullable

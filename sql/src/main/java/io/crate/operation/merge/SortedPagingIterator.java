@@ -27,7 +27,7 @@ import java.util.Collections;
 
 /**
  * A pagingIterator that sorts on consumption
- *
+ * <p>
  * {@link #hasNext()} might call next() on a backing iterator. So if one or more of the backing iterators contains shared
  * objects these should be consumed after a next() call and before the next hasNext() or next() call or they'll change.
  */
@@ -37,7 +37,7 @@ public class SortedPagingIterator<TKey, TRow> implements PagingIterator<TKey, TR
     private boolean ignoreLeastExhausted = false;
 
     /**
-     * @param ordering determining how the items are sorted
+     * @param ordering    determining how the items are sorted
      * @param needsRepeat if true additional internal state is kept in order to be able to repeat this iterator.
      *                    If this is false a call to {@link #repeat()} might result in an excaption, at best the behaviour is undefined.
      */

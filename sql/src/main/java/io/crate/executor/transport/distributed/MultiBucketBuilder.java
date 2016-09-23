@@ -43,7 +43,7 @@ public interface MultiBucketBuilder {
     /**
      * Builds the buckets and writes them into the provided array.
      * The provided array must have size N where N is the number of buckets the page contains.
-     *
+     * <p>
      * N is usually specified in the constructor of a specific PageBuilder implementation.
      */
     void build(Bucket[] buckets);

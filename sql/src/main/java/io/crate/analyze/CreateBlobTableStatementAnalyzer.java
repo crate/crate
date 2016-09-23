@@ -50,8 +50,8 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
         int numShards;
         if (node.clusteredBy().isPresent()) {
             numShards = numberOfShards.fromClusteredByClause(
-                    node.clusteredBy().get(),
-                    analysis.parameterContext().parameters()
+                node.clusteredBy().get(),
+                analysis.parameterContext().parameters()
             );
         } else {
             numShards = numberOfShards.defaultNumberOfShards();
@@ -61,8 +61,8 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
         TABLE_PROPERTIES_ANALYZER.analyze(
-                statement.tableParameter(), new BlobTableParameterInfo(),
-                node.genericProperties(), analysis.parameterContext().parameters(), true);
+            statement.tableParameter(), new BlobTableParameterInfo(),
+            node.genericProperties(), analysis.parameterContext().parameters(), true);
 
         return statement;
     }

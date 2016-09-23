@@ -42,8 +42,8 @@ public class LowerFunction extends Scalar<BytesRef, Object> {
 
     public static void register(ScalarFunctionModule module) {
         module.register(new LowerFunction(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.STRING)),
-                DataTypes.STRING)
+            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.STRING)),
+            DataTypes.STRING)
         ));
     }
 

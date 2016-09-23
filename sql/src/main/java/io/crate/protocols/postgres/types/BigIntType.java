@@ -54,8 +54,8 @@ class BigIntType extends PGType {
 
     @Override
     public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
-        assert valueLength == TYPE_LEN: "length should be " + TYPE_LEN +" because long is int64. Actual length: " +
-                                        valueLength;
+        assert valueLength == TYPE_LEN : "length should be " + TYPE_LEN + " because long is int64. Actual length: " +
+                                         valueLength;
         return buffer.readLong();
     }
 

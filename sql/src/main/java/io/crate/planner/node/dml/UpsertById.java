@@ -66,11 +66,11 @@ public class UpsertById extends PlanAndPlannedAnalyzedRelation {
         private Object[] insertValues;
 
         Item(String index,
-                    String id,
-                    String routing,
-                    @Nullable Symbol[] updateAssignments,
-                    @Nullable Long version,
-                    @Nullable Object[] insertValues) {
+             String id,
+             String routing,
+             @Nullable Symbol[] updateAssignments,
+             @Nullable Long version,
+             @Nullable Object[] insertValues) {
             this.index = index;
             this.id = id;
             this.routing = routing;

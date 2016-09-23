@@ -72,7 +72,7 @@ public abstract class PGType {
 
     /**
      * Write the value as text into the buffer.
-     *
+     * <p>
      * Format:
      * <pre>
      *  | int32 len (excluding len itself) | byte<b>N</b> value onto the buffer
@@ -103,7 +103,7 @@ public abstract class PGType {
 
     /**
      * Write the value as binary into the buffer.
-     *
+     * <p>
      * Format:
      * <pre>
      *  | int32 len (excluding len itself) | byte<b>N</b> value onto the buffer

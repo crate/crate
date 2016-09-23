@@ -83,7 +83,7 @@ public abstract class QueryBuilderHelper {
             if (value == null) {
                 return Queries.newMatchNoDocsQuery();
             }
-            return new TermQuery(new Term(columnName, (boolean)value ? "T" : "F"));
+            return new TermQuery(new Term(columnName, (boolean) value ? "T" : "F"));
         }
     }
 
@@ -128,7 +128,7 @@ public abstract class QueryBuilderHelper {
 
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeQuery.newLongRange(columnName, (Long)from, (Long)to, includeLower, includeUpper);
+            return NumericRangeQuery.newLongRange(columnName, (Long) from, (Long) to, includeLower, includeUpper);
         }
     }
 
@@ -199,7 +199,7 @@ public abstract class QueryBuilderHelper {
             if (value == null) {
                 return Queries.newMatchNoDocsQuery();
             }
-            return new TermQuery(new Term(columnName, (BytesRef)value));
+            return new TermQuery(new Term(columnName, (BytesRef) value));
         }
 
         @Override

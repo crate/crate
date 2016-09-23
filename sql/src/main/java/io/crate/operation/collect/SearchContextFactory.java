@@ -69,33 +69,33 @@ public class SearchContextFactory {
     }
 
     public CrateSearchContext createContext(
-            int jobSearchContextId,
-            IndexShard indexshard,
-            Engine.Searcher engineSearcher,
-            WhereClause whereClause) {
+        int jobSearchContextId,
+        IndexShard indexshard,
+        Engine.Searcher engineSearcher,
+        WhereClause whereClause) {
 
         ShardId shardId = indexshard.shardId();
         SearchShardTarget searchShardTarget = new SearchShardTarget(
-                clusterService.state().nodes().localNodeId(),
-                shardId.getIndex(),
-                shardId.id()
+            clusterService.state().nodes().localNodeId(),
+            shardId.getIndex(),
+            shardId.id()
         );
         IndexService indexService = indexshard.indexService();
         CrateSearchContext searchContext = new CrateSearchContext(
-                jobSearchContextId,
-                System.currentTimeMillis(),
-                searchShardTarget,
-                engineSearcher,
-                indexService,
-                indexshard,
-                scriptService,
-                pageCacheRecycler,
-                bigArrays,
-                threadPool.estimatedTimeInMillisCounter(),
-                Optional.<Scroll>absent()
+            jobSearchContextId,
+            System.currentTimeMillis(),
+            searchShardTarget,
+            engineSearcher,
+            indexService,
+            indexshard,
+            scriptService,
+            pageCacheRecycler,
+            bigArrays,
+            threadPool.estimatedTimeInMillisCounter(),
+            Optional.<Scroll>absent()
         );
         LuceneQueryBuilder.Context context = luceneQueryBuilder.convert(
-                whereClause,  indexService.mapperService(), indexService.fieldData(), indexService.cache());
+            whereClause, indexService.mapperService(), indexService.fieldData(), indexService.cache());
         searchContext.parsedQuery(new ParsedQuery(context.query(), EMPTY_NAMED_FILTERS));
 
         Float minScore = context.minScore();

@@ -53,9 +53,9 @@ public class TransportKillAllNodeAction implements NodeAction<KillAllRequest, Ki
         this.clusterService = clusterService;
         this.transportService = transportService;
         transportService.registerRequestHandler(TRANSPORT_ACTION,
-                KillAllRequest.class,
-                ThreadPool.Names.GENERIC,
-                new NodeActionRequestHandler<KillAllRequest, KillResponse>(this) { });
+            KillAllRequest.class,
+            ThreadPool.Names.GENERIC,
+            new NodeActionRequestHandler<KillAllRequest, KillResponse>(this) {});
     }
 
     public void broadcast(KillAllRequest request, ActionListener<KillResponse> listener) {

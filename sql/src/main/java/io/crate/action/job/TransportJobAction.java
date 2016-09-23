@@ -63,19 +63,19 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
         transportService.registerRequestHandler(ACTION_NAME,
-                JobRequest.class,
-                EXECUTOR,
-                new NodeActionRequestHandler<JobRequest, JobResponse>(this) { });
+            JobRequest.class,
+            EXECUTOR,
+            new NodeActionRequestHandler<JobRequest, JobResponse>(this) {});
     }
 
     public void execute(String node, final JobRequest request, final ActionListener<JobResponse> listener) {
         transports.sendRequest(ACTION_NAME, node, request, listener,
-                new DefaultTransportResponseHandler<JobResponse>(listener) {
-                    @Override
-                    public JobResponse newInstance() {
-                        return new JobResponse();
-                    }
-                });
+            new DefaultTransportResponseHandler<JobResponse>(listener) {
+                @Override
+                public JobResponse newInstance() {
+                    return new JobResponse();
+                }
+            });
     }
 
     @Override
@@ -84,12 +84,12 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
         SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
         List<ListenableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnRemote(
-                request.nodeOperations(), contextBuilder, sharedShardContexts);
+            request.nodeOperations(), contextBuilder, sharedShardContexts);
 
         try {
             JobExecutionContext context = jobContextService.createContext(contextBuilder);
             context.start();
-        } catch (Throwable t){
+        } catch (Throwable t) {
             actionListener.onFailure(t);
             return;
         }

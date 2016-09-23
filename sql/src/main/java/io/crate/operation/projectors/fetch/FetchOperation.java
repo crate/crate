@@ -30,8 +30,8 @@ import io.crate.core.collections.Bucket;
 public interface FetchOperation {
 
     /**
-     * @param nodeId the nodeId of the node from which to fetch from
-     * @param toFetch a map from readerIds to docIds which should be fetched
+     * @param nodeId       the nodeId of the node from which to fetch from
+     * @param toFetch      a map from readerIds to docIds which should be fetched
      * @param closeContext indicate if context must be closed after fetch
      */
     ListenableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId,

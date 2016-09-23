@@ -43,7 +43,7 @@ public class RamAccountingContext {
 
     public static RamAccountingContext forExecutionPhase(CircuitBreaker breaker, ExecutionPhase executionPhase) {
         String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d",
-                executionPhase.name(), executionPhase.executionPhaseId());
+            executionPhase.name(), executionPhase.executionPhaseId());
         return new RamAccountingContext(ramAccountingContextId, breaker);
     }
 
@@ -74,7 +74,7 @@ public class RamAccountingContext {
     /**
      * Flush the {@code bytes} to the breaker, incrementing the total
      * bytes and adjusting the buffer.
-
+     *
      * @param bytes long value of bytes to be flushed to the breaker
      * @throws CircuitBreakingException
      */

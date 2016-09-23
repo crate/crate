@@ -247,7 +247,7 @@ public class FetchProjector extends AbstractProjector {
                 if (docObject == null) {
                     // can be null on outer joins
                     fetchRows[j].cells = nullCells[j];
-                    continue ;
+                    continue;
                 }
                 long doc = (long) docObject;
                 int readerId = (int) (doc >> 32);

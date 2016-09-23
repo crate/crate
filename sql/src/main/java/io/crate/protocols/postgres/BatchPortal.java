@@ -54,7 +54,7 @@ class BatchPortal extends AbstractPortal {
 
     private final List<List<Object>> batchParams = new ArrayList<>();
     private final List<String> queries = new ArrayList<>();
-    private final List<Analysis> analysis= new ArrayList<>();
+    private final List<Analysis> analysis = new ArrayList<>();
     private final List<FormatCodes.FormatCode[]> resultFormatCodes = new ArrayList<>();
     private final List<List<? extends DataType>> outputTypes = new ArrayList<>();
     private final List<ResultReceiver> resultReceivers = new ArrayList<>();

@@ -30,7 +30,7 @@ import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponse;
 
 public abstract class DefaultTransportResponseHandler<TResponse extends TransportResponse>
-        extends BaseTransportResponseHandler<TResponse> {
+    extends BaseTransportResponseHandler<TResponse> {
 
     private final ActionListener<TResponse> listener;
     private final String executor;
@@ -43,7 +43,7 @@ public abstract class DefaultTransportResponseHandler<TResponse extends Transpor
         this(listener, null);
     }
 
-     /**
+    /**
      * Creates a ResponseHandler that passes the response or exception to the given listener.
      * onResponse/onFailure will be executed using the given executor or SAME if the executor is null
      */

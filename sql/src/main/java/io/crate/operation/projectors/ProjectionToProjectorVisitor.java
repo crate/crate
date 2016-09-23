@@ -55,7 +55,7 @@ import java.util.*;
 import java.util.concurrent.ThreadPoolExecutor;
 
 public class ProjectionToProjectorVisitor
-        extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
+    extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
 
     private final ClusterService clusterService;
     private final Functions functions;
@@ -151,10 +151,10 @@ public class ProjectionToProjectorVisitor
             projector = new InputRowProjector(inputs, collectExpressions);
         } else {
             projector = new SimpleTopNProjector(
-                    inputs,
-                    collectExpressions,
-                    projection.limit(),
-                    projection.offset());
+                inputs,
+                collectExpressions,
+                projection.limit(),
+                projection.offset());
         }
         return projector;
     }
@@ -168,11 +168,11 @@ public class ProjectionToProjectorVisitor
             symbolVisitor.process(aggregation, symbolContext);
         }
         return new GroupingProjector(
-                Symbols.extractTypes(projection.keys()),
-                keyInputs,
-                symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
-                symbolContext.aggregations(),
-                context.ramAccountingContext
+            Symbols.extractTypes(projection.keys()),
+            keyInputs,
+            symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
+            symbolContext.aggregations(),
+            context.ramAccountingContext
         );
     }
 
@@ -188,9 +188,9 @@ public class ProjectionToProjectorVisitor
             symbolVisitor.process(aggregation, symbolContext);
         }
         return new AggregationPipe(
-                symbolContext.collectExpressions(),
-                symbolContext.aggregations(),
-                context.ramAccountingContext);
+            symbolContext.collectExpressions(),
+            symbolContext.aggregations(),
+            context.ramAccountingContext);
     }
 
     @Override
@@ -225,14 +225,14 @@ public class ProjectionToProjectorVisitor
         uri = sb.toString();
 
         return new WriterProjector(
-                ((ThreadPoolExecutor) threadPool.generic()),
-                uri,
-                projection.compressionType(),
-                inputs,
-                symbolContext.collectExpressions(),
-                overwrites,
-                projection.outputNames(),
-                projection.outputFormat()
+            ((ThreadPoolExecutor) threadPool.generic()),
+            uri,
+            projection.compressionType(),
+            inputs,
+            symbolContext.collectExpressions(),
+            overwrites,
+            projection.outputNames(),
+            projection.outputFormat()
         );
     }
 
@@ -260,28 +260,28 @@ public class ProjectionToProjectorVisitor
         }
         Input<?> sourceInput = symbolVisitor.process(projection.rawSource(), symbolContext);
         Supplier<String> indexNameResolver =
-                IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
+            IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         return new IndexWriterProjector(
-                clusterService,
-                functions,
-                indexNameExpressionResolver,
-                clusterService.state().metaData().settings(),
-                transportActionProvider,
-                indexNameResolver,
-                bulkRetryCoordinatorPool,
-                projection.rawSourceReference(),
-                projection.primaryKeys(),
-                projection.ids(),
-                projection.clusteredBy(),
-                projection.clusteredByIdent(),
-                sourceInput,
-                symbolContext.collectExpressions(),
-                projection.bulkActions(),
-                projection.includes(),
-                projection.excludes(),
-                projection.autoCreateIndices(),
-                projection.overwriteDuplicates(),
-                context.jobId
+            clusterService,
+            functions,
+            indexNameExpressionResolver,
+            clusterService.state().metaData().settings(),
+            transportActionProvider,
+            indexNameResolver,
+            bulkRetryCoordinatorPool,
+            projection.rawSourceReference(),
+            projection.primaryKeys(),
+            projection.ids(),
+            projection.clusteredBy(),
+            projection.clusteredByIdent(),
+            sourceInput,
+            symbolContext.collectExpressions(),
+            projection.bulkActions(),
+            projection.includes(),
+            projection.excludes(),
+            projection.autoCreateIndices(),
+            projection.overwriteDuplicates(),
+            context.jobId
         );
     }
 
@@ -297,24 +297,24 @@ public class ProjectionToProjectorVisitor
             insertInputs.add(symbolVisitor.process(symbol, symbolContext));
         }
         return new ColumnIndexWriterProjector(
-                clusterService,
-                functions,
-                indexNameExpressionResolver,
-                clusterService.state().metaData().settings(),
-                IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
-                transportActionProvider,
-                bulkRetryCoordinatorPool,
-                projection.primaryKeys(),
-                projection.ids(),
-                projection.clusteredBy(),
-                projection.clusteredByIdent(),
-                projection.columnReferences(),
-                insertInputs,
-                symbolContext.collectExpressions(),
-                projection.onDuplicateKeyAssignments(),
-                projection.bulkActions(),
-                projection.autoCreateIndices(),
-                context.jobId
+            clusterService,
+            functions,
+            indexNameExpressionResolver,
+            clusterService.state().metaData().settings(),
+            IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
+            transportActionProvider,
+            bulkRetryCoordinatorPool,
+            projection.primaryKeys(),
+            projection.ids(),
+            projection.clusteredBy(),
+            projection.clusteredByIdent(),
+            projection.columnReferences(),
+            insertInputs,
+            symbolContext.collectExpressions(),
+            projection.onDuplicateKeyAssignments(),
+            projection.bulkActions(),
+            projection.autoCreateIndices(),
+            context.jobId
         );
     }
 
@@ -329,17 +329,17 @@ public class ProjectionToProjectorVisitor
         checkShardLevel("Update projection can only be executed on a shard");
 
         return new UpdateProjector(
-                clusterService,
-                indexNameExpressionResolver,
-                settings,
-                shardId,
-                transportActionProvider,
-                bulkRetryCoordinatorPool,
-                resolveUidCollectExpression(projection),
-                projection.assignmentsColumns(),
-                projection.assignments(),
-                projection.requiredVersion(),
-                context.jobId);
+            clusterService,
+            indexNameExpressionResolver,
+            settings,
+            shardId,
+            transportActionProvider,
+            bulkRetryCoordinatorPool,
+            resolveUidCollectExpression(projection),
+            projection.assignmentsColumns(),
+            projection.assignments(),
+            projection.requiredVersion(),
+            context.jobId);
     }
 
     @Override
@@ -347,14 +347,14 @@ public class ProjectionToProjectorVisitor
         checkShardLevel("Delete projection can only be executed on a shard");
 
         return new DeleteProjector(
-                clusterService,
-                indexNameExpressionResolver,
-                settings,
-                shardId,
-                transportActionProvider,
-                bulkRetryCoordinatorPool,
-                resolveUidCollectExpression(projection),
-                context.jobId);
+            clusterService,
+            indexNameExpressionResolver,
+            settings,
+            shardId,
+            transportActionProvider,
+            bulkRetryCoordinatorPool,
+            resolveUidCollectExpression(projection),
+            context.jobId);
     }
 
     private void checkShardLevel(String errorMessage) {

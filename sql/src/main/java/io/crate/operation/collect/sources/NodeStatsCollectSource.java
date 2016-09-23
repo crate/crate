@@ -78,8 +78,8 @@ public class NodeStatsCollectSource implements CollectSource {
             return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
         }
         Collection<DiscoveryNode> nodes = nodeIds(collectPhase.whereClause(),
-                                                  Lists.newArrayList(clusterService.state().getNodes().iterator()),
-                                                  functions);
+            Lists.newArrayList(clusterService.state().getNodes().iterator()),
+            functions);
         if (nodes.isEmpty()) {
             return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
         }

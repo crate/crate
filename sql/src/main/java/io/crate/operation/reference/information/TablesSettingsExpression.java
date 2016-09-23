@@ -117,7 +117,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         }
 
         public static final String ENABLE = "enable";
-        public static final String TOTAL_SHARDS_PER_NODE="total_shards_per_node";
+        public static final String TOTAL_SHARDS_PER_NODE = "total_shards_per_node";
 
         private void addChildImplementations() {
             childImplementations.put(ENABLE, new BytesRefTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE));
@@ -190,7 +190,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         private void addChildImplementations() {
             childImplementations.put(TablesSettingsNodeLeftExpression.NAME,
-                    new TablesSettingsNodeLeftExpression());
+                new TablesSettingsNodeLeftExpression());
         }
     }
 

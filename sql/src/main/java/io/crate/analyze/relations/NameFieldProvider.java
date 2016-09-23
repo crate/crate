@@ -33,7 +33,7 @@ import java.util.Locale;
 
 /**
  * Resolves QualifiedNames to Fields considering only one AnalyzedRelation
- *
+ * <p>
  * The QualifiedNames must not contain a schema or a table.
  */
 public class NameFieldProvider implements FieldProvider<Field> {
@@ -51,14 +51,14 @@ public class NameFieldProvider implements FieldProvider<Field> {
     public Field resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
         List<String> parts = qualifiedName.getParts();
         ColumnIdent columnIdent = new ColumnIdent(parts.get(parts.size() - 1), path);
-        if(parts.size() != 1){
+        if (parts.size() != 1) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Column reference \"%s\" has too many parts. " +
-                    "A column must not have a schema or a table here.", qualifiedName));
+                "Column reference \"%s\" has too many parts. " +
+                "A column must not have a schema or a table here.", qualifiedName));
         }
 
         Field field = relation.getField(columnIdent, operation);
-        if(field == null){
+        if (field == null) {
             throw new ColumnUnknownException(columnIdent.sqlFqn());
         }
         return field;

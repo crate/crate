@@ -64,7 +64,7 @@ public class IterableRowEmitter implements Runnable, RepeatHandle {
                 RowReceiver.Result result = rowReceiver.setNextRow(rowsIt.next());
                 switch (result) {
                     case CONTINUE:
-                        continue ;
+                        continue;
                     case PAUSE:
                         rowReceiver.pauseProcessed(resumeable);
                         return;

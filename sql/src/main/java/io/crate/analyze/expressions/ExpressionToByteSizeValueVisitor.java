@@ -33,7 +33,8 @@ public class ExpressionToByteSizeValueVisitor extends AstVisitor<ByteSizeValue, 
     public static final ByteSizeValue DEFAULT_VALUE = new ByteSizeValue(0);
     private static final ExpressionToByteSizeValueVisitor INSTANCE = new ExpressionToByteSizeValueVisitor();
 
-    private ExpressionToByteSizeValueVisitor() {}
+    private ExpressionToByteSizeValueVisitor() {
+    }
 
     public static ByteSizeValue convert(Node node, Row parameters) {
         return INSTANCE.process(node, parameters);
@@ -45,7 +46,7 @@ public class ExpressionToByteSizeValueVisitor extends AstVisitor<ByteSizeValue, 
             return ByteSizeValue.parseBytesSizeValue(node.getValue(), DEFAULT_VALUE.toString());
         } catch (ElasticsearchParseException e) {
             throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid byte size value '%s'", node.getValue()));
+                String.format(Locale.ENGLISH, "Invalid byte size value '%s'", node.getValue()));
         }
     }
 
@@ -70,11 +71,11 @@ public class ExpressionToByteSizeValueVisitor extends AstVisitor<ByteSizeValue, 
                 byteSizeValue = ByteSizeValue.parseBytesSizeValue((String) param, DEFAULT_VALUE.toString());
             } catch (ElasticsearchParseException e) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Invalid byte size value '%s'", param));
+                    String.format(Locale.ENGLISH, "Invalid byte size value '%s'", param));
             }
         } else {
             throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid byte size value %s", param));
+                String.format(Locale.ENGLISH, "Invalid byte size value %s", param));
         }
         return byteSizeValue;
     }

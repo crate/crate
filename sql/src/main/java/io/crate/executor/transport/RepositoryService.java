@@ -81,21 +81,21 @@ public class RepositoryService {
         final SettableFuture<Long> future = SettableFuture.create();
         final String repoName = analyzedStatement.repositoryName();
         transportActionProvider.transportDeleteRepositoryAction().execute(
-                new DeleteRepositoryRequest(repoName),
-                new ActionListener<DeleteRepositoryResponse>() {
-                    @Override
-                    public void onResponse(DeleteRepositoryResponse deleteRepositoryResponse) {
-                        if (!deleteRepositoryResponse.isAcknowledged()) {
-                            LOGGER.info("delete repository '{}' not acknowledged", repoName);
-                        }
-                        future.set(1L);
+            new DeleteRepositoryRequest(repoName),
+            new ActionListener<DeleteRepositoryResponse>() {
+                @Override
+                public void onResponse(DeleteRepositoryResponse deleteRepositoryResponse) {
+                    if (!deleteRepositoryResponse.isAcknowledged()) {
+                        LOGGER.info("delete repository '{}' not acknowledged", repoName);
                     }
-
-                    @Override
-                    public void onFailure(Throwable e) {
-                        future.setException(e);
-                    }
+                    future.set(1L);
                 }
+
+                @Override
+                public void onFailure(Throwable e) {
+                    future.setException(e);
+                }
+            }
         );
         return future;
     }

@@ -50,7 +50,7 @@ public class SQLBulkRequest extends SQLBaseRequest {
         return bulkArgs;
     }
 
-    public void bulkArgs(Object[][] bulkArgs){
+    public void bulkArgs(Object[][] bulkArgs) {
         this.bulkArgs = MoreObjects.firstNonNull(bulkArgs, EMPTY_BULK_ARGS);
     }
 
@@ -90,7 +90,7 @@ public class SQLBulkRequest extends SQLBaseRequest {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("stmt", stmt())
-                .add("bulkArgs", Arrays.asList(bulkArgs)).toString();
+            .add("stmt", stmt())
+            .add("bulkArgs", Arrays.asList(bulkArgs)).toString();
     }
 }
