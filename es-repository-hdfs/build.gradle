@@ -70,10 +70,10 @@ configurations.all {
             }
 
         }
-      }
+    }
 }
 
-task downloadUpstreamSources (type: Download) {
+task downloadUpstreamSources(type: Download) {
     def upstreamCommit = 'v2.3.2'
     src "https://github.com/elastic/elasticsearch-hadoop/archive/${upstreamCommit}.zip"
     dest file("${buildDir}/downloads/elasticsearch-hadoop-${upstreamCommit}.zip")
@@ -82,13 +82,12 @@ task downloadUpstreamSources (type: Download) {
 
 task extractUpstreamSources(type: Copy) {
     dependsOn downloadUpstreamSources
-    from (zipTree(downloadUpstreamSources.dest)) {
+    from(zipTree(downloadUpstreamSources.dest)) {
         include '*/repository-hdfs/src/main/**'
         include '*/repository-hdfs/plugin-descriptor.properties'
     }
-    eachFile {details ->
-        details.path = details.path.replaceFirst(
-            'elasticsearch-hadoop-[^/]+/repository-hdfs/', '')
+    eachFile {
+        details -> details.path = details.path.replaceFirst('elasticsearch-hadoop-[^/]+/repository-hdfs/', '')
     }
     into 'upstream'
     includeEmptyDirs false
@@ -138,7 +137,7 @@ jar {
     include "org/elasticsearch/plugin/hadoop/hdfs/*"
 }
 
-task hadoopLinkedJar(type: Jar, dependsOn:jar) {
+task hadoopLinkedJar(type: Jar, dependsOn: jar) {
     appendix "internal"
     from sourceSets.main.output.classesDir
     // exclude plugin
@@ -150,20 +149,20 @@ def baseZip(Zip zip) {
 
     artifacts { zip }
 
-    zip.from ("upstream") {
+    zip.from("upstream") {
         include "plugin-descriptor.properties"
-        expand (version: project.version, esVersion: versions.elasticsearch,
-            jmvCompatibility: project.targetCompatibility,
-            description: project.description,
-            name: project.name)
+        expand(version: project.version, esVersion: versions.elasticsearch,
+                jmvCompatibility: project.targetCompatibility,
+                description: project.description,
+                name: project.name)
 
     }
-    zip.from ("upstream") {
+    zip.from("upstream") {
         include "hadoop-libs"
     }
 
     zip.from jar.archivePath
-    zip.into ("internal-libs") {
+    zip.into("internal-libs") {
         from hadoopLinkedJar.archivePath
     }
 
@@ -180,7 +179,7 @@ task distZipHadoop2(type: Zip, dependsOn: [hadoopLinkedJar, jar]) { zipTask ->
     description = "Builds archive (with Hadoop2/YARN dependencies)"
     classifier = "hadoop2"
 
-    into ("hadoop-libs") {
+    into("hadoop-libs") {
         from configurations.hadoop2.allArtifacts.files
         from configurations.hadoop2
     }

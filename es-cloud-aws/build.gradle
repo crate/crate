@@ -29,6 +29,6 @@ test {
 idea {
     module {
         contentRoot = pluginDir
-        excludeDirs += files('build','src/test')
+        excludeDirs += files('build', 'src/test')
     }
 }
