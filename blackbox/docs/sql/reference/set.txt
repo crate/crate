@@ -5,48 +5,61 @@
 SET / RESET
 ===========
 
-Alter and restore global cluster setting values at runtime.
-For a list of the possible settings see
-:ref:`conf-cluster-settings`. Only settings documented with
+Change and restore settings at runtime. To get an overview of available Crate
+settings, see :ref:`configuration`. Only settings documented with
 *Runtime:*  ``yes`` can be changed.
-
 
 Synopsis
 ========
 
 ::
 
-    SET GLOBAL [ PERSISTENT | TRANSIENT ] setting_ident [ = | TO ] value [ , ... ]
+    SET [ SESSION | LOCAL ] setting_ident { = | TO } { value | ident | DEFAULT }
 
-    RESET GLOBAL setting_ident [ , ... ]
+    SET GLOBAL [ PERSISTENT | TRANSIENT ] { setting_ident [ = | TO ] { value | ident } } [, ...]
+
+    RESET GLOBAL setting_ident [, ...]
 
 Description
 ===========
 
-Using the ``SET`` and ``RESET`` statements it is possible to configure
-the crate cluster at runtime.
+``SET GLOBAL`` can be used to change a global cluster setting,
+see :ref:`conf-cluster-settings`, to a different value. Using ``RESET`` will
+reset the cluster setting to its default value or to the setting value defined
+in the configuration file, if it was set on a node start-up. The global cluster
+settings can be applied to a cluster using ``PERSISTENT`` and ``TRANSIENT``
+keywords to set a persistent level.
 
-``SET`` can be used to change a configuration setting ident to a
-different value. Using ``RESET`` will reset the setting to its
-default value or, if the setting was defined at the configuration
-file on node start-up, to this value.
+``SET/SET SESSION`` may affect the current session if the setting is supported.
+Setting the unsupported settings will be ignored and logged with the ``WARN``
+logging level.
+
+``SET LOCAL`` does not have any effect on Crate configurations.
+All ``SET LOCAL`` statements will be ignored by Crate and logged
+with the ``WARN`` logging level.
+
+``SET SESSION/LOCAL`` are introduced to be compliant with third-party
+applications which use the PostgresSQL wire protocol.
 
 Parameters
 ==========
 
 :setting_ident: The full qualified setting ident of the setting to set / reset.
 
-:value: The value to set for the configuration setting.
+:value: The value to set for the setting.
 
+:ident: The ident to set for the setting.
+
+:DEFAULT: Used for resetting the parameter to its default value.
 
 Persistence
 ===========
 
-The default is ``TRANSIENT``. Settings that are changed using the ``TRANSIENT``
-keyword will be lost if the cluster is stopped or restarted.
+The default is ``TRANSIENT``. Settings that are set using the ``TRANSIENT``
+keyword will be discarded if the cluster is stopped or restarted.
 
-Using the ``PERSISTENT`` keyword will persist the changes to disk so that the
-change will survive cluster restarts.
+Using the ``PERSISTENT`` keyword will persist a value of the setting to a disk,
+so that the setting will not be discarded if the cluster restarts.
 
 .. NOTE::
 
