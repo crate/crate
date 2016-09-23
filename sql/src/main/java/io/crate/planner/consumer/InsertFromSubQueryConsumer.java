@@ -25,12 +25,11 @@ package io.crate.planner.consumer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.QuerySpec;
+import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.DocReferenceConverter;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dml.InsertFromSubQuery;
@@ -76,8 +75,17 @@ public class InsertFromSubQueryConsumer implements Consumer {
             );
 
             Planner.Context plannerContext = context.plannerContext();
-            SOURCE_LOOKUP_CONVERTER.process(statement.subQueryRelation(), null);
-            PlannedAnalyzedRelation plannedSubQuery = plannerContext.planSubRelation(statement.subQueryRelation(), context);
+            QueriedRelation subRelation = statement.subQueryRelation();
+            QuerySpec subQuerySpec = subRelation.querySpec();
+
+            // We'd have to enable paging & add a mergePhase to the sub-plan which applies the ordering/limit before
+            // the indexWriterProjection can be added
+            if (subQuerySpec.isLimited() || subQuerySpec.orderBy().isPresent()) {
+                throw new UnsupportedFeatureException("Using limit, offset or order by is not " +
+                                                      "supported on insert using a sub-query");
+            }
+            SOURCE_LOOKUP_CONVERTER.process(subRelation, null);
+            PlannedAnalyzedRelation plannedSubQuery = plannerContext.planSubRelation(subRelation, context);
             if (plannedSubQuery == null) {
                 return null;
             }

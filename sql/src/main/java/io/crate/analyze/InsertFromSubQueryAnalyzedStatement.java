@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
@@ -45,7 +46,7 @@ import java.util.*;
 public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, AnalyzedStatement {
 
     private final DocTableInfo targetTable;
-    private final AnalyzedRelation subQueryRelation;
+    private final QueriedRelation subQueryRelation;
 
     @Nullable
     private final Map<Reference, Symbol> onDuplicateKeyAssignments;
@@ -54,7 +55,7 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
     private final List<Symbol> partitionedBySymbols;
     private final int clusteredByIdx;
 
-    public InsertFromSubQueryAnalyzedStatement(AnalyzedRelation subQueryRelation,
+    public InsertFromSubQueryAnalyzedStatement(QueriedRelation subQueryRelation,
                                                DocTableInfo tableInfo,
                                                List<Reference> targetColumns,
                                                @Nullable Map<Reference, Symbol> onDuplicateKeyAssignments) {
@@ -158,7 +159,7 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
         return targetTable;
     }
 
-    public AnalyzedRelation subQueryRelation() {
+    public QueriedRelation subQueryRelation() {
         return this.subQueryRelation;
     }
 

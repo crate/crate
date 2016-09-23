@@ -32,7 +32,6 @@ import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -90,13 +89,6 @@ public class InsertFromSubQueryAnalyzer {
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
 
         QueriedRelation source = (QueriedRelation) relationAnalyzer.analyze(node.subQuery(), analysis);
-
-        // We forbid using limit/offset or order by until we've implemented ES paging support (aka 'scroll')
-        // TODO: move this to the consumer
-        if (source.querySpec().isLimited() || source.querySpec().orderBy().isPresent()) {
-            throw new UnsupportedFeatureException("Using limit, offset or order by is not " +
-                                                  "supported on insert using a sub-query");
-        }
 
         List<Reference> targetColumns = new ArrayList<>(resolveTargetColumns(node.columns(), tableInfo, source.fields().size()));
         validateColumnsAndAddCastsIfNecessary(targetColumns, source.querySpec());
