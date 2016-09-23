@@ -37,7 +37,7 @@ import java.util.Collection;
 
 import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
-@ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 0,transportClientRatio = 0)
+@ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 0, transportClientRatio = 0)
 public class SrvDiscoveryIntegrationTest extends ESIntegTestCase {
 
     @Before
@@ -59,10 +59,10 @@ public class SrvDiscoveryIntegrationTest extends ESIntegTestCase {
     @Test
     public void testClusterSrvDiscovery() throws Exception {
         Settings localSettings = settingsBuilder()
-                .put("node.mode", "network")
-                .put("discovery.type", "srv")
-                .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY, "_test._srv.crate.internal.")
-                .build();
+            .put("node.mode", "network")
+            .put("discovery.type", "srv")
+            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY, "_test._srv.crate.internal.")
+            .build();
         internalCluster().startNode(localSettings);
         internalCluster().startNode(localSettings);
         internalCluster().startNode(localSettings);
