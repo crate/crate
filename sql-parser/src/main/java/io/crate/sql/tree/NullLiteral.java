@@ -21,18 +21,15 @@
 
 package io.crate.sql.tree;
 
-public class NullLiteral
-        extends Literal
-{
+public class NullLiteral extends Literal {
+
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitNullLiteral(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -44,8 +41,7 @@ public class NullLiteral
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return 0;
     }
 }

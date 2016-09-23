@@ -35,7 +35,7 @@ public class RestoreSnapshot extends Statement {
     private final Optional<List<Table>> tableList;
 
     public RestoreSnapshot(QualifiedName name,
-                          @Nullable GenericProperties genericProperties) {
+                           @Nullable GenericProperties genericProperties) {
         this.name = name;
         this.properties = Optional.fromNullable(genericProperties);
         this.tableList = Optional.absent();
@@ -43,8 +43,8 @@ public class RestoreSnapshot extends Statement {
     }
 
     public RestoreSnapshot(QualifiedName name,
-                          List<Table> tableList,
-                          @Nullable GenericProperties genericProperties) {
+                           List<Table> tableList,
+                           @Nullable GenericProperties genericProperties) {
         this.name = name;
         this.tableList = Optional.of(tableList);
         this.properties = Optional.fromNullable(genericProperties);
@@ -73,7 +73,7 @@ public class RestoreSnapshot extends Statement {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
 
-        RestoreSnapshot that = (RestoreSnapshot)obj;
+        RestoreSnapshot that = (RestoreSnapshot) obj;
         if (!name.equals(that.name)) return false;
         if (!properties.equals(that.properties)) return false;
         if (!tableList.equals(that.tableList)) return false;
@@ -83,10 +83,10 @@ public class RestoreSnapshot extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("name", name)
-                .add("properties", properties)
-                .add("tableList", tableList)
-                .toString();
+            .add("name", name)
+            .add("properties", properties)
+            .add("tableList", tableList)
+            .toString();
     }
 
     @Override

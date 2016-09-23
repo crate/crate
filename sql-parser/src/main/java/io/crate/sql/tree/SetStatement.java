@@ -72,10 +72,10 @@ public class SetStatement extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("scope", scope)
-                .add("assignments", assignments)
-                .add("settingType", settingType)
-                .toString();
+            .add("scope", scope)
+            .add("assignments", assignments)
+            .add("settingType", settingType)
+            .toString();
     }
 
     @Override

@@ -25,15 +25,13 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
-public class Except
-        extends SetOperation
-{
+public class Except extends SetOperation {
+
     private final Relation left;
     private final Relation right;
     private final boolean distinct;
 
-    public Except(Relation left, Relation right, boolean distinct)
-    {
+    public Except(Relation left, Relation right, boolean distinct) {
         Preconditions.checkNotNull(left, "left is null");
         Preconditions.checkNotNull(right, "right is null");
 
@@ -42,40 +40,34 @@ public class Except
         this.distinct = distinct;
     }
 
-    public Relation getLeft()
-    {
+    public Relation getLeft() {
         return left;
     }
 
-    public Relation getRight()
-    {
+    public Relation getRight() {
         return right;
     }
 
-    public boolean isDistinct()
-    {
+    public boolean isDistinct() {
         return distinct;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitExcept(this, context);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("left", left)
-                .add("right", right)
-                .add("distinct", distinct)
-                .toString();
+            .add("left", left)
+            .add("right", right)
+            .add("distinct", distinct)
+            .toString();
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
@@ -84,13 +76,12 @@ public class Except
         }
         Except o = (Except) obj;
         return Objects.equal(left, o.left) &&
-                Objects.equal(right, o.right) &&
-                Objects.equal(distinct, o.distinct);
+               Objects.equal(right, o.right) &&
+               Objects.equal(distinct, o.distinct);
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hashCode(left, right, distinct);
     }
 }

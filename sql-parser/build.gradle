@@ -17,7 +17,7 @@ dependencies {
     testCompile 'junit:junit:4.11'
 }
 
-task generateWithANTLR3(type:Exec) {
+task generateWithANTLR3(type: Exec) {
     String outputPath = 'src/main/java/io/crate/sql/parser';
     ext.parserOutputFiles = files(
             'src/main/java/io/crate/sql/parser/StatementLexer.java',
@@ -34,7 +34,7 @@ task generateWithANTLR3(type:Exec) {
     inputs.files(ext.parserInputFiles)
     outputs.files(ext.parserOutputFiles)
 
-    commandLine = ['java', '-cp',  configurations.antlr3.getAsPath(), 'org.antlr.Tool', '-o', outputPath] + ext.parserInputFiles
+    commandLine = ['java', '-cp', configurations.antlr3.getAsPath(), 'org.antlr.Tool', '-o', outputPath] + ext.parserInputFiles
 }
 
 tasks.withType(JavaCompile) {
@@ -52,7 +52,7 @@ test {
                 "*Test*",
                 "TreeAssertions*",
                 "TreePrinter*"
-                ]
+        ]
     }
 }
 

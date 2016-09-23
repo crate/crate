@@ -30,32 +30,27 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * channel and field to avoid unnecessary lookups in a symbol -&gt; input map during evaluation
  * </p>
  */
-public class InputReference
-        extends Expression
-{
+public class InputReference extends Expression {
+
     private final Input input;
 
-    public InputReference(Input input)
-    {
+    public InputReference(Input input) {
         checkNotNull(input, "input is null");
 
         this.input = input;
     }
 
-    public Input getInput()
-    {
+    public Input getInput() {
         return input;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitInputReference(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -73,8 +68,7 @@ public class InputReference
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return input.hashCode();
     }
 }

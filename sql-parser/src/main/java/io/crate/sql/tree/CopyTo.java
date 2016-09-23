@@ -30,7 +30,6 @@ import java.util.List;
 
 public class CopyTo extends Statement {
 
-
     private final Table table;
     private final boolean directoryUri;
     private final Expression targetUri;
@@ -110,13 +109,13 @@ public class CopyTo extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("table", table)
-                .add("columns", columns)
-                .add("whereClause", whereClause)
-                .add("directoryUri", directoryUri)
-                .add("targetUri", targetUri)
-                .add("genericProperties", genericProperties)
-                .toString();
+            .add("table", table)
+            .add("columns", columns)
+            .add("whereClause", whereClause)
+            .add("directoryUri", directoryUri)
+            .add("targetUri", targetUri)
+            .add("genericProperties", genericProperties)
+            .toString();
     }
 
     @Override

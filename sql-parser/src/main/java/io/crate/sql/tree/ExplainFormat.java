@@ -26,36 +26,30 @@ import com.google.common.base.Objects;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class ExplainFormat
-        extends ExplainOption
-{
-    public enum Type
-    {
+public class ExplainFormat extends ExplainOption {
+
+    public enum Type {
         TEXT,
         GRAPHVIZ
     }
 
     private final Type type;
 
-    public ExplainFormat(Type type)
-    {
+    public ExplainFormat(Type type) {
         this.type = checkNotNull(type, "type is null");
     }
 
-    public Type getType()
-    {
+    public Type getType() {
         return type;
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hashCode(type);
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
@@ -67,10 +61,9 @@ public class ExplainFormat
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("type", type)
-                .toString();
+            .add("type", type)
+            .toString();
     }
 }

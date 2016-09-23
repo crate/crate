@@ -30,11 +30,9 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class SampledRelation
-        extends Relation
-{
-    public enum Type
-    {
+public class SampledRelation extends Relation {
+
+    public enum Type {
         BERNOULLI,
         SYSTEM
     }
@@ -44,8 +42,7 @@ public class SampledRelation
     private final Expression samplePercentage;
     private final Optional<List<Expression>> columnsToStratifyOn;
 
-    public SampledRelation(Relation relation, Type type, Expression samplePercentage, Optional<List<Expression>> columnsToStratifyOn)
-    {
+    public SampledRelation(Relation relation, Type type, Expression samplePercentage, Optional<List<Expression>> columnsToStratifyOn) {
         this.relation = checkNotNull(relation, "relation is null");
         this.type = checkNotNull(type, "type is null");
         this.samplePercentage = checkNotNull(samplePercentage, "samplePercentage is null");
@@ -58,46 +55,39 @@ public class SampledRelation
 
     }
 
-    public Relation getRelation()
-    {
+    public Relation getRelation() {
         return relation;
     }
 
-    public Type getType()
-    {
+    public Type getType() {
         return type;
     }
 
-    public Expression getSamplePercentage()
-    {
+    public Expression getSamplePercentage() {
         return samplePercentage;
     }
 
-    public Optional<List<Expression>> getColumnsToStratifyOn()
-    {
+    public Optional<List<Expression>> getColumnsToStratifyOn() {
         return columnsToStratifyOn;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitSampledRelation(this, context);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("relation", relation)
-                .add("type", type)
-                .add("samplePercentage", samplePercentage)
-                .add("columnsToStratifyOn", columnsToStratifyOn)
-                .toString();
+            .add("relation", relation)
+            .add("type", type)
+            .add("samplePercentage", samplePercentage)
+            .add("columnsToStratifyOn", columnsToStratifyOn)
+            .toString();
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -106,14 +96,13 @@ public class SampledRelation
         }
         SampledRelation that = (SampledRelation) o;
         return Objects.equal(relation, that.relation) &&
-                Objects.equal(type, that.type) &&
-                Objects.equal(samplePercentage, that.samplePercentage) &&
-                Objects.equal(columnsToStratifyOn, that.columnsToStratifyOn);
+               Objects.equal(type, that.type) &&
+               Objects.equal(samplePercentage, that.samplePercentage) &&
+               Objects.equal(columnsToStratifyOn, that.columnsToStratifyOn);
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hashCode(relation, type, samplePercentage, columnsToStratifyOn);
     }
 }

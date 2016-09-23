@@ -49,8 +49,7 @@ public class TestStatementBuilder {
 
     @Test
     public void testStatementBuilder()
-            throws Exception
-    {
+        throws Exception {
         printStatement("select * from foo");
         printStatement("explain select * from foo");
 
@@ -74,20 +73,20 @@ public class TestStatementBuilder {
         printStatement("select x is distinct from y from foo where a is not distinct from b");
 
         printStatement("" +
-                "select depname, empno, salary\n" +
-                ", count(*) over ()\n" +
-                ", avg(salary) over (partition by depname)\n" +
-                ", rank() over (partition by depname order by salary desc)\n" +
-                ", sum(salary) over (order by salary rows unbounded preceding)\n" +
-                ", sum(salary) over (partition by depname order by salary rows between current row and 3 following)\n" +
-                ", sum(salary) over (partition by depname range unbounded preceding)\n" +
-                ", sum(salary) over (rows between 2 preceding and unbounded following)\n" +
-                "from emp");
+                       "select depname, empno, salary\n" +
+                       ", count(*) over ()\n" +
+                       ", avg(salary) over (partition by depname)\n" +
+                       ", rank() over (partition by depname order by salary desc)\n" +
+                       ", sum(salary) over (order by salary rows unbounded preceding)\n" +
+                       ", sum(salary) over (partition by depname order by salary rows between current row and 3 following)\n" +
+                       ", sum(salary) over (partition by depname range unbounded preceding)\n" +
+                       ", sum(salary) over (rows between 2 preceding and unbounded following)\n" +
+                       "from emp");
 
         printStatement("" +
-                "with a (id) as (with x as (select 123 from z) select * from x) " +
-                "   , b (id) as (select 999 from z) " +
-                "select * from a join b using (id)");
+                       "with a (id) as (with x as (select 123 from z) select * from x) " +
+                       "   , b (id) as (select 999 from z) " +
+                       "select * from a join b using (id)");
 
         printStatement("with recursive t as (select * from x) select * from t");
 
@@ -128,19 +127,19 @@ public class TestStatementBuilder {
         printStatement("create table t (o object(dynamic) as (i integer, d double))");
         printStatement("create table t (id integer, name string, primary key (id))");
         printStatement("create table t (" +
-                "  \"_i\" integer, " +
-                "  \"in\" int," +
-                "  \"Name\" string, " +
-                "  bo boolean," +
-                "  \"by\" byte," +
-                "  sh short," +
-                "  lo long," +
-                "  fl float," +
-                "  do double," +
-                "  \"ip_\" ip," +
-                "  ti timestamp," +
-                "  ob object" +
-                ")");
+                       "  \"_i\" integer, " +
+                       "  \"in\" int," +
+                       "  \"Name\" string, " +
+                       "  bo boolean," +
+                       "  \"by\" byte," +
+                       "  sh short," +
+                       "  lo long," +
+                       "  fl float," +
+                       "  do double," +
+                       "  \"ip_\" ip," +
+                       "  ti timestamp," +
+                       "  ob object" +
+                       ")");
         printStatement("create table \"TABLE\" (o object(dynamic))");
         printStatement("create table \"TABLE\" (o object(strict))");
         printStatement("create table \"TABLE\" (o object(ignored))");
@@ -150,15 +149,15 @@ public class TestStatementBuilder {
         printStatement("create table test (col1 int primary key not null, col2 timestamp)");
 
         printStatement("create table t (" +
-                "name string index off, " +
-                "another string index using plain, " +
-                "\"full\" string index using fulltext," +
-                "analyzed string index using fulltext with (analyzer='german', param=?, list=[1,2,3])" +
-                ")");
+                       "name string index off, " +
+                       "another string index using plain, " +
+                       "\"full\" string index using fulltext," +
+                       "analyzed string index using fulltext with (analyzer='german', param=?, list=[1,2,3])" +
+                       ")");
         printStatement("create table test (col1 string, col2 string," +
-                "index \"_col1_ft\" using fulltext(col1))");
+                       "index \"_col1_ft\" using fulltext(col1))");
         printStatement("create table test (col1 string, col2 string," +
-                "index col1_col2_ft using fulltext(col1, col2) with (analyzer='custom'))");
+                       "index col1_col2_ft using fulltext(col1, col2) with (analyzer='custom'))");
 
         printStatement("create table test (prime long, primes array(long), unique_dates set(timestamp))");
         printStatement("create table test (nested set(set(array(boolean))))");
@@ -172,28 +171,28 @@ public class TestStatementBuilder {
 
         printStatement("create analyzer myAnalyzer ( tokenizer german )");
         printStatement("create analyzer my_analyzer (" +
-                " token_filters (" +
-                "   filter_1," +
-                "   filter_2," +
-                "   filter_3 WITH (" +
-                "     \"key\"=?" +
-                "   )" +
-                " )," +
-                " tokenizer my_tokenizer WITH (" +
-                "   property='value'," +
-                "   property_list=['l', 'i', 's', 't']" +
-                " )," +
-                " char_filters (" +
-                "   filter_1," +
-                "   filter_2 WITH (" +
-                "     key='property'" +
-                "   )," +
-                "   filter_3" +
-                " )" +
-                ")");
+                       " token_filters (" +
+                       "   filter_1," +
+                       "   filter_2," +
+                       "   filter_3 WITH (" +
+                       "     \"key\"=?" +
+                       "   )" +
+                       " )," +
+                       " tokenizer my_tokenizer WITH (" +
+                       "   property='value'," +
+                       "   property_list=['l', 'i', 's', 't']" +
+                       " )," +
+                       " char_filters (" +
+                       "   filter_1," +
+                       "   filter_2 WITH (" +
+                       "     key='property'" +
+                       "   )," +
+                       "   filter_3" +
+                       " )" +
+                       ")");
         printStatement("create analyzer my_builtin extends builtin WITH (" +
-                "  over='write'" +
-                ")");
+                       "  over='write'" +
+                       ")");
         printStatement("refresh table t");
         printStatement("refresh table t partition (pcol='val'), tableh partition (pcol='val')");
         printStatement("refresh table schemah.tableh");
@@ -265,8 +264,7 @@ public class TestStatementBuilder {
 
     @Test
     public void testStatementBuilderTpch()
-            throws Exception
-    {
+        throws Exception {
         printTpchQuery(1, 3);
         printTpchQuery(2, 33, "part type like", "region name");
         printTpchQuery(3, "market segment", "2013-03-05");
@@ -289,13 +287,13 @@ public class TestStatementBuilder {
         printTpchQuery(20, "part name like", "2013-03-05", "nation name");
         printTpchQuery(21, "nation name");
         printTpchQuery(22,
-                "phone 1",
-                "phone 2",
-                "phone 3",
-                "phone 4",
-                "phone 5",
-                "phone 6",
-                "phone 7");
+            "phone 1",
+            "phone 2",
+            "phone 3",
+            "phone 4",
+            "phone 5",
+            "phone 6",
+            "phone 7");
     }
 
     @Test
@@ -408,14 +406,14 @@ public class TestStatementBuilder {
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
         Statement statement = SqlParser.createStatement("CREATE REPOSITORY my_repo type hdfs with (location='/mount/backups/my_backup')");
         assertThat(statement.toString(), is("CreateRepository{" +
-                                                "repository=my_repo, " +
-                                                "type=hdfs, " +
-                                                "properties=Optional.of({location='/mount/backups/my_backup'})}"));
+                                            "repository=my_repo, " +
+                                            "type=hdfs, " +
+                                            "properties=Optional.of({location='/mount/backups/my_backup'})}"));
 
         printStatement("DROP REPOSITORY my_repo");
         statement = SqlParser.createStatement("DROP REPOSITORY \"myRepo\"");
         assertThat(statement.toString(), is("DropRepository{" +
-                                                "repository=myRepo}"));
+                                            "repository=myRepo}"));
     }
 
     @Test
@@ -426,13 +424,13 @@ public class TestStatementBuilder {
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot ALL with (wait_for_completion=True)");
         Statement statement = SqlParser.createStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors PARTITION (year=2015, year=2014), books");
         assertThat(statement.toString(), is("CreateSnapshot{" +
-                                                "name=my_repo.my_snapshot, " +
-                                                "properties=Optional.absent(), " +
-                                                "tableList=Optional.of(" +
-                                                    "[Table{only=false, authors, partitionProperties=["+"" +
-                                                          "Assignment{column=\"year\", expression=2015}, " +
-                                                          "Assignment{column=\"year\", expression=2014}]}, " +
-                                                      "Table{only=false, books, partitionProperties=[]}])}"));
+                                            "name=my_repo.my_snapshot, " +
+                                            "properties=Optional.absent(), " +
+                                            "tableList=Optional.of(" +
+                                            "[Table{only=false, authors, partitionProperties=[" + "" +
+                                            "Assignment{column=\"year\", expression=2015}, " +
+                                            "Assignment{column=\"year\", expression=2014}]}, " +
+                                            "Table{only=false, books, partitionProperties=[]}])}"));
 
         statement = SqlParser.createStatement("DROP SNAPSHOT my_repo.my_snapshot");
         assertThat(statement.toString(), is("DropSnapshot{" +
@@ -448,15 +446,15 @@ public class TestStatementBuilder {
                                             "name=my_repo.my_snapshot, " +
                                             "properties=Optional.of({wait_for_completion=true}), " +
                                             "tableList=Optional.of(" +
-                                                "[Table{only=false, authors, partitionProperties=["+"" +
-                                                    "Assignment{column=\"year\", expression=2015}, " +
-                                                    "Assignment{column=\"year\", expression=2014}]}, " +
-                                                  "Table{only=false, books, partitionProperties=[]}])}"));
+                                            "[Table{only=false, authors, partitionProperties=[" + "" +
+                                            "Assignment{column=\"year\", expression=2015}, " +
+                                            "Assignment{column=\"year\", expression=2014}]}, " +
+                                            "Table{only=false, books, partitionProperties=[]}])}"));
         statement = SqlParser.createStatement("RESTORE SNAPSHOT my_repo.my_snapshot ALL");
         assertThat(statement.toString(), is("RestoreSnapshot{" +
-                                                    "name=my_repo.my_snapshot, " +
-                                                    "properties=Optional.absent(), " +
-                                                    "tableList=Optional.absent()}"));
+                                            "name=my_repo.my_snapshot, " +
+                                            "properties=Optional.absent(), " +
+                                            "tableList=Optional.absent()}"));
     }
 
     @Test
@@ -490,7 +488,7 @@ public class TestStatementBuilder {
         printStatement("optimize table t partition (pcol='val') with (param1=val1, param2=val2)");
         printStatement("optimize table t1 partition (pcol1='val1'), t2 partition (pcol2='val2')");
         printStatement("optimize table t1 partition (pcol1='val1'), t2 partition (pcol2='val2') " +
-                        "with (param1=val1, param2=val2, param3='val3')");
+                       "with (param1=val1, param2=val2, param3='val3')");
     }
 
     @Test
@@ -507,34 +505,34 @@ public class TestStatementBuilder {
     public void testSubscript() throws Exception {
         Expression expression = SqlParser.createExpression("a['sub']");
         assertThat(expression, instanceOf(SubscriptExpression.class));
-        SubscriptExpression subscript = (SubscriptExpression)expression;
+        SubscriptExpression subscript = (SubscriptExpression) expression;
         assertThat(subscript.index(), instanceOf(StringLiteral.class));
-        assertThat(((StringLiteral)subscript.index()).getValue(), is("sub"));
+        assertThat(((StringLiteral) subscript.index()).getValue(), is("sub"));
 
         assertThat(subscript.name(), instanceOf(QualifiedNameReference.class));
 
         expression = SqlParser.createExpression("[1,2,3][1]");
         assertThat(expression, instanceOf(SubscriptExpression.class));
-        subscript = (SubscriptExpression)expression;
+        subscript = (SubscriptExpression) expression;
         assertThat(subscript.index(), instanceOf(LongLiteral.class));
-        assertThat(((LongLiteral)subscript.index()).getValue(), is(1L));
+        assertThat(((LongLiteral) subscript.index()).getValue(), is(1L));
         assertThat(subscript.name(), instanceOf(ArrayLiteral.class));
     }
 
     @Test
     public void testCaseSensitivity() throws Exception {
         Expression expression = SqlParser.createExpression("\"firstName\" = 'myName'");
-        QualifiedNameReference nameRef = (QualifiedNameReference)((ComparisonExpression)expression).getLeft();
-        StringLiteral myName = (StringLiteral)((ComparisonExpression)expression).getRight();
+        QualifiedNameReference nameRef = (QualifiedNameReference) ((ComparisonExpression) expression).getLeft();
+        StringLiteral myName = (StringLiteral) ((ComparisonExpression) expression).getRight();
         assertThat(nameRef.getName().getSuffix(), is("firstName"));
         assertThat(myName.getValue(), is("myName"));
 
         expression = SqlParser.createExpression("FIRSTNAME = 'myName'");
-        nameRef = (QualifiedNameReference)((ComparisonExpression)expression).getLeft();
+        nameRef = (QualifiedNameReference) ((ComparisonExpression) expression).getLeft();
         assertThat(nameRef.getName().getSuffix(), is("firstname"));
 
         expression = SqlParser.createExpression("ABS(1)");
-        QualifiedName functionName = ((FunctionCall)expression).getName();
+        QualifiedName functionName = ((FunctionCall) expression).getName();
         assertThat(functionName.getSuffix(), is("abs"));
     }
 
@@ -542,21 +540,21 @@ public class TestStatementBuilder {
     public void testArrayComparison() throws Exception {
         Expression anyExpression = SqlParser.createExpression("1 = ANY (arrayColumnRef)");
         assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
-        ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression)anyExpression;
+        ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
         assertThat(arrayComparisonExpression.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
         assertThat(arrayComparisonExpression.getLeft(), instanceOf(LongLiteral.class));
         assertThat(arrayComparisonExpression.getRight(), instanceOf(QualifiedNameReference.class));
 
         Expression someExpression = SqlParser.createExpression("1 = SOME (arrayColumnRef)");
         assertThat(someExpression, instanceOf(ArrayComparisonExpression.class));
-        ArrayComparisonExpression someArrayComparison = (ArrayComparisonExpression)someExpression;
+        ArrayComparisonExpression someArrayComparison = (ArrayComparisonExpression) someExpression;
         assertThat(someArrayComparison.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
         assertThat(someArrayComparison.getLeft(), instanceOf(LongLiteral.class));
         assertThat(someArrayComparison.getRight(), instanceOf(QualifiedNameReference.class));
 
         Expression allExpression = SqlParser.createExpression("'StringValue' = ALL (arrayColumnRef)");
         assertThat(allExpression, instanceOf(ArrayComparisonExpression.class));
-        ArrayComparisonExpression allArrayComparison = (ArrayComparisonExpression)allExpression;
+        ArrayComparisonExpression allArrayComparison = (ArrayComparisonExpression) allExpression;
         assertThat(allArrayComparison.quantifier(), is(ArrayComparisonExpression.Quantifier.ALL));
         assertThat(allArrayComparison.getLeft(), instanceOf(StringLiteral.class));
         assertThat(allArrayComparison.getRight(), instanceOf(QualifiedNameReference.class));
@@ -565,17 +563,17 @@ public class TestStatementBuilder {
     @Test
     public void testStringLiteral() throws Exception {
         String[] testString = new String[]{
-                "foo' or 1='1",
-                "foo''bar",
-                "foo\\bar",
-                "foo\'bar",
-                "''''",
-                "''",
-                ""
+            "foo' or 1='1",
+            "foo''bar",
+            "foo\\bar",
+            "foo\'bar",
+            "''''",
+            "''",
+            ""
         };
         for (String s : testString) {
             Expression expr = SqlParser.createExpression(Literals.quoteStringLiteral(s));
-            assertThat(((StringLiteral)expr).getValue(), is(s));
+            assertThat(((StringLiteral) expr).getValue(), is(s));
         }
     }
 
@@ -583,9 +581,9 @@ public class TestStatementBuilder {
     public void testObjectLiteral() throws Exception {
         Expression emptyObjectLiteral = SqlParser.createExpression("{}");
         assertThat(emptyObjectLiteral, instanceOf(ObjectLiteral.class));
-        assertThat(((ObjectLiteral)emptyObjectLiteral).values().size(), is(0));
+        assertThat(((ObjectLiteral) emptyObjectLiteral).values().size(), is(0));
 
-        ObjectLiteral objectLiteral = (ObjectLiteral)SqlParser.createExpression("{a=1, aa=-1, b='str', c=[], d={}}");
+        ObjectLiteral objectLiteral = (ObjectLiteral) SqlParser.createExpression("{a=1, aa=-1, b='str', c=[], d={}}");
         assertThat(objectLiteral.values().size(), is(5));
         assertThat(objectLiteral.values().get("a").iterator().next(), instanceOf(LongLiteral.class));
         assertThat(objectLiteral.values().get("aa").iterator().next(), instanceOf(NegativeExpression.class));
@@ -593,8 +591,8 @@ public class TestStatementBuilder {
         assertThat(objectLiteral.values().get("c").iterator().next(), instanceOf(ArrayLiteral.class));
         assertThat(objectLiteral.values().get("d").iterator().next(), instanceOf(ObjectLiteral.class));
 
-        ObjectLiteral quotedObjectLiteral = (ObjectLiteral)SqlParser.createExpression(
-                "{\"AbC\"=123}"
+        ObjectLiteral quotedObjectLiteral = (ObjectLiteral) SqlParser.createExpression(
+            "{\"AbC\"=123}"
         );
         assertThat(quotedObjectLiteral.values().size(), is(1));
         assertThat(quotedObjectLiteral.values().get("AbC").iterator().next(), instanceOf(LongLiteral.class));
@@ -632,23 +630,21 @@ public class TestStatementBuilder {
 
     @Test
     public void testArrayLiteral() throws Exception {
-        ArrayLiteral emptyArrayLiteral = (ArrayLiteral)SqlParser.createExpression("[]");
+        ArrayLiteral emptyArrayLiteral = (ArrayLiteral) SqlParser.createExpression("[]");
         assertThat(emptyArrayLiteral.values().size(), is(0));
 
-        ArrayLiteral singleArrayLiteral = (ArrayLiteral)SqlParser.createExpression("[1]");
+        ArrayLiteral singleArrayLiteral = (ArrayLiteral) SqlParser.createExpression("[1]");
         assertThat(singleArrayLiteral.values().size(), is(1));
         assertThat(singleArrayLiteral.values().get(0), instanceOf(LongLiteral.class));
 
-        ArrayLiteral multipleArrayLiteral = (ArrayLiteral)SqlParser.createExpression(
-                "['str', -12.56, {}, ['another', 'array']]");
+        ArrayLiteral multipleArrayLiteral = (ArrayLiteral) SqlParser.createExpression(
+            "['str', -12.56, {}, ['another', 'array']]");
         assertThat(multipleArrayLiteral.values().size(), is(4));
         assertThat(multipleArrayLiteral.values().get(0), instanceOf(StringLiteral.class));
         assertThat(multipleArrayLiteral.values().get(1), instanceOf(NegativeExpression.class));
         assertThat(multipleArrayLiteral.values().get(2), instanceOf(ObjectLiteral.class));
         assertThat(multipleArrayLiteral.values().get(3), instanceOf(ArrayLiteral.class));
     }
-
-
 
     @Test
     public void testParameterNode() throws Exception {
@@ -760,8 +756,7 @@ public class TestStatementBuilder {
         printStatement("select * from foo full join bar on foo.id = bar.id");
     }
 
-    private static void printStatement(String sql)
-    {
+    private static void printStatement(String sql) {
         println(sql.trim());
         println("");
 
@@ -784,22 +779,19 @@ public class TestStatementBuilder {
         println("");
     }
 
-    private static void println(String s)
-    {
+    private static void println(String s) {
         if (Boolean.parseBoolean(System.getProperty("printParse"))) {
             System.out.print(s + "\n");
         }
     }
 
     private static String getTpchQuery(int q)
-            throws IOException
-    {
+        throws IOException {
         return readResource("tpch/queries/" + q + ".sql");
     }
 
     private static void printTpchQuery(int query, Object... values)
-            throws IOException
-    {
+        throws IOException {
         String sql = getTpchQuery(query);
 
         for (int i = values.length - 1; i >= 0; i--) {
@@ -813,13 +805,11 @@ public class TestStatementBuilder {
     }
 
     private static String readResource(String name)
-            throws IOException
-    {
+        throws IOException {
         return Resources.toString(Resources.getResource(name), Charsets.UTF_8);
     }
 
-    private static String fixTpchQuery(String s)
-    {
+    private static String fixTpchQuery(String s) {
         s = s.replaceFirst("(?m);$", "");
         s = s.replaceAll("(?m)^:[xo]$", "");
         s = s.replaceAll("(?m)^:n -1$", "");

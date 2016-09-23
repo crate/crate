@@ -39,22 +39,20 @@ import static java.util.Collections.nCopies;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-public class TestSqlParser
-{
+public class TestSqlParser {
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testPossibleExponentialBacktracking()
-            throws Exception
-    {
+        throws Exception {
         SqlParser.createExpression("(((((((((((((((((((((((((((true)))))))))))))))))))))))))))");
     }
 
     @Test
     public void testDouble()
-            throws Exception
-    {
+        throws Exception {
         assertExpression("123.", new DoubleLiteral("123"));
         assertExpression("123.0", new DoubleLiteral("123"));
         assertExpression(".5", new DoubleLiteral(".5"));
@@ -78,34 +76,32 @@ public class TestSqlParser
     @Test
     public void testParameter() throws Exception {
         assertExpression("?", new ParameterExpression(1));
-        for (int i=0;i<1000;i++) {
+        for (int i = 0; i < 1000; i++) {
             assertExpression(String.format(Locale.ENGLISH, "$%d", i), new ParameterExpression(i));
         }
     }
 
     @Test
-    public void testDoubleInQuery()
-    {
+    public void testDoubleInQuery() {
         assertStatement("SELECT 123.456E7 FROM DUAL",
-                new Query(
-                        Optional.<With>absent(),
-                        new QuerySpecification(
-                                selectList(new DoubleLiteral("123.456E7")),
-                                table(QualifiedName.of("dual")),
-                                Optional.<Expression>absent(),
-                                ImmutableList.<Expression>of(),
-                                Optional.<Expression>absent(),
-                                ImmutableList.<SortItem>of(),
-                                Optional.<Expression>absent(),
-                                Optional.<Expression>absent()),
-                        ImmutableList.<SortItem>of(),
-                        Optional.<Expression>absent(),
-                        Optional.<Expression>absent()));
+            new Query(
+                Optional.<With>absent(),
+                new QuerySpecification(
+                    selectList(new DoubleLiteral("123.456E7")),
+                    table(QualifiedName.of("dual")),
+                    Optional.<Expression>absent(),
+                    ImmutableList.<Expression>of(),
+                    Optional.<Expression>absent(),
+                    ImmutableList.<SortItem>of(),
+                    Optional.<Expression>absent(),
+                    Optional.<Expression>absent()),
+                ImmutableList.<SortItem>of(),
+                Optional.<Expression>absent(),
+                Optional.<Expression>absent()));
     }
 
     @Test
-    public void testEmptyExpression()
-    {
+    public void testEmptyExpression() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:1: no viable alternative at input '<EOF>'");
 
@@ -113,157 +109,137 @@ public class TestSqlParser
     }
 
     @Test
-    public void testEmptyStatement()
-    {
+    public void testEmptyStatement() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:1: no viable alternative at input '<EOF>'");
         SqlParser.createStatement("");
     }
 
     @Test
-    public void testExpressionWithTrailingJunk()
-    {
+    public void testExpressionWithTrailingJunk() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:7: mismatched input 'x' expecting EOF");
         SqlParser.createExpression("1 + 1 x");
     }
 
     @Test
-    public void testTokenizeErrorStartOfLine()
-    {
+    public void testTokenizeErrorStartOfLine() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:1: no viable alternative at character '@'");
         SqlParser.createStatement("@select");
     }
 
     @Test
-    public void testTokenizeErrorMiddleOfLine()
-    {
+    public void testTokenizeErrorMiddleOfLine() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:25: no viable alternative at character '@'");
         SqlParser.createStatement("select * from foo where @what");
     }
 
     @Test
-    public void testTokenizeErrorIncompleteToken()
-    {
+    public void testTokenizeErrorIncompleteToken() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:20: mismatched character '<EOF>' expecting '''");
         SqlParser.createStatement("select * from 'oops");
     }
 
     @Test
-    public void testParseErrorStartOfLine()
-    {
+    public void testParseErrorStartOfLine() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 3:1: no viable alternative at input 'from'");
         SqlParser.createStatement("select *\nfrom x\nfrom");
     }
 
     @Test
-    public void testParseErrorMiddleOfLine()
-    {
+    public void testParseErrorMiddleOfLine() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 3:7: no viable alternative at input 'from'");
         SqlParser.createStatement("select *\nfrom x\nwhere from");
     }
 
     @Test
-    public void testParseErrorEndOfInput()
-    {
+    public void testParseErrorEndOfInput() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:14: no viable alternative at input '<EOF>'");
         SqlParser.createStatement("select * from");
     }
 
     @Test
-    public void testParseErrorEndOfInputWhitespace()
-    {
+    public void testParseErrorEndOfInputWhitespace() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:16: no viable alternative at input '<EOF>'");
         SqlParser.createStatement("select * from  ");
     }
 
     @Test
-    public void testParseErrorBackquotes()
-    {
+    public void testParseErrorBackquotes() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:15: backquoted identifiers are not supported; use double quotes to quote identifiers");
         SqlParser.createStatement("select * from `foo`");
     }
 
     @Test
-    public void testParseErrorBackquotesEndOfInput()
-    {
+    public void testParseErrorBackquotesEndOfInput() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:19: backquoted identifiers are not supported; use double quotes to quote identifiers");
         SqlParser.createStatement("select * from foo `bar`");
     }
 
     @Test
-    public void testParseErrorDigitIdentifiers()
-    {
+    public void testParseErrorDigitIdentifiers() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:8: identifiers must not start with a digit; surround the identifier with double quotes");
         SqlParser.createStatement("select 1x from dual");
     }
 
     @Test
-    public void testIdentifierWithColon()
-    {
+    public void testIdentifierWithColon() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:15: identifiers must not contain a colon; use '@' instead of ':' for table links");
         SqlParser.createStatement("select * from foo:bar");
     }
 
     @Test
-    public void testParseErrorDualOrderBy()
-    {
+    public void testParseErrorDualOrderBy() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:35: no viable alternative at input 'order'");
         SqlParser.createStatement("select fuu from dual order by fuu order by fuu");
     }
 
     @Test
-    public void testParseErrorReverseOrderByLimit()
-    {
+    public void testParseErrorReverseOrderByLimit() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:31: mismatched input 'order' expecting EOF");
         SqlParser.createStatement("select fuu from dual limit 10 order by fuu");
     }
 
     @Test
-    public void testParseErrorReverseOrderByLimitOffset()
-    {
-        expectedException.expect( ParsingException.class);
+    public void testParseErrorReverseOrderByLimitOffset() {
+        expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:41: mismatched input 'order' expecting EOF");
         SqlParser.createStatement("select fuu from dual limit 10 offset 20 order by fuu");
     }
 
     @Test
-    public void testParseErrorReverseOrderByOffset()
-    {
-        expectedException.expect( ParsingException.class);
+    public void testParseErrorReverseOrderByOffset() {
+        expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:32: mismatched input 'order' expecting EOF");
         SqlParser.createStatement("select fuu from dual offset 20 order by fuu");
     }
 
     @Test
-    public void testParseErrorReverseLimitOffset()
-    {
-        expectedException.expect( ParsingException.class);
+    public void testParseErrorReverseLimitOffset() {
+        expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:32: mismatched input 'limit' expecting EOF");
         SqlParser.createStatement("select fuu from dual offset 20 limit 10");
     }
 
     @Test
-    public void testParsingExceptionPositionInfo()
-    {
+    public void testParsingExceptionPositionInfo() {
         try {
             SqlParser.createStatement("select *\nfrom x\nwhere from");
             fail("expected exception");
-        }
-        catch (ParsingException e) {
+        } catch (ParsingException e) {
             assertEquals(e.getMessage(), "line 3:7: no viable alternative at input 'from'");
             assertEquals(e.getErrorMessage(), "no viable alternative at input 'from'");
             assertEquals(e.getLineNumber(), 3);
@@ -273,63 +249,54 @@ public class TestSqlParser
 
     @Test
     public void testDate()
-            throws Exception
-    {
+        throws Exception {
         assertExpression("DATE '2012-03-22'", new DateLiteral("2012-03-22"));
     }
 
     @Test
     public void testTime()
-            throws Exception
-    {
+        throws Exception {
         assertExpression("TIME '03:04:05'", new TimeLiteral("03:04:05"));
     }
 
     @Test
     public void testCurrentTimestamp()
-            throws Exception
-    {
+        throws Exception {
         assertExpression("CURRENT_TIMESTAMP", new CurrentTime(CurrentTime.Type.TIMESTAMP));
     }
 
     @Test
-    public void testStackOverflowExpression()
-    {
+    public void testStackOverflowExpression() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:1: expression is too large (stack overflow while parsing)");
         SqlParser.createExpression(Joiner.on(" OR ").join(nCopies(2000, "x = y")));
     }
 
     @Test
-    public void testStackOverflowStatement()
-    {
+    public void testStackOverflowStatement() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:1: statement is too large (stack overflow while parsing)");
         SqlParser.createStatement("SELECT " + Joiner.on(" OR ").join(nCopies(2000, "x = y")));
     }
 
-    private static void assertStatement(String query, Statement expected)
-    {
+    private static void assertStatement(String query, Statement expected) {
         assertParsed(query, expected, SqlParser.createStatement(query));
     }
 
-    private static void assertExpression(String expression, Expression expected)
-    {
+    private static void assertExpression(String expression, Expression expected) {
         assertParsed(expression, expected, SqlParser.createExpression(expression));
     }
 
-    private static void assertParsed(String input, Node expected, Node parsed)
-    {
+    private static void assertParsed(String input, Node expected, Node parsed) {
         if (!parsed.equals(expected)) {
             fail(format("expected\n\n%s\n\nto parse as\n\n%s\n\nbut was\n\n%s\n",
-                    indent(input),
-                    indent(formatSql(expected)),
-                    indent(formatSql(parsed))));
+                indent(input),
+                indent(formatSql(expected)),
+                indent(formatSql(parsed))));
         }
     }
 
-    private static String indent(String value)
-    {
+    private static String indent(String value) {
         String indent = "    ";
         return indent + value.trim().replaceAll("\n", "\n" + indent);
     }

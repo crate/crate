@@ -67,9 +67,9 @@ public class IndexColumnConstraint extends ColumnConstraint {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("method", indexMethod)
-                .add("properties", properties)
-                .toString();
+            .add("method", indexMethod)
+            .add("properties", properties)
+            .toString();
     }
 
     @Override

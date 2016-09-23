@@ -29,8 +29,7 @@ import com.google.common.base.Preconditions;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class
-        Update extends Statement {
+public class Update extends Statement {
 
     private final Relation relation;
     private final List<Assignment> assignments;
@@ -64,10 +63,10 @@ public class
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("relation", relation)
-                .add("assignments", assignments)
-                .add("where", where.orNull())
-                .toString();
+            .add("relation", relation)
+            .add("assignments", assignments)
+            .add("where", where.orNull())
+            .toString();
     }
 
     @Override

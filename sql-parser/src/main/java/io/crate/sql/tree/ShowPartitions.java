@@ -30,9 +30,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class ShowPartitions
-        extends Statement
-{
+public class ShowPartitions extends Statement {
+
     private final QualifiedName table;
     private final Optional<Expression> where;
     private final List<SortItem> orderBy;
@@ -43,8 +42,7 @@ public class ShowPartitions
                           Optional<Expression> where,
                           List<SortItem> orderBy,
                           Optional<Expression> limit,
-                          Optional<Expression> offset)
-    {
+                          Optional<Expression> offset) {
         this.table = checkNotNull(table, "table is null");
         this.where = checkNotNull(where, "where is null");
         this.orderBy = ImmutableList.copyOf(checkNotNull(orderBy, "orderBy is null"));
@@ -52,46 +50,38 @@ public class ShowPartitions
         this.offset = checkNotNull(offset, "offset is null");
     }
 
-    public QualifiedName getTable()
-    {
+    public QualifiedName getTable() {
         return table;
     }
 
-    public Optional<Expression> getWhere()
-    {
+    public Optional<Expression> getWhere() {
         return where;
     }
 
-    public List<SortItem> getOrderBy()
-    {
+    public List<SortItem> getOrderBy() {
         return orderBy;
     }
 
-    public Optional<Expression> getLimit()
-    {
+    public Optional<Expression> getLimit() {
         return limit;
     }
 
-    public Optional<Expression> getOffset()
-    {
+    public Optional<Expression> getOffset() {
         return offset;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitShowPartitions(this, context);
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hashCode(table, where, orderBy, limit, offset);
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
@@ -100,21 +90,20 @@ public class ShowPartitions
         }
         ShowPartitions o = (ShowPartitions) obj;
         return Objects.equal(table, o.table) &&
-                Objects.equal(where, o.where) &&
-                Objects.equal(orderBy, o.orderBy) &&
-                Objects.equal(limit, o.limit) &&
-                Objects.equal(offset, o.offset);
+               Objects.equal(where, o.where) &&
+               Objects.equal(orderBy, o.orderBy) &&
+               Objects.equal(limit, o.limit) &&
+               Objects.equal(offset, o.offset);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("table", table)
-                .add("where", where)
-                .add("orderBy", orderBy)
-                .add("limit", limit)
-                .add("offset", offset)
-                .toString();
+            .add("table", table)
+            .add("where", where)
+            .add("orderBy", orderBy)
+            .add("limit", limit)
+            .add("offset", offset)
+            .toString();
     }
 }

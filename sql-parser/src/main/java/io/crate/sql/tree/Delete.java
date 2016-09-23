@@ -48,8 +48,7 @@ public class Delete extends Statement {
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitDelete(this, context);
     }
 
@@ -63,9 +62,9 @@ public class Delete extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("relation", relation)
-                .add("where", where.orNull())
-                .toString();
+            .add("relation", relation)
+            .add("where", where.orNull())
+            .toString();
     }
 
     @Override

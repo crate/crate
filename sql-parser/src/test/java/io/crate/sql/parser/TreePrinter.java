@@ -27,17 +27,15 @@ import org.antlr.runtime.tree.Tree;
 
 import java.util.List;
 
-public final class TreePrinter
-{
+public final class TreePrinter {
+
     private TreePrinter() {}
 
-    public static String treeToString(Tree tree)
-    {
+    public static String treeToString(Tree tree) {
         return treeToString(tree, 1);
     }
 
-    private static String treeToString(Tree tree, int depth)
-    {
+    private static String treeToString(Tree tree, int depth) {
         if (tree.getChildCount() == 0) {
             return quotedString(tree.toString());
         }
@@ -48,8 +46,7 @@ public final class TreePrinter
             if (hasSubtree(t) && (leafCount(tree) > 2)) {
                 sb.append("\n");
                 sb.append(Strings.repeat("   ", depth));
-            }
-            else {
+            } else {
                 sb.append(" ");
             }
             sb.append(treeToString(t, depth + 1));
@@ -58,13 +55,11 @@ public final class TreePrinter
         return sb.toString();
     }
 
-    private static String quotedString(String s)
-    {
+    private static String quotedString(String s) {
         return s.contains(" ") ? ('"' + s + '"') : s;
     }
 
-    private static boolean hasSubtree(Tree tree)
-    {
+    private static boolean hasSubtree(Tree tree) {
         for (Tree t : children(tree)) {
             if (t.getChildCount() > 0) {
                 return true;
@@ -73,8 +68,7 @@ public final class TreePrinter
         return false;
     }
 
-    private static int leafCount(Tree tree)
-    {
+    private static int leafCount(Tree tree) {
         if (tree.getChildCount() == 0) {
             return 1;
         }
@@ -86,8 +80,7 @@ public final class TreePrinter
         return n;
     }
 
-    private static List<Tree> children(Tree tree)
-    {
+    private static List<Tree> children(Tree tree) {
         ImmutableList.Builder<Tree> list = ImmutableList.builder();
         for (int i = 0; i < tree.getChildCount(); i++) {
             list.add(tree.getChild(i));
