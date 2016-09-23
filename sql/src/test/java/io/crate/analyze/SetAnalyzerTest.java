@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.MetaDataModule;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.sql.tree.SetStatement;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
@@ -55,22 +56,62 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testSet() throws Exception {
+    public void testSetGlobal() throws Exception {
         SetAnalyzedStatement analysis = analyze("SET GLOBAL PERSISTENT stats.operations_log_size=1");
         assertThat(analysis.isPersistent(), is(true));
+        assertThat(analysis.scope(), is(SetStatement.Scope.GLOBAL));
         assertThat(analysis.settings().toDelimitedString(','), is("stats.operations_log_size=1,"));
 
         analysis = analyze("SET GLOBAL TRANSIENT stats.jobs_log_size=2");
         assertThat(analysis.isPersistent(), is(false));
+        assertThat(analysis.scope(), is(SetStatement.Scope.GLOBAL));
         assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=2,"));
 
-        analysis = analyze("SET GLOBAL TRANSIENT stats.enabled=false, stats.operations_log_size=0, stats.jobs_log_size=0");
+        analysis = analyze("SET GLOBAL TRANSIENT stats.enabled=false, stats.operations_log_size=0, stats.jobs_log_size='0'");
+        assertThat(analysis.scope(), is(SetStatement.Scope.GLOBAL));
         assertThat(analysis.isPersistent(), is(false));
         assertThat(analysis.settings(), is(Settings.builder()
             .put("stats.enabled", false)
             .put("stats.operations_log_size", 0)
             .put("stats.jobs_log_size", 0)
             .build()));
+    }
+
+    @Test
+    public void testSetLocal() throws Exception {
+        SetAnalyzedStatement analysis = analyze("SET LOCAL something TO 2");
+        assertThat(analysis.scope(), is(SetStatement.Scope.LOCAL));
+        assertThat(analysis.settings().toDelimitedString(','), is("something=[2],"));
+
+        analysis = analyze("SET LOCAL something TO DEFAULT");
+        assertThat(analysis.scope(), is(SetStatement.Scope.LOCAL));
+        assertThat(analysis.settings().toDelimitedString(','), is("something=[],"));
+    }
+
+    @Test
+    public void testSetSession() throws Exception {
+        SetAnalyzedStatement analysis = analyze("SET SESSION something TO 2");
+        assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
+        assertThat(analysis.settings().toDelimitedString(','), is("something=[2],"));
+
+        analysis = analyze("SET SESSION something = 1,2,3");
+        assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
+        assertThat(analysis.settings().toDelimitedString(','), is("something=[1, 2, 3],"));
+    }
+
+    @Test
+    public void testSet() throws Exception {
+        SetAnalyzedStatement analysis = analyze("SET something TO 2");
+        assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
+        assertThat(analysis.settings().toDelimitedString(','), is("something=[2],"));
+
+        analysis = analyze("SET something = DEFAULT");
+        assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
+        assertThat(analysis.settings().toDelimitedString(','), is("something=[],"));
+
+        analysis = analyze("SET something = default");
+        assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
+        assertThat(analysis.settings().toDelimitedString(','), is("something=[],"));
     }
 
     @Test
@@ -97,6 +138,13 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid value for argument 'cluster.graceful_stop.timeout'");
         analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = '-1h'");
+    }
+
+    @Test
+    public void testSetSessionInvalidSetting() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("GLOBAL Cluster setting 'stats.operations_log_size' cannot be used with SET SESSION / LOCAL");
+        analyze("SET SESSION stats.operations_log_size=1");
     }
 
     @Test

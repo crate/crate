@@ -137,6 +137,9 @@ tokens {
     MATCH_PREDICATE_IDENT_LIST;
     SET_GLOBAL;
     SET_SESSION;
+    SET_LOCAL;
+    EXPR_LIST;
+    BOOLEAN_ON;
 }
 
 @header {
@@ -528,6 +531,14 @@ simpleExpr
 identExpr
     : parameterOrSimpleLiteral
     | ident                     -> ^(IDENT_EXPR ident)
+    ;
+
+setExpr
+    : STRING
+    | numericLiteral
+    | bool
+    | ident             -> ^(IDENT_EXPR ident)
+    | ON                -> ^(BOOLEAN_ON )
     ;
 
 parameterOrLiteral
@@ -1088,9 +1099,10 @@ beginStmt
     ;
 
 setStmt
-    : (GLOBAL settingsType? setAssignmentList) => GLOBAL settingsType? setAssignmentList -> ^(SET_GLOBAL settingsType? setAssignmentList)
-    | (SESSION setAssignmentList) => SESSION setAssignmentList -> ^(SET_SESSION setAssignmentList)
-    | setAssignmentList -> ^(SET_SESSION setAssignmentList)
+    : (GLOBAL settingsType setGlobalAssignmentList) => GLOBAL settingsType setGlobalAssignmentList -> ^(SET_GLOBAL settingsType setGlobalAssignmentList)
+    | (SESSION setAssignment) => SESSION setAssignment -> ^(SET_SESSION setAssignment)
+    | (LOCAL setAssignment) => LOCAL setAssignment -> ^(SET_LOCAL setAssignment)
+    | setAssignment -> ^(SET_SESSION setAssignment)
     ;
 
 resetStmt
@@ -1098,16 +1110,26 @@ resetStmt
     ;
 
 settingsType
-    : TRANSIENT
+    : -> TRANSIENT
+    | TRANSIENT
     | PERSISTENT
     ;
 
-setAssignmentList
-    : setAssignment ( ',' setAssignment )* -> ^(ASSIGNMENT_LIST setAssignment+)
+setGlobalAssignmentList
+    : setGlobalAssignment ( ',' setGlobalAssignment )* -> ^(ASSIGNMENT_LIST setGlobalAssignment+)
+    ;
+
+setGlobalAssignment
+    : numericExpr (EQ|TO) expr -> ^(ASSIGNMENT numericExpr expr)
     ;
 
 setAssignment
-    : numericExpr (EQ|TO) expr -> ^(ASSIGNMENT numericExpr expr)
+    : numericExpr (EQ|TO) setExprList -> ^(ASSIGNMENT numericExpr setExprList)
+    ;
+
+setExprList
+    : DEFAULT
+    | setExpr ( ',' setExpr )* -> ^(EXPR_LIST setExpr+)
     ;
 
 killStmt
@@ -1123,7 +1145,7 @@ nonReserved
     : ALIAS | ANALYZER | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CLUSTERED
     | COLUMNS | COPY | CURRENT | DATE | DAY | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
-    | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LOGICAL | MATERIALIZED | MINUTE
+    | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LOGICAL | LOCAL | MATERIALIZED | MINUTE
     | MONTH | OFF | ONLY | OVER | OPTIMIZE | PARTITION | PARTITIONED | PARTITIONS | PLAIN
     | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND | SESSION
     | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
@@ -1234,6 +1256,7 @@ GEO_POINT: 'GEO_POINT';
 GEO_SHAPE: 'GEO_SHAPE';
 GLOBAL : 'GLOBAL';
 SESSION : 'SESSION';
+LOCAL : 'LOCAL';
 BEGIN: 'BEGIN';
 
 CONSTRAINT: 'CONSTRAINT';
@@ -1280,6 +1303,7 @@ KEY: 'KEY';
 DUPLICATE: 'DUPLICATE';
 SET: 'SET';
 RESET: 'RESET';
+DEFAULT: 'DEFAULT';
 COPY: 'COPY';
 CLUSTERED: 'CLUSTERED';
 SHARDS: 'SHARDS';

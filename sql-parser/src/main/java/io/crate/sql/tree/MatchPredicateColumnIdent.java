@@ -39,7 +39,7 @@ public class MatchPredicateColumnIdent extends Expression {
                 boost instanceof LongLiteral || boost instanceof DoubleLiteral || boost instanceof ParameterExpression,
                 "'boost' value must be a numeric literal or a parameter expression");
         }
-        this.boost = MoreObjects.firstNonNull(boost, new NullLiteral());
+        this.boost = MoreObjects.firstNonNull(boost, NullLiteral.INSTANCE);
     }
 
     public Expression columnIdent() {

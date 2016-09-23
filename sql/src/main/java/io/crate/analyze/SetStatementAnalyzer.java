@@ -42,24 +42,32 @@ public class SetStatementAnalyzer {
     }
 
     public static SetAnalyzedStatement analyze(SetStatement node, ParameterContext parameterContext) {
-        if (SetStatement.Scope.SESSION.equals(node.scope())) {
-            logger.debug("SET SESSION STATEMENT: {}", node.toString());
-        }
         Settings.Builder builder = Settings.builder();
+
+        if (!SetStatement.Scope.GLOBAL.equals(node.scope())) {
+            logger.warn("SET STATEMENT WITH SESSION OR LOCAL WILL BE IGNORED: {}", node);
+            Assignment assignment = node.assignments().get(0);
+            String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(),
+                parameterContext.parameters());
+            Set<String> settingNames = CrateSettings.settingNamesByPrefix(settingsName);
+            if (settingNames.size() != 0) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL", settingsName));
+            }
+            builder.put(settingsName, assignment.expressions());
+            return new SetAnalyzedStatement(node.scope(), builder.build(),
+                node.settingType().equals(SetStatement.SettingType.PERSISTENT));
+        }
+
         for (Assignment assignment : node.assignments()) {
             String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(),
                 parameterContext.parameters());
 
-            if (SetStatement.Scope.SESSION.equals(node.scope())) {
-                builder.put(settingsName, assignment.expression());
-            } else {
-                SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(settingsName);
-                for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
-                    checkIfSettingIsRuntime(setting);
-                }
-
-                settingsApplier.apply(builder, parameterContext.parameters(), assignment.expression());
+            SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(settingsName);
+            for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
+                checkIfSettingIsRuntime(setting);
             }
+            settingsApplier.apply(builder, parameterContext.parameters(), assignment.expression());
+
         }
         return new SetAnalyzedStatement(node.scope(), builder.build(),
             node.settingType().equals(SetStatement.SettingType.PERSISTENT));

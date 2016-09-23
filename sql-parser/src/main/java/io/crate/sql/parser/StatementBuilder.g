@@ -384,13 +384,17 @@ exprList returns [List<Expression> value = new ArrayList<>()]
     : ( expr { $value.add($expr.value); } )*
     ;
 
+multiExprList returns [List<Expression> value = new ArrayList<>()]
+    : (setExpr { $value.add($setExpr.value); })+
+    ;
+
 parameterExpr returns [ParameterExpression value]
     : '$' integer { $value = new ParameterExpression(Integer.parseInt($integer.value)); }
     | '?'         { $value = new ParameterExpression(parameterPos++); }
     ;
 
 parameterOrSimpleLiteral returns [Expression value]
-    : NULL                  { $value = new NullLiteral(); }
+    : NULL                  { $value = NullLiteral.INSTANCE; }
     | parameterExpr         { $value = $parameterExpr.value; }
     | string                { $value = new StringLiteral($string.value); }
     | integer               { $value = new LongLiteral($integer.value); }
@@ -400,6 +404,15 @@ parameterOrSimpleLiteral returns [Expression value]
     | ^(IDENT_EXPR ident)   { $value = new StringLiteral($ident.value); }
     ;
 
+setExpr returns [Expression value]
+    : string                { $value = new StringLiteral($string.value); }
+    | integer               { $value = new LongLiteral($integer.value); }
+    | decimal               { $value = new DoubleLiteral($decimal.value); }
+    | TRUE                  { $value = BooleanLiteral.TRUE_LITERAL; }
+    | FALSE                 { $value = BooleanLiteral.FALSE_LITERAL; }
+    | ^(IDENT_EXPR ident)   { $value = new StringLiteral($ident.value); }
+    | BOOLEAN_ON            { $value = BooleanLiteral.TRUE_LITERAL; }
+    ;
 
 subscript returns [SubscriptExpression value]
     :   ^('[' a=expr b=expr) { $value = new SubscriptExpression($a.value, $b.value); }
@@ -1036,10 +1049,16 @@ tableWithPartitionList returns [List<Table> value = new ArrayList<>()]
     ;
 
 set returns [SetStatement value]
-    : ^(SET_GLOBAL assignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.GLOBAL, $assignments.value); }
-    | ^(SET_GLOBAL TRANSIENT assignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.GLOBAL, SetStatement.SettingType.TRANSIENT, $assignments.value); }
-    | ^(SET_GLOBAL PERSISTENT assignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.GLOBAL, SetStatement.SettingType.PERSISTENT, $assignments.value); }
-    | ^(SET_SESSION assignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.SESSION, $assignments.value); }
+    : ^(SET_GLOBAL globalAssignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.GLOBAL, $globalAssignments.value); }
+    | ^(SET_GLOBAL TRANSIENT globalAssignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.GLOBAL, SetStatement.SettingType.TRANSIENT, $globalAssignments.value); }
+    | ^(SET_GLOBAL PERSISTENT globalAssignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.GLOBAL, SetStatement.SettingType.PERSISTENT, $globalAssignments.value); }
+    | ^(SET_SESSION sessionAssignment=setAssignment) {  $value = new SetStatement(SetStatement.Scope.SESSION, $sessionAssignment.value); }
+    | ^(SET_LOCAL localAssignment=setAssignment) { $value = new SetStatement(SetStatement.Scope.LOCAL, $localAssignment.value); }
+    ;
+
+setAssignment returns [Assignment value]
+    : ^(ASSIGNMENT qname DEFAULT) { $value = new Assignment(new QualifiedNameReference($qname.value), ImmutableList.<Expression>of()); }
+    | ^(ASSIGNMENT qname ^(EXPR_LIST multiExprList)) { $value = new Assignment(new QualifiedNameReference($qname.value), $multiExprList.value); }
     ;
 
 begin returns [BeginStatement value]

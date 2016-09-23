@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for SET LOCAL|SESSION statements.
+
  - Fix: ``ANY`` operator fails in the ``WHERE`` clause if a subscript is
    used as an expression.
    E.g. 'value' = any(obj_array[1]['a']['b'])
