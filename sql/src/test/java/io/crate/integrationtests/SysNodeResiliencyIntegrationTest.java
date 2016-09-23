@@ -75,7 +75,7 @@ public class SysNodeResiliencyIntegrationTest extends SQLTransportIntegrationTes
         assertThat(response.rows()[0][0], is(nullValue()));
         assertThat(response.rows()[0][1], is(nullValue()));
         assertThat(response.rows()[0][2], is(notNullValue()));
-        assertThat((String)response.rows()[0][3], is(unluckyNode));
+        assertThat((String) response.rows()[0][3], is(unluckyNode));
     }
 
     @Test

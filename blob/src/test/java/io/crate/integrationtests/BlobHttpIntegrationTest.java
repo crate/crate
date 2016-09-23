@@ -55,7 +55,6 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
 
     protected InetSocketAddress address;
     protected InetSocketAddress address2;
-
     protected CloseableHttpClient httpClient = HttpClients.createDefault();
 
     @Before
@@ -67,17 +66,17 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class);
 
         Settings indexSettings = Settings.builder()
-                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
-                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
-                .build();
+            .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
+            .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
+            .build();
         blobIndices.createBlobTable("test", indexSettings).get();
         blobIndices.createBlobTable("test_blobs2", indexSettings).get();
 
         client().admin().indices().prepareCreate("test_no_blobs")
-                .setSettings(
-                        Settings.builder()
-                                .put("number_of_shards", 2)
-                                .put("number_of_replicas", 0).build()).execute().actionGet();
+            .setSettings(
+                Settings.builder()
+                    .put("number_of_shards", 2)
+                    .put("number_of_replicas", 0).build()).execute().actionGet();
         ensureGreen();
     }
 
@@ -125,7 +124,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
                         String resultContent = EntityUtils.toString(res.getEntity());
                         if (!resultContent.equals(expected)) {
                             logger.warn(String.format(Locale.ENGLISH, "incorrect response %d -- length: %d expected: %d\n",
-                                    indexerId, resultContent.length(), expected.length()));
+                                indexerId, resultContent.length(), expected.length()));
                         }
                         results.put(indexerId, (statusCode >= 200 && statusCode < 300 &&
                                                 expected.equals(resultContent)));

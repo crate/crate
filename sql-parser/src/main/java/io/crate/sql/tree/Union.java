@@ -28,48 +28,41 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-public class Union
-        extends SetOperation
-{
+public class Union extends SetOperation {
+
     private final List<Relation> relations;
     private final boolean distinct;
 
-    public Union(List<Relation> relations, boolean distinct)
-    {
+    public Union(List<Relation> relations, boolean distinct) {
         Preconditions.checkNotNull(relations, "relations is null");
 
         this.relations = ImmutableList.copyOf(relations);
         this.distinct = distinct;
     }
 
-    public List<Relation> getRelations()
-    {
+    public List<Relation> getRelations() {
         return relations;
     }
 
-    public boolean isDistinct()
-    {
+    public boolean isDistinct() {
         return distinct;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitUnion(this, context);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("relations", relations)
-                .add("distinct", distinct)
-                .toString();
+            .add("relations", relations)
+            .add("distinct", distinct)
+            .toString();
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
@@ -78,12 +71,11 @@ public class Union
         }
         Union o = (Union) obj;
         return Objects.equal(relations, o.relations) &&
-                Objects.equal(distinct, o.distinct);
+               Objects.equal(distinct, o.distinct);
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hashCode(relations, distinct);
     }
 }

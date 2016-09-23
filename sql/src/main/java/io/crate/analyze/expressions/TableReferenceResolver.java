@@ -56,8 +56,8 @@ public class TableReferenceResolver implements FieldProvider<Reference> {
         ColumnIdent columnIdent = new ColumnIdent(parts.get(parts.size() - 1), path);
         if (parts.size() != 1) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Column reference \"%s\" has too many parts. " +
-                    "A column must not have a schema or a table here.", qualifiedName));
+                "Column reference \"%s\" has too many parts. " +
+                "A column must not have a schema or a table here.", qualifiedName));
         }
 
         for (Reference reference : tableReferences) {

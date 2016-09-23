@@ -84,7 +84,7 @@ public class BlobPlugin extends Plugin {
         return Collections.<Module>singletonList(new BlobShardModule(indexSettings));
     }
 
-    public void onModule(HttpServerModule module){
+    public void onModule(HttpServerModule module) {
         module.setHttpServerTransport(CrateNettyHttpServerTransport.class, "crate");
     }
 

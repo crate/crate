@@ -82,8 +82,6 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
         return String.format(Locale.ENGLISH, "Cannot convert \"%s\" to geo_shape", value);
     }
 
-
-
     @Override
     public int compareValueTo(Map<String, Object> val1, Map<String, Object> val2) {
         // TODO: compare without converting to shape
@@ -111,6 +109,6 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
 
     @Override
     public void writeValueTo(StreamOutput out, Object v) throws IOException {
-        out.writeMap((Map<String, Object>)v);
+        out.writeMap((Map<String, Object>) v);
     }
 }

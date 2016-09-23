@@ -21,32 +21,25 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.collect.Iterables;
+public class QualifiedNameReference extends Expression {
 
-public class QualifiedNameReference
-        extends Expression
-{
     private final QualifiedName name;
 
-    public QualifiedNameReference(QualifiedName name)
-    {
+    public QualifiedNameReference(QualifiedName name) {
         this.name = name;
     }
 
-    public QualifiedName getName()
-    {
+    public QualifiedName getName() {
         return name;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitQualifiedNameReference(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -64,8 +57,7 @@ public class QualifiedNameReference
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return name.hashCode();
     }
 }

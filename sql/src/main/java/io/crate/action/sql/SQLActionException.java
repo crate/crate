@@ -54,9 +54,9 @@ public class SQLActionException extends ElasticsearchException {
      * Construct a <code>SQLActionException</code> with the specified message, error code,
      * rest status code stack trace elements.
      *
-     * @param message the detailed message
-     * @param errorCode the crate error code
-     * @param status the rest status
+     * @param message            the detailed message
+     * @param errorCode          the crate error code
+     * @param status             the rest status
      * @param stackTraceElements the stacktrace as array
      */
     public SQLActionException(String message, int errorCode, RestStatus status, StackTraceElement[] stackTraceElements) {
@@ -66,9 +66,9 @@ public class SQLActionException extends ElasticsearchException {
     }
 
     @Nullable
-    public static SQLActionException fromSerializationWrapper(NotSerializableExceptionWrapper wrapper){
+    public static SQLActionException fromSerializationWrapper(NotSerializableExceptionWrapper wrapper) {
         List<String> errorCodeHeader = wrapper.getHeader(ERROR_CODE_KEY);
-        if (errorCodeHeader != null && errorCodeHeader.size() == 1){
+        if (errorCodeHeader != null && errorCodeHeader.size() == 1) {
             int ec = Integer.parseInt(errorCodeHeader.get(0));
 
             /**
@@ -89,7 +89,6 @@ public class SQLActionException extends ElasticsearchException {
     }
 
 
-
     /**
      * Return the error code given defined on construction
      */
@@ -101,7 +100,7 @@ public class SQLActionException extends ElasticsearchException {
 
     @Override
     public String getDetailedMessage() {
-        return status +  " " +  errorCode() +  " " + super.getMessage();
+        return status + " " + errorCode() + " " + super.getMessage();
     }
 
     @Override

@@ -34,7 +34,7 @@ import java.io.IOException;
 /**
  * ComparatorSource for fields that don't have a backing FieldMapper and FieldCache.
  * This always returns the appropriate <code>missingValue</code>.
- *
+ * <p>
  * Only used on shards with no values for the compared field.
  */
 class NullFieldComparatorSource extends IndexFieldData.XFieldComparatorSource {

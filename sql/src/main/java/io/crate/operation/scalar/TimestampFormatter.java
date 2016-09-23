@@ -43,9 +43,11 @@ public class TimestampFormatter {
 
     private final static Locale LOCALE = Locale.ENGLISH;
     private final static CharObjectMap<FormatTimestampPartFunction> PART_FORMATTERS = new CharObjectHashMap<>();
+
     private static void addFormatter(char character, FormatTimestampPartFunction fun) {
         PART_FORMATTERS.put(character, fun);
     }
+
     static {
         // %a	Abbreviated weekday name (Sun..Sat)
         addFormatter('a', new FormatTimestampPartFunction() {
@@ -73,7 +75,7 @@ public class TimestampFormatter {
             @Override
             public String format(DateTime timestamp) {
                 int n = timestamp.dayOfMonth().get();
-                StringBuilder builder = new StringBuilder(n>9 ? 4 : 3);
+                StringBuilder builder = new StringBuilder(n > 9 ? 4 : 3);
                 builder.append(n);
                 if (n >= 11 && n <= 13) {
                     builder.append("th");
@@ -217,10 +219,10 @@ public class TimestampFormatter {
         addFormatter('r', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
-                return    padded12HourFunction.format(timestamp) + ':'
-                        + paddedMinuteFunction.format(timestamp) + ':'
-                        + paddedSecondFunction.format(timestamp) + ' '
-                        + amPmFunc.format(timestamp);
+                return padded12HourFunction.format(timestamp) + ':'
+                       + paddedMinuteFunction.format(timestamp) + ':'
+                       + paddedSecondFunction.format(timestamp) + ' '
+                       + amPmFunc.format(timestamp);
             }
         });
 
@@ -233,9 +235,9 @@ public class TimestampFormatter {
         addFormatter('T', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
-                return    padded24HourFunction.format(timestamp) + ':'
-                        + paddedMinuteFunction.format(timestamp) + ':'
-                        + paddedSecondFunction.format(timestamp);
+                return padded24HourFunction.format(timestamp) + ':'
+                       + paddedMinuteFunction.format(timestamp) + ':'
+                       + paddedSecondFunction.format(timestamp);
             }
         });
 

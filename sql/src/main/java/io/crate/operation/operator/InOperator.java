@@ -47,7 +47,7 @@ public class InOperator extends Operator<Object> {
     public static void register(OperatorModule module) {
         for (DataType type : DataTypes.PRIMITIVE_TYPES) {
             FunctionInfo functionInfo = new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.<DataType>of(type, new SetType(type))), DataTypes.BOOLEAN);
+                new FunctionIdent(NAME, ImmutableList.<DataType>of(type, new SetType(type))), DataTypes.BOOLEAN);
             module.registerOperatorFunction(new InOperator(functionInfo));
         }
     }
@@ -69,7 +69,7 @@ public class InOperator extends Operator<Object> {
         Object inValue = ((Literal) left).value();
         Literal inList = (Literal) function.arguments().get(1);
         assert inList.valueType().id() == SetType.ID;
-        Set values = (Set)inList.value();
+        Set values = (Set) inList.value();
 
         if (!values.contains(inValue)) {
             return Literal.of(false);
@@ -85,7 +85,7 @@ public class InOperator extends Operator<Object> {
         assert (args[0] != null && args[1] != null);
 
         Object inValue = args[0].value();
-        Set<?> inList = (Set<?>)args[1].value();
+        Set<?> inList = (Set<?>) args[1].value();
 
         if (inValue == null || inList == null || inList.contains(null)) {
             return null;

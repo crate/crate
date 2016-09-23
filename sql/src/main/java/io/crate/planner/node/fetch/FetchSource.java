@@ -35,7 +35,7 @@ public class FetchSource {
     private final Collection<InputColumn> docIdCols;
     private final Collection<Reference> references;
 
-    public FetchSource(List<Reference> partitionedByColumns){
+    public FetchSource(List<Reference> partitionedByColumns) {
         this(partitionedByColumns, new LinkedHashSet<InputColumn>(), new LinkedHashSet<Reference>());
     }
 

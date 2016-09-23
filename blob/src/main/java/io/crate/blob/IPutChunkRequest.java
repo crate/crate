@@ -27,7 +27,9 @@ import java.util.UUID;
 
 public interface IPutChunkRequest {
 
-    public BytesReference content();
-    public UUID transferId();
-    public boolean isLast();
+    BytesReference content();
+
+    UUID transferId();
+
+    boolean isLast();
 }

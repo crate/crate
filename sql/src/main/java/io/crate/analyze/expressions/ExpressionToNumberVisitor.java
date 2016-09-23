@@ -29,7 +29,9 @@ import java.util.Locale;
 public class ExpressionToNumberVisitor extends AstVisitor<Number, Row> {
 
     private static final ExpressionToNumberVisitor INSTANCE = new ExpressionToNumberVisitor();
-    private ExpressionToNumberVisitor() {}
+
+    private ExpressionToNumberVisitor() {
+    }
 
     public static Number convert(Node node, Row parameters) {
         return INSTANCE.process(node, parameters);
@@ -44,7 +46,7 @@ public class ExpressionToNumberVisitor extends AstVisitor<Number, Row> {
                 stringNum = Double.valueOf(value);
             } catch (NumberFormatException e1) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "invalid number '%s'", value), e1);
+                    String.format(Locale.ENGLISH, "invalid number '%s'", value), e1);
             }
         }
         return stringNum;
@@ -75,12 +77,12 @@ public class ExpressionToNumberVisitor extends AstVisitor<Number, Row> {
         Number num;
         Object param = context.get(node.index());
         if (param instanceof Number) {
-            num = (Number)param;
+            num = (Number) param;
         } else if (param instanceof String) {
-            num = parseString((String)param);
+            num = parseString((String) param);
         } else {
             throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "invalid number %s", param));
+                String.format(Locale.ENGLISH, "invalid number %s", param));
         }
         return num;
     }
@@ -89,12 +91,12 @@ public class ExpressionToNumberVisitor extends AstVisitor<Number, Row> {
     protected Number visitNegativeExpression(NegativeExpression node, Row context) {
         Number n = process(node.getValue(), context);
         if (n instanceof Long) {
-            return -1L * (Long)n;
+            return -1L * (Long) n;
         } else if (n instanceof Double) {
-            return -1 * (Double)n;
+            return -1 * (Double) n;
         } else {
             throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "invalid number %s", node.getValue()));
+                String.format(Locale.ENGLISH, "invalid number %s", node.getValue()));
         }
     }
 

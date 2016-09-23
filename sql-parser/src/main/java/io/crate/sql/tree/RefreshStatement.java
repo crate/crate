@@ -58,8 +58,8 @@ public class RefreshStatement extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("table", tables)
-                .toString();
+            .add("table", tables)
+            .toString();
     }
 
     @Override

@@ -25,8 +25,8 @@ package io.crate.metadata;
 import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.StringType;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -41,7 +41,7 @@ public class IndexReferenceTest extends CrateUnitTest {
 
         ReferenceIdent indexReferenceIdent = new ReferenceIdent(tableIdent, "index_column");
         IndexReference indexReferenceInfo = new IndexReference(indexReferenceIdent,
-                Reference.IndexType.ANALYZED, ImmutableList.of(reference), "my_analyzer");
+            Reference.IndexType.ANALYZED, ImmutableList.of(reference), "my_analyzer");
 
         BytesStreamOutput out = new BytesStreamOutput();
         Reference.toStream(indexReferenceInfo, out);

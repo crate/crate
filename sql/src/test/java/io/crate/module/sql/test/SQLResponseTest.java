@@ -56,8 +56,8 @@ public class SQLResponseTest extends CrateUnitTest {
         r.rowCount(1L);
         //System.out.println(json(r));
         JSONAssert.assertEquals(
-                "{\"cols\":[\"col1\",\"col2\"],\"rows\":[[1,2]],\"rowcount\":1,\"duration\":0}",
-                json(r), true);
+            "{\"cols\":[\"col1\",\"col2\"],\"rows\":[[1,2]],\"rowcount\":1,\"duration\":0}",
+            json(r), true);
     }
 
     @Test
@@ -65,13 +65,13 @@ public class SQLResponseTest extends CrateUnitTest {
         SQLResponse r = new SQLResponse();
         r.cols(new String[]{"some", "thing"});
         r.rows(new Object[][]{
-                new Object[]{"one", "two"},
-                new Object[]{"three", "four"},
+            new Object[]{"one", "two"},
+            new Object[]{"three", "four"},
         });
         //System.out.println(json(r));
         JSONAssert.assertEquals(
-                "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"rowcount\":-1, \"duration\":0}",
-                json(r), true);
+            "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"rowcount\":-1, \"duration\":0}",
+            json(r), true);
     }
 
     @Test
@@ -79,18 +79,18 @@ public class SQLResponseTest extends CrateUnitTest {
         SQLResponse r = new SQLResponse();
         r.cols(new String[]{"some", "thing"});
         r.rows(new Object[][]{
-                new Object[]{"one", "two"},
-                new Object[]{"three", "four"},
+            new Object[]{"one", "two"},
+            new Object[]{"three", "four"},
         });
         // If no rowcount is set, -1 is returned
         JSONAssert.assertEquals(
-                "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"rowcount\":-1,\"duration\":0}",
-                json(r), true);
+            "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"rowcount\":-1,\"duration\":0}",
+            json(r), true);
 
         r.rowCount(2L);
         JSONAssert.assertEquals(
-                "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"rowcount\":2,\"duration\":0}",
-                json(r), true);
+            "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"rowcount\":2,\"duration\":0}",
+            json(r), true);
     }
 
     @Test
@@ -98,14 +98,16 @@ public class SQLResponseTest extends CrateUnitTest {
         SQLResponse r = new SQLResponse();
         r.cols(new String[]{"col1", "col2", "col3"});
         r.colTypes(new DataType[]{StringType.INSTANCE, new ArrayType(IntegerType.INSTANCE),
-                new SetType(new ArrayType(LongType.INSTANCE))});
+            new SetType(new ArrayType(LongType.INSTANCE))});
         r.includeTypes(true);
-        r.rows(new Object[][]{new Object[]{1, new Integer[]{42}, new HashSet<Long[]>(){{add(new Long[]{21L});}}}});
+        r.rows(new Object[][]{new Object[]{1, new Integer[]{42}, new HashSet<Long[]>() {{
+            add(new Long[]{21L});
+        }}}});
         r.rowCount(1L);
         System.out.println(json(r));
         JSONAssert.assertEquals(
-                "{\"cols\":[\"col1\",\"col2\",\"col3\"],\"col_types\":[4,[100,9],[101,[100,10]]],\"rows\":[[1,[42],[[21]]]],\"rowcount\":1,\"duration\":0}",
-                json(r), true);
+            "{\"cols\":[\"col1\",\"col2\",\"col3\"],\"col_types\":[4,[100,9],[101,[100,10]]],\"rows\":[[1,[42],[[21]]]],\"rowcount\":1,\"duration\":0}",
+            json(r), true);
 
     }
 
@@ -153,7 +155,7 @@ public class SQLResponseTest extends CrateUnitTest {
         r1 = new SQLResponse();
         r1.cols(new String[]{"a", "b"});
         r1.colTypes(new DataType[0]);
-        r1.rows(new Object[][]{new String[]{"ab","ba"}, new String[]{"ba", "ab"}});
+        r1.rows(new Object[][]{new String[]{"ab", "ba"}, new String[]{"ba", "ab"}});
         r1.rowCount(2L);
 
         r1.writeTo(o);
@@ -168,8 +170,6 @@ public class SQLResponseTest extends CrateUnitTest {
     }
 
 
-
-
     /**
      * the serialization tests here with fixed bytes arrays ensure that backward-compatibility isn't broken.
      */
@@ -177,15 +177,15 @@ public class SQLResponseTest extends CrateUnitTest {
     @Test
     public void testSerializationWriteTo() throws Exception {
         SQLResponse resp = new SQLResponse(
-                new String[] {"col1", "col2"},
-                new Object[][] {
-                        new Object[] {"row1_col1", "row1_col2"},
-                        new Object[] {"row2_col1", "row2_col2"}
-                },
-                new DataType[] { DataTypes.STRING, DataTypes.STRING },
-                2L,
-                0,
-                true
+            new String[]{"col1", "col2"},
+            new Object[][]{
+                new Object[]{"row1_col1", "row1_col2"},
+                new Object[]{"row2_col1", "row2_col2"}
+            },
+            new DataType[]{DataTypes.STRING, DataTypes.STRING},
+            2L,
+            0,
+            true
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -205,13 +205,13 @@ public class SQLResponseTest extends CrateUnitTest {
         SQLResponse resp = new SQLResponse();
         resp.readFrom(in);
 
-        assertThat(resp.cols(), is(new String[] { "col1", "col2" }));
-        assertThat(resp.rows(), is(new Object[][] {
-                new Object[] {"row1_col1", "row1_col2"},
-                new Object[] {"row2_col1", "row2_col2"},
+        assertThat(resp.cols(), is(new String[]{"col1", "col2"}));
+        assertThat(resp.rows(), is(new Object[][]{
+            new Object[]{"row1_col1", "row1_col2"},
+            new Object[]{"row2_col1", "row2_col2"},
         }));
 
-        assertThat(resp.columnTypes(), is(new DataType[] { DataTypes.STRING, DataTypes.STRING }));
+        assertThat(resp.columnTypes(), is(new DataType[]{DataTypes.STRING, DataTypes.STRING}));
         assertThat(resp.rowCount(), is(2L));
         assertThat(resp.duration(), is(0f));
     }

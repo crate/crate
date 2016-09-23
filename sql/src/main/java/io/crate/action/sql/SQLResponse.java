@@ -71,7 +71,7 @@ public class SQLResponse extends SQLBaseResponse {
         return builder;
     }
 
-    public Object[][] rows(){
+    public Object[][] rows() {
         return rows;
     }
 
@@ -132,11 +132,11 @@ public class SQLResponse extends SQLBaseResponse {
     @Override
     public String toString() {
         return "SQLResponse{" +
-                "cols=" + arrayToString(cols()) +
-                "colTypes=" + arrayToString(columnTypes()) +
-                ", rows=" + ((rows!=null) ? rows.length: -1)  +
-                ", rowCount=" + rowCount  +
-                ", duration=" + duration()  +
-                '}';
+               "cols=" + arrayToString(cols()) +
+               "colTypes=" + arrayToString(columnTypes()) +
+               ", rows=" + ((rows != null) ? rows.length : -1) +
+               ", rowCount=" + rowCount +
+               ", duration=" + duration() +
+               '}';
     }
 }

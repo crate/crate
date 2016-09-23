@@ -42,11 +42,11 @@ public class NodeFetchResponse extends TransportResponse {
     @Nullable
     private IntObjectMap<StreamBucket> fetched;
 
-    public static NodeFetchResponse forSending(IntObjectMap<StreamBucket> fetched){
+    public static NodeFetchResponse forSending(IntObjectMap<StreamBucket> fetched) {
         return new NodeFetchResponse(null, fetched);
     }
 
-    public static NodeFetchResponse forReceiveing(@Nullable IntObjectMap<Streamer[]> streamers){
+    public static NodeFetchResponse forReceiveing(@Nullable IntObjectMap<Streamer[]> streamers) {
         return new NodeFetchResponse(streamers, null);
     }
 

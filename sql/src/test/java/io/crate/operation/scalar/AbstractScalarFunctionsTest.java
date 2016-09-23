@@ -79,7 +79,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
 
     /**
      * Assert that the functionExpression normalizes to the expectedSymbol
-     *
+     * <p>
      * If the result of normalize is a Literal and all arguments were Literals evaluate is also called and
      * compared to the result of normalize - the resulting value of normalize must match evaluate.
      */
@@ -112,18 +112,18 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     /**
      * asserts that the given functionExpression evaluates to the expectedValue.
      * If the functionExpression contains references the inputs will be used in the order the references appear.
-     *
+     * <p>
      * E.g.
      * <code>
-     *     assertEvaluate("foo(name, age)", "expectedValue", inputForName, inputForAge)
+     * assertEvaluate("foo(name, age)", "expectedValue", inputForName, inputForAge)
      * </code>
      * or
      * <code>
-     *     assertEvaluate("foo('literalName', age)", "expectedValue", inputForAge)
+     * assertEvaluate("foo('literalName', age)", "expectedValue", inputForAge)
      * </code>
      */
     @SuppressWarnings("unchecked")
-    public void assertEvaluate(String functionExpression, Object expectedValue, Input ... inputs) {
+    public void assertEvaluate(String functionExpression, Object expectedValue, Input... inputs) {
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
         if (functionSymbol instanceof Literal) {
             assertThat(((Literal) functionSymbol).value(), is(expectedValue));
@@ -174,13 +174,13 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         return normalize(functionName, Literal.of(type, value));
     }
 
-    protected Symbol normalize(String functionName, Symbol ...args) {
+    protected Symbol normalize(String functionName, Symbol... args) {
         DataType[] argTypes = new DataType[args.length];
         for (int i = 0; i < args.length; i++) {
             argTypes[i] = args[i].valueType();
         }
         FunctionImplementation<Function> function = getFunction(functionName, argTypes);
         return function.normalizeSymbol(new Function(function.info(),
-                Arrays.asList(args)), new StmtCtx());
+            Arrays.asList(args)), new StmtCtx());
     }
 }

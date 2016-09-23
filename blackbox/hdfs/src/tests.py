@@ -19,17 +19,17 @@
 # with Crate these terms will supersede the license and you may use the
 # software solely pursuant to the terms of the relevant commercial agreement.
 
-import unittest
 import os
-import zipfile
-import subprocess
 import socket
-import time
+import subprocess
 import tarfile
-from testutils.ports import GLOBAL_PORT_POOL
-from testutils.paths import crate_path, project_root
-from crate.testing.layer import CrateLayer
+import time
+import unittest
+import zipfile
 from crate.client import connect
+from crate.testing.layer import CrateLayer
+from testutils.paths import crate_path, project_root
+from testutils.ports import GLOBAL_PORT_POOL
 from urllib.request import urlretrieve
 
 HADOOP_VERSION = '2.7.1'
@@ -38,11 +38,9 @@ HADOOP_SOURCE = ('http://www-eu.apache.org/dist/hadoop/common/'
 CACHE_DIR = os.environ.get(
     'XDG_CACHE_HOME', os.path.join(os.path.expanduser('~'), '.cache', 'crate-tests'))
 
-
 CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
 CRATE_TRANSPORT_PORT = GLOBAL_PORT_POOL.get()
 NN_PORT = '49000'
-
 
 hdfs_repo_zip = os.path.join(
     project_root,
@@ -72,7 +70,6 @@ def is_up(host, port):
 
 
 class HadoopLayer(object):
-
     __name__ = 'hadoop'
     __bases__ = ()
 
@@ -141,7 +138,6 @@ class HadoopAndCrateLayer(object):
 
 
 class HdfsIntegrationTest(unittest.TestCase):
-
     def test_create_hdfs_repository(self):
         conn = connect('localhost:{}'.format(CRATE_HTTP_PORT))
         c = conn.cursor()

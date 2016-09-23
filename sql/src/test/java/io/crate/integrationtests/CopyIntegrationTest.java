@@ -87,7 +87,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         List<String> lines = Collections.singletonList("{\"id\": 1, \"name\": \"Arthur\"}");
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
 
-        execute("copy t from ?", new Object[] {tmpFolder.getAbsolutePath() + "/s*.json"});
+        execute("copy t from ?", new Object[]{tmpFolder.getAbsolutePath() + "/s*.json"});
         assertThat(response.rowCount(), is(1L));
     }
 
@@ -96,11 +96,11 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("create table t (id int primary key) with (number_of_replicas = 0)");
         ensureYellow();
 
-        execute("insert into t (id) values (?)", new Object[][] {
-                new Object[] { 1 },
-                new Object[] { 2 },
-                new Object[] { 3 },
-                new Object[] { 4 }
+        execute("insert into t (id) values (?)", new Object[][]{
+            new Object[]{1},
+            new Object[]{2},
+            new Object[]{3},
+            new Object[]{4}
         });
         execute("refresh table t");
 
@@ -110,7 +110,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("copy t from ?", new Object[]{String.format(Locale.ENGLISH, "%s/*", tmpExport.getAbsolutePath())});
         assertThat(response.rowCount(), is(0L));
         execute("copy t from ? with (overwrite_duplicates = true, shared=true)",
-                new Object[]{String.format(Locale.ENGLISH, "%s/*", tmpExport.getAbsolutePath())});
+            new Object[]{String.format(Locale.ENGLISH, "%s/*", tmpExport.getAbsolutePath())});
         assertThat(response.rowCount(), is(4L));
         execute("refresh table t");
         execute("select count(*) from t");
@@ -336,7 +336,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         List<String> lines = new ArrayList<>(7);
         DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
-        for (Path path: stream) {
+        for (Path path : stream) {
             lines.addAll(Files.readAllLines(path, StandardCharsets.UTF_8));
         }
         assertThat(lines.size(), is(7));
@@ -377,7 +377,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(response.rowCount(), is(7L));
         List<String> lines = new ArrayList<>(7);
         DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
-        for (Path entry: stream) {
+        for (Path entry : stream) {
             lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
         }
         Path path = Paths.get(folder.getRoot().toURI().resolve("characters_0_.json"));
@@ -411,7 +411,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         String[] list = folder.getRoot().list();
         assertThat(list.length, is(1));
         List<String> lines = Files.readAllLines(
-                Paths.get(folder.getRoot().toURI().resolve(list[0])), StandardCharsets.UTF_8);
+            Paths.get(folder.getRoot().toURI().resolve(list[0])), StandardCharsets.UTF_8);
 
         assertThat(lines.size(), is(1));
         for (String line : lines) {
@@ -479,13 +479,13 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         refresh();
 
         String uri = Paths.get(folder.getRoot().toURI()).toString();
-        SQLResponse response = execute("copy t to directory ?", new Object[] { uri });
+        SQLResponse response = execute("copy t to directory ?", new Object[]{uri});
         assertThat(response.rowCount(), is(2L));
 
         execute("delete from t");
         refresh();
 
-        execute("copy t from ? with (shared=true)", new Object[] { uri + "/t_*" });
+        execute("copy t from ? with (shared=true)", new Object[]{uri + "/t_*"});
         refresh();
 
         // only one shard should have all imported rows, since we have the same routing for both rows
@@ -502,9 +502,9 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         String r1 = "{\"id\": 1, \"name\":\"Marvin\"}";
         String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
-        String[] urls = { upload("blobs", r1), upload("blobs", r2) };
+        String[] urls = {upload("blobs", r1), upload("blobs", r2)};
 
-        execute("copy names from ?", new Object[] { urls });
+        execute("copy names from ?", new Object[]{urls});
         assertThat(response.rowCount(), is(2L));
         execute("refresh table names");
         execute("select name from names order by id");
@@ -522,9 +522,9 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
 
         Files.write(file.toPath(), Collections.singletonList(r1), StandardCharsets.UTF_8);
-        String[] urls = { tmpDir.toAbsolutePath() + "/*.json", upload("blobs", r2) };
+        String[] urls = {tmpDir.toAbsolutePath() + "/*.json", upload("blobs", r2)};
 
-        execute("copy names from ?", new Object[] { urls });
+        execute("copy names from ?", new Object[]{urls});
         assertThat(response.rowCount(), is(2L));
         execute("refresh table names");
         execute("select name from names order by id");

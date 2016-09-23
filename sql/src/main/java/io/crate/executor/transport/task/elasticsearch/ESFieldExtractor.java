@@ -76,7 +76,6 @@ public abstract class ESFieldExtractor implements Function<SearchHit, Object> {
         }
 
         /**
-         *
          * This method extracts data for the given column ident, by traversing the source map.
          * If more than one object matches, the result is a list of the matching values, otherwise a single object.
          *
@@ -91,7 +90,7 @@ public abstract class ESFieldExtractor implements Function<SearchHit, Object> {
             if (ident.isColumn()) {
                 return type.value(top);
             }
-            if (top==null){
+            if (top == null) {
                 return null;
             }
             Object result = down(top, 0);

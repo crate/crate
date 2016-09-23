@@ -32,16 +32,16 @@ public class SysClusterExpressionModule extends AbstractModule {
     @Override
     protected void configure() {
         MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
-                .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
+            .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
 
         b.addBinding(clusterIdent(ClusterIdExpression.NAME)).to(
-                ClusterIdExpression.class).asEagerSingleton();
+            ClusterIdExpression.class).asEagerSingleton();
         b.addBinding(clusterIdent(ClusterNameExpression.NAME)).to(
-                ClusterNameExpression.class).asEagerSingleton();
+            ClusterNameExpression.class).asEagerSingleton();
         b.addBinding(clusterIdent(ClusterMasterNodeExpression.NAME)).to(
-                ClusterMasterNodeExpression.class).asEagerSingleton();
+            ClusterMasterNodeExpression.class).asEagerSingleton();
         b.addBinding(clusterIdent(ClusterSettingsExpression.NAME)).to(
-                ClusterSettingsExpression.class).asEagerSingleton();
+            ClusterSettingsExpression.class).asEagerSingleton();
     }
 
     private ReferenceIdent clusterIdent(String name) {

@@ -30,7 +30,10 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.planner.consumer.ManyTableConsumer;
 import io.crate.sql.tree.QualifiedName;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class QuerySplitter {
 
@@ -41,11 +44,11 @@ public class QuerySplitter {
      * Splits a (function) symbol on <code>AND</code> based on relation occurrences of {@link io.crate.analyze.symbol.RelationColumn}
      * into multiple symbols.
      * </p>
-     *
+     * <p>
      * <b>This does not work with  {@link io.crate.analyze.symbol.Field}</b>
-     *
+     * <p>
      * <h3>Examples:</h3>
-     *
+     * <p>
      * Splittable down to single relation:
      * <pre>
      *     t1.x = 30 and ty2.y = 20
@@ -55,8 +58,8 @@ public class QuerySplitter {
      *     set(t1) -> t1.x = 30
      *     set(t2) -> t2.y = 20
      * </pre>
-     *
-     *
+     * <p>
+     * <p>
      * Pairs of two relations:
      * <pre>
      *     t1.x = t2.x and t2.x = t3.x
@@ -66,8 +69,8 @@ public class QuerySplitter {
      *     set(t1, t2) -> t1.x = t2.x
      *     set(t2, t3) -> t2.x = t3.x
      * </pre>
-     *
-     *
+     * <p>
+     * <p>
      * Mixed:
      * <pre>
      *     t1.x = 30 and t2.x = t3.x

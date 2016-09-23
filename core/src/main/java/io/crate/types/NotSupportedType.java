@@ -27,6 +27,7 @@ public class NotSupportedType extends DataType<Void> implements DataTypeFactory 
 
     public final static NotSupportedType INSTANCE = new NotSupportedType();
     public final static int ID = 1;
+
     private NotSupportedType() {}
 
     @Override

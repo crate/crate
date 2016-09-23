@@ -32,12 +32,12 @@ public class SmallIntTypeTest extends BasePGTypeTest<Short> {
 
     @Test
     public void testWriteValue() throws Exception {
-        assertBytesWritten(Short.MIN_VALUE, new byte[]{ 0, 0, 0, 2, -128, 0 });
+        assertBytesWritten(Short.MIN_VALUE, new byte[]{0, 0, 0, 2, -128, 0});
     }
 
     @Test
     public void testReadValueBinary() throws Exception {
-        assertBytesReadBinary(new byte[]{ 127, -1 }, Short.MAX_VALUE);
+        assertBytesReadBinary(new byte[]{127, -1}, Short.MAX_VALUE);
     }
 
     @Test

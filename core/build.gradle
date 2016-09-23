@@ -21,7 +21,7 @@ test {
     jacoco {
         excludes = [
                 "*Test*"
-                ]
+        ]
     }
 }
 
@@ -30,7 +30,7 @@ forbiddenApisMain {
     ignoreFailures = false
 }
 
-task getVersion (dependsOn: 'classes') << {
+task getVersion(dependsOn: 'classes') << {
     def stdout = new ByteArrayOutputStream()
     javaexec {
         classpath = sourceSets.main.runtimeClasspath
@@ -38,14 +38,14 @@ task getVersion (dependsOn: 'classes') << {
         standardOutput = stdout
     }
     ext.gitTag = "git describe".execute().in.text.trim()
-    ext.version = stdout.toString().trim().split(" ")[1].replace(',','').trim()
+    ext.version = stdout.toString().trim().split(" ")[1].replace(',', '').trim()
 
     if (gradle.taskGraph.hasTask(':app:release')) {
         assert gitTag == version, "Version mismatch gitTag: " + gitTag + " does not match crate version: " + version
     } else if (gradle.taskGraph.hasTask(':app:nightly')) {
         def date = new Date().format('yyyyMMddHHmm')
         def shortHash = "git rev-parse --short HEAD".execute().in.text.trim()
-        ext.version = version.replace('-SNAPSHOT','') + "-" + date + "-" + shortHash
+        ext.version = version.replace('-SNAPSHOT', '') + "-" + date + "-" + shortHash
     } else if (!gradle.taskGraph.hasTask(':client:uploadArchives') && !gradle.taskGraph.hasTask(':app:uploadArchives')) {
         def shortHash = "git rev-parse --short HEAD".execute().in.text.trim()
         ext.version = version + "-" + shortHash

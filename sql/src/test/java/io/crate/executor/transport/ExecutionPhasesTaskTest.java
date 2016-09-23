@@ -32,8 +32,8 @@ import io.crate.operation.NodeOperation;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.NodeOperationGrouper;
-import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
 import org.hamcrest.Matchers;
@@ -50,21 +50,21 @@ public class ExecutionPhasesTaskTest {
     @Test
     public void testGroupByServer() throws Exception {
         Routing twoNodeRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-                .put("node1", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(1, 2)).map())
-                .put("node2", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
-                .map());
+            .put("node1", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(1, 2)).map())
+            .put("node2", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
+            .map());
 
         UUID jobId = UUID.randomUUID();
         RoutedCollectPhase c1 = new RoutedCollectPhase(
-                jobId,
-                1,
-                "c1",
-                twoNodeRouting,
-                RowGranularity.DOC,
-                ImmutableList.<Symbol>of(),
-                ImmutableList.<Projection>of(),
-                WhereClause.MATCH_ALL,
-                DistributionInfo.DEFAULT_BROADCAST
+            jobId,
+            1,
+            "c1",
+            twoNodeRouting,
+            RowGranularity.DOC,
+            ImmutableList.<Symbol>of(),
+            ImmutableList.<Projection>of(),
+            WhereClause.MATCH_ALL,
+            DistributionInfo.DEFAULT_BROADCAST
         );
 
         MergePhase m1 = new MergePhase(jobId, 2, "merge1", 2, ImmutableList.<DataType>of(), ImmutableList.<Projection>of(), DistributionInfo.DEFAULT_BROADCAST);

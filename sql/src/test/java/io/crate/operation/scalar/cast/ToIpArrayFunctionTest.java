@@ -44,18 +44,18 @@ public class ToIpArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testArrayDifferentTypes() throws Exception {
-        Object[] expected = new BytesRef[] {new BytesRef("127.0.0.1"), new BytesRef("127.0.0.2")};
+        Object[] expected = new BytesRef[]{new BytesRef("127.0.0.1"), new BytesRef("127.0.0.2")};
         assertThat(eval(new String[]{"127.0.0.1", "127.0.0.2"}, DataTypes.STRING), is(expected));
         assertThat(eval(new BytesRef[]{new BytesRef("127.0.0.1"), new BytesRef("127.0.0.2")}, DataTypes.STRING),
-                is(expected));
-        assertThat(eval(new Long[] {2130706433L, 2130706434L}, DataTypes.LONG), is(expected));
+            is(expected));
+        assertThat(eval(new Long[]{2130706433L, 2130706434L}, DataTypes.LONG), is(expected));
     }
 
 
     private Object[] eval(final Object[] objects, DataType innerType) {
         final DataType arrayType = new ArrayType(innerType);
         ToArrayFunction impl = (ToArrayFunction) functions.get(
-                new FunctionIdent(CastFunctionResolver.FunctionNames.TO_IP_ARRAY, ImmutableList.of(arrayType)));
+            new FunctionIdent(CastFunctionResolver.FunctionNames.TO_IP_ARRAY, ImmutableList.of(arrayType)));
 
         Literal input = Literal.of(objects, arrayType);
         Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Collections.<Symbol>singletonList(input)), new StmtCtx());

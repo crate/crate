@@ -68,7 +68,7 @@ test {
     dependsOn ':app:distTar'
     testLogging.exceptionFormat = 'full'
     jacoco {
-        excludes = [ "*Test*" ]
+        excludes = ["*Test*"]
     }
 }
 
@@ -81,7 +81,7 @@ shadowJar {
     exclude 'org/hyperic/**' // exclude sigar stuff
 
     // exclude all but META-INF/services
-    // if the client is used with assertions enabled it will try to load the 
+    // if the client is used with assertions enabled it will try to load the
     // Lucene PostingFormats and without the service files those can't be found
     exclude 'META-INF/DEPENDENCIES'
     exclude 'META-INF/maven/**'
@@ -89,7 +89,6 @@ shadowJar {
     exclude 'META-INF/LICENSE*'
     exclude 'META-INF/NOTICE*'
     mergeServiceFiles()
-
 
     // remember to update mapping in CrateClientClassLoader when changing this
     relocate 'org.elasticsearch', 'io.crate.shade.org.elasticsearch'
@@ -124,7 +123,7 @@ task buildJar(dependsOn: [':core:getVersion', 'classes']) {
 }
 tasks.buildJar.mustRunAfter jar // otherwise jar task would override shadowJar artifact
 
-task sourceJar (type : Jar) {
+task sourceJar(type: Jar) {
     classifier = 'sources'
     from sourceSets.main.java
     manifest {
@@ -136,7 +135,7 @@ task myJavadocs(type: Javadoc, dependsOn: processResources) {
     classpath = configurations.compile
     source = sourceSets.main.java //compileJava.source
 }
-task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
+task javadocJar(type: Jar, dependsOn: [myJavadocs]) {
     classifier = 'javadoc'
     from myJavadocs.destinationDir
     manifest {
@@ -144,14 +143,14 @@ task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
     }
 }
 
-task buildJavadocJar (dependsOn: [':core:getVersion', myJavadocs] ) << {
+task buildJavadocJar(dependsOn: [':core:getVersion', myJavadocs]) << {
     ext.version = project(':core').getVersion.version
     project.version = ext.version
     tasks.javadocJar.execute()
 }
 
 
-task buildSourceJar (dependsOn: [':core:getVersion'] ) << {
+task buildSourceJar(dependsOn: [':core:getVersion']) << {
     ext.version = project(':core').getVersion.version
     project.version = ext.version
     tasks.sourceJar.execute()
@@ -163,7 +162,7 @@ artifacts {
     archives sourceJar
 }
 
-task signJars (type : Sign, dependsOn: [buildJar, buildJavadocJar, buildSourceJar]) {
+task signJars(type: Sign, dependsOn: [buildJar, buildJavadocJar, buildSourceJar]) {
     sign configurations.archives
 }
 
@@ -184,13 +183,14 @@ project.ext.bintrayPassword = project.hasProperty('bintrayPassword') ? bintrayPa
 
 uploadArchives.dependsOn([install, signJars])
 uploadArchives {
-    repositories{
+    repositories {
         mavenDeployer {
             beforeDeployment {
-                MavenDeployment deployment -> signing.signPom(deployment)
-                if (project.ext.bintrayUsername.length() == 0 || project.ext.bintrayPassword.length() == 0) {
-                    throw new StopExecutionException("uploadArchives cannot be called without bintray username and password")
-                }
+                MavenDeployment deployment ->
+                    signing.signPom(deployment)
+                    if (project.ext.bintrayUsername.length() == 0 || project.ext.bintrayPassword.length() == 0) {
+                        throw new StopExecutionException("uploadArchives cannot be called without bintray username and password")
+                    }
             }
             pom.whenConfigured {
                 pom -> pom.dependencies.clear()

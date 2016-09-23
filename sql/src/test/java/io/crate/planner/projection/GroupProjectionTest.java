@@ -48,10 +48,10 @@ public class GroupProjectionTest extends CrateUnitTest {
     public void testStreaming() throws Exception {
         GroupProjection p = new GroupProjection();
         p.keys(
-                ImmutableList.<Symbol>of(
-                        createReference("foo", DataTypes.STRING),
-                        createReference("bar", DataTypes.SHORT)
-                ));
+            ImmutableList.<Symbol>of(
+                createReference("foo", DataTypes.STRING),
+                createReference("bar", DataTypes.SHORT)
+            ));
 
         p.values(ImmutableList.<Aggregation>of());
 
@@ -70,11 +70,11 @@ public class GroupProjectionTest extends CrateUnitTest {
         GroupProjection groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(nameRef));
         groupProjection.values(Arrays.asList(
-                Aggregation.finalAggregation(
-                        new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataTypes.LONG),
-                        ImmutableList.<Symbol>of(),
-                        Aggregation.Step.PARTIAL
-                )
+            Aggregation.finalAggregation(
+                new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataTypes.LONG),
+                ImmutableList.<Symbol>of(),
+                Aggregation.Step.PARTIAL
+            )
         ));
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -92,10 +92,10 @@ public class GroupProjectionTest extends CrateUnitTest {
     public void testStreamingGranularity() throws Exception {
         GroupProjection p = new GroupProjection();
         p.keys(
-                ImmutableList.<Symbol>of(
-                        createReference("foo", DataTypes.STRING),
-                        createReference("bar", DataTypes.SHORT)
-                ));
+            ImmutableList.<Symbol>of(
+                createReference("foo", DataTypes.STRING),
+                createReference("bar", DataTypes.SHORT)
+            ));
 
         p.values(ImmutableList.<Aggregation>of());
         p.setRequiredGranularity(RowGranularity.SHARD);

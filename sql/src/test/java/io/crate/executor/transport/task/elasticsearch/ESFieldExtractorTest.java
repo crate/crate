@@ -41,22 +41,22 @@ public class ESFieldExtractorTest extends CrateUnitTest {
     public void testPath2() throws Exception {
 
         ESFieldExtractor.Source ex = new ESFieldExtractor.Source(
-                new ColumnIdent("top", "child1"), DataTypes.INTEGER);
+            new ColumnIdent("top", "child1"), DataTypes.INTEGER);
         Map<String, Object> source;
 
         source = ImmutableMap.of();
         assertNull(ex.toValue(source));
 
         source = ImmutableMap.<String, Object>of(
-                "top", ImmutableMap.of("child1", 1, "child2", 2)
+            "top", ImmutableMap.of("child1", 1, "child2", 2)
         );
         assertEquals(1, ex.toValue(source));
 
 
         ex = new ESFieldExtractor.Source(
-                new ColumnIdent("top", "child1"), new ArrayType(DataTypes.INTEGER));
+            new ColumnIdent("top", "child1"), new ArrayType(DataTypes.INTEGER));
         source = ImmutableMap.<String, Object>of(
-                "top", ImmutableList.of(
+            "top", ImmutableList.of(
                 ImmutableMap.of("child1", 1),
                 ImmutableMap.of("child1", 2),
                 ImmutableMap.of("child2", 22))
@@ -66,7 +66,7 @@ public class ESFieldExtractorTest extends CrateUnitTest {
 
         // if the container is present we get an empty list instead of null, to reflect the container exitence
         source = ImmutableMap.<String, Object>of(
-                "top", ImmutableList.of(
+            "top", ImmutableList.of(
                 ImmutableMap.of("child2", 22),
                 ImmutableMap.of("child3", 33))
         );
@@ -74,7 +74,7 @@ public class ESFieldExtractorTest extends CrateUnitTest {
 
         // if the container does not match -> null
         source = ImmutableMap.<String, Object>of(
-                "nomatch", ImmutableList.of(
+            "nomatch", ImmutableList.of(
                 ImmutableMap.of("child2", 22),
                 ImmutableMap.of("child3", 33))
         );
@@ -89,18 +89,18 @@ public class ESFieldExtractorTest extends CrateUnitTest {
         Map<String, Object> source;
 
         source = ImmutableMap.<String, Object>of(
-                "a", ImmutableMap.of("b", ImmutableMap.of("c", 1)
-        ));
+            "a", ImmutableMap.of("b", ImmutableMap.of("c", 1)
+            ));
         assertEquals(1, ex.toValue(source));
 
         source = ImmutableMap.<String, Object>of(
-                "a", ImmutableMap.of("b", ImmutableMap.of("d", 1)
-        ));
+            "a", ImmutableMap.of("b", ImmutableMap.of("d", 1)
+            ));
         assertEquals(null, ex.toValue(source));
 
         source = ImmutableMap.<String, Object>of(
-                "a", ImmutableMap.of("b", ImmutableMap.of("c", 1, "d", 2)
-        ));
+            "a", ImmutableMap.of("b", ImmutableMap.of("c", 1, "d", 2)
+            ));
         assertEquals(1, ex.toValue(source));
     }
 
@@ -111,9 +111,9 @@ public class ESFieldExtractorTest extends CrateUnitTest {
         HashMap<String, Object> nullMap = new HashMap<String, Object>(1);
         nullMap.put("child1", null);
         ImmutableMap<String, Object> source = ImmutableMap.<String, Object>of(
-                "top", ImmutableList.of(
-                        nullMap,
-                        ImmutableMap.of("child1", 33))
+            "top", ImmutableList.of(
+                nullMap,
+                ImmutableMap.of("child1", 33))
         );
         Object[] objects = (Object[]) ex.toValue(source);
         assertThat(objects[0], nullValue());

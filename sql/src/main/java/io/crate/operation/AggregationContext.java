@@ -28,7 +28,7 @@ public class AggregationContext {
         return symbol;
     }
 
-    public Input<?>[] inputs () {
+    public Input<?>[] inputs() {
         return inputs.toArray(new Input[inputs.size()]);
     }
 }

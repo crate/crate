@@ -146,7 +146,7 @@ public class JobExecutionContext implements CompletionListenable {
             try {
                 subContext.prepare();
             } catch (Exception e) {
-                for (; i>=0; i--) {
+                for (; i >= 0; i--) {
                     id = orderedContextIds.get(i);
                     subContext = contextMap.get(id);
                     subContext.cleanup();

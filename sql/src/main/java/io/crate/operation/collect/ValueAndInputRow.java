@@ -33,9 +33,9 @@ import java.util.List;
 
 /**
  * A Row implementation that is backed by some TValue
- *
+ * <p>
  * This is used for system tables to transform an Iterable of TValue into Row using the supplied inputs and collectExpression.
- *
+ * <p>
  * It will keep a reference to the original TValue to be used by {@link io.crate.operation.projectors.SysUpdateProjector}
  */
 public class ValueAndInputRow<TValue> extends InputRow implements Function<TValue, Row>, Supplier<TValue> {

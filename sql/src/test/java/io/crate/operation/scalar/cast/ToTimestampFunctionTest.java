@@ -41,13 +41,13 @@ public class ToTimestampFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testResolveFunction() throws Throwable {
         List<DataType> supportedTypes = Arrays.<DataType>asList(DataTypes.TIMESTAMP,
-                DataTypes.SHORT,
-                DataTypes.INTEGER,
-                DataTypes.LONG,
-                DataTypes.FLOAT,
-                DataTypes.DOUBLE,
-                DataTypes.STRING
-                );
+            DataTypes.SHORT,
+            DataTypes.INTEGER,
+            DataTypes.LONG,
+            DataTypes.FLOAT,
+            DataTypes.DOUBLE,
+            DataTypes.STRING
+        );
         for (DataType dataType : supportedTypes) {
             FunctionImplementation implementation = getFunction(functionName, dataType);
             assertThat(implementation, instanceOf(ToPrimitiveFunction.class));
@@ -58,18 +58,18 @@ public class ToTimestampFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testResolveFunctionUnsupportedTypes() throws Throwable {
         List<DataType> unsupportedTypes = Arrays.<DataType>asList(
-                DataTypes.GEO_POINT,
-                DataTypes.GEO_SHAPE,
-                DataTypes.OBJECT,
-                DataTypes.BOOLEAN
+            DataTypes.GEO_POINT,
+            DataTypes.GEO_SHAPE,
+            DataTypes.OBJECT,
+            DataTypes.BOOLEAN
         );
         for (DataType dataType : unsupportedTypes) {
             try {
                 getFunction(functionName, dataType);
             } catch (Exception e) {
                 assertThat(
-                        e.getMessage(),
-                        is(String.format(Locale.ENGLISH, "type '%s' not supported for conversion to 'timestamp'", dataType.getName()))
+                    e.getMessage(),
+                    is(String.format(Locale.ENGLISH, "type '%s' not supported for conversion to 'timestamp'", dataType.getName()))
                 );
             }
         }

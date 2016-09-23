@@ -92,17 +92,17 @@ public class PlanPrinter {
         @Override
         protected ImmutableMap.Builder<String, Object> visitExecutionPhase(ExecutionPhase phase, Void context) {
             return newBuilder()
-                    .put("phaseType", phase.type().toString())
-                    .put("id", phase.executionPhaseId())
-                    // Converting TreeMap.keySet() to be able to stream
-                    .put("executionNodes", new ArrayList<>(phase.executionNodes())
-                    );
+                .put("phaseType", phase.type().toString())
+                .put("id", phase.executionPhaseId())
+                // Converting TreeMap.keySet() to be able to stream
+                .put("executionNodes", new ArrayList<>(phase.executionNodes())
+                );
         }
 
         private ImmutableMap.Builder<String, Object> process(DistributionInfo info) {
             return newBuilder()
-                    .put("distributedByColumn", info.distributeByColumn())
-                    .put("type", info.distributionType().toString());
+                .put("distributedByColumn", info.distributeByColumn())
+                .put("type", info.distributionType().toString());
         }
 
         private ImmutableMap.Builder<String, Object> upstreamPhase(UpstreamPhase phase, ImmutableMap.Builder<String, Object> b) {
@@ -139,7 +139,7 @@ public class PlanPrinter {
         @Override
         public ImmutableMap.Builder<String, Object> visitFetchPhase(FetchPhase phase, Void context) {
             return visitExecutionPhase(phase, context)
-                    .put("fetchRefs", refs(phase.fetchRefs()));
+                .put("fetchRefs", refs(phase.fetchRefs()));
         }
 
         @Override
@@ -177,7 +177,7 @@ public class PlanPrinter {
         @Override
         public ImmutableMap.Builder<String, Object> visitTopNProjection(TopNProjection projection, Void context) {
             return visitProjection(projection, context)
-                    .put("rows", projection.offset() + "-" + projection.limit());
+                .put("rows", projection.offset() + "-" + projection.limit());
         }
     }
 
@@ -192,7 +192,7 @@ public class PlanPrinter {
         @Override
         protected ImmutableMap.Builder<String, Object> visitPlan(Plan plan, Void context) {
             return newBuilder()
-                    .put("planType", plan.getClass().getSimpleName());
+                .put("planType", plan.getClass().getSimpleName());
         }
 
         private static Map<String, Object> phaseMap(@Nullable ExecutionPhase node) {
@@ -211,7 +211,7 @@ public class PlanPrinter {
         @Override
         public ImmutableMap.Builder<String, Object> visitCollectAndMerge(CollectAndMerge plan, Void context) {
             ImmutableMap.Builder<String, Object> b = visitPlan(plan, context)
-                    .put("collectPhase", phaseMap(plan.collectPhase()));
+                .put("collectPhase", phaseMap(plan.collectPhase()));
             if (plan.localMerge() != null) {
                 b.put("localMerge", phaseMap(plan.localMerge()));
             }
@@ -232,10 +232,10 @@ public class PlanPrinter {
         @Override
         public ImmutableMap.Builder<String, Object> visitNestedLoop(NestedLoop plan, Void context) {
             ImmutableMap.Builder<String, Object> builder = newBuilder()
-                    .put("planType", plan.getClass().getSimpleName())
-                    .put("left", process(plan.left().plan(), context).build())
-                    .put("right", process(plan.right().plan(), context).build())
-                    .put("nestedLoopPhase", phaseMap(plan.nestedLoopPhase()));
+                .put("planType", plan.getClass().getSimpleName())
+                .put("left", process(plan.left().plan(), context).build())
+                .put("right", process(plan.right().plan(), context).build())
+                .put("nestedLoopPhase", phaseMap(plan.nestedLoopPhase()));
 
             MergePhase mergePhase = plan.localMerge();
             if (mergePhase != null) {
@@ -247,7 +247,7 @@ public class PlanPrinter {
         @Override
         public ImmutableMap.Builder<String, Object> visitQueryThenFetch(QueryThenFetch plan, Void context) {
             ImmutableMap.Builder<String, Object> b = visitPlan(plan, context)
-                    .put("subPlan", toMap(plan.subPlan()));
+                .put("subPlan", toMap(plan.subPlan()));
             if (plan.localMerge() != null) {
                 b.put("localMerge", phaseMap(plan.localMerge()));
             }

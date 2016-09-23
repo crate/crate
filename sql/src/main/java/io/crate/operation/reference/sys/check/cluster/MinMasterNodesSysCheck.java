@@ -44,17 +44,17 @@ public class MinMasterNodesSysCheck extends AbstractSysCheck {
 
     private static final int ID = 1;
     private static final String DESCRIPTION = "The setting 'discovery.zen.minimum_master_nodes' " +
-            "must not be less than half + 1 of eligible master nodes in the cluster. " +
-            "It should be set to (number_master_nodes / 2) + 1.";
+                                              "must not be less than half + 1 of eligible master nodes in the cluster. " +
+                                              "It should be set to (number_master_nodes / 2) + 1.";
 
     private static final Reference MIN_MASTER_NODES_REFERENCE_INFO = new Reference(
-            new ReferenceIdent(
-                    SysClusterTableInfo.IDENT,
-                    ClusterSettingsExpression.NAME,
-                    Lists.newArrayList(Splitter.on(".")
-                            .split(CrateSettings.DISCOVERY_ZEN_MIN_MASTER_NODES.settingName()))
-            ),
-            RowGranularity.DOC, DataTypes.INTEGER
+        new ReferenceIdent(
+            SysClusterTableInfo.IDENT,
+            ClusterSettingsExpression.NAME,
+            Lists.newArrayList(Splitter.on(".")
+                .split(CrateSettings.DISCOVERY_ZEN_MIN_MASTER_NODES.settingName()))
+        ),
+        RowGranularity.DOC, DataTypes.INTEGER
     );
 
     @Inject
@@ -67,12 +67,12 @@ public class MinMasterNodesSysCheck extends AbstractSysCheck {
     @Override
     public boolean validate() {
         return validate(clusterService.state().nodes().masterNodes().size(),
-                (Integer) nestedReferenceResolver.getImplementation(MIN_MASTER_NODES_REFERENCE_INFO).value());
+            (Integer) nestedReferenceResolver.getImplementation(MIN_MASTER_NODES_REFERENCE_INFO).value());
     }
 
     protected boolean validate(int masterNodes, int minMasterNodes) {
         return masterNodes == 1
-                || ((masterNodes / 2) + 1) <= minMasterNodes && minMasterNodes <= masterNodes;
+               || ((masterNodes / 2) + 1) <= minMasterNodes && minMasterNodes <= masterNodes;
     }
 
 }

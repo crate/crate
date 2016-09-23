@@ -46,7 +46,7 @@ import static org.hamcrest.core.Is.is;
 public class AggregatorTest extends CrateUnitTest {
 
     protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
+        new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     private AggregationFunction countImpl;
 
@@ -60,9 +60,9 @@ public class AggregatorTest extends CrateUnitTest {
     @Test
     public void testAggregationFromPartial() {
         Aggregation aggregation = Aggregation.finalAggregation(
-                countImpl.info(),
-                Collections.<Symbol>singletonList(new InputColumn(0)),
-                Aggregation.Step.PARTIAL
+            countImpl.info(),
+            Collections.<Symbol>singletonList(new InputColumn(0)),
+            Aggregation.Step.PARTIAL
         );
         Input dummyInput = new Input() {
             CountAggregation.LongState state = new CountAggregation.LongState(10L);
@@ -80,15 +80,15 @@ public class AggregatorTest extends CrateUnitTest {
         state = aggregator.processRow(state);
         Object result = aggregator.finishCollect(state);
 
-        assertThat((Long)result, is(20L));
+        assertThat((Long) result, is(20L));
     }
 
     @Test
     public void testAggregationFromIterToFinal() {
         Aggregation aggregation = Aggregation.finalAggregation(
-                countImpl.info(),
-                Collections.<Symbol>singletonList(new InputColumn(0)),
-                Aggregation.Step.ITER
+            countImpl.info(),
+            Collections.<Symbol>singletonList(new InputColumn(0)),
+            Aggregation.Step.ITER
         );
 
         Input dummyInput = new Input() {
@@ -105,7 +105,7 @@ public class AggregatorTest extends CrateUnitTest {
             state = collector.processRow(state);
         }
 
-        long result = (Long)collector.finishCollect(state);
+        long result = (Long) collector.finishCollect(state);
         assertThat(result, is(5L));
     }
 }

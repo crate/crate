@@ -26,7 +26,10 @@ import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.executor.transport.Transports;
-import io.crate.jobs.*;
+import io.crate.jobs.DownstreamExecutionSubContext;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
+import io.crate.jobs.PageBucketReceiver;
 import io.crate.operation.PageResultListener;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.component.AbstractComponent;
@@ -42,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 
 public class TransportDistributedResultAction extends AbstractComponent implements NodeAction<DistributedResultRequest, DistributedResultResponse> {
 
-    public static final  String DISTRIBUTED_RESULT_ACTION = "crate/sql/node/merge/add_rows";
+    public static final String DISTRIBUTED_RESULT_ACTION = "crate/sql/node/merge/add_rows";
 
     /**
      * The request producer class can block the collectors which are running in the
@@ -67,19 +70,19 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
         scheduler = threadPool.scheduler();
 
         transportService.registerRequestHandler(DISTRIBUTED_RESULT_ACTION,
-                DistributedResultRequest.class,
-                ThreadPool.Names.GENERIC,
-                new NodeActionRequestHandler<DistributedResultRequest, DistributedResultResponse>(this) { });
+            DistributedResultRequest.class,
+            ThreadPool.Names.GENERIC,
+            new NodeActionRequestHandler<DistributedResultRequest, DistributedResultResponse>(this) {});
     }
 
     public void pushResult(String node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
         transports.sendRequest(DISTRIBUTED_RESULT_ACTION, node, request, listener,
-                new DefaultTransportResponseHandler<DistributedResultResponse>(listener, EXECUTOR_NAME) {
-                    @Override
-                    public DistributedResultResponse newInstance() {
-                        return new DistributedResultResponse();
-                    }
-                });
+            new DefaultTransportResponseHandler<DistributedResultResponse>(listener, EXECUTOR_NAME) {
+                @Override
+                public DistributedResultResponse newInstance() {
+                    return new DistributedResultResponse();
+                }
+            });
     }
 
     @Override
@@ -102,7 +105,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
             executionContext = context.getSubContext(request.executionPhaseId());
         } catch (ClassCastException e) {
             listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
-                    "Found execution context for %d but it's not a downstream context", request.executionPhaseId()), e));
+                "Found execution context for %d but it's not a downstream context", request.executionPhaseId()), e));
             return;
         } catch (Throwable t) {
             listener.onFailure(t);
@@ -112,7 +115,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
         PageBucketReceiver pageBucketReceiver = executionContext.getBucketReceiver(request.executionPhaseInputId());
         if (pageBucketReceiver == null) {
             listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
-                    "Couldn't find BucketReciever for input %d", request.executionPhaseInputId())));
+                "Couldn't find BucketReciever for input %d", request.executionPhaseInputId())));
             return;
         }
 
@@ -120,10 +123,10 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
         if (throwable == null) {
             request.streamers(pageBucketReceiver.streamers());
             pageBucketReceiver.setBucket(
-                    request.bucketIdx(),
-                    request.rows(),
-                    request.isLast(),
-                    new SendResponsePageResultListener(listener, request));
+                request.bucketIdx(),
+                request.rows(),
+                request.isLast(),
+                new SendResponsePageResultListener(listener, request));
         } else {
             pageBucketReceiver.failure(request.bucketIdx(), throwable);
             listener.onResponse(new DistributedResultResponse(false));
@@ -140,7 +143,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
             int delay = (retry + 1) * 2;
             if (logger.isTraceEnabled()) {
                 logger.trace("scheduling retry #{} to start node operation for jobId: {} in {}ms",
-                        retry, request.jobId(), delay);
+                    retry, request.jobId(), delay);
             }
             scheduler.schedule(new NodeOperationRunnable(request, listener, retry), delay, TimeUnit.MILLISECONDS);
         }

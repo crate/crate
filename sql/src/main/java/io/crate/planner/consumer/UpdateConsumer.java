@@ -97,7 +97,7 @@ public class UpdateConsumer implements Consumer {
             int bulkIdx = 0;
             for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : statement.nestedStatements()) {
                 WhereClause whereClause = nestedAnalysis.whereClause();
-                if (whereClause.noMatch()){
+                if (whereClause.noMatch()) {
                     continue;
                 }
                 if (whereClause.docKeys().isPresent()) {
@@ -207,7 +207,7 @@ public class UpdateConsumer implements Consumer {
                                       WhereClause whereClause) {
 
         Symbol versionSymbol = null;
-        if(whereClause.hasVersions()){
+        if (whereClause.hasVersions()) {
             versionSymbol = VersionRewriter.get(whereClause.query());
             whereClause = new WhereClause(whereClause.query(), whereClause.docKeys().orNull(), whereClause.partitions());
         }
@@ -220,7 +220,7 @@ public class UpdateConsumer implements Consumer {
             Tuple<String[], Symbol[]> assignments = Assignments.convert(nestedAnalysis.assignments());
 
             Long version = null;
-            if (versionSymbol != null){
+            if (versionSymbol != null) {
                 version = ValueSymbolVisitor.LONG.process(versionSymbol);
             }
 

@@ -23,13 +23,13 @@ package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.sql.tree.KillStatement;
-import io.crate.sql.tree.Node;
 
 import java.util.UUID;
 
 public class KillAnalyzer {
 
-    private KillAnalyzer() {}
+    private KillAnalyzer() {
+    }
 
 
     public static KillAnalyzedStatement analyze(KillStatement killStatement, ParameterContext parameterContext) {
@@ -37,7 +37,7 @@ public class KillAnalyzer {
             UUID jobId;
             try {
                 jobId = UUID.fromString(ExpressionToStringVisitor
-                        .convert(killStatement.jobId().get(), parameterContext.parameters()));
+                    .convert(killStatement.jobId().get(), parameterContext.parameters()));
             } catch (Exception e) {
                 throw new IllegalArgumentException("Can not parse job ID", e);
             }

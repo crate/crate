@@ -203,7 +203,7 @@ public class FetchProjectorTest extends CrateUnitTest {
             for (IntObjectCursor<? extends IntContainer> cursor : toFetch) {
                 List<Object[]> rows = new ArrayList<>();
                 for (IntCursor docIdCursor : cursor.value) {
-                    rows.add(new Object[] { docIdCursor.value });
+                    rows.add(new Object[]{docIdCursor.value});
                 }
                 readerToBuckets.put(cursor.key, new CollectionBucket(rows));
             }

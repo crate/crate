@@ -72,13 +72,13 @@ public class SysSnapshots implements Supplier<Iterable<?>> {
                         return null;
                     }
                     return new SysSnapshot(
-                            snapshot.name(),
-                            repositoryName,
-                            snapshot.indices(),
-                            snapshot.startTime(),
-                            snapshot.endTime(),
-                            snapshot.version().toString(),
-                            snapshot.state().name()
+                        snapshot.name(),
+                        repositoryName,
+                        snapshot.indices(),
+                        snapshot.startTime(),
+                        snapshot.endTime(),
+                        snapshot.version().toString(),
+                        snapshot.state().name()
                     );
                 }
             }));

@@ -56,11 +56,11 @@ public class SysChecksTableInfo extends StaticTableInfo {
     @Inject
     protected SysChecksTableInfo(ClusterService clusterService) {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
-                        .register(Columns.ID, DataTypes.INTEGER)
-                        .register(Columns.SEVERITY, DataTypes.INTEGER)
-                        .register(Columns.DESCRIPTION, DataTypes.STRING)
-                        .register(Columns.PASSED, DataTypes.BOOLEAN),
-                PRIMARY_KEYS);
+                .register(Columns.ID, DataTypes.INTEGER)
+                .register(Columns.SEVERITY, DataTypes.INTEGER)
+                .register(Columns.DESCRIPTION, DataTypes.STRING)
+                .register(Columns.PASSED, DataTypes.BOOLEAN),
+            PRIMARY_KEYS);
         this.clusterService = clusterService;
     }
 

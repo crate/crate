@@ -64,11 +64,11 @@ public class RowReceivers {
         }
     }
 
-    public static void sendEmptyResult(RowReceiver downstream){
+    public static void sendEmptyResult(RowReceiver downstream) {
         downstream.finish(RepeatHandle.UNSUPPORTED);
     }
 
-    public static void sendOneRow(RowReceiver receiver, Row row){
+    public static void sendOneRow(RowReceiver receiver, Row row) {
         receiver.setNextRow(row);
         receiver.finish(RepeatHandle.UNSUPPORTED);
     }

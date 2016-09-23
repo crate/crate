@@ -189,7 +189,7 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
                 } else {
                     blendedFields = null;
                 }
-                final FieldAndFieldType fieldAndMapper= group.get(0);
+                final FieldAndFieldType fieldAndMapper = group.get(0);
                 Query q = singleQueryAndApply(
                     type.matchQueryType(), fieldAndMapper.field, queryString, fieldAndMapper.boost);
                 if (q != null) {

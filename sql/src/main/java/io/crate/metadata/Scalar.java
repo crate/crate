@@ -34,6 +34,7 @@ import java.util.List;
 
 /**
  * evaluable function implementation
+ *
  * @param <ReturnType> the class of the returned value
  */
 public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation<Function> {
@@ -49,7 +50,6 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
 
     /**
      * Returns a optional compiled version of the scalar implementation.
-     *
      */
     public Scalar<ReturnType, InputType> compile(List<Symbol> arguments) {
         return this;
@@ -85,14 +85,13 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
     /**
      * This method will evaluate the function using the given scalar if all arguments are literals.
      * Otherwise it will return the function as is or NULL in case it contains a null literal
-     *
      */
     private static <ReturnType, InputType> Symbol evaluateIfLiterals(Scalar<ReturnType, InputType> scalar, Function function) {
         Input[] inputs = new Input[function.arguments().size()];
         int idx = 0;
         for (Symbol arg : function.arguments()) {
             if (arg instanceof Input) {
-                Input inputArg =  (Input) arg;
+                Input inputArg = (Input) arg;
                 inputs[idx] = inputArg;
                 idx++;
             } else {

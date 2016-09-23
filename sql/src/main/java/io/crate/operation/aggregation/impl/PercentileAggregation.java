@@ -28,7 +28,8 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.types.*;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -42,11 +43,11 @@ public class PercentileAggregation extends AggregationFunction<TDigestState, Obj
     public static void register(AggregationImplModule mod) {
         for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             mod.register(new PercentileAggregation(new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.<DataType>of(t, DataTypes.DOUBLE)), DataTypes.DOUBLE,
-                    FunctionInfo.Type.AGGREGATE)));
+                new FunctionIdent(NAME, ImmutableList.<DataType>of(t, DataTypes.DOUBLE)), DataTypes.DOUBLE,
+                FunctionInfo.Type.AGGREGATE)));
             mod.register(new PercentileAggregation(new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.of(t, DataTypes.DOUBLE_ARRAY)), DataTypes.DOUBLE_ARRAY,
-                    FunctionInfo.Type.AGGREGATE)));
+                new FunctionIdent(NAME, ImmutableList.of(t, DataTypes.DOUBLE_ARRAY)), DataTypes.DOUBLE_ARRAY,
+                FunctionInfo.Type.AGGREGATE)));
         }
     }
 
@@ -100,7 +101,7 @@ public class PercentileAggregation extends AggregationFunction<TDigestState, Obj
     private static double[] toDoubleArray(Object[] array) {
         Object value;
         double[] values = new double[array.length];
-        for (int i=0; i < array.length; i++) {
+        for (int i = 0; i < array.length; i++) {
             value = array[i];
             values[i] = DataTypes.DOUBLE.value(value);
         }

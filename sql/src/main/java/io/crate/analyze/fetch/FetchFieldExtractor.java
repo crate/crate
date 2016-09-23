@@ -61,13 +61,13 @@ public class FetchFieldExtractor {
         }
     }
 
-    private static class FieldVisitor extends DefaultTraversalSymbolVisitor<Context, Boolean>{
+    private static class FieldVisitor extends DefaultTraversalSymbolVisitor<Context, Boolean> {
 
         private static final FieldVisitor INSTANCE = new FieldVisitor();
 
         @Override
         protected Boolean visitSymbol(Symbol symbol, Context context) {
-            if (context.skipSymbols.contains(symbol)){
+            if (context.skipSymbols.contains(symbol)) {
                 return false;
             }
             return true;
@@ -94,7 +94,7 @@ public class FetchFieldExtractor {
         private static final IsFetchableVisitor INSTANCE = new IsFetchableVisitor();
         private static final Set<Path> NOT_FETCHABLE = ImmutableSet.<Path>of(DocSysColumns.SCORE, DocSysColumns.DOCID);
 
-        public static Boolean isFetchable(Field field){
+        public static Boolean isFetchable(Field field) {
             return INSTANCE.process(field.relation(), field);
         }
 

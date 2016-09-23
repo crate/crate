@@ -36,8 +36,8 @@ public class TableFunctionModule extends AbstractModule {
     @Override
     protected void configure() {
         Unnest.register(this);
-        MapBinder<String,TableFunctionImplementation> functionBinder =
-                MapBinder.newMapBinder(binder(), String.class, TableFunctionImplementation.class);
+        MapBinder<String, TableFunctionImplementation> functionBinder =
+            MapBinder.newMapBinder(binder(), String.class, TableFunctionImplementation.class);
 
         for (Map.Entry<String, TableFunctionImplementation> entry : functions.entrySet()) {
             functionBinder.addBinding(entry.getKey()).toInstance(entry.getValue());

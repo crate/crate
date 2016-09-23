@@ -76,7 +76,7 @@ public class ReferenceToLiteralConverter extends ReplacingSymbolVisitor<Referenc
 
                     //noinspection unchecked
                     value = XContentMapValues.extractValue(
-                            columnIdent.fqn(), (Map) values[inputColumn.index()]);
+                        columnIdent.fqn(), (Map) values[inputColumn.index()]);
                 } else {
                     value = values[inputColumn.index()];
                 }

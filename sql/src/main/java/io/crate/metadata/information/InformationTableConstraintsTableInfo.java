@@ -54,14 +54,14 @@ public class InformationTableConstraintsTableInfo extends InformationTableInfo {
 
     protected InformationTableConstraintsTableInfo(ClusterService clusterService) {
         super(clusterService,
-                IDENT,
-                ImmutableList.<ColumnIdent>of(),
-                ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
-                    .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME)
-                    .put(Columns.TABLE_NAME, References.TABLE_NAME)
-                    .put(Columns.CONSTRAINT_NAME, References.CONSTRAINT_NAME)
-                    .put(Columns.CONSTRAINT_TYPE, References.CONSTRAINT_TYPE)
-                    .build()
+            IDENT,
+            ImmutableList.<ColumnIdent>of(),
+            ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
+                .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME)
+                .put(Columns.TABLE_NAME, References.TABLE_NAME)
+                .put(Columns.CONSTRAINT_NAME, References.CONSTRAINT_NAME)
+                .put(Columns.CONSTRAINT_TYPE, References.CONSTRAINT_TYPE)
+                .build()
         );
     }
 }

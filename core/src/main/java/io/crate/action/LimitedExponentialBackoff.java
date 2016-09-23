@@ -28,7 +28,6 @@ import org.elasticsearch.common.unit.TimeValue;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-
 public class LimitedExponentialBackoff extends BackoffPolicy {
 
     private final int startValue;
@@ -48,13 +47,18 @@ public class LimitedExponentialBackoff extends BackoffPolicy {
         return new LimitedExponentialBackoff(0, Integer.MAX_VALUE, limit);
     }
 
+    @Override
+    public Iterator<TimeValue> iterator() {
+        return new LimitedExponentialBackoffIterator(startValue, maxIterations, limit);
+    }
+
     private static class LimitedExponentialBackoffIterator implements Iterator<TimeValue> {
 
         private final int startValue;
         private final int maxIterations;
         private final int limit;
-        private int currentIterations;
         private final float factor = 1.8f;
+        private int currentIterations;
 
         public LimitedExponentialBackoffIterator(int limit) {
             this(0, Integer.MAX_VALUE, limit);
@@ -78,7 +82,8 @@ public class LimitedExponentialBackoff extends BackoffPolicy {
         @Override
         public TimeValue next() {
             if (!hasNext()) {
-                throw new NoSuchElementException("Reached maximum amount of backoff iterations. Only " + maxIterations + " iterations allowed.");
+                throw new NoSuchElementException(
+                    "Reached maximum amount of backoff iterations. Only " + maxIterations + " iterations allowed.");
             }
             int result = startValue + calculate(currentIterations);
             currentIterations++;
@@ -90,10 +95,5 @@ public class LimitedExponentialBackoff extends BackoffPolicy {
             throw new UnsupportedOperationException();
         }
 
-    }
-
-    @Override
-    public Iterator<TimeValue> iterator() {
-        return new LimitedExponentialBackoffIterator(startValue, maxIterations, limit);
     }
 }

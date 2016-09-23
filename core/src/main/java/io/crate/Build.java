@@ -39,7 +39,7 @@ public class Build {
         String hashShort = "NA";
         String timestamp = "NA";
 
-        try (InputStream inputStream = Build.class.getResourceAsStream("/crate-build.properties")){
+        try (InputStream inputStream = Build.class.getResourceAsStream("/crate-build.properties")) {
             Properties props = new Properties();
             if (inputStream != null) {
                 props.load(inputStream);

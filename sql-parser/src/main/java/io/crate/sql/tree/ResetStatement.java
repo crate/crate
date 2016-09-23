@@ -46,8 +46,8 @@ public class ResetStatement extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("columns", columns)
-                .toString();
+            .add("columns", columns)
+            .toString();
     }
 
     @Override

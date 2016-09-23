@@ -38,8 +38,8 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -59,19 +59,19 @@ public class MergeNodeTest extends CrateUnitTest {
         GroupProjection groupProjection = new GroupProjection();
         groupProjection.keys(Collections.<Symbol>singletonList(nameRef));
         groupProjection.values(Collections.singletonList(
-                Aggregation.finalAggregation(
-                        new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataTypes.LONG),
-                        ImmutableList.<Symbol>of(),
-                        Aggregation.Step.PARTIAL)
+            Aggregation.finalAggregation(
+                new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataTypes.LONG),
+                ImmutableList.<Symbol>of(),
+                Aggregation.Step.PARTIAL)
         ));
         TopNProjection topNProjection = new TopNProjection(10, 0);
 
         List<Projection> projections = Arrays.asList(groupProjection, topNProjection);
         MergePhase node = new MergePhase(
-                UUID.randomUUID(), 0, "merge", 2,
-                Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING),
-                projections,
-                DistributionInfo.DEFAULT_BROADCAST);
+            UUID.randomUUID(), 0, "merge", 2,
+            Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING),
+            projections,
+            DistributionInfo.DEFAULT_BROADCAST);
         node.executionNodes(Sets.newHashSet("node1", "node2"));
 
         BytesStreamOutput output = new BytesStreamOutput();

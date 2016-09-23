@@ -40,7 +40,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.MatcherAssert.assertThat;

@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.PartitionAlreadyExistsException;
@@ -36,12 +37,14 @@ import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
-import com.google.common.base.Preconditions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
@@ -50,9 +53,9 @@ import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 public class RestoreSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyzer {
 
     private static final ImmutableMap<String, SettingsApplier> SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
-            .put(IGNORE_UNAVAILABLE.name(), new SettingsAppliers.BooleanSettingsApplier(IGNORE_UNAVAILABLE))
-            .put(WAIT_FOR_COMPLETION.name(), new SettingsAppliers.BooleanSettingsApplier(WAIT_FOR_COMPLETION))
-            .build();
+        .put(IGNORE_UNAVAILABLE.name(), new SettingsAppliers.BooleanSettingsApplier(IGNORE_UNAVAILABLE))
+        .put(WAIT_FOR_COMPLETION.name(), new SettingsAppliers.BooleanSettingsApplier(WAIT_FOR_COMPLETION))
+        .build();
 
     private final RepositoryService repositoryService;
     private final Schemas schemas;
@@ -66,13 +69,14 @@ public class RestoreSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnaly
     @Override
     public RestoreSnapshotAnalyzedStatement visitRestoreSnapshot(RestoreSnapshot node, Analysis analysis) {
         List<String> nameParts = node.name().getParts();
-        Preconditions.checkArgument(nameParts.size() == 2, "Snapshot name not supported, only <repository>.<snapshot> works.");
+        Preconditions.checkArgument(
+            nameParts.size() == 2, "Snapshot name not supported, only <repository>.<snapshot> works.");
         String repositoryName = nameParts.get(0);
         repositoryService.failIfRepositoryDoesNotExist(repositoryName);
 
         // validate and extract settings
         Settings.Builder builder = GenericPropertiesConverter.settingsFromProperties(
-                node.properties(), analysis.parameterContext(), SETTINGS);
+            node.properties(), analysis.parameterContext(), SETTINGS);
 
         if (node.tableList().isPresent()) {
             List<Table> tableList = node.tableList().get();
@@ -89,14 +93,14 @@ public class RestoreSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnaly
                     TableInfo tableInfo = schemas.getTableInfo(tableIdent);
                     if (!(tableInfo instanceof DocTableInfo)) {
                         throw new IllegalArgumentException(
-                                String.format(Locale.ENGLISH, "Cannot restore snapshot of tables in schema '%s'", tableInfo.ident().schema()));
+                            String.format(Locale.ENGLISH, "Cannot restore snapshot of tables in schema '%s'", tableInfo.ident().schema()));
                     }
                     DocTableInfo docTableInfo = ((DocTableInfo) tableInfo);
                     PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                            tableIdent,
-                            docTableInfo,
-                            table.partitionProperties(),
-                            analysis.parameterContext().parameters());
+                        tableIdent,
+                        docTableInfo,
+                        table.partitionProperties(),
+                        analysis.parameterContext().parameters());
                     if (docTableInfo.partitions().contains(partitionName)) {
                         throw new PartitionAlreadyExistsException(partitionName);
                     }
@@ -110,19 +114,19 @@ public class RestoreSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnaly
                         restoreIndices.add(tableIdent.indexName());
                     } else {
                         restoreIndices.add(PartitionPropertiesAnalyzer.toPartitionName(
-                                tableIdent,
-                                null,
-                                table.partitionProperties(),
-                                analysis.parameterContext().parameters()).asIndexName());
+                            tableIdent,
+                            null,
+                            table.partitionProperties(),
+                            analysis.parameterContext().parameters()).asIndexName());
                     }
                 }
             }
 
             return RestoreSnapshotAnalyzedStatement.forTables(
-                    nameParts.get(1),
-                    repositoryName,
-                    builder.build(),
-                    ImmutableList.copyOf(restoreIndices));
+                nameParts.get(1),
+                repositoryName,
+                builder.build(),
+                ImmutableList.copyOf(restoreIndices));
         } else {
             return RestoreSnapshotAnalyzedStatement.all(nameParts.get(1), repositoryName, builder.build());
         }

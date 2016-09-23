@@ -39,7 +39,8 @@ public class MatchPredicate extends Expression {
                           @Nullable String matchType, @Nullable GenericProperties properties) {
         Preconditions.checkArgument(idents.size() > 0, "at least one ident must be given");
         Preconditions.checkNotNull(value, "query_term is null");
-        Preconditions.checkArgument(value instanceof ObjectLiteral || value instanceof StringLiteral || value instanceof ParameterExpression, "query_term is not a valid literal nor a parameter");
+        Preconditions.checkArgument(value instanceof ObjectLiteral || value instanceof StringLiteral ||
+                                    value instanceof ParameterExpression, "query_term is not a valid literal nor a parameter");
 
         this.idents = idents;
         this.value = value;
@@ -94,9 +95,7 @@ public class MatchPredicate extends Expression {
 
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitMatchPredicate(this, context);
     }
-
 }

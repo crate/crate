@@ -37,7 +37,6 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -46,7 +45,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -78,11 +80,11 @@ public class DistributingDownstreamTest extends CrateUnitTest {
         final SettableFuture<Boolean> allRowsReceived = SettableFuture.create();
         final List<Row> receivedRows = Collections.synchronizedList(new ArrayList<Row>());
         TransportDistributedResultAction transportDistributedResultAction = new TransportDistributedResultAction(
-                mock(Transports.class),
-                mock(JobContextService.class),
-                mock(ThreadPool.class),
-                mock(TransportService.class),
-                Settings.EMPTY) {
+            mock(Transports.class),
+            mock(JobContextService.class),
+            mock(ThreadPool.class),
+            mock(TransportService.class),
+            Settings.EMPTY) {
 
 
             @Override
@@ -109,19 +111,19 @@ public class DistributingDownstreamTest extends CrateUnitTest {
             }
         };
 
-        Streamer[] streamers = new Streamer[] {DataTypes.STRING.streamer() };
+        Streamer[] streamers = new Streamer[]{DataTypes.STRING.streamer()};
         int pageSize = 10;
         final DistributingDownstream distributingDownstream = new DistributingDownstream(
-                Loggers.getLogger(PageDownstreamContext.class),
-                UUID.randomUUID(),
-                new BroadcastingBucketBuilder(streamers, 1),
-                1,
-                (byte) 0,
-                0,
-                ImmutableList.of("n1"),
-                transportDistributedResultAction,
-                streamers,
-                pageSize
+            Loggers.getLogger(PageDownstreamContext.class),
+            UUID.randomUUID(),
+            new BroadcastingBucketBuilder(streamers, 1),
+            1,
+            (byte) 0,
+            0,
+            ImmutableList.of("n1"),
+            transportDistributedResultAction,
+            streamers,
+            pageSize
         );
 
         final List<Row> rows = new ArrayList<>();
@@ -144,15 +146,15 @@ public class DistributingDownstreamTest extends CrateUnitTest {
 
     @Test
     public void testTwoDownstreamsOneFinishedOneNeedsMoreDoesNotGetStuck() throws Exception {
-        Streamer[] streamers = new Streamer[] {DataTypes.INTEGER.streamer() };
+        Streamer[] streamers = new Streamer[]{DataTypes.INTEGER.streamer()};
 
         final AtomicInteger requestsReceived = new AtomicInteger(0);
         TransportDistributedResultAction transportDistributedResultAction = new TransportDistributedResultAction(
-                mock(Transports.class),
-                mock(JobContextService.class),
-                mock(ThreadPool.class),
-                mock(TransportService.class),
-                Settings.EMPTY) {
+            mock(Transports.class),
+            mock(JobContextService.class),
+            mock(ThreadPool.class),
+            mock(TransportService.class),
+            Settings.EMPTY) {
 
 
             @Override
@@ -167,16 +169,16 @@ public class DistributingDownstreamTest extends CrateUnitTest {
         };
 
         DistributingDownstream dd = new DistributingDownstream(
-                Loggers.getLogger(DistributingDownstream.class),
-                UUID.randomUUID(),
-                new BroadcastingBucketBuilder(streamers, 2),
-                1,
-                (byte) 0,
-                0,
-                ImmutableList.of("n1", "n2"),
-                transportDistributedResultAction,
-                streamers,
-                2
+            Loggers.getLogger(DistributingDownstream.class),
+            UUID.randomUUID(),
+            new BroadcastingBucketBuilder(streamers, 2),
+            1,
+            (byte) 0,
+            0,
+            ImmutableList.of("n1", "n2"),
+            transportDistributedResultAction,
+            streamers,
+            2
         );
         dd.prepare();
 

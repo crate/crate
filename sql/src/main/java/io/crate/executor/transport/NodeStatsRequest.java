@@ -35,7 +35,8 @@ public class NodeStatsRequest extends TransportRequest {
 
     private Set<ColumnIdent> columns;
 
-    public NodeStatsRequest() {}
+    public NodeStatsRequest() {
+    }
 
     public NodeStatsRequest(Set<ColumnIdent> columns) {
         this.columns = columns;

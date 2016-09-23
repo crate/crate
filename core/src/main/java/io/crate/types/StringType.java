@@ -61,13 +61,13 @@ public class StringType extends DataType<BytesRef> implements DataTypeFactory, S
             return null;
         }
         if (value instanceof BytesRef) {
-            return (BytesRef)value;
+            return (BytesRef) value;
         }
         if (value instanceof String) {
-            return new BytesRef((String)value);
+            return new BytesRef((String) value);
         }
         if (value instanceof Boolean) {
-            if ((boolean)value) {
+            if ((boolean) value) {
                 return T;
             } else {
                 return F;
@@ -75,7 +75,7 @@ public class StringType extends DataType<BytesRef> implements DataTypeFactory, S
         }
         if (value instanceof Map || value.getClass().isArray()) {
             throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "cannot cast %s to string", value));
+                String.format(Locale.ENGLISH, "cannot cast %s to string", value));
         }
         return new BytesRef(value.toString());
     }
@@ -92,7 +92,7 @@ public class StringType extends DataType<BytesRef> implements DataTypeFactory, S
 
     @Override
     public BytesRef readValueFrom(StreamInput in) throws IOException {
-        int length = in.readVInt() -1 ;
+        int length = in.readVInt() - 1;
         if (length == -1) {
             return null;
         }

@@ -79,7 +79,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
         assertThat(evaluate.utf8ToString(), is(expected));
     }
 
-    private void assertEval(String expected, Object ... args) {
+    private void assertEval(String expected, Object... args) {
         List<DataType> argumentTypes = new ArrayList<>(args.length);
         Input[] inputs = new Input[args.length];
         for (int i = 0; i < args.length; i++) {
@@ -112,11 +112,11 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
         Scalar scalar = ((Scalar) functions.get(new FunctionIdent(ConcatFunction.NAME, argumentTypes)));
 
         Symbol symbol = scalar.normalizeSymbol(new Function(scalar.info(),
-                Arrays.<Symbol>asList(Literal.of("foo"), Literal.of("bar"))), stmtCtx);
+            Arrays.<Symbol>asList(Literal.of("foo"), Literal.of("bar"))), stmtCtx);
         assertThat(symbol, isLiteral("foobar"));
 
         symbol = scalar.normalizeSymbol(new Function(scalar.info(),
-                Arrays.<Symbol>asList(createReference("col1", DataTypes.STRING), Literal.of("bar"))), stmtCtx);
+            Arrays.<Symbol>asList(createReference("col1", DataTypes.STRING), Literal.of("bar"))), stmtCtx);
         assertThat(symbol, isFunction(ConcatFunction.NAME));
     }
 
@@ -131,13 +131,13 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     public void testTwoStrings() throws Exception {
         assertEval("foobar", "foo", "bar");
         assertEval("foobar", TestingHelpers.bytesRef("foo", random()),
-                             TestingHelpers.bytesRef("bar", random()));
+            TestingHelpers.bytesRef("bar", random()));
     }
 
     @Test
     public void testManyStrings() throws Exception {
         assertEval("foo_testingis_boring",
-                new BytesRef("foo"), null, new BytesRef("_"), new BytesRef("testing"), null, new BytesRef("is_boring"));
+            new BytesRef("foo"), null, new BytesRef("_"), new BytesRef("testing"), null, new BytesRef("is_boring"));
     }
 
     @Test
@@ -155,11 +155,11 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
         assertEval("foo3", new BytesRef("foo"), 3);
         assertEval("foo3", new BytesRef("foo"), 3L);
         assertEval("foo3", TestingHelpers.bytesRef("foo", random()), 3L);
-        assertEval("foo3", new BytesRef("foo"), (short)3);
+        assertEval("foo3", new BytesRef("foo"), (short) 3);
     }
 
     @Test
-    public void testTwoArrays() throws Exception{
+    public void testTwoArrays() throws Exception {
         ArrayType arrayType = new ArrayType(DataTypes.INTEGER);
 
         List<DataType> argumentTypes = Arrays.<DataType>asList(arrayType, arrayType);
@@ -174,7 +174,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testArrayWithAUndefinedInnerType() throws Exception{
+    public void testArrayWithAUndefinedInnerType() throws Exception {
         ArrayType arrayType0 = new ArrayType(DataTypes.UNDEFINED);
         ArrayType arrayType1 = new ArrayType(DataTypes.INTEGER);
 
@@ -182,7 +182,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
         Scalar scalar = ((Scalar) functions.get(new FunctionIdent(ConcatFunction.NAME, argumentTypes)));
 
         Input[] inputs = new Input[2];
-        inputs[0] = Literal.of(new Object[]{},     arrayType0);
+        inputs[0] = Literal.of(new Object[]{}, arrayType0);
         inputs[1] = Literal.of(new Object[]{1, 2}, arrayType1);
 
         Object[] evaluate = (Object[]) scalar.evaluate(inputs);
@@ -190,7 +190,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testArrayAndString() throws Exception{
+    public void testArrayAndString() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Argument 0 of the concat function can't be converted to string");
         ArrayType arrayType = new ArrayType(DataTypes.INTEGER);
@@ -200,7 +200,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testStringAndArray() throws Exception{
+    public void testStringAndArray() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Argument 1 of the concat function can't be converted to string");
         ArrayType arrayType = new ArrayType(DataTypes.INTEGER);
@@ -210,7 +210,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testThirdArgumentArray() throws Exception{
+    public void testThirdArgumentArray() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Argument 2 of the concat function can't be converted to string");
         ArrayType arrayType = new ArrayType(DataTypes.INTEGER);
@@ -220,7 +220,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testTwoArraysOfIncompatibleInnerTypes() throws Exception{
+    public void testTwoArraysOfIncompatibleInnerTypes() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Second argument's inner type (integer_array) of the array_cat function cannot be converted to the first argument's inner type (integer)");
         ArrayType arrayType0 = new ArrayType(DataTypes.INTEGER);
@@ -231,7 +231,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testTwoArraysOfUndefinedTypes() throws Exception{
+    public void testTwoArraysOfUndefinedTypes() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("When concatenating arrays, one of the two arguments can be of undefined inner type, but not both");
         ArrayType arrayType = new ArrayType(DataTypes.UNDEFINED);

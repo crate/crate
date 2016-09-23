@@ -78,9 +78,9 @@ public class ValueNormalizer {
             literal = Literal.convert(literal, reference.valueType());
         } catch (ConversionException e) {
             throw new ColumnValidationException(
-                    reference.ident().columnIdent().name(),
-                    String.format(Locale.ENGLISH, "%s cannot be cast to type %s", SymbolPrinter.INSTANCE.printSimple(valueSymbol),
-                            reference.valueType().getName()));
+                reference.ident().columnIdent().name(),
+                String.format(Locale.ENGLISH, "%s cannot be cast to type %s", SymbolPrinter.INSTANCE.printSimple(valueSymbol),
+                    reference.valueType().getName()));
         }
         Object value = literal.value();
         if (value == null) {
@@ -95,12 +95,13 @@ public class ValueNormalizer {
             }
         } catch (ConversionException e) {
             throw new ColumnValidationException(
-                    reference.ident().columnIdent().name(),
-                    SymbolFormatter.format(
-                            "\"%s\" has a type that can't be implicitly cast to that of \"%s\" (" + reference.valueType().getName() + ")",
-                            literal,
-                            reference
-                    ));
+                reference.ident().columnIdent().name(),
+                SymbolFormatter.format(
+                    "\"%s\" has a type that can't be implicitly cast to that of \"%s\" (" +
+                    reference.valueType().getName() + ")",
+                    literal,
+                    reference
+                ));
         }
         return literal;
     }
@@ -127,8 +128,8 @@ public class ValueNormalizer {
                     continue;
                 }
                 DynamicReference dynamicReference = null;
-                if (tableInfo instanceof DocTableInfo){
-                    dynamicReference = ((DocTableInfo)tableInfo).getDynamic(nestedIdent, true);
+                if (tableInfo instanceof DocTableInfo) {
+                    dynamicReference = ((DocTableInfo) tableInfo).getDynamic(nestedIdent, true);
                 }
                 if (dynamicReference == null) {
                     throw new ColumnUnknownException(nestedIdent.sqlFqn());
@@ -176,7 +177,7 @@ public class ValueNormalizer {
             return info.valueType().value(primitiveValue);
         } catch (Exception e) {
             throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(),
-                    String.format(Locale.ENGLISH, "Invalid %s", info.valueType().getName())
+                String.format(Locale.ENGLISH, "Invalid %s", info.valueType().getName())
             );
         }
     }

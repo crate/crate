@@ -21,9 +21,9 @@
 
 package io.crate.jobs;
 
+import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionState;
 import io.crate.exceptions.ContextMissingException;
-import io.crate.concurrent.CompletionListener;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.ClusterService;
@@ -45,7 +45,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     private final ClusterService clusterService;
     private final StatsTables statsTables;
     private final ConcurrentMap<UUID, JobExecutionContext> activeContexts =
-            ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
+        ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final ReentrantReadWriteLock.ReadLock readLock = rwLock.readLock();
@@ -122,14 +122,14 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
             JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
             if (existing != null) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "context for job %s already exists:%n%s", jobId, existing));
+                    String.format(Locale.ENGLISH, "context for job %s already exists:%n%s", jobId, existing));
             }
         } finally {
             readLock.unlock();
         }
         if (logger.isTraceEnabled()) {
             logger.trace("JobExecutionContext created for job {},  activeContexts: {}",
-                    jobId, activeContexts.size());
+                jobId, activeContexts.size());
         }
         return newContext;
     }
@@ -148,7 +148,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
                 numKilled++;
             }
             assert activeContexts.size() == 0 :
-                    "after killing all contexts, they should have been removed from the map due to the callbacks";
+                "after killing all contexts, they should have been removed from the map due to the callbacks";
         } finally {
             writeLock.unlock();
         }

@@ -41,7 +41,7 @@ public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
-        for (double d = 0.5; d<10.0d; d++) {
+        for (double d = 0.5; d < 10.0d; d++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Double.toString(d), Field.Store.NO));
             doc.add(new DoubleField(fieldName().indexName(), d, Field.Store.NO));

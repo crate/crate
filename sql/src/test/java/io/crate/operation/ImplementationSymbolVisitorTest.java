@@ -59,8 +59,8 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
 
         public final static String NAME = "dummy_multiply";
         public static FunctionInfo INFO = new FunctionInfo(
-                new FunctionIdent(NAME, Arrays.<DataType>asList(DataTypes.LONG)),
-                DataTypes.LONG
+            new FunctionIdent(NAME, Arrays.<DataType>asList(DataTypes.LONG)),
+            DataTypes.LONG
         );
 
         private AtomicBoolean compiled = new AtomicBoolean(false);
@@ -68,7 +68,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
 
         @Override
         public Long evaluate(Input<Object>... args) {
-            return (Long)args[0].value() * 2L;
+            return (Long) args[0].value() * 2L;
         }
 
         @Override
@@ -92,7 +92,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
         @Override
         protected void configure() {
             MapBinder<FunctionIdent, FunctionImplementation> functionBinder =
-                    MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
+                MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
             functionBinder.addBinding(MultiplyFunction.INFO.ident()).to(MultiplyFunction.class);
         }
     }
@@ -100,9 +100,9 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
     @Before
     public void setupVisitor() {
         Injector injector = new ModulesBuilder().add(
-                new AggregationImplModule(),
-                new TableFunctionModule(),
-                new TestScalarFunctionModule()
+            new AggregationImplModule(),
+            new TableFunctionModule(),
+            new TestScalarFunctionModule()
         ).createInjector();
 
         visitor = new ImplementationSymbolVisitor(injector.getInstance(Functions.class));
@@ -111,13 +111,13 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
     @Test
     public void testAggregationSymbolsInputReuse() throws Exception {
         FunctionInfo countInfo = new FunctionInfo(
-                new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.STRING)), DataTypes.LONG);
+            new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.STRING)), DataTypes.LONG);
         FunctionInfo avgInfo = new FunctionInfo(
-                new FunctionIdent(AverageAggregation.NAME, Arrays.<DataType>asList(DataTypes.INTEGER)), DataTypes.DOUBLE);
+            new FunctionIdent(AverageAggregation.NAME, Arrays.<DataType>asList(DataTypes.INTEGER)), DataTypes.DOUBLE);
 
         List<Symbol> aggregations = Arrays.<Symbol>asList(
-                Aggregation.finalAggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER),
-                Aggregation.finalAggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER)
+            Aggregation.finalAggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER),
+            Aggregation.finalAggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER)
         );
 
         ImplementationSymbolVisitor.Context context = visitor.extractImplementations(aggregations);
@@ -133,7 +133,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
 
         // keys: [ in(0), multiply(in(1)) ]
         Function multiply = new Function(
-                MultiplyFunction.INFO, Arrays.<Symbol>asList(new InputColumn(1))
+            MultiplyFunction.INFO, Arrays.<Symbol>asList(new InputColumn(1))
         );
         List<Symbol> keys = Arrays.asList(new InputColumn(0, DataTypes.LONG), multiply);
 
@@ -153,7 +153,7 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
         List<Input<?>> inputs = context.topLevelInputs();
 
         assertThat(inputs.size(), is(2));
-        assertThat((Long)inputs.get(0).value(), is(1L));
+        assertThat((Long) inputs.get(0).value(), is(1L));
         assertThat((Long) inputs.get(1).value(), is(4L));  // multiplied value
     }
 
@@ -163,16 +163,16 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
 
         // keys: [ in(0), multiply(in(1)) ]
         Function multiply = new Function(
-                MultiplyFunction.INFO, Arrays.<Symbol>asList(new InputColumn(1))
+            MultiplyFunction.INFO, Arrays.<Symbol>asList(new InputColumn(1))
         );
         List<Symbol> keys = Arrays.asList(new InputColumn(0, DataTypes.LONG), multiply);
 
 
         // values: [ count(in(0)) ]
         List<Aggregation> values = Arrays.asList(Aggregation.partialAggregation(
-                new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.LONG)), DataTypes.LONG),
-                DataTypes.LONG,
-                Arrays.<Symbol>asList(new InputColumn(0))
+            new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.LONG)), DataTypes.LONG),
+            DataTypes.LONG,
+            Arrays.<Symbol>asList(new InputColumn(0))
         ));
 
         ImplementationSymbolVisitor.Context context = visitor.extractImplementations(keys);
@@ -201,22 +201,22 @@ public class ImplementationSymbolVisitorTest extends CrateUnitTest {
 
 
         assertThat(keyInputs.size(), is(2));
-        assertThat((Long)keyInputs.get(0).value(), is(1L));
+        assertThat((Long) keyInputs.get(0).value(), is(1L));
         assertThat((Long) keyInputs.get(1).value(), is(4L));  // multiplied value
     }
 
     @Test
     public void testCompiled() throws Exception {
         Function multiply = new Function(
-                MultiplyFunction.INFO, Arrays.<Symbol>asList(new InputColumn(0))
+            MultiplyFunction.INFO, Arrays.<Symbol>asList(new InputColumn(0))
         );
         ImplementationSymbolVisitor.Context context = visitor.extractImplementations(Arrays.asList(multiply));
         assertThat(context.topLevelInputs().get(0), is(instanceOf(FunctionExpression.class)));
         FunctionExpression expression = (FunctionExpression) context.topLevelInputs().get(0);
         Field f = expression.getClass().getDeclaredField("functionImplementation");
         f.setAccessible(true);
-        FunctionImplementation impl = (FunctionImplementation)f.get(expression);
+        FunctionImplementation impl = (FunctionImplementation) f.get(expression);
         assertThat(impl, is(instanceOf(MultiplyFunction.class)));
-        assertThat(((MultiplyFunction)impl).compiled.get(), is(true));
+        assertThat(((MultiplyFunction) impl).compiled.get(), is(true));
     }
 }

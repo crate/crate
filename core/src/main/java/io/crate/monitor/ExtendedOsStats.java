@@ -44,8 +44,7 @@ public class ExtendedOsStats implements Streamable {
         return stat;
     }
 
-    public ExtendedOsStats() {
-    }
+    public ExtendedOsStats() {}
 
     public ExtendedOsStats(Cpu cpu) {
         this.cpu = cpu;

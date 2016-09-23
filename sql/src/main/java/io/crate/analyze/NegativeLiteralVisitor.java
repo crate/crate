@@ -22,8 +22,8 @@ package io.crate.analyze;
 
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.types.*;
 
 public class NegativeLiteralVisitor extends SymbolVisitor<Void, Literal> {
@@ -35,15 +35,15 @@ public class NegativeLiteralVisitor extends SymbolVisitor<Void, Literal> {
         }
         switch (symbol.valueType().id()) {
             case DoubleType.ID:
-                return Literal.of(symbol.valueType(), (Double)symbol.value() * -1);
+                return Literal.of(symbol.valueType(), (Double) symbol.value() * -1);
             case FloatType.ID:
-                return Literal.of(symbol.valueType(), (Double)symbol.value() * -1);
+                return Literal.of(symbol.valueType(), (Double) symbol.value() * -1);
             case ShortType.ID:
-                return Literal.of(symbol.valueType(), (Short)symbol.value() * -1);
+                return Literal.of(symbol.valueType(), (Short) symbol.value() * -1);
             case IntegerType.ID:
-                return Literal.of(symbol.valueType(), (Integer)symbol.value() * -1);
+                return Literal.of(symbol.valueType(), (Integer) symbol.value() * -1);
             case LongType.ID:
-                return Literal.of(symbol.valueType(), (Long)symbol.value() * -1);
+                return Literal.of(symbol.valueType(), (Long) symbol.value() * -1);
             default:
                 return symbol;
         }

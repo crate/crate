@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 class LeafVisitor extends DefaultTraversalSymbolVisitor<
-        LeafVisitor.Context, Void> {
+    LeafVisitor.Context, Void> {
 
     public static final LeafVisitor INSTANCE = new LeafVisitor();
 
@@ -40,20 +40,20 @@ class LeafVisitor extends DefaultTraversalSymbolVisitor<
             this.leaves = leaves;
         }
 
-        void allocateLeafSymbol(Symbol symbol){
+        void allocateLeafSymbol(Symbol symbol) {
             if (!leaves.contains(symbol)) {
                 leaves.add(symbol);
             }
         }
     }
 
-    public void process(Collection<Symbol> symbols, Context context){
+    public void process(Collection<Symbol> symbols, Context context) {
         for (Symbol symbol : symbols) {
             process(symbol, context);
         }
     }
 
-    public void process(SplitPoints splitContext){
+    public void process(SplitPoints splitContext) {
         Context context = new Context(splitContext.leaves());
         process(splitContext.toCollect(), context);
     }
@@ -67,7 +67,7 @@ class LeafVisitor extends DefaultTraversalSymbolVisitor<
     @Override
     public Void visitAggregation(Aggregation symbol, Context context) {
         throw new AssertionError("Aggregation Symbols must not be visited with " +
-                getClass().getCanonicalName());
+                                 getClass().getCanonicalName());
     }
 
 }

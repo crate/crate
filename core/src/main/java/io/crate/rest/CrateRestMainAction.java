@@ -86,17 +86,17 @@ public class CrateRestMainAction extends BaseRestHandler {
         }
         builder.field("cluster_name", clusterName.value());
         builder.startObject("version")
-                .field("number", version.number())
-                .field("build_hash", Build.CURRENT.hash())
-                .field("build_timestamp", Build.CURRENT.timestamp())
-                .field("build_snapshot", version.snapshot)
-                .field("es_version", version.esVersion)
-                        // We use the lucene version from lucene constants since
-                        // this includes bugfix release version as well and is already in
-                        // the right format. We can also be sure that the format is maitained
-                        // since this is also recorded in lucene segments and has BW compat
-                .field("lucene_version", org.apache.lucene.util.Version.LATEST.toString())
-                .endObject();
+            .field("number", version.number())
+            .field("build_hash", Build.CURRENT.hash())
+            .field("build_timestamp", Build.CURRENT.timestamp())
+            .field("build_snapshot", version.snapshot)
+            .field("es_version", version.esVersion)
+            // We use the lucene version from lucene constants since
+            // this includes bugfix release version as well and is already in
+            // the right format. We can also be sure that the format is maitained
+            // since this is also recorded in lucene segments and has BW compat
+            .field("lucene_version", org.apache.lucene.util.Version.LATEST.toString())
+            .endObject();
         builder.endObject();
         channel.sendResponse(new BytesRestResponse(status, builder));
     }

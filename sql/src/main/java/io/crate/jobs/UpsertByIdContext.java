@@ -55,7 +55,8 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
         this.request = request;
         this.item = item;
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
-        assert request.continueOnError() == false : "continueOnError flag is expected to be set to false for upsertById";
+        assert
+            request.continueOnError() == false : "continueOnError flag is expected to be set to false for upsertById";
     }
 
     public SettableFuture<Long> resultFuture() {
@@ -85,7 +86,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                 }
                 e = ExceptionsHelper.unwrapCause(e);
                 if (item.insertValues() == null
-                        && (e instanceof DocumentMissingException
+                    && (e instanceof DocumentMissingException
                         || e instanceof VersionConflictEngineException)) {
                     // on updates, set affected row to 0 if document is not found or version conflicted
                     resultFuture.set(0L);

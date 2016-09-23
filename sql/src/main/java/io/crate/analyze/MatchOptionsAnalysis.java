@@ -48,20 +48,20 @@ public class MatchOptionsAnalysis {
     static final Predicate<Object> NUMBER_OR_STRING = Predicates.or(IS_STRING, IS_NUMBER);
 
     static final Map<String, Predicate<Object>> ALLOWED_SETTINGS = ImmutableMap.<String, Predicate<Object>>builder()
-            .put("analyzer", IS_STRING)
-            .put("boost", POSITIVE_NUMBER)
-            .put("cutoff_frequency", POSITIVE_NUMBER)
-            .put("fuzziness", NUMBER_OR_STRING) // validated at ES QueryParser
-            .put("fuzzy_rewrite", IS_STRING)
-            .put("max_expansions", POSITIVE_NUMBER)
-            .put("minimum_should_match", NUMBER_OR_STRING)
-            .put("operator", Predicates.in(Arrays.<Object>asList("or", "and", "OR", "AND")))
-            .put("prefix_length", POSITIVE_NUMBER)
-            .put("rewrite", IS_STRING)
-            .put("slop", POSITIVE_NUMBER)
-            .put("tie_breaker", IS_NUMBER)
-            .put("zero_terms_query", IS_STRING)
-            .build();
+        .put("analyzer", IS_STRING)
+        .put("boost", POSITIVE_NUMBER)
+        .put("cutoff_frequency", POSITIVE_NUMBER)
+        .put("fuzziness", NUMBER_OR_STRING) // validated at ES QueryParser
+        .put("fuzzy_rewrite", IS_STRING)
+        .put("max_expansions", POSITIVE_NUMBER)
+        .put("minimum_should_match", NUMBER_OR_STRING)
+        .put("operator", Predicates.in(Arrays.<Object>asList("or", "and", "OR", "AND")))
+        .put("prefix_length", POSITIVE_NUMBER)
+        .put("rewrite", IS_STRING)
+        .put("slop", POSITIVE_NUMBER)
+        .put("tie_breaker", IS_NUMBER)
+        .put("zero_terms_query", IS_STRING)
+        .build();
 
     public static Map<String, Object> process(GenericProperties properties, Row parameters) {
         Map<String, Object> processed = new HashMap<>(properties.properties().size());
@@ -69,12 +69,12 @@ public class MatchOptionsAnalysis {
             Predicate<Object> validator = ALLOWED_SETTINGS.get(option.getKey());
             if (validator == null) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "unknown match option '%s'", option.getKey()));
+                    String.format(Locale.ENGLISH, "unknown match option '%s'", option.getKey()));
             }
             Object value = ExpressionToObjectVisitor.convert(option.getValue(), parameters);
             if (!validator.apply(value)) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "invalid value for option '%s': %s", option.getKey(), value));
+                    "invalid value for option '%s': %s", option.getKey(), value));
             }
             processed.put(option.getKey(), value);
         }

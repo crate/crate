@@ -56,7 +56,7 @@ public class RegexMatcherTest extends CrateUnitTest {
         regexMatcher = new RegexMatcher(pattern);
         assertEquals(true, regexMatcher.match(text));
         assertThat(regexMatcher.groups(),
-                arrayContaining(new BytesRef("fooba"), new BytesRef("foo"), new BytesRef("ba")));
+            arrayContaining(new BytesRef("fooba"), new BytesRef("foo"), new BytesRef("ba")));
     }
 
     @Test
@@ -98,6 +98,6 @@ public class RegexMatcherTest extends CrateUnitTest {
         RegexMatcher regexMatcher = new RegexMatcher(pattern);
         assertEquals(true, regexMatcher.match(text));
         assertThat(regexMatcher.groups(),
-                arrayContaining(new BytesRef(" --std"), null));
+            arrayContaining(new BytesRef(" --std"), null));
     }
 }

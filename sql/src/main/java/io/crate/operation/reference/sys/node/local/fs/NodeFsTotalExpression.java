@@ -50,7 +50,7 @@ class NodeFsTotalExpression extends NestedObjectExpression {
     private static final String BYTES_WRITTEN = "bytes_written";
 
     private static final List<String> ALL_TOTALS = ImmutableList.of(
-            SIZE, USED, AVAILABLE, READS, BYTES_READ, WRITES, BYTES_WRITTEN);
+        SIZE, USED, AVAILABLE, READS, BYTES_READ, WRITES, BYTES_WRITTEN);
     private static final ESLogger logger = Loggers.getLogger(NodeFsTotalExpression.class);
 
     private final ExtendedFsStats extendedFsStats;
@@ -58,20 +58,20 @@ class NodeFsTotalExpression extends NestedObjectExpression {
 
     // cache that collects all totals at once, even if only one total value is queried
     private final LoadingCache<String, Long> totals = CacheBuilder.newBuilder()
-            .expireAfterWrite(500, TimeUnit.MILLISECONDS)
-            .maximumSize(ALL_TOTALS.size())
-            .build(new CacheLoader<String, Long>() {
-                @Override
-                public Long load(@Nonnull String key) throws Exception {
-                    // actually not needed if only queried with getAll()
-                    throw new UnsupportedOperationException("load not supported on sys.nodes.fs.total cache");
-                }
+        .expireAfterWrite(500, TimeUnit.MILLISECONDS)
+        .maximumSize(ALL_TOTALS.size())
+        .build(new CacheLoader<String, Long>() {
+            @Override
+            public Long load(@Nonnull String key) throws Exception {
+                // actually not needed if only queried with getAll()
+                throw new UnsupportedOperationException("load not supported on sys.nodes.fs.total cache");
+            }
 
-                @Override
-                public Map<String, Long> loadAll(@Nonnull Iterable<? extends String> keys) throws Exception {
-                    return getTotals();
-                }
-            });
+            @Override
+            public Map<String, Long> loadAll(@Nonnull Iterable<? extends String> keys) throws Exception {
+                return getTotals();
+            }
+        });
 
     NodeFsTotalExpression(ExtendedFsStats extendedFsStats) {
         this.extendedFsStats = extendedFsStats;

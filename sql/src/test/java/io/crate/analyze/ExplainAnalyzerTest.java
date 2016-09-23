@@ -54,7 +54,7 @@ public class ExplainAnalyzerTest extends BaseAnalyzerTest {
             super.bindSchemas();
             SchemaInfo docSchemaInfo = mock(SchemaInfo.class);
             when(docSchemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
-                    .thenReturn(TEST_PARTITIONED_TABLE_INFO);
+                .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(docSchemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(docSchemaInfo);
         }
@@ -64,9 +64,9 @@ public class ExplainAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new MockedClusterServiceModule(),
-                new TestMetaDataModule(),
-                new MetaDataSysModule()
+            new MockedClusterServiceModule(),
+            new TestMetaDataModule(),
+            new MetaDataSysModule()
         ));
         return modules;
     }

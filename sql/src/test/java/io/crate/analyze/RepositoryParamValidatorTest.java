@@ -43,7 +43,7 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
     @Before
     public void initValidator() throws Exception {
         validator = new ModulesBuilder()
-                .add(new RepositorySettingsModule()).createInjector().getInstance(RepositoryParamValidator.class);
+            .add(new RepositorySettingsModule()).createInjector().getInstance(RepositoryParamValidator.class);
     }
 
     @Test
@@ -57,7 +57,7 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
     public void testRequiredTypeIsMissing() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-                "The following required parameters are missing to create a repository of type \"fs\": [location]");
+            "The following required parameters are missing to create a repository of type \"fs\": [location]");
         validator.convertAndValidate("fs", Optional.of(new GenericProperties()), ParameterContext.EMPTY);
     }
 

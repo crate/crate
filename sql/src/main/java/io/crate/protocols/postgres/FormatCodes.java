@@ -37,7 +37,7 @@ public class FormatCodes {
 
     /**
      * Read format codes from a ChannelBuffer.
-     *
+     * <p>
      * Buffer must contain:
      * <pre>
      * int16 num formatCodes
@@ -59,12 +59,12 @@ public class FormatCodes {
 
     /**
      * Get the formatCode for a column idx
-     *
+     * <p>
      * According to spec:
      * length of formatCodes:
-     *      0 = uses default (TEXT)
-     *      1 = all params uses this format
-     *      n = one for each param
+     * 0 = uses default (TEXT)
+     * 1 = all params uses this format
+     * n = one for each param
      */
     static FormatCode getFormatCode(@Nullable FormatCode[] formatCodes, int idx) {
         if (formatCodes == null || formatCodes.length == 0) {

@@ -126,7 +126,7 @@ public class SymbolToFieldExtractor<T> {
         @Override
         protected Function<T, Object> visitSymbol(Symbol symbol, Context context) {
             throw new UnsupportedOperationException(
-                    SymbolFormatter.format("Operation not supported with symbol %s", symbol));
+                SymbolFormatter.format("Operation not supported with symbol %s", symbol));
         }
     }
 

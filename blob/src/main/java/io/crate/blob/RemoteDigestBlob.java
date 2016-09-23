@@ -32,9 +32,6 @@ import java.util.UUID;
 
 public class RemoteDigestBlob {
 
-    private final String index;
-    private Status status;
-
     public enum Status {
         FULL((byte) 0),
         PARTIAL((byte) 1),
@@ -47,13 +44,6 @@ public class RemoteDigestBlob {
 
         Status(byte id) {
             this.id = id;
-        }
-
-        /**
-         * The internal representation of the status.
-         */
-        public byte id() {
-            return id;
         }
 
         public static Status fromId(byte id) {
@@ -71,17 +61,24 @@ public class RemoteDigestBlob {
             }
             throw new IllegalArgumentException("No status match for [" + id + "]");
         }
-    }
 
+        /**
+         * The internal representation of the status.
+         */
+        public byte id() {
+            return id;
+        }
+    }
 
     private final static ESLogger logger = Loggers.getLogger(RemoteDigestBlob.class);
 
+    private final String index;
     private final String digest;
     private final Client client;
+    private Status status;
     private long size;
     private StartBlobResponse startResponse;
     private UUID transferId;
-
 
     public RemoteDigestBlob(BlobService blobService, String index, String digest) {
         this.digest = digest;
@@ -90,7 +87,7 @@ public class RemoteDigestBlob {
         this.index = index;
     }
 
-    public Status status(){
+    public Status status() {
         return status;
     }
 
@@ -98,8 +95,8 @@ public class RemoteDigestBlob {
         logger.trace("delete");
         assert (transferId == null);
         DeleteBlobRequest request = new DeleteBlobRequest(
-                index,
-                Hex.decodeHex(digest)
+            index,
+            Hex.decodeHex(digest)
         );
 
         return client.execute(DeleteBlobAction.INSTANCE, request).actionGet().deleted;
@@ -109,10 +106,10 @@ public class RemoteDigestBlob {
         logger.trace("start blob upload");
         assert (transferId == null);
         StartBlobRequest request = new StartBlobRequest(
-                index,
-                Hex.decodeHex(digest),
-                new BytesArray(buffer.array()),
-                last
+            index,
+            Hex.decodeHex(digest),
+            new BytesArray(buffer.array()),
+            last
         );
         transferId = request.transferId();
         size += buffer.readableBytes();
@@ -145,7 +142,7 @@ public class RemoteDigestBlob {
             // client probably doesn't support 100-continue and is sending chunked requests
             // need to ignore the content.
             return status;
-        } else if (status != Status.PARTIAL){
+        } else if (status != Status.PARTIAL) {
             throw new IllegalStateException("Expected Status.PARTIAL for chunk but got: " + status);
         } else {
             return chunk(buffer, last);

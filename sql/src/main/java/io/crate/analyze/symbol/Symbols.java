@@ -40,14 +40,14 @@ public class Symbols {
     private static final HasColumnVisitor HAS_COLUMN_VISITOR = new HasColumnVisitor();
 
     public static final com.google.common.base.Function<Symbol, DataType> TYPES_FUNCTION =
-            new com.google.common.base.Function<Symbol, DataType>() {
-                @Nullable
-                @Override
-                public DataType apply(@Nullable Symbol input) {
-                    assert input != null : "can't convert null symbol to dataType";
-                    return input.valueType();
-                }
-            };
+        new com.google.common.base.Function<Symbol, DataType>() {
+            @Nullable
+            @Override
+            public DataType apply(@Nullable Symbol input) {
+                assert input != null : "can't convert null symbol to dataType";
+                return input.valueType();
+            }
+        };
 
     public static final Predicate<Symbol> IS_GENERATED_COLUMN = new Predicate<Symbol>() {
         @Override

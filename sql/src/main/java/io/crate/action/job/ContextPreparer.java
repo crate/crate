@@ -133,7 +133,7 @@ public class ContextPreparer extends AbstractComponent {
                                                            @Nullable SharedShardContexts sharedShardContexts) {
         PreparerContext preparerContext = initContext(nodeOperations, contextBuilder, sharedShardContexts);
         logger.trace("prepareOnHandler: nodeOperations={}, handlerPhases={}, targetSourceMap={}",
-                nodeOperations, handlerPhases, preparerContext.opCtx.targetToSourceMap);
+            nodeOperations, handlerPhases, preparerContext.opCtx.targetToSourceMap);
 
         IntHashSet leafs = new IntHashSet();
         for (Tuple<ExecutionPhase, RowReceiver> handlerPhase : handlerPhases) {
@@ -155,10 +155,10 @@ public class ContextPreparer extends AbstractComponent {
             return innerPreparer.process(phase, preparerContext);
         } catch (Throwable t) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Couldn't create executionContexts from%n" +
-                    "NodeOperations: %s%n" +
-                    "target-sources: %s%n" +
-                    "original-error: %s", preparerContext.opCtx.nodeOperationMap, preparerContext.opCtx.targetToSourceMap, t.getMessage()), t);
+                "Couldn't create executionContexts from%n" +
+                "NodeOperations: %s%n" +
+                "target-sources: %s%n" +
+                "original-error: %s", preparerContext.opCtx.nodeOperationMap, preparerContext.opCtx.targetToSourceMap, t.getMessage()), t);
         }
     }
 
@@ -166,12 +166,12 @@ public class ContextPreparer extends AbstractComponent {
                                         JobExecutionContext.Builder contextBuilder,
                                         @Nullable SharedShardContexts sharedShardContexts) {
         ContextPreparer.PreparerContext preparerContext = new PreparerContext(
-                contextBuilder, logger, distributingDownstreamFactory, nodeOperations, sharedShardContexts);
+            contextBuilder, logger, distributingDownstreamFactory, nodeOperations, sharedShardContexts);
 
         for (NodeOperation nodeOperation : nodeOperations) {
             // context for nodeOperations without dependencies can be built immediately (e.g. FetchPhase)
             if (nodeOperation.downstreamExecutionPhaseId() == NodeOperation.NO_DOWNSTREAM) {
-                if(createContexts(nodeOperation.executionPhase(), preparerContext)) {
+                if (createContexts(nodeOperation.executionPhase(), preparerContext)) {
                     preparerContext.opCtx.builtNodeOperations.set(nodeOperation.executionPhase().executionPhaseId());
                 }
             }
@@ -187,7 +187,7 @@ public class ContextPreparer extends AbstractComponent {
 
     /**
      * recursively build all contexts that depend on startPhaseId (excl. startPhaseId)
-     *
+     * <p>
      * {@link PreparerContext#opCtx#targetToSourceMap} will be used to traverse the nodeOperations
      */
     private Collection<ExecutionSubContext> prepareSourceOperations(int startPhaseId, PreparerContext preparerContext) {
@@ -258,7 +258,7 @@ public class ContextPreparer extends AbstractComponent {
 
         /**
          * find all phases that don't have any downstreams.
-         *
+         * <p>
          * This is usually only one phase (the handlerPhase, but there might be more in case of bulk operations)
          */
         private static IntCollection findLeafs(Multimap<Integer, Integer> targetToSourceMap) {
@@ -284,7 +284,8 @@ public class ContextPreparer extends AbstractComponent {
                 }
                 ExecutionPhase executionPhase = nodeOperation.executionPhase();
                 sameNode = sameNode & executionPhase instanceof UpstreamPhase &&
-                           (((UpstreamPhase) executionPhase).distributionInfo().distributionType() == DistributionType.SAME_NODE);
+                           (((UpstreamPhase) executionPhase).distributionInfo().distributionType() ==
+                            DistributionType.SAME_NODE);
             }
             return sameNode;
         }
@@ -342,7 +343,7 @@ public class ContextPreparer extends AbstractComponent {
             }
 
             RowReceiver targetRowReceiver = phaseIdToRowReceivers.get(
-                    toKey(nodeOperation.downstreamExecutionPhaseId(), nodeOperation.downstreamExecutionPhaseInputId()));
+                toKey(nodeOperation.downstreamExecutionPhaseId(), nodeOperation.downstreamExecutionPhaseInputId()));
             if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
                 traceGetRowReceiver(phase, "DIRECT_RESPONSE", nodeOperation, targetRowReceiver);
                 return safeReceiver(targetRowReceiver, nodeOperation);
@@ -354,12 +355,13 @@ public class ContextPreparer extends AbstractComponent {
                 case BROADCAST:
                 case MODULO:
                     RowReceiver downstream = distributingDownstreamFactory.create(
-                            nodeOperation, phase.distributionInfo(), jobId(), pageSize);
+                        nodeOperation, phase.distributionInfo(), jobId(), pageSize);
                     traceGetRowReceiver(
-                            phase, phase.distributionInfo().distributionType().toString(), nodeOperation, downstream);
+                        phase, phase.distributionInfo().distributionType().toString(), nodeOperation, downstream);
                     return downstream;
                 default:
-                    throw new AssertionError("unhandled distributionType: " + phase.distributionInfo().distributionType());
+                    throw new AssertionError(
+                        "unhandled distributionType: " + phase.distributionInfo().distributionType());
             }
         }
 
@@ -368,21 +370,21 @@ public class ContextPreparer extends AbstractComponent {
                                          NodeOperation nodeOperation,
                                          RowReceiver targetRowReceiver) {
             logger.trace("action=getRowReceiver, distributionType={}, phase={}, targetRowReceiver={}, target={}/{},",
-                    distributionTypeName,
-                    phase.executionPhaseId(),
-                    targetRowReceiver,
-                    nodeOperation.downstreamExecutionPhaseId(),
-                    nodeOperation.downstreamExecutionPhaseInputId()
+                distributionTypeName,
+                phase.executionPhaseId(),
+                targetRowReceiver,
+                nodeOperation.downstreamExecutionPhaseId(),
+                nodeOperation.downstreamExecutionPhaseInputId()
             );
         }
 
         private RowReceiver safeReceiver(RowReceiver targetRowReceiver, NodeOperation nodeOperation) {
             if (targetRowReceiver == null) {
-                String msg =  String.format(Locale.ENGLISH,
-                        "targetRowReceiver %d/%d must be on the same node as phase %d, but it is null",
-                        nodeOperation.downstreamExecutionPhaseId(),
-                        nodeOperation.downstreamExecutionPhaseInputId(),
-                        nodeOperation.executionPhase().executionPhaseId());
+                String msg = String.format(Locale.ENGLISH,
+                    "targetRowReceiver %d/%d must be on the same node as phase %d, but it is null",
+                    nodeOperation.downstreamExecutionPhaseId(),
+                    nodeOperation.downstreamExecutionPhaseInputId(),
+                    nodeOperation.executionPhase().executionPhaseId());
                 throw new IllegalStateException(msg);
             }
             return targetRowReceiver;
@@ -391,7 +393,7 @@ public class ContextPreparer extends AbstractComponent {
         /**
          * The rowReceiver for handlerPhases got passed into {@link #prepareOnHandler(Iterable, JobExecutionContext.Builder, List, SharedShardContexts)}
          * and is registered there.
-         *
+         * <p>
          * Retrieve it
          */
         private RowReceiver handlerPhaseRowReceiver(int phaseId) {
@@ -405,7 +407,7 @@ public class ContextPreparer extends AbstractComponent {
             phaseIdToRowReceivers.put(toKey(phaseId, (byte) 0), rowReceiver);
         }
 
-        void registerSubContext(ExecutionSubContext subContext){
+        void registerSubContext(ExecutionSubContext subContext) {
             contextBuilder.addSubContext(subContext);
         }
 
@@ -424,11 +426,11 @@ public class ContextPreparer extends AbstractComponent {
 
             RowReceiver rowReceiver = context.getRowReceiver(phase, 0);
             context.registerSubContext(new CountContext(
-                    phase.executionPhaseId(),
-                    countOperation,
-                    rowReceiver,
-                    indexShardMap,
-                    phase.whereClause()
+                phase.executionPhaseId(),
+                countOperation,
+                rowReceiver,
+                indexShardMap,
+                phase.whereClause()
             ));
             return true;
         }
@@ -445,13 +447,13 @@ public class ContextPreparer extends AbstractComponent {
             if (upstreamOnSameNode) {
                 if (!phase.projections().isEmpty()) {
                     ProjectorChainContext projectorChainContext = new ProjectorChainContext(
-                            phase.executionPhaseId(),
-                            phase.name(),
-                            context.jobId(),
-                            pageDownstreamFactory.projectorFactory(),
-                            phase.projections(),
-                            rowReceiver,
-                            ramAccountingContext);
+                        phase.executionPhaseId(),
+                        phase.name(),
+                        context.jobId(),
+                        pageDownstreamFactory.projectorFactory(),
+                        phase.projections(),
+                        rowReceiver,
+                        ramAccountingContext);
                     context.registerRowReceiver(phase.executionPhaseId(), projectorChainContext.rowReceiver());
                     context.registerSubContext(projectorChainContext);
                     return true;
@@ -462,25 +464,25 @@ public class ContextPreparer extends AbstractComponent {
             }
 
             Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain =
-                    pageDownstreamFactory.createMergeNodePageDownstream(
-                            phase,
-                            rowReceiver,
-                            false,
-                            ramAccountingContext,
-                            // no separate executor because TransportDistributedResultAction already runs in a threadPool
-                            Optional.<Executor>absent());
+                pageDownstreamFactory.createMergeNodePageDownstream(
+                    phase,
+                    rowReceiver,
+                    false,
+                    ramAccountingContext,
+                    // no separate executor because TransportDistributedResultAction already runs in a threadPool
+                    Optional.<Executor>absent());
 
 
             context.registerSubContext(new PageDownstreamContext(
-                    pageDownstreamContextLogger,
-                    nodeName(),
-                    phase.executionPhaseId(),
-                    phase.name(),
-                    pageDownstreamProjectorChain.v1(),
-                    DataTypes.getStreamers(phase.inputTypes()),
-                    ramAccountingContext,
-                    phase.numUpstreams(),
-                    pageDownstreamProjectorChain.v2()));
+                pageDownstreamContextLogger,
+                nodeName(),
+                phase.executionPhaseId(),
+                phase.name(),
+                pageDownstreamProjectorChain.v1(),
+                DataTypes.getStreamers(phase.inputTypes()),
+                ramAccountingContext,
+                phase.numUpstreams(),
+                pageDownstreamProjectorChain.v2()));
             return true;
         }
 
@@ -489,14 +491,14 @@ public class ContextPreparer extends AbstractComponent {
         public Boolean visitRoutedCollectPhase(final RoutedCollectPhase phase, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
             RowReceiver rowReceiver = context.getRowReceiver(phase,
-                    MoreObjects.firstNonNull(phase.nodePageSizeHint(), Paging.PAGE_SIZE));
+                MoreObjects.firstNonNull(phase.nodePageSizeHint(), Paging.PAGE_SIZE));
             context.registerSubContext(new JobCollectContext(
-                    phase,
-                    collectOperation,
-                    clusterService.state().nodes().localNodeId(),
-                    ramAccountingContext,
-                    rowReceiver,
-                    context.sharedShardContexts
+                phase,
+                collectOperation,
+                clusterService.state().nodes().localNodeId(),
+                ramAccountingContext,
+                rowReceiver,
+                context.sharedShardContexts
             ));
             return true;
         }
@@ -506,12 +508,12 @@ public class ContextPreparer extends AbstractComponent {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
             RowReceiver rowReceiver = context.getRowReceiver(phase, Paging.PAGE_SIZE);
             context.registerSubContext(new JobCollectContext(
-                    phase,
-                    collectOperation,
-                    clusterService.state().nodes().localNodeId(),
-                    ramAccountingContext,
-                    rowReceiver,
-                    context.sharedShardContexts
+                phase,
+                collectOperation,
+                clusterService.state().nodes().localNodeId(),
+                ramAccountingContext,
+                rowReceiver,
+                context.sharedShardContexts
             ));
             return true;
         }
@@ -519,32 +521,32 @@ public class ContextPreparer extends AbstractComponent {
         @Override
         public Boolean visitFetchPhase(final FetchPhase phase, final PreparerContext context) {
             final FluentIterable<Routing> routings = FluentIterable.from(context.opCtx.nodeOperationMap.values())
-                    .transform(new Function<NodeOperation, ExecutionPhase>() {
-                @Nullable
-                @Override
-                public ExecutionPhase apply(NodeOperation input) {
-                    return input.executionPhase();
-                }
-            }).transform(new Function<ExecutionPhase, Routing>() {
-                        @Nullable
-                        @Override
-                        public Routing apply(@Nullable ExecutionPhase input) {
-                            if (input == null) {
-                                return null;
-                            }
-                            if (input instanceof RoutedCollectPhase) {
-                                return ((RoutedCollectPhase) input).routing();
-                            }
+                .transform(new Function<NodeOperation, ExecutionPhase>() {
+                    @Nullable
+                    @Override
+                    public ExecutionPhase apply(NodeOperation input) {
+                        return input.executionPhase();
+                    }
+                }).transform(new Function<ExecutionPhase, Routing>() {
+                    @Nullable
+                    @Override
+                    public Routing apply(@Nullable ExecutionPhase input) {
+                        if (input == null) {
                             return null;
                         }
-                    }).filter(Predicates.notNull());
+                        if (input instanceof RoutedCollectPhase) {
+                            return ((RoutedCollectPhase) input).routing();
+                        }
+                        return null;
+                    }
+                }).filter(Predicates.notNull());
 
             String localNodeId = clusterService.localNode().id();
             context.registerSubContext(new FetchContext(
-                    phase,
-                    localNodeId,
-                    context.sharedShardContexts,
-                    routings));
+                phase,
+                localNodeId,
+                context.sharedShardContexts,
+                routings));
             return true;
         }
 
@@ -556,11 +558,11 @@ public class ContextPreparer extends AbstractComponent {
             FlatProjectorChain flatProjectorChain;
             if (!phase.projections().isEmpty()) {
                 flatProjectorChain = FlatProjectorChain.withAttachedDownstream(
-                        pageDownstreamFactory.projectorFactory(),
-                        ramAccountingContext,
-                        phase.projections(),
-                        downstreamRowReceiver,
-                        phase.jobId()
+                    pageDownstreamFactory.projectorFactory(),
+                    ramAccountingContext,
+                    phase.projections(),
+                    downstreamRowReceiver,
+                    phase.jobId()
                 );
             } else {
                 flatProjectorChain = FlatProjectorChain.withReceivers(Collections.singletonList(downstreamRowReceiver));
@@ -596,10 +598,10 @@ public class ContextPreparer extends AbstractComponent {
                 context.registerSubContext(right);
             }
             context.registerSubContext(new NestedLoopContext(
-                    nlContextLogger,
-                    phase,
-                    flatProjectorChain,
-                    nestedLoopOperation,
+                nlContextLogger,
+                phase,
+                flatProjectorChain,
+                nestedLoopOperation,
                 left,
                 right
             ));
@@ -618,22 +620,22 @@ public class ContextPreparer extends AbstractComponent {
                 return null;
             }
             Tuple<PageDownstream, FlatProjectorChain> pageDownstreamWithChain = pageDownstreamFactory.createMergeNodePageDownstream(
-                    mergePhase,
-                    downstream,
-                    true,
-                    ramAccountingContext,
-                    Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
+                mergePhase,
+                downstream,
+                true,
+                ramAccountingContext,
+                Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
             );
             return new PageDownstreamContext(
-                    pageDownstreamContextLogger,
-                    nodeName(),
-                    mergePhase.executionPhaseId(),
-                    mergePhase.name(),
-                    pageDownstreamWithChain.v1(),
-                    StreamerVisitor.streamersFromOutputs(mergePhase),
-                    ramAccountingContext,
-                    mergePhase.numUpstreams(),
-                    pageDownstreamWithChain.v2()
+                pageDownstreamContextLogger,
+                nodeName(),
+                mergePhase.executionPhaseId(),
+                mergePhase.name(),
+                pageDownstreamWithChain.v1(),
+                StreamerVisitor.streamersFromOutputs(mergePhase),
+                ramAccountingContext,
+                mergePhase.numUpstreams(),
+                pageDownstreamWithChain.v2()
             );
         }
     }

@@ -28,7 +28,7 @@ public class SymbolVisitors {
 
     private static final AnyPredicateVisitor ANY_VISITOR = new AnyPredicateVisitor();
 
-    public static boolean any(Predicate<Symbol> symbolPredicate, Symbol ... symbols) {
+    public static boolean any(Predicate<Symbol> symbolPredicate, Symbol... symbols) {
         for (Symbol symbol : symbols) {
             if (ANY_VISITOR.any(symbol, symbolPredicate)) {
                 return true;

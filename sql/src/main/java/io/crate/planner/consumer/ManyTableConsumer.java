@@ -62,12 +62,11 @@ public class ManyTableConsumer implements Consumer {
      * returns a new collection with the same items as relations contains but in an order which
      * allows the most join condition push downs (assuming that a left-based tree is built later on)
      *
-     *
-     * @param relations all relations, e.g. [t1, t2, t3, t3]
+     * @param relations               all relations, e.g. [t1, t2, t3, t3]
      * @param implicitJoinedRelations contains all relations that have a join condition e.g. {{t1, t2}, {t2, t3}}
-     * @param joinPairs contains a list of {@link JoinPair}.
-     * @param preSorted a ordered subset of the relations. The result will start with those relations.
-     *                  E.g. [t3] - This would cause the result to start with [t3]
+     * @param joinPairs               contains a list of {@link JoinPair}.
+     * @param preSorted               a ordered subset of the relations. The result will start with those relations.
+     *                                E.g. [t3] - This would cause the result to start with [t3]
      */
     static Collection<QualifiedName> orderByJoinConditions(Collection<QualifiedName> relations,
                                                            Set<? extends Set<QualifiedName>> implicitJoinedRelations,
@@ -157,35 +156,35 @@ public class ManyTableConsumer implements Consumer {
      * build a TwoTableJoin tree.
      * E.g. given a MSS with 3 tables:
      * <code>
-     *     select t1.a, t2.b, t3.c from t1, t2, t3
+     * select t1.a, t2.b, t3.c from t1, t2, t3
      * </code>
-     *
+     * <p>
      * a TwoTableJoin tree is built:
-     *
+     * <p>
      * </code>
-     *      join(
-     *          join(t1, t2),
-     *          t3
-     *      )
+     * join(
+     * join(t1, t2),
+     * t3
+     * )
      * </code>
-     *
+     * <p>
      * Where:
      * <code>
-     *      join(t1, t2)
-     *      has:
-     *       QS: [ RC(t1, 0), RC(t2, 0) ]
-     *       t1: select a from t1
-     *       t2: select b from t2
+     * join(t1, t2)
+     * has:
+     * QS: [ RC(t1, 0), RC(t2, 0) ]
+     * t1: select a from t1
+     * t2: select b from t2
      * </code>
-     *
+     * <p>
      * and
      * <code>
-     *      join(join(t1, t2), t3)
+     * join(join(t1, t2), t3)
      * has:
-     *      QS: [ RC(join(t1, t2), 0), RC(join(t1, t2), 1),  RC(t3, 0) ]
-     *      join(t1, t2) -
-     *      t3: select c from t3
-     *
+     * QS: [ RC(join(t1, t2), 0), RC(join(t1, t2), 1),  RC(t3, 0) ]
+     * join(t1, t2) -
+     * t3: select c from t3
+     * <p>
      * </code>
      */
     static TwoTableJoin buildTwoTableJoinTree(MultiSourceSelect mss) {
@@ -278,10 +277,10 @@ public class ManyTableConsumer implements Consumer {
     }
 
     private static Map<Set<QualifiedName>, Symbol> rewriteSplitQueryNames(Map<Set<QualifiedName>, Symbol> splitQuery,
-                                                                    QualifiedName leftName,
-                                                                    QualifiedName rightName,
-                                                                    QualifiedName newName,
-                                                                    Function<? super Symbol, Symbol> replaceFunction) {
+                                                                          QualifiedName leftName,
+                                                                          QualifiedName rightName,
+                                                                          QualifiedName newName,
+                                                                          Function<? super Symbol, Symbol> replaceFunction) {
         Map<Set<QualifiedName>, Symbol> newMap = new HashMap<>(splitQuery.size());
         for (Map.Entry<Set<QualifiedName>, Symbol> entry : splitQuery.entrySet()) {
             Set<QualifiedName> key = entry.getKey();
@@ -330,7 +329,8 @@ public class ManyTableConsumer implements Consumer {
         JoinPairs.removeOrderByOnOuterRelation(left, right, leftSource.querySpec(), rightSource.querySpec(), joinPair);
 
         Optional<OrderBy> remainingOrderByToApply = Optional.absent();
-        if (mss.remainingOrderBy().isPresent() && mss.remainingOrderBy().get().validForRelations(Sets.newHashSet(left, right))) {
+        if (mss.remainingOrderBy().isPresent() &&
+            mss.remainingOrderBy().get().validForRelations(Sets.newHashSet(left, right))) {
             remainingOrderByToApply = Optional.of(mss.remainingOrderBy().get().orderBy());
         }
 
@@ -470,7 +470,8 @@ public class ManyTableConsumer implements Consumer {
                 return new RelationColumn(context.newName, relationColumn.index(), relationColumn.valueType());
             }
             if (relationColumn.relationName().equals(context.right)) {
-                return new RelationColumn(context.newName, relationColumn.index() + context.rightOffset, relationColumn.valueType());
+                return new RelationColumn(context.newName,
+                    relationColumn.index() + context.rightOffset, relationColumn.valueType());
             }
             return super.visitRelationColumn(relationColumn, context);
         }

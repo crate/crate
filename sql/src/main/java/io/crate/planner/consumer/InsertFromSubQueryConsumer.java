@@ -61,18 +61,18 @@ public class InsertFromSubQueryConsumer implements Consumer {
                                                             ConsumerContext context) {
 
             ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
-                    statement.tableInfo().ident(),
-                    null,
-                    statement.tableInfo().primaryKey(),
-                    statement.columns(),
-                    statement.onDuplicateKeyAssignments(),
-                    statement.primaryKeySymbols(),
-                    statement.tableInfo().partitionedBy(),
-                    statement.partitionedBySymbols(),
-                    statement.tableInfo().clusteredBy(),
-                    statement.clusteredByIdx(),
-                    Settings.EMPTY,
-                    statement.tableInfo().isPartitioned()
+                statement.tableInfo().ident(),
+                null,
+                statement.tableInfo().primaryKey(),
+                statement.columns(),
+                statement.onDuplicateKeyAssignments(),
+                statement.primaryKeySymbols(),
+                statement.tableInfo().partitionedBy(),
+                statement.partitionedBySymbols(),
+                statement.tableInfo().clusteredBy(),
+                statement.clusteredByIdx(),
+                Settings.EMPTY,
+                statement.tableInfo().isPartitioned()
             );
 
             Planner.Context plannerContext = context.plannerContext();
@@ -89,11 +89,11 @@ public class InsertFromSubQueryConsumer implements Consumer {
                 // add local merge Node which aggregates the distributed results
                 MergeCountProjection mergeCountProjection = MergeCountProjection.INSTANCE;
                 mergeNode = MergePhase.localMerge(
-                        plannerContext.jobId(),
-                        plannerContext.nextExecutionPhaseId(),
-                        ImmutableList.<Projection>of(mergeCountProjection),
-                        plannedSubQuery.resultPhase().executionNodes().size(),
-                        Symbols.extractTypes(indexWriterProjection.outputs()));
+                    plannerContext.jobId(),
+                    plannerContext.nextExecutionPhaseId(),
+                    ImmutableList.<Projection>of(mergeCountProjection),
+                    plannedSubQuery.resultPhase().executionNodes().size(),
+                    Symbols.extractTypes(indexWriterProjection.outputs()));
                 mergeNode.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));
             }
             return new InsertFromSubQuery(plannedSubQuery.plan(), mergeNode, plannerContext.jobId());

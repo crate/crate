@@ -75,9 +75,9 @@ public class CreateBlobTable extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("name", name)
-                .add("clusteredBy", clusteredBy)
-                .add("properties", genericProperties).toString();
+            .add("name", name)
+            .add("clusteredBy", clusteredBy)
+            .add("properties", genericProperties).toString();
     }
 
     @Override

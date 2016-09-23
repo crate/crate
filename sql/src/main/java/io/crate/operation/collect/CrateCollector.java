@@ -32,5 +32,6 @@ public interface CrateCollector {
     }
 
     void doCollect();
+
     void kill(@Nullable Throwable throwable);
 }

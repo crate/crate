@@ -73,7 +73,7 @@ public class CreateSnapshot extends Statement {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
 
-        CreateSnapshot that = (CreateSnapshot)obj;
+        CreateSnapshot that = (CreateSnapshot) obj;
         if (!name.equals(that.name)) return false;
         if (!properties.equals(that.properties)) return false;
         if (!tableList.equals(that.tableList)) return false;
@@ -83,10 +83,10 @@ public class CreateSnapshot extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("name", name)
-                .add("properties", properties)
-                .add("tableList", tableList)
-                .toString();
+            .add("name", name)
+            .add("properties", properties)
+            .add("tableList", tableList)
+            .toString();
     }
 
     @Override

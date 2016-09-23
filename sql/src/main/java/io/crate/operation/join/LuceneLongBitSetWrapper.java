@@ -26,10 +26,10 @@ import org.apache.lucene.util.LongBitSet;
 
 /**
  * This BitSet is used to mark matched rows between left and right in {@link NestedLoopOperation}
- *
+ * <p>
  * Each bit true if the rows in the respective position are matched and therefore we need
  * a structure capable of holding <pre>long</pre> size of bits so java.util.BitSet cannot be used.
- *
+ * <p>
  * We chose to use {@link LongBitSet} from Lucence and add another layer on top in
  * order to further optimize performance by growing the capacity of the backing array
  * by double each time size is reached.

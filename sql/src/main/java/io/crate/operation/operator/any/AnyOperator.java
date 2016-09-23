@@ -21,7 +21,6 @@
 
 package io.crate.operation.operator.any;
 
-import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
 import io.crate.core.collections.MapComparator;
 import io.crate.metadata.DynamicFunctionResolver;
@@ -46,7 +45,7 @@ public abstract class AnyOperator extends Operator<Object> {
     /**
      * called inside {@link #normalizeSymbol(io.crate.analyze.symbol.Function)}
      * in order to interpret the result of compareTo
-     *
+     * <p>
      * subclass has to implement this to evaluate the -1, 0, 1 to boolean
      * e.g. for Lt  -1 is true, 0 and 1 is false.
      *
@@ -58,7 +57,8 @@ public abstract class AnyOperator extends Operator<Object> {
 
     protected FunctionInfo functionInfo;
 
-    protected AnyOperator() {}
+    protected AnyOperator() {
+    }
 
     protected AnyOperator(FunctionInfo functionInfo) {
         this.functionInfo = functionInfo;
@@ -109,7 +109,7 @@ public abstract class AnyOperator extends Operator<Object> {
         }
         Iterable<?> rightIterable;
         try {
-           rightIterable = collectionValueToIterable(collectionReference);
+            rightIterable = collectionValueToIterable(collectionReference);
         } catch (IllegalArgumentException e) {
             return false;
         }
@@ -118,12 +118,12 @@ public abstract class AnyOperator extends Operator<Object> {
 
     public static Iterable<?> collectionValueToIterable(Object collectionRef) throws IllegalArgumentException {
         if (collectionRef instanceof Object[]) {
-            return Arrays.asList((Object[])collectionRef);
+            return Arrays.asList((Object[]) collectionRef);
         } else if (collectionRef instanceof Collection) {
-            return (Collection<?>)collectionRef;
+            return (Collection<?>) collectionRef;
         } else {
             throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "cannot cast %s to Iterable", collectionRef));
+                String.format(Locale.ENGLISH, "cannot cast %s to Iterable", collectionRef));
         }
     }
 
@@ -138,7 +138,7 @@ public abstract class AnyOperator extends Operator<Object> {
             checkArgument(dataTypes.size() == 2, "ANY operator requires exactly 2 arguments");
             checkArgument(DataTypes.isCollectionType(dataTypes.get(1)), "The second argument to ANY must be an array or set");
             checkArgument(((CollectionType) dataTypes.get(1)).innerType().equals(dataTypes.get(0)),
-                    "The inner type of the array/set passed to ANY must match its left expression");
+                "The inner type of the array/set passed to ANY must match its left expression");
             return newInstance(new FunctionInfo(new FunctionIdent(name(), dataTypes), BooleanType.INSTANCE));
         }
     }

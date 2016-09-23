@@ -72,11 +72,11 @@ public class ProjectionBuilder {
     }
 
     public GroupProjection groupProjection(
-            Collection<Symbol> inputs,
-            Collection<Symbol> keys,
-            Collection<Function> values,
-            Aggregation.Step fromStep,
-            Aggregation.Step toStep) {
+        Collection<Symbol> inputs,
+        Collection<Symbol> keys,
+        Collection<Function> values,
+        Aggregation.Step fromStep,
+        Aggregation.Step toStep) {
 
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
         ArrayList<Aggregation> aggregations = getAggregations(values, fromStep, toStep, context);
@@ -102,9 +102,9 @@ public class ProjectionBuilder {
 
             if (toStep == Aggregation.Step.PARTIAL) {
                 aggregation = Aggregation.partialAggregation(
-                        function.info(),
-                        ((AggregationFunction) this.functions.get(function.info().ident())).partialType(),
-                        aggregationInputs
+                    function.info(),
+                    ((AggregationFunction) this.functions.get(function.info().ident())).partialType(),
+                    aggregationInputs
                 );
             } else {
                 aggregation = Aggregation.finalAggregation(function.info(), aggregationInputs, fromStep);
@@ -122,16 +122,16 @@ public class ProjectionBuilder {
     }
 
     public static TopNProjection topNProjection(
-            Collection<? extends Symbol> inputs,
-            @Nullable OrderBy orderBy,
-            int offset,
-            int limit,
-            @Nullable Collection<Symbol> outputs) {
+        Collection<? extends Symbol> inputs,
+        @Nullable OrderBy orderBy,
+        int offset,
+        int limit,
+        @Nullable Collection<Symbol> outputs) {
 
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
         List<Symbol> inputsProcessed = inputVisitor.process(inputs, context);
         List<Symbol> outputsProcessed;
-        if (outputs == null){
+        if (outputs == null) {
             outputsProcessed = inputsProcessed;
         } else {
             outputsProcessed = inputVisitor.process(outputs, context);
@@ -142,9 +142,9 @@ public class ProjectionBuilder {
             result = new TopNProjection(limit, offset);
         } else {
             result = new TopNProjection(limit, offset,
-                    inputVisitor.process(orderBy.orderBySymbols(), context),
-                    orderBy.reverseFlags(),
-                    orderBy.nullsFirst());
+                inputVisitor.process(orderBy.orderBySymbols(), context),
+                orderBy.reverseFlags(),
+                orderBy.nullsFirst());
         }
         result.outputs(outputsProcessed);
         return result;
@@ -159,6 +159,6 @@ public class ProjectionBuilder {
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
 
         return new WriterProjection(
-                inputVisitor.process(inputs, context), uri, compressionType, overwrites, outputNames, outputFormat);
+            inputVisitor.process(inputs, context), uri, compressionType, overwrites, outputNames, outputFormat);
     }
 }

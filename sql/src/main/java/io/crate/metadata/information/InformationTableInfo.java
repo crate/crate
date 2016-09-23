@@ -47,53 +47,53 @@ public class InformationTableInfo extends StaticTableInfo {
         public static final ColumnIdent COLUMN_POLICY = new ColumnIdent("column_policy");
         public static final ColumnIdent TABLE_SETTINGS = new ColumnIdent("settings");
         public static final ColumnIdent TABLE_SETTINGS_BLOCKS = new ColumnIdent("settings",
-                ImmutableList.of("blocks"));
+            ImmutableList.of("blocks"));
         public static final ColumnIdent TABLE_SETTINGS_BLOCKS_READ_ONLY = new ColumnIdent("settings",
-                ImmutableList.of("blocks", "read_only"));
+            ImmutableList.of("blocks", "read_only"));
         public static final ColumnIdent TABLE_SETTINGS_BLOCKS_READ = new ColumnIdent("settings",
-                ImmutableList.of("blocks", "read"));
+            ImmutableList.of("blocks", "read"));
         public static final ColumnIdent TABLE_SETTINGS_BLOCKS_WRITE = new ColumnIdent("settings",
-                ImmutableList.of("blocks", "write"));
+            ImmutableList.of("blocks", "write"));
         public static final ColumnIdent TABLE_SETTINGS_BLOCKS_METADATA = new ColumnIdent("settings",
-                ImmutableList.of("blocks", "metadata"));
-        public static final ColumnIdent TABLE_SETTINGS_ROUTING= new ColumnIdent("settings",
-                ImmutableList.of("routing"));
+            ImmutableList.of("blocks", "metadata"));
+        public static final ColumnIdent TABLE_SETTINGS_ROUTING = new ColumnIdent("settings",
+            ImmutableList.of("routing"));
         public static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION = new ColumnIdent("settings",
-                ImmutableList.of("routing", "allocation"));
+            ImmutableList.of("routing", "allocation"));
         public static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE = new ColumnIdent("settings",
-                ImmutableList.of("routing", "allocation", "enable"));
+            ImmutableList.of("routing", "allocation", "enable"));
         public static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = new ColumnIdent("settings",
-                ImmutableList.of("routing", "allocation", "total_shards_per_node"));
+            ImmutableList.of("routing", "allocation", "total_shards_per_node"));
         public static final ColumnIdent TABLE_SETTINGS_RECOVERY = new ColumnIdent("settings",
-                ImmutableList.of("recovery"));
+            ImmutableList.of("recovery"));
         public static final ColumnIdent TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = new ColumnIdent("settings",
-                ImmutableList.of("recovery","initial_shards"));
+            ImmutableList.of("recovery", "initial_shards"));
         public static final ColumnIdent TABLE_SETTINGS_WARMER = new ColumnIdent("settings",
-                ImmutableList.of("warmer"));
+            ImmutableList.of("warmer"));
         public static final ColumnIdent TABLE_SETTINGS_WARMER_ENABLED = new ColumnIdent("settings",
-                ImmutableList.of("warmer", "enabled"));
+            ImmutableList.of("warmer", "enabled"));
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG = new ColumnIdent("settings",
-                ImmutableList.of("translog"));
+            ImmutableList.of("translog"));
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS = new ColumnIdent("settings",
-                ImmutableList.of("translog", "flush_threshold_ops"));
+            ImmutableList.of("translog", "flush_threshold_ops"));
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE = new ColumnIdent("settings",
-                ImmutableList.of("translog", "flush_threshold_size"));
+            ImmutableList.of("translog", "flush_threshold_size"));
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD = new ColumnIdent("settings",
-                ImmutableList.of("translog", "flush_threshold_period"));
+            ImmutableList.of("translog", "flush_threshold_period"));
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH = new ColumnIdent("settings",
-                ImmutableList.of("translog", "disable_flush"));
+            ImmutableList.of("translog", "disable_flush"));
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_INTERVAL = new ColumnIdent("settings",
-                ImmutableList.of("translog", "interval"));
+            ImmutableList.of("translog", "interval"));
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL = new ColumnIdent("settings",
-                ImmutableList.of("translog", "sync_interval"));
+            ImmutableList.of("translog", "sync_interval"));
         public static final ColumnIdent TABLE_SETTINGS_REFRESH_INTERVAL = new ColumnIdent("settings",
-                ImmutableList.of("refresh_interval"));
+            ImmutableList.of("refresh_interval"));
         public static final ColumnIdent TABLE_SETTINGS_UNASSIGNED = new ColumnIdent("settings",
-                ImmutableList.of("unassigned"));
+            ImmutableList.of("unassigned"));
         public static final ColumnIdent TABLE_SETTINGS_UNASSIGNED_NODE_LEFT = new ColumnIdent("settings",
-                ImmutableList.of("unassigned", "node_left"));
+            ImmutableList.of("unassigned", "node_left"));
         public static final ColumnIdent TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = new ColumnIdent("settings",
-                ImmutableList.of("unassigned", "node_left", "delayed_timeout"));
+            ImmutableList.of("unassigned", "node_left", "delayed_timeout"));
     }
 
     protected InformationTableInfo(ClusterService clusterService,

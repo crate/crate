@@ -47,7 +47,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
 
     private final FunctionInfo info;
     private final static FunctionInfo geoPointInfo =
-            genInfo(Arrays.<DataType>asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT));
+        genInfo(Arrays.<DataType>asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT));
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new Resolver());
@@ -86,23 +86,23 @@ public class DistanceFunction extends Scalar<Double, Object> {
         double targetLongitude;
         double targetLatitude;
 
-         // need to handle list also - because e.g. ESSearchTask returns geo_points as list
+        // need to handle list also - because e.g. ESSearchTask returns geo_points as list
         if (value1 instanceof List) {
-            sourceLongitude = (Double)((List) value1).get(0);
-            sourceLatitude = (Double)((List) value1).get(1);
+            sourceLongitude = (Double) ((List) value1).get(0);
+            sourceLatitude = (Double) ((List) value1).get(1);
         } else {
             sourceLongitude = ((Double[]) value1)[0];
             sourceLatitude = ((Double[]) value1)[1];
         }
         if (value2 instanceof List) {
-            targetLongitude = (Double)((List) value2).get(0);
-            targetLatitude = (Double)((List) value2).get(1);
+            targetLongitude = (Double) ((List) value2).get(0);
+            targetLatitude = (Double) ((List) value2).get(1);
         } else {
             targetLongitude = ((Double[]) value2)[0];
             targetLatitude = ((Double[]) value2)[1];
         }
         return GeoDistance.SLOPPY_ARC.calculate(
-                sourceLatitude, sourceLongitude, targetLatitude, targetLongitude, DistanceUnit.METERS);
+            sourceLatitude, sourceLongitude, targetLatitude, targetLongitude, DistanceUnit.METERS);
     }
 
     @Override
@@ -154,20 +154,20 @@ public class DistanceFunction extends Scalar<Double, Object> {
     private void validateType(Symbol symbol, DataType dataType) {
         if (!dataType.equals(DataTypes.GEO_POINT)) {
             throw new IllegalArgumentException(SymbolFormatter.format(
-                    "Cannot convert %s to a geo point", symbol));
+                "Cannot convert %s to a geo point", symbol));
         }
     }
 
     static class Resolver implements DynamicFunctionResolver {
 
         private final static Set<DataType> ALLOWED_TYPES = Sets.<DataType>newHashSet(
-                DataTypes.STRING, DataTypes.GEO_POINT, new ArrayType(DataTypes.DOUBLE)
+            DataTypes.STRING, DataTypes.GEO_POINT, new ArrayType(DataTypes.DOUBLE)
         );
 
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             Preconditions.checkArgument(dataTypes.size() == 2,
-                    "%s takes 2 arguments, not %s", NAME, dataTypes.size());
+                "%s takes 2 arguments, not %s", NAME, dataTypes.size());
             validateType(dataTypes.get(0));
             validateType(dataTypes.get(1));
             return new DistanceFunction(genInfo(dataTypes));
@@ -176,7 +176,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
         private void validateType(DataType dataType) {
             if (!ALLOWED_TYPES.contains(dataType)) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "%s can't handle arguments of type \"%s\"", NAME, dataType.getName()));
+                    "%s can't handle arguments of type \"%s\"", NAME, dataType.getName()));
 
             }
         }

@@ -23,7 +23,9 @@ package io.crate.action.sql.query;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.executor.transport.task.elasticsearch.SortOrder;
 import io.crate.metadata.ColumnIdent;
@@ -38,7 +40,6 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.SortField;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.MultiValueMode;
 import org.elasticsearch.search.sort.SortParseElement;
@@ -52,17 +53,17 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     public static final SortField SORT_SCORE_REVERSE = new SortField(null, SortField.Type.SCORE, true);
 
     public static final Map<DataType, SortField.Type> LUCENE_TYPE_MAP = ImmutableMap.<DataType, SortField.Type>builder()
-            .put(DataTypes.BOOLEAN, SortField.Type.LONG)
-            .put(DataTypes.BYTE, SortField.Type.LONG)
-            .put(DataTypes.SHORT, SortField.Type.LONG)
-            .put(DataTypes.LONG, SortField.Type.LONG)
-            .put(DataTypes.INTEGER, SortField.Type.LONG)
-            .put(DataTypes.FLOAT, SortField.Type.FLOAT)
-            .put(DataTypes.DOUBLE, SortField.Type.DOUBLE)
-            .put(DataTypes.TIMESTAMP, SortField.Type.LONG)
-            .put(DataTypes.IP, SortField.Type.LONG)
-            .put(DataTypes.STRING, SortField.Type.STRING)
-            .build();
+        .put(DataTypes.BOOLEAN, SortField.Type.LONG)
+        .put(DataTypes.BYTE, SortField.Type.LONG)
+        .put(DataTypes.SHORT, SortField.Type.LONG)
+        .put(DataTypes.LONG, SortField.Type.LONG)
+        .put(DataTypes.INTEGER, SortField.Type.LONG)
+        .put(DataTypes.FLOAT, SortField.Type.FLOAT)
+        .put(DataTypes.DOUBLE, SortField.Type.DOUBLE)
+        .put(DataTypes.TIMESTAMP, SortField.Type.LONG)
+        .put(DataTypes.IP, SortField.Type.LONG)
+        .put(DataTypes.STRING, SortField.Type.STRING)
+        .build();
 
     public static class SortSymbolContext {
 
@@ -103,7 +104,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
 
     /**
      * generate a SortField from a Reference symbol.
-     *
+     * <p>
      * the implementation is similar to what {@link org.elasticsearch.search.sort.SortParseElement}
      * does.
      */
@@ -121,7 +122,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 return !context.reverseFlag ? SORT_SCORE_REVERSE : SortParseElement.SORT_SCORE;
             } else if (DocSysColumns.RAW.equals(columnIdent) || DocSysColumns.ID.equals(columnIdent)) {
                 return customSortField(DocSysColumns.nameForLucene(columnIdent), symbol, context,
-                        LUCENE_TYPE_MAP.get(symbol.valueType()), false);
+                    LUCENE_TYPE_MAP.get(symbol.valueType()), false);
             }
         }
 
@@ -130,19 +131,19 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         String indexName;
         IndexFieldData.XFieldComparatorSource fieldComparatorSource;
         MappedFieldType fieldType = context.context.mapperService().smartNameFieldType(columnIdent.fqn());
-        if (fieldType == null){
+        if (fieldType == null) {
             indexName = columnIdent.fqn();
             fieldComparatorSource = new NullFieldComparatorSource(LUCENE_TYPE_MAP.get(symbol.valueType()), context.reverseFlag, context.nullFirst);
         } else {
             indexName = fieldType.names().indexName();
             fieldComparatorSource = context.context.fieldData()
-                    .getForField(fieldType)
-                    .comparatorSource(SortOrder.missing(context.reverseFlag, context.nullFirst), sortMode, null);
+                .getForField(fieldType)
+                .comparatorSource(SortOrder.missing(context.reverseFlag, context.nullFirst), sortMode, null);
         }
         return new SortField(
-                indexName,
-                fieldComparatorSource,
-                context.reverseFlag
+            indexName,
+            fieldComparatorSource,
+            context.reverseFlag
         );
     }
 
@@ -158,7 +159,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     @Override
     protected SortField visitSymbol(Symbol symbol, SortSymbolContext context) {
         throw new UnsupportedOperationException(
-                SymbolFormatter.format("sorting on %s is not supported", symbol));
+            SymbolFormatter.format("sorting on %s is not supported", symbol));
     }
 
     private SortField customSortField(String name,
@@ -181,21 +182,21 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 }
                 if (context.context.visitor().required()) {
                     return new FieldsVisitorInputFieldComparator(
-                            numHits,
-                            context.context.visitor(),
-                            expressions,
-                            input,
-                            symbol.valueType(),
-                            missingNullValue ? null : missingObject(SortOrder.missing(context.reverseFlag, context.nullFirst), reversed)
+                        numHits,
+                        context.context.visitor(),
+                        expressions,
+                        input,
+                        symbol.valueType(),
+                        missingNullValue ? null : missingObject(SortOrder.missing(context.reverseFlag, context.nullFirst), reversed)
                     );
 
                 } else {
                     return new InputFieldComparator(
-                            numHits,
-                            expressions,
-                            input,
-                            symbol.valueType(),
-                            missingNullValue ? null : missingObject(SortOrder.missing(context.reverseFlag, context.nullFirst), reversed)
+                        numHits,
+                        expressions,
+                        input,
+                        symbol.valueType(),
+                        missingNullValue ? null : missingObject(SortOrder.missing(context.reverseFlag, context.nullFirst), reversed)
                     );
                 }
             }

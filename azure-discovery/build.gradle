@@ -9,7 +9,7 @@ task writePropertiesFile << {
         from "src/main/resources/"
         into "${buildDir}/tmp"
         include "plugin-descriptor.properties"
-        expand (version: project.version,
+        expand(version: project.version,
                 esVersion: versions.elasticsearch,
                 jmvCompatibility: project.targetCompatibility,
                 name: project.name)
@@ -50,6 +50,6 @@ sourceSets {
 
 idea {
     module {
-        excludeDirs += files('build','src/test')
+        excludeDirs += files('build', 'src/test')
     }
 }

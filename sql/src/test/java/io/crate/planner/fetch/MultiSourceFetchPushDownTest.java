@@ -49,9 +49,9 @@ public class MultiSourceFetchPushDownTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new MockedClusterServiceModule(),
-                T3.META_DATA_MODULE,
-                new ScalarFunctionModule()
+            new MockedClusterServiceModule(),
+            T3.META_DATA_MODULE,
+            new ScalarFunctionModule()
         ));
         return modules;
     }
@@ -63,7 +63,7 @@ public class MultiSourceFetchPushDownTest extends BaseAnalyzerTest {
         pd = MultiSourceFetchPushDown.pushDown(mss);
     }
 
-    private QuerySpec srcSpec(String tableName){
+    private QuerySpec srcSpec(String tableName) {
         return mss.sources().get(QualifiedName.of("doc", tableName)).querySpec();
     }
 

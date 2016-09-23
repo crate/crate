@@ -83,10 +83,10 @@ public class PingTaskTest extends CrateUnitTest {
     @Test
     public void testGetHardwareAddressMacAddrNull() throws Exception {
         PingTask pingTask = new PingTask(
-                mock(ClusterService.class),
-                mock(ClusterIdService.class),
-                extendedNodeInfo,
-                "http://dummy");
+            mock(ClusterService.class),
+            mock(ClusterIdService.class),
+            extendedNodeInfo,
+            "http://dummy");
         assertThat(pingTask.getHardwareAddress(), Matchers.nullValue());
     }
 
@@ -96,7 +96,7 @@ public class PingTaskTest extends CrateUnitTest {
         testServer.run();
 
         PingTask task = new PingTask(
-                clusterService, clusterIdService, extendedNodeInfo, "http://localhost:18080/");
+            clusterService, clusterIdService, extendedNodeInfo, "http://localhost:18080/");
         task.run();
         assertThat(testServer.responses.size(), is(1));
         task.run();
@@ -108,7 +108,7 @@ public class PingTaskTest extends CrateUnitTest {
             try {
                 //convert JSON string to Map
                 map = mapper.readValue(json,
-                        new TypeReference<HashMap<String, String>>() {});
+                    new TypeReference<HashMap<String, String>>() {});
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -143,7 +143,7 @@ public class PingTaskTest extends CrateUnitTest {
         testServer = new HttpTestServer(18081, true);
         testServer.run();
         PingTask task = new PingTask(
-                clusterService, clusterIdService, extendedNodeInfo, "http://localhost:18081/");
+            clusterService, clusterIdService, extendedNodeInfo, "http://localhost:18081/");
         task.run();
         assertThat(testServer.responses.size(), is(1));
         task.run();
@@ -156,7 +156,7 @@ public class PingTaskTest extends CrateUnitTest {
             try {
                 //convert JSON string to Map
                 map = mapper.readValue(json,
-                        new TypeReference<HashMap<String, String>>() {});
+                    new TypeReference<HashMap<String, String>>() {});
 
             } catch (Exception e) {
                 e.printStackTrace();

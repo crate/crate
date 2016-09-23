@@ -52,7 +52,7 @@ public class Analysis {
         this.rootRelation = rootRelation;
     }
 
-    public AnalyzedRelation rootRelation(){
+    public AnalyzedRelation rootRelation() {
         return rootRelation;
     }
 

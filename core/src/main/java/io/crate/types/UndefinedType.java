@@ -30,8 +30,8 @@ import java.io.IOException;
 public class UndefinedType extends DataType<Object> implements DataTypeFactory, Streamer<Object> {
 
     public static final int ID = 0;
-
     public static final UndefinedType INSTANCE = new UndefinedType();
+
     private UndefinedType() {}
 
     @Override

@@ -22,21 +22,15 @@
 package io.crate.sql.tree;
 
 import javax.annotation.concurrent.Immutable;
-
 import java.util.Locale;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Immutable
-public class Extract
-        extends Expression
-{
-    private final Expression expression;
-    private final Expression field;
+public class Extract extends Expression {
 
-    public enum Field
-    {
+    public enum Field {
         CENTURY,
         YEAR,
         QUARTER,
@@ -55,21 +49,22 @@ public class Extract
         TIMEZONE_MINUTE
     }
 
+    private final Expression expression;
+    private final Expression field;
+
     public Extract(Expression expression, Expression field) {
         checkNotNull(expression, "expression is null");
         checkNotNull(field, "field is null");
-        checkArgument(field instanceof  StringLiteral || field instanceof ParameterExpression,
-                // (ident is converted to StringLiteral in StatementBuilder.g
-                "field must be an ident, a string literal or a parameter expression");
+        checkArgument(field instanceof StringLiteral || field instanceof ParameterExpression,
+            // (ident is converted to StringLiteral in StatementBuilder.g
+            "field must be an ident, a string literal or a parameter expression");
         this.expression = expression;
         this.field = field;
     }
 
-    public Expression getExpression()
-    {
+    public Expression getExpression() {
         return expression;
     }
-
 
     public Field getField(Object[] parameters) {
         String fieldName;
@@ -82,20 +77,17 @@ public class Extract
         return Field.valueOf(fieldName.toUpperCase(Locale.ENGLISH));
     }
 
-    public Expression getField()
-    {
+    public Expression getField() {
         return field;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitExtract(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -116,8 +108,7 @@ public class Extract
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int result = expression.hashCode();
         result = 31 * result + field.hashCode();
         return result;

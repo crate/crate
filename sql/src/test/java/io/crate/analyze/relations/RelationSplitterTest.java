@@ -46,9 +46,9 @@ import static org.hamcrest.core.Is.is;
 public class RelationSplitterTest extends CrateUnitTest {
 
     private static final Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-            new QualifiedName(T3.T1_INFO.ident().name()), T3.TR_1,
-            new QualifiedName(T3.T2_INFO.ident().name()), T3.TR_2,
-            new QualifiedName(T3.T3_INFO.ident().name()), T3.TR_3
+        new QualifiedName(T3.T1_INFO.ident().name()), T3.TR_1,
+        new QualifiedName(T3.T2_INFO.ident().name()), T3.TR_2,
+        new QualifiedName(T3.T3_INFO.ident().name()), T3.TR_3
     );
 
     private static final SqlExpressions expressions = new SqlExpressions(sources);
@@ -74,8 +74,8 @@ public class RelationSplitterTest extends CrateUnitTest {
     private QuerySpec fromQuery(String query) {
         Symbol symbol = asSymbol(query);
         return new QuerySpec()
-                .outputs(singleTrue())
-                .where(new WhereClause(symbol));
+            .outputs(singleTrue())
+            .where(new WhereClause(symbol));
     }
 
     @Test
@@ -156,8 +156,8 @@ public class RelationSplitterTest extends CrateUnitTest {
         OrderBy orderBy = new OrderBy(orderBySymbols, new boolean[]{true, false}, new Boolean[]{null, null});
 
         QuerySpec querySpec = new QuerySpec()
-                .outputs(singleTrue())
-                .orderBy(orderBy);
+            .outputs(singleTrue())
+            .orderBy(orderBy);
 
         RelationSplitter splitter = split(querySpec);
         assertThat(querySpec, isSQL("SELECT true ORDER BY doc.t1.a DESC, add(doc.t1.x, doc.t2.y)"));
@@ -193,19 +193,19 @@ public class RelationSplitterTest extends CrateUnitTest {
         // select a, b from t1, t2, t3 order by x, x - y + z, y, x + y
         QuerySpec querySpec = new QuerySpec().outputs(Arrays.asList(asSymbol("a"), asSymbol("b")));
         List<Symbol> orderBySymbols = Arrays.asList(asSymbol("x"),
-                                                    asSymbol("x - y + z"),
-                                                    asSymbol("y"),
-                                                    asSymbol("x+y"));
+            asSymbol("x - y + z"),
+            asSymbol("y"),
+            asSymbol("x+y"));
         OrderBy orderBy = new OrderBy(orderBySymbols,
-                                      new boolean[]{false, false, false, false},
-                                      new Boolean[]{null, null, null, null});
+            new boolean[]{false, false, false, false},
+            new Boolean[]{null, null, null, null});
         querySpec.orderBy(orderBy);
 
         RelationSplitter splitter = split(querySpec);
 
         assertThat(querySpec, isSQL("SELECT doc.t1.a, doc.t2.b " +
                                     "ORDER BY doc.t1.x, add(subtract(doc.t1.x, doc.t2.y), doc.t3.z), " +
-                                             "doc.t2.y, add(doc.t1.x, doc.t2.y)"));
+                                    "doc.t2.y, add(doc.t1.x, doc.t2.y)"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x, doc.t1.a"));
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y, doc.t2.b"));
         assertThat(splitter.getSpec(T3.TR_3), isSQL("SELECT doc.t3.z"));
@@ -240,17 +240,17 @@ public class RelationSplitterTest extends CrateUnitTest {
     @Test
     public void testOnlyDocTablesCanBeFetched() throws Exception {
         QuerySpec querySpec = new QuerySpec().outputs(Arrays.asList(
-                asSymbol("x"),
-                asSymbol("y"),
-                asSymbol("z"),
-                asSymbol("a")
+            asSymbol("x"),
+            asSymbol("y"),
+            asSymbol("z"),
+            asSymbol("a")
         ));
         RelationSplitter splitter = split(querySpec);
 
         assertThat(splitter.canBeFetched(), containsInAnyOrder(
-                asSymbol("x"),
-                asSymbol("y"),
-                asSymbol("a")
+            asSymbol("x"),
+            asSymbol("y"),
+            asSymbol("a")
         ));
     }
 
@@ -267,8 +267,8 @@ public class RelationSplitterTest extends CrateUnitTest {
     @Test
     public void testScoreCannotBeFetchd() throws Exception {
         QuerySpec querySpec = new QuerySpec().outputs(Arrays.asList(
-                asSymbol("t1._score"),
-                asSymbol("a")
+            asSymbol("t1._score"),
+            asSymbol("a")
         ));
         RelationSplitter splitter = split(querySpec);
         assertThat(splitter.canBeFetched(), containsInAnyOrder(asSymbol("a")));

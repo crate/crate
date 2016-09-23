@@ -38,7 +38,7 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
         CollectAndMerge plan = plan("copy users from '/path/to/file.extension'");
         assert plan.collectPhase() instanceof FileUriCollectPhase;
 
-        FileUriCollectPhase collectPhase = (FileUriCollectPhase)plan.collectPhase();
+        FileUriCollectPhase collectPhase = (FileUriCollectPhase) plan.collectPhase();
         assert ((Literal) collectPhase.targetUri()).value() == new BytesRef("/path/to/file.extension");
     }
 
@@ -54,7 +54,7 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
     public void testCopyFromPlanWithParameters() throws Exception {
         CollectAndMerge collectAndMerge = plan("copy users from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)");
         assert collectAndMerge.collectPhase() instanceof FileUriCollectPhase
-        FileUriCollectPhase collectPhase = (FileUriCollectPhase)collectAndMerge.collectPhase();
+        FileUriCollectPhase collectPhase = (FileUriCollectPhase) collectAndMerge.collectPhase();
         SourceIndexWriterProjection indexWriterProjection = (SourceIndexWriterProjection) collectPhase.projections().get(0);
         assert indexWriterProjection.bulkActions() == 30
         assert collectPhase.compression() == "gzip"
@@ -62,7 +62,7 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
 
         // verify defaults:
         collectAndMerge = plan("copy users from '/path/to/file.ext'");
-        collectPhase = (FileUriCollectPhase)collectAndMerge.collectPhase();
+        collectPhase = (FileUriCollectPhase) collectAndMerge.collectPhase();
         assert collectPhase.compression() == null;
         assert collectPhase.sharedStorage() == null;
     }
@@ -76,7 +76,7 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
         assert collectAndMerge.collectPhase().toCollect() == [T3.T1_INFO.getReference(DocSysColumns.RAW)]
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testCopyFromPlanWithInvalidParameters() throws Exception {
         plan("copy users from '/path/to/file.ext' with (bulk_size=-28)");
     }

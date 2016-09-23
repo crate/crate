@@ -61,7 +61,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
     @Test
     public void testAddTheSameContextTwiceThrowsAnError() throws Exception {
         JobExecutionContext.Builder builder =
-                new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, mock(StatsTables.class));
+            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, mock(StatsTables.class));
         builder.addSubContext(new AbstractExecutionSubContextTest.TestingExecutionSubContext());
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("ExecutionSubContext for 0 already added");
@@ -71,7 +71,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
     @Test
     public void testKillPropagatesToSubContexts() throws Exception {
         JobExecutionContext.Builder builder =
-                new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, mock(StatsTables.class));
+            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, mock(StatsTables.class));
 
 
         AbstractExecutionSubContextTest.TestingExecutionSubContext ctx1 = new AbstractExecutionSubContextTest.TestingExecutionSubContext(1);
@@ -92,7 +92,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
     public void testErrorMessageIsIncludedInStatsTableOnFailure() throws Exception {
         StatsTables statsTables = mock(StatsTables.class);
         JobExecutionContext.Builder builder =
-                new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, statsTables);
+            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, statsTables);
 
         ExecutionSubContext executionSubContext = new AbstractExecutionSubContext(0, logger) {
             @Override
@@ -117,24 +117,24 @@ public class JobExecutionContextTest extends CrateUnitTest {
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
 
         JobExecutionContext.Builder builder =
-                new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, mock(StatsTables.class));
+            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, mock(StatsTables.class));
 
         JobCollectContext jobCollectContext = new JobCollectContext(
-                collectPhase,
-                mock(MapSideDataCollectOperation.class),
-                localNodeId,
-                mock(RamAccountingContext.class),
-                mock(RowReceiver.class),
-                mock(SharedShardContexts.class));
+            collectPhase,
+            mock(MapSideDataCollectOperation.class),
+            localNodeId,
+            mock(RamAccountingContext.class),
+            mock(RowReceiver.class),
+            mock(SharedShardContexts.class));
         PageDownstreamContext pageDownstreamContext = spy(new PageDownstreamContext(
-                Loggers.getLogger(PageDownstreamContext.class),
-                "n1",
-                2, "dummy",
-                mock(PageDownstream.class),
-                new Streamer[]{IntegerType.INSTANCE.streamer()},
-                mock(RamAccountingContext.class),
-                1,
-                null));
+            Loggers.getLogger(PageDownstreamContext.class),
+            "n1",
+            2, "dummy",
+            mock(PageDownstream.class),
+            new Streamer[]{IntegerType.INSTANCE.streamer()},
+            mock(RamAccountingContext.class),
+            1,
+            null));
 
         builder.addSubContext(jobCollectContext);
         builder.addSubContext(pageDownstreamContext);
@@ -158,7 +158,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
         subContexts.setAccessible(true);
 
         JobExecutionContext.Builder builder =
-                new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, mock(StatsTables.class));
+            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, mock(StatsTables.class));
         SlowKillExecutionSubContext slowKillExecutionSubContext = new SlowKillExecutionSubContext();
         builder.addSubContext(slowKillExecutionSubContext);
         final JobExecutionContext jobExecutionContext = builder.build();

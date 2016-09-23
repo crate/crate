@@ -27,7 +27,7 @@ import com.google.common.base.Optional;
 
 import javax.annotation.Nullable;
 
-public class CreateRepository extends Statement{
+public class CreateRepository extends Statement {
 
     private final String repository;
     private final String type;
@@ -63,7 +63,7 @@ public class CreateRepository extends Statement{
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
 
-        CreateRepository that = (CreateRepository)obj;
+        CreateRepository that = (CreateRepository) obj;
         if (!repository.equals(that.repository)) return false;
         if (!type.equals(that.type)) return false;
         if (!properties.equals(that.properties)) return false;
@@ -73,9 +73,9 @@ public class CreateRepository extends Statement{
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("repository", repository)
-                .add("type", type)
-                .add("properties", properties).toString();
+            .add("repository", repository)
+            .add("type", type)
+            .add("properties", properties).toString();
     }
 
     @Override

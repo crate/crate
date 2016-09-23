@@ -52,14 +52,14 @@ public class BlobTransferTarget extends AbstractComponent {
     private final ThreadPool threadPool;
     private final TransportService transportService;
     private final ClusterService clusterService;
-    private CountDownLatch getHeadRequestLatch;
-    private SettableFuture<CountDownLatch> getHeadRequestLatchFuture;
     private final ConcurrentLinkedQueue<UUID> activePutHeadChunkTransfers;
-    private CountDownLatch activePutHeadChunkTransfersLatch;
-    private volatile boolean recoveryActive = false;
     private final Object lock = new Object();
     private final List<UUID> finishedUploads = new ArrayList<>();
     private final TimeValue STATE_REMOVAL_DELAY;
+    private CountDownLatch getHeadRequestLatch;
+    private SettableFuture<CountDownLatch> getHeadRequestLatchFuture;
+    private CountDownLatch activePutHeadChunkTransfersLatch;
+    private volatile boolean recoveryActive = false;
 
     @Inject
     public BlobTransferTarget(Settings settings, BlobIndices blobIndices,
@@ -148,7 +148,7 @@ public class BlobTransferTarget extends AbstractComponent {
         String senderNodeId = nodes.localNodeId();
 
         BlobTransferInfoResponse transferInfoResponse =
-            (BlobTransferInfoResponse)transportService.submitRequest(
+            (BlobTransferInfoResponse) transportService.submitRequest(
                 recipientNodeId,
                 BlobHeadRequestHandler.Actions.GET_TRANSFER_INFO,
                 new BlobInfoRequest(senderNodeId, request.transferId),
@@ -245,26 +245,6 @@ public class BlobTransferTarget extends AbstractComponent {
         }
     }
 
-    private class StateRemoval implements Runnable {
-
-        private final UUID transferId;
-
-        private StateRemoval(UUID transferId) {
-            this.transferId = transferId;
-        }
-
-        @Override
-        public void run() {
-            synchronized (lock) {
-                if (recoveryActive) {
-                    finishedUploads.add(transferId);
-                } else {
-                    activeTransfers.remove(transferId);
-                }
-            }
-        }
-    }
-
     /**
      * creates a countDownLatch from the activeTransfers.
      * This is the number of "GetHeadRequests" that are expected from the target node
@@ -284,10 +264,9 @@ public class BlobTransferTarget extends AbstractComponent {
     /**
      * wait until the expected number of GetHeadRequests was received or at most
      * num / timeUnit.
-     *
+     * <p>
      * The number of GetHeadRequests that are expected is  set when
      * {@link #createActiveTransfersSnapshot()} is called
-     *
      */
     public void waitForGetHeadRequests(int num, TimeUnit timeUnit) {
         try {
@@ -342,6 +321,26 @@ public class BlobTransferTarget extends AbstractComponent {
             for (UUID finishedUpload : finishedUploads) {
                 logger.debug("finished transfer and recovery for {}, removing state", finishedUpload);
                 activeTransfers.remove(finishedUpload);
+            }
+        }
+    }
+
+    private class StateRemoval implements Runnable {
+
+        private final UUID transferId;
+
+        private StateRemoval(UUID transferId) {
+            this.transferId = transferId;
+        }
+
+        @Override
+        public void run() {
+            synchronized (lock) {
+                if (recoveryActive) {
+                    finishedUploads.add(transferId);
+                } else {
+                    activeTransfers.remove(transferId);
+                }
             }
         }
     }

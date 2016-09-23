@@ -98,7 +98,7 @@ public class NumberOfShardsTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("num_shards in CLUSTERED clause must be greater than 0");
         numberOfShards.fromClusteredByClause(
-                new ClusteredBy(QNAME_REF, LongLiteral.fromObject(0)), Row.EMPTY);
+            new ClusteredBy(QNAME_REF, LongLiteral.fromObject(0)), Row.EMPTY);
     }
 
 }

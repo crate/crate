@@ -53,14 +53,14 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder().put(super.nodeSettings(nodeOrdinal))
-                .put("path.repo", TEMPORARY_FOLDER.getRoot().getAbsolutePath())
-                .build();
+            .put("path.repo", TEMPORARY_FOLDER.getRoot().getAbsolutePath())
+            .build();
     }
 
     @Before
     public void createRepository() throws Exception {
         execute("CREATE REPOSITORY " + REPOSITORY_NAME + " TYPE \"fs\" with (location=?, compress=True)",
-                new Object[]{TEMPORARY_FOLDER.newFolder().getAbsolutePath()});
+            new Object[]{TEMPORARY_FOLDER.newFolder().getAbsolutePath()});
         assertThat(response.rowCount(), is(1L));
     }
 
@@ -74,7 +74,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     }
 
     private void createTable(String tableName, boolean partitioned) {
-        execute("CREATE TABLE " + tableName +  " (" +
+        execute("CREATE TABLE " + tableName + " (" +
                 "  id long primary key, " +
                 "  name string, " +
                 "  date timestamp " + (partitioned ? "primary key," : ",") +
@@ -83,15 +83,16 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
                 "clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("INSERT INTO " + tableName + " (id, name, date, ft) VALUES (?, ?, ?, ?)", new Object[][]{
-                {1L, "foo", "1970-01-01", "The quick brown fox jumps over the lazy dog."},
-                {2L, "bar", "2015-10-27T11:29:00+01:00", "Morgenstund hat Gold im Mund."},
-                {3L, "baz", "1989-11-09", "Reden ist Schweigen. Silber ist Gold."},
+            {1L, "foo", "1970-01-01", "The quick brown fox jumps over the lazy dog."},
+            {2L, "bar", "2015-10-27T11:29:00+01:00", "Morgenstund hat Gold im Mund."},
+            {3L, "baz", "1989-11-09", "Reden ist Schweigen. Silber ist Gold."},
         });
         execute("REFRESH TABLE " + tableName);
     }
 
     private void createSnapshot(String snapshotName, String... tables) {
-        execute("CREATE SNAPSHOT " + REPOSITORY_NAME + "." + snapshotName + " TABLE " + Joiner.on(", ").join(tables) + " WITH (wait_for_completion=true)");
+        execute("CREATE SNAPSHOT " + REPOSITORY_NAME + "." + snapshotName + " TABLE " + Joiner.on(", ").join(tables) +
+                " WITH (wait_for_completion=true)");
         assertThat(response.rowCount(), is(1L));
     }
 
@@ -136,7 +137,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         execute("select name, \"repository\", concrete_indices, state from sys.snapshots");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("my_snapshot| my_repo| [backmeup]| SUCCESS\n"));
+            is("my_snapshot| my_repo| [backmeup]| SUCCESS\n"));
     }
 
     @Test
@@ -171,12 +172,13 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     public void testCreateSnapshotFromPartition() throws Exception {
         createTable("custom.backmeup", true);
 
-        execute("CREATE SNAPSHOT " + snapshotName() + " TABLE custom.backmeup PARTITION (date='1970-01-01')  WITH (wait_for_completion=true)");
+        execute("CREATE SNAPSHOT " + snapshotName() +
+                " TABLE custom.backmeup PARTITION (date='1970-01-01')  WITH (wait_for_completion=true)");
         assertThat(response.rowCount(), is(1L));
 
         execute("select name, \"repository\", concrete_indices, state from sys.snapshots");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("my_snapshot| my_repo| [custom..partitioned.backmeup.04130]| SUCCESS\n"));
+            is("my_snapshot| my_repo| [custom..partitioned.backmeup.04130]| SUCCESS\n"));
     }
 
     @Test
@@ -227,7 +229,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     public void testCreateSnapshotInURLRepoFails() throws Exception {
         // URL Repositories are always marked as read_only
         execute("CREATE REPOSITORY uri_repo TYPE url WITH (url=?)",
-                new Object[]{ TEMPORARY_FOLDER.newFolder().toURI().toString() });
+            new Object[]{TEMPORARY_FOLDER.newFolder().toURI().toString()});
         waitNoPendingTasksOnAll();
 
         expectedException.expect(SQLActionException.class);
@@ -247,9 +249,9 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("CREATE TABLE survivor (bla string, blubb float) partitioned by (blubb) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into survivor (bla, blubb) values (?, ?)", new Object[][]{
-                {"foo", 1.2},
-                {"bar", 1.4},
-                {"baz", 1.2}
+            {"foo", 1.2},
+            {"bar", 1.4},
+            {"baz", 1.2}
         });
         execute("refresh table survivor");
 
@@ -257,9 +259,9 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         execute("select * from survivor order by bla");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "bar| 1.4\n" +
-                "baz| 1.2\n" +
-                "foo| 1.2\n"));
+            "bar| 1.4\n" +
+            "baz| 1.2\n" +
+            "foo| 1.2\n"));
     }
 
     @Test
@@ -293,7 +295,8 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testRestoreSinglePartitionSnapshotIntoDroppedPartition() throws Exception {
         createTable("parted_table", true);
-        execute("CREATE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date=0) WITH (wait_for_completion=true)");
+        execute("CREATE SNAPSHOT " + snapshotName() +
+                " TABLE parted_table PARTITION (date=0) WITH (wait_for_completion=true)");
         execute("delete from parted_table where date=0");
         waitNoPendingTasksOnAll();
         execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date=0) with (" +
@@ -306,7 +309,8 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testRestoreSinglePartitionSnapshotIntoDroppedTable() throws Exception {
         createTable("parted_table", true);
-        execute("CREATE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date=0) WITH (wait_for_completion=true)");
+        execute("CREATE SNAPSHOT " + snapshotName() +
+                " TABLE parted_table PARTITION (date=0) WITH (wait_for_completion=true)");
         execute("drop table parted_table");
         waitNoPendingTasksOnAll();
         execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date=0) with (" +
@@ -360,7 +364,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
     /**
      * Test to restore a concrete partitioned table.
-     *
+     * <p>
      * This requires a patch in ES in order to restore templates when concrete tables are passed as an restore argument:
      * https://github.com/crate/elasticsearch/commit/3c14e74a3e50ea7d890f436db72ff18c2953ebc4
      */

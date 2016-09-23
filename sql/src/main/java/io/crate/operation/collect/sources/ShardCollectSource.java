@@ -74,32 +74,31 @@ import java.util.concurrent.ExecutorService;
 
 /**
  * Factory to create collectors which collect data from shards.
- *
- *
+ * <p>
+ * <p>
  * There are different patterns on how shards are collected:
- *
+ * <p>
  * - Multiple Collectors with shard level projectors (only unordered):
- *
- *      C/S1   C/S2
- *       |      |
- *       P      P  < i/o & computation should happen here to benefit from threading
- *       \     /
- *        \   /
- *        Merger
- *          |
- *      RowReceiver
- *
- *
+ * <p>
+ * C/S1   C/S2
+ * |      |
+ * P      P  < i/o & computation should happen here to benefit from threading
+ * \     /
+ * \   /
+ * Merger
+ * |
+ * RowReceiver
+ * <p>
+ * <p>
  * - Ordered with one Collector that has 1+ child shard collectors
- *   This single collector is switching between the child-collectors to provide a correct sorted result
- *
- *     +---------------------+
- *     | MultiShardCollector |
- *     |   S1   S2           |
- *     +---------------------+
- *             |
- *          RowReceiver
- *
+ * This single collector is switching between the child-collectors to provide a correct sorted result
+ * <p>
+ * +---------------------+
+ * | MultiShardCollector |
+ * |   S1   S2           |
+ * +---------------------+
+ * |
+ * RowReceiver
  */
 @Singleton
 public class ShardCollectSource implements CollectSource {
@@ -152,20 +151,20 @@ public class ShardCollectSource implements CollectSource {
         NodeSysReferenceResolver referenceResolver = new NodeSysReferenceResolver(nodeSysExpression);
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         EvaluatingNormalizer nodeNormalizer = new EvaluatingNormalizer(functions,
-                RowGranularity.DOC,
-                referenceResolver);
+            RowGranularity.DOC,
+            referenceResolver);
         RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer, null);
 
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
-                clusterService,
-                functions,
-                indexNameExpressionResolver,
-                threadPool,
-                settings,
-                transportActionProvider,
-                bulkRetryCoordinatorPool,
-                implementationSymbolVisitor,
-                nodeNormalizer
+            clusterService,
+            functions,
+            indexNameExpressionResolver,
+            threadPool,
+            settings,
+            transportActionProvider,
+            bulkRetryCoordinatorPool,
+            implementationSymbolVisitor,
+            nodeNormalizer
         );
         String localNodeId = clusterService.localNode().id();
 
@@ -186,10 +185,10 @@ public class ShardCollectSource implements CollectSource {
         OrderBy orderBy = normalizedPhase.orderBy();
         if (normalizedPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
             return ImmutableList.of(createMultiShardScoreDocCollector(
-                    normalizedPhase,
-                    chain,
-                    jobCollectContext,
-                    localNodeId)
+                normalizedPhase,
+                chain,
+                jobCollectContext,
+                localNodeId)
             );
         }
 
@@ -202,7 +201,7 @@ public class ShardCollectSource implements CollectSource {
         Map<String, List<Integer>> indexShards = locations.get(localNodeId);
         if (indexShards != null) {
             builders.addAll(
-                    getDocCollectors(jobCollectContext, normalizedPhase, lastRR.requirements(), indexShards));
+                getDocCollectors(jobCollectContext, normalizedPhase, lastRR.requirements(), indexShards));
         }
 
         RowReceiver firstNodeRR = chain.firstProjector();
@@ -268,14 +267,14 @@ public class ShardCollectSource implements CollectSource {
         OrderBy orderBy = collectPhase.orderBy();
         assert orderBy != null;
         return new MultiShardScoreDocCollector(
-                orderedDocCollectors,
-                OrderingByPosition.rowOrdering(
-                        OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
-                        orderBy.reverseFlags(),
-                        orderBy.nullsFirst()
-                ),
-                flatProjectorChain,
-                executor
+            orderedDocCollectors,
+            OrderingByPosition.rowOrdering(
+                OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
+                orderBy.reverseFlags(),
+                orderBy.nullsFirst()
+            ),
+            flatProjectorChain,
+            executor
         );
     }
 
@@ -347,7 +346,7 @@ public class ShardCollectSource implements CollectSource {
                 }
                 try {
                     ShardCollectService shardCollectService =
-                            indexService.shardInjectorSafe(shard).getInstance(ShardCollectService.class);
+                        indexService.shardInjectorSafe(shard).getInstance(ShardCollectService.class);
 
                     Object[] row = shardCollectService.getRowForShard(normalizedPhase);
                     if (row != null) {
@@ -364,7 +363,7 @@ public class ShardCollectSource implements CollectSource {
             // since unassigned shards aren't really on any node we use the collectPhase which is NOT normalized here
             // because otherwise if _node was also selected it would contain something which is wrong
             for (Object[] objects : Iterables.transform(
-                    systemCollectSource.toRowsIterable(collectPhase, unassignedShards, false), Row.MATERIALIZE)) {
+                systemCollectSource.toRowsIterable(collectPhase, unassignedShards, false), Row.MATERIALIZE)) {
                 rows.add(objects);
             }
         }

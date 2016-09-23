@@ -29,7 +29,8 @@ import java.util.Map;
 
 public class NodeOperationGrouper {
 
-    private NodeOperationGrouper() {}
+    private NodeOperationGrouper() {
+    }
 
     public static class Context {
 

@@ -51,9 +51,9 @@ public class QuerySplitterTest {
     private QualifiedName tr3 = new QualifiedName("tr3");
 
     private Map<AnalyzedRelation, QualifiedName> relationToName = ImmutableMap.<AnalyzedRelation, QualifiedName>of(
-            T3.TR_1, tr1,
-            T3.TR_2, tr2,
-            T3.TR_3, tr3);
+        T3.TR_1, tr1,
+        T3.TR_2, tr2,
+        T3.TR_3, tr3);
 
     @Before
     public void setUp() throws Exception {

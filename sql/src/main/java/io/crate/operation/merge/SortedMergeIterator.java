@@ -28,12 +28,15 @@ import java.util.Iterator;
 /**
  * MergingIterator like it is used in guava Iterators.mergedSort
  * It has (limited) shared object support.
- *
+ * <p>
  * And it also has a merge function with which additional backing iterables can be added to enable paging.
  */
 public interface SortedMergeIterator<TKey, TRow> extends Iterator<TRow> {
     void merge(Iterable<? extends KeyIterable<TKey, TRow>> iterables);
+
     boolean isLeastExhausted();
+
     TKey exhaustedIterable();
+
     Iterable<TRow> repeat();
 }

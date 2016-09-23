@@ -33,7 +33,7 @@ public class ToByteArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testArrayDifferentTypes() throws Exception {
-        Object[] expected = new Byte[] { 10, 20, 30 };
+        Object[] expected = new Byte[]{10, 20, 30};
         Object[] actual;
 
         actual = eval(new String[]{"10", "20", "30"}, DataTypes.STRING);
@@ -41,7 +41,7 @@ public class ToByteArrayFunctionTest extends AbstractScalarFunctionsTest {
         actual = eval(new BytesRef[]{new BytesRef("10"), new BytesRef("20"), new BytesRef("30")}, DataTypes.STRING);
         assertThat(actual, is(expected));
 
-        actual = eval(new Double[] { 10.5d, 20.3d, 30d }, DataTypes.DOUBLE);
+        actual = eval(new Double[]{10.5d, 20.3d, 30d}, DataTypes.DOUBLE);
         assertThat(actual, is(expected));
     }
 

@@ -33,7 +33,8 @@ public class ExpressionToTimeValueVisitor {
     public static final TimeValue DEFAULT_VALUE = new TimeValue(0);
     private static final Visitor VISITOR = new Visitor();
 
-    private ExpressionToTimeValueVisitor() {}
+    private ExpressionToTimeValueVisitor() {
+    }
 
     public static TimeValue convert(Node node, Row parameters, String settingName) {
         return VISITOR.process(node, new Context(settingName, parameters));
@@ -57,7 +58,7 @@ public class ExpressionToTimeValueVisitor {
                 return TimeValue.parseTimeValue(node.getValue(), DEFAULT_VALUE, context.settingName);
             } catch (ElasticsearchParseException e) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Invalid time value '%s'", node.getValue()));
+                    String.format(Locale.ENGLISH, "Invalid time value '%s'", node.getValue()));
             }
         }
 
@@ -82,11 +83,11 @@ public class ExpressionToTimeValueVisitor {
                     timeValue = TimeValue.parseTimeValue((String) param, DEFAULT_VALUE, context.settingName);
                 } catch (ElasticsearchParseException e) {
                     throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH, "Invalid time value '%s'", param));
+                        String.format(Locale.ENGLISH, "Invalid time value '%s'", param));
                 }
             } else {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Invalid time value %s", param));
+                    String.format(Locale.ENGLISH, "Invalid time value %s", param));
             }
             return timeValue;
         }

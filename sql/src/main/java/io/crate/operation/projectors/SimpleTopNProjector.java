@@ -40,14 +40,14 @@ public class SimpleTopNProjector extends InputRowProjector {
         super(inputs, collectExpressions);
 
         Preconditions.checkArgument(limit >= 0, "invalid limit");
-        Preconditions.checkArgument(offset>=0, "invalid offset");
+        Preconditions.checkArgument(offset >= 0, "invalid offset");
         this.remainingOffset = offset;
         this.toCollect = limit;
     }
 
     @Override
     public Result setNextRow(Row row) {
-        if (toCollect < 1){
+        if (toCollect < 1) {
             return Result.STOP;
         }
         if (remainingOffset > 0) {

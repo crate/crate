@@ -34,7 +34,6 @@ import java.util.Locale;
 import java.util.Set;
 
 
-
 public class ParameterContext {
 
     public static final ParameterContext EMPTY = new ParameterContext(
@@ -87,7 +86,7 @@ public class ParameterContext {
         DataType guessedType = DataTypes.guessType(value);
         if (guessedType == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Got an argument \"%s\" that couldn't be recognized", value));
+                "Got an argument \"%s\" that couldn't be recognized", value));
         }
         return guessedType;
     }
@@ -119,8 +118,8 @@ public class ParameterContext {
             return Literal.of(type, type.value(value));
         } catch (ArrayIndexOutOfBoundsException e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Tried to resolve a parameter but the arguments provided with the " +
-                            "SQLRequest don't contain a parameter at position %d", index), e);
+                "Tried to resolve a parameter but the arguments provided with the " +
+                "SQLRequest don't contain a parameter at position %d", index), e);
         }
     }
 }

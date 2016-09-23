@@ -50,27 +50,27 @@ public class DeleteProjector extends DMLProjector<ShardDeleteRequest> {
                            CollectExpression<Row, ?> collectUidExpression,
                            UUID jobId) {
         super(clusterService, settings, shardId, transportActionProvider, bulkRetryCoordinatorPool,
-                collectUidExpression, jobId);
+            collectUidExpression, jobId);
         this.indexNameExpressionResolver = indexNameExpressionResolver;
     }
 
     @Override
     protected BulkShardProcessor<ShardDeleteRequest> createBulkShardProcessor(int bulkSize) {
         ShardDeleteRequest.Builder builder = new ShardDeleteRequest.Builder(
-                CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
-                jobId
+            CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
+            jobId
         );
         return new BulkShardProcessor<>(
-                clusterService,
-                transportActionProvider.transportBulkCreateIndicesAction(),
-                indexNameExpressionResolver,
-                settings,
-                bulkRetryCoordinatorPool,
-                false,
-                bulkSize,
-                builder,
-                transportActionProvider.transportShardDeleteActionDelegate(),
-                jobId
+            clusterService,
+            transportActionProvider.transportBulkCreateIndicesAction(),
+            indexNameExpressionResolver,
+            settings,
+            bulkRetryCoordinatorPool,
+            false,
+            bulkSize,
+            builder,
+            transportActionProvider.transportShardDeleteActionDelegate(),
+            jobId
         );
 
     }

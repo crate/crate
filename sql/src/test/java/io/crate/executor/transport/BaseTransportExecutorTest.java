@@ -55,9 +55,9 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
     TableIdent charactersIdent = new TableIdent(null, "characters");
 
     Reference idRef = new Reference(
-            new ReferenceIdent(charactersIdent, "id"), RowGranularity.DOC, DataTypes.INTEGER);
+        new ReferenceIdent(charactersIdent, "id"), RowGranularity.DOC, DataTypes.INTEGER);
     Reference nameRef = new Reference(
-            new ReferenceIdent(charactersIdent, "name"), RowGranularity.DOC, DataTypes.STRING);
+        new ReferenceIdent(charactersIdent, "name"), RowGranularity.DOC, DataTypes.STRING);
     Reference femaleRef = TestingHelpers.createReference(charactersIdent.name(), new ColumnIdent("female"), DataTypes.BOOLEAN);
 
 
@@ -76,7 +76,7 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
     @Before
     public void transportSetUp() {
         String[] nodeNames = internalCluster().getNodeNames();
-        String handlerNodeName = nodeNames[randomIntBetween(0, nodeNames.length-1)];
+        String handlerNodeName = nodeNames[randomIntBetween(0, nodeNames.length - 1)];
         executor = internalCluster().getInstance(TransportExecutor.class, handlerNodeName);
         docSchemaInfo = internalCluster().getInstance(DocSchemaInfo.class, handlerNodeName);
     }

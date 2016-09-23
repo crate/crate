@@ -73,11 +73,11 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
             for (Setting childSetting : childSettings) {
                 if (childSetting.children().isEmpty()) {
                     childImplementations.put(childSetting.name(),
-                            new SettingExpression(childSetting, values)
+                        new SettingExpression(childSetting, values)
                     );
                 } else {
                     childImplementations.put(childSetting.name(),
-                            new NestedSettingExpression(childSetting, values)
+                        new NestedSettingExpression(childSetting, values)
                     );
                 }
             }
@@ -100,9 +100,9 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
         @Override
         public void onRefreshSettings(Settings settings) {
             applySettings(CrateSettings.SETTINGS,
-                    Settings.builder()
-                            .put(initialSettings)
-                            .put(settings).build()
+                Settings.builder()
+                    .put(initialSettings)
+                    .put(settings).build()
             );
         }
 
@@ -152,28 +152,28 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
 
     private void addChildImplementations() {
         childImplementations.put(
-                CrateSettings.STATS.name(),
-                new NestedSettingExpression(CrateSettings.STATS, values));
+            CrateSettings.STATS.name(),
+            new NestedSettingExpression(CrateSettings.STATS, values));
         childImplementations.put(
-                CrateSettings.CLUSTER.name(),
-                new NestedSettingExpression(CrateSettings.CLUSTER, values));
+            CrateSettings.CLUSTER.name(),
+            new NestedSettingExpression(CrateSettings.CLUSTER, values));
         childImplementations.put(
-                CrateSettings.DISCOVERY.name(),
-                new NestedSettingExpression(CrateSettings.DISCOVERY, values));
+            CrateSettings.DISCOVERY.name(),
+            new NestedSettingExpression(CrateSettings.DISCOVERY, values));
         childImplementations.put(
-                CrateSettings.INDICES.name(),
-                new NestedSettingExpression(CrateSettings.INDICES, values));
+            CrateSettings.INDICES.name(),
+            new NestedSettingExpression(CrateSettings.INDICES, values));
         childImplementations.put(
-                CrateSettings.BULK.name(),
-                new NestedSettingExpression(CrateSettings.BULK, values));
+            CrateSettings.BULK.name(),
+            new NestedSettingExpression(CrateSettings.BULK, values));
         childImplementations.put(
-                CrateSettings.GATEWAY.name(),
-                new NestedSettingExpression(CrateSettings.GATEWAY, values));
+            CrateSettings.GATEWAY.name(),
+            new NestedSettingExpression(CrateSettings.GATEWAY, values));
         childImplementations.put(
-                CrateSettings.UDC.name(),
-                new NestedSettingExpression(CrateSettings.UDC, values));
+            CrateSettings.UDC.name(),
+            new NestedSettingExpression(CrateSettings.UDC, values));
         childImplementations.put(
-                ClusterLoggingOverridesExpression.NAME,
-                new ClusterLoggingOverridesExpression(clusterService));
+            ClusterLoggingOverridesExpression.NAME,
+            new ClusterLoggingOverridesExpression(clusterService));
     }
 }

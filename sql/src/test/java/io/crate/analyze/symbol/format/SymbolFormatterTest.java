@@ -42,8 +42,8 @@ public class SymbolFormatterTest extends CrateUnitTest {
     @Test
     public void testFormat() throws Exception {
         Function f = new Function(new FunctionInfo(
-                new FunctionIdent("foo", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.UNDEFINED)), DataTypes.DOUBLE),
-                Arrays.<Symbol>asList(Literal.of("bar"), Literal.of(3.4)));
+            new FunctionIdent("foo", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.UNDEFINED)), DataTypes.DOUBLE),
+            Arrays.<Symbol>asList(Literal.of("bar"), Literal.of(3.4)));
         assertThat(SymbolFormatter.format("This Symbol is formatted %s", f), is("This Symbol is formatted foo('bar', 3.4)"));
     }
 

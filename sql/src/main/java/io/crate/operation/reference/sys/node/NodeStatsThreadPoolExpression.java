@@ -30,7 +30,7 @@ import java.util.Map;
 
 
 abstract class NodeStatsThreadPoolExpression<R>
-        extends NodeStatsArrayTypeExpression<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>, R> {
+    extends NodeStatsArrayTypeExpression<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>, R> {
 
     NodeStatsThreadPoolExpression() {
     }

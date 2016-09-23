@@ -114,7 +114,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         }
 
         public static final String ENABLE = "enable";
-        public static final String TOTAL_SHARDS_PER_NODE="total_shards_per_node";
+        public static final String TOTAL_SHARDS_PER_NODE = "total_shards_per_node";
 
         private void addChildImplementations() {
             childImplementations.put(ENABLE, new BytesRefPartitionTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE));
@@ -187,7 +187,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
 
         private void addChildImplementations() {
             childImplementations.put(PartitionsSettingsNodeLeftExpression.NAME,
-                    new PartitionsSettingsNodeLeftExpression());
+                new PartitionsSettingsNodeLeftExpression());
         }
     }
 

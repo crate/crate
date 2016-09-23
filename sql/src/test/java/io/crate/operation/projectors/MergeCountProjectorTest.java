@@ -47,6 +47,6 @@ public class MergeCountProjectorTest extends CrateUnitTest {
         Bucket projected = rowReceiver.result();
         assertThat(projected.size(), is(1));
         assertThat(projected.iterator().next().get(0), instanceOf(Long.class));
-        assertThat((Long)projected.iterator().next().get(0), is(10L));
+        assertThat((Long) projected.iterator().next().get(0), is(10L));
     }
 }

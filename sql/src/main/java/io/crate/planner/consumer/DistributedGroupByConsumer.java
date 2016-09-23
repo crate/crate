@@ -87,7 +87,7 @@ public class DistributedGroupByConsumer implements Consumer {
             QuerySpec querySpec = table.querySpec();
             List<Symbol> groupBy = querySpec.groupBy().get();
             DocTableInfo tableInfo = table.tableRelation().tableInfo();
-            if(querySpec.where().hasVersions()){
+            if (querySpec.where().hasVersions()) {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
@@ -98,42 +98,42 @@ public class DistributedGroupByConsumer implements Consumer {
 
             // start: Map/Collect side
             GroupProjection groupProjection = projectionBuilder.groupProjection(
-                    splitPoints.leaves(),
-                    groupBy,
-                    splitPoints.aggregates(),
-                    Aggregation.Step.ITER,
-                    Aggregation.Step.PARTIAL);
+                splitPoints.leaves(),
+                groupBy,
+                splitPoints.aggregates(),
+                Aggregation.Step.ITER,
+                Aggregation.Step.PARTIAL);
             groupProjection.setRequiredGranularity(RowGranularity.SHARD);
 
             Planner.Context plannerContext = context.plannerContext();
             Routing routing = plannerContext.allocateRouting(tableInfo, querySpec.where(), null);
             RoutedCollectPhase collectNode = new RoutedCollectPhase(
-                    plannerContext.jobId(),
-                    plannerContext.nextExecutionPhaseId(),
-                    "distributing collect",
-                    routing,
-                    tableInfo.rowGranularity(),
-                    splitPoints.leaves(),
-                    ImmutableList.<Projection>of(groupProjection),
-                    querySpec.where(),
-                    DistributionInfo.DEFAULT_MODULO
+                plannerContext.jobId(),
+                plannerContext.nextExecutionPhaseId(),
+                "distributing collect",
+                routing,
+                tableInfo.rowGranularity(),
+                splitPoints.leaves(),
+                ImmutableList.<Projection>of(groupProjection),
+                querySpec.where(),
+                DistributionInfo.DEFAULT_MODULO
             );
             // end: Map/Collect side
 
             // start: Reducer
             List<Symbol> collectOutputs = new ArrayList<>(
-                    groupBy.size() +
-                            splitPoints.aggregates().size());
+                groupBy.size() +
+                splitPoints.aggregates().size());
             collectOutputs.addAll(groupBy);
             collectOutputs.addAll(splitPoints.aggregates());
 
             List<Projection> reducerProjections = new LinkedList<>();
             reducerProjections.add(projectionBuilder.groupProjection(
-                    collectOutputs,
-                    groupBy,
-                    splitPoints.aggregates(),
-                    Aggregation.Step.PARTIAL,
-                    Aggregation.Step.FINAL)
+                collectOutputs,
+                groupBy,
+                splitPoints.aggregates(),
+                Aggregation.Step.PARTIAL,
+                Aggregation.Step.FINAL)
             );
 
             table.tableRelation().validateOrderBy(querySpec.orderBy());
@@ -144,8 +144,8 @@ public class DistributedGroupByConsumer implements Consumer {
                     return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
                 } else if (havingClause.get().hasQuery()) {
                     reducerProjections.add(ProjectionBuilder.filterProjection(
-                            collectOutputs,
-                            havingClause.get().query()
+                        collectOutputs,
+                        havingClause.get().query()
                     ));
                 }
             }
@@ -154,48 +154,48 @@ public class DistributedGroupByConsumer implements Consumer {
             boolean isRootRelation = context.rootRelation() == table;
             if (isRootRelation) {
                 reducerProjections.add(ProjectionBuilder.topNProjection(
-                        collectOutputs,
-                        querySpec.orderBy().orNull(),
-                        0,
-                        limits.limitAndOffset(),
-                        querySpec.outputs()));
+                    collectOutputs,
+                    querySpec.orderBy().orNull(),
+                    0,
+                    limits.limitAndOffset(),
+                    querySpec.outputs()));
             }
 
             MergePhase mergePhase = new MergePhase(
-                    plannerContext.jobId(),
-                    plannerContext.nextExecutionPhaseId(),
-                    "distributed merge",
-                    collectNode.executionNodes().size(),
-                    collectNode.outputTypes(),
-                    reducerProjections,
-                    DistributionInfo.DEFAULT_BROADCAST
+                plannerContext.jobId(),
+                plannerContext.nextExecutionPhaseId(),
+                "distributed merge",
+                collectNode.executionNodes().size(),
+                collectNode.outputTypes(),
+                reducerProjections,
+                DistributionInfo.DEFAULT_BROADCAST
             );
             mergePhase.executionNodes(ImmutableSet.copyOf(collectNode.executionNodes()));
             // end: Reducer
 
             MergePhase localMergeNode = null;
             String localNodeId = plannerContext.clusterService().state().nodes().localNodeId();
-            if(isRootRelation) {
+            if (isRootRelation) {
                 TopNProjection topN = ProjectionBuilder.topNProjection(
-                        querySpec.outputs(),
-                        querySpec.orderBy().orNull(),
-                        querySpec.offset(),
-                        limits.finalLimit(),
-                        null);
+                    querySpec.outputs(),
+                    querySpec.orderBy().orNull(),
+                    querySpec.offset(),
+                    limits.finalLimit(),
+                    null);
                 localMergeNode = MergePhase.localMerge(
-                        plannerContext.jobId(),
-                        plannerContext.nextExecutionPhaseId(),
-                        ImmutableList.<Projection>of(topN),
-                        mergePhase.executionNodes().size(),
-                        mergePhase.outputTypes());
+                    plannerContext.jobId(),
+                    plannerContext.nextExecutionPhaseId(),
+                    ImmutableList.<Projection>of(topN),
+                    mergePhase.executionNodes().size(),
+                    mergePhase.outputTypes());
                 localMergeNode.executionNodes(Sets.newHashSet(localNodeId));
             }
 
             return new DistributedGroupBy(
-                    collectNode,
-                    mergePhase,
-                    localMergeNode,
-                    plannerContext.jobId()
+                collectNode,
+                mergePhase,
+                localMergeNode,
+                plannerContext.jobId()
             );
         }
     }

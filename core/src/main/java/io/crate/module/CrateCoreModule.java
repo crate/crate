@@ -130,7 +130,7 @@ public class CrateCoreModule extends AbstractModule {
             encounter.register(new InjectionListener<I>() {
                 @Override
                 public void afterInjection(I injectee) {
-                    instanceFuture.set((CrateRestMainAction)injectee);
+                    instanceFuture.set((CrateRestMainAction) injectee);
                 }
             });
         }

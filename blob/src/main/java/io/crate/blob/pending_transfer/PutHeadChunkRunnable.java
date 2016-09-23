@@ -41,6 +41,8 @@ import java.util.concurrent.TimeUnit;
 
 public class PutHeadChunkRunnable implements Runnable {
 
+    private static final ESLogger logger = Loggers.getLogger(PutHeadChunkRunnable.class);
+
     private final DigestBlob digestBlob;
     private final long bytesToSend;
     private final DiscoveryNode recipientNode;
@@ -49,7 +51,6 @@ public class PutHeadChunkRunnable implements Runnable {
     private final UUID transferId;
     private WatchKey watchKey;
     private WatchService watcher;
-    private static final ESLogger logger = Loggers.getLogger(PutHeadChunkRunnable.class);
 
     public PutHeadChunkRunnable(DigestBlob digestBlob, long bytesToSend,
                                 TransportService transportService,
@@ -101,11 +102,11 @@ public class PutHeadChunkRunnable implements Runnable {
                 remainingBytes -= bytesRead;
 
                 transportService.submitRequest(
-                        recipientNode,
-                        BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK,
-                        new PutBlobHeadChunkRequest(transferId, new BytesArray(buffer, 0, bytesRead)),
-                        TransportRequestOptions.EMPTY,
-                        EmptyTransportResponseHandler.INSTANCE_SAME
+                    recipientNode,
+                    BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK,
+                    new PutBlobHeadChunkRequest(transferId, new BytesArray(buffer, 0, bytesRead)),
+                    TransportRequestOptions.EMPTY,
+                    EmptyTransportResponseHandler.INSTANCE_SAME
                 ).txGet();
             }
 
@@ -130,8 +131,7 @@ public class PutHeadChunkRunnable implements Runnable {
         }
     }
 
-    private void waitUntilFileHasGrown(File pendingFile)
-    {
+    private void waitUntilFileHasGrown(File pendingFile) {
         try {
             if (watcher == null) {
                 initWatcher(pendingFile.getParent());
@@ -149,7 +149,7 @@ public class PutHeadChunkRunnable implements Runnable {
                 }
 
                 @SuppressWarnings("unchecked")
-                WatchEvent<Path> ev = (WatchEvent<Path>)event;
+                WatchEvent<Path> ev = (WatchEvent<Path>) event;
                 Path filename = ev.context();
                 if (filename.toString().equals(pendingFile.getName())) {
                     break;

@@ -57,20 +57,21 @@ public class TableFunctionCollectPhase extends RoutedCollectPhase implements Col
                                      List<Symbol> outputs,
                                      WhereClause whereClause) {
         super(jobId,
-                phaseId,
-                functionName,
-                routing,
-                RowGranularity.DOC,
-                outputs,
-                projections,
-                whereClause,
-                DistributionInfo.DEFAULT_BROADCAST);
+            phaseId,
+            functionName,
+            routing,
+            RowGranularity.DOC,
+            outputs,
+            projections,
+            whereClause,
+            DistributionInfo.DEFAULT_BROADCAST);
         this.arguments = arguments;
         this.functionName = functionName;
     }
 
     // empty ctor for serialization
-    private TableFunctionCollectPhase() {}
+    private TableFunctionCollectPhase() {
+    }
 
     public String functionName() {
         return functionName;

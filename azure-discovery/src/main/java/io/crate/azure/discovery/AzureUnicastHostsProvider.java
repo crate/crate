@@ -22,9 +22,8 @@
 
 package io.crate.azure.discovery;
 
-import com.microsoft.azure.management.network.*;
+import com.microsoft.azure.management.network.NetworkResourceProviderClient;
 import com.microsoft.azure.management.network.models.*;
-
 import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeService.Discovery;
 import org.elasticsearch.Version;
@@ -44,17 +43,21 @@ import org.elasticsearch.transport.TransportService;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 
 public class AzureUnicastHostsProvider extends AbstractComponent implements UnicastHostsProvider {
 
-    public static enum HostType {
+    public enum HostType {
+
         PRIVATE_IP("private_ip"),
         PUBLIC_IP("public_ip");
 
         private String type;
 
-        private HostType(String type) {
+        HostType(String type) {
             this.type = type;
         }
 
@@ -155,7 +158,8 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
                     TransportAddress[] addresses = transportService.addressesFromString(networkAddress, 1);
                     for (TransportAddress address : addresses) {
                         logger.trace("adding {}, transport_address {}", networkAddress, address);
-                        nodes.add(new DiscoveryNode("#cloud-" + networkAddress, address, version.minimumCompatibilityVersion()));
+                        nodes.add(new DiscoveryNode(
+                            "#cloud-" + networkAddress, address, version.minimumCompatibilityVersion()));
                     }
                 }
             } catch (UnknownHostException e) {
@@ -184,7 +188,7 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
                 for (ResourceId resourceId : subnet.getIpConfigurations()) {
                     String[] nicURI = resourceId.getId().split("/");
                     NetworkInterface nic = networkResourceProviderClient.getNetworkInterfacesOperations().get(rgName, nicURI[
-                            nicURI.length - 3]).getNetworkInterface();
+                        nicURI.length - 3]).getNetworkInterface();
                     ArrayList<NetworkInterfaceIpConfiguration> ips = nic.getIpConfigurations();
 
                     // find public ip address
@@ -231,7 +235,8 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
 
             for (ResourceId resourceId : ipConfigurations) {
                 String[] nicURI = resourceId.getId().split("/");
-                NetworkInterface nic = networkResourceProviderClient.getNetworkInterfacesOperations().get(rgName, nicURI[nicURI.length - 3]).getNetworkInterface();
+                NetworkInterface nic = networkResourceProviderClient.getNetworkInterfacesOperations().get(rgName, nicURI[
+                    nicURI.length - 3]).getNetworkInterface();
                 ArrayList<NetworkInterfaceIpConfiguration> ips = nic.getIpConfigurations();
 
                 // find public ip address
@@ -253,7 +258,7 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
                             if (ipConfiguration.getPublicIpAddress() != null) {
                                 String[] pipID = ipConfiguration.getPublicIpAddress().getId().split("/");
                                 PublicIpAddress pip = networkResourceProviderClient.getPublicIpAddressesOperations()
-                                        .get(rgName, pipID[pipID.length - 1]).getPublicIpAddress();
+                                    .get(rgName, pipID[pipID.length - 1]).getPublicIpAddress();
 
                                 networkAddress = NetworkAddress.formatAddress(InetAddress.getByName(pip.getIpAddress()));
                             }

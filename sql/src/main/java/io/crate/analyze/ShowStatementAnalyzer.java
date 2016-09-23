@@ -96,7 +96,7 @@ public class ShowStatementAnalyzer {
         sb.append("ORDER BY schema_name");
 
         Analysis newAnalysis = analyzer.analyze(SqlParser.createStatement(sb.toString()),
-                new ParameterContext(new RowN(params.toArray(new Object[0])), Collections.<Row>emptyList(), null));
+            new ParameterContext(new RowN(params.toArray(new Object[0])), Collections.<Row>emptyList(), null));
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
     }
@@ -117,9 +117,9 @@ public class ShowStatementAnalyzer {
          */
         List<String> params = new ArrayList<>();
         StringBuilder sb =
-                new StringBuilder(
-                        "SELECT column_name, data_type " +
-                        "FROM information_schema.columns ");
+            new StringBuilder(
+                "SELECT column_name, data_type " +
+                "FROM information_schema.columns ");
         params.add(node.table().toString());
         sb.append("WHERE table_name = ? ");
 
@@ -138,7 +138,7 @@ public class ShowStatementAnalyzer {
         sb.append("ORDER BY column_name");
 
         Analysis newAnalysis = analyzer.analyze(SqlParser.createStatement(sb.toString()),
-                new ParameterContext(new RowN(params.toArray()), Collections.<Row>emptyList(), null));
+            new ParameterContext(new RowN(params.toArray()), Collections.<Row>emptyList(), null));
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
     }
@@ -185,7 +185,7 @@ public class ShowStatementAnalyzer {
         sb.append(" ORDER BY 1");
 
         Analysis newAnalysis = analyzer.analyze(SqlParser.createStatement(sb.toString()),
-                new ParameterContext(new RowN(params.toArray()), Collections.<Row>emptyList(), null));
+            new ParameterContext(new RowN(params.toArray()), Collections.<Row>emptyList(), null));
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
     }

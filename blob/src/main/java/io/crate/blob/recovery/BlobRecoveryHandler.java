@@ -61,8 +61,7 @@ public class BlobRecoveryHandler {
                                RecoverySettings recoverySettings,
                                BlobTransferTarget blobTransferTarget,
                                BlobIndices blobIndices,
-                               IndexShard shard, StartRecoveryRequest request)
-    {
+                               IndexShard shard, StartRecoveryRequest request) {
         this.recoverySettings = recoverySettings;
         this.blobShard = blobIndices.blobShardSafe(request.shardId().index().name(), request.shardId().id());
         this.request = request;
@@ -79,7 +78,7 @@ public class BlobRecoveryHandler {
 
     private Set<BytesArray> getExistingDigestsFromTarget(byte prefix) {
         BlobStartPrefixResponse response =
-            (BlobStartPrefixResponse)transportService.submitRequest(
+            (BlobStartPrefixResponse) transportService.submitRequest(
                 request.targetNode(),
                 BlobRecoveryTarget.Actions.START_PREFIX,
                 new BlobStartPrefixSyncRequest(request.recoveryId(), request.shardId(), prefix),

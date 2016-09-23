@@ -37,7 +37,7 @@ public class PagingTest {
 
     @Test
     public void testSmallLimitWithManyExecutionNodes() throws Exception {
-        int pageSize = Paging.getWeightedPageSize(10, 1.0/20.0);
+        int pageSize = Paging.getWeightedPageSize(10, 1.0 / 20.0);
         assertThat(pageSize, is(10));
     }
 }

@@ -37,7 +37,9 @@ import java.util.*;
 public class SetStatementAnalyzer {
 
     private static final ESLogger logger = Loggers.getLogger(SetStatementAnalyzer.class);
-    private SetStatementAnalyzer() {}
+
+    private SetStatementAnalyzer() {
+    }
 
     public static SetAnalyzedStatement analyze(SetStatement node, ParameterContext parameterContext) {
         if (SetStatement.Scope.SESSION.equals(node.scope())) {
@@ -46,7 +48,7 @@ public class SetStatementAnalyzer {
         Settings.Builder builder = Settings.builder();
         for (Assignment assignment : node.assignments()) {
             String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(),
-                    parameterContext.parameters());
+                parameterContext.parameters());
 
             if (SetStatement.Scope.SESSION.equals(node.scope())) {
                 builder.put(settingsName, assignment.expression());
@@ -90,7 +92,7 @@ public class SetStatementAnalyzer {
         for (Setting<?, ?> setting : settings) {
             if (setting.settingName().equals(name) && !setting.isRuntime()) {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                        "setting '%s' cannot be set/reset at runtime", name));
+                    "setting '%s' cannot be set/reset at runtime", name));
             }
             checkIfSettingIsRuntime(setting.children(), name);
         }
@@ -99,7 +101,9 @@ public class SetStatementAnalyzer {
     private static class ExpressionToSettingNameListVisitor extends AstVisitor<Collection<String>, String> {
 
         private static final ExpressionToSettingNameListVisitor INSTANCE = new ExpressionToSettingNameListVisitor();
-        private ExpressionToSettingNameListVisitor() {}
+
+        private ExpressionToSettingNameListVisitor() {
+        }
 
         public static Collection<String> convert(Node node) {
             return INSTANCE.process(node, null);

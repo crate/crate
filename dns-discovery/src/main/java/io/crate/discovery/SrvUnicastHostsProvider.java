@@ -45,11 +45,10 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
 
     public static final String DISCOVERY_SRV_QUERY = "discovery.srv.query";
     public static final String DISCOVERY_SRV_RESOLVER = "discovery.srv.resolver";
-
+    protected final Resolver resolver;
     private final TransportService transportService;
     private final Version version;
     private final String query;
-    protected final Resolver resolver;
 
     @Inject
     public SrvUnicastHostsProvider(Settings settings, TransportService transportService, Version version) {
@@ -135,7 +134,8 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
                 TransportAddress[] addresses = transportService.addressesFromString(address, 1);
                 for (TransportAddress transportAddress : addresses) {
                     logger.trace("adding {}, transport_address {}", address, transportAddress);
-                    discoNodes.add(new DiscoveryNode("#srv-" + address, transportAddress, version.minimumCompatibilityVersion()));
+                    discoNodes.add(new DiscoveryNode(
+                        "#srv-" + address, transportAddress, version.minimumCompatibilityVersion()));
                 }
             } catch (Exception e) {
                 logger.warn("failed to add {}, address {}", e, address);

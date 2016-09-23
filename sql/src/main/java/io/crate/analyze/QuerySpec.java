@@ -170,8 +170,8 @@ public class QuerySpec {
             if (!sourceType.equals(targetType)) {
                 if (sourceType.isConvertableTo(targetType)) {
                     Function castFunction = new Function(
-                            CastFunctionResolver.functionInfo(sourceType, targetType, false),
-                            Arrays.asList(output));
+                        CastFunctionResolver.functionInfo(sourceType, targetType, false),
+                        Arrays.asList(output));
                     if (groupBy().isPresent()) {
                         Collections.replaceAll(groupBy().get(), output, castFunction);
                     }
@@ -198,8 +198,8 @@ public class QuerySpec {
         }
 
         QuerySpec newSpec = new QuerySpec()
-                .limit(limit.orNull())
-                .offset(offset);
+            .limit(limit.orNull())
+            .offset(offset);
         if (traverseFunctions) {
             newSpec.outputs(SubsetVisitor.filter(outputs, predicate));
         } else {
@@ -238,7 +238,7 @@ public class QuerySpec {
 
         @Override
         public Void visitRelationColumn(RelationColumn relationColumn, SubsetContext context) {
-            if(context.predicate.apply(relationColumn)) {
+            if (context.predicate.apply(relationColumn)) {
                 context.outputs.add(relationColumn);
             }
             return null;
@@ -252,9 +252,9 @@ public class QuerySpec {
         }
 
         QuerySpec newSpec = new QuerySpec()
-                .limit(limit.orNull())
-                .offset(offset)
-                .outputs(Lists.transform(outputs, replaceFunction));
+            .limit(limit.orNull())
+            .offset(offset)
+            .outputs(Lists.transform(outputs, replaceFunction));
         if (!where.hasQuery()) {
             newSpec.where(where);
         } else {
@@ -282,7 +282,7 @@ public class QuerySpec {
     @Override
     public String toString() {
         return String.format(Locale.ENGLISH,
-                "QS{ SELECT %s WHERE %s GROUP BY %s HAVING %s ORDER BY %s LIMIT %s OFFSET %s}",
-                outputs, where, groupBy, having, orderBy, limit, offset);
+            "QS{ SELECT %s WHERE %s GROUP BY %s HAVING %s ORDER BY %s LIMIT %s OFFSET %s}",
+            outputs, where, groupBy, having, orderBy, limit, offset);
     }
 }

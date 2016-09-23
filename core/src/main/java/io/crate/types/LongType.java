@@ -28,8 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class
-        LongType extends DataType<Long> implements FixedWidthType, Streamer<Long>, DataTypeFactory {
+public class LongType extends DataType<Long> implements FixedWidthType, Streamer<Long>, DataTypeFactory {
 
     public static final LongType INSTANCE = new LongType();
     public static final int ID = 10;
@@ -58,19 +57,19 @@ public class
             return (Long) value;
         }
         if (value instanceof String) {
-            return Long.valueOf((String)value);
+            return Long.valueOf((String) value);
         }
         if (value instanceof BytesRef) {
             return parseLong((BytesRef) value);
         }
-        return ((Number)value).longValue();
+        return ((Number) value).longValue();
     }
 
     /**
      * parses the utf-8 encoded bytesRef argument as signed decimal {@code long}.
      * All characters in the string must be decimal digits, except the first which may be an ASCII minus sign to indicate
      * a negative value or or a plus sign to indicate a positive value.
-     *
+     * <p>
      * mostly copied from {@link Long#parseLong(String s, int radix)}
      */
     private long parseLong(BytesRef value) {
@@ -103,7 +102,8 @@ public class
                 throw new NumberFormatException(value.utf8ToString());
             }
 
-            i++;;
+            i++;
+            ;
         }
         multmin = limit / radix;
         while (i < len + value.offset) {

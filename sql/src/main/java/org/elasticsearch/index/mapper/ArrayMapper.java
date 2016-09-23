@@ -41,35 +41,34 @@ import java.util.Map;
 
 /**
  * fieldmapper for encoding and handling arrays explicitly
- *
+ * <p>
  * handler for type "array".
- *
+ * <p>
  * accepts mappings like:
- *
- *  "array_field": {
- *      "type": "array",
- *      "inner": {
- *          "type": "boolean",
- *          "null_value": true
- *      }
- *  }
- *
- *  This would be parsed as a array of booleans.
- *  This field now only accepts arrays, no single values.
- *  So inserting a document like:
- *
- *  {
- *      "array_field": true
- *  }
- *
- *  will fail, while a document like:
- *
- *  {
- *      "array_field": [true]
- *  }
- *
- *  will pass.
- *
+ * <p>
+ * "array_field": {
+ * "type": "array",
+ * "inner": {
+ * "type": "boolean",
+ * "null_value": true
+ * }
+ * }
+ * <p>
+ * This would be parsed as a array of booleans.
+ * This field now only accepts arrays, no single values.
+ * So inserting a document like:
+ * <p>
+ * {
+ * "array_field": true
+ * }
+ * <p>
+ * will fail, while a document like:
+ * <p>
+ * {
+ * "array_field": [true]
+ * }
+ * <p>
+ * will pass.
  */
 public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
@@ -100,13 +99,13 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
                 String fullName = context.path().fullPathAsText(name);
                 mappedFieldType.setNames(new MappedFieldType.Names(fullName));
                 return new ArrayMapper(
-                        name,
-                        mappedFieldType,
-                        mappedFieldType.clone(),
-                        context.indexSettings(),
-                        MultiFields.empty(),
-                        null,
-                        mapper);
+                    name,
+                    mappedFieldType,
+                    mappedFieldType.clone(),
+                    context.indexSettings(),
+                    MultiFields.empty(),
+                    null,
+                    mapper);
             } catch (IOException e) {
                 throw Throwables.propagate(e);
             }
@@ -125,7 +124,8 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
     static class ObjectArrayFieldType extends MappedFieldType {
 
-        protected ObjectArrayFieldType() {}
+        protected ObjectArrayFieldType() {
+        }
 
         public ObjectArrayFieldType(MappedFieldType ref) {
             super(ref);
@@ -157,7 +157,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             Mapper innerMapper = innerBuilder.build(context);
             fieldType.setNames(buildNames(context));
             return new ArrayMapper(name, fieldType, defaultFieldType, context.indexSettings(),
-                    multiFieldsBuilder.build(this, context), copyTo, innerMapper);
+                multiFieldsBuilder.build(this, context), copyTo, innerMapper);
         }
     }
 
@@ -173,7 +173,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             }
             @SuppressWarnings("unchecked")
             Map<String, Object> innerNode = (Map<String, Object>) inner;
-            String typeName = (String)innerNode.get("type");
+            String typeName = (String) innerNode.get("type");
             if (typeName == null && innerNode.containsKey("properties")) {
                 typeName = ObjectMapper.CONTENT_TYPE;
             } else if (CONTENT_TYPE.equalsIgnoreCase(typeName)) {
@@ -251,7 +251,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         XContentParser.Token token = parser.currentToken();
         if (token == XContentParser.Token.VALUE_NULL) {
             return parseInner(context);
-        } else if  (token != XContentParser.Token.START_ARRAY) {
+        } else if (token != XContentParser.Token.START_ARRAY) {
             throw new ElasticsearchParseException("invalid array");
         }
         token = parser.nextToken();
@@ -279,7 +279,8 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             assert innerMapper instanceof ObjectMapper : "innerMapper must be a FieldMapper or an ObjectMapper";
             context.path().add(simpleName());
             update = DocumentParser.parseObject(context, ((ObjectMapper) innerMapper), false);
-            context.path().remove();;
+            context.path().remove();
+            ;
         }
         return update;
     }

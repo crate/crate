@@ -46,14 +46,14 @@ public class Functions {
 
     /**
      * <p>
-     *     returns the functionImplementation for the given ident.
+     * returns the functionImplementation for the given ident.
      * </p>
-     *
+     * <p>
      * same as {@link #get(FunctionIdent)} but will throw an UnsupportedOperationException
      * if no implementation is found.
      */
     public FunctionImplementation getSafe(FunctionIdent ident)
-            throws IllegalArgumentException, UnsupportedOperationException {
+        throws IllegalArgumentException, UnsupportedOperationException {
         FunctionImplementation implementation = null;
         String exceptionMessage = null;
         try {
@@ -66,7 +66,7 @@ public class Functions {
         if (implementation == null) {
             if (exceptionMessage == null) {
                 exceptionMessage = String.format(Locale.ENGLISH, "unknown function: %s(%s)", ident.name(),
-                        Joiner.on(", ").join(ident.argumentTypes()));
+                    Joiner.on(", ").join(ident.argumentTypes()));
             }
             throw new UnsupportedOperationException(exceptionMessage);
         }

@@ -29,32 +29,30 @@ import io.crate.planner.projection.Projection;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
-import java.util.Set;
 import java.util.UUID;
 
 /**
  * Plan that will be executed with the awesome nested loop algorithm
  * performing CROSS JOINs
- *
+ * <p>
  * This Plan makes a lot of assumptions:
- *
+ * <p>
  * <ul>
  * <li> limit and offset are already pushed down to left and right plan nodes
  * <li> where clause is already splitted to left and right plan nodes
  * <li> order by symbols are already splitted, too
  * <li> if the first order by symbol in the whole statement is from the left node,
- *      set <code>leftOuterLoop</code> to true, otherwise to false
- *
+ * set <code>leftOuterLoop</code> to true, otherwise to false
+ * <p>
  * </ul>
- *
+ * <p>
  * Properties:
- *
+ * <p>
  * <ul>
  * <li> the resulting outputs from the join operations are the same, no matter if
- *      <code>leftOuterLoop</code> is true or not - so the projections added,
- *      can assume the same order of symbols, first symbols from left, then from right.
- *      If sth. else is selected a projection has to reorder those.
- *
+ * <code>leftOuterLoop</code> is true or not - so the projections added,
+ * can assume the same order of symbols, first symbols from left, then from right.
+ * If sth. else is selected a projection has to reorder those.
  */
 public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
 
@@ -70,23 +68,23 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
 
     /**
      * create a new NestedLoop
-     *
+     * <p>
      * side in the outer loop, the right in the inner.
      * Resulting in rows like:
-     *
+     * <p>
      * a | 1
      * a | 2
      * a | 3
      * b | 1
      * b | 2
      * b | 3
-     *
+     * <p>
      * This is the case if the left relation is referenced
      * by the first order by symbol references. E.g.
      * for <code>ORDER BY left.a, right.b</code>
      * If false, the nested loop is executed the other way around.
      * With the following results:
-     *
+     * <p>
      * a | 1
      * b | 1
      * a | 2
@@ -121,7 +119,7 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
 
     @Override
     public void addProjection(Projection projection) {
-        if (localMerge != null){
+        if (localMerge != null) {
             localMerge.addProjection(projection);
         } else {
             nestedLoopPhase.addProjection(projection);

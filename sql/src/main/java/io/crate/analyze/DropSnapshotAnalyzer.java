@@ -43,7 +43,7 @@ public class DropSnapshotAnalyzer extends AbstractRepositoryDDLAnalyzer {
     public DropSnapshotAnalyzedStatement visitDropSnapshot(DropSnapshot node, Analysis context) {
         List<String> parts = node.name().getParts();
         Preconditions.checkArgument(parts.size() == 2,
-                "Snapshot name not supported, only <repository>.<snapshot> works.");
+            "Snapshot name not supported, only <repository>.<snapshot> works.");
 
         String repositoryName = parts.get(0);
         repositoryService.failIfRepositoryDoesNotExist(repositoryName);

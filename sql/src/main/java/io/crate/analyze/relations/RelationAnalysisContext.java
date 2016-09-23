@@ -122,7 +122,7 @@ public class RelationAnalysisContext {
     }
 
     public ExpressionAnalyzer expressionAnalyzer() {
-        if (expressionAnalyzer == null){
+        if (expressionAnalyzer == null) {
             expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, parameterContext, fieldProvider(), null);
         }
         return expressionAnalyzer;

@@ -49,12 +49,12 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         createColorsAndSizes();
         execute("select colors.name, sizes.name from colors, sizes order by colors.name, sizes.name");
         assertThat(printedTable(response.rows()), is(
-                "blue| large\n" +
-                "blue| small\n" +
-                "green| large\n" +
-                "green| small\n" +
-                "red| large\n" +
-                "red| small\n"));
+            "blue| large\n" +
+            "blue| small\n" +
+            "green| large\n" +
+            "green| small\n" +
+            "red| large\n" +
+            "red| small\n"));
     }
 
     @Test
@@ -62,10 +62,10 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         createColorsAndSizes();
         execute("select colors.name, sizes.name from colors, sizes order by sizes.name, colors.name limit 4");
         assertThat(printedTable(response.rows()), is("" +
-                "blue| large\n" +
-                "green| large\n" +
-                "red| large\n" +
-                "blue| small\n"));
+                                                     "blue| large\n" +
+                                                     "green| large\n" +
+                                                     "red| large\n" +
+                                                     "blue| small\n"));
     }
 
     @Test
@@ -79,10 +79,10 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select color, size from target order by size, color limit 4");
         assertThat(printedTable(response.rows()), is("" +
-                "blue| large\n" +
-                "green| large\n" +
-                "red| large\n" +
-                "blue| small\n"));
+                                                     "blue| large\n" +
+                                                     "green| large\n" +
+                                                     "red| large\n" +
+                                                     "blue| small\n"));
     }
 
     @Test
@@ -150,10 +150,10 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select t2.price, t1.price, name from t1, t2 order by t2.price, t1.price, t2.name");
         assertThat(printedTable(response.rows()), is("" +
-                "28.3| 15.0| foobar\n" +
-                "28.3| 20.3| foobar\n" +
-                "40.1| 15.0| bar\n" +
-                "40.1| 20.3| bar\n"));
+                                                     "28.3| 15.0| foobar\n" +
+                                                     "28.3| 20.3| foobar\n" +
+                                                     "40.1| 15.0| bar\n" +
+                                                     "40.1| 20.3| bar\n"));
     }
 
     @Test
@@ -182,14 +182,14 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
         List<Object[]> rows = Arrays.asList(response.rows());
         Collections.sort(rows, OrderingByPosition.arrayOrdering(
-                new int[] {0, 1}, new boolean[]{false, false}, new Boolean[]{null, null}).reverse());
+            new int[]{0, 1}, new boolean[]{false, false}, new Boolean[]{null, null}).reverse());
         assertThat(printRows(rows), is(
-                "blue| large\n" +
-                        "blue| small\n" +
-                        "green| large\n" +
-                        "green| small\n" +
-                        "red| large\n" +
-                        "red| small\n"
+            "blue| large\n" +
+            "blue| small\n" +
+            "green| large\n" +
+            "green| small\n" +
+            "red| large\n" +
+            "red| small\n"
         ));
     }
 
@@ -199,12 +199,12 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("select colors.name from colors, sizes order by colors.name");
         assertThat(response.rowCount(), is(6L));
         assertThat(printedTable(response.rows()), is("" +
-                "blue\n" +
-                "blue\n" +
-                "green\n" +
-                "green\n" +
-                "red\n" +
-                "red\n"));
+                                                     "blue\n" +
+                                                     "blue\n" +
+                                                     "green\n" +
+                                                     "green\n" +
+                                                     "red\n" +
+                                                     "red\n"));
     }
 
     @Test
@@ -217,12 +217,12 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("select shards.id, t.name from sys.shards, t where shards.table_name = 't' order by shards.id, t.name");
         assertThat(response.rowCount(), is(6L));
         assertThat(printedTable(response.rows()), is("" +
-                "0| bar\n" +
-                "0| foo\n" +
-                "1| bar\n" +
-                "1| foo\n" +
-                "2| bar\n" +
-                "2| foo\n"));
+                                                     "0| bar\n" +
+                                                     "0| foo\n" +
+                                                     "1| bar\n" +
+                                                     "1| foo\n" +
+                                                     "2| bar\n" +
+                                                     "2| foo\n"));
     }
 
     @Test
@@ -237,10 +237,10 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                 "limit 4");
         assertThat(response.rowCount(), is(4L));
         assertThat(printedTable(response.rows()),
-                is("strict| id\n" +
-                   "strict| num_docs\n" +
-                   "strict| orphan_partition\n" +
-                   "strict| partition_ident\n"));
+            is("strict| id\n" +
+               "strict| num_docs\n" +
+               "strict| orphan_partition\n" +
+               "strict| partition_ident\n"));
     }
 
     @Test
@@ -251,34 +251,34 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("select s1.id, s2.id, s1.table_name from sys.shards s1, sys.shards s2 order by s1.id asc, s2.id desc");
         assertThat(response.rowCount(), is(9L));
         assertThat(printedTable(response.rows()), is("" +
-                "0| 2| t\n" +
-                "0| 1| t\n" +
-                "0| 0| t\n" +
-                "1| 2| t\n" +
-                "1| 1| t\n" +
-                "1| 0| t\n" +
-                "2| 2| t\n" +
-                "2| 1| t\n" +
-                "2| 0| t\n"));
+                                                     "0| 2| t\n" +
+                                                     "0| 1| t\n" +
+                                                     "0| 0| t\n" +
+                                                     "1| 2| t\n" +
+                                                     "1| 1| t\n" +
+                                                     "1| 0| t\n" +
+                                                     "2| 2| t\n" +
+                                                     "2| 1| t\n" +
+                                                     "2| 0| t\n"));
 
         execute("select s1.id, s2.id, s1.table_name from sys.shards s1, sys.shards s2");
         assertThat(response.rowCount(), is(9L));
 
         List<Object[]> rows = Arrays.asList(response.rows());
         Collections.sort(rows, OrderingByPosition.arrayOrdering(
-                new int[] { 0, 1}, new boolean[] { false, true }, new Boolean[] { null, null }).reverse());
+            new int[]{0, 1}, new boolean[]{false, true}, new Boolean[]{null, null}).reverse());
 
         assertThat(printedTable(new CollectionBucket(rows)),
-                is("" +
-                   "0| 2| t\n" +
-                   "0| 1| t\n" +
-                   "0| 0| t\n" +
-                   "1| 2| t\n" +
-                   "1| 1| t\n" +
-                   "1| 0| t\n" +
-                   "2| 2| t\n" +
-                   "2| 1| t\n" +
-                   "2| 0| t\n"));
+            is("" +
+               "0| 2| t\n" +
+               "0| 1| t\n" +
+               "0| 0| t\n" +
+               "1| 2| t\n" +
+               "1| 1| t\n" +
+               "1| 0| t\n" +
+               "2| 2| t\n" +
+               "2| 1| t\n" +
+               "2| 0| t\n"));
     }
 
     @Test
@@ -333,12 +333,12 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table employees");
 
         execute("select more.name, less.name, (more.salary - less.salary) from employees as more, employees as less " +
-                "where more.salary > less.salary "+
+                "where more.salary > less.salary " +
                 "order by more.salary desc, less.salary desc");
         assertThat(printedTable(response.rows()), is("" +
-                "Douglas Adams| Trillian| 200.0\n" +
-                "Douglas Adams| Ford Perfect| 600.0\n" +
-                "Trillian| Ford Perfect| 400.0\n"));
+                                                     "Douglas Adams| Trillian| 200.0\n" +
+                                                     "Douglas Adams| Ford Perfect| 600.0\n" +
+                                                     "Trillian| Ford Perfect| 400.0\n"));
     }
 
     @Test
@@ -354,9 +354,9 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("select employees.name, offices.name from employees inner join offices on size < height " +
                 "where size < height order by height - size limit 3");
         assertThat(printedTable(response.rows()), is("" +
-                "Douglas Adams| Chief Office\n" +
-                "Trillian| Entresol\n" +
-                "Ford Perfect| Hobbit House\n"));
+                                                     "Douglas Adams| Chief Office\n" +
+                                                     "Trillian| Entresol\n" +
+                                                     "Ford Perfect| Hobbit House\n"));
     }
 
     @Test
@@ -371,9 +371,9 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         createColorsAndSizes();
         execute("select substr(colors.name, 0, 1), sizes.name from colors, sizes order by colors.name, sizes.name limit 3");
         assertThat(printedTable(response.rows()),
-                is("b| large\n" +
-                   "b| small\n" +
-                   "g| large\n"));
+            is("b| large\n" +
+               "b| small\n" +
+               "g| large\n"));
     }
 
     private void createColorsAndSizes() {
@@ -382,13 +382,13 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         execute("insert into colors (name) values (?)", new Object[][]{
-                new Object[]{"red"},
-                new Object[]{"blue"},
-                new Object[]{"green"}
+            new Object[]{"red"},
+            new Object[]{"blue"},
+            new Object[]{"green"}
         });
         execute("insert into sizes (name) values (?)", new Object[][]{
-                new Object[]{"small"},
-                new Object[]{"large"},
+            new Object[]{"small"},
+            new Object[]{"large"},
         });
         execute("refresh table colors, sizes");
     }
@@ -440,12 +440,12 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select temp, name from t_left inner join t_right on t_left.ref_id = t_right.id order by temp");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("-1.2| Vienna\n" +
-                   "-0.5| Vienna\n" +
-                   "0.2| Vienna\n" +
-                   "19.7| San Francisco\n" +
-                   "20.8| San Francisco\n" +
-                   "23.2| San Francisco\n"));
+            is("-1.2| Vienna\n" +
+               "-0.5| Vienna\n" +
+               "0.2| Vienna\n" +
+               "19.7| San Francisco\n" +
+               "20.8| San Francisco\n" +
+               "23.2| San Francisco\n"));
     }
 
     @Test
@@ -486,9 +486,9 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                 "join events on events.id = logs.event_id " +
                 "order by users.name, events.id");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("Arthur| Earth destroyed\n" +
-                   "Arthur| Hitch hiking on a vogon ship\n" +
-                   "Trillian| Meeting Arthur\n"));
+            is("Arthur| Earth destroyed\n" +
+               "Arthur| Hitch hiking on a vogon ship\n" +
+               "Trillian| Meeting Arthur\n"));
     }
 
     @Test
@@ -502,7 +502,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select text, tags from t1 join t2 on t1.id = t2.id");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("Hello World| [foo, bar]\n"));
+            is("Hello World| [foo, bar]\n"));
     }
 
     @Test
@@ -517,7 +517,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t1, t2, t3");
         execute("select x+y+z from t1,t2,t3 order by x,y,z");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("6\n"));
+            is("6\n"));
     }
 
     @Test

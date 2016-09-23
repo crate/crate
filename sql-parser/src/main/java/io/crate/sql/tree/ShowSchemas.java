@@ -67,9 +67,8 @@ public class ShowSchemas extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("likePattern", likePattern)
-                .add("whereExpression", whereExpression)
-                .toString();
+            .add("likePattern", likePattern)
+            .add("whereExpression", whereExpression)
+            .toString();
     }
-
 }

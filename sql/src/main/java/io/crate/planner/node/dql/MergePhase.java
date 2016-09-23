@@ -77,7 +77,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
                       Collection<? extends DataType> inputTypes,
                       List<Projection> projections,
                       DistributionInfo distributionInfo
-                      ) {
+    ) {
         super(jobId, executionNodeId, name, projections);
         this.inputTypes = inputTypes;
         this.numUpstreams = numUpstreams;
@@ -95,13 +95,13 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
                                         int numUpstreams,
                                         Collection<? extends DataType> inputTypes) {
         return new MergePhase(
-                jobId,
-                executionPhaseId,
-                "localMerge",
-                numUpstreams,
-                inputTypes,
-                projections,
-                DistributionInfo.DEFAULT_SAME_NODE
+            jobId,
+            executionPhaseId,
+            "localMerge",
+            numUpstreams,
+            inputTypes,
+            projections,
+            DistributionInfo.DEFAULT_SAME_NODE
         );
     }
 
@@ -115,20 +115,20 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
                                          Collection<? extends DataType> inputTypes) {
 
         int[] orderByIndices = OrderByPositionVisitor.orderByPositions(
-                MoreObjects.firstNonNull(orderBySymbolOverwrite, orderBy.orderBySymbols()),
-                sourceSymbols
+            MoreObjects.firstNonNull(orderBySymbolOverwrite, orderBy.orderBySymbols()),
+            sourceSymbols
         );
         assert orderBy.reverseFlags().length == orderByIndices.length :
-                "length of reverseFlags and orderByIndices must match";
+            "length of reverseFlags and orderByIndices must match";
 
         MergePhase mergeNode = new MergePhase(
-                jobId,
-                executionPhaseId,
-                "sortedLocalMerge",
-                numUpstreams,
-                inputTypes,
-                projections,
-                DistributionInfo.DEFAULT_SAME_NODE
+            jobId,
+            executionPhaseId,
+            "sortedLocalMerge",
+            numUpstreams,
+            inputTypes,
+            projections,
+            DistributionInfo.DEFAULT_SAME_NODE
         );
         mergeNode.sortedInputOutput = true;
         mergeNode.orderByIndices = orderByIndices;
@@ -270,19 +270,19 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
     @Override
     public String toString() {
         MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
-                .add("executionPhaseId", executionPhaseId())
-                .add("name", name())
-                .add("projections", projections)
-                .add("outputTypes", outputTypes)
-                .add("jobId", jobId())
-                .add("numUpstreams", numUpstreams)
-                .add("nodeOperations", executionNodes)
-                .add("inputTypes", inputTypes)
-                .add("sortedInputOutput", sortedInputOutput);
+            .add("executionPhaseId", executionPhaseId())
+            .add("name", name())
+            .add("projections", projections)
+            .add("outputTypes", outputTypes)
+            .add("jobId", jobId())
+            .add("numUpstreams", numUpstreams)
+            .add("nodeOperations", executionNodes)
+            .add("inputTypes", inputTypes)
+            .add("sortedInputOutput", sortedInputOutput);
         if (sortedInputOutput) {
             helper.add("orderByIndices", Arrays.toString(orderByIndices))
-                  .add("reverseFlags", Arrays.toString(reverseFlags))
-                  .add("nullsFirst", Arrays.toString(nullsFirst));
+                .add("reverseFlags", Arrays.toString(reverseFlags))
+                .add("nullsFirst", Arrays.toString(nullsFirst));
         }
         return helper.toString();
     }

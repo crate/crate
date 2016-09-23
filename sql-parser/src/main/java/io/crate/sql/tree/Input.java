@@ -21,36 +21,31 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
 /**
  * Represents a reference to a field in a physical execution plan
  */
-public class Input
-{
+public class Input {
+
     private final int channel;
 
-    public Input(int channel)
-    {
+    public Input(int channel) {
         this.channel = channel;
     }
 
-    public int getChannel()
-    {
+    public int getChannel() {
         return channel;
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hashCode(channel);
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
@@ -62,10 +57,9 @@ public class Input
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("channel", channel)
-                .toString();
+            .add("channel", channel)
+            .toString();
     }
 }

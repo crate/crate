@@ -226,9 +226,9 @@ public class DistributingDownstream implements RowReceiver {
         public void forwardFailure(Throwable throwable) {
             traceLog("Forwarding failure");
             transportDistributedResultAction.pushResult(
-                    targetNode,
-                    new DistributedResultRequest(jobId, targetExecutionPhaseId, inputId, bucketIdx, streamers, throwable),
-                    NO_OP_ACTION_LISTENER
+                targetNode,
+                new DistributedResultRequest(jobId, targetExecutionPhaseId, inputId, bucketIdx, streamers, throwable),
+                NO_OP_ACTION_LISTENER
             );
         }
 
@@ -239,9 +239,9 @@ public class DistributingDownstream implements RowReceiver {
             }
             traceLog("Sending result");
             transportDistributedResultAction.pushResult(
-                    targetNode,
-                    new DistributedResultRequest(jobId, targetExecutionPhaseId, inputId, bucketIdx, streamers, bucket, isLast),
-                    this
+                targetNode,
+                new DistributedResultRequest(jobId, targetExecutionPhaseId, inputId, bucketIdx, streamers, bucket, isLast),
+                this
             );
         }
 
@@ -262,7 +262,7 @@ public class DistributingDownstream implements RowReceiver {
 
             if (logger.isTraceEnabled()) {
                 logger.trace("Received response fromNode={} phase={}/{} bucket={} requiresMore={} pendingRequests={} finished={}",
-                        targetNode, targetExecutionPhaseId, inputId, bucketIdx, needMore, numPending, hasUpstreamFinished);
+                    targetNode, targetExecutionPhaseId, inputId, bucketIdx, needMore, numPending, hasUpstreamFinished);
             }
             if (numPending > 0) {
                 return;

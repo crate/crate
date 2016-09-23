@@ -29,7 +29,7 @@ import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class TableIdentTest extends CrateUnitTest{
+public class TableIdentTest extends CrateUnitTest {
 
     @Test
     public void testIndexName() throws Exception {

@@ -29,8 +29,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.Map;
 
-public class ObjectType extends DataType<Map<String,Object>>
-        implements Streamer<Map<String, Object>>, DataTypeFactory {
+public class ObjectType extends DataType<Map<String, Object>>
+                        implements Streamer<Map<String, Object>>, DataTypeFactory {
 
     public static final ObjectType INSTANCE = new ObjectType();
     public static final int ID = 12;
@@ -55,7 +55,7 @@ public class ObjectType extends DataType<Map<String,Object>>
     @Override
     @SuppressWarnings("unchecked")
     public Map<String, Object> value(Object value) {
-        return (Map<String, Object>)value;
+        return (Map<String, Object>) value;
     }
 
     @Override

@@ -94,14 +94,15 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
             @Override
             public void onResponse(ShardResponse shardResponse) {
             }
+
             @Override
             public void onFailure(Throwable e) {
             }
         });
 
         verify(threadPool).schedule(eq(TimeValue.timeValueMillis(0)),
-                                    eq(ThreadPool.Names.SAME),
-                                    any(Runnable.class));
+            eq(ThreadPool.Names.SAME),
+            any(Runnable.class));
     }
 
     @Test
@@ -121,6 +122,7 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
             @Override
             public void onResponse(ShardResponse shardResponse) {
             }
+
             @Override
             public void onFailure(Throwable e) {
                 future.set(null);
@@ -155,6 +157,7 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
                         public void onResponse(ShardResponse shardResponse) {
                             latch.countDown();
                         }
+
                         @Override
                         public void onFailure(Throwable e) {
                         }

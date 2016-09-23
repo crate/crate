@@ -52,12 +52,12 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
     public static void register(AggregationImplModule mod) {
         for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             mod.register(new VarianceAggregation(new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
-                    FunctionInfo.Type.AGGREGATE)));
+                new FunctionIdent(NAME, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
+                FunctionInfo.Type.AGGREGATE)));
         }
         mod.register(new VarianceAggregation(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
-                FunctionInfo.Type.AGGREGATE)));
+            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
+            FunctionInfo.Type.AGGREGATE)));
     }
 
     public static class VarianceState implements Comparable<VarianceState> {
@@ -84,7 +84,7 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
     }
 
     public static class VarianceStateType extends DataType<VarianceState>
-            implements Streamer<VarianceState>, FixedWidthType, DataTypeFactory {
+        implements Streamer<VarianceState>, FixedWidthType, DataTypeFactory {
 
         public static final VarianceStateType INSTANCE = new VarianceStateType();
         public static final int ID = 2048;
@@ -106,7 +106,7 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
 
         @Override
         public VarianceState value(Object value) throws IllegalArgumentException, ClassCastException {
-            return (VarianceState)value;
+            return (VarianceState) value;
         }
 
         @Override
@@ -128,7 +128,7 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
 
         @Override
         public void writeValueTo(StreamOutput out, Object v) throws IOException {
-            VarianceState state = (VarianceState)v;
+            VarianceState state = (VarianceState) v;
             state.variance.writeTo(out);
         }
 

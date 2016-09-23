@@ -82,7 +82,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             }
             DocTableRelation tableRelation = table.tableRelation();
             if (!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
-                    tableRelation, table.querySpec().where(), table.querySpec().groupBy().get())) {
+                tableRelation, table.querySpec().where(), table.querySpec().groupBy().get())) {
                 return null;
             }
 
@@ -96,9 +96,9 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
         /**
          * grouping on doc tables by clustered column or primary keys, no distribution needed
          * only one aggregation step as the mappers (shards) have row-authority
-         *
+         * <p>
          * produces:
-         *
+         * <p>
          * SELECT:
          * CollectNode ( GroupProjection, [FilterProjection], [TopN] )
          * LocalMergeNode ( TopN )
@@ -106,7 +106,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
         private PlannedAnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedDocTable table, DocTableRelation tableRelation, ConsumerContext context) {
             QuerySpec querySpec = table.querySpec();
             assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
-                    tableRelation, querySpec.where(), querySpec.groupBy().get()) : "not grouped by clustered column or primary keys";
+                tableRelation, querySpec.where(), querySpec.groupBy().get()) : "not grouped by clustered column or primary keys";
             GroupByConsumer.validateGroupBySymbols(tableRelation, querySpec.groupBy().get());
             List<Symbol> groupBy = querySpec.groupBy().get();
 
@@ -119,8 +119,8 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
             // mapper / collect
             List<Symbol> collectOutputs = new ArrayList<>(
-                    groupBy.size() +
-                            splitPoints.aggregates().size());
+                groupBy.size() +
+                splitPoints.aggregates().size());
             collectOutputs.addAll(groupBy);
             collectOutputs.addAll(splitPoints.aggregates());
 
@@ -128,11 +128,11 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
             List<Projection> projections = new ArrayList<>();
             GroupProjection groupProjection = projectionBuilder.groupProjection(
-                    splitPoints.leaves(),
-                    querySpec.groupBy().get(),
-                    splitPoints.aggregates(),
-                    Aggregation.Step.ITER,
-                    Aggregation.Step.FINAL
+                splitPoints.leaves(),
+                querySpec.groupBy().get(),
+                splitPoints.aggregates(),
+                Aggregation.Step.ITER,
+                Aggregation.Step.FINAL
             );
             groupProjection.setRequiredGranularity(RowGranularity.SHARD);
             projections.add(groupProjection);
@@ -143,8 +143,8 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                     return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
                 } else if (havingClause.get().hasQuery()) {
                     FilterProjection fp = ProjectionBuilder.filterProjection(
-                            collectOutputs,
-                            havingClause.get().query()
+                        collectOutputs,
+                        havingClause.get().query()
                     );
                     fp.requiredGranularity(RowGranularity.SHARD);
                     projections.add(fp);
@@ -160,19 +160,19 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
 
             if (collectorTopN) {
                 projections.add(ProjectionBuilder.topNProjection(
-                        collectOutputs,
-                        querySpec.orderBy().orNull(),
-                        0, // no offset
-                        context.isRoot() ? limits.limitAndOffset() : TopN.NO_LIMIT,
-                        querySpec.outputs()
+                    collectOutputs,
+                    querySpec.orderBy().orNull(),
+                    0, // no offset
+                    context.isRoot() ? limits.limitAndOffset() : TopN.NO_LIMIT,
+                    querySpec.outputs()
                 ));
             }
 
             RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
-                    context.plannerContext(),
-                    table,
-                    splitPoints.leaves(),
-                    ImmutableList.copyOf(projections)
+                context.plannerContext(),
+                table,
+                splitPoints.leaves(),
+                ImmutableList.copyOf(projections)
             );
 
             // handler
@@ -182,41 +182,41 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                 // handler receives sorted results from collect nodes
                 // we can do the sorting with a sorting bucket merger
                 handlerProjections.add(
-                        ProjectionBuilder.topNProjection(
-                                querySpec.outputs(),
-                                null, // omit order by
-                                querySpec.offset(),
-                                limits.finalLimit(),
-                                querySpec.outputs()
-                        )
+                    ProjectionBuilder.topNProjection(
+                        querySpec.outputs(),
+                        null, // omit order by
+                        querySpec.offset(),
+                        limits.finalLimit(),
+                        querySpec.outputs()
+                    )
                 );
                 localMerge = MergePhase.sortedMerge(
-                        context.plannerContext().jobId(),
-                        context.plannerContext().nextExecutionPhaseId(),
-                        querySpec.orderBy().get(),
-                        querySpec.outputs(),
-                        null,
-                        handlerProjections,
-                        collectPhase.executionNodes().size(),
-                        collectPhase.outputTypes()
+                    context.plannerContext().jobId(),
+                    context.plannerContext().nextExecutionPhaseId(),
+                    querySpec.orderBy().get(),
+                    querySpec.outputs(),
+                    null,
+                    handlerProjections,
+                    collectPhase.executionNodes().size(),
+                    collectPhase.outputTypes()
                 );
             } else {
                 handlerProjections.add(
-                        ProjectionBuilder.topNProjection(
-                                collectorTopN ? querySpec.outputs() : collectOutputs,
-                                querySpec.orderBy().orNull(),
-                                querySpec.offset(),
-                                limits.finalLimit(),
-                                querySpec.outputs()
-                        )
+                    ProjectionBuilder.topNProjection(
+                        collectorTopN ? querySpec.outputs() : collectOutputs,
+                        querySpec.orderBy().orNull(),
+                        querySpec.offset(),
+                        limits.finalLimit(),
+                        querySpec.outputs()
+                    )
                 );
                 // fallback - unsorted local merge
                 localMerge = MergePhase.localMerge(
-                        context.plannerContext().jobId(),
-                        context.plannerContext().nextExecutionPhaseId(),
-                        handlerProjections,
-                        collectPhase.executionNodes().size(),
-                        collectPhase.outputTypes()
+                    context.plannerContext().jobId(),
+                    context.plannerContext().nextExecutionPhaseId(),
+                    handlerProjections,
+                    collectPhase.executionNodes().size(),
+                    collectPhase.outputTypes()
                 );
             }
             return new CollectAndMerge(collectPhase, localMerge);

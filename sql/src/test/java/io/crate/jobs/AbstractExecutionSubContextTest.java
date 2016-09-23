@@ -125,10 +125,10 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
 
         public List<Integer> stats() {
             return ImmutableList.of(
-                    numPrepare.get(),
-                    numStart.get(),
-                    numClose.get(),
-                    numKill.get()
+                numPrepare.get(),
+                numStart.get(),
+                numClose.get(),
+                numKill.get()
             );
         }
 

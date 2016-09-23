@@ -29,44 +29,37 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class Window
-        extends Node
-{
+public class Window extends Node {
+
     private final List<Expression> partitionBy;
     private final List<SortItem> orderBy;
     private final Optional<WindowFrame> frame;
 
-    public Window(List<Expression> partitionBy, List<SortItem> orderBy, WindowFrame frame)
-    {
+    public Window(List<Expression> partitionBy, List<SortItem> orderBy, WindowFrame frame) {
         this.partitionBy = checkNotNull(partitionBy, "partitionBy is null");
         this.orderBy = checkNotNull(orderBy, "orderBy is null");
         this.frame = Optional.fromNullable(frame);
     }
 
-    public List<Expression> getPartitionBy()
-    {
+    public List<Expression> getPartitionBy() {
         return partitionBy;
     }
 
-    public List<SortItem> getOrderBy()
-    {
+    public List<SortItem> getOrderBy() {
         return orderBy;
     }
 
-    public Optional<WindowFrame> getFrame()
-    {
+    public Optional<WindowFrame> getFrame() {
         return frame;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitWindow(this, context);
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
@@ -75,23 +68,21 @@ public class Window
         }
         Window o = (Window) obj;
         return Objects.equal(partitionBy, o.partitionBy) &&
-                Objects.equal(orderBy, o.orderBy) &&
-                Objects.equal(frame, o.frame);
+               Objects.equal(orderBy, o.orderBy) &&
+               Objects.equal(frame, o.frame);
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hashCode(partitionBy, orderBy, frame);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("partitionBy", partitionBy)
-                .add("orderBy", orderBy)
-                .add("frame", frame)
-                .toString();
+            .add("partitionBy", partitionBy)
+            .add("orderBy", orderBy)
+            .add("frame", frame)
+            .toString();
     }
 }

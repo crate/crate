@@ -73,8 +73,8 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         ensureYellow();
 
         execute("insert into t (name, p) values (?, ?)", new Object[][]{
-                new Object[]{"Marvin", "a"},
-                new Object[]{"Trillian", "a"},
+            new Object[]{"Marvin", "a"},
+            new Object[]{"Trillian", "a"},
         });
         execute("refresh table t");
         execute("set global stats.enabled=true");
@@ -141,18 +141,18 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
                         }
                         String toNode = nodeSwap.get(shardRouting.currentNodeId());
                         clusterRerouteRequestBuilder.add(new MoveAllocationCommand(
-                                shardRouting.shardId(),
-                                shardRouting.currentNodeId(),
-                                toNode));
+                            shardRouting.shardId(),
+                            shardRouting.currentNodeId(),
+                            toNode));
                         numMoves++;
                     }
 
                     if (numMoves > 0) {
                         clusterRerouteRequestBuilder.execute().actionGet();
                         client().admin().cluster().prepareHealth()
-                                .setWaitForEvents(Priority.LANGUID)
-                                .setWaitForRelocatingShards(0)
-                                .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
+                            .setWaitForEvents(Priority.LANGUID)
+                            .setWaitForRelocatingShards(0)
+                            .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
                         relocations.countDown();
                     }
                 }
@@ -268,7 +268,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
 
         final CountDownLatch deleteLatch = new CountDownLatch(1);
         final String partitionName = new PartitionName("parted",
-                Collections.singletonList(new BytesRef(String.valueOf(idToDelete)))
+            Collections.singletonList(new BytesRef(String.valueOf(idToDelete)))
         ).asIndexName();
         final Object[] deleteArgs = new Object[]{idToDelete};
         Thread deleteThread = new Thread(new Runnable() {
@@ -278,7 +278,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
                 while (!deleted) {
                     try {
                         MetaData metaData = client().admin().cluster().prepareState().execute().actionGet()
-                                .getState().metaData();
+                            .getState().metaData();
                         if (metaData.indices().get(partitionName) != null) {
                             execute("delete from parted where id = ?", deleteArgs);
                             deleted = true;

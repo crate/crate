@@ -40,26 +40,26 @@ public class JobIntegrationTest extends SQLTransportIntegrationTest {
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.settingsBuilder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put("plugin.types", CrateCorePlugin.class.getName())
-                .build();
+            .put(super.nodeSettings(nodeOrdinal))
+            .put("plugin.types", CrateCorePlugin.class.getName())
+            .build();
     }
 
     public JobIntegrationTest() {
         // ensure that the client node is used as handler and has no collectphase
         super(new SQLTransportExecutor(
-                new SQLTransportExecutor.ClientProvider() {
-                    @Override
-                    public Client client() {
-                        return internalCluster().clientNodeClient();
-                    }
-
-                    @Nullable
-                    @Override
-                    public String pgUrl() {
-                        return null;
-                    }
+            new SQLTransportExecutor.ClientProvider() {
+                @Override
+                public Client client() {
+                    return internalCluster().clientNodeClient();
                 }
+
+                @Nullable
+                @Override
+                public String pgUrl() {
+                    return null;
+                }
+            }
         ));
     }
 

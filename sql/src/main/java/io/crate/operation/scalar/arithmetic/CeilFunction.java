@@ -22,9 +22,6 @@
 package io.crate.operation.scalar.arithmetic;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -50,7 +47,7 @@ public abstract class CeilFunction extends Scalar<Number, Number> {
     static class DoubleCeilFunction extends CeilFunction {
 
         private static final FunctionInfo INFO = new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.DOUBLE)), DataTypes.LONG, FunctionInfo.Type.SCALAR, true, true);
+            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.DOUBLE)), DataTypes.LONG, FunctionInfo.Type.SCALAR, true, true);
 
         @Override
         public Long evaluate(Input[] args) {
@@ -70,7 +67,7 @@ public abstract class CeilFunction extends Scalar<Number, Number> {
     static class FloatCeilFunction extends CeilFunction {
 
         private static final FunctionInfo INFO = new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.FLOAT)), DataTypes.INTEGER, FunctionInfo.Type.SCALAR, true, true);
+            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.FLOAT)), DataTypes.INTEGER, FunctionInfo.Type.SCALAR, true, true);
 
         @Override
         public Integer evaluate(Input[] args) {

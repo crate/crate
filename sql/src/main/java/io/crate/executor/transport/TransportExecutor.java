@@ -130,15 +130,15 @@ public class TransportExecutor implements Executor {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
         ImplementationSymbolVisitor globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
-                clusterService,
-                functions,
-                indexNameExpressionResolver,
-                threadPool,
-                settings,
-                transportActionProvider,
-                bulkRetryCoordinatorPool,
-                globalImplementationSymbolVisitor,
-                normalizer);
+            clusterService,
+            functions,
+            indexNameExpressionResolver,
+            threadPool,
+            settings,
+            transportActionProvider,
+            bulkRetryCoordinatorPool,
+            globalImplementationSymbolVisitor,
+            normalizer);
     }
 
     @Override
@@ -176,17 +176,17 @@ public class TransportExecutor implements Executor {
 
         private ExecutionPhasesTask executionPhasesTask(Plan plan) {
             List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(
-                    plan, clusterService.localNode().id());
+                plan, clusterService.localNode().id());
             LOGGER.debug("Created NodeOperationTrees from Plan: {}", nodeOperationTrees);
             return new ExecutionPhasesTask(
-                    plan.jobId(),
-                    clusterService,
-                    contextPreparer,
-                    jobContextService,
-                    indicesService,
-                    transportActionProvider.transportJobInitAction(),
-                    transportActionProvider.transportKillJobsNodeAction(),
-                    nodeOperationTrees
+                plan.jobId(),
+                clusterService,
+                contextPreparer,
+                jobContextService,
+                indicesService,
+                transportActionProvider.transportJobInitAction(),
+                transportActionProvider.transportKillJobsNodeAction(),
+                nodeOperationTrees
             );
         }
 
@@ -210,10 +210,10 @@ public class TransportExecutor implements Executor {
         @Override
         public Task visitKillPlan(KillPlan killPlan, Void context) {
             return killPlan.jobToKill().isPresent() ?
-                    new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
-                            killPlan.jobId(),
-                            killPlan.jobToKill().get()) :
-                    new KillTask(transportActionProvider.transportKillAllNodeAction(), killPlan.jobId());
+                new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
+                    killPlan.jobId(),
+                    killPlan.jobToKill().get()) :
+                new KillTask(transportActionProvider.transportKillAllNodeAction(), killPlan.jobId());
         }
 
         @Override
@@ -292,40 +292,40 @@ public class TransportExecutor implements Executor {
 
     /**
      * class used to generate the NodeOperationTree
-     *
-     *
+     * <p>
+     * <p>
      * E.g. a plan like NL:
-     *
-     *              NL
-     *           1 NLPhase
-     *           2 MergePhase
-     *        /               \
-     *       /                 \
-     *     QAF                 QAF
-     *   3 CollectPhase      5 CollectPhase
-     *   4 MergePhase        6 MergePhase
-     *
-     *
+     * <p>
+     * NL
+     * 1 NLPhase
+     * 2 MergePhase
+     * /               \
+     * /                 \
+     * QAF                 QAF
+     * 3 CollectPhase      5 CollectPhase
+     * 4 MergePhase        6 MergePhase
+     * <p>
+     * <p>
      * Will have a data flow like this:
-     *
-     *   3 -- 4
-     *          -- 1 -- 2
-     *   5 -- 6
-     *
+     * <p>
+     * 3 -- 4
+     * -- 1 -- 2
+     * 5 -- 6
+     * <p>
      * The NodeOperation tree will have 5 NodeOperations (3-4, 4-1, 5-6, 6-1, 1-2)
      * And leaf will be 2 (the Phase which will provide the final result)
-     *
-     *
+     * <p>
+     * <p>
      * Implementation detail:
-     *
-     *
-     *   The phases are added in the following order
-     *
-     *   2 - 1 [new branch 0]  4 - 3
-     *         [new branch 1]  5 - 6
-     *
-     *   every time addPhase is called a NodeOperation is added
-     *   that connects the previous phase (if there is one) to the current phase
+     * <p>
+     * <p>
+     * The phases are added in the following order
+     * <p>
+     * 2 - 1 [new branch 0]  4 - 3
+     * [new branch 1]  5 - 6
+     * <p>
+     * every time addPhase is called a NodeOperation is added
+     * that connects the previous phase (if there is one) to the current phase
      */
     static class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationTreeGenerator.NodeOperationTreeContext, Void> {
 
@@ -356,7 +356,7 @@ public class TransportExecutor implements Executor {
             /**
              * adds a Phase to the "NodeOperation execution tree"
              * should be called in the reverse order of how data flows.
-             *
+             * <p>
              * E.g. in a plan where data flows from CollectPhase to MergePhase
              * it should be called first for MergePhase and then for CollectPhase
              */
@@ -396,8 +396,8 @@ public class TransportExecutor implements Executor {
                 }
                 if (setDownstreamNodes) {
                     assert saneConfiguration(executionPhase, previousPhase.executionNodes()) : String.format(Locale.ENGLISH,
-                            "NodeOperation with %s and %s as downstreams cannot work",
-                            ExecutionPhases.debugPrint(executionPhase), previousPhase.executionNodes());
+                        "NodeOperation with %s and %s as downstreams cannot work",
+                        ExecutionPhases.debugPrint(executionPhase), previousPhase.executionNodes());
 
                     nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, currentBranch.inputId, localNodeId));
                 } else {
@@ -407,8 +407,9 @@ public class TransportExecutor implements Executor {
             }
 
             private boolean saneConfiguration(ExecutionPhase executionPhase, Collection<String> downstreamNodes) {
-                if (executionPhase instanceof UpstreamPhase && ((UpstreamPhase) executionPhase).distributionInfo().distributionType() ==
-                                                               DistributionType.SAME_NODE) {
+                if (executionPhase instanceof UpstreamPhase &&
+                    ((UpstreamPhase) executionPhase).distributionInfo().distributionType() ==
+                    DistributionType.SAME_NODE) {
                     return downstreamNodes.isEmpty() || downstreamNodes.equals(executionPhase.executionNodes());
                 }
                 return true;
@@ -426,11 +427,11 @@ public class TransportExecutor implements Executor {
 
             public Collection<NodeOperation> nodeOperations() {
                 return ImmutableList.<NodeOperation>builder()
-                        // collectNodeOperations must be first so that they're started last
-                        // to prevent context-setup race conditions
-                        .addAll(collectNodeOperations)
-                        .addAll(nodeOperations)
-                        .build();
+                    // collectNodeOperations must be first so that they're started last
+                    // to prevent context-setup race conditions
+                    .addAll(collectNodeOperations)
+                    .addAll(nodeOperations)
+                    .build();
             }
         }
 
@@ -438,7 +439,7 @@ public class TransportExecutor implements Executor {
             NodeOperationTreeContext nodeOperationTreeContext = new NodeOperationTreeContext(localNodeId);
             process(plan, nodeOperationTreeContext);
             return new NodeOperationTree(nodeOperationTreeContext.nodeOperations(),
-                    nodeOperationTreeContext.root.phases.firstElement());
+                nodeOperationTreeContext.root.phases.firstElement());
         }
 
         @Override

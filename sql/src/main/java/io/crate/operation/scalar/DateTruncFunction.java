@@ -49,21 +49,21 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     public static final String NAME = "date_trunc";
 
     protected static final ImmutableMap<BytesRef, DateTimeUnit> DATE_FIELD_PARSERS = MapBuilder.<BytesRef, DateTimeUnit>newMapBuilder()
-            // we only store timestamps in milliseconds since epoch.
-            // therefore, we supporting 'milliseconds' and 'microseconds' wouldn't affect anything.
-            .put(new BytesRef("year"), DateTimeUnit.YEAR_OF_CENTURY)
-            .put(new BytesRef("quarter"), DateTimeUnit.QUARTER)
-            .put(new BytesRef("month"), DateTimeUnit.MONTH_OF_YEAR)
-            .put(new BytesRef("week"), DateTimeUnit.WEEK_OF_WEEKYEAR)
-            .put(new BytesRef("day"), DateTimeUnit.DAY_OF_MONTH)
-            .put(new BytesRef("hour"), DateTimeUnit.HOUR_OF_DAY)
-            .put(new BytesRef("minute"), DateTimeUnit.MINUTES_OF_HOUR)
-            .put(new BytesRef("second"), DateTimeUnit.SECOND_OF_MINUTE)
-            .immutableMap();
+        // we only store timestamps in milliseconds since epoch.
+        // therefore, we supporting 'milliseconds' and 'microseconds' wouldn't affect anything.
+        .put(new BytesRef("year"), DateTimeUnit.YEAR_OF_CENTURY)
+        .put(new BytesRef("quarter"), DateTimeUnit.QUARTER)
+        .put(new BytesRef("month"), DateTimeUnit.MONTH_OF_YEAR)
+        .put(new BytesRef("week"), DateTimeUnit.WEEK_OF_WEEKYEAR)
+        .put(new BytesRef("day"), DateTimeUnit.DAY_OF_MONTH)
+        .put(new BytesRef("hour"), DateTimeUnit.HOUR_OF_DAY)
+        .put(new BytesRef("minute"), DateTimeUnit.MINUTES_OF_HOUR)
+        .put(new BytesRef("second"), DateTimeUnit.SECOND_OF_MINUTE)
+        .immutableMap();
 
     public static void register(ScalarFunctionModule module) {
         List<DataType> supportedTimestampTypes = ImmutableList.<DataType>of(
-                DataTypes.TIMESTAMP, DataTypes.LONG, DataTypes.STRING);
+            DataTypes.TIMESTAMP, DataTypes.LONG, DataTypes.STRING);
         for (DataType dataType : supportedTimestampTypes) {
             module.register(new DateTruncFunction(info(DataTypes.STRING, dataType)));
             // time zone aware variant
@@ -71,10 +71,10 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         }
     }
 
-    private static FunctionInfo info(DataType ... types) {
+    private static FunctionInfo info(DataType... types) {
         return new FunctionInfo(
-                new FunctionIdent(NAME, Arrays.asList(types)),
-                DataTypes.TIMESTAMP, FunctionInfo.Type.SCALAR, true, true);
+            new FunctionIdent(NAME, Arrays.asList(types)),
+            DataTypes.TIMESTAMP, FunctionInfo.Type.SCALAR, true, true);
     }
 
 
@@ -105,10 +105,10 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         }
 
         // all validation is already done by {@link #normalizeSymbol()}
-        BytesRef interval = (BytesRef)((Input)arguments.get(0)).value();
+        BytesRef interval = (BytesRef) ((Input) arguments.get(0)).value();
         BytesRef timeZone = TimeZoneParser.DEFAULT_TZ_BYTES_REF;
         if (arguments.size() == 3) {
-            timeZone = (BytesRef)((Input)arguments.get(1)).value();
+            timeZone = (BytesRef) ((Input) arguments.get(1)).value();
         }
 
         return new DateTruncFunction(this.info, rounding(interval, timeZone));
@@ -132,15 +132,15 @@ public class DateTruncFunction extends Scalar<Long, Object> {
 
         if (symbol.arguments().size() == 2) {
             timezone = TimeZoneParser.DEFAULT_TZ_LITERAL;
-            tsSymbol = (Literal)symbol.arguments().get(1);
+            tsSymbol = (Literal) symbol.arguments().get(1);
         } else {
             timezone = (Literal) symbol.arguments().get(1);
-            tsSymbol = (Literal)symbol.arguments().get(2);
+            tsSymbol = (Literal) symbol.arguments().get(2);
         }
 
         return Literal.of(
-                DataTypes.TIMESTAMP,
-                evaluate(new Input[]{interval, timezone, tsSymbol})
+            DataTypes.TIMESTAMP,
+            evaluate(new Input[]{interval, timezone, tsSymbol})
         );
     }
 
@@ -152,14 +152,14 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         if (args.length == 2) {
             value = args[1].value();
         } else {
-            timeZone = (BytesRef)args[1].value();
+            timeZone = (BytesRef) args[1].value();
             value = args[2].value();
         }
         if (value == null) {
             return null;
         }
         if (tzRounding == null) {
-            BytesRef interval = (BytesRef)args[0].value();
+            BytesRef interval = (BytesRef) args[0].value();
             return truncate(rounding(interval, timeZone), TimestampType.INSTANCE.value(value));
         }
         return truncate(tzRounding, TimestampType.INSTANCE.value(value));
@@ -171,8 +171,8 @@ public class DateTruncFunction extends Scalar<Long, Object> {
 
         TimeZoneRounding.Builder tzRoundingBuilder = TimeZoneRounding.builder(intervalAsUnit);
         return tzRoundingBuilder
-                .timeZone(timeZone)
-                .build();
+            .timeZone(timeZone)
+            .build();
     }
 
     /**
@@ -189,12 +189,12 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     protected DateTimeUnit intervalAsUnit(BytesRef interval) {
         if (interval == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "invalid interval NULL for scalar '%s'", NAME));
+                "invalid interval NULL for scalar '%s'", NAME));
         }
         DateTimeUnit intervalAsUnit = DATE_FIELD_PARSERS.get(interval);
         if (intervalAsUnit == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "invalid interval '%s' for scalar '%s'", interval.utf8ToString(), NAME));
+                "invalid interval '%s' for scalar '%s'", interval.utf8ToString(), NAME));
         }
         return intervalAsUnit;
     }

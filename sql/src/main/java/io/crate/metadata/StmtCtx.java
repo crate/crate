@@ -26,7 +26,6 @@ import org.joda.time.DateTimeUtils;
 
 /**
  * StatementContext that can be used to keep state which is valid on the handler during a "statement lifecycle".
- *
  */
 public class StmtCtx {
 

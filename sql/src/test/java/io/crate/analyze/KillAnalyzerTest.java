@@ -39,8 +39,8 @@ public class KillAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new MockedClusterServiceModule(),
-                new MetaDataModule()
+            new MockedClusterServiceModule(),
+            new MetaDataModule()
         ));
         return modules;
     }

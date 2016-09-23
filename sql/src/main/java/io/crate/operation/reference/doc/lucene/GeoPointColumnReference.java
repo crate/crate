@@ -42,7 +42,7 @@ public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointF
                 return null;
             case 1:
                 GeoPoint gp = values.valueAt(0);
-                return new Double[] { gp.lon(), gp.lat() };
+                return new Double[]{gp.lon(), gp.lat()};
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }

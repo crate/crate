@@ -61,9 +61,9 @@ public class CrateSearchContext extends DefaultSearchContext {
                               Counter timeEstimateCounter,
                               Optional<Scroll> scroll) {
         super(id, new CrateSearchShardRequest(nowInMillis, scroll, indexShard),
-                shardTarget, engineSearcher, indexService,
-                indexShard, scriptService, pageCacheRecycler,
-                bigArrays, timeEstimateCounter, ParseFieldMatcher.STRICT, SearchService.NO_TIMEOUT);
+            shardTarget, engineSearcher, indexService,
+            indexShard, scriptService, pageCacheRecycler,
+            bigArrays, timeEstimateCounter, ParseFieldMatcher.STRICT, SearchService.NO_TIMEOUT);
         this.engineSearcher = engineSearcher;
     }
 
@@ -94,7 +94,7 @@ public class CrateSearchContext extends DefaultSearchContext {
 
         @Override
         public Template template() {
-           return new Template();
+            return new Template();
         }
 
         @Override

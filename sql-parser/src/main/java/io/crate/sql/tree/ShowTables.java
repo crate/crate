@@ -78,10 +78,9 @@ public class ShowTables extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("schema", schema)
-                .add("likePattern", likePattern.toString())
-                .add("whereExpression", whereExpression.toString())
-                .toString();
+            .add("schema", schema)
+            .add("likePattern", likePattern.toString())
+            .add("whereExpression", whereExpression.toString())
+            .toString();
     }
-
 }

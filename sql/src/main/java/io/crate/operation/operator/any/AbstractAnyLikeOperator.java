@@ -52,7 +52,7 @@ public abstract class AbstractAnyLikeOperator extends AnyOperator {
             if (elem instanceof BytesRef) {
                 elemValue = ((BytesRef) elem).utf8ToString();
             } else {
-                elemValue = (String)elem;
+                elemValue = (String) elem;
             }
             if (matches(elemValue, pattern)) {
                 return true;

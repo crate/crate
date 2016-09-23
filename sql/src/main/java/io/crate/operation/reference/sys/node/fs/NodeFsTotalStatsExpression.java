@@ -39,7 +39,7 @@ public class NodeFsTotalStatsExpression extends SimpleNodeStatsExpression<Map<St
         Map<String, Long> totals = new HashMap<>();
         ExtendedFsStats.Info totalInfo = this.row.extendedFsStats().total();
         totals.put(SIZE, totalInfo.total() == -1 ? -1 : totalInfo.total() * 1024);
-        totals.put(USED, totalInfo.used() == -1 ? - 1 : totalInfo.used() * 1024);
+        totals.put(USED, totalInfo.used() == -1 ? -1 : totalInfo.used() * 1024);
         totals.put(AVAILABLE, totalInfo.available() == -1 ? -1 : totalInfo.available() * 1024);
         totals.put(READS, totalInfo.diskReads());
         totals.put(BYTES_READ, totalInfo.diskReadSizeInBytes());

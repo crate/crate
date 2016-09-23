@@ -53,7 +53,7 @@ public class ColumnIdentTest {
     public void testShiftRight() throws Exception {
         assertThat(new ColumnIdent("foo", "bar").shiftRight(), is(new ColumnIdent("bar")));
         assertThat(new ColumnIdent("foo", Arrays.asList("x", "y", "z")).shiftRight(),
-                is(new ColumnIdent("x", Arrays.asList("y", "z"))));
+            is(new ColumnIdent("x", Arrays.asList("y", "z"))));
         assertThat(new ColumnIdent("foo").shiftRight(), Matchers.nullValue());
     }
 
@@ -78,7 +78,7 @@ public class ColumnIdentTest {
     public void testPrepend() throws Exception {
         ColumnIdent foo = new ColumnIdent("foo");
         assertThat(foo.prepend(DocSysColumns.DOC.name()),
-                is(new ColumnIdent(DocSysColumns.DOC.name(), "foo")));
+            is(new ColumnIdent(DocSysColumns.DOC.name(), "foo")));
 
         ColumnIdent fooBar = new ColumnIdent("foo", "bar");
         assertThat(fooBar.prepend("x"), is(new ColumnIdent("x", Arrays.asList("foo", "bar"))));

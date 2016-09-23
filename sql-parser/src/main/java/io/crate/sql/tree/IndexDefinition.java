@@ -80,11 +80,11 @@ public class IndexDefinition extends TableElement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("ident", ident)
-                .add("method", method)
-                .add("columns", columns)
-                .add("properties", properties)
-                .toString();
+            .add("ident", ident)
+            .add("method", method)
+            .add("columns", columns)
+            .add("properties", properties)
+            .toString();
     }
 
     @Override

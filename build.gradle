@@ -12,7 +12,7 @@ plugins {
 }
 
 
-def download (File downloadDir, String url, String name){
+def download(File downloadDir, String url, String name) {
     downloadDir.mkdirs()
     def dest = new File(downloadDir, name)
     ant.get(
@@ -27,8 +27,8 @@ def download (File downloadDir, String url, String name){
 
 ext {
     versions = [
-        // update this value when elasticsearch is updated
-        elasticsearch: "2.3.4"
+            // update this value when elasticsearch is updated
+            elasticsearch: "2.3.4"
     ]
 }
 
@@ -44,7 +44,7 @@ allprojects {
             // ES requires hamcrest-all which includes hamcrest-core
             dependencySubstitution {
                 substitute module('org.hamcrest:hamcrest-core') with(
-                    module('org.hamcrest:hamcrest-all:1.3'))
+                        module('org.hamcrest:hamcrest-all:1.3'))
             }
 
             // forced versions of conflicting deps
@@ -132,15 +132,16 @@ allprojects {
             // move lucene-test-framework to the beginning of the classpath
             // for cli ./gradlew use
             def cp = project.sourceSets.test.runtimeClasspath
-            def testFrameworkEntry = cp.find({it.name.contains("lucene-test-framework")})
+            def testFrameworkEntry = cp.find({ it.name.contains("lucene-test-framework") })
             if (testFrameworkEntry != null) {
-                project.sourceSets.test.runtimeClasspath = files(testFrameworkEntry) + cp.filter({ !it.name.contains("lucene-test-framework") })
+                project.sourceSets.test.runtimeClasspath = files(testFrameworkEntry) + cp.filter({
+                    !it.name.contains("lucene-test-framework")
+                })
             }
         }
     }
 
 }
-
 
 // intellij configuration
 allprojects {
@@ -154,16 +155,16 @@ allprojects {
     }
 
     if (isIdea) {
-       project.buildDir = file('build-idea')
+        project.buildDir = file('build-idea')
     }
 
     idea {
         module {
-           inheritOutputDirs = false
-           outputDir = file('build-idea/classes/main')
-           testOutputDir = file('build-idea/classes/test')
-           excludeDirs += file('build')
-       }
+            inheritOutputDirs = false
+            outputDir = file('build-idea/classes/main')
+            testOutputDir = file('build-idea/classes/test')
+            excludeDirs += file('build')
+        }
     }
 
     task cleanIdeaBuild << {
@@ -172,7 +173,7 @@ allprojects {
 }
 
 
-configure(subprojects.findAll {it.name != 'es'}) {
+configure(subprojects.findAll { it.name != 'es' }) {
     tasks.withType(JavaCompile) {
         options.compilerArgs << "-Xlint:deprecation"
     }
@@ -180,7 +181,7 @@ configure(subprojects.findAll {it.name != 'es'}) {
 
 
 
-final testOutputs = [:].withDefault {[]}
+final testOutputs = [:].withDefault { [] }
 
 
 project.gradle.addListener(new TestOutputListener() {
@@ -238,12 +239,12 @@ task jacocoReport(type: JacocoReport) {
     }
 
     reports {
-        xml{
+        xml {
             enabled true
             destination "${buildDir}/reports/jacoco/test/jacocoTestReport.xml"
         }
         csv.enabled false
-        html{
+        html {
             enabled true
             destination "${buildDir}/reports/jacoco/jacocoHtml"
         }
@@ -309,7 +310,9 @@ idea {
                 node.append(new XmlParser().parse(file("idea/codeStyle.xml")))
                 def copyrightManager = node.component.find { it.'@name' == 'CopyrightManager' }
                 copyrightManager.@default = "CrateASL2"
-                def aslCopyright = copyrightManager.copyright.find { it.option.find { it.@name == "myName" }?.@value == "CrateASL2" }
+                def aslCopyright = copyrightManager.copyright.find {
+                    it.option.find { it.@name == "myName" }?.@value == "CrateASL2"
+                }
                 if (aslCopyright == null) {
                     copyrightManager.append(new XmlParser().parse(file("idea/copyright.xml")))
                 }

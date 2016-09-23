@@ -26,14 +26,14 @@ import org.elasticsearch.common.xcontent.XContentParser;
 /**
  * This interface is for the {@link io.crate.action.sql.parser.SQLXContentSourceParser}
  * The {@link io.crate.action.sql.parser.SQLXContentSourceParser} receives a JSON structured body in the form of:
- *
+ * <p>
  * {
- *     "stmt": "...",
- *     "other_property": "..."
+ * "stmt": "...",
+ * "other_property": "..."
  * }
- *
+ * <p>
  * it then utilizes a {@link SQLParseElement} for each property in that structure.
- *
+ * <p>
  * E.g. for "stmt" property the {@link io.crate.action.sql.parser.SQLStmtParseElement} is used.
  */
 public interface SQLParseElement {

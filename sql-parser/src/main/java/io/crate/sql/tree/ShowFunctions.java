@@ -23,24 +23,20 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 
-public class ShowFunctions
-        extends Statement
-{
+public class ShowFunctions extends Statement {
+
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitShowFunctions(this, context);
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return 0;
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
@@ -48,8 +44,7 @@ public class ShowFunctions
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this).toString();
     }
 }

@@ -35,12 +35,12 @@ import static org.elasticsearch.cluster.ClusterState.builder;
 
 public class ClusterIdService implements ClusterStateListener {
 
-    private final ClusterService clusterService;
-    private static final ESLogger logger = Loggers.getLogger(ClusterIdService.class);
-    private ClusterId clusterId = null;
-    private final SettableFuture<ClusterId> clusterIdFuture = SettableFuture.create();
-
     public static final String clusterIdSettingsKey = "cluster_id";
+    private static final ESLogger logger = Loggers.getLogger(ClusterIdService.class);
+
+    private final ClusterService clusterService;
+    private final SettableFuture<ClusterId> clusterIdFuture = SettableFuture.create();
+    private ClusterId clusterId = null;
 
     @Inject
     public ClusterIdService(ClusterService clusterService) {
@@ -54,7 +54,7 @@ public class ClusterIdService implements ClusterStateListener {
     public void clusterChanged(ClusterChangedEvent event) {
         if (logger.isTraceEnabled()) {
             logger.trace("[{}] Receiving new cluster state, reason {}",
-                    clusterService.state().nodes().localNodeId(), event.source());
+                clusterService.state().nodes().localNodeId(), event.source());
         }
         if (event.source().equals("local-gateway-elected-state")) {
             // State recovered, read cluster_id
@@ -83,7 +83,7 @@ public class ClusterIdService implements ClusterStateListener {
 
             if (logger.isDebugEnabled()) {
                 logger.debug("[{}] Generated ClusterId {}",
-                        clusterService.state().nodes().localNodeId(), clusterId.value());
+                    clusterService.state().nodes().localNodeId(), clusterId.value());
             }
             clusterIdFuture.set(clusterId);
         }
@@ -125,13 +125,13 @@ public class ClusterIdService implements ClusterStateListener {
                 transientSettings.put(clusterIdSettingsKey, clusterId.value().toString());
 
                 MetaData.Builder metaData = MetaData.builder(currentState.metaData())
-                        .persistentSettings(currentState.metaData().persistentSettings())
-                        .transientSettings(transientSettings.build());
+                    .persistentSettings(currentState.metaData().persistentSettings())
+                    .transientSettings(transientSettings.build());
 
                 ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
                 boolean updatedReadOnly =
-                        metaData.persistentSettings().getAsBoolean(MetaData.SETTING_READ_ONLY, false)
-                        || metaData.transientSettings().getAsBoolean(MetaData.SETTING_READ_ONLY, false);
+                    metaData.persistentSettings().getAsBoolean(MetaData.SETTING_READ_ONLY, false)
+                    || metaData.transientSettings().getAsBoolean(MetaData.SETTING_READ_ONLY, false);
                 if (updatedReadOnly) {
                     blocks.addGlobalBlock(MetaData.CLUSTER_READ_ONLY_BLOCK);
                 } else {
@@ -147,5 +147,4 @@ public class ClusterIdService implements ClusterStateListener {
             }
         });
     }
-
 }

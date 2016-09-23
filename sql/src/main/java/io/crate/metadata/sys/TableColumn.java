@@ -30,11 +30,11 @@ import java.util.Map;
 
 /**
  * A virtual column that is pointing to other columns.
- *
+ * <p>
  * E.g.
- *  _doc['foo'] is pointing to 'foo'
- *
- *  _node['name'] is pointing to 'name' of the sys.nodes table
+ * _doc['foo'] is pointing to 'foo'
+ * <p>
+ * _node['name'] is pointing to 'name' of the sys.nodes table
  */
 public class TableColumn {
 
@@ -42,7 +42,7 @@ public class TableColumn {
     private final Map<ColumnIdent, Reference> columns;
 
     /**
-     * @param column the virtual column
+     * @param column  the virtual column
      * @param columns the columns this virtual column has underneath
      */
     public TableColumn(ColumnIdent column, Map<ColumnIdent, Reference> columns) {

@@ -44,9 +44,9 @@ public class AnyEqOperatorTest extends CrateUnitTest {
     private Boolean anyEq(Object value, Object arrayExpr) {
 
         AnyEqOperator anyEqOperator = new AnyEqOperator(
-                new FunctionInfo(
-                        new FunctionIdent("any_=", Arrays.<DataType>asList(DataTypes.INTEGER, new ArrayType(DataTypes.INTEGER))),
-                        DataTypes.BOOLEAN)
+            new FunctionInfo(
+                new FunctionIdent("any_=", Arrays.<DataType>asList(DataTypes.INTEGER, new ArrayType(DataTypes.INTEGER))),
+                DataTypes.BOOLEAN)
         );
         return anyEqOperator.evaluate(new ObjectInput(value), new ObjectInput(arrayExpr));
 
@@ -54,17 +54,17 @@ public class AnyEqOperatorTest extends CrateUnitTest {
 
     private Boolean anyEqNormalizeSymbol(Object value, Object arrayExpr) {
         AnyEqOperator anyEqOperator = new AnyEqOperator(
-                new FunctionInfo(
-                        new FunctionIdent("any_=", Arrays.<DataType>asList(DataTypes.INTEGER, new ArrayType(DataTypes.INTEGER))),
-                        DataTypes.BOOLEAN)
+            new FunctionInfo(
+                new FunctionIdent("any_=", Arrays.<DataType>asList(DataTypes.INTEGER, new ArrayType(DataTypes.INTEGER))),
+                DataTypes.BOOLEAN)
         );
         Function function = new Function(
-                anyEqOperator.info(),
-                Arrays.<Symbol>asList(
-                        Literal.of(DataTypes.INTEGER, value),
-                        Literal.of(new ArrayType(DataTypes.INTEGER), arrayExpr))
+            anyEqOperator.info(),
+            Arrays.<Symbol>asList(
+                Literal.of(DataTypes.INTEGER, value),
+                Literal.of(new ArrayType(DataTypes.INTEGER), arrayExpr))
         );
-        return (Boolean)((Literal)anyEqOperator.normalizeSymbol(function, stmtCtx)).value();
+        return (Boolean) ((Literal) anyEqOperator.normalizeSymbol(function, stmtCtx)).value();
     }
 
     @Test
@@ -72,28 +72,28 @@ public class AnyEqOperatorTest extends CrateUnitTest {
         assertTrue(anyEq(1, new Object[]{1}));
         assertFalse(anyEq(1L, new Object[]{2L}));
         assertTrue(anyEq(
+            ImmutableMap.<String, Object>builder()
+                .put("int", 1)
+                .put("boolean", true)
+                .build(),
+            new Object[]{
                 ImmutableMap.<String, Object>builder()
-                        .put("int", 1)
-                        .put("boolean", true)
-                        .build(),
-                new Object[]{
-                        ImmutableMap.<String, Object>builder()
-                                .put("int", 1)
-                                .put("boolean", true)
-                                .build()
-                }
+                    .put("int", 1)
+                    .put("boolean", true)
+                    .build()
+            }
         ));
         assertFalse(anyEq(
+            ImmutableMap.<String, Object>builder()
+                .put("int", 1)
+                .put("boolean", true)
+                .build(),
+            new Object[]{
                 ImmutableMap.<String, Object>builder()
-                        .put("int", 1)
-                        .put("boolean", true)
-                        .build(),
-                new Object[]{
-                        ImmutableMap.<String, Object>builder()
-                                .put("int", 2)
-                                .put("boolean", false)
-                                .build()
-                }
+                    .put("int", 2)
+                    .put("boolean", false)
+                    .build()
+            }
         ));
     }
 

@@ -24,7 +24,7 @@ package io.crate.operation.reference.sys.node.fs;
 
 import com.google.common.collect.Lists;
 import io.crate.monitor.ExtendedFsStats;
-import io.crate.operation.reference.sys.node.*;
+import io.crate.operation.reference.sys.node.NodeStatsArrayTypeExpression;
 
 import java.util.HashMap;
 import java.util.List;

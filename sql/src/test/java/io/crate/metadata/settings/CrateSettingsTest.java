@@ -23,7 +23,6 @@ package io.crate.metadata.settings;
 
 import com.google.common.collect.Sets;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -36,7 +35,7 @@ public class CrateSettingsTest extends CrateUnitTest {
     @Test
     public void testStringSettingsValidation() throws Exception {
         StringSetting stringSetting =
-                new StringSetting("foo_bar_setting", Sets.newHashSet("foo", "bar", "foobar"), false, "foo", null);
+            new StringSetting("foo_bar_setting", Sets.newHashSet("foo", "bar", "foobar"), false, "foo", null);
 
         String validation = stringSetting.validate("foo");
         assertEquals(validation, null);
@@ -57,10 +56,10 @@ public class CrateSettingsTest extends CrateUnitTest {
     @Test
     public void testCrateStringSettingsDefaultValues() throws Exception {
         assertEquals(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.validate(
-                CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.defaultValue()
+            CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.defaultValue()
         ), null);
         assertEquals(CrateSettings.ROUTING_ALLOCATION_ENABLE.validate(
-                CrateSettings.ROUTING_ALLOCATION_ENABLE.defaultValue()
+            CrateSettings.ROUTING_ALLOCATION_ENABLE.defaultValue()
         ), null);
     }
 
@@ -85,7 +84,7 @@ public class CrateSettingsTest extends CrateUnitTest {
 
     @Test
     public void testBooleanSettingsValidation() throws Exception {
-        BoolSetting booleanSetting= new BoolSetting("booleanSetting", false, false);
+        BoolSetting booleanSetting = new BoolSetting("booleanSetting", false, false);
         SettingsAppliers.BooleanSettingsApplier booleanSettingsApplier
             = new SettingsAppliers.BooleanSettingsApplier(booleanSetting);
         Boolean toValidate = Boolean.TRUE;
@@ -95,7 +94,7 @@ public class CrateSettingsTest extends CrateUnitTest {
 
     @Test
     public void testBooleanSettingsValidationFailure() throws Exception {
-        BoolSetting booleanSetting= new BoolSetting("booleanSetting", false, false);
+        BoolSetting booleanSetting = new BoolSetting("booleanSetting", false, false);
         SettingsAppliers.BooleanSettingsApplier booleanSettingsApplier
             = new SettingsAppliers.BooleanSettingsApplier(booleanSetting);
 

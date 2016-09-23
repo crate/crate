@@ -28,6 +28,7 @@ import org.elasticsearch.transport.TransportResponse;
 import java.io.IOException;
 
 public class BlobStartPrefixResponse extends TransportResponse {
+
     public byte[][] existingDigests;
 
     @Override
@@ -35,7 +36,7 @@ public class BlobStartPrefixResponse extends TransportResponse {
         super.readFrom(in);
         int size = in.readInt();
         existingDigests = new byte[size][20];
-        for (int i=0; i<size; i++){
+        for (int i = 0; i < size; i++) {
             in.read(existingDigests[i]);
         }
     }
@@ -44,7 +45,7 @@ public class BlobStartPrefixResponse extends TransportResponse {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeInt(existingDigests.length);
-        for (byte[] digest: existingDigests){
+        for (byte[] digest : existingDigests) {
             out.write(digest);
         }
     }

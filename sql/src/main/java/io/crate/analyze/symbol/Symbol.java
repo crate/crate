@@ -22,21 +22,13 @@
 package io.crate.analyze.symbol;
 
 import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
 public abstract class Symbol implements Streamable {
 
     public static boolean isLiteral(Symbol symbol, DataType expectedType) {
         return symbol.symbolType() == SymbolType.LITERAL
-                && symbol.valueType().equals(expectedType);
+               && symbol.valueType().equals(expectedType);
     }
 
     public interface SymbolFactory<T extends Symbol> {

@@ -1,8 +1,5 @@
 package io.crate.operation.operator;
 
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.MapComparator;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
@@ -15,7 +12,7 @@ public abstract class CmpOperator extends Operator<Object> {
     /**
      * called inside {@link #normalizeSymbol(io.crate.analyze.symbol.Function)}
      * in order to interpret the result of compareTo
-     *
+     * <p>
      * subclass has to implement this to evaluate the -1, 0, 1 to boolean
      * e.g. for Lt  -1 is true, 0 and 1 is false.
      *
@@ -23,6 +20,7 @@ public abstract class CmpOperator extends Operator<Object> {
      * @return true/false
      */
     protected abstract boolean compare(int comparisonResult);
+
     protected FunctionInfo info;
 
     protected CmpOperator(FunctionInfo info) {
@@ -49,9 +47,9 @@ public abstract class CmpOperator extends Operator<Object> {
         assert (left.getClass().equals(right.getClass())) : "left and right must have the same type for comparison";
 
         if (left instanceof Comparable) {
-            return compare(((Comparable)left).compareTo(right));
+            return compare(((Comparable) left).compareTo(right));
         } else if (left instanceof Map) {
-            return compare(Objects.compare((Map)left, (Map)right, MapComparator.getInstance()));
+            return compare(Objects.compare((Map) left, (Map) right, MapComparator.getInstance()));
         } else {
             return null;
         }

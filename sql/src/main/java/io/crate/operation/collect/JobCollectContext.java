@@ -107,7 +107,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
                 replacedContext.close();
                 searchContext.close();
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "ShardCollectContext for %d already added", jobSearchContextId));
+                    "ShardCollectContext for %d already added", jobSearchContextId));
             }
         }
     }
@@ -223,7 +223,6 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     public Collection<CrateCollector> collectors() {
         return collectors;
     }
-
 
 
 }

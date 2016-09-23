@@ -39,10 +39,9 @@ import org.elasticsearch.common.inject.Singleton;
 public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Analysis> {
 
     private static final String VERSION_SEARCH_EX_MSG =
-            "_version is not allowed in delete queries without specifying a primary key";
+        "_version is not allowed in delete queries without specifying a primary key";
     private static final UnsupportedFeatureException VERSION_SEARCH_EX = new UnsupportedFeatureException(
-            VERSION_SEARCH_EX_MSG);
-
+        VERSION_SEARCH_EX_MSG);
 
 
     private static final DefaultTraversalVisitor<Void, InnerAnalysisContext> INNER_ANALYZER =
@@ -52,14 +51,14 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                 WhereClause whereClause = context.whereClauseAnalyzer.analyze(
                     context.expressionAnalyzer.generateWhereClause(node.getWhere(), context.expressionAnalysisContext),
                     context.expressionAnalysisContext.statementContext());
-                if ( !whereClause.docKeys().isPresent() &&
-                     Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION)) {
+                if (!whereClause.docKeys().isPresent() &&
+                    Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION)) {
                     throw VERSION_SEARCH_EX;
                 }
                 context.deleteAnalyzedStatement.whereClauses.add(whereClause);
                 return null;
             }
-    };
+        };
 
     private AnalysisMetaData analysisMetaData;
     private RelationAnalyzer relationAnalyzer;
@@ -85,7 +84,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                              ExpressionAnalysisContext expressionAnalysisContext,
                              DeleteAnalyzedStatement deleteAnalyzedStatement,
                              WhereClauseAnalyzer whereClauseAnalyzer
-                             ) {
+        ) {
             this.expressionAnalyzer = expressionAnalyzer;
             this.expressionAnalysisContext = expressionAnalysisContext;
             this.deleteAnalyzedStatement = deleteAnalyzedStatement;
@@ -98,7 +97,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         int numNested = 1;
 
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
-                analysis.parameterContext(), analysis.statementContext(), analysisMetaData, Operation.DELETE);
+            analysis.parameterContext(), analysis.statementContext(), analysisMetaData, Operation.DELETE);
         RelationAnalysisContext relationAnalysisContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.getRelation(), statementAnalysisContext);
 
@@ -106,12 +105,12 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);
         InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
-                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(),
-                    relationAnalysisContext.fieldProvider(),
-                    docTableRelation),
-                new ExpressionAnalysisContext(analysis.statementContext()),
-                deleteAnalyzedStatement,
-                new WhereClauseAnalyzer(analysisMetaData, deleteAnalyzedStatement.analyzedRelation())
+            new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(),
+                relationAnalysisContext.fieldProvider(),
+                docTableRelation),
+            new ExpressionAnalysisContext(analysis.statementContext()),
+            deleteAnalyzedStatement,
+            new WhereClauseAnalyzer(analysisMetaData, deleteAnalyzedStatement.analyzedRelation())
         );
 
         if (analysis.parameterContext().hasBulkParams()) {

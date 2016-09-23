@@ -58,7 +58,7 @@ public class UpdateProjector extends DMLProjector<ShardUpsertRequest> {
                            @Nullable Long requiredVersion,
                            UUID jobId) {
         super(clusterService, settings, shardId, transportActionProvider, bulkRetryCoordinatorPool,
-                collectUidExpression, jobId);
+            collectUidExpression, jobId);
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.assignmentsColumns = assignmentsColumns;
         this.assignments = assignments;
@@ -68,24 +68,24 @@ public class UpdateProjector extends DMLProjector<ShardUpsertRequest> {
     @Override
     protected BulkShardProcessor<ShardUpsertRequest> createBulkShardProcessor(int bulkSize) {
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-                CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
-                false,
-                false,
-                assignmentsColumns,
-                null,
-                jobId
+            CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
+            false,
+            false,
+            assignmentsColumns,
+            null,
+            jobId
         );
         return new BulkShardProcessor<>(
-                clusterService,
-                transportActionProvider.transportBulkCreateIndicesAction(),
-                indexNameExpressionResolver,
-                settings,
-                bulkRetryCoordinatorPool,
-                false,
-                DEFAULT_BULK_SIZE,
-                builder,
-                transportActionProvider.transportShardUpsertActionDelegate(),
-                jobId
+            clusterService,
+            transportActionProvider.transportBulkCreateIndicesAction(),
+            indexNameExpressionResolver,
+            settings,
+            bulkRetryCoordinatorPool,
+            false,
+            DEFAULT_BULK_SIZE,
+            builder,
+            transportActionProvider.transportShardUpsertActionDelegate(),
+            jobId
         );
     }
 

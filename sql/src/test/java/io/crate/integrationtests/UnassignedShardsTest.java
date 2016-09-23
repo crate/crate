@@ -41,7 +41,7 @@ public class UnassignedShardsTest extends SQLTransportIntegrationTest {
             assertThat(response.rowCount(), is(15L));
             Object[] stateColumn = TestingHelpers.getColumn(response.rows(), 0);
             for (Object val : stateColumn) {
-                assertThat((String)val, is("UNASSIGNED"));
+                assertThat((String) val, is("UNASSIGNED"));
             }
         } finally {
             execute("reset global cluster.routing.allocation.enable");

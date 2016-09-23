@@ -40,8 +40,8 @@ public class CustomSchemaIntegrationTest extends SQLTransportIntegrationTest {
         execute("select schema_name, table_name from information_schema.tables " +
                 "where table_name like 'foo%' or schema_name = 'foo' order by table_name");
         assertThat(TestingHelpers.printedTable(response.rows()), is("" +
-                "foo| bar\n" +
-                "doc| foobar\n"));
+                                                                    "foo| bar\n" +
+                                                                    "doc| foobar\n"));
     }
 
     @Test
@@ -52,7 +52,7 @@ public class CustomSchemaIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select count(*) from custom.t");
-        assertThat((Long)response.rows()[0][0], is(4L));
+        assertThat((Long) response.rows()[0][0], is(4L));
 
         execute("delete from custom.t where id=1");
         assertThat(response.rowCount(), is(1L));
@@ -66,7 +66,7 @@ public class CustomSchemaIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select count(*) from custom.t");
-        assertThat((Long)response.rows()[0][0], is(0L));
+        assertThat((Long) response.rows()[0][0], is(0L));
     }
 
     @Test

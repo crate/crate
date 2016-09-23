@@ -29,9 +29,9 @@ import org.elasticsearch.indices.IndicesLifecycle;
 
 public class BlobShardFuture extends BaseFuture<BlobShard> {
 
-    public BlobShardFuture(final BlobIndices blobIndices, final IndicesLifecycle indicesLifecycle,
-                           final String index, final int shardId)
-    {
+    public BlobShardFuture(final BlobIndices blobIndices,
+                           final IndicesLifecycle indicesLifecycle,
+                           final String index, final int shardId) {
         BlobShard blobShard = blobIndices.blobShard(index, shardId);
         if (blobShard != null) {
             set(blobShard);

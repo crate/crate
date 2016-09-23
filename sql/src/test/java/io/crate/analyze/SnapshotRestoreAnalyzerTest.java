@@ -70,7 +70,7 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_DOC_LOCATIONS_TABLE_IDENT.name())).thenReturn(TEST_DOC_LOCATIONS_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
-                    .thenReturn(TEST_PARTITIONED_TABLE_INFO);
+                .thenReturn(TEST_PARTITIONED_TABLE_INFO);
             when(schemaInfo.iterator()).thenReturn(Collections.singletonList(USER_TABLE_INFO).iterator());
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
@@ -80,10 +80,10 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                        new MyMockedClusterServiceModule(),
-                        new TestMetaDataModule(),
-                        new MetaDataSysModule(),
-                        new OperatorModule())
+            new MyMockedClusterServiceModule(),
+            new TestMetaDataModule(),
+            new MetaDataSysModule(),
+            new OperatorModule())
         );
         return modules;
     }
@@ -91,9 +91,9 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
     @Before
     public void before() throws Exception {
         RepositoryMetaData repositoryMetaData = new RepositoryMetaData(
-                "my_repo",
-                "fs",
-                Settings.builder().put("location", "/tmp/my_repo").build()
+            "my_repo",
+            "fs",
+            Settings.builder().put("location", "/tmp/my_repo").build()
         );
         when(repositoriesMetaData.repository(anyString())).thenReturn(null);
         when(repositoriesMetaData.repository("my_repo")).thenReturn(repositoryMetaData);
@@ -107,10 +107,10 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
         assertThat(statement.snapshotId(), is(new SnapshotId("my_repo", "my_snapshot")));
         assertThat(statement.includeMetadata(), is(true));
         assertThat(statement.snapshotSettings().getAsMap(),
-                allOf(
-                        hasEntry("wait_for_completion", "true"),
-                        hasEntry("ignore_unavailable", "false")
-                ));
+            allOf(
+                hasEntry("wait_for_completion", "true"),
+                hasEntry("ignore_unavailable", "false")
+            ));
     }
 
     @Test
@@ -191,10 +191,10 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
         assertThat(statement.includeMetadata(), is(true));
         assertThat(statement.snapshotSettings().getAsMap().size(), is(2));
         assertThat(statement.snapshotSettings().getAsMap(),
-                allOf(
-                        hasEntry("wait_for_completion", "true"),
-                        hasEntry("ignore_unavailable", "false")
-                ));
+            allOf(
+                hasEntry("wait_for_completion", "true"),
+                hasEntry("ignore_unavailable", "false")
+            ));
     }
 
     @Test
@@ -262,23 +262,23 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
         assertThat(statement.restoreAll(), is(true));
         assertThat(statement.restoreAll(), is(true));
         assertThat(statement.settings().getAsMap(), // default settings
-                allOf(
-                        hasEntry("wait_for_completion", "false"),
-                        hasEntry("ignore_unavailable", "false")
-                ));
+            allOf(
+                hasEntry("wait_for_completion", "false"),
+                hasEntry("ignore_unavailable", "false")
+            ));
     }
 
     @Test
     public void testRestoreSnapshotSingleTable() throws Exception {
         RestoreSnapshotAnalyzedStatement statement = (RestoreSnapshotAnalyzedStatement) analyze(
-                "RESTORE SNAPSHOT my_repo.my_snapshot TABLE custom.restoreme");
+            "RESTORE SNAPSHOT my_repo.my_snapshot TABLE custom.restoreme");
         String template = PartitionName.templateName("custom", "restoreme") + "*";
         assertThat(statement.indices(), containsInAnyOrder("custom.restoreme", template));
         assertThat(statement.settings().getAsMap(),
-                allOf(
-                        hasEntry("wait_for_completion", "false"),
-                        hasEntry("ignore_unavailable", "false")
-                ));
+            allOf(
+                hasEntry("wait_for_completion", "false"),
+                hasEntry("ignore_unavailable", "false")
+            ));
     }
 
     @Test
@@ -298,7 +298,7 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRestoreSinglePartition() throws Exception {
         RestoreSnapshotAnalyzedStatement statement = (RestoreSnapshotAnalyzedStatement) analyze(
-                "RESTORE SNAPSHOT my_repo.my_snapshot TABLE parted PARTITION (date=123)");
+            "RESTORE SNAPSHOT my_repo.my_snapshot TABLE parted PARTITION (date=123)");
         String partition = new PartitionName("parted", ImmutableList.of(new BytesRef("123"))).asIndexName();
         assertThat(statement.indices(), contains(partition));
     }
@@ -306,7 +306,7 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRestoreSinglePartitionToUnknownTable() throws Exception {
         RestoreSnapshotAnalyzedStatement statement = (RestoreSnapshotAnalyzedStatement) analyze(
-                "RESTORE SNAPSHOT my_repo.my_snapshot TABLE unknown_parted PARTITION (date=123)");
+            "RESTORE SNAPSHOT my_repo.my_snapshot TABLE unknown_parted PARTITION (date=123)");
         String partition = new PartitionName("unknown_parted", ImmutableList.of(new BytesRef("123"))).asIndexName();
         assertThat(statement.indices(), contains(partition));
     }

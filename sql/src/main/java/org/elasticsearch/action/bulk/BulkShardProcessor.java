@@ -22,7 +22,8 @@
 package org.elasticsearch.action.bulk;
 
 import com.carrotsearch.hppc.cursors.IntCursor;
-import com.google.common.base.*;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -58,7 +59,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Processor to do Bulk Inserts, similar to {@link org.elasticsearch.action.bulk.BulkProcessor}
  * but less flexible (only supports IndexRequests)
- *
+ * <p>
  * If the Bulk threadPool Queue is full retries are made and
  * the {@link #add} method will start to block.
  */
@@ -200,11 +201,11 @@ public class BulkShardProcessor<Request extends ShardRequest> {
         ShardId shardId = null;
         try {
             shardId = clusterService.operationRouting().indexShards(
-                    clusterService.state(),
-                    indexName,
-                    Constants.DEFAULT_MAPPING_TYPE,
-                    id,
-                    routing
+                clusterService.state(),
+                indexName,
+                Constants.DEFAULT_MAPPING_TYPE,
+                id,
+                routing
             ).shardId();
         } catch (IndexNotFoundException e) {
             if (!autoCreateIndices) {
@@ -282,9 +283,9 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
         synchronized (requestsForNewIndices) {
             indices = ImmutableSet.copyOf(
-                    Iterables.filter(
-                            Sets.difference(requestsForNewIndices.keySet(), indicesCreated),
-                            shouldAutocreateIndexPredicate)
+                Iterables.filter(
+                    Sets.difference(requestsForNewIndices.keySet(), indicesCreated),
+                    shouldAutocreateIndexPredicate)
             );
             for (Map.Entry<String, List<PendingRequest>> entry : requestsForNewIndices.entrySet()) {
                 pendings.addAll(entry.getValue());
@@ -393,8 +394,8 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
     private void executeIfNeeded() {
         if ((closed
-                || requestsForNewIndices.size() >= createIndicesBulkSize
-                || pendingNewIndexRequests.get() >= bulkSize) && failure.get() == null) {
+             || requestsForNewIndices.size() >= createIndicesBulkSize
+             || pendingNewIndexRequests.get() >= bulkSize) && failure.get() == null) {
             createPendingIndices();
         }
         executeRequestsIfNeeded();
@@ -488,11 +489,11 @@ public class BulkShardProcessor<Request extends ShardRequest> {
         }
     }
 
-    private void trace(String message, Object ... args) {
+    private void trace(String message, Object... args) {
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("BulkShardProcessor: pending: {}; {}",
-                    pending.get(),
-                    String.format(Locale.ENGLISH, message, args));
+                pending.get(),
+                String.format(Locale.ENGLISH, message, args));
         }
     }
 

@@ -45,7 +45,8 @@ public class SysUpdateProjection extends Projection {
 
     private Map<Reference, Symbol> assignments;
 
-    private SysUpdateProjection() {}
+    private SysUpdateProjection() {
+    }
 
     public SysUpdateProjection(Map<Reference, Symbol> assignments) {
         this.assignments = assignments;

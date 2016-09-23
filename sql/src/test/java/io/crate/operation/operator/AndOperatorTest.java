@@ -21,7 +21,7 @@ public class AndOperatorTest extends CrateUnitTest {
     public void testNormalizeBooleanTrueAndNonLiteral() throws Exception {
         AndOperator operator = new AndOperator();
         Function function = new Function(
-                operator.info(), Arrays.<Symbol>asList(Literal.of(true), new Reference()));
+            operator.info(), Arrays.<Symbol>asList(Literal.of(true), new Reference()));
         Symbol symbol = operator.normalizeSymbol(function, stmtCtx);
         assertThat(symbol, instanceOf(Reference.class));
     }
@@ -30,7 +30,7 @@ public class AndOperatorTest extends CrateUnitTest {
     public void testNormalizeBooleanFalseAndNonLiteral() throws Exception {
         AndOperator operator = new AndOperator();
         Function function = new Function(
-                operator.info(), Arrays.<Symbol>asList(Literal.of(false), new Reference()));
+            operator.info(), Arrays.<Symbol>asList(Literal.of(false), new Reference()));
         Symbol symbol = operator.normalizeSymbol(function, stmtCtx);
 
         assertThat(symbol, isLiteral(false));
@@ -40,7 +40,7 @@ public class AndOperatorTest extends CrateUnitTest {
     public void testNormalizeLiteralAndLiteral() throws Exception {
         AndOperator operator = new AndOperator();
         Function function = new Function(
-                operator.info(), Arrays.<Symbol>asList(Literal.of(true), Literal.of(true)));
+            operator.info(), Arrays.<Symbol>asList(Literal.of(true), Literal.of(true)));
         Symbol symbol = operator.normalizeSymbol(function, stmtCtx);
         assertThat(symbol, isLiteral(true));
     }
@@ -49,7 +49,7 @@ public class AndOperatorTest extends CrateUnitTest {
     public void testNormalizeLiteralAndLiteralFalse() throws Exception {
         AndOperator operator = new AndOperator();
         Function function = new Function(
-                operator.info(), Arrays.<Symbol>asList(Literal.of(true), Literal.of(false)));
+            operator.info(), Arrays.<Symbol>asList(Literal.of(true), Literal.of(false)));
         Symbol symbol = operator.normalizeSymbol(function, stmtCtx);
         assertThat(symbol, isLiteral(false));
     }

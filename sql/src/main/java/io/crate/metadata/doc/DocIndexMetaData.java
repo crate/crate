@@ -188,11 +188,11 @@ public class DocIndexMetaData {
                                  @Nullable Integer treeLevels,
                                  @Nullable Double distanceErrorPct) {
         GeoReference info = new GeoReference(
-                refIdent(column),
-                tree,
-                precision,
-                treeLevels,
-                distanceErrorPct);
+            refIdent(column),
+            tree,
+            precision,
+            treeLevels,
+            distanceErrorPct);
         columnsBuilder.add(info);
         referencesBuilder.put(column, info);
     }
@@ -208,7 +208,7 @@ public class DocIndexMetaData {
                                                       String generatedExpression,
                                                       boolean isNotNull) {
         return new GeneratedReference(
-                refIdent(column), granularity(column), type, columnPolicy, indexType, generatedExpression, isNotNull);
+            refIdent(column), granularity(column), type, columnPolicy, indexType, generatedExpression, isNotNull);
     }
 
     private RowGranularity granularity(ColumnIdent column) {
@@ -307,7 +307,7 @@ public class DocIndexMetaData {
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType) columnDataType).innerType() == DataTypes.OBJECT)) {
                 ColumnPolicy columnPolicy =
-                        ColumnPolicy.of(columnProperties.get("dynamic"));
+                    ColumnPolicy.of(columnProperties.get("dynamic"));
                 add(newIdent, columnDataType, columnPolicy, Reference.IndexType.NO, false, nullable);
 
                 if (columnProperties.get("properties") != null) {
@@ -329,7 +329,7 @@ public class DocIndexMetaData {
                 if (indicesMap.containsKey(newIdent.fqn())) {
                     IndexReference.Builder builder = getOrCreateIndexBuilder(newIdent);
                     builder.indexType(columnIndexType)
-                            .analyzer((String) columnProperties.get("analyzer"));
+                        .analyzer((String) columnProperties.get("analyzer"));
                 } else {
                     add(newIdent, columnDataType, columnIndexType, nullable);
                 }
@@ -391,7 +391,7 @@ public class DocIndexMetaData {
             ImmutableSet.Builder<ColumnIdent> builder = ImmutableSet.builder();
             Map<String, Object> constraintsMap = getNested(metaMap, "constraints");
             if (constraintsMap != null) {
-                Object notNullColumnsMeta =  constraintsMap.get("not_null");
+                Object notNullColumnsMeta = constraintsMap.get("not_null");
                 if (notNullColumnsMeta != null) {
                     Collection notNullColumns = (Collection) notNullColumnsMeta;
                     if (!notNullColumns.isEmpty()) {
@@ -474,7 +474,7 @@ public class DocIndexMetaData {
         Collection<Reference> references = this.references.values();
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(references);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                functions, null, ParameterContext.EMPTY, tableReferenceResolver, null);
+            functions, null, ParameterContext.EMPTY, tableReferenceResolver, null);
         ExpressionAnalysisContext context = new ExpressionAnalysisContext(new StmtCtx());
         for (Reference reference : generatedColumnReferences) {
             GeneratedReference generatedReference = (GeneratedReference) reference;
@@ -567,9 +567,9 @@ public class DocIndexMetaData {
                 updateTemplate(other, transportPutIndexTemplateAction, this.metaData.getSettings());
                 // merge the new mapping with the template settings
                 return new DocIndexMetaData(
-                        functions,
-                        IndexMetaData.builder(other.metaData).settings(this.metaData.getSettings()).build(),
-                        other.ident).build();
+                    functions,
+                    IndexMetaData.builder(other.metaData).settings(this.metaData.getSettings()).build(),
+                    other.ident).build();
             } else if (references().size() == other.references().size() &&
                        !references().keySet().equals(other.references().keySet())) {
                 XContentHelper.update(defaultMappingMap, other.defaultMappingMap, false);
@@ -589,10 +589,10 @@ public class DocIndexMetaData {
                                 Settings updateSettings) {
         String templateName = PartitionName.templateName(ident.schema(), ident.name());
         PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
-                .mapping(Constants.DEFAULT_MAPPING_TYPE, md.defaultMappingMap)
-                .create(false)
-                .settings(updateSettings)
-                .template(templateName + "*");
+            .mapping(Constants.DEFAULT_MAPPING_TYPE, md.defaultMappingMap)
+            .create(false)
+            .settings(updateSettings)
+            .template(templateName + "*");
         for (String alias : md.aliases()) {
             request = request.alias(new Alias(alias));
         }

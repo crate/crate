@@ -39,9 +39,9 @@ public class CreateSnapshotAnalyzedStatement extends AbstractDDLAnalyzedStatemen
     private final List<String> indices;
 
     private CreateSnapshotAnalyzedStatement(SnapshotId snapshotId,
-                                           Settings snapshotSettings,
-                                           List<String> indices,
-                                           boolean includeMetadata) {
+                                            Settings snapshotSettings,
+                                            List<String> indices,
+                                            boolean includeMetadata) {
         this.snapshotId = snapshotId;
         this.snapshotSettings = snapshotSettings;
         this.indices = indices;

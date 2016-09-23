@@ -49,12 +49,12 @@ public class InformationRoutinesTableInfo extends InformationTableInfo {
 
     protected InformationRoutinesTableInfo(ClusterService clusterService) {
         super(clusterService,
-                IDENT,
-                ImmutableList.<ColumnIdent>of(),
-                ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
-                    .put(Columns.ROUTINE_NAME, References.ROUTINE_NAME)
-                    .put(Columns.ROUTINE_TYPE, References.ROUTINE_TYPE)
-                    .build()
+            IDENT,
+            ImmutableList.<ColumnIdent>of(),
+            ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
+                .put(Columns.ROUTINE_NAME, References.ROUTINE_NAME)
+                .put(Columns.ROUTINE_TYPE, References.ROUTINE_TYPE)
+                .build()
         );
     }
 }

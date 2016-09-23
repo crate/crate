@@ -53,7 +53,7 @@ public class MultiShardScoreDocCollectorTest {
     public void testSingleCollectorGetsExhausted() throws Exception {
         ListeningExecutorService executor = MoreExecutors.newDirectExecutorService();
         Ordering<Row> rowOrdering =
-                OrderingByPosition.rowOrdering(new int[]{0}, new boolean[]{false}, new Boolean[]{null});
+            OrderingByPosition.rowOrdering(new int[]{0}, new boolean[]{false}, new Boolean[]{null});
 
         List<OrderedDocCollector> collectors = new ArrayList<>();
         collectors.add(mockedCollector(new ShardId("p1", 0), 0, singleColRows(1, 1)));
@@ -64,10 +64,10 @@ public class MultiShardScoreDocCollectorTest {
         FlatProjectorChain projectorChain = FlatProjectorChain.withReceivers(Collections.singletonList(rowReceiver));
 
         MultiShardScoreDocCollector docCollector = new MultiShardScoreDocCollector(
-                collectors,
-                rowOrdering,
-                projectorChain,
-                executor
+            collectors,
+            rowOrdering,
+            projectorChain,
+            executor
         );
         docCollector.doCollect();
         Bucket result = rowReceiver.result();

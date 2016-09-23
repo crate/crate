@@ -36,7 +36,7 @@ abstract class SetBucketAction {
     private final BucketResultListener bucketResultListener;
 
     SetBucketAction(List<PageBucketReceiver> pageBucketReceivers, int bucketIdx, InitializationTracker initializationTracker) {
-        assert !pageBucketReceivers.isEmpty(): "pageBucketReceivers must not be empty";
+        assert !pageBucketReceivers.isEmpty() : "pageBucketReceivers must not be empty";
         this.pageBucketReceivers = pageBucketReceivers;
         this.bucketIdx = bucketIdx;
         this.initializationTracker = initializationTracker;

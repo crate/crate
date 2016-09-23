@@ -102,9 +102,9 @@ public class CrateClientCreationTest extends CrateClientIntegrationTest {
     @Test
     public void testWithSettings() throws Exception {
         CrateClient localClient = new CrateClient(settingsBuilder()
-                .put("fancy.setting", "check") // will not be overridden
-                .put("node.name", "fancy-node-name") // will be overridden
-                .build());
+            .put("fancy.setting", "check") // will not be overridden
+            .put("node.name", "fancy-node-name") // will be overridden
+            .build());
 
         try {
             Settings settings = localClient.settings();

@@ -42,12 +42,12 @@ public class TransportFetchOperation implements FetchOperation {
     private static final Function<NodeFetchResponse, IntObjectMap<? extends Bucket>> GET_FETCHED =
         new Function<NodeFetchResponse, IntObjectMap<? extends Bucket>>() {
 
-        @Nullable
-        @Override
-        public IntObjectMap<? extends Bucket> apply(@Nullable NodeFetchResponse input) {
-            return input == null ? null : input.fetched();
-        }
-    };
+            @Nullable
+            @Override
+            public IntObjectMap<? extends Bucket> apply(@Nullable NodeFetchResponse input) {
+                return input == null ? null : input.fetched();
+            }
+        };
     private final TransportFetchNodeAction transportFetchNodeAction;
     private final Map<String, ? extends IntObjectMap<Streamer[]>> nodeIdToReaderIdToStreamers;
     private final UUID jobId;

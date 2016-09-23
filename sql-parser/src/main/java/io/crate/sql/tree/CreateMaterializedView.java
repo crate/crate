@@ -27,69 +27,59 @@ import com.google.common.base.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class CreateMaterializedView
-        extends Statement
-{
+public class CreateMaterializedView extends Statement {
+
     private final QualifiedName name;
     private final Optional<String> refresh;
     private final Query tableDefinition;
 
-    public CreateMaterializedView(QualifiedName name, Optional<String> refresh, Query tableDefinition)
-    {
+    public CreateMaterializedView(QualifiedName name, Optional<String> refresh, Query tableDefinition) {
         this.name = checkNotNull(name, "name is null");
         this.refresh = checkNotNull(refresh, "refresh is null");
         this.tableDefinition = checkNotNull(tableDefinition, "tableDefinition is null");
     }
 
-    public QualifiedName getName()
-    {
+    public QualifiedName getName() {
         return name;
     }
 
-    public Optional<String> getRefresh()
-    {
+    public Optional<String> getRefresh() {
         return refresh;
     }
 
-    public Query getTableDefinition()
-    {
+    public Query getTableDefinition() {
         return tableDefinition;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCreateMaterializedView(this, context);
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hashCode(name, refresh, tableDefinition);
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
-        }
-        else if ((obj == null) || (getClass() != obj.getClass())) {
+        } else if ((obj == null) || (getClass() != obj.getClass())) {
             return false;
         }
         CreateMaterializedView o = (CreateMaterializedView) obj;
         return Objects.equal(name, o.name)
-                && Objects.equal(refresh, o.refresh)
-                && Objects.equal(tableDefinition, o.tableDefinition);
+               && Objects.equal(refresh, o.refresh)
+               && Objects.equal(tableDefinition, o.tableDefinition);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("name", name)
-                .add("refresh", refresh)
-                .add("tableDefinition", tableDefinition)
-                .toString();
+            .add("name", name)
+            .add("refresh", refresh)
+            .add("tableDefinition", tableDefinition)
+            .toString();
     }
 }

@@ -47,8 +47,8 @@ public class PassThroughPagingIteratorTest extends CrateUnitTest {
     public void testInputIsPassedThrough() throws Exception {
         PassThroughPagingIterator<Integer, String> iterator = iter();
         iterator.merge(Arrays.asList(
-                new KeyIterable<>(0, Arrays.asList("a", "b", "c")),
-                new KeyIterable<>(1, Arrays.asList("d", "e"))));
+            new KeyIterable<>(0, Arrays.asList("a", "b", "c")),
+            new KeyIterable<>(1, Arrays.asList("d", "e"))));
 
         iterator.finish();
         String[] objects = Iterators.toArray(iterator, String.class);
@@ -59,10 +59,10 @@ public class PassThroughPagingIteratorTest extends CrateUnitTest {
     public void testInputIsPassedThroughWithSecondMergeCall() throws Exception {
         PassThroughPagingIterator<Integer, String> iterator = iter();
         iterator.merge(Arrays.asList(
-                        new KeyIterable<>(0, Arrays.asList("a", "b", "c")),
-                        new KeyIterable<>(1, Arrays.asList("d", "e"))));
+            new KeyIterable<>(0, Arrays.asList("a", "b", "c")),
+            new KeyIterable<>(1, Arrays.asList("d", "e"))));
         iterator.merge(Collections.singletonList(
-                new KeyIterable<>(1, Arrays.asList("f", "g"))));
+            new KeyIterable<>(1, Arrays.asList("f", "g"))));
         iterator.finish();
         String[] objects = Iterators.toArray(iterator, String.class);
         assertThat(objects, Matchers.arrayContaining("a", "b", "c", "d", "e", "f", "g"));

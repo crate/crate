@@ -42,8 +42,7 @@ public class SQLArgsParseElement implements SQLParseElement {
     }
 
     protected Object[] parseSubArray(SQLXContentSourceContext context, XContentParser parser)
-        throws IOException
-    {
+        throws IOException {
         XContentParser.Token token;
         List<Object> subList = new ArrayList<Object>();
 

@@ -158,7 +158,7 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testLeftJoinWithCoalesceOnOuter() throws Exception {
-         // coalesce causes a NULL row which is emitted from the join to become a match
+        // coalesce causes a NULL row which is emitted from the join to become a match
         execute("select employees.name, offices.name from" +
                 " employees left join offices on office_id = offices.id" +
                 " where coalesce(offices.size, cast(110 as integer)) > 100" +

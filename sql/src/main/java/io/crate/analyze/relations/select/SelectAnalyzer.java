@@ -45,7 +45,7 @@ public class SelectAnalyzer {
     private static final InnerVisitor INSTANCE = new InnerVisitor();
 
     public static SelectAnalysis analyzeSelect(Select select,
-                                               RelationAnalysisContext context){
+                                               RelationAnalysisContext context) {
         SelectAnalysis selectAnalysis = new SelectAnalysis(context);
         INSTANCE.process(select, selectAnalysis);
         SelectSymbolValidator.validate(selectAnalysis.outputSymbols);

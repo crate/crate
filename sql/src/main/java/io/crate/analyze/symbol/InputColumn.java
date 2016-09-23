@@ -86,7 +86,8 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
         this(index, null);
     }
 
-    protected InputColumn() {}
+    protected InputColumn() {
+    }
 
     public int index() {
         return index;
@@ -127,9 +128,9 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("index", index)
-                .add("type", dataType)
-                .toString();
+            .add("index", index)
+            .add("type", dataType)
+            .toString();
     }
 
     @Override

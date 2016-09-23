@@ -60,7 +60,6 @@ public class HttpTestServer {
 
 
     /**
-     *
      * @param port the port to listen on
      * @param fail of set to true, the server will emit error responses
      */
@@ -73,7 +72,7 @@ public class HttpTestServer {
     public void run() {
         // Configure the server.
         ServerBootstrap bootstrap = new ServerBootstrap(
-                this.channelFactory);
+            this.channelFactory);
 
         // Set up the pipeline factory.
         bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
@@ -125,11 +124,11 @@ public class HttpTestServer {
     public class HttpTestServerHandler extends SimpleChannelUpstreamHandler {
 
         private final ESLogger logger = Loggers.getLogger(
-                HttpTestServerHandler.class.getName());
+            HttpTestServerHandler.class.getName());
 
         @Override
         public void messageReceived(
-                ChannelHandlerContext ctx, MessageEvent e) {
+            ChannelHandlerContext ctx, MessageEvent e) {
             Object msg = e.getMessage();
 
             if (msg instanceof HttpRequest) {
@@ -180,11 +179,11 @@ public class HttpTestServer {
 
         @Override
         public void exceptionCaught(
-                ChannelHandlerContext ctx, ExceptionEvent e) {
+            ChannelHandlerContext ctx, ExceptionEvent e) {
             // Close the connection when an exception is raised.
             logger.warn(
-                    "Unexpected exception from downstream.",
-                    e.getCause());
+                "Unexpected exception from downstream.",
+                e.getCause());
             e.getChannel().close();
         }
     }

@@ -23,8 +23,6 @@ package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.FunctionFormatSpec;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.metadata.FunctionIdent;
@@ -108,9 +106,9 @@ public class ExtractFunctions {
 
     private static FunctionInfo createFunctionInfo(Extract.Field field) {
         return new FunctionInfo(
-                new FunctionIdent(String.format(Locale.ENGLISH, NAME_TMPL, field.toString()), ARGUMENT_TYPES),
-                DataTypes.INTEGER,
-                FunctionInfo.Type.SCALAR
+            new FunctionIdent(String.format(Locale.ENGLISH, NAME_TMPL, field.toString()), ARGUMENT_TYPES),
+            DataTypes.INTEGER,
+            FunctionInfo.Type.SCALAR
         );
     }
 

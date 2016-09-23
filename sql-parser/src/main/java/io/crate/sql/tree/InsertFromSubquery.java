@@ -64,11 +64,11 @@ public class InsertFromSubquery extends Insert {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("table", table)
-                .add("columns", columns)
-                .add("subquery", subQuery)
-                .add("assignments", onDuplicateKeyAssignments)
-                .toString();
+            .add("table", table)
+            .add("columns", columns)
+            .add("subquery", subQuery)
+            .add("assignments", onDuplicateKeyAssignments)
+            .toString();
     }
 
     @Override

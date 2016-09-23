@@ -46,12 +46,12 @@ import static org.hamcrest.Matchers.is;
 
 public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
-    private static final ArrayType arrayOfIntegerType    = new ArrayType(DataTypes.INTEGER);
-    private static final ArrayType arrayOfLongType       = new ArrayType(DataTypes.LONG);
-    private static final ArrayType arrayOfStringType     = new ArrayType(DataTypes.STRING);
-    private static final ArrayType arrayOfBooleanType    = new ArrayType(DataTypes.BOOLEAN);
-    private static final ArrayType arrayOfIpType         = new ArrayType(DataTypes.IP);
-    private static final ArrayType arrayOfUndefinedType  = new ArrayType(DataTypes.UNDEFINED);
+    private static final ArrayType arrayOfIntegerType = new ArrayType(DataTypes.INTEGER);
+    private static final ArrayType arrayOfLongType = new ArrayType(DataTypes.LONG);
+    private static final ArrayType arrayOfStringType = new ArrayType(DataTypes.STRING);
+    private static final ArrayType arrayOfBooleanType = new ArrayType(DataTypes.BOOLEAN);
+    private static final ArrayType arrayOfIpType = new ArrayType(DataTypes.IP);
+    private static final ArrayType arrayOfUndefinedType = new ArrayType(DataTypes.UNDEFINED);
 
     private ArrayUniqueFunction getFunction(ArrayType... args) {
         List<DataType> argumentTypes = new ArrayList<>(args.length);
@@ -62,7 +62,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
         return function;
     }
 
-    private void assertEval(Object[] expected, Literal ... args) {
+    private void assertEval(Object[] expected, Literal... args) {
         List<DataType> argumentTypes = new ArrayList<>(args.length);
         Input[] inputs = new Input[args.length];
         for (int i = 0; i < args.length; i++) {
@@ -79,8 +79,8 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
         ArrayUniqueFunction function = getFunction(arrayOfIntegerType, arrayOfIntegerType);
 
         Symbol symbol = function.normalizeSymbol(new Function(function.info(), Arrays.<Symbol>asList(
-                Literal.of(new Integer[]{10, 20}, arrayOfIntegerType),
-                Literal.of(new Integer[]{10, 30}, arrayOfIntegerType)
+            Literal.of(new Integer[]{10, 20}, arrayOfIntegerType),
+            Literal.of(new Integer[]{10, 30}, arrayOfIntegerType)
         )), new StmtCtx());
 
         assertThat(symbol, isLiteral(new Integer[]{10, 20, 30}, arrayOfIntegerType));
@@ -91,8 +91,8 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
         ArrayUniqueFunction function = getFunction(arrayOfIntegerType, arrayOfIntegerType);
 
         Function functionSymbol = new Function(function.info(), Arrays.<Symbol>asList(
-                TestingHelpers.createReference("foo", arrayOfIntegerType),
-                Literal.of(new Integer[]{10, 30}, arrayOfIntegerType)
+            TestingHelpers.createReference("foo", arrayOfIntegerType),
+            Literal.of(new Integer[]{10, 30}, arrayOfIntegerType)
         ));
         Function symbol = (Function) function.normalizeSymbol(functionSymbol, new StmtCtx());
         assertThat(symbol, Matchers.sameInstance(functionSymbol));
@@ -110,8 +110,8 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
         ArrayUniqueFunction function = getFunction(arrayOfIntegerType, arrayOfIntegerType);
 
         Input[] inputs = new Input[]{
-                null,
-                Literal.NULL
+            null,
+            Literal.NULL
         };
 
         Object[] expected = new Object[]{};
@@ -129,25 +129,25 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testOneArgument() throws Exception {
         assertEval(
-                new Object[]{new BytesRef("foo"), new BytesRef("bar"), new BytesRef("baz")},
-                Literal.of(new Object[]{"foo", "bar", "baz", "baz"}, arrayOfStringType));
+            new Object[]{new BytesRef("foo"), new BytesRef("bar"), new BytesRef("baz")},
+            Literal.of(new Object[]{"foo", "bar", "baz", "baz"}, arrayOfStringType));
     }
 
     @Test
     public void testDifferentButConvertableInnerTypes() throws Exception {
-       assertEval(
-                new Object[]{1},
-                Literal.of(new Object[]{1},  arrayOfIntegerType),
-                Literal.of(new Object[]{1L}, arrayOfLongType));
+        assertEval(
+            new Object[]{1},
+            Literal.of(new Object[]{1}, arrayOfIntegerType),
+            Literal.of(new Object[]{1L}, arrayOfLongType));
     }
 
     @Test
     public void testConvertNonNumericStringToNumber() throws Exception {
         expectedException.expect(NumberFormatException.class);
         assertEval(
-                null,
-                Literal.of(new Object[]{1},              arrayOfIntegerType),
-                Literal.of(new Object[]{"foo","bar"},    arrayOfStringType));
+            null,
+            Literal.of(new Object[]{1}, arrayOfIntegerType),
+            Literal.of(new Object[]{"foo", "bar"}, arrayOfStringType));
     }
 
     @Test
@@ -155,52 +155,51 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Second argument's inner type (ip) of the array_unique function cannot be converted to the first argument's inner type (boolean)");
         assertEval(
-                null,
-                Literal.of(new Object[]{true},                       arrayOfBooleanType),
-                Literal.of(new Object[]{new BytesRef("127.0.0.1")},  arrayOfIpType));
+            null,
+            Literal.of(new Object[]{true}, arrayOfBooleanType),
+            Literal.of(new Object[]{new BytesRef("127.0.0.1")}, arrayOfIpType));
 
     }
 
     @Test
     public void testNullElements() throws Exception {
         assertEval(
-                new Object[]{1, null, 3, 2},
-                Literal.of(new Object[]{1, null, 3}, arrayOfIntegerType),
-                Literal.of(new Object[]{null, 2, 3}, arrayOfIntegerType));
+            new Object[]{1, null, 3, 2},
+            Literal.of(new Object[]{1, null, 3}, arrayOfIntegerType),
+            Literal.of(new Object[]{null, 2, 3}, arrayOfIntegerType));
     }
 
     @Test
     public void testTwoIntegerArguments() throws Exception {
         assertEval(
-                new Object[]{1,2,3},
-                Literal.of(new Object[]{1,2}, arrayOfIntegerType),
-                Literal.of(new Object[]{2,3}, arrayOfIntegerType));
+            new Object[]{1, 2, 3},
+            Literal.of(new Object[]{1, 2}, arrayOfIntegerType),
+            Literal.of(new Object[]{2, 3}, arrayOfIntegerType));
     }
 
     @Test
     public void testTwoLongArguments() throws Exception {
         assertEval(
-                new Object[]{44L, 55L, 66L},
-                Literal.of(new Object[]{44L, 55L}, arrayOfLongType),
-                Literal.of(new Object[]{55L, 66L}, arrayOfLongType));
+            new Object[]{44L, 55L, 66L},
+            Literal.of(new Object[]{44L, 55L}, arrayOfLongType),
+            Literal.of(new Object[]{55L, 66L}, arrayOfLongType));
     }
 
     @Test
     public void testTwoStringArguments() throws Exception {
         assertEval(
-                new Object[]{new BytesRef("foo"),new BytesRef("bar"),new BytesRef("baz")},
-                Literal.of(new Object[]{"foo","bar"}, arrayOfStringType),
-                Literal.of(new Object[]{"bar","baz"}, arrayOfStringType));
+            new Object[]{new BytesRef("foo"), new BytesRef("bar"), new BytesRef("baz")},
+            Literal.of(new Object[]{"foo", "bar"}, arrayOfStringType),
+            Literal.of(new Object[]{"bar", "baz"}, arrayOfStringType));
     }
 
     @Test
     public void testEmptyArrayAndIntegerArray() throws Exception {
         assertEval(
-                new Object[]{111, 222, 333},
-                Literal.of(new Object[]{},              arrayOfUndefinedType),
-                Literal.of(new Object[]{111, 222, 333}, arrayOfIntegerType));
+            new Object[]{111, 222, 333},
+            Literal.of(new Object[]{}, arrayOfUndefinedType),
+            Literal.of(new Object[]{111, 222, 333}, arrayOfIntegerType));
     }
-
 
 
     @Test
@@ -208,8 +207,8 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("One of the arguments of the array_unique function can be of undefined inner type, but not both");
         assertEval(new Object[]{},
-                Literal.of(new Object[]{}, arrayOfUndefinedType),
-                Literal.of(new Object[]{}, arrayOfUndefinedType));
+            Literal.of(new Object[]{}, arrayOfUndefinedType),
+            Literal.of(new Object[]{}, arrayOfUndefinedType));
     }
 
     @Test
@@ -217,7 +216,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("When used with only one argument, the inner type of the array argument cannot be undefined");
         assertEval(
-                null,
-                Literal.of(new Object[]{}, arrayOfUndefinedType));
+            null,
+            Literal.of(new Object[]{}, arrayOfUndefinedType));
     }
 }

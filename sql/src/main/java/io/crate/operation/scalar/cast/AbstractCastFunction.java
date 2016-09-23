@@ -37,7 +37,7 @@ import java.util.List;
 import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.PAREN_CLOSE;
 import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.PAREN_OPEN;
 
-public abstract class AbstractCastFunction<From, To> extends Scalar<To,From> implements FunctionFormatSpec {
+public abstract class AbstractCastFunction<From, To> extends Scalar<To, From> implements FunctionFormatSpec {
 
     public static final String TRY_CAST_SQL_NAME = "try_cast";
     public static final String CAST_SQL_NAME = "cast";
@@ -120,7 +120,7 @@ public abstract class AbstractCastFunction<From, To> extends Scalar<To,From> imp
 
         protected void checkPreconditions(List<DataType> dataTypes) {
             Preconditions.checkArgument(dataTypes.size() == 1,
-                    "invalid size of arguments, 1 expected");
+                "invalid size of arguments, 1 expected");
             DataType convertFrom = dataTypes.get(0);
             Preconditions.checkArgument(convertFrom.isConvertableTo(dataType), "type '%s' not supported for conversion to '%s'", convertFrom, dataType);
         }

@@ -32,7 +32,7 @@ import java.util.List;
 /**
  * projector that simply applies its inputs to the given row in {@link #setNextRow(Row)}
  * and returns the results to its downstream.
- *
+ * <p>
  * Differs from {@link SimpleTopNProjector} in that it does not apply any limit or offset.
  */
 public class InputRowProjector extends AbstractProjector {

@@ -57,7 +57,7 @@ public class NodeStatsCollectSourceTest extends CrateUnitTest {
         discoveryNodes.add(newNode("Arthur", "node-3", ImmutableMap.<String, String>of()));
     }
 
-    private List<DiscoveryNode>filterNodes(String where) throws NoSuchFieldException, IllegalAccessException {
+    private List<DiscoveryNode> filterNodes(String where) throws NoSuchFieldException, IllegalAccessException {
         // build where clause with id = ?
         SysNodesTableInfo tableInfo = mock(SysNodesTableInfo.class);
         when(tableInfo.ident()).thenReturn(new TableIdent("sys", "nodes"));

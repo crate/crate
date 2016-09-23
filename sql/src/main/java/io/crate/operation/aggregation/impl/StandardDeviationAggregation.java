@@ -51,12 +51,12 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     public static void register(AggregationImplModule mod) {
         for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             mod.register(new StandardDeviationAggregation(new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
-                    FunctionInfo.Type.AGGREGATE)));
+                new FunctionIdent(NAME, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
+                FunctionInfo.Type.AGGREGATE)));
         }
         mod.register(new StandardDeviationAggregation(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
-                FunctionInfo.Type.AGGREGATE)));
+            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
+            FunctionInfo.Type.AGGREGATE)));
     }
 
     public static class StdDevState implements Comparable<StdDevState> {
@@ -83,7 +83,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     }
 
     public static class StdDevStateType extends DataType<StdDevState>
-            implements Streamer<StdDevState>, FixedWidthType, DataTypeFactory {
+        implements Streamer<StdDevState>, FixedWidthType, DataTypeFactory {
 
         public static final StdDevStateType INSTANCE = new StdDevStateType();
         public static final int ID = 8192;
@@ -105,7 +105,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
 
         @Override
         public StdDevState value(Object value) throws IllegalArgumentException, ClassCastException {
-            return (StdDevState)value;
+            return (StdDevState) value;
         }
 
         @Override
@@ -132,7 +132,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
 
         @Override
         public void writeValueTo(StreamOutput out, Object v) throws IOException {
-            StdDevState state = (StdDevState)v;
+            StdDevState state = (StdDevState) v;
             state.stdDev.writeTo(out);
         }
     }
